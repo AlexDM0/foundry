@@ -1,13 +1,16 @@
 /**
  * The popover, in a happy-dom document. What matters: closed, it renders nothing; open, it is a dialog named by its label; Esc and a
  * pointer down outside call `onDismiss` with the reason, while a pointer down on its anchor does not; its width and placement set their
- * attributes; and the words are text, never markup.
+ * attributes; closing with a leaving animation, it stays marked out and inert until that animation's time has passed; and the words are
+ * text, never markup.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  waitFor
 } from '@testing-library/react';
 import {
   afterEach,
@@ -74,6 +77,20 @@ describe('the popover', () => {
     render(<AnchoredPopover isOpen reasons={[]} placement="below-start" width="inbox" />);
     const popover = screen.getByRole('dialog');
     expect([popover.getAttribute('data-placement'), popover.getAttribute('data-width')]).toEqual(['below-start', 'inbox']);
+  });
+
+  test('closing with a leaving animation, it stays marked out and inert until that animation\'s time has passed', async () => {
+    const leavingStyle = document.createElement('style');
+    leavingStyle.textContent = '.design-system-popover[data-motion="out"] { animation-name: example-leave; animation-duration: 0.02s; }';
+    document.head.append(leavingStyle);
+    const { rerender } = render(<AnchoredPopover isOpen reasons={[]} />);
+    act(() => rerender(<AnchoredPopover isOpen={false} reasons={[]} />));
+    const leaving = document.querySelector('.design-system-popover');
+    expect([leaving?.getAttribute('data-motion'), leaving?.hasAttribute('inert')]).toEqual(['out', true]);
+    await waitFor(() => {
+      expect(document.querySelector('.design-system-popover')).toBeNull();
+    });
+    leavingStyle.remove();
   });
 
   test('the label is text, never markup', () => {

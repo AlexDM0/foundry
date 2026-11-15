@@ -1,6 +1,7 @@
 /**
  * log.jsonl is rewritten whole from the records read back, so a record the Board logged must map to itself byte for byte, in the Board's key
- * order (at, kind, taskId, ticketId, fields), and a key the tool does not know, at the top or inside the fields, must not travel on.
+ * order (at, kind, taskId, ticketId, fields), and a key the tool does not know, at the top or inside the fields, must not travel on; a
+ * refusal detail travels whole, since a lost Hatch reply is written again from it.
  */
 import { expect, test } from 'bun:test';
 
@@ -72,4 +73,20 @@ test('keys the kind does not know are dropped, at the top, inside the fields and
 test('an automatic chart range keeps only its kind', () => {
   const stored = { at: RECORDED_AT, kind: 'chart-range-set', fields: { view: { kind: 'auto', from: '-2h' } } };
   expect(recordOf(stored)).toEqual({ at: RECORDED_AT, kind: 'chart-range-set', fields: { view: { kind: 'auto' } } });
+});
+
+test('a refused relayed request keeps its reply\'s status and whole detail, so the Hatch can write that reply again', () => {
+  const line = JSON.stringify({
+    at:     RECORDED_AT,
+    kind:   'hatch-applied',
+    jobId:  'J1',
+    fields: {
+      requestId:   'request-5',
+      commandKind: 'ticket-add',
+      outcome:     'refused',
+      status:      'refused',
+      detail:      { kind: 'role-command-refused', reason: 'example-reason', commandKind: 'ticket-add' },
+    },
+  });
+  expect(JSON.stringify(recordOf(JSON.parse(line)))).toBe(line);
 });

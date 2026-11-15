@@ -5,8 +5,13 @@
  * a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` walks real git through and records; a call it did not
  * record fails the case. A file the hooks digest reads is written here, since the digest reads the folder, not git.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join }            from 'node:path';
+import {
+  chmodSync,
+  mkdirSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import {
   afterEach,
@@ -15,12 +20,12 @@ import {
   test
 } from 'bun:test';
 
-import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
-import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
+import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
+import { TicketBodyHashUtil }                                  from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
+import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';
+import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot } from '../../testing/ToolGuard.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   launchSnapshotOf,
@@ -219,6 +224,12 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
     expect(refusal('V13', reviewerSubject([]))?.facts).toEqual(['.mcp.json']);
   });
 
+  test('an untracked file under .claude/ whose name git would quote refuses, read unquoted', () => {
+    writeFileIn('.claude/example"untracked.md', '# Example\n');
+    enter(GIT_SCENARIOS.CLAUDE_FILE_QUOTED_NAME_UNTRACKED);
+    expect(refusal('V13', reviewerSubject([]))?.facts).toEqual(['.claude/example"untracked.md']);
+  });
+
   test('the hooks folder is core.hooksPath read from git: a change under it refuses, the same file elsewhere passes', () => {
     mkdirSync(join(repositoryDirectory, 'other-hooks'));
     mkdirSync(join(repositoryDirectory, 'example-hooks'));
@@ -243,7 +254,8 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
     [GIT_SCENARIOS.CLAUDE_FOLDER_IN_CAPITALS, '.CLAUDE/settings.json'],
     [GIT_SCENARIOS.CLAUDE_FOLDER_CAPITALISED, '.Claude/agents/example.md'],
     [GIT_SCENARIOS.MCP_FILE_IN_CAPITALS, '.MCP.json'],
-  ])('%s refuses: agent configuration matches in any case', (scenario, gitPath) => {
+    [GIT_SCENARIOS.CLAUDE_FILE_QUOTED_NAME, '.claude/agents/example"quoted.md'],
+  ])('%s refuses: agent configuration matches in any case, and a name git would quote is read unquoted', (scenario, gitPath) => {
     writeFileIn(gitPath, '{}\n');
     enter(scenario);
     expect(refusal('V13', reviewerSubject([]))).toEqual({ reason: 'branch-touches-agent-config', facts: [gitPath] });
@@ -261,6 +273,38 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
     expect(refusal('V13', reviewerSubject([]))).toBeNull();
     writeFileSync(join(hooksFolder, 'post-checkout'), 'exit 0\n');
     expect(refusal('V13', reviewerSubject([]))?.reason).toBe('branch-touches-agent-config');
+  });
+
+  test('a hook planted in .git/hooks as a symbolic link after launch refuses by the launch digest', () => {
+    const hooksFolder = join(repositoryDirectory, '.git', 'hooks');
+    mkdirSync(hooksFolder, { recursive: true });
+    writeFileIn('example-hook.sh', 'exit 0\n');
+    launchIn(GIT_SCENARIOS.ONE_COMMIT);
+    symlinkSync(join(repositoryDirectory, 'example-hook.sh'), join(hooksFolder, 'pre-commit'));
+    expect(refusal('V13', reviewerSubject([]))?.reason).toBe('branch-touches-agent-config');
+  });
+
+  test('a hook in .git/hooks made executable after launch refuses by the launch digest, since git runs only an executable hook', () => {
+    const hookPath = join(repositoryDirectory, '.git', 'hooks', 'pre-commit');
+    writeFileIn('.git/hooks/pre-commit', 'exit 0\n');
+    chmodSync(hookPath, 0o644);
+    launchIn(GIT_SCENARIOS.ONE_COMMIT);
+    expect(refusal('V13', reviewerSubject([]))).toBeNull();
+    chmodSync(hookPath, 0o755);
+    expect(refusal('V13', reviewerSubject([]))?.reason).toBe('branch-touches-agent-config');
+  });
+
+  testWhenNotRunningAsRoot('a hook in .git/hooks that cannot be read refuses V13 and takes no launch snapshot, instead of throwing', () => {
+    const hookPath = join(repositoryDirectory, '.git', 'hooks', 'pre-commit');
+    writeFileIn('.git/hooks/pre-commit', 'exit 0\n');
+    launchIn(GIT_SCENARIOS.ONE_COMMIT);
+    chmodSync(hookPath, 0o000);
+    try {
+      expect(refusal('V13', reviewerSubject([]))?.reason).toBe('branch-touches-agent-config');
+      expect(launchSnapshotOf(repositoryDirectory)).toBeNull();
+    } finally {
+      chmodSync(hookPath, 0o644);
+    }
   });
 
   test('before a launch, the branch\'s own commits past its target are read: a target holding .claude/ passes, the branch adding it refuses', () => {

@@ -1,8 +1,14 @@
-/* What a place shows while it holds nothing: small muted text, padded like a card; compact, only above and below. */
+/* What a place shows while it holds nothing: small muted text, padded like a card, fading in where the last item left; compact, only
+   above and below. */
 .design-system-empty {
   margin: 0;
   padding: var(--sp-5) var(--sp-4);
   font-size: var(--fs-small);
   color: var(--ink-muted);
+  animation: design-system-fade var(--motion-fade) var(--ease-out) both;
 }
 .design-system-empty[data-compact] { padding: var(--sp-2) 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-empty { animation: none; }
+}

@@ -14,7 +14,7 @@ import type { AgentQuestions }    from './AgentQuestions.ts';
 import type { BoardRecords }      from './BoardRecords.ts';
 import { BoardRefusal }           from './BoardRefusal.ts';
 import type { Decisions }         from './Decisions.ts';
-import type { Jobs }              from './Jobs.ts';
+import type { JobMessage, Jobs }  from './Jobs.ts';
 import type { TicketSettings }    from './TicketSettings.ts';
 import { jobStopHoldOf }          from './constants/JobStopHolds.ts';
 import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
@@ -84,21 +84,24 @@ export class JobControls {
    * A product owner or pipeline agent that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the
    * text and pictures as its first line. A product owner keeps the title its intake was given, and the log records the tickets its intake
    * filed before. Every other finished job is refused `job-finished`. Only a product owner takes pictures: any other job is refused
-   * `pictures-not-taken`.
+   * `pictures-not-taken`. The message's sender is logged, so the transcript tells the Overseer's setup wording from User's words.
    */
-  messageJob(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
+  messageJob(jobId: string, message: JobMessage, at: string): JobChanged {
+    const { text, pictures, sender } = message;
     const ended = this.jobRules.endedJobOutcomeOf(jobId);
     const kind = ended?.kind ?? this.jobRules.jobById(jobId)?.kind;
     if (pictures.length > 0 && kind !== undefined && kind !== PRODUCT_OWNER_KIND) throw new BoardRefusal({ reason: 'pictures-not-taken', jobId, kind });
-    if (ended === undefined || !REOPENABLE_SESSION_KINDS.includes(ended.kind) || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, text, pictures, at);
-    if (ended.kind === PIPELINE_AGENT_KIND) return this.jobRules.reopenEndedJob(jobId, { text, pictures, offeredTicketIds: [] }, at);
+    if (ended === undefined || !REOPENABLE_SESSION_KINDS.includes(ended.kind) || ended.outcome !== 'closed') return this.jobRules.recordMessage(jobId, message, at);
+    if (ended.kind === PIPELINE_AGENT_KIND) return this.jobRules.reopenEndedJob(jobId, {
+      text, pictures, offeredTicketIds: [], sender
+    }, at);
     const offeredTicketIds = this.records.ticketRecords
       .filter(({ frontmatter }) => frontmatter.filedByJob !== undefined && this.intakeChainOfJobId(jobId).includes(frontmatter.filedByJob))
       .map(({ frontmatter }) => frontmatter.id);
     const title = this.newestIntakeTitleOf(jobId);
     const intake = { text, ...(title === undefined ? {} : { title }), ...(pictures.length === 0 ? {} : { pictures: [...pictures] }) };
     return this.jobRules.reopenEndedJob(jobId, {
-      text, pictures, offeredTicketIds, intake
+      text, pictures, offeredTicketIds, sender, intake
     }, at);
   }
 

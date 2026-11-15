@@ -19,12 +19,13 @@ import type { ExecutableRefusalCause }                                          
 import { type ConfinedLine, confinedLineOf }                                          from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                                                 from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                                       from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellLine }                                                             from '../../lib/shell-line/ShellLine.ts';
 import type { DecisionAnswer }                                                        from '../../lib/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }                                    from '../../lib/tracker-model/@types/Incident.ts';
 import type { InterruptionCause, Job, JobKind }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }                                        from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep }                          from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                 from '../../lib/tracker-model/Board.ts';
 import { Playbook }                                                                   from '../../lib/tracker-model/Playbook.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
@@ -42,16 +43,16 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { type GateConfinement }                                from '../lifecycle/GateRun.ts';
-import { MergeRun }                                            from '../lifecycle/MergeRun.ts';
-import { GROUP_TARGET_PREFIX }                                 from '../lifecycle/MergeTargets.ts';
-import { ReviewOutcome }                                       from '../lifecycle/ReviewOutcome.ts';
-import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
-import type { Workspace }                                      from '../tracker/Workspace.ts';
-import { AgentSlots }                                          from './AgentSlots.ts';
-import { AirlockFactsFile, type AirlockAgentPhase }            from './AirlockFactsFile.ts';
-import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
+import { type GateConfinement, type PipelineRunRequest, type PipelineVerdict } from '../lifecycle/GateRun.ts';
+import { MergeRun }                                                            from '../lifecycle/MergeRun.ts';
+import { GROUP_TARGET_PREFIX }                                                 from '../lifecycle/MergeTargets.ts';
+import { ReviewOutcome }                                                       from '../lifecycle/ReviewOutcome.ts';
+import { writeTracker, type TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                                 from '../tracker/TrackerReader.ts';
+import type { Workspace }                                                      from '../tracker/Workspace.ts';
+import { AgentSlots }                                                          from './AgentSlots.ts';
+import { AirlockFactsFile, type AirlockAgentPhase }                            from './AirlockFactsFile.ts';
+import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot }                 from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
   createAirlocks,
@@ -310,6 +311,7 @@ interface Observation {
   targetsHoldingManagedBlock:   readonly string[];
   buildJobs:                    readonly BuildJobObservation[];
   ticketIdsTouchingAgentConfig: readonly string[];
+  answeredWaiverTrees:          ReadonlyMap<string, string | null>;
   usageMarker:                  UsageMarkerReading;
   assistantReadings:            readonly AssistantReading[];
   fingerprint:                  string;
@@ -440,6 +442,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
+  const answeredWaiverTrees = JobLaunch.answeredWaiverTreesOf(jobLaunchContext, jobs, progress.decisions ?? []);
   const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs);
   const usageMarker = UsageMarkerFile.read(request.monitorFolder);
   if (usageMarker.verdict === 'malformed') {
@@ -452,6 +455,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     targetsHoldingManagedBlock,
     buildJobs,
     ticketIdsTouchingAgentConfig,
+    answeredWaiverTrees,
     usageMarker,
     assistantReadings,
     fingerprint: fingerprintOf(workspace, watchers, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
@@ -498,7 +502,6 @@ function applyWatcherEvents(
   const usageWindowObservations: UsageWindowObservation[] = [];
   const stoppedSessions: StoppedSession[] = [];
   const pipelineAgentTurnEnds: string[] = [];
-  const apiRateLimitResetsAt = apiBilling === null ? null : UsageLimits.apiRateLimitResetsAtOf(at);
   for (const watcher of watchers) {
     if (board.jobById(watcher.jobId)?.watcherInstance !== watcher.instance) continue;
     let closedWithResult = false;
@@ -508,7 +511,7 @@ function applyWatcherEvents(
         const state = board.jobById(watcher.jobId)?.state;
         const windowObservation = UsageLimits.windowObservationOf(event, apiBilling !== null);
         if (windowObservation !== null) usageWindowObservations.push(windowObservation);
-        const refusal = UsageLimits.refusalOf(event, apiRateLimitResetsAt);
+        const refusal = UsageLimits.refusalOf(event, at, apiBilling !== null);
         if (refusal !== null && state === 'running') {
           const hit = { jobId: watcher.jobId, ...refusal };
           UsageLimits.interruptLimitedJob(board, hit, at);
@@ -592,6 +595,22 @@ function openApiKeyDecisionIdsOf(board: Board): string[] {
 /** The key is set, or the billing no longer needs one: the open decision asks User for nothing. */
 function withdrawApiKeyDecisions(board: Board, at: string): void {
   for (const decisionId of openApiKeyDecisionIdsOf(board)) board.withdrawDecision(decisionId, API_KEY_DECISION_WITHDRAWN_REASON, at);
+}
+
+/**
+ * Acts on each answered waiver the Playbook named, with the tree read outside the lock. An answer that came after the observation has no
+ * tree yet, so it waits for the next pass. Answers whether another pass is due: the one that launches what the answer freed, or acts on it.
+ */
+function actOnWaiverAnswers(
+  change: TrackerChange, steps: readonly PlaybookStep[], answeredWaiverTrees: ReadonlyMap<string, string | null>, trackerDirectory: string
+): boolean {
+  const waiverAnswerSteps = steps.flatMap((step) => (step.kind === 'act-on-waiver-answer' ? [step] : []));
+  for (const step of waiverAnswerSteps) {
+    if (!answeredWaiverTrees.has(step.jobId)) continue;
+    const headTree = answeredWaiverTrees.get(step.jobId) ?? null;
+    ReviewOutcome.actOnWaiverAnswer(change.board, step.jobId, step.answers, WatcherFleet.jobFolderOf(trackerDirectory, step.jobId), headTree, change.at);
+  }
+  return waiverAnswerSteps.length > 0;
 }
 
 function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
@@ -1017,6 +1036,33 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     return overseerGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), commandArguments, confinement);
   }
 
+  /** The merged-tree gate lines running now: each leads a process group of its own, so only its stopped tree ends with the Overseer. */
+  const mergedTreeGateProcesses = new Set<ProcessIdentity>();
+
+  function stopMergedTreeGate(gateProcess: ProcessIdentity): void {
+    const { processSupervision } = platformPorts;
+    const stop = processSupervision.stopTree(gateProcess, 'force', processSupervision.treeMembersOf(gateProcess) ?? undefined);
+    if (stop.verdict === 'refused') request.log(`The stop of a merged-tree gate was refused: ${stop.reason}`);
+  }
+
+  async function runMergedTreeGatePipeline(pipelineRequest: PipelineRunRequest): Promise<PipelineVerdict> {
+    let gateProcess: ProcessIdentity | null = null;
+    try {
+      return await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
+        ...pipelineRequest,
+        onSpawned: (processId) => {
+          if (gateProcess !== null) mergedTreeGateProcesses.delete(gateProcess);
+          gateProcess = platformPorts.processSupervision.identityOf(processId);
+          if (gateProcess === null) return;
+          mergedTreeGateProcesses.add(gateProcess);
+          if (stopped) stopMergedTreeGate(gateProcess);
+        },
+      });
+    } finally {
+      if (gateProcess !== null) mergedTreeGateProcesses.delete(gateProcess);
+    }
+  }
+
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
     workspace:        request.workspace,
     at:               request.formatStamp(request.now()),
@@ -1107,7 +1153,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
-      const verdict  = await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
+      const verdict  = await runMergedTreeGatePipeline({
         shellLine:       platformPorts.shellLine,
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline === null ? [] : PipelineUtil.gatesOfPhase(pipeline, phase),
@@ -1246,6 +1292,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           agentSlots.keepOnly(observation.trackerId, slotJobIdsBefore);
           throw thrown;
         }
+        const waiverAnswersAwaitAPass = actOnWaiverAnswers(change, steps, observation.answeredWaiverTrees, request.workspace.trackerDirectory);
         const slotJobIdsAfter = LaunchSlotUtil.slotJobIdsOf(change.board.jobs());
         agentSlots.assignReservations(observation.trackerId, slotJobIdsAfter.filter((jobId) => !slotJobIdsBefore.includes(jobId)));
         agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
@@ -1268,6 +1315,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           agentConfigHeldTicketIds:     agentConfigHold.held,
           nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), change.board.pipeline(), LIFECYCLE_LIMITS),
           ticketsWaitingForMachineSlot: steps.filter((step) => step.kind === 'await-machine-slot').length,
+          waiverAnswersAwaitAPass,
         };
       },
     });
@@ -1369,7 +1417,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     lastFingerprint = settled.watchers.some((watcher) => watcher.events.length > 0) ? null : settled.fingerprint;
     // A job the merge sweep launched after this pass spawned Watchers needs one more pass, which its settled fingerprint would skip.
     const jobIdsThisPassSaw = new Set(written.board.jobs().map((job) => job.id));
-    if (JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || settled.watchers.some((watcher) => !jobIdsThisPassSaw.has(watcher.jobId))) {
+    const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass;
+    if (passIsDue || settled.watchers.some((watcher) => !jobIdsThisPassSaw.has(watcher.jobId))) {
       forcedNext = true;
       wokenAgain = true;
     }
@@ -1415,6 +1464,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     stopped = true;
     if (resetTimer !== null) clearTimeout(resetTimer);
     resetTimer = null;
+    for (const gateProcess of mergedTreeGateProcesses) stopMergedTreeGate(gateProcess);
     await (running ?? Promise.resolve());
     await gateProfiling.stopAll();
     await pipelineChecking.stopAll();

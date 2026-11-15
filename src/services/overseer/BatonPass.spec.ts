@@ -1,9 +1,10 @@
 /**
  * The checked Baton pass decides whether a board keeps an Overseer through an update, so each way a successor can fail is planted here, and
  * what matters is which side drives afterwards: a failure before `released` leaves the old Overseer driving and never releases it, one after
- * it hands the board back for generation n+2, a silent successor is killed (only while it is still that process), and every failure is
- * recorded before the final `failed` is left in the file, which is what `oversee restart` and `update` read. The crash rows "the old Overseer
- * dies during a baton-pass" and "a Baton pass's successor fails" are held here over the recorded process table; real processes and a real port are
+ * it hands the board back for generation n+2, a successor that gave up waiting during the release keeps its own reported cause, a silent
+ * successor is killed (only while it is still that process), and every failure is recorded before the final `failed` is left in the file,
+ * which is what `oversee restart` and `update` read. The crash rows "the old Overseer dies during a baton-pass" and "a Baton pass's
+ * successor fails" are held here over the recorded process table; real processes and a real port are
  * `src/services/overseer/BatonPass.integration.spec.ts`, the whole Baton pass between two real Overseers is held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`, and the agent that keeps running across it by
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
@@ -30,6 +31,7 @@ import {
   type BatonPassFailure,
   type BatonPassStep,
   type BatonPassStepRun,
+  type SuccessorAdmission,
   BatonPass
 } from './BatonPass.ts';
 
@@ -71,7 +73,12 @@ function stepsFailingAt(failing: BatonPassStep | null, ran: BatonPassStep[]): Ba
 }
 
 /** The old Overseer's side against an in-process successor; what it released and recorded, and its outcome. */
-async function handOverAgainst(successor: () => Promise<void>, successorIdentity: ProcessIdentity | null = liveSuccessor, schedule = SCHEDULE) {
+async function handOverAgainst(
+  successor: () => Promise<void>,
+  successorIdentity: ProcessIdentity | null = liveSuccessor,
+  schedule = SCHEDULE,
+  whileReleasing: () => Promise<void> = () => Promise.resolve(),
+) {
   const recorded: BatonPassFailure[] = [];
   let released = 0;
   const [outcome] = await Promise.all([
@@ -82,7 +89,7 @@ async function handOverAgainst(successor: () => Promise<void>, successorIdentity
       successorCodeVersion: SUCCESSOR_CODE,
       release:              () => {
         released += 1;
-        return Promise.resolve();
+        return whileReleasing();
       },
       recordFailure: (failure) => {
         // The file still holds the successor's own report while the failure is recorded.
@@ -149,6 +156,23 @@ describeWhenRecorded(['process-table-recording'], 'a successor failing after rel
     expect(outcome).toEqual({ verdict: 'taken-back', failure: { successorCodeVersion: SUCCESSOR_CODE, step: failing, error: 'Example failure' } });
     expect(recorded.length).toBe(1);
     expect(BatonPass.readBatonPass(batonPassFilePath)).toMatchObject({ state: 'failed', step: failing, afterRelease: true });
+  });
+
+  test('a successor that gave up waiting while the old Overseer released keeps its own failure, never overwritten by released', async () => {
+    let admission: Promise<SuccessorAdmission> = Promise.resolve('released');
+    const releaseOutlastingTheSuccessor = async () => {
+      expect(await admission).toBe('failed');
+      processTable.endProcess(liveSuccessor);
+    };
+    const { outcome, recorded, released } = await handOverAgainst(async () => {
+      admission = BatonPass.prepareAndAwaitRelease(successorRequest(() => true, SILENT_SUCCESSOR_SCHEDULE), stepsFailingAt(null, []));
+      await admission;
+    }, liveSuccessor, SCHEDULE, releaseOutlastingTheSuccessor);
+    const failure: BatonPassFailure = { successorCodeVersion: SUCCESSOR_CODE, step: 'await-release', error: 'no release within 3 tries' };
+    expect(released).toBe(1);
+    expect(outcome).toEqual({ verdict: 'taken-back', failure });
+    expect(recorded).toEqual([failure]);
+    expect(BatonPass.readBatonPass(batonPassFilePath)).toEqual({ state: 'failed', ...failure, afterRelease: true });
   });
 
   test('a successor that serves hands the board over, recording nothing', async () => {

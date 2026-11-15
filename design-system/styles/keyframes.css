@@ -10,3 +10,9 @@
 }
 @keyframes design-system-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes design-system-spin { to { transform: rotate(360deg); } }
+/* A part arriving from below, as a count going up, or from above, as a popover or a banner hanging from its edge; the reverse of a
+   drop is its leaving. */
+@keyframes design-system-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes design-system-drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+/* A focus ring appears at once, thick, and tightens to its 2px. */
+@keyframes design-system-focus-ring { from { outline-width: 4px; } }

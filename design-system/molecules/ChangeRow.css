@@ -11,7 +11,7 @@
 .design-system-change-row[data-density="row"] { gap: var(--sp-1); }
 .design-system-change-row[data-density="card"] { transition: var(--feedback-transition); }
 .design-system-change-row[data-density="card"]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
-.design-system-change-row-edge { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; transform-origin: top; animation: design-system-edge 420ms var(--ease-out) 200ms both; }
+.design-system-change-row-edge { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; transform-origin: top; animation: design-system-edge var(--motion-draw) var(--ease-out) var(--motion-follow) both; }
 .design-system-change-row[data-change="changed"] .design-system-change-row-edge { background: var(--change-changed-dot); }
 .design-system-change-row[data-change="new"] .design-system-change-row-edge { background: var(--tone-success); }
 .design-system-change-row[data-change="removed"] .design-system-change-row-edge { background: var(--change-removed-row-edge); }

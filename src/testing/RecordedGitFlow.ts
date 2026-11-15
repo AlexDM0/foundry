@@ -179,12 +179,13 @@ const TICKET_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
   ['rev-parse', '--absolute-git-dir'],
   { gitArguments: ['config', '--get', 'core.hooksPath'], exitCode: NEGATIVE, hookPolicy: 'repository-hooks' },
   ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'],
+  ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'],
   ['status', '--porcelain=v1', '--untracked-files=all'],
   ['diff', '--no-ext-diff', 'HEAD', '--'],
   ['merge-base', RECORDED_FLOW_MAIN_LINE, 'HEAD'],
   ['merge-base', '--is-ancestor', MAIN_TIP, 'HEAD'],
-  ['log', '--name-only', '--no-renames', '--format=', `${MAIN_TIP}..HEAD`, '--'],
-  ['diff', '--name-only', '--no-renames', MAIN_TIP, 'HEAD', '--'],
+  ['log', '--name-only', '--no-renames', '-z', '--format=', `${MAIN_TIP}..HEAD`, '--'],
+  ['diff', '--name-only', '--no-renames', '-z', MAIN_TIP, 'HEAD', '--'],
   ['rev-list', `${MAIN_TIP}..HEAD`],
   resolved('HEAD'),
   resolved(MAIN_TIP),
@@ -203,8 +204,8 @@ const TICKET_COMMIT_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
   ['rev-parse', '--verify', '--quiet', `${TICKET_TIP}^{tree}`],
   // A retry measures its work from the earlier attempt's start, which is this commit.
   ['merge-base', '--is-ancestor', TICKET_TIP, 'HEAD'],
-  ['log', '--name-only', '--no-renames', '--format=', `${TICKET_TIP}..HEAD`, '--'],
-  ['diff', '--name-only', '--no-renames', TICKET_TIP, 'HEAD', '--'],
+  ['log', '--name-only', '--no-renames', '-z', '--format=', `${TICKET_TIP}..HEAD`, '--'],
+  ['diff', '--name-only', '--no-renames', '-z', TICKET_TIP, 'HEAD', '--'],
   ['rev-list', `${TICKET_TIP}..HEAD`],
 ]);
 

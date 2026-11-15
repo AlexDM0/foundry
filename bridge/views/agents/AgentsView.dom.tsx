@@ -8,12 +8,13 @@
  * works on; the Sessions head tallies each kind of session; each card has its own empty line; the elapsed time ticks each second, says
  * "running" while the call has no result, and is tinted only while silent sweeps are above zero; the transcript replays then follows,
  * resumes after its last cursor when reopened, and renders an agent's markup as text; each control posts its ControlCommand and shows a
- * refusal verbatim, a message or answer only when written, clearing its field once applied; a watch-only Watcher offers only Stop; and
+ * refusal verbatim, a message or answer only when written, clearing its field once applied, and an answer only to the decision it was
+ * typed for; a watch-only Watcher offers only Stop; and
  * the project row offers the concurrency limit, Set only once the number differs, and no limit control on a board that states none. The
- * view opens with its title row; the selected job's side panel names the job and its state, holds one Flint slot (112, lane, posed from
- * the job's role) unless the question panel covers it and holds the page's one slot, its facts, its controls and its transcript, takes a
- * message in its foot only where the job takes one, drops a half-typed message once another job is selected, and × routes the panel
- * closed.
+ * view opens with its title row; the selected job's side panel names the job and its state, holds one Flint slot (112, lane), cued by the
+ * selected job while it runs and idle while it does not, unless the question panel covers it and holds the page's one slot, its facts, its
+ * controls and its transcript, takes a message in its foot only where the job takes one, drops a half-typed message once another job is
+ * selected, and × routes the panel closed.
  */
 import {
   act,
@@ -29,6 +30,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import type { ReactElement } from 'react';
 
 import type {
   BoardStateDocument,
@@ -45,6 +47,7 @@ import type { BridgeClock }                                                     
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { QuestionPanelShownContext }                                                       from '../../shell/CoveringPanel.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
+import { elementOf, flintHabitatSceneOf, placeAt }                                         from '../../testing/FlintHabitatScene.ts';
 import { createManualFlintFrames }                                                         from '../../testing/ManualFlintFrames.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                                        from '../../testing/TimestampSlicesFixture.ts';
@@ -163,7 +166,12 @@ interface RenderOptions {
   readonly questionPanelIsShown?: boolean;
 }
 
-function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions = {}): Rendered {
+interface AgentsSurroundings {
+  readonly sent: ControlCommandBody[];
+  readonly view: (shownJobs: readonly AgentJobDocument[], selectedJobId: string | null) => ReactElement;
+}
+
+function agentsSurroundingsOf(options: RenderOptions): AgentsSurroundings {
   const sent: ControlCommandBody[] = [];
   const surroundings = {
     availability:  'enabled' as const,
@@ -196,6 +204,11 @@ function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions 
       </QuestionPanelShownContext.Provider>
     </ControlSurroundingsContext.Provider>
   );
+  return { sent, view };
+}
+
+function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions = {}): Rendered {
+  const { sent, view } = agentsSurroundingsOf(options);
   const { rerender } = render(view(jobs, options.selectedJobId ?? null));
   return { sent, rerender: (shownJobs, selectedJobId = options.selectedJobId ?? null) => rerender(view(shownJobs, selectedJobId)) };
 }
@@ -368,6 +381,13 @@ describe('a row\'s live facts', () => {
     expect(cellOf(jobRow('J12'), 'subagents').textContent).toBe('1 running · 2 done');
     expect(cellOf(jobRow('J14'), 'subagents').textContent).toBe('none');
     expect(card('Agents').querySelectorAll('tr').length).toBe(4);
+    expect(cellOf(jobRow('J12'), 'subagents').querySelector('.agents-subagents')?.hasAttribute('data-one-line')).toBe(false);
+  });
+
+  test('the job panel reads its subagent figure beside the squares, on one line', () => {
+    renderAgents([{ ...BUILD_JOB, live: { ...LIVE, subagents: [exampleSubagent({ parentToolUseId: 'toolu-1' })] } }], { selectedJobId: 'J12' });
+    const panel = screen.getByRole('complementary', { name: 'Job J12' });
+    expect(panel.querySelector('.agents-subagents')?.hasAttribute('data-one-line')).toBe(true);
   });
 
   test('Show diagnostics adds Phase, Tool calls, Silent sweeps and Watcher to both cards, and takes them away again', async () => {
@@ -540,6 +560,20 @@ describe('the controls', () => {
     expect(answerField.value).toBe('');
   });
 
+  test('an answer half typed to one decision is dropped once the job opens another, so Send answer never posts it to that one', async () => {
+    const jobs = [{ ...BUILD_JOB, state: 'waiting-for-answer' as const }];
+    const firstAsk = agentsSurroundingsOf({ selectedJobId: 'J12', decisions: [exampleAskingDecision({ id: 'D3', jobId: 'J12' })] });
+    const secondAsk = agentsSurroundingsOf({ selectedJobId: 'J12', decisions: [exampleAskingDecision({ id: 'D4', jobId: 'J12' })] });
+    const { rerender } = render(firstAsk.view(jobs, 'J12'));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Answer' }), { target: { value: 'Use the shared helper.' } });
+    rerender(secondAsk.view(jobs, 'J12'));
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'Answer' }).value).toBe('');
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send answer' }).disabled).toBe(true);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Answer' }), { target: { value: 'Keep the old helper.' } });
+    await clicked('Send answer');
+    expect([...firstAsk.sent, ...secondAsk.sent]).toEqual([{ kind: 'decision-answer', decisionId: 'D4', answer: { form: 'text', text: 'Keep the old helper.' } }]);
+  });
+
   test('Answer is offered only while one of the job\'s decisions is open', () => {
     renderAgents([BUILD_JOB], { selectedJobId: 'J12' });
     expect(screen.queryByRole('button', { name: 'Send answer' })).toBeNull();
@@ -598,14 +632,26 @@ describe('the title row and the job panel', () => {
     expect(screen.queryByRole('complementary')).toBeNull();
   });
 
-  test('the panel names the job and its state, and holds one Flint slot posed from the job\'s role', () => {
+  test('the panel names the job and its state, and holds one Flint slot', () => {
     renderAgents([BUILD_JOB, REVIEW_JOB], { selectedJobId: 'J14' });
     const panel = screen.getByRole('complementary', { name: 'Job J14' });
     const flint = within(panel).getByRole('img', { name: 'Flint, the selected job\'s agent' });
-    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['112', 'lane', 'reviewing']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['112', 'lane']);
     expect(panel.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
     expect(within(panel).getByRole('heading', { level: 2, name: 'Job' })).toBeDefined();
     expect(within(panel).getByText('attempt 1')).toBeDefined();
+  });
+
+  test('the panel\'s Flint slot cues Flint from the selected job: idle once it waits on User, reviewing once its reviewer runs again', () => {
+    const { view } = agentsSurroundingsOf({});
+    const scene = flintHabitatSceneOf<readonly AgentJobDocument[]>({
+      storedHabitatKind: 'agent-job-slot',
+      viewOf:            (shownJobs) => view(shownJobs, 'J14'),
+      firstProps:        [BUILD_JOB, REVIEW_JOB],
+      placeView:         () => placeAt(elementOf('.design-system-flint-slot'), 100, 100, 112, 112),
+    });
+    expect(scene.cuesReceived(() => scene.show([BUILD_JOB, { ...REVIEW_JOB, state: 'waiting-for-answer' }]))).toEqual(['agent-is-idle']);
+    expect(scene.cuesReceived(() => scene.show([BUILD_JOB, REVIEW_JOB]))).toEqual(['agent-reviews']);
   });
 
   test('under the question panel, which holds the page\'s one Flint slot, the job panel shows none', () => {
@@ -615,10 +661,9 @@ describe('the title row and the job panel', () => {
     expect(within(panel).getByText('attempt 1')).toBeDefined();
   });
 
-  test('a builder\'s panel poses Flint typing, says how long ago the job launched, and links the job\'s tickets', () => {
+  test('a builder\'s panel says how long ago the job launched, and links the job\'s tickets', () => {
     renderAgents([BUILD_JOB], { selectedJobId: 'J12' });
     const panel = screen.getByRole('complementary', { name: 'Job J12' });
-    expect(within(panel).getByRole('img', { name: 'Flint, the selected job\'s agent' }).dataset['flintPose']).toBe('typing');
     expect(within(panel).getByText('running · 5s')).toBeDefined();
     expect(within(panel).getByRole('link', { name: /#042/ }).getAttribute('href')).toBe('#tickets/ticket-row/042');
     expect(within(panel).getByText('calls · 48,000 tokens')).toBeDefined();

@@ -1,7 +1,7 @@
 /**
  * The store folder listing the ticket, epic and draft stores share. What matters: a missing folder is an empty store, only files of the
- * extension count and come in file-name order, and a file whose stored key differs from its name is malformed, never listed, while a
- * malformed reading keeps its own reason and line.
+ * extension count, never a folder named like one, and come in file-name order, and a file whose stored key differs from its name is
+ * malformed, never listed, while a malformed reading keeps its own reason and line.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -42,6 +42,13 @@ test('only files of the extension are listed, in file-name order', () => {
   mkdirSync(directory, { recursive: true });
   for (const fileName of ['b.md', 'a.md', 'c.json', 'notes.txt']) writeFileSync(join(directory, fileName), '');
   expect(storeFolderFileNamesIn(directory, '.md')).toEqual(['a.md', 'b.md']);
+});
+
+// `clear --all` journals a removal of every listed entry; a folder named like a stored file would fail every later replay of that journal.
+test('a folder named with the extension is not listed', () => {
+  mkdirSync(join(directory, 'notes.md'), { recursive: true });
+  writeFileSync(join(directory, 'a.md'), '');
+  expect(storeFolderFileNamesIn(directory, '.md')).toEqual(['a.md']);
 });
 
 test('a file whose key differs from its name is malformed, and a refused reading keeps its reason and line', () => {

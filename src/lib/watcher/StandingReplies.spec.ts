@@ -37,6 +37,13 @@ test('a template needing a request id the line lacks is not sent, and the id is 
   expect(JSON.parse(reply)).toEqual({ request_id: 'r-"8"', behavior: 'deny' });
 });
 
+test('an id holding a replacement pattern goes in as it is, never read as one', () => {
+  for (const requestIdentifier of ['r-$&', 'r-$\'', 'r-$`', 'r-$$']) {
+    const reply = standingReplyFor(permissionRequest('Bash', requestIdentifier), [DENY_ALL_BUT_QUESTIONS]) ?? '';
+    expect(JSON.parse(reply)).toEqual({ request_id: requestIdentifier, behavior: 'deny' });
+  }
+});
+
 test('a path is read only through own keys', () => {
   const rule: StandingReply = { whenAllEqual: { 'request.constructor': 'x' }, whenNoneEqual: {}, replyTemplate: 'reply' };
   expect(standingReplyFor('{"request":{}}', [rule])).toBeNull();

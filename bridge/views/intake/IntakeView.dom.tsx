@@ -4,11 +4,13 @@
  * to another closes the first stream; the chat shows User's request as a bubble, the agent's turns with their tool folds and the open
  * decision as a turn whose Answer posts `decision-answer`; the composer posts `job-message`, on Enter too, and clears; Close intake posts
  * `intake-close` and names the drafts it offers; an open session's chat ends with the product owner's live turn, holding the one Flint
- * slot; each pane is headed in the page face; a closed session has no Close intake, says a message resumes it and takes a message; the
- * new chat opens on `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job,
- * shown as starting until a board names it.
+ * slot; each pane is headed in the page face; a closed session has no Close intake, says a message resumes it and takes a message; a
+ * stopped or failed session stays listed and on the route naming it, read only with its outcome and no composer; the new chat opens on
+ * `#intake/new` and when there is no session, starts the session with `intake-start` and then follows the new job, shown as starting until
+ * a board names it or its end.
  */
 import {
+  act,
   cleanup,
   fireEvent,
   screen,
@@ -39,6 +41,16 @@ function RoutedIntakeView({ board }: { readonly board: ConversationBoardDocument
     return () => window.removeEventListener('hashchange', follow);
   }, []);
   return <IntakeView board={board} followTranscript={fakeTranscripts().follow} selectedItem={selectedItem} />;
+}
+
+/** The routed view on a board the spec replaces later, as the event stream would. */
+function FedIntakeView({ initialBoard, onFeed }: {
+  readonly initialBoard: ConversationBoardDocument;
+  readonly onFeed:       (showBoard: (board: ConversationBoardDocument) => void) => void;
+}) {
+  const [board, setBoard] = useState(initialBoard);
+  useEffect(() => onFeed(setBoard), [onFeed]);
+  return <RoutedIntakeView board={board} />;
 }
 
 const BOARD: ConversationBoardDocument = {
@@ -221,11 +233,33 @@ describe('the selected chat', () => {
     expect(controls.sent).toEqual([{ kind: 'job-message', jobId: 'J2', text: 'One more thing' }]);
   });
 
+  test('a stopped session stays on its route, read only: its outcome shown, no composer and no Close intake', () => {
+    const stopped: ConversationBoardDocument = {
+      ...BOARD,
+      questionHistory: [
+        ...BOARD.questionHistory ?? [],
+        {
+          kind: 'job-launched', at: AT, jobId: 'J5', fields: { kind: 'product-owner', ticketIds: [], intakeText: 'Gift wrap' }
+        },
+        {
+          kind: 'job-ended', at: AT, jobId: 'J5', fields: { outcome: 'stopped' }
+        },
+      ],
+    };
+    fakeControls().render(<IntakeView board={stopped} followTranscript={fakeTranscripts().follow} selectedItem="J5" />);
+    const pane = screen.getByRole('region', { name: 'Intake J5' });
+    expect(within(pane).getByText('Stopped: read only; a new chat starts a fresh session')).toBeDefined();
+    expect(within(pane).getByRole('region', { name: 'Chat with J5' })).toBeDefined();
+    expect([within(pane).queryByLabelText('Message Product owner J5'), within(pane).queryByRole('button', { name: 'Close intake' })]).toEqual([null, null]);
+    const stoppedRow = sessionRows().find((row) => row.getAttribute('aria-label') === 'Intake J5');
+    expect([stoppedRow?.textContent, stoppedRow?.getAttribute('aria-current')]).toEqual(['J5Gift wrapstopped', 'true']);
+  });
+
   test('an open session ends its chat with the product owner\'s live turn, holding the one Flint slot; a closed one has none', () => {
     const view = fakeControls().render(<IntakeView board={BOARD} followTranscript={fakeTranscripts().follow} selectedItem="J6" />);
     const chat = screen.getByRole('region', { name: 'Chat with J6' });
     const flint = within(chat).getByRole('img', { name: 'Flint, the product owner' });
-    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground'), flint.getAttribute('data-flint-pose')]).toEqual(['100', 'page', 'typing']);
+    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground')]).toEqual(['100', 'page']);
     expect(flint.parentElement?.textContent).toContain('Product owner');
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
     view.unmount();
@@ -275,6 +309,32 @@ describe('the new chat', () => {
     await clickSettled(screen.getByRole('button', { name: 'Start session' }));
     await waitFor(() => expect(screen.getByText('Starting J12…')).toBeDefined());
     expect([screen.queryByRole('region', { name: 'New chat' }), screen.queryByRole('region', { name: 'Chat with J7' })]).toEqual([null, null]);
+  });
+
+  test('a started job that fails before any board lists it live stops starting and shows read only with its outcome', async () => {
+    window.location.hash = '#intake/new';
+    const controls = fakeControls();
+    controls.answerNextWith({ verdict: 'applied', outcome: 'done', result: { job: { id: 'J12' }, logged: [] } });
+    let showBoard: ((board: ConversationBoardDocument) => void) | null = null;
+    controls.render(<FedIntakeView initialBoard={BOARD} onFeed={(show) => { showBoard = show; }} />);
+    fireEvent.change(screen.getByLabelText('First message'), { target: { value: 'Shoppers lose their basket' } });
+    await clickSettled(screen.getByRole('button', { name: 'Start session' }));
+    await waitFor(() => expect(screen.getByText('Starting J12…')).toBeDefined());
+    const failed: ConversationBoardDocument = {
+      ...BOARD,
+      questionHistory: [
+        ...BOARD.questionHistory ?? [],
+        {
+          kind: 'job-launched', at: AT, jobId: 'J12', fields: { kind: 'product-owner', ticketIds: [], intakeText: 'Shoppers lose their basket' }
+        },
+        {
+          kind: 'job-ended', at: AT, jobId: 'J12', fields: { outcome: 'failed' }
+        },
+      ],
+    };
+    act(() => showBoard?.(failed));
+    expect(screen.queryByText('Starting J12…')).toBeNull();
+    expect(within(screen.getByRole('region', { name: 'Intake J12' })).getByText('Failed: read only; a new chat starts a fresh session')).toBeDefined();
   });
 
   test('with no session at all the new chat opens', () => {

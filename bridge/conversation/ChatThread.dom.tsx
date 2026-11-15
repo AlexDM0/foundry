@@ -48,7 +48,7 @@ const USER_TURN: ChatTurn = {
 const DECISION_TURN: ChatTurn = { kind: 'decision', key: 'decision-E5', decisionId: 'E5' };
 
 function renderedThread(turns: readonly ChatTurn[]) {
-  return render(<ChatThread label="Assistant conversation" turns={turns} renderDecision={(decisionId) => <p>{`Decision ${decisionId}`}</p>} />);
+  return render(<ChatThread label="Assistant conversation" turns={turns} renderDecision={(decisionId) => <p>{`Decision ${decisionId}`}</p>} historyKey="J1" />);
 }
 
 describe('the chat thread', () => {

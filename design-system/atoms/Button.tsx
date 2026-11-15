@@ -51,10 +51,11 @@ export function Button(props: ButtonProps) {
     'data-compact':   flagAttribute(props.compact),
     'data-dense':     flagAttribute(props.dense),
   };
+  const leadingGlyph = leading === undefined ? null : <span className="design-system-button-leading">{leading}</span>;
   if (href !== undefined) {
     return (
       <a className="design-system-button" href={href} aria-label={accessibleName} {...emphasisAttributes}>
-        {leading}
+        {leadingGlyph}
         {label}
       </a>
     );
@@ -72,7 +73,7 @@ export function Button(props: ButtonProps) {
       onClick={onPress}
       {...emphasisAttributes}
     >
-      {leading}
+      {leadingGlyph}
       {label}
     </button>
   );

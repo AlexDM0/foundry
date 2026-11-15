@@ -1,8 +1,9 @@
 /**
  * The tabs, in a happy-dom document. What matters: as links, the selected tab is the current page and each leads to its href; the arrow
  * keys, Home and End call `onSelect` with the tab they reach and move the focus there, wrapping; as a switch, the row is a tablist whose
- * selected tab alone takes the tab stop and a click selects; a count shows as a count badge under the tab's accessible name; a links tab
- * without an `href` and a switch tab with one do not compile; and a label is text, never markup.
+ * selected tab alone takes the tab stop, the first tab taking it when the selected key is among no tab, and a click selects; a count
+ * shows as a count badge under the tab's accessible name; a links tab without an `href` and a switch tab with one do not compile; and a
+ * label is text, never markup.
  */
 import {
   cleanup,
@@ -75,6 +76,11 @@ describe('the tabs as a switch', () => {
     fireEvent.click(tabs[2] ?? document.body);
     fireEvent.keyDown(tabs[1] ?? document.body, { key: 'ArrowRight' });
     expect([selected, document.activeElement?.textContent]).toEqual([['progress', 'progress'], 'Progress']);
+  });
+
+  test('a selected key that is among no tab leaves the first tab the tab stop, so the tablist stays in reach of the keyboard', () => {
+    renderSwitchTabs([], LINK_ITEMS.filter(({ key }) => key !== 'waves').map(({ key, label }) => ({ key, label })));
+    expect(screen.getAllByRole('tab').map((tab) => [tab.getAttribute('aria-selected'), tab.tabIndex])).toEqual([['false', 0], ['false', -1]]);
   });
 });
 

@@ -1,7 +1,8 @@
 /**
  * The number stepper, in a happy-dom document. What matters: the buttons and ArrowUp and ArrowDown on the group step the value by `step`;
- * a change is clamped at the minimum and the maximum, and a button that cannot step is disabled; the group is named, and the value is
- * read with its unit.
+ * a change is clamped at the minimum and the maximum, and a button that cannot step is disabled, a step that disables the focused button
+ * handing the focus to the other one; the group is named, and the value is read with its unit; a changed value says which way it went,
+ * so it rises or drops in.
  */
 import {
   cleanup,
@@ -15,6 +16,8 @@ import {
   expect,
   test
 } from 'bun:test';
+
+import { useState } from 'react';
 
 import { NumberStepper } from './NumberStepper.tsx';
 
@@ -77,9 +80,56 @@ describe('the number stepper', () => {
     expect(isDisabled('Raise the threshold')).toBe(true);
   });
 
+  test('a step that disables the focused button hands the focus to the other one, so the arrow keys still reach the group', () => {
+    function HeldStepper() {
+      const [value, setValue] = useState(STEP * 2);
+      return (
+        <NumberStepper
+          accessibleName="Retry threshold"
+          value={value}
+          step={STEP}
+          minimum={STEP}
+          unitText="lines"
+          lowerLabel="Lower the threshold"
+          raiseLabel="Raise the threshold"
+          onChange={setValue}
+        />
+      );
+    }
+    render(<HeldStepper />);
+    const lower = screen.getByRole('button', { name: 'Lower the threshold' });
+    lower.focus();
+    fireEvent.click(lower);
+    expect([isDisabled('Lower the threshold'), document.activeElement === screen.getByRole('button', { name: 'Raise the threshold' })]).toEqual([true, true]);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'ArrowUp' });
+    expect(screen.getByRole('group', { name: 'Retry threshold' }).querySelector('output')?.textContent).toBe(String(STEP * 2));
+  });
+
   test('the value is read with its unit', () => {
     const group = renderedStepper(750, []);
     const value = group.querySelector('.design-system-number-stepper-value');
     expect([value?.textContent, value?.getAttribute('aria-label')]).toEqual(['750', '750 lines']);
+  });
+
+  test('a changed value says which way it went, and the first showing says nothing', () => {
+    const stepperOf = (value: number) => (
+      <NumberStepper
+        accessibleName="Retry threshold"
+        value={value}
+        step={STEP}
+        minimum={STEP}
+        unitText="lines"
+        lowerLabel="Lower the threshold"
+        raiseLabel="Raise the threshold"
+        onChange={() => undefined}
+      />
+    );
+    const { container, rerender } = render(stepperOf(750));
+    const directionShown = (): string | null | undefined => container.querySelector('.design-system-number-stepper-number')?.getAttribute('data-change');
+    expect(directionShown()).toBeNull();
+    rerender(stepperOf(800));
+    expect(directionShown()).toBe('up');
+    rerender(stepperOf(700));
+    expect(directionShown()).toBe('down');
   });
 });

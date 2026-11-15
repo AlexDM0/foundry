@@ -1,8 +1,9 @@
 /**
  * Whether a fresh held record frees the lock rests on the caller's process check alone: a holder the check reads as gone, such as a Linux
- * zombie that a signal probe still reaches, frees it at once, and a holder it reads as live keeps it until its stamp is stale.
+ * zombie that a signal probe still reaches, frees it at once, and a holder it reads as live keeps it until its stamp is stale. A holder
+ * that waited for the lock is stamped when it takes it, so its wait does not count against its own staleness budget.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {
   afterAll,
   describe,
@@ -10,8 +11,9 @@ import {
   test
 } from 'bun:test';
 
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { LockGenerationSteps, type LockHolderIsGone }     from './TrackerLock.ts';
+import { LocalTimeUtil }                                          from '../../lib/local-time/LocalTimeUtil.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { LockGenerationSteps, type LockHolderIsGone, withLockAt } from './TrackerLock.ts';
 
 const ZOMBIE_HOLDER_PROCESS_ID = 4242;
 const HELD_AT = '2026-09-24T15:00:00+02:00';
@@ -56,5 +58,26 @@ describe('a fresh held record', () => {
 
   test('stays held while the process check reads its holder as live, as for a process of another user', () => {
     expect(verdictUnder(() => false)).toBe('held');
+  });
+});
+
+describe('a holder that waited for the lock', () => {
+  test('is stamped with the moment it took the lock, not the moment it began to wait', async () => {
+    const lockDirectoryPath = lockHeldByTheZombie();
+    const waitedUntil = new Date(ONE_SECOND_LATER_MILLISECONDS + 5000);
+    let holderReadAsGone = false;
+    const now = (): Date => (holderReadAsGone ? waitedUntil : new Date(ONE_SECOND_LATER_MILLISECONDS));
+    const holderIsGone: LockHolderIsGone = () => {
+      const answer = holderReadAsGone;
+      holderReadAsGone = true;
+      return answer;
+    };
+
+    const heldRecord = await withLockAt(lockDirectoryPath, () => {
+      const newestGeneration = (LockGenerationSteps.generationsIn(lockDirectoryPath) ?? []).at(-1) ?? 0;
+      return JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(lockDirectoryPath, newestGeneration), 'utf8')) as unknown;
+    }, now, holderIsGone);
+
+    expect(heldRecord).toMatchObject({ state: 'held', acquiredAt: LocalTimeUtil.formatLocalIso(waitedUntil) });
   });
 });

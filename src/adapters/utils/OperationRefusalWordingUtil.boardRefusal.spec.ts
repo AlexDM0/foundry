@@ -22,7 +22,7 @@ function namingThisProgram(message: string): string {
  * standard error. Rows no command reaches easily (the singular limit, a ticket-owned row sent to re-review) are read from the wording in
  * bc42604:cli/task/TaskCommand.ts, bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. The two review-record
  * reasons are newer than bc42604, and their rows were taken from the wording util when they were added, as were the four draft reasons, the
- * lowering row's "draft or pending" and the three network reasons.
+ * lowering row's "draft or pending", the three network reasons and the already-filed ticket id.
  */
 const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = [
   [{ reason: 'unknown-task', taskId: 99 }, 'There is no task #99. Run `agent-progress status` to see the rows this tracker holds.'],
@@ -64,6 +64,10 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
       taskName: '#001 Example checkout flow',
     },
     'Ticket #001 already has task #1 ("#001 Example checkout flow"). Pass --force to move the ticket on to the new row, or leave --ticket off.',
+  ],
+  [
+    { reason: 'ticket-id-already-filed', ticketId: '015' },
+    'Ticket #015 is already on the board, so a second ticket cannot take its id. Nothing was written.',
   ],
   [
     {
@@ -377,7 +381,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 48;
+const REFUSAL_REASON_COUNT = 49;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

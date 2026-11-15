@@ -201,7 +201,8 @@ describe('the forms', () => {
     renderPanel({ form: 'ticket', ticketId: '014' });
     expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Ticket #014');
     const head = document.querySelector('.design-system-side-panel-head .bridge-ticket-detail-head');
-    expect([...(head?.children ?? [])].map((line) => line.textContent)).toEqual(['#014ticket', 'Example ticket 014In progress']);
+    expect([document.querySelector('.design-system-side-panel-head .bridge-ticket-detail-id-line')?.textContent, head?.textContent])
+      .toEqual(['#014ticket', 'Example ticket 014In progress']);
     expect(head?.querySelector('h2')?.getAttribute('data-type-role')).toBe('page');
     expect(document.querySelector('.design-system-side-panel-scroll .bridge-detail-tab-bar')).toBeNull();
     expect(sectionTitles()).toEqual(['Other moves', 'Facts']);

@@ -9,6 +9,8 @@ import { useState, type ReactNode }  from 'react';
 
 import type { DecisionDocument } from '../@types/ConversationDocuments.ts';
 import { CommandButton }         from '../shell/CommandButton.tsx';
+import { presenceAttributeOf }   from '../shell/ItemPresence.ts';
+import type { ItemPresence }     from '../utils/ItemPresenceUtil.ts';
 import {
   CardHead,
   JobLink,
@@ -29,20 +31,47 @@ export interface DecisionCardProps {
   readonly questionLayout?: 'stack' | 'columns';
   /** A control beside Answer, such as the inbox's way to open the question beside the board. */
   readonly besideAnswer?:   ReactNode;
+  /** Where the card stands in its list's coming and going (`useItemPresence`); settled by default. */
+  readonly presence?:       ItemPresence;
+  /** The question panel shows this decision beside the board: the card takes the decision tint and says so. */
+  readonly isOpenBeside?:   boolean;
 }
 
 /** Every decision on the board waits on its answer; an answered one leaves it. */
 const OPEN_PILL: CardPill = { state: 'in-progress', label: 'open' };
 
-function DecisionFrame({ decision, placement, children }: { readonly decision: DecisionDocument; readonly placement: 'card' | 'docked'; readonly children: ReactNode }) {
+const OPEN_BESIDE_PILL: CardPill = { state: 'in-progress', label: 'open beside the board' };
+
+interface DecisionFrameProps {
+  readonly decision:     DecisionDocument;
+  readonly placement:    'card' | 'docked';
+  readonly presence:     ItemPresence;
+  readonly isOpenBeside: boolean;
+  readonly children:     ReactNode;
+}
+
+function DecisionFrame({
+  decision, placement, presence, isOpenBeside, children
+}: DecisionFrameProps) {
   const label = `Question ${decision.id}`;
   return placement === 'docked'
     ? <section className="bridge-card" data-state="open" data-placement="docked" aria-label={label}>{children}</section>
-    : <li className="bridge-card" data-state="open" aria-label={label}>{children}</li>;
+    : (
+      <li
+        className="bridge-card"
+        data-state="open"
+        data-open-beside={isOpenBeside ? '' : undefined}
+        data-presence={presenceAttributeOf(presence)}
+        inert={presence === 'leaving'}
+        aria-label={label}
+      >
+        {children}
+      </li>
+    );
 }
 
 export function DecisionCard({
-  decision, escalated, placement = 'card', questionLayout = 'stack', besideAnswer = null
+  decision, escalated, placement = 'card', questionLayout = 'stack', besideAnswer = null, presence = 'settled', isOpenBeside = false
 }: DecisionCardProps) {
   const [selections, setSelections] = useState<QuestionSelections>([]);
   const [freeText, setFreeText] = useState('');
@@ -85,8 +114,8 @@ export function DecisionCard({
   ));
 
   return (
-    <DecisionFrame decision={decision} placement={placement}>
-      <CardHead id={decision.id} title={decision.kind} pill={OPEN_PILL} />
+    <DecisionFrame decision={decision} placement={placement} presence={presence} isOpenBeside={isOpenBeside}>
+      <CardHead id={decision.id} title={decision.kind} pill={isOpenBeside ? OPEN_BESIDE_PILL : OPEN_PILL} />
       <MetaLine parts={[
         decision.ticketIds.length === 0 ? null : <TicketLinks ticketIds={decision.ticketIds} />,
         decision.jobId === null ? null : <>job <JobLink jobId={decision.jobId} /></>,

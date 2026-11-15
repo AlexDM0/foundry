@@ -143,7 +143,7 @@ export interface Job {
   /** The newest Watcher instance spawned or to spawn, from 1. */
   watcherInstance:     number;
   eventCursor:         JobEventCursor;
-  /** The relayed question request ids already answered, kept until the job ends, so an answer is never delivered twice. */
+  /** The relayed question request ids already answered, kept until the job ends, so each answer is delivered until its delivery is marked. */
   answeredRequestIds:  string[];
   /** Resumes after a `watcher-lost` or `agent-crashed` interruption only. */
   crashResumes:        number;

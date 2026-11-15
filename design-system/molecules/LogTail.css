@@ -8,7 +8,7 @@
   border-radius: var(--r-2);
 }
 .design-system-log-tail:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.design-system-log-tail-line { white-space: pre-wrap; overflow-wrap: anywhere; animation: design-system-line 300ms var(--ease-out) both; }
+.design-system-log-tail-line { white-space: pre-wrap; overflow-wrap: anywhere; animation: design-system-line var(--motion-slow) var(--ease-out) both; }
 .design-system-log-tail-line[data-kind="command"]::before { content: "$ "; color: var(--ink-4); }
 .design-system-log-tail-line[data-kind="output"] { padding-left: 2ch; }
 

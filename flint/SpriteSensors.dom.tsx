@@ -3,7 +3,8 @@
  * measured from the overlay's corner and divided by the size of one unit, so Flint is placed alike at half size and at full size; a
  * habitat narrower or lower than 100 pixels is not roomy, so Flint never goes into it, is never stored there and never drops there; the
  * copy target is read only for the habitat Flint lives in, at the centre of the element the host names, and an intent off the fixed list
- * gives none; and a drop lands on the innermost roomy habitat below the pointer, passing over a small one.
+ * gives none; a drop lands on the innermost roomy habitat below the pointer, passing over a small one; and a habitat that keeps Flint
+ * inside is perceived so, every other habitat not.
  */
 import {
   afterEach,
@@ -164,6 +165,15 @@ describe('the minimum habitat size', () => {
     const offEverything = dropAt(1100, 700);
     expect(offEverything).toEqual({ kind: 'dropped', habitatId: null });
   });
+});
+
+test('a habitat that keeps Flint inside is perceived so, and a habitat that says nothing does not keep it', () => {
+  const { sensors, habitat } = page(1);
+  habitat(habitatOf('slot', { keepsFlintInside: true }), 10, 20, 100, 100);
+  habitat(habitatOf('chat'), 210, 120, 400, 300);
+  expect(sensors.perceive(NO_REQUEST).habitats.map((perceived) => [perceived.kind, perceived.keepsFlintInside])).toEqual([
+    ['slot', true], ['chat', false],
+  ]);
 });
 
 describe('the copy target', () => {

@@ -54,7 +54,7 @@ function bottomPixelsOf(element: Element | null): number {
 const NO_DOCK = (): Element | null => null;
 const NO_FOCUS_ON_OPEN = (): boolean => false;
 
-/** The dock's bottom, followed as the page scrolls or the window resizes. */
+/** The dock's bottom, followed as the page scrolls, the window resizes, or the page or the dock changes size, as a banner above it comes. */
 function useDockedTop(dockBelow: () => Element | null): number {
   const [top, setTop] = useState(0);
   const latestDockBelow = useRef(dockBelow);
@@ -66,9 +66,14 @@ function useDockedTop(dockBelow: () => Element | null): number {
     dock();
     window.addEventListener('scroll', dock, { passive: true });
     window.addEventListener('resize', dock);
+    const resizeObserver = new ResizeObserver(dock);
+    resizeObserver.observe(document.body);
+    const dockElement = latestDockBelow.current();
+    if (dockElement !== null) resizeObserver.observe(dockElement);
     return () => {
       window.removeEventListener('scroll', dock);
       window.removeEventListener('resize', dock);
+      resizeObserver.disconnect();
     };
   }, []);
   return top;
@@ -140,28 +145,43 @@ export interface SidePanelHeadProps {
   readonly titleElement?: TextElement;
   /** What the head holds beside the ×, after the title. */
   readonly children?:     ReactNode;
+  /** What shares the head's first line with ×; the title and the children then take the head's full width under that line. */
+  readonly firstLine?:    ReactNode;
 }
 
 /**
- * The panel's head, which stays put while the body scrolls: its title and children at the start, × at the end. With neither a title nor
- * children it is the × alone, floating over the top end of the body.
+ * The panel's head, which stays put while the body scrolls: its title and children at the start, × at the end, or, with a first line,
+ * × at the end of that line over the title and children. With none of them it is the × alone, floating over the top end of the body.
  */
 export function SidePanelHead({
-  closeLabel, onClose, title, titleElement = 'span', children
+  closeLabel, onClose, title, titleElement = 'span', children, firstLine
 }: SidePanelHeadProps) {
   const closeButton = useContext(CloseButtonContext);
-  const isCloseAlone = title === undefined && children === undefined;
+  const hasContent = title !== undefined || children !== undefined;
+  const close = <IconButton glyph="close" accessibleName={closeLabel} onPress={onClose} {...(closeButton === null ? {} : { buttonRef: closeButton })} />;
+  const content = hasContent
+    ? (
+      <div className="design-system-side-panel-head-content">
+        {title === undefined ? null : <Text typeRole="title" element={titleElement}>{title}</Text>}
+        {children}
+      </div>
+    )
+    : null;
+  if (firstLine !== undefined) {
+    return (
+      <div className="design-system-side-panel-head" data-first-line="">
+        <div className="design-system-side-panel-head-first-line">
+          {firstLine}
+          {close}
+        </div>
+        {content}
+      </div>
+    );
+  }
   return (
-    <div className="design-system-side-panel-head" data-close-alone={isCloseAlone ? '' : undefined}>
-      {isCloseAlone
-        ? null
-        : (
-          <div className="design-system-side-panel-head-content">
-            {title === undefined ? null : <Text typeRole="title" element={titleElement}>{title}</Text>}
-            {children}
-          </div>
-        )}
-      <IconButton glyph="close" accessibleName={closeLabel} onPress={onClose} {...(closeButton === null ? {} : { buttonRef: closeButton })} />
+    <div className="design-system-side-panel-head" data-close-alone={hasContent ? undefined : ''}>
+      {content}
+      {close}
     </div>
   );
 }

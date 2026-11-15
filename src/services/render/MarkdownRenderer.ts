@@ -3,10 +3,11 @@
  * document opened over `file://`: raw HTML in the source is escaped rather than passed through, and only an allowlisted scheme survives.
  */
 
-import { Marked }                      from 'marked';
-import type { RendererObject, Tokens } from 'marked';
-import { HtmlEscapeUtil }              from '../../lib/html-escape/HtmlEscapeUtil.ts';
-import { TICKET_SECTION_PATTERNS }     from '../../shared/constants/TicketSectionPatterns.ts';
+import { Marked }                                 from 'marked';
+import type { RendererObject, Tokens }            from 'marked';
+import { HtmlEscapeUtil }                         from '../../lib/html-escape/HtmlEscapeUtil.ts';
+import { openCodeFenceAfter, type OpenCodeFence } from '../../shared/OpenCodeFence.ts';
+import { TICKET_SECTION_PATTERNS }                from '../../shared/constants/TicketSectionPatterns.ts';
 
 const ALLOWED_HREF_SCHEMES = ['http:', 'https:', 'mailto:'] as const;
 
@@ -103,9 +104,10 @@ export function withAcceptanceItemsSeparated(ticketBody: string): string {
   const lines = ticketBody.split('\n');
   const separatedLines: string[] = [];
   let insideAcceptance = false;
-  let insideCodeFence = false;
+  let openFence: OpenCodeFence | null = null;
   for (const line of lines) {
-    if (TICKET_SECTION_PATTERNS.CODE_FENCE.test(line)) insideCodeFence = !insideCodeFence;
+    openFence = openCodeFenceAfter(line, openFence);
+    const insideCodeFence = openFence !== null;
     if (!insideCodeFence && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
       insideAcceptance = TICKET_SECTION_PATTERNS.ACCEPTANCE_HEADING.test(line.trimEnd());
     }

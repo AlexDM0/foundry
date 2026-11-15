@@ -3,8 +3,10 @@
  * with their exact points, speeds and times; Flint faces in while it goes behind and out from the wait on; the component is drawn in front
  * for the whole sequence; the width turns by the formula; the peek eases the position and narrows the eyes; the wave is the wave gesture;
  * at the end Flint lives in the habitat, hears `arrived` and is marked as greeted, so one wave asked for right after is the greeting again.
- * From another floor line Flint starts hidden at the wait, and a habitat at the right of the page is entered around its left edge. Under
- * reduced motion Flint arrives at once.
+ * From another floor line Flint starts hidden at the wait, and a habitat at the right of the page is entered around its left edge. A
+ * habitat that keeps Flint inside, such as a small slot with content around it, is entered through its edge, also from its own floor
+ * line: Flint never shows outside the box, so it never floats over that content, and it arrives where it stays. Under reduced motion Flint
+ * arrives at once.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -184,6 +186,48 @@ describe('the pop-in from elsewhere', () => {
     const run = startedVisit();
     run.frame({ habitats: [CHAT] });
     expect([run.state().behaviour.name, run.state().livesIn]).toEqual(['wander', null]);
+  });
+});
+
+describe('the pop-in into a habitat that keeps Flint inside', () => {
+  /** A slot of 133 by 133 units on the home's floor line, with content around it: Flint may stand from 520 to 613. */
+  const SLOT = habitatOf('slot', {
+    leftX: 500, rightX: 633, topY: 567, floorY: 700,
+  }, { keepsFlintInside: true });
+  const SLOT_EDGE_X = 633;
+  const HALF_BODY_WIDTH_UNITS = 20;
+
+  function startedSlotVisit(): MindRun {
+    const run = createMindRun(undefined, perceptionOf({ habitats: [CHAT, SLOT] }));
+    run.frame();
+    run.give('visit', 'slot');
+    run.frame();
+    return run;
+  }
+
+  test('Flint waits hidden outside the edge, peeks in, ducks out, peeks again, waves and moves in, with no walk outside the box', () => {
+    const steps = stepsOfWholeVisit(startedSlotVisit());
+    expect(steps.map((record) => record.step)).toEqual(['wait', 'peek', 'duck', 'peek-again', 'wave', 'move-in']);
+    const byStep = new Map(steps.map((record) => [record.step, record]));
+    expect([byStep.get('wait')?.facing, byStep.get('peek')?.facing, byStep.get('peek')?.offsetUnits]).toEqual([1, -1, 3.5]);
+  });
+
+  test('on every frame the page outside the box is drawn in front of Flint, and Flint stands inside the box', () => {
+    const run = startedSlotVisit();
+    while (run.state().behaviour.name === 'visit') {
+      const pose = targetPoseOfMind(run.state(), run.elapsedMilliseconds(), false);
+      expect(pose.occlusion).toEqual({ edgeX: SLOT_EDGE_X, hiddenSide: 1 });
+      expect(pose.body.positionX - (HALF_BODY_WIDTH_UNITS * pose.body.sidewaysWidth)).toBeGreaterThanOrEqual(SLOT.box.leftX);
+      run.frame();
+    }
+  });
+
+  test('Flint arrives 28 units inside the edge, lives there and stays put, with no walk back into its box', () => {
+    const run = startedSlotVisit();
+    const arrived = run.runUntil((state) => state.behaviour.name !== 'visit');
+    expect([arrived.livesIn, arrived.motion.positionX]).toEqual(['slot', SLOT_EDGE_X - 28]);
+    run.runFor(500);
+    expect([run.state().motion.positionX, run.state().motion.walkDirection]).toEqual([SLOT_EDGE_X - 28, 0]);
   });
 });
 

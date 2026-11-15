@@ -26,9 +26,18 @@ function isBridgeTab(name: string | null): name is BridgeTab {
   return (BRIDGE_TABS as readonly (string | null)[]).includes(name);
 }
 
+/** A pasted or cut-short link can carry a malformed escape; its segment stays as written, so the route never throws. */
+function decodedSegmentOf(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 function routeOf(fragment: string, storedTab: string | null): BridgeRoute {
   const [tabName = '', ...itemParts] = fragment.replace(/^#/, '').split('/');
-  const item = itemParts.map(decodeURIComponent).join('/');
+  const item = itemParts.map(decodedSegmentOf).join('/');
   if (isBridgeTab(tabName)) return { tab: tabName, item: item === '' ? null : item };
   return { tab: isBridgeTab(storedTab) ? storedTab : DEFAULT_TAB, item: null };
 }

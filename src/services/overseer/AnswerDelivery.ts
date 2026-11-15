@@ -1,7 +1,8 @@
 /**
  * Delivers each answered question to its session after the answering hold, design section 8.2: a live Watcher still holding the request gets
  * the `control_response` allow with the answers; a resumed session gets them as its first user line. A marker per request in the job's
- * folder, written only after the Watcher took the line, keeps an answer from being delivered twice across passes and restarts.
+ * folder, written only after the Watcher took the line, keeps a later pass or restart from delivering the answer again, unless the Overseer
+ * died before the marker: delivery is at least once, and how the vendor takes a repeated `control_response` was never probed.
  */
 import { createHash }                from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';

@@ -1,7 +1,7 @@
 /**
  * The Intake view: the product-owner sessions as a list beside one chat, the session the route names (`#intake/<job>`) or the new chat
  * (`#intake/new`), which opens too while there is no session at all. A session the new chat just started shows as starting until a board
- * names it. Only the selected session's transcript is followed.
+ * names it or a `job-ended` record does. Only the selected session's transcript is followed.
  */
 import { EmptyState } from 'design-system/EmptyState';
 import { Tag }        from 'design-system/Tag';
@@ -31,7 +31,8 @@ const NO_FILING_DRAFTS: readonly CuedDraft[] = Object.freeze([]);
 export function IntakeView({ board, followTranscript, selectedItem }: IntakeViewProps) {
   const sessions = IntakeModelUtil.intakeSessionsOf(board);
   const [startedJobId, setStartedJobId] = useState<string | null>(null);
-  if (startedJobId !== null && sessions.some((session) => session.jobId === startedJobId)) setStartedJobId(null);
+  const startIsSettled = (jobId: string): boolean => sessions.some((session) => session.jobId === jobId) || IntakeModelUtil.jobHasEnded(board, jobId);
+  if (startedJobId !== null && startIsSettled(startedJobId)) setStartedJobId(null);
   const selection = IntakeModelUtil.selectedOf(sessions, selectedItem, startedJobId);
   // The viewer's day only picks the form a stamp is shown in.
   const todayCalendarDate = TimeUtil.calendarDateOf(useBridgeClock().now().getTime());

@@ -1,13 +1,13 @@
 /**
  * The panel's left column: the orange decision card, where Flint waits beside "Your decision" and the question (or the count of questions
- * on a decision of several); then each question's options as cards, the agent's recommendation a pill beside its option, with what each
- * touches, trades off and does to the Acceptance when the agent noted it; User's own words on a decision of one question; and the answer
- * row naming the command it posts. The choices start empty for every decision, since the column is keyed by it.
+ * on a decision of several), its slot left out while the panel hides behind the detail panel, which holds the page's one slot; then each
+ * question's options as cards, the agent's recommendation a pill beside its option, with what each touches, trades off and does to the
+ * Acceptance when the agent noted it; User's own words on a decision of one question; and the answer row naming the command it posts. The
+ * choices start empty for every decision, since the column is keyed by it.
  */
 
 import { Card }                                  from 'design-system/Card';
 import { ChoiceInput, ChoiceMark, ChoiceOption } from 'design-system/ChoiceOption';
-import { FlintSlot }                             from 'design-system/FlintSlot';
 import { Text }                                  from 'design-system/Text';
 import { View }                                  from 'design-system/View';
 import { useState, type ReactNode }              from 'react';
@@ -15,12 +15,17 @@ import { useState, type ReactNode }              from 'react';
 import type { DecisionDocument }                       from '../../@types/ConversationDocuments.ts';
 import { DecisionAnswerUtil, type QuestionSelections } from '../../conversation/DecisionAnswerUtil.ts';
 import { OptionConsequenceFacts }                      from '../../conversation/OptionConsequenceFacts.tsx';
+import { FLINT_SLOT_CUES }                             from '../../flint/FlintSlotCues.ts';
+import { FlintSlotHabitat }                            from '../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                         from '../../flint/FlintSlotHabitats.ts';
 import { CommandButton }                               from '../../shell/CommandButton.tsx';
 import type { QuestionModel, QuestionPanelViewModel }  from './QuestionPanelModel.ts';
 
 export interface QuestionAskColumnProps {
-  readonly decision: DecisionDocument;
-  readonly model:    QuestionPanelViewModel;
+  readonly decision:          DecisionDocument;
+  readonly model:             QuestionPanelViewModel;
+  /** False while the panel hides behind the detail panel: a hidden slot would still register and claim the visit target. */
+  readonly holdsTheFlintSlot: boolean;
 }
 
 const YOUR_DECISION = 'Your decision';
@@ -29,14 +34,28 @@ function questionTextIdOf(decisionId: string, questionIndex: number): string {
   return `${decisionId}-question-${questionIndex}`;
 }
 
+interface DecisionHeadProps {
+  readonly model:             QuestionPanelViewModel;
+  readonly holdsTheFlintSlot: boolean;
+}
+
 /** What waits on User: Flint beside the eyebrow and the question a decision of one question asks, or how many a decision of several asks. */
-function DecisionHead({ model }: { readonly model: QuestionPanelViewModel }) {
+function DecisionHead({ model, holdsTheFlintSlot }: DecisionHeadProps) {
   const [onlyQuestion] = model.questions;
   const asksOneQuestion = model.questions.length === 1 && onlyQuestion !== undefined;
   const eyebrowText = asksOneQuestion ? `${YOUR_DECISION} · ${onlyQuestion.header}` : YOUR_DECISION;
   return (
     <Card decision row centerY gap="fourteen" paddingVertical="six" paddingLeft="eighteen" paddingRight="sixteen">
-      <FlintSlot size="84" ground="decision" label="Flint, the agent that asks" pose="waiting" />
+      {holdsTheFlintSlot
+        ? (
+          <FlintSlotHabitat
+            habitat={FLINT_SLOT_HABITATS.questions}
+            cue={FLINT_SLOT_CUES.AGENT_WAITS_ON_USER}
+            label="Flint, the agent that asks"
+            ground="decision"
+          />
+        )
+        : null}
       <View gap="four">
         <span className="bridge-question-panel-eyebrow">{eyebrowText}</span>
         <Text typeRole="title" element="p" bold {...(asksOneQuestion ? { id: questionTextIdOf(model.decisionId, 0) } : {})}>
@@ -104,14 +123,14 @@ function QuestionField({
   );
 }
 
-export function QuestionAskColumn({ decision, model }: QuestionAskColumnProps) {
+export function QuestionAskColumn({ decision, model, holdsTheFlintSlot }: QuestionAskColumnProps) {
   const [selections, setSelections] = useState<QuestionSelections>([]);
   const [ownWords, setOwnWords] = useState('');
   const answer = DecisionAnswerUtil.answerOf(decision, selections, model.ownWordsAllowed ? ownWords : '');
   const ownWordsId = `${decision.id}-own-words`;
   return (
     <section className="bridge-question-panel-ask" aria-label="The question">
-      <DecisionHead model={model} />
+      <DecisionHead model={model} holdsTheFlintSlot={holdsTheFlintSlot} />
       {model.questions.map((question, questionIndex) => (
         <QuestionField
           key={question.text}

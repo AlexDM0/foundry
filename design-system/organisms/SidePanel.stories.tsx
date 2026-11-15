@@ -33,6 +33,18 @@ type Story = StoryObj<typeof meta>;
 
 export const Detail: Story = {};
 export const Question: Story = { args: { width: 'question' } };
+export const FirstLine: Story = {
+  args: {
+    children: (
+      <>
+        <SidePanelHead closeLabel="Close the example panel" onClose={fn()} firstLine={<Text typeRole="small" muted>Example item 012</Text>}>
+          <Text typeRole="page" element="h2">Example detail with a title as wide as the panel</Text>
+        </SidePanelHead>
+        <SidePanelBody><Text>Example content under a head whose first line holds the close.</Text></SidePanelBody>
+      </>
+    ),
+  },
+};
 export const CloseOnly: Story = {
   args: {
     children: (

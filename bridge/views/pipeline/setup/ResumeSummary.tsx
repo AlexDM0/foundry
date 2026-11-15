@@ -70,48 +70,50 @@ export function ResumeSummary({ setup }: ResumeSummaryProps) {
         </div>
         {mainMovedText === null ? null : <Text muted element="p">{mainMovedText}</Text>}
       </div>
-      {confirmingStartOver
-        ? (
-          <ActionBar
-            label="Resume setup actions"
-            start={(
-              <ConfirmStrip
-                label="Confirm starting over"
-                question="Discard the saved setup?"
-                consequence="The research, the constitution and the proposal are deleted. This cannot be undone."
-                tone="danger"
-                confirm={<CommandButton label="Start over" command={ResumeSummaryModel.startOverCommandOf(setup)} danger />}
-                cancelLabel="Keep the setup"
-                onCancel={() => setConfirmingStartOver(false)}
-              />
-            )}
-            end={null}
-          />
-        )
-        : (
-          <ActionBar
-            label="Resume setup actions"
-            start={(
-              <>
-                <Tag text="Saved" tone="neutral" />
-                <Text bold>{ResumeSummaryModel.doneStepsTextOf(setup)}</Text>
-                <Text muted>Nothing is stored in the pipeline until you apply.</Text>
-              </>
-            )}
-            end={(
-              <>
-                <Button label="Start over" onPress={() => setConfirmingStartOver(true)} />
-                <CommandButton
-                  label={ResumeSummaryModel.resumeLabelOf(setup)}
-                  command={ResumeSummaryModel.resumeCommandOf(setup)}
-                  primary
-                  attention
-                  onApplied={() => HashRouter.navigateTo(PipelineViewModel.setupStepRouteOf(currentStep))}
+      <div className="bridge-pipeline-resume-footer">
+        {confirmingStartOver
+          ? (
+            <ActionBar
+              label="Resume setup actions"
+              start={(
+                <ConfirmStrip
+                  label="Confirm starting over"
+                  question="Discard the saved setup?"
+                  consequence="The research, the constitution and the proposal are deleted. This cannot be undone."
+                  tone="danger"
+                  confirm={<CommandButton label="Start over" command={ResumeSummaryModel.startOverCommandOf(setup)} danger />}
+                  cancelLabel="Keep the setup"
+                  onCancel={() => setConfirmingStartOver(false)}
                 />
-              </>
-            )}
-          />
-        )}
+              )}
+              end={null}
+            />
+          )
+          : (
+            <ActionBar
+              label="Resume setup actions"
+              start={(
+                <>
+                  <Tag text="Saved" tone="neutral" />
+                  <Text bold>{ResumeSummaryModel.doneStepsTextOf(setup)}</Text>
+                  <Text muted>Nothing is stored in the pipeline until you apply.</Text>
+                </>
+              )}
+              end={(
+                <>
+                  <Button label="Start over" onPress={() => setConfirmingStartOver(true)} />
+                  <CommandButton
+                    label={ResumeSummaryModel.resumeLabelOf(setup)}
+                    command={ResumeSummaryModel.resumeCommandOf(setup)}
+                    primary
+                    attention
+                    onApplied={() => HashRouter.navigateTo(PipelineViewModel.setupStepRouteOf(currentStep))}
+                  />
+                </>
+              )}
+            />
+          )}
+      </div>
     </div>
   );
 }

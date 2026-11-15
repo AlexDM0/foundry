@@ -377,8 +377,12 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
         const reading = eventLogEntriesOf(readFileSync(host.files.eventLogPath, 'utf8'));
         return reading.verdict === 'read' ? reading.entries : [];
       },
-      onClientLine:  () => countLingerFrame(host),
-      onActingFrame: (frame) => actOnFrame(host, frame),
+      onClientLine:      () => countLingerFrame(host),
+      onActingFrame:     (frame) => actOnFrame(host, frame),
+      // The mocked Watcher handles every line it is sent, so a throw is a fault of the mock: it fails the case as before.
+      onHandlingFailure: (cause) => {
+        throw new Error(`the mocked Watcher failed a line: ${String(cause)}`);
+      },
     });
     void listening.then((outcome) => {
       if (outcome.verdict === 'unbindable') throw new Error(`the mocked Watcher cannot listen: ${outcome.reason}`);

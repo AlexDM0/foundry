@@ -20,6 +20,7 @@ import type { TimestampSlices }       from '../utils/TimeUtil.ts';
 import type { QuestionNotifier }      from '../views/questions/QuestionAlerts.ts';
 import { ActivityStrip }              from './ActivityStrip.tsx';
 import type { BridgeClock }           from './BridgeClock.ts';
+import { useChangedSinceMount }       from './ChangedSinceMount.ts';
 import { CommandButton }              from './CommandButton.tsx';
 import { ForgeMark }                  from './ForgeMark.tsx';
 import { HashRouter, type BridgeTab } from './HashRouter.ts';
@@ -118,10 +119,17 @@ function ProductBrand() {
   );
 }
 
-/** Running is the orange pill with the live dot; every other state, setup among them, is the quiet pill. */
+/** Running is the orange pill with the live dot; every other state, setup among them, is the quiet pill. A new state's pill pops in. */
 function StatusPill({ model }: { readonly model: HeaderModel }) {
+  const hasChanged = useChangedSinceMount(model.statusToken);
   return (
-    <span className="bridge-status-pill" data-running={model.isRunning ? '' : undefined} data-status={model.statusToken}>
+    <span
+      key={model.statusToken}
+      className="bridge-status-pill"
+      data-running={model.isRunning ? '' : undefined}
+      data-status={model.statusToken}
+      data-value-changed={hasChanged ? '' : undefined}
+    >
       {model.isRunning ? <span className="bridge-status-dot" aria-hidden="true" /> : null}
       {model.statusLabel}
     </span>
@@ -142,9 +150,10 @@ function StatusDetails({ model }: { readonly model: HeaderModel }) {
 }
 
 function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatistic; readonly onShowLane: ((lane: HeaderFigureLane) => void) | undefined }) {
+  const hasChanged = useChangedSinceMount(statistic.figure);
   const parts = (
     <>
-      <span className="bridge-stat-figure">{statistic.figure}</span>
+      <span key={statistic.figure} className="bridge-stat-figure" data-value-changed={hasChanged ? '' : undefined}>{statistic.figure}</span>
       <span className="bridge-stat-label">{statistic.label}</span>
     </>
   );
@@ -167,12 +176,13 @@ function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatis
 }
 
 function SummaryLineItem({ figure }: { readonly figure: SummaryLineFigure }) {
+  const hasChanged = useChangedSinceMount(figure.figure);
   return (
     <span className="bridge-summary-line-item">
       {figure.state === null
         ? null
         : <span className="bridge-summary-line-dot" data-state={figure.state} data-state-tone={StateToneUtil.toneOf(figure.state)} aria-hidden="true" />}
-      <span className="bridge-summary-line-figure">{figure.figure}</span>
+      <span key={figure.figure} className="bridge-summary-line-figure" data-value-changed={hasChanged ? '' : undefined}>{figure.figure}</span>
       <span className="bridge-summary-line-label">{figure.label}</span>
     </span>
   );

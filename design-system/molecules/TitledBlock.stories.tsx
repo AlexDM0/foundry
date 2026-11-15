@@ -17,3 +17,4 @@ export const NoRule: Story = {};
 export const RuleAbove: Story = { args: { rule: 'above' } };
 export const RuleBetween: Story = { args: { rule: 'between' } };
 export const NestedHeading: Story = { args: { titleElement: 'h4' } };
+export const Label: Story = { args: { look: 'label' } };

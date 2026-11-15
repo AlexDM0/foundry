@@ -14,9 +14,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Size112: Story = { args: { size: '112' } };
 export const Size100: Story = { args: { size: '100' } };
-export const Size98: Story = { args: { size: '98' } };
-export const Size84: Story = { args: { size: '84' } };
-export const Size76: Story = { args: { size: '76' } };
 export const PageGround: Story = { args: { ground: 'page' } };
 export const StripGround: Story = { args: { ground: 'strip' } };
 export const LaneGround: Story = { args: { ground: 'lane' } };

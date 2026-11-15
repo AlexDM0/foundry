@@ -59,7 +59,10 @@ const ADAPTER_PROBES: Readonly<Record<keyof PlatformPorts, (ports: PlatformPorts
     const message = thrownMessageOf(() => ports.ownerOnlyFiles.restrictFile(join(scratchDirectory, 'absent-folder', 'absent-file')));
     return message === null || !message.includes('no owner-only files exist');
   },
-  dataFolders:       (ports) => thrownMessageOf(() => ports.dataFolders.systemFolder()) === null,
+  dataFolders: (ports) => {
+    const message = thrownMessageOf(() => ports.dataFolders.systemFolder());
+    return message === null || !message.includes('no data folders exist');
+  },
   launchEnvironment: (ports) => ports.launchEnvironment.inheritedVariableNames.length > 0,
 };
 
@@ -92,4 +95,9 @@ describe(`on the unknown platform ${UNKNOWN_PLATFORM}`, () => {
   test.each(PORT_NAMES)('%s refuses, so its probe can fail', (portName) => {
     expect(ADAPTER_PROBES[portName](platformPortsFor(UNKNOWN_PLATFORM, HOST_FACTS))).toBe(false);
   });
+});
+
+test('on win32 the host\'s SystemRoot reaches the data folders, so a Windows installed off C: names its own system folder', () => {
+  const ports = platformPortsFor('win32', { ...HOST_FACTS, systemRoot: () => 'D:\\Windows' });
+  expect(ports.dataFolders.systemFolder()).toBe('D:\\Windows\\System32');
 });

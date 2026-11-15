@@ -1,8 +1,9 @@
 /**
- * The pure parts of the usage-limit handling. What matters: only a top-level refusal counts, never a warning; the reset the policy holds by
- * is the latest of the marker's and this pass's hits, so a limit met in this hold already holds its launches; a marker is never moved
- * earlier, since another board may have met a longer limit; the scheduled wake never overflows the timer, which would fire at once; and
- * every reported window is shown, as a whole percent, except under API billing, where no window counts.
+ * The pure parts of the usage-limit handling. What matters: only a top-level refusal counts, never a warning, and one whose reset is
+ * already past holds for the backoff, since a past reset holds nothing and the job would be resumed and refused every pass; the reset
+ * the policy holds by is the latest of the marker's and this pass's hits, so a limit met in this hold already holds its launches; a
+ * marker is never moved earlier, since another board may have met a longer limit; the scheduled wake never overflows the timer, which
+ * would fire at once; and every reported window is shown, as a whole percent, except under API billing, where no window counts.
  */
 import {
   afterEach,
@@ -21,13 +22,28 @@ const WINDOW_EVENT = {
 } as const;
 
 describe('refusalOf', () => {
+  const REFUSED_AT = '2026-11-01T20:00:00.000Z';
+
   test('a refusing window event is a hit with its window and reset', () => {
-    expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, requestsRefused: true })).toEqual({ window: 'five_hour', resetsAt: '2026-11-01T22:00:00.000Z' });
+    expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, requestsRefused: true }, REFUSED_AT))
+      .toEqual({ window: 'five_hour', resetsAt: '2026-11-01T22:00:00.000Z' });
+  });
+
+  test('a refusal whose reset is not after the refusal, or unreadable, holds for the backoff, so the job is not resumed at once', () => {
+    const backoffReset = '2026-11-01T20:01:00.000Z';
+    for (const resetsAt of ['1970-01-01T00:00:00.000Z', REFUSED_AT, 'not a time']) {
+      expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, resetsAt, requestsRefused: true }, REFUSED_AT)).toEqual({ window: 'five_hour', resetsAt: backoffReset });
+    }
+  });
+
+  test('a refusal whose vendor named no usable reset holds for the backoff', () => {
+    expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, resetsAt: null, requestsRefused: true }, REFUSED_AT))
+      .toEqual({ window: 'five_hour', resetsAt: '2026-11-01T20:01:00.000Z' });
   });
 
   test('a warning, or any other event, is none', () => {
-    expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, status: 'allowed_warning', requestsRefused: false })).toBeNull();
-    expect(UsageLimits.refusalOf({ kind: 'permission-denied', toolName: 'Bash' })).toBeNull();
+    expect(UsageLimits.refusalOf({ ...WINDOW_EVENT, status: 'allowed_warning', requestsRefused: false }, REFUSED_AT)).toBeNull();
+    expect(UsageLimits.refusalOf({ kind: 'permission-denied', toolName: 'Bash' }, REFUSED_AT)).toBeNull();
   });
 });
 
@@ -103,6 +119,10 @@ describe('the usage windows', () => {
     expect(refusedWindow).toEqual({ window: 'five_hour', utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z' });
     expect(UsageLimits.windowObservationOf({ ...WINDOW_EVENT, status: 'allowed', requestsRefused: false }, false)).not.toBeNull();
     expect(UsageLimits.windowObservationOf({ kind: 'permission-denied', toolName: 'Bash' }, false)).toBeNull();
+  });
+
+  test('a window whose vendor named no usable reset is no observation, since the stored windows hold a stamp', () => {
+    expect(UsageLimits.windowObservationOf({ ...WINDOW_EVENT, resetsAt: null, requestsRefused: true }, false)).toBeNull();
   });
 
   test('under API billing no window is an observation', () => {

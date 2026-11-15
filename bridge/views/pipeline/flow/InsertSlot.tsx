@@ -55,7 +55,7 @@ export function InsertSlot({
   };
   return (
     <section className="bridge-pipeline-add-step" aria-label={slot.heading}>
-      <Card step grow gap="six">
+      <Card dashed radius="step" grow gap="six">
         <Row centerY gap="seven">
           <FlowGlyph glyph="add" />
           <Text typeRole="small" muted>Add a step</Text>

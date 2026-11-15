@@ -106,14 +106,15 @@ async function arrives(emitter: Socket, event: 'end' | 'close'): Promise<boolean
 async function helloAnswerOf(watcherSecret: string): Promise<HelloAnswer> {
   const endpoint = preparedEndpoint();
   const listening = await listenOnWatcherSocket({
-    endpoint:       port,
-    socketPath:     endpoint,
-    watcherSecret:  WATCHER_SECRET,
-    acceptedKinds:  [],
-    welcomeOf:      () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries: () => [],
-    onClientLine:   () => undefined,
-    onActingFrame:  () => undefined,
+    endpoint:          port,
+    socketPath:        endpoint,
+    watcherSecret:     WATCHER_SECRET,
+    acceptedKinds:     [],
+    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
+    durableEntries:    () => [],
+    onClientLine:      () => undefined,
+    onActingFrame:     () => undefined,
+    onHandlingFailure: () => undefined,
   });
   if (listening.verdict !== 'listening') throw new Error(listening.reason);
   const client = await connected(endpoint);

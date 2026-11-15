@@ -917,6 +917,11 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT, ['merge', '--abort']).exitCode).toBe(0);
     const quietSuccess = { exitCode: 0, standardOutput: '', standardError: '' };
     expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, ['reset', '--hard', '--quiet', conflictTip])).toEqual(quietSuccess);
+    writeFileSync(join(conflictWorktree, 'base.ts'), 'export const base = 4;\n');
+    const blocked = recordedIn(conflictWorktree, GIT_CALL_SHAPES.MERGE_IN_BLOCKED_BY_A_LOCAL_CHANGE, ['merge', '--no-ff', '--no-edit', '--quiet', targetTip], { 'base.ts': PATH });
+    expect(blocked.exitCode).not.toBe(0);
+    expect(blocked.standardError).toContain(PATH);
+    expect(recordedIn(conflictWorktree, GIT_CALL_SHAPES.NO_UNMERGED_FILE_OF_A_REFUSED_MERGE, ['diff', '--name-only', '--diff-filter=U', '-z']).standardOutput).toBe('');
 
     const statusArguments = ['status', '--porcelain=v1', '-z', '--untracked-files=all'];
     expect(recordedIn(repositoryDirectory, GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT, statusArguments).standardOutput).toBe('');

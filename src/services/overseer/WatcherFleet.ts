@@ -234,7 +234,9 @@ async function sendFrames(
 
 /**
  * Sends the frames to a live Watcher unless its marker is there, writing the marker only once the Watcher took them: a send that failed is
- * tried again on a later pass while the Watcher is live, and a taken frame is never sent twice, across an Overseer restart too.
+ * tried again on a later pass while the Watcher is live. Delivery is at least once: an Overseer that dies after the take and before the
+ * marker sends the frames again once restarted. The Watcher ignores a repeated `close-input` or `stop`; a repeated `write` reaches the
+ * session as one more line.
  */
 async function sendFramesOnce(ports: PlatformPorts, markerPath: string, jobFolder: string, instance: number, frames: readonly ActingFrame[]): Promise<boolean> {
   if (existsSync(markerPath) || livenessOf(ports, jobFolder, instance).verdict !== 'live') return false;

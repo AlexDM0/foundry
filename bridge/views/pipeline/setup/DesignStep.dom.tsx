@@ -6,7 +6,7 @@
  * and lists one card per change with Undo; the footer counts the steps and gates from the facts; neither a proposal nor a new one sends a
  * profile, only a time chip press does; the agent's newest change opens its phase, selects its gate row and undoes it; Discard
  * proposal sends `pipeline-draft-discard`; before a draft a line over the phases and the agent strip say the agent is designing; the
- * agent's panel opens on the Conversation, and its one Flint slot waits while a design question is open and is ready once proposed.
+ * agent's panel opens on the Conversation, and its strip, beside the one Flint slot, waits while a design question is open and is ready once proposed.
  */
 import {
   act,
@@ -135,18 +135,17 @@ describe('the pipeline agent\'s panel', () => {
     expect(within(panel).getByRole('heading', { name: 'Pipeline agent' })).toBeDefined();
   });
 
-  test('Flint waits while a design question is open, and the proposal is ready once it is answered and the agent says so', () => {
+  test('the strip waits while a design question is open, and the proposal is ready once it is answered and the agent says so', () => {
     const { show } = renderDesign('A2-question-open');
-    const flint = () => screen.getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint().dataset['size'], flint().dataset['ground'], flint().dataset['flintPose']]).toEqual(['76', 'page', 'waiting']);
+    const flint = screen.getByRole('img', { name: 'Flint, the pipeline agent' });
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
     expect(screen.getByText('Waiting for your answer')).toBeDefined();
     const answered = pipelineBoardStateOf('A2');
     const answeredSetup = answered.pipelineSetup;
     if (answeredSetup === null || answeredSetup === undefined) throw new Error('the fixture A2 has no setup');
     show(answered);
-    expect(flint().dataset['flintPose']).toBe('thinking');
+    expect(screen.getByText('Designing the pipeline', { selector: '.bridge-pipeline-agent-strip *' })).toBeDefined();
     show({ ...answered, pipelineSetup: { ...answeredSetup, record: { ...answeredSetup.record, readyToContinue: ['design'] } } });
-    expect(flint().dataset['flintPose']).toBe('happy');
     expect(screen.getByText('Proposal ready', { selector: '.bridge-pipeline-agent-strip *' })).toBeDefined();
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
   });

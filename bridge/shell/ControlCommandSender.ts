@@ -1,6 +1,7 @@
 /**
  * Sends one `ControlCommand` the way every Bridge control does: never while the shell says controls may not act, and with the Overseer's
- * refusal kept verbatim, or the sentence that it could not be reached, for the caller to show beside its control.
+ * refusal kept verbatim, the sentence that it could not be reached, or the sentence that its answer to a command it may have applied was lost,
+ * for the caller to show beside its control.
  */
 import { useContext, useState } from 'react';
 
@@ -8,6 +9,7 @@ import type { ControlCommandBody }                             from '../api/Comm
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
 export const UNREACHABLE_WORDING = 'The Overseer could not be reached. Try again.';
+export const OUTCOME_UNKNOWN_WORDING = 'The Overseer may have applied this, but its answer was lost. Check the board before sending it again.';
 
 export interface ControlCommandSender {
   readonly enabled: boolean;
@@ -47,6 +49,7 @@ export function useControlCommand(command: ControlCommandBody | null, options: C
       onRefused?.(outcome.refusal);
     }
     if (outcome.verdict === 'unreachable') setRefusal(UNREACHABLE_WORDING);
+    if (outcome.verdict === 'outcome-unknown') setRefusal(OUTCOME_UNKNOWN_WORDING);
     if (outcome.verdict === 'install-held') onInstallHeld(outcome.refusal);
     if (outcome.verdict === 'no-session') onSessionLost?.();
   };

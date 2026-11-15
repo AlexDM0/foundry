@@ -86,14 +86,14 @@ describe('the setup landing', () => {
     expect(screen.queryByText(/benchmark/u)).toBeNull();
   });
 
-  test('the pipeline agent\'s panel introduces Flint, waving, before the agent starts', () => {
+  test('the pipeline agent\'s panel introduces Flint in its slot before the agent starts', () => {
     fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />);
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByRole('heading', { name: 'Pipeline agent' })).toBeDefined();
     expect(within(panel).getByText('Not started')).toBeDefined();
     expect(within(panel).getByRole('heading', { name: 'Meet Flint' })).toBeDefined();
     const flint = within(panel).getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['100', 'page', 'waving']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
     expect(within(panel).getByText('When you start it, Flint:')).toBeDefined();
   });

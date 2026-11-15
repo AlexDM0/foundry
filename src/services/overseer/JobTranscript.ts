@@ -23,7 +23,7 @@ export interface TranscriptCursor {
 
 /** What the board says about a job's client lines, which tells who sent each. */
 export interface TranscriptSenderFacts {
-  /** User's texts to the job in log order: its `job-messaged` and `job-reopened` records. */
+  /** User's texts to the job in log order: its `job-messaged` and `job-reopened` records, but those `byOverseer`. */
   userMessageTexts:              readonly string[];
   /** The Assistant's chats past the first, from its chats file; `null` for every other job. */
   assistantChats:                readonly AssistantChat[] | null;
@@ -219,7 +219,8 @@ function senderFactsOf(logRecords: readonly LogRecord[], trackerDirectory: strin
     if (record.kind === 'incident-answered' && record.fields.requestId !== undefined) requestIdsAnsweredByAssistant.push(record.fields.requestId);
     if (!('jobId' in record) || record.jobId !== jobId) continue;
     if (record.kind === 'job-messaged' || record.kind === 'job-reopened') {
-      userMessageTexts.push(record.fields.text);
+      // The Overseer's wording of a setup move is sent like User's message, yet it is the Overseer's chat.
+      if (record.fields.byOverseer !== true) userMessageTexts.push(record.fields.text);
       for (const picture of record.fields.pictures ?? []) pictureNamesById.set(picture.pictureId, picture.name);
     }
     if (record.kind === 'job-launched') {

@@ -101,12 +101,15 @@ function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: 
 
 /**
  * A gate Watcher's holder is its Watcher folder: live while its Watcher is, and before it claimed, while the recorded process still runs. A holder
- * whose job folder is gone is never live.
+ * whose job folder is gone is never live. An in-process holder is live while its Overseer is: the recorded process when its identity was
+ * readable, so a reused process id frees the slot, and otherwise its process id alone.
  */
 function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
   if (holder.startsWith(IN_PROCESS_HOLDER_PREFIX)) {
-    return !ports.processSupervision.processIsGone(Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]));
+    const overseerProcessId = Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]);
+    if (ports.processSupervision.processIsGone(overseerProcessId)) return false;
+    return holding.process === null || processIsStillRunning(ports, holding.process);
   }
   if (!existsSync(dirname(holder))) return false;
   const { verdict } = WatcherFleet.livenessOf(ports, holder, GATE_WATCHER_INSTANCE);

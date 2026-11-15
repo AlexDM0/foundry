@@ -257,7 +257,7 @@ describe('what the Assistant asks User', () => {
   });
 
   test('Flint waits only while one of its asks waits, and the count is worded in the singular for one', () => {
-    expect([AssistantModelUtil.flintPoseOf({ askingDecisionCount: 0 }), AssistantModelUtil.flintPoseOf({ askingDecisionCount: 2 })]).toEqual(['idle', 'waiting']);
+    expect([0, 2].map((askingDecisionCount) => AssistantModelUtil.flintCueOf({ askingDecisionCount }))).toEqual(['agent-is-idle', 'agent-waits-on-user']);
     expect([0, 1, 3].map(AssistantModelUtil.askingDecisionsTextOf)).toEqual([null, '1 decision waits on User', '3 decisions wait on User']);
   });
 

@@ -132,6 +132,18 @@ describe('what counts as code', () => {
     ].join('\n');
     expect(reworkOf(diffText).map(({ path }) => path)).toEqual(['lib/café "x".ts']);
   });
+
+  test('a control character git quoted by its short escape is read back as that character', () => {
+    const diffText = [
+      'diff --git "a/lib/x\\a\\b\\f\\r\\v.ts" "b/lib/x\\a\\b\\f\\r\\v.ts"',
+      '--- "a/lib/x\\a\\b\\f\\r\\v.ts"',
+      '+++ "b/lib/x\\a\\b\\f\\r\\v.ts"',
+      '@@ -1 +1 @@',
+      '-a();',
+      '+b();',
+    ].join('\n');
+    expect(reworkOf(diffText).map(({ path }) => path)).toEqual(['lib/x\u0007\b\f\r\v.ts']);
+  });
 });
 
 describe('a hunk that begins inside a block comment', () => {
@@ -146,6 +158,14 @@ describe('a hunk that begins inside a block comment', () => {
     const rework = totalReworkOf(reworkOf(diffOf('lib/Example.ts', ['+ still the comment the hunk began in', ' see http://example.com */', '+run();'])));
     expect(rework.commentLines).toBe(1);
     expect(rework.reworkedCodeLines).toBe(1);
+  });
+
+  /** In code a closing delimiter is mostly part of a token; read as the end of a comment, it would turn the code before it into comment. */
+  test('a closing delimiter inside a regular expression or a glob leaves the code before it code', () => {
+    const regularExpression = ['+const total = compute(input);', '+callSomething(total);', '+const digits = text.match(/^\\d*/);'];
+    expect(codeLinesOf(diffOf('lib/Example.ts', regularExpression))).toBe(3);
+    expect(codeLinesOf(diffOf('lib/Example.ts', ['+const total = compute(input);', '+watch(root); // every file under src/**/']))).toBe(2);
+    expect(totalReworkOf(reworkOf(diffOf('lib/Example.ts', ['+// every file under src/**/']))).commentLines).toBe(1);
   });
 
   /** Nothing in the hunk says it began in a comment, so the lines count: the tool fails towards counting rather than towards a dodge. */

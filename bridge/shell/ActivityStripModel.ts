@@ -12,10 +12,10 @@ import { AgentsModel }                                from '../views/agents/Agen
 
 export interface WorkerChip {
   readonly jobId:      string;
-  /** The job's role as stored, `null` when it has none; the Flint slot's pose reads it. */
+  /** The job's role as stored, `null` when it has none; the Flint slot's cue reads it. */
   readonly role:       string | null;
   readonly kind:       string;
-  /** The job's state as stored; the Flint slot poses for the first running job. */
+  /** The job's state as stored; the Flint slot is cued by the first running job. */
   readonly state:      string;
   /** The job's role as stored, its kind when it has none; the chip prints it. */
   readonly roleLabel:  string;

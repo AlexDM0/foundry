@@ -38,7 +38,9 @@ export interface TranscriptEntryDocument {
 }
 
 export interface TranscriptStreamHandlers {
-  readonly onEntries: (entries: readonly TranscriptEntryDocument[]) => void;
+  readonly onEntries:  (entries: readonly TranscriptEntryDocument[]) => void;
+  /** The `history` event arrived, after its entries and also when it brought none. */
+  readonly onHistory?: () => void;
 }
 
 export interface TranscriptStream {
@@ -100,6 +102,7 @@ function follow(jobId: string, handlers: TranscriptStreamHandlers, options: Tran
     opened.addEventListener('history', (event) => {
       const entries = parsedDataOf(event);
       receive(Array.isArray(entries) ? entries : []);
+      handlers.onHistory?.();
     });
     opened.addEventListener('message', (event) => receive([parsedDataOf(event)]));
     opened.addEventListener('error', () => {

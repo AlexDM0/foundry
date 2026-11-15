@@ -27,6 +27,16 @@ export function bunBinFolderOf(host: SetupHost): string {
   return join(host.bunInstallFolder, 'bin');
 }
 
+/** Windows refuses to replace an executable that is running, so a rename over a launcher a running command waits in fails. */
+function launcherReplaced(partialPath: string, launcherPath: string): boolean {
+  try {
+    renameSync(partialPath, launcherPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The installed command is a launcher compiled with Bun's autoload of the working directory's bunfig and .env off, and it starts
  * agent-progress.ts with that autoload off too. It replaces what `bun link` made through a rename: compiling onto a link would overwrite
@@ -51,13 +61,14 @@ function installLauncher({ host, platform, report }: InstallRun): void {
     '--outfile',
     partialPath,
   ], host.checkoutDirectory).exitCode === 0;
-  if (compiled) {
-    renameSync(partialPath, launcherPath);
+  if (compiled && launcherReplaced(partialPath, launcherPath)) {
     report.done(`${programName} is the launcher compiled at ${launcherPath}; it ignores a repository's bunfig.toml and .env`);
     return;
   }
   rmSync(partialPath, { force: true });
-  report.failure(`the launcher did not compile; ${programName} still loads the working directory's bunfig.toml and .env`);
+  report.failure(compiled
+    ? `${launcherPath} could not be replaced, as when a running ${programName} command holds it: stop every ${programName} command and run setup again`
+    : `the launcher did not compile; ${programName} still loads the working directory's bunfig.toml and .env`);
 }
 
 function reportSearchPath(run: InstallRun): void {

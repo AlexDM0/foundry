@@ -1,11 +1,12 @@
 /**
- * The Intake view's model. What matters: live product-owner sessions come from the board and closed ones from the log, a session reopened
- * by a message shows once, as live, and an intake stopped any other way is not offered a chat; sessions that wait on User sort first, then
- * the live ones and the closed ones, each newest first by the log's order; a title falls back from the product owner's to the request's
- * first line to the job id, the request read from the launch record, since a reopening message replaces the job's text; a session names
- * each open decision by id, never a count; the route picks the session or the new chat; the composer's tag follows the session's turn and
- * closed state; an open session's live turn, where Flint works, carries its pill and calls; the chat places User's request after the line
- * that started the session and each open decision where it was asked; and the start command's job id is read structurally.
+ * The Intake view's model. What matters: live product-owner sessions come from the board and ended ones from the log, a session reopened by
+ * a message shows once, as live, and an intake that ended stopped or failed is listed with its outcome, read only, so a route naming it
+ * keeps its chat; sessions that wait on User sort first, then the live ones and the ended ones, each newest first by the log's order; a
+ * title falls back from the product owner's to the request's first line to the job id, the request read from the launch record, since a
+ * reopening message replaces the job's text; a session names each open decision by id, never a count; the route picks the session or the new
+ * chat, and a started job stops starting once a `job-ended` record names it; the composer's tag follows the session's turn and closed state;
+ * an open session's live turn, where Flint works, carries its pill and calls; the chat places User's request after the line that started the
+ * session and each open decision where it was asked; and the start command's job id is read structurally.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -77,24 +78,28 @@ const BOARD: ConversationBoardDocument = {
     record('job-launched', 'J9', { kind: 'product-owner', ticketIds: [] }),
     record('job-launched', 'J10', { kind: 'assistant', ticketIds: [] }),
     record('job-ended', 'J10', { outcome: 'closed' }),
+    record('job-launched', 'J11', { kind: 'product-owner', ticketIds: [], intakeText: 'Gift wrap' }),
+    record('job-ended', 'J11', { outcome: 'failed' }),
   ],
 };
 
 describe('IntakeModelUtil.intakeSessionsOf', () => {
   const sessions = IntakeModelUtil.intakeSessionsOf(BOARD);
 
-  test('sessions that wait on User come first, then the live ones newest first, then the closed ones newest first', () => {
-    expect(sessions.map((session) => [session.jobId, session.state])).toEqual([
-      ['J9', 'waiting-for-answer'],
-      ['J8', 'running'],
-      ['J7', 'running'],
-      ['J3', 'closed'],
-      ['J2', 'closed'],
+  test('sessions that wait on User come first, then the live ones newest first, then the ended ones newest first with their outcome', () => {
+    expect(sessions.map((session) => [session.jobId, session.state, session.ended, session.closed])).toEqual([
+      ['J9', 'waiting-for-answer', false, false],
+      ['J8', 'running', false, false],
+      ['J7', 'running', false, false],
+      ['J11', 'failed', true, false],
+      ['J5', 'stopped', true, false],
+      ['J3', 'closed', true, true],
+      ['J2', 'closed', true, true],
     ]);
   });
 
-  test('a session carries its drafts, open decisions and last line; a closed one shows no last line and no calls', () => {
-    const [j9, , j7, , j2] = sessions;
+  test('a session carries its drafts, open decisions and last line; an ended one shows no last line and no calls', () => {
+    const [j9, , j7, , , , j2] = sessions;
     expect(j9?.questions.map((question) => question.id)).toEqual(['E5']);
     expect([j7?.drafts.map((ticket) => ticket.id), j7?.lastLine, j7?.calls, j7?.turn]).toEqual([['060'], 'Read src/export.ts', 7, 'mid-turn']);
     expect([j2?.drafts.map((ticket) => ticket.id), j2?.lastLine, j2?.calls, j2?.closed]).toEqual([['061', '062'], null, null, true]);
@@ -105,6 +110,8 @@ describe('IntakeModelUtil.intakeSessionsOf', () => {
       ['J9', 'Baskets across devices', 'Saved baskets'],
       ['J8', 'Size guide', 'Size guide'],
       ['J7', 'Add an export', 'Add an export\nas CSV'],
+      ['J11', 'Gift wrap', 'Gift wrap'],
+      ['J5', 'J5', null],
       ['J3', 'J3', null],
       ['J2', 'Reorder requests', 'Reorder button'],
     ]);
@@ -112,7 +119,7 @@ describe('IntakeModelUtil.intakeSessionsOf', () => {
 });
 
 describe('IntakeModelUtil.sessionFactsOf', () => {
-  const [j9, , j7, , j2] = IntakeModelUtil.intakeSessionsOf(BOARD);
+  const [j9, , j7, j11, , , j2] = IntakeModelUtil.intakeSessionsOf(BOARD);
 
   test('a session names each open decision of its job by id, never a question count, and counts its drafts', () => {
     expect(j9 === undefined ? null : IntakeModelUtil.sessionFactsOf(j9)).toEqual({
@@ -126,6 +133,22 @@ describe('IntakeModelUtil.sessionFactsOf', () => {
       pill: { state: 'abandoned', label: 'closed' }, askTexts: [], ticketsText: '2 tickets filed', resumeText: 'a message resumes it'
     });
   });
+
+  test('a failed session shows its outcome and never says a message resumes it', () => {
+    expect(j11 === undefined ? null : IntakeModelUtil.sessionFactsOf(j11)).toEqual({
+      pill: { state: 'abandoned', label: 'failed' }, askTexts: [], ticketsText: null, resumeText: null
+    });
+  });
+});
+
+describe('IntakeModelUtil.readOnlyTagOf', () => {
+  test('a session that ended stopped or failed is read only and names its outcome; a closed or live one takes a message', () => {
+    const textOf = (session: Parameters<typeof IntakeModelUtil.readOnlyTagOf>[0]): string | null => IntakeModelUtil.readOnlyTagOf(session)?.text ?? null;
+    expect(textOf({ state: 'stopped', ended: true, closed: false })).toBe('Stopped: read only; a new chat starts a fresh session');
+    expect(textOf({ state: 'failed', ended: true, closed: false })).toBe('Failed: read only; a new chat starts a fresh session');
+    expect(textOf({ state: 'closed', ended: true, closed: true })).toBeNull();
+    expect(textOf({ state: 'running', ended: false, closed: false })).toBeNull();
+  });
 });
 
 describe('IntakeModelUtil.selectedOf', () => {
@@ -134,6 +157,7 @@ describe('IntakeModelUtil.selectedOf', () => {
   test('the item new opens the new chat, a known job selects it, and an unknown or absent item the first session', () => {
     expect(IntakeModelUtil.selectedOf(sessions, INTAKE_NEW_CHAT_ITEM)).toEqual({ form: 'new-chat' });
     expect(IntakeModelUtil.selectedOf(sessions, 'J2')).toMatchObject({ form: 'session', session: { jobId: 'J2' } });
+    expect(IntakeModelUtil.selectedOf(sessions, 'J5')).toMatchObject({ form: 'session', session: { jobId: 'J5', state: 'stopped' } });
     expect(IntakeModelUtil.selectedOf(sessions, 'J404')).toMatchObject({ form: 'session', session: { jobId: 'J9' } });
     expect(IntakeModelUtil.selectedOf(sessions, null)).toMatchObject({ form: 'session', session: { jobId: 'J9' } });
   });
@@ -146,6 +170,11 @@ describe('IntakeModelUtil.selectedOf', () => {
     expect(IntakeModelUtil.selectedOf(sessions, 'J404', 'J404')).toEqual({ form: 'starting', jobId: 'J404' });
     expect(IntakeModelUtil.selectedOf([], 'J404', 'J404')).toEqual({ form: 'starting', jobId: 'J404' });
     expect(IntakeModelUtil.selectedOf(sessions, 'J2', 'J2')).toMatchObject({ form: 'session', session: { jobId: 'J2' } });
+  });
+
+  test('a job-ended record names a job that ended, so a start that failed before any board listed it stops starting', () => {
+    const failedFirst = { ...BOARD, questionHistory: [record('job-ended', 'J12', { outcome: 'failed' })] };
+    expect([IntakeModelUtil.jobHasEnded(failedFirst, 'J12'), IntakeModelUtil.jobHasEnded(BOARD, 'J12')]).toEqual([true, false]);
   });
 });
 
@@ -182,11 +211,11 @@ describe('IntakeModelUtil.closeIntakeCaptionOf and paneMetaOf', () => {
 });
 
 describe('IntakeModelUtil.productOwnerAtWorkOf', () => {
-  test('an open session has a live turn with its pill and calls so far; a closed one has none', () => {
+  test('an open session has a live turn with its pill and calls so far; an ended one has none', () => {
     const runningPill = { state: 'in-progress', label: 'running' } as const;
-    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', closed: false, calls: 2 })).toEqual({ pill: runningPill, callsText: '2 calls so far' });
-    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', closed: false, calls: null })?.callsText).toBeNull();
-    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'closed', closed: true, calls: null })).toBeNull();
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', ended: false, calls: 2 })).toEqual({ pill: runningPill, callsText: '2 calls so far' });
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'running', ended: false, calls: null })?.callsText).toBeNull();
+    expect(IntakeModelUtil.productOwnerAtWorkOf({ state: 'closed', ended: true, calls: null })).toBeNull();
   });
 });
 
@@ -286,9 +315,10 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
 });
 
 describe('the pills', () => {
-  test('a closed session reads as ended and a live one by its job state', () => {
-    expect(IntakeModelUtil.sessionPillOf({ state: 'closed', closed: true })).toEqual({ state: 'abandoned', label: 'closed' });
-    expect(IntakeModelUtil.sessionPillOf({ state: 'running', closed: false })).toEqual({ state: 'in-progress', label: 'running' });
+  test('an ended session reads as ended with its outcome and a live one by its job state', () => {
+    expect(IntakeModelUtil.sessionPillOf({ state: 'closed', ended: true })).toEqual({ state: 'abandoned', label: 'closed' });
+    expect(IntakeModelUtil.sessionPillOf({ state: 'stopped', ended: true })).toEqual({ state: 'abandoned', label: 'stopped' });
+    expect(IntakeModelUtil.sessionPillOf({ state: 'running', ended: false })).toEqual({ state: 'in-progress', label: 'running' });
   });
 
   test('a filed ticket takes its status badge, and a status that is no display state shows its word on the waiting row', () => {

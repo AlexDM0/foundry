@@ -2,10 +2,12 @@
  * A job's transcript from its Watcher event logs. What matters: a client line reads as what it said, never as the Watcher's frame JSON, and
  * who sent it is derived from the board's own records. A build job's first message, wind-down and resume lines are the Overseer's; a chat
  * equal to User's next unmatched `job message` is User's, so the same text sent twice matches two records in order; an answer is User's
- * unless the Assistant gave it under an incident. The Assistant's k-th chat is chat k: chat 1 its first message, and an incident delivery
- * carries its chat number and incidents. A follower that resumes after a cursor goes on counting from the lines before it. Agent lines
- * keep `toolUseId`, a `result` closes the turn as `turn-end`, and the entries of one log line share its cursor and differ in `entryKey`. A chat
- * with pictures carries each picture's id (the sha256 of its bytes), size, type and the name User's record gave it, never its bytes.
+ * unless the Assistant gave it under an incident. The Overseer's wording of a setup move, sent to the pipeline agent like a message and
+ * logged `byOverseer`, is the Overseer's chat, so its step prompt never shows as User's words. The Assistant's k-th chat is chat k: chat 1
+ * its first message, and an incident delivery carries its chat number and incidents. A follower that resumes after a cursor goes on
+ * counting from the lines before it. Agent lines keep `toolUseId`, a `result` closes the turn as `turn-end`, and the entries of one log
+ * line share its cursor and differ in `entryKey`. A chat with pictures carries each picture's id (the sha256 of its bytes), size, type and
+ * the name User's record gave it, never its bytes.
  */
 import { createHash }               from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -323,6 +325,39 @@ describe('JobTranscript.senderFactsOf', () => {
     expect(facts.userMessageTexts).toEqual(['First.', 'Second.']);
     expect(facts.assistantChats).toBeNull();
     expect(facts.requestIdsAnsweredByAssistant).toEqual(['request-incident']);
+  });
+
+  test('leaves out the Overseer\'s setup wording, so a pipeline agent\'s step prompt reads as the Overseer\'s and User\'s message as User\'s', () => {
+    const stepPrompt = 'User completed the research step. The current step is constitution.';
+    const records: LogRecord[] = [
+      {
+        at: EXAMPLE_STAMP, kind: 'job-messaged', jobId: 'J2', fields: { text: stepPrompt, byOverseer: true }
+      },
+      {
+        at: EXAMPLE_STAMP, kind: 'job-messaged', jobId: 'J2', fields: { text: 'Keep the lint gate.' }
+      },
+      {
+        at:     EXAMPLE_STAMP,
+        kind:   'job-reopened',
+        jobId:  'J2',
+        fields: {
+          watcherInstance: 2, text: 'User resumed the setup. Main did not move.', offeredTicketIds: [], byOverseer: true
+        }
+      },
+    ];
+    const trackerDirectory = scratchTrackerDirectory();
+    const facts = JobTranscript.senderFactsOf(records, trackerDirectory, 'J2');
+    expect(facts.userMessageTexts).toEqual(['Keep the lint gate.']);
+    const jobFolder = writeEventLogs(trackerDirectory, 'J2', [
+      [chat('You are the pipeline agent of job J2.'), chat(stepPrompt), chat('Keep the lint gate.')],
+      [chat('User resumed the setup. Main did not move.')],
+    ]);
+    expect(transcriptOf(jobFolder, 2, facts).entries.map(({ sentBy, text }) => [sentBy, text])).toEqual([
+      ['overseer', 'You are the pipeline agent of job J2.'],
+      ['overseer', stepPrompt],
+      ['user', 'Keep the lint gate.'],
+      ['overseer', 'User resumed the setup. Main did not move.'],
+    ]);
   });
 
   test('names each picture of the job\'s launch, messages and reopenings by its id, and none of another job\'s', () => {

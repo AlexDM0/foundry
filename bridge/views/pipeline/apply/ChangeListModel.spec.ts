@@ -46,6 +46,13 @@ describe('the rows', () => {
     expect(rows.find((row) => row.field === 'role:reviewer')?.note).toBe('User: Example: the reviewer runs on opus.');
     expect(rows.find((row) => row.field === 'gate:lint')).toMatchObject({ note: null, undoEditId: null });
   });
+
+  test('an edit with no sentence keeps its Undo and has no note, so no bare author shows', () => {
+    const { flow, setup } = proposal();
+    const edits = setup.record.edits.map((edit) => (edit.editId === 'E1' ? { ...edit, summary: '' } : edit));
+    const rows = ChangeListModel.changeRowsOf(flow.changeList, edits);
+    expect(rows.find((row) => row.field === 'gate:typecheck')).toMatchObject({ note: null, undoEditId: 'E1' });
+  });
 });
 
 function drawnEditingRows(profileRuns: readonly GateProfileRunFacts[] = []) {

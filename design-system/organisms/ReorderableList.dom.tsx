@@ -3,7 +3,8 @@
  * page with the focus kept on its grip, and Space or Enter drops it, calling `onReorder` once with the old and the new index; Esc puts it
  * back, calls nothing and goes no further up the page; a row never leaves its band, by key or by pointer; a pointer sequence over injected
  * row boxes slides the passed rows, draws the drop line and calls `onReorder` on release, and Esc cancels it; each move is spoken in the
- * caller's words by a polite live region; a faded item sets `data-faded` on its row. happy-dom lays nothing out, so the pointer cases
+ * caller's words by a polite live region; a faded item sets `data-faded` on its row; a drag ends unapplied when the rows change under it
+ * or a key lands on another grip, since its indices no longer name the grabbed row. happy-dom lays nothing out, so the pointer cases
  * inject the row boxes.
  */
 import {
@@ -63,9 +64,9 @@ function itemsOf(rows: readonly ExampleRow[]): ReorderableItem[] {
   }));
 }
 
-function renderList(rows: readonly ExampleRow[], reorders: Reorder[], parentKeys: string[] = []): void {
+function listOf(rows: readonly ExampleRow[], reorders: Reorder[], parentKeys: string[]) {
   const announce = (fromIndex: number, toIndex: number): string => `${rows[fromIndex]?.name ?? ''} moved to position ${toIndex + 1}`;
-  render(
+  return (
     <div onKeyDown={(event) => parentKeys.push(event.key)}>
       <ReorderableList
         label="First checks"
@@ -76,6 +77,14 @@ function renderList(rows: readonly ExampleRow[], reorders: Reorder[], parentKeys
       />
     </div>
   );
+}
+
+/** Renders the list and answers a function that renders it again over other rows, as a live update does. */
+function renderList(rows: readonly ExampleRow[], reorders: Reorder[], parentKeys: string[] = []): (nextRows: readonly ExampleRow[]) => void {
+  const { rerender } = render(listOf(rows, reorders, parentKeys));
+  return (nextRows) => {
+    rerender(listOf(nextRows, reorders, parentKeys));
+  };
 }
 
 function grip(name: string): HTMLElement {
@@ -258,6 +267,45 @@ describe('a pointer reorder over injected row boxes', () => {
     fireEvent.pointerUp(grip('lint'), { pointerId: POINTER_ID + 1, clientY: middleOfRow(2) + 1 });
     expect(reorders).toEqual([]);
     expect(rowOf('lint').getAttribute('data-dragging')).toBe('pointer');
+  });
+});
+
+describe('a drag whose rows change under it', () => {
+  test('a keyboard drag ends when a row before it goes, and the next Enter grabs instead of dropping the old indices', () => {
+    const reorders: Reorder[] = [];
+    const renderRows = renderList(GATE_ROWS, reorders);
+    pressOn(grip('test'), ' ');
+    pressOn(grip('test'), 'ArrowUp');
+    renderRows([{ name: 'build' }, { name: 'test' }]);
+    expect(document.querySelector('[data-dragging]')).toBeNull();
+    expect(displayedNames()).toEqual(['build', 'test']);
+    grip('build').focus();
+    pressOn(grip('build'), 'Enter');
+    expect(reorders).toEqual([]);
+    expect(rowOf('build').getAttribute('data-dragging')).toBe('keyboard');
+  });
+
+  test('a key on a grip other than the grabbed one ends the drag and drops nothing', () => {
+    const reorders: Reorder[] = [];
+    renderList(GATE_ROWS, reorders);
+    pressOn(grip('test'), ' ');
+    pressOn(grip('test'), 'ArrowUp');
+    pressOn(grip('lint'), 'Enter');
+    expect(reorders).toEqual([]);
+    expect(displayedNames()).toEqual(['lint', 'build', 'test']);
+  });
+
+  test('a pointer drag whose grip goes ends, and Esc then reaches the page again', () => {
+    const reorders: Reorder[] = [];
+    const parentKeys: string[] = [];
+    const renderRows = renderList(GATE_ROWS, reorders, parentKeys);
+    fireEvent.pointerDown(grip('test'), { pointerId: POINTER_ID, button: 0, clientY: middleOfRow(2) });
+    fireEvent.pointerMove(grip('test'), { pointerId: POINTER_ID, clientY: middleOfRow(0) - 1 });
+    renderRows([{ name: 'lint' }, { name: 'build' }]);
+    expect(document.querySelector('[data-dragging], [data-shifted], .design-system-reorder-drop-line')).toBeNull();
+    pressOn(grip('lint'), 'Escape');
+    expect(parentKeys).toEqual(['Escape']);
+    expect(reorders).toEqual([]);
   });
 });
 

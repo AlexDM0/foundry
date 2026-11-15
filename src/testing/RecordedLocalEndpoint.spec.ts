@@ -91,14 +91,15 @@ function watched(socket: Socket, reads: boolean): WatchedClient {
 
 async function watcherSocketOn(endpoint: string): Promise<WatcherSocketListening> {
   return await listenOnWatcherSocket({
-    endpoint:       recorded.endpoint,
-    socketPath:     endpoint,
-    watcherSecret:  WATCHER_SECRET,
-    acceptedKinds:  [],
-    welcomeOf:      () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries: () => [],
-    onClientLine:   () => undefined,
-    onActingFrame:  () => undefined,
+    endpoint:          recorded.endpoint,
+    socketPath:        endpoint,
+    watcherSecret:     WATCHER_SECRET,
+    acceptedKinds:     [],
+    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
+    durableEntries:    () => [],
+    onClientLine:      () => undefined,
+    onActingFrame:     () => undefined,
+    onHandlingFailure: () => undefined,
   });
 }
 

@@ -3,8 +3,9 @@
  * table is cued from its change, once, and not from a fact that only stays; asking begins only when a decision is open and none is
  * selected; after User selected another decision than the oldest two times under the same oldest decision since the last ask it is a
  * knock in place of an ask, while a look at the oldest itself counts nothing, and the count starts again at each ask and knock and when
- * the oldest decision changes; an incident that opens lights the fuse; only a
- * waiver that is answered signs, not another kind and not one answered before; and several changes come in the order of the table.
+ * the oldest decision changes; an incident that opens lights the fuse; an incident settles on a record that closes it, never on an
+ * escalation; only a waiver that is answered signs, any other decision that is answered is a happy answer of its own, and neither when it
+ * was answered before; and several changes come in the order of the table.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -32,6 +33,7 @@ function cuesOver(payloads: readonly QuestionsFacts[]): readonly (readonly strin
 
 const opened = (decisionId: string, kind: string) => ({ kind: 'decision-opened', decisionId, fields: { kind, ticketIds: [] } });
 const answered = (decisionId: string) => ({ kind: 'decision-answered', decisionId, fields: { answer: {} } });
+const incidentRecord = (kind: string) => ({ kind, incidentId: 'I1', fields: {} });
 
 describe('asking', () => {
   test('a decision that opens with none selected is asked about', () => {
@@ -80,15 +82,30 @@ describe('incidents and waivers', () => {
     expect(cuesOver([facts(), facts({ incidents: [incident] }), facts({ incidents: [incident] }), facts()])).toEqual([['incident-opened'], [], []]);
   });
 
-  test('a waiver that is answered signs; another kind, or a waiver answered before, does not', () => {
+  test('an incident that is handled, answered or takes its default move settles; one that escalates, or settled before, does not', () => {
+    const open = facts({ history: [incidentRecord('incident-opened')] });
+    for (const settlingKind of ['incident-handled', 'incident-answered', 'incident-defaulted']) {
+      const settled = facts({ history: [...open.history, incidentRecord(settlingKind)] });
+      expect(cuesOver([open, settled, facts({ history: [...settled.history] })])).toEqual([['incident-settled'], []]);
+    }
+    expect(cuesOver([open, facts({ history: [...open.history, incidentRecord('incident-escalated')] })])).toEqual([[]]);
+  });
+
+  test('a waiver that is answered signs, and another kind that is answered is a decision answered; neither when answered before', () => {
     const waiverOpen = facts({ history: [opened('D1', 'waiver'), opened('D2', 'agent-question')] });
-    expect(cuesOver([waiverOpen, facts({ history: [...waiverOpen.history, answered('D2')] })])).toEqual([[]]);
+    const questionAnswered = facts({ history: [...waiverOpen.history, answered('D2')] });
+    expect(cuesOver([waiverOpen, questionAnswered, facts({ history: [...questionAnswered.history] })])).toEqual([['decision-answered'], []]);
     const waiverAnswered = facts({ history: [...waiverOpen.history, answered('D1')] });
-    expect(cuesOver([waiverOpen, waiverAnswered, facts({ history: [...waiverAnswered.history, answered('D2')] })])).toEqual([['waiver-answered'], []]);
+    expect(cuesOver([waiverOpen, waiverAnswered, facts({ history: [...waiverAnswered.history] })])).toEqual([['waiver-answered'], []]);
   });
 });
 
 test('several changes come in the order of the table', () => {
-  const next = facts({ decisions: [OLDEST], incidents: [{ id: 'I1', defaultMove: 'retry' }], history: [opened('D0', 'waiver'), answered('D0')] });
-  expect(cuesOver([facts({ history: [opened('D0', 'waiver')] }), next])).toEqual([['decision-waits', 'incident-opened', 'waiver-answered']]);
+  const next = facts({
+    decisions: [OLDEST],
+    incidents: [{ id: 'I2', defaultMove: 'retry' }],
+    history:   [opened('D0', 'waiver'), answered('D0'), opened('D9', 'agent-question'), answered('D9'), incidentRecord('incident-handled')],
+  });
+  const previous = facts({ history: [opened('D0', 'waiver'), opened('D9', 'agent-question')] });
+  expect(cuesOver([previous, next])).toEqual([['decision-waits', 'incident-opened', 'incident-settled', 'waiver-answered', 'decision-answered']]);
 });

@@ -1,8 +1,8 @@
 /**
  * The Overseer's side of the Hatch: every job's folder `<W>/hatch/<J>/` is mapped to its job record, which alone gives the request its job
  * and role; a folder whose job is neither live nor awaiting verification is not read. Each pending request is applied in the DrivePass
- * hold through the role policy and `ControlService`, its id logged on a `hatch-applied` record so a replay never applies it twice, and
- * its reply written once the hold committed.
+ * hold through the role policy and `ControlService`, its id and reply logged on a `hatch-applied` record so a replay never applies it
+ * twice, and its reply written once the hold committed, or again from that record when it was lost.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -12,6 +12,7 @@ import { hatchReplyFilePathOf, hatchRequestFilePathOf }  from '../../adapters/ha
 import { HatchFormatUtil }                               from '../../adapters/hatch/utils/HatchFormatUtil.ts';
 import { writeFileAtomically }                           from '../../lib/atomic-file/AtomicFile.ts';
 import type { Job, JobState }                            from '../../lib/tracker-model/@types/Job.ts';
+import type { HatchAppliedRecord, LogRecordFieldsOf }    from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                                    from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                  from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlContext, SetupMessage }             from '../../shared/@types/ControlContext.ts';
@@ -174,18 +175,52 @@ function replyOf(change: TrackerChange, job: Readonly<Job>, request: PendingHatc
   }
 }
 
+function appliedFieldsOf(reply: HatchReply, commandKind: string): LogRecordFieldsOf<'hatch-applied'> {
+  const { requestId, outcome } = reply;
+  if (reply.outcome === 'refused') return {
+    requestId, commandKind, outcome, status: reply.status, detail: reply.detail
+  };
+  return {
+    requestId, commandKind, outcome, ticketIds: reply.ticketIds
+  };
+}
+
+/** The reply an applied request was answered with, from its record; null for a record that does not carry it. */
+function replyRebuiltFrom(applied: HatchAppliedRecord): HatchReply | null {
+  const {
+    requestId, outcome, ticketIds, status, detail
+  } = applied.fields;
+  if ((outcome === 'done' || outcome === 'nothing-to-do') && ticketIds !== undefined) {
+    return {
+      hatchFormatVersion: HATCH_FORMAT_VERSION, requestId, outcome, ticketIds: [...ticketIds]
+    };
+  }
+  if (outcome === 'refused' && status !== undefined && detail !== undefined) {
+    return refusedReply(requestId, status, detail as unknown as OperationRefusalDetail);
+  }
+  return null;
+}
+
 /**
  * Inside the hold, before any Watcher event: each request of a job still on the board and readable is applied once, whatever its verdict,
- * and logged with its outcome. The replies are returned for the Overseer to write once the hold has committed.
+ * and logged with its reply. A request already applied whose reply was lost after its hold committed gets that reply again, unapplied. The
+ * replies are returned for the Overseer to write once the hold has committed.
  */
 function applyPendingRequests(change: TrackerChange, repositoryRoot: string, pending: readonly PendingHatchRequest[]): HatchReplyToWrite[] {
   const replies: HatchReplyToWrite[] = [];
   for (const request of pending) {
     const job = change.board.jobById(request.jobId);
-    if (job === undefined || !hatchIsReadable(job) || change.board.hatchRequestIsApplied(request.requestId)) continue;
+    if (job === undefined || !hatchIsReadable(job)) continue;
+    const hatchDirectory = hatchDirectoryOf(repositoryRoot, job.id);
+    const applied        = change.board.hatchAppliedRecordOf(request.requestId);
+    if (applied !== null) {
+      const rebuilt = applied.jobId === job.id ? replyRebuiltFrom(applied) : null;
+      if (rebuilt !== null) replies.push({ hatchDirectory, reply: rebuilt });
+      continue;
+    }
     const { reply, commandKind } = replyOf(change, job, request);
-    change.board.recordHatchApplied(job.id, { requestId: request.requestId, commandKind, outcome: reply.outcome }, change.at);
-    replies.push({ hatchDirectory: hatchDirectoryOf(repositoryRoot, job.id), reply });
+    change.board.recordHatchApplied(job.id, appliedFieldsOf(reply, commandKind), change.at);
+    replies.push({ hatchDirectory, reply });
   }
   return replies;
 }

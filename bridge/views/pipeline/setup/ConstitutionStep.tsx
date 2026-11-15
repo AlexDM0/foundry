@@ -89,9 +89,9 @@ export function ConstitutionStep({
           />
         </View>
         <span id={viewLabelId} className="bridge-visually-hidden">Show the constitution as</span>
-        <Row paddingBottom="twelve">
+        <span className="bridge-pipeline-constitution-view-switch">
           <SegmentedControl labelledBy={viewLabelId} options={VIEW_OPTIONS} selected={view} onSelect={setView} size="standard" />
-        </Row>
+        </span>
       </Row>
       <article className="bridge-pipeline-constitution-article" data-view={view} aria-label="Constitution">
         <div className="bridge-pipeline-constitution-article-head">

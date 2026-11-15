@@ -14,11 +14,14 @@ export const THEME_CHOICE_NAME = 'theme';
 export const DEFAULT_THEME_CHOICE: ThemeChoice = 'auto';
 const EMBEDDING_HOSTS: readonly EmbeddingHost[] = ['dashboard', 'gaia'];
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
+const THEME_CHOICE_ATTRIBUTE = 'data-theme-choice';
 
 export interface DocumentSurroundings {
-  readonly root:              HTMLElement;
-  readonly search:            string;
-  readonly systemPrefersDark: () => boolean;
+  readonly root:                 HTMLElement;
+  readonly search:               string;
+  readonly systemPrefersDark:    () => boolean;
+  /** Calls `onChange` each time the system's scheme changes; returns the stop. */
+  readonly onSystemSchemeChange: (onChange: () => void) => () => void;
 }
 
 function themeChoiceOf(stored: string | null): ThemeChoice {
@@ -32,7 +35,7 @@ function themeOf(choice: ThemeChoice, systemPrefersDark: () => boolean): Theme {
 
 function applyTheme(root: HTMLElement, theme: Theme, choice: ThemeChoice): void {
   root.setAttribute('data-theme', theme);
-  root.setAttribute('data-theme-choice', choice);
+  root.setAttribute(THEME_CHOICE_ATTRIBUTE, choice);
 }
 
 /** Only the literal `?embedded=dashboard` or `?embedded=gaia` marks the document embedded; `null` when it is not. */
@@ -43,9 +46,14 @@ function embeddingHostOf(search: string): EmbeddingHost | null {
 
 function browserSurroundings(): DocumentSurroundings {
   return {
-    root:              document.documentElement,
-    search:            window.location.search,
-    systemPrefersDark: () => window.matchMedia(DARK_SCHEME_QUERY).matches,
+    root:                 document.documentElement,
+    search:               window.location.search,
+    systemPrefersDark:    () => window.matchMedia(DARK_SCHEME_QUERY).matches,
+    onSystemSchemeChange: (onChange) => {
+      const query = window.matchMedia(DARK_SCHEME_QUERY);
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    },
   };
 }
 
@@ -68,6 +76,14 @@ function applyParentTheme(choice: ThemeChoice, surroundings: DocumentSurrounding
   applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
 }
 
+/** While the choice on the root is `auto`, whoever made it, a change of the system's scheme applies the theme again; returns the stop. */
+function followSystemScheme(surroundings: DocumentSurroundings = browserSurroundings()): () => void {
+  return surroundings.onSystemSchemeChange(() => {
+    if (surroundings.root.getAttribute(THEME_CHOICE_ATTRIBUTE) !== 'auto') return;
+    applyTheme(surroundings.root, themeOf('auto', surroundings.systemPrefersDark), 'auto');
+  });
+}
+
 export const ThemeBootstrap = Object.freeze({
-  applyBeforeFirstPaint, chooseTheme, applyParentTheme, themeChoiceOf,
+  applyBeforeFirstPaint, chooseTheme, applyParentTheme, followSystemScheme, themeChoiceOf,
 });

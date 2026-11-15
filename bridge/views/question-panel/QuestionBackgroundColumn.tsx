@@ -101,7 +101,7 @@ export function QuestionBackgroundColumn({ model, followTranscript, todayCalenda
   // A tab a later board dropped, such as a ticket that left the page, falls back to the background.
   const readingTab = model.readingTabs.includes(chosenReadingTab) ? chosenReadingTab : 'background';
   const jobId = model.stepsJobId;
-  const entries = useTranscript(readingTab === 'ticket' ? null : jobId, followTranscript);
+  const { entries, historyKey } = useTranscript(readingTab === 'ticket' ? null : jobId, followTranscript);
   const steps = QuestionPanelModel.lastStepsOf(entries, QUESTION_PANEL_STEPS_SHOWN);
   const { ticket } = model;
   return (
@@ -123,15 +123,15 @@ export function QuestionBackgroundColumn({ model, followTranscript, todayCalenda
               {model.stoppedReason === null
                 ? null
                 : (
-                  <TitledBlock title={`Why ${model.head.askerText} stopped`}>
+                  <TitledBlock look="label" title={`Why ${model.head.askerText} stopped`}>
                     <Callout tone="warn"><p>{model.stoppedReason}</p></Callout>
                   </TitledBlock>
                 )}
-              {ticket === null ? null : <TitledBlock title="The ticket"><TicketCard ticket={ticket} /></TitledBlock>}
+              {ticket === null ? null : <TitledBlock look="label" title="The ticket"><TicketCard ticket={ticket} /></TitledBlock>}
               {jobId === null || steps.length === 0
                 ? null
                 : (
-                  <TitledBlock title={`What ${jobId} did before it asked`}>
+                  <TitledBlock look="label" title={`What ${jobId} did before it asked`}>
                     <KeyedLineList
                       label={`The last tool calls of ${jobId}`}
                       keyColumn="tool"
@@ -150,7 +150,7 @@ export function QuestionBackgroundColumn({ model, followTranscript, todayCalenda
               {ticket === null || model.earlierAnswers.length === 0
                 ? null
                 : (
-                  <TitledBlock title={`Answered earlier on #${ticket.ticketId}`}>
+                  <TitledBlock look="label" title={`Answered earlier on #${ticket.ticketId}`}>
                     <KeyedLineList
                       label={`Earlier answers on #${ticket.ticketId}`}
                       keyColumn="tool"
@@ -175,6 +175,7 @@ export function QuestionBackgroundColumn({ model, followTranscript, todayCalenda
                 label={`Conversation of ${jobId}`}
                 turns={QuestionPanelModel.conversationTurnsOf(ChatThreadModelUtil.threadItemsOf(entries, []), jobId, todayCalendarDate)}
                 renderDecision={() => null}
+                historyKey={historyKey}
               />
             </ChatCard>
           )

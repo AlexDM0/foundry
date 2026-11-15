@@ -1,6 +1,7 @@
 /**
  * An action confirmed in place: the question and its consequence, then the confirming control and Cancel. The neutral strip runs inline
- * as one line of text; the danger strip is a card in the error colours. The confirming control arrives whole, as the caller's command.
+ * as one line of text, its Cancel compact; the danger strip is a card in the error colours, its Cancel full size. The confirming control
+ * arrives whole, as the caller's command, in the same size.
  */
 import type { ReactNode } from 'react';
 
@@ -35,7 +36,7 @@ export function ConfirmStrip({
       </span>
       <span className="design-system-confirm-actions">
         {confirm}
-        <Button label={cancelLabel} onPress={onCancel} />
+        <Button label={cancelLabel} compact={tone === 'neutral'} onPress={onCancel} />
       </span>
     </span>
   );

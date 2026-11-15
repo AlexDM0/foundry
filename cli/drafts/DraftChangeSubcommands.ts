@@ -2,28 +2,27 @@
 import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
-import { DraftDocumentUtil }                    from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
-import { DraftIdUtil }                          from '../../src/lib/tracker-model/utils/DraftIdUtil.ts';
-import { ControlService, type ControlResultOf } from '../../src/services/control/ControlService.ts';
-import { requireWorkspace }                     from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommand }                  from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                     from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                        from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                  from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }              from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                    from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                  from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                           from '../utils/OutputUtil.ts';
-import { DRAFT_USAGE }                          from './constants/DraftUsage.ts';
+import { DraftDocumentUtil }                                from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
+import { DraftIdUtil }                                      from '../../src/lib/tracker-model/utils/DraftIdUtil.ts';
+import { ControlService, type ControlResultOf }             from '../../src/services/control/ControlService.ts';
+import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommand }                              from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                              from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
+import { hatchWhenUnderJob }                                from '../HatchUnderJob.ts';
+import { openTrackerForWriting }                            from '../OpenTrackerForWriting.ts';
+import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';
+import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                                       from '../utils/OutputUtil.ts';
+import { DRAFT_USAGE }                                      from './constants/DraftUsage.ts';
 
 const OPEN_OPTION_NAMES    = ['owner', 'request', 'request-file', 'json'];
 const CLAIM_OPTION_NAMES   = ['owner', 'force', 'json'];
 const RELEASE_OPTION_NAMES = ['json'];
 const CLOSE_OPTION_NAMES   = ['tickets', 'json'];
 const ABANDON_OPTION_NAMES = ['reason', 'json'];
-
-const STANDARD_INPUT_MARKER = '-';
 
 const TICKET_LIST_SEPARATOR_PATTERN = /[\s,]+/;
 
@@ -62,7 +61,10 @@ async function suppliedRequestOf(commandArguments: ArgumentParser, context: Comm
   if (written !== undefined && requestFile !== undefined) throw refusalOf(`${PRODUCT_NAMES.PROGRAM} draft open takes --request or --request-file, not both.`);
   if (written !== undefined) return written;
   if (requestFile === undefined) return '';
-  if (requestFile === STANDARD_INPUT_MARKER) return context.readStandardInput();
+  if (requestFile === STANDARD_INPUT_MARKER) {
+    requirePipedStandardInput(context, 'request-file');
+    return context.readStandardInput();
+  }
   try {
     return readFileSync(resolve(context.currentDirectory, requestFile), 'utf8');
   } catch (problem) {

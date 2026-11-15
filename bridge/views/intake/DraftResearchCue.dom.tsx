@@ -22,7 +22,7 @@ function sceneOfIntakeChat(): FlintHabitatScene<readonly CuedDraft[]> {
     storedHabitatKind: 'chat',
     viewOf:            (drafts) => (
       <ChatCard label="Intake chat">
-        <ChatThread label="Intake conversation" turns={[]} renderDecision={() => null} />
+        <ChatThread label="Intake conversation" turns={[]} renderDecision={() => null} historyKey="P1" />
         <DraftResearchCue drafts={drafts} />
       </ChatCard>
     ),

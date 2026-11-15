@@ -309,7 +309,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
       codeVersion:    CodeVersion.onDisk(),
       installVersion: expect.any(Number),
       contracts:      {
-        summary: 1, monitor: 1, control: 1, embed: 1
+        summary: 1, monitor: 2, control: 1, embed: 1
       },
     });
     const second = await runAgentProgress(['start', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });

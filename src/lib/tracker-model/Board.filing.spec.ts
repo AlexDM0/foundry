@@ -79,6 +79,23 @@ describe('fileTicket', () => {
     }
   });
 
+  // Two files holding one id both drop off the board as malformed, so the Board refuses the second filing before anything changes.
+  test('a ticket whose id the board already holds is refused, and nothing changes', () => {
+    const {
+      board,
+      progress,
+      tickets,
+      records,
+    } = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
+
+    expect(refusalDetailOf(() => board.fileTicket(ticketFixture({ id: '001', title: 'Example second filing' }), FILED_AT)))
+      .toEqual({ reason: 'ticket-id-already-filed', ticketId: '001' });
+    expect(tickets).toHaveLength(1);
+    expect(progress.tasks).toEqual([]);
+    expect(records).toEqual([]);
+    expect(board.changedTickets()).toEqual([]);
+  });
+
   // The group names the branch `group-<name>` and its folder, so the rule must not depend on the host: upper case and NTFS characters fail everywhere.
   test('a group outside lower-case words of letters and digits is refused on every OS, and nothing changes', () => {
     for (const group of ['Example-Shop', 'example_shop', 'example.', 'example shop', 'a"b', 'a|b', 'a<b', 'a:b', 'a?b', 'a*b', '-example', 'example--shop']) {

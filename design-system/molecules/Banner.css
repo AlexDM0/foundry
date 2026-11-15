@@ -1,5 +1,6 @@
 /* A banner: 9 by 14px, a 6px corner, a 1px edge that is 4px on the left, 12.5px text. Held is the orange tint, error the failure colours,
-   quiet (a snapshot) the wash with ink text. It keeps no margin: its holder spaces it. */
+   quiet (a snapshot) the wash with ink text. It keeps no margin: its holder spaces it. It drops in as it arrives, and a change of tone
+   turns its colours. */
 .design-system-banner {
   display: flex; align-items: center; gap: var(--sp-2);
   padding: var(--space-9) var(--space-14);
@@ -10,6 +11,8 @@
   color: var(--warn-ink);
   font-size: var(--fs-tab);
   overflow-wrap: anywhere;
+  animation: design-system-drop var(--motion-slow) var(--ease-out) both;
+  transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out);
 }
 .design-system-banner strong { flex: none; font-weight: 600; }
 .design-system-banner[data-tone="error"] { border-color: var(--err-edge); background: var(--err-tint); color: var(--err-ink); }
@@ -17,3 +20,7 @@
 
 /* A banner's action sits at its line's end. */
 .design-system-banner-action { margin-left: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-banner { animation: none; }
+}

@@ -46,8 +46,8 @@ describe('the pane', () => {
     const pane = screen.getByRole('region', { name: 'Task J4' });
     const head = pane.querySelector('.design-system-pane-head');
     expect([
-      head?.querySelector('[data-type-role="title"]')?.textContent,
-      head?.querySelector('[data-type-role="title"] .design-system-pane-mark')?.textContent,
+      head?.querySelector('[data-type-role="page"]')?.textContent,
+      head?.querySelector('[data-type-role="page"] .design-system-pane-mark')?.textContent,
       head?.querySelector('.design-system-pane-subtitle')?.textContent,
       head?.querySelector('.design-system-pane-count')?.textContent,
       head?.querySelector('.design-system-pane-head-end button')?.textContent,

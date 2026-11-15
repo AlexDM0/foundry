@@ -18,7 +18,7 @@
   z-index: 20;
   transform: translateX(0);
   opacity: 1;
-  transition: transform var(--side-panel-motion) var(--ease-out), opacity var(--side-panel-motion) ease-out;
+  transition: transform var(--side-panel-motion) var(--ease-out), opacity var(--side-panel-motion) var(--ease-out);
 }
 .design-system-side-panel[data-width="detail"] { width: min(var(--side-panel-width), 100vw); }
 .design-system-side-panel[data-width="question"] { width: min(var(--side-panel-wide-width), 100vw); }
@@ -30,10 +30,14 @@
 .design-system-side-panel-head[data-close-alone] { position: absolute; top: var(--sp-4); right: var(--space-20); z-index: 1; padding: 0; }
 .design-system-side-panel-head-content { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-6); min-width: 0; }
 .design-system-side-panel-head > .design-system-icon-button { flex: none; width: 30px; height: 30px; }
+/* With a first line, × closes that line, and the title and children take the head's full width under it. */
+.design-system-side-panel-head[data-first-line] { flex-direction: column; align-items: stretch; gap: var(--space-6); }
+.design-system-side-panel-head-first-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.design-system-side-panel-head-first-line > :first-child { flex: 1 1 auto; min-width: 0; }
+.design-system-side-panel-head-first-line > .design-system-icon-button { flex: none; width: 30px; height: 30px; }
 
 .design-system-side-panel-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--space-14) var(--space-20) var(--space-20); }
-.design-system-side-panel-scroll[data-swapped] { animation: design-system-side-panel-swap 140ms ease-out; }
-@keyframes design-system-side-panel-swap { from { opacity: 0; } to { opacity: 1; } }
+.design-system-side-panel-scroll[data-swapped] { animation: design-system-fade var(--motion-base) var(--ease-out); }
 .design-system-side-panel-foot { flex: none; padding: var(--sp-3) var(--space-20); border-top: 1px solid var(--line); }
 @media (prefers-reduced-motion: reduce) {
   .design-system-side-panel { transition: none; }

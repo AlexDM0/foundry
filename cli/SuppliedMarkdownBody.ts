@@ -1,12 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
-import { OperationRefusal }    from '../src/shared/OperationRefusal.ts';
-import type { CommandContext } from './CommandContext.ts';
-import { suppliedTextOf }      from './SuppliedText.ts';
-import type { ArgumentParser } from './arguments/ArgumentParser.ts';
-
-const STANDARD_INPUT_MARKER = '-';
+import { OperationRefusal }                                 from '../src/shared/OperationRefusal.ts';
+import type { CommandContext }                              from './CommandContext.ts';
+import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from './PipedStandardInput.ts';
+import { suppliedTextOf }                                   from './SuppliedText.ts';
+import type { ArgumentParser }                              from './arguments/ArgumentParser.ts';
 
 /**
  * The text of `--body`, or of the file `--body-file` names (`-` for standard input), for a ticket or an epic; undefined when neither is
@@ -17,7 +16,10 @@ export async function suppliedMarkdownBodyOf(commandArguments: ArgumentParser, c
   if (written !== undefined) return written;
 
   const bodyFile = commandArguments.option('body-file');
-  if (bodyFile === STANDARD_INPUT_MARKER) return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --body-file -');
+  if (bodyFile === STANDARD_INPUT_MARKER) {
+    requirePipedStandardInput(context, 'body-file');
+    return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --body-file -');
+  }
   if (bodyFile === undefined) return undefined;
   let bytes: Uint8Array;
   try {

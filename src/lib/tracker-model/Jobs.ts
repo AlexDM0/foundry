@@ -19,7 +19,7 @@ import type {
   OverseerStopReason,
   PictureReference
 }                                   from './@types/Job.ts';
-import type { LogRecord }                                           from './@types/LogRecord.ts';
+import type { HatchAppliedRecord, LogRecord, LogRecordFieldsOf }    from './@types/LogRecord.ts';
 import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
@@ -41,12 +41,28 @@ const FIRST_EVENT_SEQUENCE = 0;
 /** A job keeps the newest notes for this many question texts; an older one no question took is dropped. */
 const PENDING_OPTION_NOTES_PER_JOB = 8;
 
-/** User's message that reopens a closed product owner, with the pictures it carries, and the tickets its intake filed before. */
+/** A chat turn for a session: its text, the pictures it carries, and who wrote it. */
+export interface JobMessage {
+  text:     string;
+  pictures: readonly PictureReference[];
+  sender:   JobMessageSender;
+}
+
+/** Who wrote a message's text: User, or the Overseer wording User's setup move for the pipeline agent. */
+export type JobMessageSender = 'user' | 'overseer';
+
+/** The message that reopens a closed session, with the pictures it carries, and the tickets its intake filed before. */
 export interface JobReopening {
   text:             string;
   pictures:         readonly PictureReference[];
   offeredTicketIds: readonly string[];
+  sender:           JobMessageSender;
   intake?:          JobIntake;
+}
+
+/** Set only for the Overseer, so User's message logs as it always did. */
+function senderFieldOf(sender: JobMessageSender): { byOverseer?: true } {
+  return sender === 'overseer' ? { byOverseer: true } : {};
 }
 
 function picturesCopyOf(pictures: readonly PictureReference[]): PictureReference[] {
@@ -193,7 +209,9 @@ export class Jobs {
   reopenEndedJob(jobId: string, reopening: JobReopening, at: string): JobChanged {
     const records  = this.logRecordsSoFar().filter((record) => 'jobId' in record && record.jobId === jobId);
     const launched = records.find((record) => record.kind === 'job-launched');
-    if (launched?.kind !== 'job-launched' || this.jobById(jobId) !== undefined) return this.recordMessage(jobId, reopening.text, reopening.pictures, at);
+    if (launched?.kind !== 'job-launched' || this.jobById(jobId) !== undefined) {
+      return this.recordMessage(jobId, { text: reopening.text, pictures: reopening.pictures, sender: reopening.sender }, at);
+    }
     const lastWatcherInstance = records.reduce((highest, record) => (
       (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') ? Math.max(highest, record.fields.watcherInstance) : highest
     ), FIRST_WATCHER_INSTANCE);
@@ -219,16 +237,18 @@ export class Jobs {
       text:             reopening.text,
       offeredTicketIds: [...reopening.offeredTicketIds],
       ...(reopening.pictures.length === 0 ? {} : { pictures: picturesCopyOf(reopening.pictures) }),
+      ...senderFieldOf(reopening.sender),
     };
     return { job, logged: [this.records.logger.log({ kind: 'job-reopened', jobId, fields }, at)] };
   }
 
   /** A finished session is continued only by `reopenEndedJob`: a session whose input is closing is refused like an ended job. */
   /** `pictures` are recorded only when there are some, so a message without them logs as it always did. */
-  recordMessage(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
+  recordMessage(jobId: string, message: JobMessage, at: string): JobChanged {
     const job = this.requireLiveJob(jobId);
     if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
-    const fields = { text, ...(pictures.length === 0 ? {} : { pictures: picturesCopyOf(pictures) }) };
+    const { text, pictures, sender } = message;
+    const fields = { text, ...(pictures.length === 0 ? {} : { pictures: picturesCopyOf(pictures) }), ...senderFieldOf(sender) };
     return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields }, at)] };
   }
 
@@ -299,15 +319,22 @@ export class Jobs {
     return { logged: [this.records.logger.log({ kind: 'usage-limit-hit', jobId, fields: { window: limit.window, resetsAt: limit.resetsAt } }, at)] };
   }
 
-  recordHatchApplied(jobId: string, applied: { requestId: string; commandKind: string; outcome: string }, at: string): Logged {
-    const fields = { requestId: applied.requestId, commandKind: applied.commandKind, outcome: applied.outcome };
+  recordHatchApplied(jobId: string, applied: LogRecordFieldsOf<'hatch-applied'>, at: string): Logged {
+    const fields = {
+      requestId:   applied.requestId,
+      commandKind: applied.commandKind,
+      outcome:     applied.outcome,
+      ...(applied.ticketIds === undefined ? {} : { ticketIds: [...applied.ticketIds] }),
+      ...(applied.status === undefined ? {} : { status: applied.status }),
+      ...(applied.detail === undefined ? {} : { detail: applied.detail }),
+    };
     return { logged: [this.records.logger.log({ kind: 'hatch-applied', jobId, fields }, at)] };
   }
 
   /** Read from the stored log and this hold's records alike, so a request answered in an earlier pass or earlier in this one is never applied again. */
-  hatchRequestIsApplied(requestId: string): boolean {
-    const isTheRequest = (record: LogRecord): boolean => record.kind === 'hatch-applied' && record.fields.requestId === requestId;
-    return this.records.storedLogRecords.some(isTheRequest) || this.records.loggedRecords.some(isTheRequest);
+  hatchAppliedRecordOf(requestId: string): HatchAppliedRecord | null {
+    const isTheRequest = (record: LogRecord): record is HatchAppliedRecord => record.kind === 'hatch-applied' && record.fields.requestId === requestId;
+    return this.records.storedLogRecords.find(isTheRequest) ?? this.records.loggedRecords.find(isTheRequest) ?? null;
   }
 
   private logRecordsSoFar(): LogRecord[] {

@@ -2,15 +2,16 @@
  * The tabbed ticket form in a happy-dom document, against a fake command client. What matters: the four section tabs come in their order,
  * each a link to its own route over the same board tab, Overview the current one without a section, and only the routed section is in the
  * DOM; the arrow keys, Home and End open a section; Activity counts and lists the lines naming the ticket or its row, or says none does;
- * the Overview's state card names the live job and its calls beside Flint's slot in the job's pose (no slot while the question panel shows
- * over the panel's slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept
- * by state, Accept disabled unless the prediction is clean; Park…, Hold… and Delivered by hand… open their row before anything is sent,
- * Cancel sending nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once
- * applied and showing a refusal verbatim; Next marks exactly one current step and links the tickets the landing lets start, and is absent
- * without a forecast; the Facts grid carries its second lines; a refusal shows verbatim beside the control that drew it; and a live
- * job's controls sit under Watch, after the open incident naming the ticket: a message box while the job takes one, and More, whose Wind
- * down, Stop and Fresh agent each open a confirmation in place naming the ticket, its branch and its hold, sending nothing until
- * confirmed, Cancel and Esc handing the focus back; a stopping job shows Stopping. alone, a watched one Stop alone.
+ * the Overview's state card names the live job and its calls beside Flint's slot (no slot while the question panel shows over the panel's
+ * slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept by state, Accept
+ * disabled unless the prediction is clean; Park…, Hold… and Delivered by hand… open their row before anything is sent, Cancel sending
+ * nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once applied and
+ * showing a refusal verbatim; a closed move row hands the focus back to its opener; Next marks exactly one current step and links the
+ * tickets the landing lets start, and is absent without a forecast; the Facts grid carries its second lines; a refusal shows verbatim
+ * beside the control that drew it; and a live job's controls sit under Watch, after the open incident naming the ticket: a message box
+ * while the job takes one, and More, whose Wind down, Stop and Fresh agent each open a confirmation in place naming the ticket, its branch
+ * and its hold, sending nothing until confirmed, Cancel and Esc handing the focus back; a stopping job shows Stopping. alone, a watched one
+ * Stop alone.
  */
 import {
   act,
@@ -233,12 +234,12 @@ describe('Activity', () => {
 });
 
 describe('the Overview', () => {
-  test('a running build shows its state card, Flint typing in its slot, and leads with the link Watch J4 to its transcript on Agents', () => {
+  test('a running build shows its state card, Flint\'s slot in it, and leads with the link Watch J4 to its transcript on Agents', () => {
     renderTicket(BUILDING);
     const card = document.querySelector('.bridge-detail-state-card');
     expect(card?.getAttribute('data-state')).toBe('in-progress');
     const flint = card?.querySelector('.design-system-flint-slot');
-    expect(['data-size', 'data-ground', 'data-flint-pose', 'aria-hidden'].map((name) => flint?.getAttribute(name))).toEqual(['100', 'strip', 'typing', 'true']);
+    expect(['data-size', 'data-ground', 'aria-hidden'].map((name) => flint?.getAttribute(name))).toEqual(['100', 'strip', 'true']);
     expect([...(card?.querySelectorAll('h3, p') ?? [])].map((part) => part.textContent)).toEqual([
       'Building',
       'J4, builder, attempt 1, since 12:41 (55m)',
@@ -360,6 +361,23 @@ describe('the Overview', () => {
     await clicked(within(screen.getByRole('group', { name: 'Priority' })).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
     expect(pending.sent).toEqual([{ kind: 'ticket-priority', ticketReference: '019', priority: 'low' }]);
+  });
+
+  test('a closed move row hands the focus back to its opener, on Cancel and once its command applied', async () => {
+    renderTicket(BUILDING);
+    await clicked(screen.getByRole('button', { name: 'Park…' }));
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    cancel.focus();
+    await clicked(cancel);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Park…' }));
+    cleanup();
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'pending', priority: 'low' })] });
+    renderTicket({ form: 'ticket', ticketId: '018' }, { boardState });
+    await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
+    const high = screen.getByRole('button', { name: 'Priority high' });
+    high.focus();
+    await clicked(high);
+    expect(document.activeElement).toBe(region('Other moves').getByRole('button', { name: 'Priority…' }));
   });
 
   test('a draft, a held ticket under review or a ticket in progress offers no Priority…', () => {

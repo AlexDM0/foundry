@@ -139,12 +139,11 @@ describe('the chart', () => {
     expect(screen.getByRole('link', { name: '#5' }).getAttribute('href')).toBe('#tickets/ticket-row/5');
   });
 
-  test('draws each row’s state chip with its dot and word, Waiting for a to-do row with unmet dependencies', () => {
+  test('draws each row’s state as a badge of its word in the state column', () => {
     const { container } = renderProgress();
     const chip = container.querySelector('[data-task-id="1"] .bridge-progress-chip');
 
-    expect(chip?.querySelector('.bridge-progress-chip-dot')?.getAttribute('aria-hidden')).toBe('true');
-    expect(chip?.querySelector('.bridge-progress-chip-word')?.textContent).toBe('Done');
+    expect(chip?.textContent).toBe('Done');
   });
 
   test('says when no row falls in the range, keeping the head', () => {

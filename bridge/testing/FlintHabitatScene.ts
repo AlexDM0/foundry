@@ -1,7 +1,7 @@
 /**
  * A view under the Bridge's host of Flint, in a happy-dom document on manual frames: Flint starts in the stored habitat, or at home, and has
- * lived a frame there; a recording brain reads the cues Flint received, and every intent performed through the handle is recorded with its
- * element before Flint carries it out. Test-only.
+ * lived a frame there; a recording brain reads what Flint perceived, such as the cues it received and its visit target; and every intent
+ * performed through the handle is recorded with its element before Flint carries it out. Test-only.
  */
 import { act, render }                      from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
@@ -30,6 +30,8 @@ export interface FlintHabitatScene<Props> {
   readonly performed:    readonly (readonly [intent: string, toward: Element | undefined])[];
   /** Starts a brain that answers `wander` and gives the cues of every ask after a director's interval. */
   readonly cuesReceived: (whileShowing: () => void) => readonly string[];
+  /** Starts a brain that answers `wander` and gives what Flint perceived at every ask after a director's interval. */
+  readonly perceived:    (whileShowing: () => void) => readonly PerceptionDigest[];
 }
 
 export interface FlintHabitatSceneOptions<Props> {
@@ -94,24 +96,26 @@ export function flintHabitatSceneOf<Props>({
   advanceFor(frames, FRAME_MILLISECONDS);
   const handle = handles.at(-1);
   if (handle === undefined) throw new Error('Flint was not made');
+  const perceived = (whileShowing: () => void): readonly PerceptionDigest[] => {
+    const digests: PerceptionDigest[] = [];
+    const brain: Director = {
+      nextIntent: (digest) => {
+        digests.push(digest);
+        return 'wander';
+      },
+    };
+    handle.startBrain(brain, BRAIN_MAXIMUM_MILLISECONDS);
+    whileShowing();
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    handle.stopBrain();
+    return digests;
+  };
   return {
     show:         (props) => page.rerender(hostOf(props)),
     frames,
     handle,
     performed,
-    cuesReceived: (whileShowing) => {
-      const digests: PerceptionDigest[] = [];
-      const brain: Director = {
-        nextIntent: (digest) => {
-          digests.push(digest);
-          return 'wander';
-        },
-      };
-      handle.startBrain(brain, BRAIN_MAXIMUM_MILLISECONDS);
-      whileShowing();
-      advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-      handle.stopBrain();
-      return digests.flatMap((digest) => digest.newCues);
-    },
+    cuesReceived: (whileShowing) => perceived(whileShowing).flatMap((digest) => digest.newCues),
+    perceived,
   };
 }

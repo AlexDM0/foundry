@@ -1,7 +1,8 @@
 /**
  * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
  * panel's own and the focus back on the trigger, and an item closes it by its `closing`. The insert trigger is a round plus on a line,
- * named by `triggerName`, that pulses while closed and opens its popover beside itself.
+ * named by `triggerName`, that pulses while closed and opens its popover beside itself. The popover drops in on open and leaves the same
+ * way, inert while it goes.
  */
 import {
   useId,
@@ -13,6 +14,7 @@ import {
 } from 'react';
 
 import { useDismissal } from '../utils/Dismissal.ts';
+import { usePresence }  from '../utils/Presence.ts';
 
 /**
  * `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look, `insert`
@@ -79,6 +81,7 @@ export function Menu({
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const popoverElementId = useId();
   const triggerElement = (): HTMLButtonElement | null => triggerRef?.current ?? ownTriggerRef.current;
+  const { isShown, isLeaving } = usePresence(menuIsOpen, popoverRef);
 
   useDismissal({
     isOpen:      menuIsOpen,
@@ -134,11 +137,13 @@ export function Menu({
         data-wide={wide ? '' : undefined}
         role="dialog"
         aria-label={label}
-        hidden={!menuIsOpen}
+        hidden={!isShown}
+        data-motion={isLeaving ? 'out' : undefined}
+        inert={isLeaving}
         onClick={closeOnChoice}
       >
-        {menuIsOpen && heading !== undefined ? <span className="design-system-menu-heading">{heading}</span> : null}
-        {menuIsOpen ? children : null}
+        {isShown && heading !== undefined ? <span className="design-system-menu-heading">{heading}</span> : null}
+        {isShown ? children : null}
       </div>
     </div>
   );

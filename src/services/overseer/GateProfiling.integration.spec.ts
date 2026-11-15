@@ -65,11 +65,12 @@ function worktreeOf(profileRunId: string): string {
 }
 
 /** The worktree added, the gate's tree read once, and the worktree removed. */
-function profileStageOf(profileRunId: string): RecordedGitStage {
+/** The tree is read unchanged after each prepare step and after the gate. */
+function profileStageOf(profileRunId: string, prepareStepCount: number): RecordedGitStage {
   const worktree = worktreeOf(profileRunId);
   return [
     { gitArguments: ['worktree', 'add', '--quiet', '--detach', worktree, MAIN_LINE], answeredAs: GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, leavesFolder: worktree },
-    TREE_UNCHANGED,
+    ...Array.from({ length: prepareStepCount + 1 }, () => TREE_UNCHANGED),
     { gitArguments: ['worktree', 'remove', '--force', worktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_LINKED, removesFolder: worktree },
   ];
 }
@@ -107,7 +108,7 @@ testWhenGitIsRecorded('a profile runs its prepare step and its gate as real proc
   });
   const profiling = realProfiling();
 
-  await recordedGit.playStage(profileStageOf('P1'), async () => {
+  await recordedGit.playStage(profileStageOf('P1', 1), async () => {
     profiling.followRuns(await storedBoard());
     await profiling.idle();
   });
@@ -124,7 +125,7 @@ testWhenGitIsRecorded('a Stop ends the real process tree through the port, and t
   });
   const profiling = realProfiling();
 
-  await recordedGit.playStage(profileStageOf('P1'), async () => {
+  await recordedGit.playStage(profileStageOf('P1', 0), async () => {
     profiling.followRuns(await storedBoard());
     await waitUntil(() => outputOf('P1').includes('started'), 'the slow gate never started');
     await applied({ kind: 'gate-profile-stop', profileRunId: 'P1' });

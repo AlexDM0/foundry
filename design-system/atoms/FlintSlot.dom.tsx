@@ -1,7 +1,7 @@
 /**
- * The Flint slot, in a happy-dom document. What matters: the box carries its size, ground and pose as data attributes (100, page and
- * idle by default); the sprite's width and height follow the box size from the handoff's table and keep the placeholder's viewBox; a
- * label makes an image of that name and `null` hides the slot; and the drawing carries no colour of its own, so the theme colours it.
+ * The Flint slot, in a happy-dom document. What matters: the box carries its size and ground as data attributes (100 and page by
+ * default); it is empty, since the host places the sprite; `slotRef` gives the host the box's element; and a label makes an image of that
+ * name while `null` hides the slot.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -10,31 +10,31 @@ import {
   expect,
   test
 } from 'bun:test';
+import { createRef } from 'react';
 
-import { FlintSlot, type FlintSlotSize } from './FlintSlot.tsx';
+import { FlintSlot } from './FlintSlot.tsx';
 
 afterEach(() => {
   cleanup();
 });
 
 describe('the Flint slot', () => {
-  test('the box carries its size, ground and pose, 100, page and idle by default', () => {
+  test('the box carries its size and ground, 100 and page by default, and holds nothing', () => {
     const { container } = render(
       <>
         <FlintSlot label={null} />
-        <FlintSlot label={null} size="76" ground="strip" pose="typing" />
+        <FlintSlot label={null} size="112" ground="strip" />
       </>,
     );
-    expect([...container.querySelectorAll('.design-system-flint-slot')].map((slot) => ['data-size', 'data-ground', 'data-flint-pose'].map((name) => slot.getAttribute(name))))
-      .toEqual([['100', 'page', 'idle'], ['76', 'strip', 'typing']]);
+    const slots = [...container.querySelectorAll('.design-system-flint-slot')];
+    expect(slots.map((slot) => ['data-size', 'data-ground'].map((name) => slot.getAttribute(name)))).toEqual([['100', 'page'], ['112', 'strip']]);
+    expect(slots.map((slot) => slot.childElementCount)).toEqual([0, 0]);
   });
 
-  test('the sprite follows the box size and keeps the placeholder viewBox', () => {
-    const sizes: FlintSlotSize[] = ['112', '100', '98', '84', '76'];
-    const { container } = render(<>{sizes.map((size) => <FlintSlot key={size} label={null} size={size} />)}</>);
-    expect([...container.querySelectorAll('.design-system-flint-sprite')].map((sprite) => [sprite.getAttribute('width'), sprite.getAttribute('height')]))
-      .toEqual([['84', '84'], ['74', '74'], ['74', '74'], ['62', '62'], ['56', '56']]);
-    expect(container.querySelector('.design-system-flint-sprite')?.getAttribute('viewBox')).toBe('-31.2 -50 62.5 62.5');
+  test('the slot ref gives the host the box\'s element', () => {
+    const slotElement = createRef<HTMLDivElement>();
+    render(<FlintSlot label="Flint, the example agent" slotRef={slotElement} />);
+    expect(slotElement.current).toBe(screen.getByRole('img', { name: 'Flint, the example agent' }));
   });
 
   test('a label makes an image of that name, and null hides the slot', () => {
@@ -46,14 +46,5 @@ describe('the Flint slot', () => {
     );
     expect(screen.getByRole('img', { name: 'Flint, the example agent' }).className).toBe('design-system-flint-slot');
     expect([...container.querySelectorAll('.design-system-flint-slot')].map((slot) => slot.getAttribute('aria-hidden'))).toEqual([null, 'true']);
-  });
-
-  test('the drawing carries no colour of its own', () => {
-    const { container } = render(<FlintSlot label={null} />);
-    const shapes = [...container.querySelectorAll('.design-system-flint-sprite > *')];
-    expect(shapes.map((shape) => shape.getAttribute('class'))).toEqual([
-      'design-system-flint-shadow', 'design-system-flint-body', 'design-system-flint-eye', 'design-system-flint-eye',
-    ]);
-    expect(shapes.filter((shape) => shape.hasAttribute('fill') || shape.hasAttribute('style'))).toEqual([]);
   });
 });

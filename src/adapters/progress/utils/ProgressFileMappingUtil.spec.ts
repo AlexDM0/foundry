@@ -3,6 +3,7 @@
  * does not know are the owner's, so they survive both ways, at the top level, on rows and on a row's phases, in the file's order. A property
  * the model carries that is neither mapped nor read from the file is what a model field added without a stored form looks like at runtime,
  * and it never reaches the file. An optional row key such as `greenPhase` is written only once set, so a file without it keeps its bytes.
+ * An unknown key named by an integer is the one exception to the order: it keeps its value but moves to the front of its object.
  */
 import { expect, test } from 'bun:test';
 
@@ -67,6 +68,18 @@ test('a file with unknown keys at the top level, on rows and on phases is writte
   const stored = ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(storedDocumentOf(text)));
   expect(Object.keys(stored)).toEqual(['version', 'trackerId', 'unknownTopKey', 'project', 'startedAt', 'view', 'nextTaskId', 'tasks', 'trailingKey']);
   expect(writtenTextOf(stored)).toBe(text);
+});
+
+// The documented exception in `docs/cli.md`: JavaScript lists an integer-like key before every other key, so it moves to the front.
+test('an unknown key whose name is an integer keeps its value but moves to the front of its object on a write', () => {
+  const text = storedTextWithUnknownKeys()
+    .replace('"unknownTopKey": "kept",', '"unknownTopKey": "kept",\n  "2024": "top note",')
+    .replace('"unknownRowKey": "kept"', '"unknownRowKey": "kept",\n      "2024": "row note"');
+  const stored = ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(storedDocumentOf(text)));
+  expect(Object.keys(stored).slice(0, 2)).toEqual(['2024', 'version']);
+  expect(Object.keys(stored.tasks[0] ?? {}).at(0)).toBe('2024');
+  expect(stored).toMatchObject({ '2024': 'top note', tasks: [{ '2024': 'row note', unknownRowKey: 'kept' }] });
+  expect(writtenTextOf(stored)).not.toBe(text);
 });
 
 // The retired Workflow dispatcher stored its state and run id here; a board it ran on keeps both keys as the owner's, unread and never rewritten.

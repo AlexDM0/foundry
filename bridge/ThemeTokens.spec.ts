@@ -77,7 +77,20 @@ const PIPELINE_TOKENS = [
   '--r-dialog',
 ] as const;
 
-const MOTION_TOKENS_ZEROED = ['--motion-rise', '--motion-pop', '--motion-modal', '--rise-step', '--glow-period'] as const;
+const MOTION_TOKENS_ZEROED = [
+  '--motion-rise',
+  '--motion-pop',
+  '--motion-modal',
+  '--rise-step',
+  '--glow-period',
+  '--motion-tick',
+  '--motion-leave',
+  '--motion-fade',
+  '--motion-draw',
+  '--motion-grow',
+  '--motion-fill',
+  '--motion-follow',
+] as const;
 const READING_TIME_TOKEN = '--toast-duration';
 
 /** The graphite-and-orange colours with a literal value in each theme. */

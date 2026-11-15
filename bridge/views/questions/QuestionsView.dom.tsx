@@ -3,7 +3,8 @@
  * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
  * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
  * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
- * the consequences its agent noted; and each open card opens the question panel at itself beside the board.
+ * the consequences its agent noted; each open card opens the question panel at itself beside the board, and while the panel shows a
+ * decision the view says so, so a wide window keeps the list clear of the panel.
  * The view is a workplace of Flint.
  */
 import {
@@ -203,6 +204,24 @@ describe('beside the board', () => {
     );
     fireEvent.click(within(screen.getByRole('listitem', { name: 'Question E3' })).getByRole('button', { name: 'Open beside the board' }));
     expect(opened).toEqual(['E3']);
+  });
+
+  test('the view marks the question panel open only while it shows a decision', () => {
+    const isMarkedOpen = (selectedDecisionId: string | null): boolean | undefined => {
+      const { container } = fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} selectedDecisionId={selectedDecisionId} />);
+      const isOpen = container.querySelector('.bridge-view')?.hasAttribute('data-question-open');
+      cleanup();
+      return isOpen;
+    };
+    expect([isMarkedOpen('E2'), isMarkedOpen(null)]).toEqual([true, false]);
+  });
+
+  test('the card of the decision the panel shows says it is open beside the board, and no other card does', () => {
+    fakeControls().render(<QuestionsView board={BOARD} notifier={notifierSpy()} selectedDecisionId="E2" />);
+    const shown = screen.getByRole('listitem', { name: 'Question E2' });
+    const other = screen.getByRole('listitem', { name: 'Question E3' });
+    expect([shown.hasAttribute('data-open-beside'), other.hasAttribute('data-open-beside')]).toEqual([true, false]);
+    expect([within(shown).queryByText('open beside the board') === null, within(other).queryByText('open beside the board') === null]).toEqual([false, true]);
   });
 });
 

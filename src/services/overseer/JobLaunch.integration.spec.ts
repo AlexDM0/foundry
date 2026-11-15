@@ -1,8 +1,9 @@
 /**
  * A build job's wind-down, close-input and stop frames against a planted Watcher. What matters: a Watcher refusing the first connection is
- * sent the frame on a later pass, its marker written only then; a frame taken once is never sent again, a restarted Overseer included, since
- * the marker is all that carries over; a Watcher no longer live is sent nothing and leaves no marker; and a session resumed after a red
- * handoff gets its own wind-down at the resume budget, counted from the resume.
+ * sent the frame on a later pass, its marker written only then; a frame whose marker was written is never sent again, a restarted Overseer
+ * included, since the marker is all that carries over (delivery is at least once: an Overseer that dies before the marker sends it again);
+ * a Watcher no longer live is sent nothing and leaves no marker; and a session resumed after a red handoff gets its own wind-down at the
+ * resume budget, counted from the resume.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { join }                      from 'node:path';

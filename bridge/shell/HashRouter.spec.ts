@@ -1,5 +1,6 @@
 /**
- * The hash routes. What matters: `#<tab>` and `#<tab>/<item>` round-trip with each item segment encoded on its own, a fragment naming no
+ * The hash routes. What matters: `#<tab>` and `#<tab>/<item>` round-trip with each item segment encoded on its own, a malformed escape
+ * stays as written instead of throwing (a throw takes down the page on every reload of that link), a fragment naming no
  * tab falls back to the stored tab, then the first; the board tabs come in their order before the others, Pipeline last; Waves and Epics
  * drop out on a board without dependencies or epics; a board with no readable pipeline shows Pipeline alone, so even a stored Kanban
  * routes there; and a route to a tab not shown falls back to the first shown tab, not to Kanban.
@@ -9,6 +10,12 @@ import { describe, expect, test } from 'bun:test';
 import { BRIDGE_TABS, HashRouter } from './HashRouter.ts';
 
 describe('the hash router', () => {
+  test('a malformed escape in an item segment stays as written, and the other segments still decode', () => {
+    expect(HashRouter.routeOf('#agents/%E0%A4%A', null)).toEqual({ tab: 'agents', item: '%E0%A4%A' });
+    expect(HashRouter.routeOf('#kanban/ticket/%', null)).toEqual({ tab: 'kanban', item: 'ticket/%' });
+    expect(HashRouter.routeOf('#tickets/a%20b/%', null)).toEqual({ tab: 'tickets', item: 'a b/%' });
+  });
+
   test('a tab and a tab with an item round-trip', () => {
     expect(HashRouter.routeOf('#agents/J12', null)).toEqual({ tab: 'agents', item: 'J12' });
     expect(HashRouter.routeOf('#tickets', null)).toEqual({ tab: 'tickets', item: null });

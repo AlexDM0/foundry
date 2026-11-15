@@ -192,6 +192,10 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
 text. It is never a failure: a refusal has its own status.
 
+A command carries no idempotency key, so a resend is applied again. A Bridge control that gets a 200 whose body it cannot
+read says that the Overseer may have applied the command and that its answer was lost, never that the Overseer could not
+be reached, and keeps the text it sent, so User checks the board before sending it again.
+
 `overseer-stop` and `overseer-restart` are the two runtime commands, `{kind, now}`. `now` is the `--now` flag of
 `oversee stop` and `oversee restart`. They write nothing to the
 board and go to the running Overseer, so they are taken during the install hold, and they answer 200
@@ -562,7 +566,8 @@ Every other agent event is dropped, and so is a client line the adapter does not
 Who sent a client line is derived from records the board already keeps, never stored on the line. For the Assistant,
 its k-th chat is chat k, and its `assistant-chats.json` says whether chat k carried User's message or delivered
 incidents. For every other job, a chat equal to the job's next unmatched `job-messaged` or `job-reopened` text is User's,
-since those are sent verbatim and in log order; any other chat is the Overseer's. An answer is the Assistant's when its
+since those are sent verbatim and in log order; any other chat is the Overseer's. A record marked `byOverseer`, the
+Overseer's wording of User's setup move for the pipeline agent, is never matched, so its chat is the Overseer's. An answer is the Assistant's when its
 request was answered by `incident-answered`, and User's otherwise. A follower that starts after a cursor counts the client
 lines before it first.
 
@@ -579,7 +584,7 @@ numbers: the version of each contract this program serves. A contract it does no
 | Contract | Version | What it covers |
 | --- | --- | --- |
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
-| `monitor` | 1 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+| `monitor` | 2 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
 | `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
 | `embed` | 1 | [The Gaia contract](#the-gaia-contract): `?embedded=gaia` and the embed channel, whose messages carry the same number as `channelVersion` |
 
@@ -595,15 +600,19 @@ ticket body, no transcript and no draft text. Every sentence in it is worded by 
 `monitorVersion` is the version of the shape, `contracts.monitor` on the identity. The snapshot is read fresh for each
 request, from the same reading as `BoardState`.
 
+Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
+those of version 1. `src/services/overseer/testing/fixtures/monitor-v1.json` and `monitor-v2.json` hold each version,
+frozen.
+
 <details>
 <summary><code>MonitorSnapshot</code> keys</summary>
 
 | Key | Holds |
 | --- | --- |
-| `monitorVersion` | 1 |
+| `monitorVersion` | 2 |
 | `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
 | `overseer` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
-| `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three complete version 1 as `FORGE_REQUIREMENTS.md` F2 defined it; `monitorVersion` stays 1. |
+| `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three completed version 1 as `FORGE_REQUIREMENTS.md` F2 defined it. |
 | `ticketCountByStatus` | Every status counted |
 | `readyTicketIds` | The ready tickets' ids, in dispatch order |
 | `openIncidents` | A count |

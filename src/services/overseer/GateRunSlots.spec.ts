@@ -3,7 +3,8 @@
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. On Linux an in-process holder
  * whose Overseer is a zombie is not live, over recorded `/proc` stat text. And over injected file moves: a held-file failure on a slot create
  * is a taken slot on win32 and a fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real
- * gate: it takes no slot while a real gate refused this round, or one waiting in this process, still has none.
+ * gate: it takes no slot while a real gate refused this round, or one waiting in this process, still has none. An in-process holder whose
+ * Overseer's process id was reused, over the fake kernel table, is not live, since a crashed Overseer's slot must not leak.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join }                          from 'node:path';
@@ -73,6 +74,34 @@ describe('a gate slot held by a spawned, unclaimed holder on Windows', () => {
     const { kernel, slots } = heldSlot();
     kernel.table.set(HOLDER_PROCESS_ID, { creationTime: CREATION_TIME + 1n });
     expect(slots.tryAcquire('another-holder')).toBe(true);
+  });
+});
+
+describe('a gate slot held in process on Windows', () => {
+  function heldInProcess() {
+    const kernel = createFakeWindowsKernel();
+    kernel.table.set(process.pid, { creationTime: CREATION_TIME });
+    const supervision = fakeWindowsSupervision(kernel);
+    const ports: PlatformPorts = { ...nativePlatformPorts(), processSupervision: supervision };
+    const holding = { holder: GateRunSlots.inProcessHolderOf('merge'), process: supervision.identityOf(process.pid) };
+    return { kernel, ports, holding };
+  }
+
+  test('is live while the recorded Overseer runs', () => {
+    const { ports, holding } = heldInProcess();
+    expect(GateRunSlots.gateRunHolderIsLive(ports, holding)).toBe(true);
+  });
+
+  test('is not live once its process id was reused by another process', () => {
+    const { kernel, ports, holding } = heldInProcess();
+    kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
+    expect(GateRunSlots.gateRunHolderIsLive(ports, holding)).toBe(false);
+  });
+
+  test('with no recorded identity, is judged by its process id alone', () => {
+    const { kernel, ports, holding } = heldInProcess();
+    kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
+    expect(GateRunSlots.gateRunHolderIsLive(ports, { ...holding, process: null })).toBe(true);
   });
 });
 

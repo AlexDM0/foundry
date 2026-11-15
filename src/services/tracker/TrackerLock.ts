@@ -225,6 +225,10 @@ export function withLock<ActionResult>(
 
 export type LockIfFreeOutcome<ActionResult> = { verdict: 'ran'; result: ActionResult } | { verdict: 'held' };
 
+function lockPayloadAt(moment: Date): LockPayload {
+  return { acquiredAt: LocalTimeUtil.formatLocalIso(moment), processId: process.pid };
+}
+
 /** `withLock` that never waits: a lock another process holds is the `held` verdict at once, and `action` never runs. */
 export async function withLockIfFree<ActionResult>(
   workspace: Workspace,
@@ -232,11 +236,10 @@ export async function withLockIfFree<ActionResult>(
   now: () => Date,
   holderIsGone: LockHolderIsGone,
 ): Promise<LockIfFreeOutcome<ActionResult>> {
-  const payload: LockPayload = { acquiredAt: LocalTimeUtil.formatLocalIso(now()), processId: process.pid };
-
   let heldGeneration: number | null = null;
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT && heldGeneration === null; attempt++) {
-    const attemptResult = attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime(), holderIsGone);
+    const attemptedAt   = now();
+    const attemptResult = attemptedAcquire(workspace.lockDirectoryPath, lockPayloadAt(attemptedAt), attemptedAt.getTime(), holderIsGone);
     if (attemptResult.verdict === 'held') return { verdict: 'held' };
     if (attemptResult.verdict === 'acquired') heldGeneration = attemptResult.generation;
   }
@@ -256,11 +259,11 @@ export async function withLockAt<ActionResult>(
   now: () => Date,
   holderIsGone: LockHolderIsGone,
 ): Promise<ActionResult> {
-  const payload: LockPayload = { acquiredAt: LocalTimeUtil.formatLocalIso(now()), processId: process.pid };
-
   let heldGeneration: number | null = null;
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
-    const attemptResult = attemptedAcquire(lockDirectoryPath, payload, now().getTime(), holderIsGone);
+    // Stamped at each attempt, so the wait before it does not count against the holder's staleness budget.
+    const attemptedAt   = now();
+    const attemptResult = attemptedAcquire(lockDirectoryPath, lockPayloadAt(attemptedAt), attemptedAt.getTime(), holderIsGone);
     if (attemptResult.verdict === 'acquired') {
       heldGeneration = attemptResult.generation;
       break;

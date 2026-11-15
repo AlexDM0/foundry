@@ -31,6 +31,7 @@ import { PriorityMark, TypeMark, WaitingOnMark }                          from '
 import { useTicketsHabitat }                                              from '../../flint/UseTicketsHabitat.ts';
 import type { PreferenceStore }                                           from '../../preferences/PreferenceStore.ts';
 import { useBridgeClock }                                                 from '../../shell/BridgeClock.ts';
+import { useChangedSinceMount }                                           from '../../shell/ChangedSinceMount.ts';
 import { useCoveringPanelWidthProperty, type CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
 import { DetailRoute, type DetailItem }                                   from '../../shell/DetailRoute.ts';
 import { useDetailRouting }                                               from '../../shell/DetailRouting.ts';
@@ -311,6 +312,7 @@ function KanbanLane({
 }: KanbanLaneProps) {
   const isCollapsed = lane.collapse?.isCollapsed === true;
   const cardsElementId = `bridge-lane-${lane.key}-cards`;
+  const countHasChanged = useChangedSinceMount(lane.count);
   const cardOf = (card: KanbanCardModel) => (
     <KanbanCard
       key={card.key}
@@ -335,7 +337,7 @@ function KanbanLane({
             <>
               <StateDot {...StateToneUtil.dotOf(lane.dotState)} />
               <h3 className="bridge-lane-title">{lane.title}</h3>
-              <span className="bridge-lane-count">{lane.count}</span>
+              <span key={lane.count} className="bridge-lane-count" data-value-changed={countHasChanged ? '' : undefined}>{lane.count}</span>
             </>
           )
           : (
@@ -350,7 +352,7 @@ function KanbanLane({
             >
               <StateDot {...StateToneUtil.dotOf(lane.dotState)} />
               <span className="bridge-lane-title">{lane.title}</span>
-              <span className="bridge-lane-count">{lane.count}</span>
+              <span key={lane.count} className="bridge-lane-count" data-value-changed={countHasChanged ? '' : undefined}>{lane.count}</span>
             </button>
           )}
         {lane.key === 'merge-queue'

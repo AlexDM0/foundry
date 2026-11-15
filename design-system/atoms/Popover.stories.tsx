@@ -10,12 +10,17 @@ type AnchoredPopoverProps = Pick<PopoverProps, 'label' | 'placement' | 'width'>;
 function AnchoredPopover({ label, placement, width }: AnchoredPopoverProps) {
   const anchor = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(true);
+  // The host positions the holder the popover hangs from: here a row as wide as a toolbar, the trigger at the end the popover aligns to.
   return (
-    <div ref={anchor}>
-      <Button label="Toggle the example" expanded={isOpen} onPress={() => setIsOpen(!isOpen)} />
-      <Popover label={label} role="dialog" isOpen={isOpen} onDismiss={() => setIsOpen(false)} anchorRef={anchor} placement={placement} width={width}>
-        <Text>Example popover content.</Text>
-      </Popover>
+    <div style={{ minHeight: 140 }}>
+      <div ref={anchor} style={{
+        position: 'relative', display: 'flex', justifyContent: placement === 'below-end' ? 'flex-end' : 'flex-start', width: 480
+      }}>
+        <Button label="Toggle the example" expanded={isOpen} onPress={() => setIsOpen(!isOpen)} />
+        <Popover label={label} role="dialog" isOpen={isOpen} onDismiss={() => setIsOpen(false)} anchorRef={anchor} placement={placement} width={width}>
+          <Text>Example popover content.</Text>
+        </Popover>
+      </div>
     </div>
   );
 }

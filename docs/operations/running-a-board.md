@@ -355,7 +355,7 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 *One press settles it: the first answer wins, whoever sends it.*
 
 > **As built.** Some answers only close the card. Answering a `parked` decision leaves the ticket held, so Unhold it as
-> well. A `waiver` answer changes nothing.
+> well.
 
 Notify me of new questions asks for browser notifications from your click, never on load. The open-question count leads
 the browser tab's title on every tab of the Bridge.
@@ -408,7 +408,7 @@ the thread says a fresh one is booting; the Assistant has no off switch.
 *Each request gets its own session, and several may run at once. The transcript is synthetic demo data.*
 
 The tab lists every [product owner](../glossary.md#product-owner) session on the left and shows one of them on the
-right. Sessions waiting on your answer come first, then the running ones and the closed ones, each newest first. A row
+right. Sessions waiting on your answer come first, then the running ones and the ended ones, each newest first. A row
 shows the session's title (the product owner names it; until then, the first line of your request), its state, an
 `E5 waits on User` tag for each open decision, the draft tickets it filed and its last line. Select a row to open its
 chat; the address becomes `#intake/<J>`.
@@ -417,10 +417,12 @@ The chat reads like the Assistant's: your request first, then the product owner'
 folded, and each open decision docked where it was asked, with Answer in place. Beside the chat are the draft tickets
 the session filed, each linking to its card, the pictures sent in it, and Close intake. Close intake submits the complete draft
 tickets the session filed: with ticket review on, the default, they wait in Ready for review at the top of the Ready
-lane until you press Ready on each. A closed session keeps its chat, and a message resumes it.
+lane until you press Ready on each. A closed session keeps its chat, and a message resumes it. A session that was stopped
+or failed stays in the list with that outcome as its state: its chat is read only, with no text box, and New chat starts a
+fresh session.
 
 New chat opens an empty composer (`#intake/new`). Its first message starts the session, and the tab moves to the new
-session once the Overseer has started it.
+session once the Overseer has started it, or shows it read only with its outcome if it ended before it ever ran.
 
 To send pictures with a request or a message, choose Attach pictures, paste them into the text box, or drop them on the
 chat. The Bridge takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
@@ -543,13 +545,18 @@ ticket stays where its status puts it, and only the `held` mark and the fact in 
 ## Flint
 
 Flint is the small orange diamond with eyes that lives on the Bridge. It shows what the agents do; it never changes the
-board and sends no request. Its home is a corner at the bottom right of the page, where it sleeps. It visits the chat
-or the Agents view you last clicked or typed in, and there it plays along: in a chat it thinks, types, fastens a bolt
-for a tool call, looks doubtful at a question and is happy when the turn is done; on Agents it waves to a new agent,
-copies the work of a running one below the job column, and goes to sleep when every agent is idle.
+board and sends no request. Its home is a corner at the bottom right of the page, where it sleeps. Each screen with a
+Flint box (Setup, the pipeline steps, the Kanban's Agents at work strip, a ticket's state card, a job's panel on
+Agents, the Assistant, the question panel and intake) is where Flint goes when the screen opens, and there it shows
+what that screen's agent does: it waves on Setup, researches on Research, thinks on Constitution, types for a builder,
+reviews for a reviewer, holds up a question card while an answer waits on you, and is happy when a proposal is ready.
+Click or type in another part of the screen, such as a chat or the Agents view, and Flint goes there instead and
+plays along: in a chat it thinks, types, fastens a bolt for a tool call, looks doubtful at a question and is happy
+when the turn is done; on Agents it waves to a new agent, copies the work of a running one below the job column, and
+goes to sleep when every agent is idle.
 
-Click Flint and it plays with the pointer for a moment. Drag it onto a chat or onto Agents and it lives there; drop it
-anywhere else and it goes back. The Bridge remembers, per board, where Flint lives. Flint takes no click away from the
+Click Flint and it plays with the pointer for a moment. Drag it onto a chat, a view or a Flint box and it lives there;
+drop it outside all of them and it goes back. The Bridge remembers, per board, where Flint lives. Flint takes no click away from the
 page: only its own body takes the pointer.
 
 ## Daily routines

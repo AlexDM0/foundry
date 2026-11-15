@@ -3,8 +3,9 @@
  * answers `--version` and writes what `build` would, and nothing else runs; git is a recorder of the one `core.hooksPath` key, which is
  * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all four steps
  * run in order on macOS and on Windows; the Windows run puts Bun's bin folder on the User PATH through PowerShell and never names bash;
- * a Bun below `.bun-version` stops setup before anything is installed; --instruct-only writes nothing; and the retired skill links are
- * removed only when they resolve into the checkout.
+ * a launcher the rename cannot replace is a reported failure that leaves no partial file and stops no later step; a Bun below
+ * `.bun-version` stops setup before anything is installed; --instruct-only writes nothing; and the retired skill links are removed only
+ * when they resolve into the checkout.
  */
 import {
   existsSync,
@@ -168,6 +169,17 @@ describe('the four steps on each platform', () => {
     expect(runSetup([], setup.host)).toBe(0);
     expect(setup.commands.some((command) => command[0] === 'powershell.exe')).toBe(false);
     expect(setup.output()).toContain('or add');
+  });
+
+  test('a launcher that cannot be replaced, as a running command holds it on Windows, is reported, and setup removes the partial and goes on', () => {
+    const binFolder = join(scratchDirectory, 'bun-install', 'bin');
+    // A folder with content at the launcher's path refuses the rename on every OS, as a running .exe refuses it on Windows.
+    mkdirSync(join(binFolder, `${PRODUCT_NAMES.PROGRAM}.exe`, 'held'), { recursive: true });
+    const setup = recordedSetup({ platform: 'win32', answer: false });
+    expect(runSetup([], setup.host), setup.output()).toBe(0);
+    expect(setup.output()).toContain(`${join(binFolder, `${PRODUCT_NAMES.PROGRAM}.exe`)} could not be replaced`);
+    expect(readdirSync(binFolder).sort()).toEqual([`${PRODUCT_NAMES.PROGRAM}.exe`, 'bun'].sort());
+    expect(hooksPathOfCheckout()).toBe('.githooks');
   });
 
   test('a program already on the search path is reported, and no search path offer is made', () => {

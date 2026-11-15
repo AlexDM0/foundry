@@ -157,6 +157,15 @@ const scroll = useRef<HTMLDivElement>(null);
 <SidePanelBody scrollRef={scroll}>{contents}</SidePanelBody>;
 ```
 
+`FlintSlot` is the one box that the package leaves empty for the host. It draws no sprite. It gives its element through
+`slotRef`, and the host puts its sprite in that element:
+
+```tsx
+const slot = useRef<HTMLDivElement>(null);
+
+<FlintSlot label="Flint, the example agent" size="100" ground="page" slotRef={slot} />;
+```
+
 ## Storybook
 
 The package has its own Storybook 10 (React on Vite), configured in `.storybook/`. Each exported component has a story

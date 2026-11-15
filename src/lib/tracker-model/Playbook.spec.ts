@@ -108,6 +108,19 @@ const CRASHES_ON_TWO_TICKETS: LogRecord[] = [
   interruptedRecord('J2', 'watcher-lost'),
 ];
 
+const WAITING_REVIEW = jobFixture({
+  id: 'J3', kind: 'review', role: 'reviewer', ticketIds: ['001'], state: 'awaiting-answer'
+});
+
+const WAIVER_OPENED_AND_ANSWERED: LogRecord[] = [
+  {
+    kind: 'decision-opened', decisionId: 'E1', fields: { kind: 'waiver', ticketIds: ['001'] }, at: FIXTURE_AT
+  },
+  {
+    kind: 'decision-answered', decisionId: 'E1', fields: { answer: { 'Waive the proposed items?': 'Grant' } }, at: FIXTURE_AT
+  },
+];
+
 const USAGE_LIMIT_AHEAD: LifecycleLimits = { ...FIXTURE_LIMITS, usageResetsAt: '2026-10-28T11:00:00+01:00' };
 
 const CLAIMS: PolicyClaim[] = [
@@ -176,6 +189,45 @@ const CLAIMS: PolicyClaim[] = [
       '  if (facts.decisions.some((decision) => TICKET_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(ticket.id))) return true;\n',
       '',
     ),
+  },
+  {
+    name:  'a review awaiting its waiver answer that User answered is acted on with the answer, and nothing launches on its ticket',
+    facts: factsWith({
+      tickets:    [ticketOf('001', 'in-review')],
+      jobs:       [LIVE_ASSISTANT, WAITING_REVIEW],
+      logRecords: [launchedRecord('J3', 'review', ['001']), ...WAIVER_OPENED_AND_ANSWERED],
+    }),
+    holds:  (steps) => JSON.stringify(steps) === JSON.stringify([{ kind: 'act-on-waiver-answer', jobId: 'J3', answers: ['Grant'] }]),
+    mutant: policyLine('  steps.push(...waiverAnswerStepsOf(facts));\n', ''),
+  },
+  {
+    name:  'a review whose newest waiver decision is still open waits for its answer, whatever an earlier one was answered',
+    facts: factsWith({
+      tickets:   [ticketOf('001', 'in-review')],
+      jobs:      [LIVE_ASSISTANT, WAITING_REVIEW],
+      decisions: [{
+        ...decisionOf('waiver'), id: 'E2', ticketIds: ['001'], jobId: 'J3'
+      }],
+      logRecords: [
+        launchedRecord('J3', 'review', ['001']),
+        ...WAIVER_OPENED_AND_ANSWERED,
+        {
+          kind: 'decision-opened', decisionId: 'E2', fields: { kind: 'waiver', ticketIds: ['001'] }, at: FIXTURE_AT
+        },
+      ],
+    }),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('      answers = null;\n', ''),
+  },
+  {
+    name:  'a waiver answered before the review launched is not its answer',
+    facts: factsWith({
+      tickets:    [ticketOf('001', 'in-review')],
+      jobs:       [LIVE_ASSISTANT, WAITING_REVIEW],
+      logRecords: [...WAIVER_OPENED_AND_ANSWERED, launchedRecord('J3', 'review', ['001'])],
+    }),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('    if (!launched) continue;\n', ''),
   },
   {
     name:   'a pending ticket waits for its dependencies to be reviewed or delivered',

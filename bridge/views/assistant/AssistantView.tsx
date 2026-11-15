@@ -4,7 +4,6 @@
  * the trail of steps made under them, a delivery linking its Assistant and an escalation its decision, each applied default in the
  * warning state. While no session is up the thread says a fresh one is booting; there is no off switch.
  */
-import { FlintSlot }   from 'design-system/FlintSlot';
 import { ListSection } from 'design-system/ListSection';
 import { Row }         from 'design-system/Row';
 import { Stamp }       from 'design-system/Stamp';
@@ -25,10 +24,14 @@ import {
   TicketLinks
 } from '../../conversation/ConversationParts.tsx';
 import { useTranscript, type TranscriptFollower } from '../../conversation/TranscriptLog.tsx';
+import { FlintSlotHabitat }                       from '../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                    from '../../flint/FlintSlotHabitats.ts';
 import { useBridgeClock }                         from '../../shell/BridgeClock.ts';
 import { useCoveringPanelHoldsTheFlintSlot }      from '../../shell/CoveringPanel.ts';
 import { HashRouter }                             from '../../shell/HashRouter.ts';
+import { presenceAttributeOf, useItemPresence }   from '../../shell/ItemPresence.ts';
 import { IncidentTrailUtil, type IncidentEntry }  from '../../utils/IncidentTrailUtil.ts';
+import type { ItemPresence }                      from '../../utils/ItemPresenceUtil.ts';
 import { TimeUtil }                               from '../../utils/TimeUtil.ts';
 import { ViewTitle }                              from '../ViewTitle.tsx';
 import { AssistantModelUtil, type AssistantJob }  from './AssistantModel.ts';
@@ -42,9 +45,21 @@ const BOOTING_TURN: ChatTurn = {
   kind: 'system', key: 'booting', text: 'Booting a fresh session.', stamp: null, revealText: null
 };
 
-function IncidentItem({ incident, todayCalendarDate }: { readonly incident: IncidentEntry; readonly todayCalendarDate: string }) {
+interface IncidentItemProps {
+  readonly incident:          IncidentEntry;
+  readonly presence:          ItemPresence;
+  readonly todayCalendarDate: string;
+}
+
+function IncidentItem({ incident, presence, todayCalendarDate }: IncidentItemProps) {
   return (
-    <li className="bridge-card" data-state={incident.settlement === 'defaulted' ? 'warning' : incident.settlement} aria-label={`Incident ${incident.incidentId}`}>
+    <li
+      className="bridge-card"
+      data-state={incident.settlement === 'defaulted' ? 'warning' : incident.settlement}
+      data-presence={presenceAttributeOf(presence)}
+      inert={presence === 'leaving'}
+      aria-label={`Incident ${incident.incidentId}`}
+    >
       <CardHead id={incident.incidentId} title={incident.kind} pill={IncidentTrailUtil.incidentPillOf(incident)} isOnWarnSurface={incident.settlement === 'defaulted'} />
       {incident.ticketIds.length === 0 && incident.defaultMove === null
         ? null
@@ -81,9 +96,16 @@ function ChatHead({ job, turnCount, askingDecisionCount }: ChatHeadProps) {
     <div className="bridge-assistant-chat-head">
       {flintSlotIsCovered
         ? null
-        : <FlintSlot label="Flint, the Assistant" size="100" ground="lane" pose={AssistantModelUtil.flintPoseOf({ askingDecisionCount })} />}
+        : (
+          <FlintSlotHabitat
+            habitat={FLINT_SLOT_HABITATS.assistant}
+            cue={AssistantModelUtil.flintCueOf({ askingDecisionCount })}
+            label="Flint, the Assistant"
+            ground="lane"
+          />
+        )}
       <View gap="four">
-        <Row gap="ten">
+        <Row gap="ten" centerY>
           <Text typeRole="page" element="h3">Assistant</Text>
           {job === null ? null : <JobLink jobId={job.id} />}
         </Row>
@@ -96,10 +118,14 @@ function ChatHead({ job, turnCount, askingDecisionCount }: ChatHeadProps) {
   );
 }
 
+function incidentKeyOf(incident: IncidentEntry): string {
+  return incident.incidentId;
+}
+
 export function AssistantView({ board, followTranscript }: AssistantViewProps) {
   const model = AssistantModelUtil.assistantModelOf(board);
   const job = model.assistantJob;
-  const entries = useTranscript(job?.id ?? null, followTranscript);
+  const { entries, historyKey } = useTranscript(job?.id ?? null, followTranscript);
   // The viewer's day only picks the form a stamp is shown in.
   const todayCalendarDate = TimeUtil.calendarDateOf(useBridgeClock().now().getTime());
   const queued = job === null ? [] : AssistantModelUtil.queuedMessagesOf(board.questionHistory ?? [], job.id, job.messagesWaiting);
@@ -107,13 +133,16 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
     ? [BOOTING_TURN]
     : AssistantModelUtil.chatTurnsOf(ChatThreadModelUtil.threadItemsOf(entries, queued), { jobId: job.id, todayCalendarDate });
   const messageLabel = job === null ? 'Message the Assistant' : `Message Assistant ${job.id}`;
+  // An incident that opens rises in; once handled it fades out of the open list and rises into the handled one.
+  const presentOpenIncidents = useItemPresence(model.openIncidents, incidentKeyOf);
+  const presentSettledIncidents = useItemPresence(model.settledIncidents, incidentKeyOf);
   return (
     <div className="bridge-view">
       <ViewTitle title="Assistant" lead="The Overseer's Assistant. Talk to it here; its incidents are on the right." />
       <div className="bridge-assistant-layout">
         <ChatCard label="Assistant session">
           <ChatHead job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />
-          <ChatThread label="Assistant conversation" turns={turns} renderDecision={() => null} />
+          <ChatThread label="Assistant conversation" turns={turns} renderDecision={() => null} historyKey={historyKey} />
           <Composer
             label={messageLabel}
             recipientLabel="Assistant"
@@ -130,18 +159,18 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
             title="Open incidents"
             count={model.openIncidents.length}
             emptyText="No open incident."
-            items={model.openIncidents}
-            keyOf={(incident) => incident.incidentId}
-            renderItem={(incident) => <IncidentItem incident={incident} todayCalendarDate={todayCalendarDate} />}
+            items={presentOpenIncidents}
+            keyOf={({ key }) => key}
+            renderItem={({ item, presence }) => <IncidentItem incident={item} presence={presence} todayCalendarDate={todayCalendarDate} />}
           />
           <ListSection
             label="Handled incidents"
             title="Handled incidents"
             count={model.settledIncidents.length}
             emptyText="No handled incident yet."
-            items={model.settledIncidents}
-            keyOf={(incident) => incident.incidentId}
-            renderItem={(incident) => <IncidentItem incident={incident} todayCalendarDate={todayCalendarDate} />}
+            items={presentSettledIncidents}
+            keyOf={({ key }) => key}
+            renderItem={({ item, presence }) => <IncidentItem incident={item} presence={presence} todayCalendarDate={todayCalendarDate} />}
           />
         </aside>
       </div>

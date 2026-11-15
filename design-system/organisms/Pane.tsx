@@ -1,7 +1,7 @@
 /**
- * A surface card with a head bar: a small-capitals title with an optional mono mark after it, a subtitle, a count apart at the head's end
- * and whatever the caller adds there; then its body, padded or filled edge to edge by a table, a chat or a list; then an optional foot. The
- * title's element is the screen's choice, an `h2` by default.
+ * A surface card with a head bar: the title in the page face with an optional mono mark after it and the count in a quiet pill beside it,
+ * a subtitle on the line under them, and whatever the caller adds at the head's end; then its body, padded or filled edge to edge by a
+ * table, a chat or a list; then an optional foot. The title's element is the screen's choice, an `h2` by default.
  */
 import type { ReactNode } from 'react';
 
@@ -30,19 +30,23 @@ export function Pane({
   const content = (
     <>
       <div className="design-system-pane-head">
-        <Text typeRole="title" element={titleElement}>
-          {title}
-          {titleMark === undefined
-            ? null
-            : (
-              <>
-                {' '}
-                <span className="design-system-pane-mark">{titleMark}</span>
-              </>
-            )}
-        </Text>
-        {subtitle === undefined ? null : <span className="design-system-pane-subtitle">{subtitle}</span>}
-        {countText === undefined ? null : <span className="design-system-pane-count">{countText}</span>}
+        <div className="design-system-pane-heading">
+          <div className="design-system-pane-title-line">
+            <Text typeRole="page" element={titleElement}>
+              {title}
+              {titleMark === undefined
+                ? null
+                : (
+                  <>
+                    {' '}
+                    <span className="design-system-pane-mark">{titleMark}</span>
+                  </>
+                )}
+            </Text>
+            {countText === undefined ? null : <span className="design-system-pane-count">{countText}</span>}
+          </div>
+          {subtitle === undefined ? null : <span className="design-system-pane-subtitle">{subtitle}</span>}
+        </div>
         {headEnd === undefined ? null : <div className="design-system-pane-head-end">{headEnd}</div>}
       </div>
       <div className="design-system-pane-body" data-body={body}>{children}</div>

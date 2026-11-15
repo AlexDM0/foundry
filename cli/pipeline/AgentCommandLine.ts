@@ -6,17 +6,16 @@
 import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
-import type { PayloadReading }           from '../../src/adapters/pipeline-setup/SetupPayloadSchemas.ts';
-import type { PipelineAgentControlKind } from '../../src/services/control/PipelineAgentControls.ts';
-import type { ControlCommandKind }       from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }              from '../../src/shared/OperationRefusal.ts';
-import type { CommandContext }           from '../CommandContext.ts';
-import { refuseUsage }                   from '../RecordedIncidentMove.ts';
-import { suppliedTextOf }                from '../SuppliedText.ts';
-import type { ArgumentParser }           from '../arguments/ArgumentParser.ts';
-import { setupIdOf }                     from './SetupCommandLine.ts';
-
-const STANDARD_INPUT_MARKER = '-';
+import type { PayloadReading }                              from '../../src/adapters/pipeline-setup/SetupPayloadSchemas.ts';
+import type { PipelineAgentControlKind }                    from '../../src/services/control/PipelineAgentControls.ts';
+import type { ControlCommandKind }                          from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
+import type { CommandContext }                              from '../CommandContext.ts';
+import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';
+import { refuseUsage }                                      from '../RecordedIncidentMove.ts';
+import { suppliedTextOf }                                   from '../SuppliedText.ts';
+import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
+import { setupIdOf }                                        from './SetupCommandLine.ts';
 
 /** Each verb's own word comes first; outside a job the setup record follows it. */
 const VERB_WORD_COUNT = 1;
@@ -41,7 +40,10 @@ async function payloadTextOf(commandArguments: ArgumentParser, context: CommandC
     return written;
   }
   commandArguments.rejectExtraPositionals(consumed, usage);
-  if (file === STANDARD_INPUT_MARKER) return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --file -');
+  if (file === STANDARD_INPUT_MARKER) {
+    requirePipedStandardInput(context, 'file');
+    return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --file -');
+  }
   let bytes: Uint8Array;
   try {
     bytes = readFileSync(resolve(context.currentDirectory, file));

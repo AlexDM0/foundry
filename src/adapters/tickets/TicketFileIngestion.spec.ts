@@ -1,6 +1,6 @@
 /**
  * The verdicts one ticket file reads as: parsed with the line its `id` sits on, and malformed at line 0 when the file cannot be read at
- * all. A file in the current words is never in an older format, and a read never writes.
+ * all or is not UTF-8. A file in the current words is never in an older format, and a read never writes.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -73,6 +73,14 @@ describe('TicketFileIngestion', () => {
     expect(reading.verdict).toBe('malformed');
     expect(reading.verdict === 'malformed' ? reading.line : null).toBe(0);
     expect(reading.verdict === 'malformed' ? reading.reason : '').toStartWith('the file could not be read: ');
+  });
+
+  /** A lossy decode would read U+FFFD in place of the byte, and the next write would lose it: the body is kept byte for byte or not read. */
+  test('a file that is not UTF-8, such as one saved in cp1252, is malformed at line 0', () => {
+    const ticketPath = ticketFileHolding('');
+    writeFileSync(ticketPath, Buffer.concat([Buffer.from(TICKET_WITH_A_COMMENT_ABOVE_ITS_ID), Buffer.from([0x63, 0x61, 0x66, 0xE9, 0x0A])]));
+
+    expect(new TicketFileIngestion(ticketPath).read()).toEqual({ verdict: 'malformed', reason: 'the file is not UTF-8 text', line: 0 });
   });
 
   test('reading a file leaves it byte for byte', () => {

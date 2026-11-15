@@ -1,3 +1,13 @@
-/* A roll-up bar: one part per state, each as wide as its count, on the wash; its width comes from where it sits. */
+/* A roll-up bar: one part per state, each as wide as its count, on the wash; its width comes from where it sits. The parts grow from
+   nothing as they come, then ease to each new count. */
 .design-system-segment-meter { display: flex; gap: var(--space-2); height: 8px; min-width: 80px; border-radius: var(--r-pill); overflow: hidden; background: var(--wash); }
-.design-system-segment-meter-part { min-width: 4px; background: var(--s-fill); }
+.design-system-segment-meter-part {
+  min-width: 4px; background: var(--s-fill);
+  transition: flex-grow var(--motion-fill) var(--ease-out);
+  animation: design-system-segment-meter-grow var(--motion-fill) var(--ease-out) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-segment-meter-part { animation: none; }
+}
+@keyframes design-system-segment-meter-grow { from { flex-grow: 0; } }

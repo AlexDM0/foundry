@@ -8,7 +8,7 @@
   color: var(--ink); background: var(--toast-fill);
   border: 1px solid var(--done-edge); border-radius: var(--r-3);
   box-shadow: var(--shadow-toast);
-  animation: design-system-toast calc(var(--toast-duration) * 1.2) var(--ease-out) 300ms both;
+  animation: design-system-toast calc(var(--toast-duration) * 1.2) var(--ease-out) calc(var(--motion-follow) * 1.5) both;
 }
 .design-system-toast:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-toast-body { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--space-14); }
@@ -19,12 +19,12 @@
   animation: design-system-pop var(--motion-pop) var(--ease-out) both;
 }
 .design-system-toast-check svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
-.design-system-toast-check path { stroke-dasharray: 14; animation: design-system-draw 420ms var(--ease-out) 500ms both; }
+.design-system-toast-check path { stroke-dasharray: 14; animation: design-system-draw var(--motion-draw) var(--ease-out) calc(var(--motion-follow) * 2.5) both; }
 .design-system-toast-text { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .design-system-toast-title { font-weight: 600; }
 .design-system-toast-message { color: var(--done-ink); }
 .design-system-toast-track { display: flex; height: 3px; background: var(--toast-track); }
-.design-system-toast-timer { height: 3px; background: var(--toast-check); animation: design-system-shrink var(--toast-duration) linear 600ms both; }
+.design-system-toast-timer { height: 3px; background: var(--toast-check); animation: design-system-shrink var(--toast-duration) linear calc(var(--motion-follow) * 3) both; }
 .design-system-toast[data-paused],
 .design-system-toast[data-paused] .design-system-toast-timer { animation-play-state: paused; }
 

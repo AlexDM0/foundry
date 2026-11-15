@@ -104,13 +104,14 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 [Customs](../glossary.md#customs).
 
 <details open>
-<summary>53 sentences</summary>
+<summary>54 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `There is no task #<task>` | `unknown-task` | The row id names no row. | Read the ids with `status`. | |
 | `Task #<task> belongs to ticket #<ticket>, so moving it here` | `ticket-owned-row` | A `task` verb tried to move a row a ticket owns. | Run the `ticket` verb the sentence names, or `--force` to move the row alone. | |
 | `Ticket #<ticket> already has task #<task>` | `ticket-already-has-row` | `task add --ticket` named a ticket that has a row. | Add `--force` to move the ticket to the added row, or drop `--ticket`. | |
+| `is already on the board, so a second ticket cannot take its id` | `ticket-id-already-filed` | Two filings in one hold were given one id. | File the ticket again. | |
 | `Task #<task> already belongs to ticket #<ticket>` | `task-belongs-to-another-ticket` | `ticket link` named a row another ticket owns. | Add `--force` to move it. | |
 | `Ticket #<ticket> is already <status>, so nothing was changed` | `ticket-already-in-status` | The move targets the status the ticket holds. | Nothing. Exit 1 still, so a script sees the move did not happen. | |
 | `and a move to <status> takes a ticket that is` | `illegal-ticket-move` | The legality table has no such move. | Use the sources the sentence lists, or `ticket status` to set it directly. | |
@@ -494,7 +495,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 These sentences come from `cli/` as text and carry no code.
 
 <details open>
-<summary>10 entries</summary>
+<summary>11 entries</summary>
 
 | Printed words | Exit | Cause | What to do |
 | --- | --- | --- | --- |
@@ -508,6 +509,7 @@ These sentences come from `cli/` as text and carry no code.
 | `There is no ticket <reference>.` | 1 | `task add --ticket`. | Run `ticket list`. |
 | `--review-of names ticket <reference>, and there is none` | 1 | `task add --review-of`. | Run `ticket list`. |
 | `clear needs --yes when standard input is not a terminal` | 1 | `clear` with nobody to confirm. | Pass `--yes`, knowing what `clear` removes. |
+| `- reads standard input, and standard input is a terminal` | 1 | `--body-file -`, `--request-file -` or `--file -` typed with nothing piped in. | Pipe the text in, or name a file. |
 
 </details>
 
@@ -550,7 +552,7 @@ step; rerun the comparison after changing a wording.
 | `RoleCommandRefusalReason` values | 8 |
 | Sentences with a code, in the families above | 206 |
 | Of those, marked "Never printed" | 22 |
-| Sentences with no code, under [Refusals with no code](#refusals-with-no-code) | 10 |
+| Sentences with no code, under [Refusals with no code](#refusals-with-no-code) | 11 |
 
 `board-refusal` is the wrapper around every Board reason, so it has no row of its own. `role-command-refused` has one
 row per reason.

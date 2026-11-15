@@ -20,20 +20,23 @@ export interface UsageLimitHit {
 /** The window a 429 under API billing is marked with: the API names neither a window nor a reset. */
 const API_RATE_LIMIT_WINDOW = 'api-rate-limit';
 
-/**
- * Only a top-level refusal stops requests; a per-window warning, or a window rejected under allowed overage, is shown and writes nothing.
- * Under API billing (`apiRateLimitResetsAt` set) a 429 result is the limit too, which resets at that moment.
- */
-function refusalOf(event: AgentSessionEvent, apiRateLimitResetsAt: string | null = null): { window: string; resetsAt: string } | null {
-  if (event.kind === 'result' && event.failure?.kind === 'rate-limited' && apiRateLimitResetsAt !== null) {
-    return { window: API_RATE_LIMIT_WINDOW, resetsAt: apiRateLimitResetsAt };
-  }
-  return event.kind === 'usage-window' && event.requestsRefused ? { window: event.window, resetsAt: event.resetsAt } : null;
-}
-
 /** A clock exception (design section 7.6): the backoff is a time, since the API names no reset for the pass that resumes the job. */
 function apiRateLimitResetsAtOf(at: string): string {
   return new Date(Date.parse(at) + (API_RATE_LIMIT_BACKOFF_SECONDS * MILLISECONDS_PER_SECOND)).toISOString();
+}
+
+/**
+ * Only a top-level refusal stops requests; a per-window warning, or a window rejected under allowed overage, is shown and writes nothing.
+ * Under API billing a 429 result is the limit too. A reset not after `at` holds nothing, so it fails closed to the backoff.
+ */
+function refusalOf(event: AgentSessionEvent, at: string, apiBilling = false): { window: string; resetsAt: string } | null {
+  if (event.kind === 'result' && event.failure?.kind === 'rate-limited' && apiBilling) {
+    return { window: API_RATE_LIMIT_WINDOW, resetsAt: apiRateLimitResetsAtOf(at) };
+  }
+  if (event.kind !== 'usage-window' || !event.requestsRefused) return null;
+  const reset = event.resetsAt;
+  const resetIsAhead = reset !== null && Date.parse(reset) > Date.parse(at);
+  return { window: event.window, resetsAt: resetIsAhead ? reset : apiRateLimitResetsAtOf(at) };
 }
 
 /** The Overseer's own stop: never a crash, so never counted toward `JOB_RESUMES_BEFORE_FRESH` and never a failed pass. */
@@ -74,9 +77,9 @@ function millisecondsUntilReset(usageResetsAt: string | null, now: Date): number
   return remaining > 0 ? Math.min(remaining, LONGEST_TIMER_DELAY_MILLISECONDS) : null;
 }
 
-/** Every reported window is an observation, refused or not; under API billing (`apiBilling`) the stream reports none that counts. */
+/** Every reported window with a reset is an observation, refused or not; under API billing (`apiBilling`) the stream reports none that counts. */
 function windowObservationOf(event: AgentSessionEvent, apiBilling: boolean): UsageWindowObservation | null {
-  if (apiBilling || event.kind !== 'usage-window') return null;
+  if (apiBilling || event.kind !== 'usage-window' || event.resetsAt === null) return null;
   return { window: event.window, utilization: event.utilization, resetsAt: event.resetsAt };
 }
 
@@ -98,7 +101,6 @@ function usageFactsOf(marker: UsageMarkerReading, windows: UsageWindowsReading, 
 
 export const UsageLimits = Object.freeze({
   refusalOf,
-  apiRateLimitResetsAtOf,
   interruptLimitedJob,
   usageResetsAtOf,
   markHits,

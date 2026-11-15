@@ -110,7 +110,12 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
     };
     const measured = measuredHabitats();
     const habitats: PerceivedHabitat[] = measured.map(({ record, rectangle }) => ({
-      id: record.id, kind: record.habitat.kind, box: boxOf(rectangle), isRoomy: rectangleIsRoomy(rectangle), copyTarget: copyTargetOf(record),
+      id:               record.id,
+      kind:             record.habitat.kind,
+      box:              boxOf(rectangle),
+      isRoomy:          rectangleIsRoomy(rectangle),
+      copyTarget:       copyTargetOf(record),
+      keepsFlintInside: record.habitat.keepsFlintInside === true,
     }));
     const reading = pointerSensor.readingOfFrame();
     lastPointer = reading.position;
@@ -147,8 +152,10 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
     isPaused: (place) => {
       if (document.visibilityState === 'hidden') return true;
       if (place.kind === 'home') return !registry.homeIsOnScreen();
-      if (place.kind === 'habitat') return registry.recordById(place.habitatId)?.isOnScreen === false;
-      return false;
+      if (place.kind !== 'habitat') return false;
+      const record = registry.recordById(place.habitatId);
+      // A habitat with no box at all, such as one set to `display: none`, goes on, so the reflex that sends Flint home from it runs.
+      return record?.isOnScreen === false && record.element.getClientRects().length > 0;
     },
     perceive,
     visitTargetIdFor: (livesIn) => {

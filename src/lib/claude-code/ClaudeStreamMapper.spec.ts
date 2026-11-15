@@ -116,6 +116,21 @@ describe('rate limits', () => {
     }]);
   });
 
+  test('a refused window with no reset, or one no date holds, reports no reset rather than epoch 0 or a throw', () => {
+    const lineOf = (rateLimitInformation: Record<string, unknown>): string => JSON.stringify({ type: 'rate_limit_event', rate_limit_info: rateLimitInformation });
+    const refusedFiveHour = { status: 'rejected', rateLimitType: 'five_hour', utilization: 1 };
+    const unusableResets = [{}, { resetsAt: 0 }, { resetsAt: -1 }, { resetsAt: 1e300 }, { resetsAt: '1793142034' }];
+    for (const unusableReset of unusableResets) {
+      expect([...claudeStreamEventsOf(lineOf({ ...refusedFiveHour, ...unusableReset }))]).toEqual([{
+        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
+      }]);
+      expect([...claudeStreamEventsOf(lineOf({ ...refusedFiveHour, unifiedWindows: { five_hour: { utilization: 1, status: 'rejected', ...unusableReset } } }))])
+        .toEqual([{
+          kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
+        }]);
+    }
+  });
+
   test('an event that names no window and lists none reports nothing', () => {
     expect(claudeStreamEventsOf(JSON.stringify({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed' } }))).toEqual([]);
   });

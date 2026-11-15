@@ -179,7 +179,7 @@ describe('the options and the answer', () => {
   test('the decision card holds Flint, "Your decision" with the header, and the question that labels the options', () => {
     renderPanel();
     const flint = within(panel()).getByRole('img', { name: 'Flint, the agent that asks' });
-    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground'), flint.getAttribute('data-flint-pose')]).toEqual(['84', 'decision', 'waiting']);
+    expect([flint.getAttribute('data-size'), flint.getAttribute('data-ground')]).toEqual(['100', 'decision']);
     const decisionCard = flint.closest('.design-system-card');
     expect(decisionCard?.getAttribute('data-ground')).toBe('decision');
     expect(decisionCard?.textContent).toBe('Your decision · TokensWhere should the account pages\' dark-mode colours live?');

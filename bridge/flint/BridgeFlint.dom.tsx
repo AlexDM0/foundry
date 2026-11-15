@@ -2,10 +2,12 @@
  * The Bridge's host of Flint in a happy-dom document, on manual frames and stubbed boxes, with a recording brain to read what Flint
  * perceives. What matters: one overlay, hidden from assistive technology and blind to the pointer, so Flint blocks no click below it, and
  * the home corner beside it; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
- * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues; a press
+ * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues, the
+ * turns a history brings never, since they are past; a press
  * on the composer makes the thread the habitat Flint visits; in the Agents view an agent that works is copied, Flint walking below
  * the job column of full-width rows, also when Flint slept at home first and comes back while the agent already works; a board occasion
- * reaches Flint wherever it is, and each board shows a watcher spark for each agent in flight, at most 4; and a view below reaches Flint
+ * reaches Flint wherever it is, a stream that comes back ends the unplugged loop with a wave, and each board shows a watcher spark for
+ * each agent in flight, at most 4; and a view below reaches Flint
  * through `useFlintPerform`, with one of its own elements.
  */
 import {
@@ -139,11 +141,11 @@ const DONE_TURN: ChatTurn = { ...WRITING_TURN, workingText: null };
 
 const COMPOSER_LABEL = 'Message Assistant J1';
 
-function Chat({ turns }: { readonly turns: readonly ChatTurn[] }) {
+function Chat({ turns, historyKey = 'J1' }: { readonly turns: readonly ChatTurn[]; readonly historyKey?: string | null }) {
   return (
     <ControlSurroundingsContext.Provider value={fakeControlSurroundingsOf().surroundings}>
       <ChatCard label="Assistant chat">
-        <ChatThread label="Assistant conversation" turns={turns} renderDecision={() => null} />
+        <ChatThread label="Assistant conversation" turns={turns} renderDecision={() => null} historyKey={historyKey} />
         <Composer
           label={COMPOSER_LABEL}
           recipientLabel="Assistant"
@@ -211,6 +213,24 @@ describe('the chat habitat', () => {
     fireEvent.change(composer, { target: { value: 'Ex' } });
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
     expect(brain.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing', 'user-is-typing']);
+  });
+
+  test('the turns a history brings, at the first open and after a switch to another job, cue nothing; a turn after them does', () => {
+    const entries = new Map([[STORED_HABITAT_KEY, '1:chat']]);
+    const frames = createManualFlintFrames();
+    const boardStore = boardStoreOver(entries);
+    const page = render(<Host boardStore={boardStore} frames={frames}><Chat turns={[]} historyKey={null} /></Host>);
+    placeChat();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    const brain = recordingBrain();
+    handle().startBrain(brain, 60000);
+    advanceFor(frames, FRAME_MILLISECONDS * 2);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN]} historyKey="J1" /></Host>);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN, { ...WRITING_TURN, key: 'turn-2' }]} historyKey="J1" /></Host>);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[]} historyKey={null} /></Host>);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[{ ...DONE_TURN, key: 'turn-9' }]} historyKey="J2" /></Host>);
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(brain.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing']);
   });
 
   test('a press on the composer makes the thread the habitat Flint visits', () => {
@@ -309,7 +329,7 @@ describe('the agent panel habitat', () => {
 });
 
 describe('the board occasions', () => {
-  function readingOf(changes: { readonly paused?: boolean; readonly agentsInFlight?: number } = {}): BoardReading {
+  function readingOf(changes: { readonly paused?: boolean; readonly agentsInFlight?: number; readonly connection?: BoardReading['connection'] } = {}): BoardReading {
     const board: OccasionBoard = {
       overseer:    { state: 'serving', paused: changes.paused ?? false, generation: 1 },
       usage:       { resetsAt: null, window: null },
@@ -317,7 +337,13 @@ describe('the board occasions', () => {
       incidents:   [],
       concurrency: { agentsInFlight: changes.agentsInFlight ?? 0 },
     };
-    return { board, connection: 'live', refusedCommandCount: 0 };
+    return { board, connection: changes.connection ?? 'live', refusedCommandCount: 0 };
+  }
+
+  /** A prop that is not drawn keeps its group, at opacity 0. */
+  function unpluggedSocketIsShown(): boolean {
+    const socket = overlay().querySelector('g[data-flint-part="unpluggedSocket"]');
+    return socket !== null && socket.getAttribute('opacity') !== '0';
   }
 
   function sparkCount(): number {
@@ -334,6 +360,24 @@ describe('the board occasions', () => {
     page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ paused: true })}><Chat turns={[]} /></Host>);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
     expect(brain.digests[0]?.lastIntent).toBe('hold');
+  });
+
+  test('a stream that goes down unplugs Flint, and once it is back Flint waves, which ends the unplugged loop', () => {
+    const frames = createManualFlintFrames();
+    const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
+    placeChat();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    const brain = recordingBrain();
+    handle().startBrain(brain, 60000);
+    page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ connection: 'down' })}><Chat turns={[]} /></Host>);
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(brain.digests.at(-1)?.lastIntent).toBe('unplugged');
+    expect(unpluggedSocketIsShown()).toBe(true);
+    page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ connection: 'connecting' })}><Chat turns={[]} /></Host>);
+    page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(brain.digests.at(-1)?.lastIntent).toBe('wave');
+    expect(unpluggedSocketIsShown()).toBe(false);
   });
 
   test('each board shows a watcher spark for each agent in flight, at most 4', () => {

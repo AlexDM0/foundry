@@ -1,11 +1,16 @@
 /**
  * The ticket form's other moves, each a button beside the effect it has. A move that needs a reason (Hold…, Park…), domains (Set
  * network…), a choice (Priority…) or a confirmation (Delivered by hand…) only opens its row under itself, one row at a time; the row's
- * button posts the `ControlCommand`, and Cancel closes it with nothing sent. Keyed by ticket by its caller, so typed text never carries
- * over to the next ticket opened.
+ * button posts the `ControlCommand`, and Cancel closes it with nothing sent. A closed row hands the focus back to the move that opened it,
+ * or to the first move when that one is gone. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
  */
-import { Button }             from 'design-system/Button';
-import { Fragment, useState } from 'react';
+import { Button } from 'design-system/Button';
+import {
+  Fragment,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 
 import type { ControlCommandBody }    from '../../api/CommandClient.ts';
 import { CommandButton }              from '../../shell/CommandButton.tsx';
@@ -30,9 +35,19 @@ function commandOf(ticketId: string, move: MoveModel): ControlCommandBody | null
   }
 }
 
+interface MoveButtonProps {
+  readonly ticketId: string;
+  readonly move:     MoveModel;
+  readonly primary?: boolean;
+  /** The 30px button of the Other moves rows. */
+  readonly compact?: boolean;
+}
+
 /** A move sent at once, such as Ready, Accept or Update branch. */
-export function MoveButton({ ticketId, move, primary = false }: { readonly ticketId: string; readonly move: MoveModel; readonly primary?: boolean }) {
-  return <CommandButton label={move.label} command={commandOf(ticketId, move)} primary={primary} />;
+export function MoveButton({
+  ticketId, move, primary = false, compact = false
+}: MoveButtonProps) {
+  return <CommandButton label={move.label} command={commandOf(ticketId, move)} primary={primary} compact={compact} />;
 }
 
 interface FieldRowProps {
@@ -119,15 +134,35 @@ function PrioritiesRow({ ticketId, move, onClose }: FieldRowProps) {
 
 export function TicketMoves({ ticketId, moves }: { readonly ticketId: string; readonly moves: readonly MoveModel[] }) {
   const [openMove, setOpenMove] = useState<TicketMove | null>(null);
-  const close = (): void => setOpenMove(null);
+  const moveToFocus = useRef<TicketMove | null>(null);
+  const moveSlots = useRef<Partial<Record<TicketMove, HTMLDivElement | null>>>({});
+
+  // Once a row closed, the focus it held goes back to its opener.
+  useEffect(() => {
+    const move = moveToFocus.current;
+    if (move === null) return;
+    moveToFocus.current = null;
+    const opener = moveSlots.current[move]?.querySelector('button') ?? Object.values(moveSlots.current).find((slot) => slot !== null)?.querySelector('button');
+    opener?.focus();
+  });
+
+  const close = (): void => {
+    moveToFocus.current = openMove;
+    setOpenMove(null);
+  };
   return (
     <>
       {moves.map((move) => (
         <Fragment key={move.move}>
-          <div className="bridge-detail-move">
+          <div
+            className="bridge-detail-move"
+            ref={(slot) => {
+              moveSlots.current[move.move] = slot;
+            }}
+          >
             {move.opens === null
-              ? <MoveButton ticketId={ticketId} move={move} />
-              : <Button label={move.label} expanded={openMove === move.move} onPress={() => setOpenMove(openMove === move.move ? null : move.move)} />}
+              ? <MoveButton ticketId={ticketId} move={move} compact />
+              : <Button label={move.label} compact expanded={openMove === move.move} onPress={() => setOpenMove(openMove === move.move ? null : move.move)} />}
             <p className="bridge-detail-effect"><TextParts parts={move.effect} /></p>
           </div>
           {openMove === move.move && move.opens === 'reason' ? <ReasonRow ticketId={ticketId} move={move} onClose={close} /> : null}

@@ -1,8 +1,8 @@
 /**
- * The ticket form a Kanban card or wave card opens, as the side panel's head and body: the head (id, type and priority, the title in the
- * display face beside the state pill) over the section tabs (Overview, Timeline, Activity, Description), each a link to its own route over
- * the same board tab, stays put; the body scrolls the section shown. Only that section is mounted, so the body's frame measures itself
- * once it is visible.
+ * The ticket form a Kanban card or wave card opens, as the side panel's head and body: the head (the id line with type and priority, which
+ * × closes, then the title in the display face beside the state pill) over the section tabs (Overview, Timeline, Activity, Description),
+ * each a link to its own route over the same board tab, stays put; the body scrolls the section shown. Only that section is mounted, so the
+ * body's frame measures itself once it is visible.
  */
 
 import { CountBadge }                   from 'design-system/CountBadge';
@@ -27,14 +27,21 @@ import { TicketTimeline }                  from './TicketTimeline.tsx';
 
 export const NO_TICKET_LOG_LINES_NOTE = 'No log line names this ticket or its row.';
 
+/** The id line, which × closes. */
+function TicketIdLine({ model }: { readonly model: TicketDetailModel }) {
+  return (
+    <div className="bridge-ticket-detail-id-line">
+      <span className="bridge-detail-id">{model.idText}</span>
+      <TypeMark type={model.ticketType} />
+      <PriorityMark priority={model.priority} />
+    </div>
+  );
+}
+
+/** The title beside its state pill, as wide as the head. */
 function TicketHead({ model }: { readonly model: TicketDetailModel }) {
   return (
     <div className="bridge-ticket-detail-head" data-state={model.stateToken} data-state-tone={StateToneUtil.toneOf(model.stateToken)}>
-      <Row centerY gap="eight">
-        <span className="bridge-detail-id">{model.idText}</span>
-        <TypeMark type={model.ticketType} />
-        <PriorityMark priority={model.priority} />
-      </Row>
       <Row between centerY gap="twelve">
         <View grow><Text typeRole="page" element="h2">{model.title}</Text></View>
         <Row centerY gap="four">
@@ -117,7 +124,7 @@ export function TicketDetail({
   }, [model.section]);
   return (
     <>
-      <SidePanelHead closeLabel={closeLabel} onClose={onClose}>
+      <SidePanelHead closeLabel={closeLabel} onClose={onClose} firstLine={<TicketIdLine model={model} />}>
         <TicketHead model={model} />
         <div className="bridge-detail-tab-bar">
           <SectionTabs model={model} />

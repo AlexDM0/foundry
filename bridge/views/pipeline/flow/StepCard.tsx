@@ -1,6 +1,6 @@
 /**
  * One step of the open phase: its kind word with its mark, a Conditional pill on a re-review, the pills that say what it waits on or how
- * it changed (each pops in), User's switch on a "You" step, then its title, its sentence, its gate pills, the tickets on it on a live
+ * it changed (each pops in), User's switch on a "You" step, then its title, its gate pills, its sentence, the tickets on it on a live
  * board, and an agent's model, effort and brief files. A double-click or Enter asks for what the step opens, or for the question it waits
  * on; a press inside a control stays that control's.
  */
@@ -138,7 +138,6 @@ export function StepCard({
           </Row>
         </Row>
         <Text typeRole="lead" bold struck={view.change === 'removed'}>{view.cardTitle}</Text>
-        <Text muted>{view.sentence}</Text>
         {view.gatePills.length === 0
           ? null
           : (
@@ -148,6 +147,7 @@ export function StepCard({
               ))}
             </Row>
           )}
+        <Text muted>{view.sentence}</Text>
         {occupants === null ? null : <LiveTickets occupants={occupants} />}
         {meter === null && view.briefText === null
           ? null

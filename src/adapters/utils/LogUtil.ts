@@ -286,8 +286,10 @@ function sentenceOf(record: LogRecordContent): string {
       return `User asked job ${record.jobId} to ${JOB_STOP_MODE_PHRASES[record.fields.mode]}`;
     case 'job-messaged':
       return `Message for job ${record.jobId}: ${record.fields.text}`;
-    case 'job-reopened':
-      return `Job ${record.jobId} reopened in Watcher instance ${record.fields.watcherInstance} for User's message: ${record.fields.text}`;
+    case 'job-reopened': {
+      const sender = record.fields.byOverseer === true ? 'the Overseer\'s' : 'User\'s';
+      return `Job ${record.jobId} reopened in Watcher instance ${record.fields.watcherInstance} for ${sender} message: ${record.fields.text}`;
+    }
     case 'intake-titled':
       return `Intake of job ${record.jobId} titled: ${record.fields.title}`;
     case 'worktree-repaired':

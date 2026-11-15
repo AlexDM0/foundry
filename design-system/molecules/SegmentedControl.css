@@ -1,7 +1,8 @@
-/* Segments in a tray on the wash; the pressed one is a raised surface with a strong line, the rest ink-muted until hovered. */
+/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered. A press scales a
+   segment inside its own box. */
 .design-system-segments {
   display: flex; gap: var(--space-2); width: max-content; padding: var(--space-2);
-  background: var(--wash); border: 1px solid var(--line); border-radius: var(--r-3);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
 }
 .design-system-segments button {
   font: 500 var(--fs-small)/1 var(--font-ui);
@@ -10,9 +11,11 @@
   border: 1px solid transparent; border-radius: var(--r-2);
   background: transparent; color: var(--ink-muted);
   cursor: pointer;
+  transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
 }
+.design-system-segments button:active { transform: scale(0.98); }
 .design-system-segments button:hover { color: var(--ink); }
-.design-system-segments button[aria-pressed="true"] { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.design-system-segments button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .design-system-segments button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 /* Mono segments, for labels that are machine text such as times. */
 .design-system-segments[data-mono] button { font-family: var(--font-mono); }
@@ -35,3 +38,7 @@
 }
 .design-system-segments[data-separated][data-size="compact"] button { height: 32px; }
 .design-system-segments[data-separated] button[aria-pressed="true"] { font-weight: 600; color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-segments button:active { transform: none; }
+}

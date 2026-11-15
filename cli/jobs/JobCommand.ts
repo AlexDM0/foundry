@@ -4,8 +4,8 @@
  */
 import type { AgentAdapter }                   from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }              from '../../src/lib/agent-launch/AgentSessionEvent.ts';
-import type { Job }                            from '../../src/lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import { FIRST_WATCHER_INSTANCE }              from '../../src/lib/tracker-model/constants/JobStates.ts';
 import type { EventLogEntry }                  from '../../src/lib/watcher/EventLog.ts';
 import { WatcherFleet }                        from '../../src/services/overseer/WatcherFleet.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
@@ -53,18 +53,28 @@ function recordedOrLogged(loggedSentences: string): string {
 function finishedJobOf(logRecords: readonly LogRecord[], jobId: string): Record<string, unknown> | null {
   const launched = logRecords.find((record) => record.kind === 'job-launched' && record.jobId === jobId);
   if (launched?.kind !== 'job-launched') return null;
-  const ended = logRecords.find((record) => record.kind === 'job-ended' && record.jobId === jobId);
+  const ended = logRecords.findLast((record) => record.kind === 'job-ended' && record.jobId === jobId);
   return {
     id: jobId, ...launched.fields, launchedAt: launched.at, ...(ended?.kind === 'job-ended' ? { ended: ended.fields, endedAt: ended.at } : {})
   };
 }
 
-function jobRecordOf(workspace: Workspace, jobId: string): { live: Readonly<Job> | null; record: Record<string, unknown> } {
+/** The newest Watcher instance a finished job ran in: its `job-launched` record names none, so the moves that raise it are read. */
+function newestFinishedWatcherInstanceOf(logRecords: readonly LogRecord[], jobId: string): number {
+  return logRecords.reduce((highest, record) => (
+    (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') && record.jobId === jobId
+      ? Math.max(highest, record.fields.watcherInstance)
+      : highest
+  ), FIRST_WATCHER_INSTANCE);
+}
+
+function jobRecordOf(workspace: Workspace, jobId: string): { record: Record<string, unknown>; newestInstance: number } {
   const live = (requireProgressFile(workspace).jobs ?? []).find((job) => job.id === jobId) ?? null;
-  if (live !== null) return { live, record: { ...live } };
-  const finished = finishedJobOf(requireTracker(workspace).storedLog.records, jobId);
+  if (live !== null) return { record: { ...live }, newestInstance: live.watcherInstance };
+  const logRecords = requireTracker(workspace).storedLog.records;
+  const finished   = finishedJobOf(logRecords, jobId);
   if (finished === null) throw new OperationRefusal('refused', `There is no job ${jobId}.\n  Usage: ${SHOW_USAGE}`);
-  return { live: null, record: finished };
+  return { record: finished, newestInstance: newestFinishedWatcherInstanceOf(logRecords, jobId) };
 }
 
 async function showJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -110,9 +120,8 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   commandArguments.rejectExtraPositionals(2, SHOW_USAGE);
   const workspace = requireWorkspace(context.currentDirectory);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
-  const { live, record } = jobRecordOf(workspace, jobId);
   const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, jobId);
-  let newestInstance = live?.watcherInstance ?? (typeof record['watcherInstance'] === 'number' ? record['watcherInstance'] : 1);
+  let { newestInstance } = jobRecordOf(workspace, jobId);
   if (commandArguments.flag('json')) {
     // A script reads one document, so --json replays without following.
     const lines = Array.from({ length: newestInstance }, (_unused, i) => i + 1).flatMap((instance) => {
@@ -138,9 +147,10 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
       printNewEntries(newestInstance);
       return;
     }
-    if (current.watcherInstance !== newestInstance) {
+    while (current.watcherInstance > newestInstance) {
+      // Two resumes between polls skip an instance; each one between is printed whole.
       printNewEntries(newestInstance);
-      newestInstance = current.watcherInstance;
+      newestInstance += 1;
       cursor = 0;
     }
     await Bun.sleep(ATTACH_POLL_MILLISECONDS);

@@ -1,7 +1,7 @@
 /**
  * The button, in a happy-dom document. What matters: a quiet button calls `onPress` and a disabled one does not; each emphasis, the
  * attention ring, the link tint and the compact and dense heights is a `data-*` attribute on the one class; with an `href` the button is a
- * link and no button; a toggle and a disclosure carry their aria state; the leading glyph comes before the label; and a label is text,
+ * link and no button; a toggle and a disclosure carry their aria state; the leading glyph comes before the label, in its box; and a label is text,
  * never markup.
  */
 import {
@@ -103,10 +103,10 @@ describe('the button', () => {
     expect([disclosure.getAttribute('aria-expanded'), disclosure.getAttribute('aria-controls')]).toEqual(['false', 'example-drawer']);
   });
 
-  test('the leading glyph shows before the label, and the accessible name replaces the label as the name', () => {
+  test('the leading glyph shows in its box before the label, and the accessible name replaces the label as the name', () => {
     render(<Button label="New chat" leading={<span data-leading="">+</span>} accessibleName="Start a new example chat" />);
     const button = screen.getByRole('button', { name: 'Start a new example chat' });
-    expect([button.firstElementChild?.hasAttribute('data-leading'), button.textContent]).toEqual([true, '+New chat']);
+    expect([button.firstElementChild?.firstElementChild?.hasAttribute('data-leading'), button.textContent]).toEqual([true, '+New chat']);
   });
 
   test('a label is text, never markup', () => {

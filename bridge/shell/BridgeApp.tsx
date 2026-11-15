@@ -147,6 +147,9 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   const countRefusal = useCallback(() => setRefusedCommandCount((counted) => counted + 1), []);
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(() => ThemeBootstrap.themeChoiceOf(sharedStore.readChoice('theme')));
   const knownCodeVersion = useRef<string | null>(null);
+  // An identity fetch that gave up is asked again on the next connection, or the preferences and the reload on new code stay off.
+  const identityIsMissing = useRef(false);
+  const mainPanelRef = useRef<HTMLElement | null>(null);
   const streamWasDown = useRef(false);
 
   const boardStore = useMemo(() => (identity === null ? null : boardPreferenceStoreOf(identity.trackerId, services.storage)), [identity, services]);
@@ -173,7 +176,11 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   useEffect(() => {
     let current = true;
     void services.fetchIdentity().then((fetched) => {
-      if (!current || fetched === null) return;
+      if (!current) return;
+      if (fetched === null) {
+        identityIsMissing.current = true;
+        return;
+      }
       knownCodeVersion.current = fetched.codeVersion;
       setIdentity(fetched);
     });
@@ -195,10 +202,20 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
         if (state === 'no-session') loseSession();
         if (state === 'live') setSessionIsLost(false);
         if (state === 'down') streamWasDown.current = true;
-        if (state !== 'live' || !streamWasDown.current) return;
+        if (state !== 'live' || (!streamWasDown.current && !identityIsMissing.current)) return;
         streamWasDown.current = false;
+        identityIsMissing.current = false;
         void services.fetchIdentity().then((fetched) => {
-          if (fetched !== null && knownCodeVersion.current !== null && fetched.codeVersion !== knownCodeVersion.current) services.reload();
+          if (fetched === null) {
+            identityIsMissing.current = knownCodeVersion.current === null;
+            return;
+          }
+          if (knownCodeVersion.current === null) {
+            knownCodeVersion.current = fetched.codeVersion;
+            setIdentity(fetched);
+            return;
+          }
+          if (fetched.codeVersion !== knownCodeVersion.current) services.reload();
         });
       },
     });
@@ -318,6 +335,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     const seenIds = IncidentNoticeModelUtil.seenIdsAfterMarking(conversationBoard);
     boardStore?.writeTextList(SEEN_INCIDENT_DEFAULTS_CHOICE_NAME, seenIds);
     setMarkedSeenIncidentIds(seenIds);
+    // The line goes, and the focused button with it; the focus moves to the panel instead of falling to the body.
+    mainPanelRef.current?.focus();
   };
   const ticketsBoardState = useMemo(() => TicketsModel.ticketsBoardStateOf(boardState), [boardState]);
   const epicsBoardState = useMemo(() => EpicsModel.epicsBoardStateOf(boardState), [boardState]);
@@ -448,6 +467,8 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
               timestampSlices={boardState?.page?.payload.limits ?? null}
             />
             <main
+              ref={mainPanelRef}
+              tabIndex={-1}
               className="bridge-panel"
               data-tab={route.tab}
               data-entering={enteringTab === route.tab ? '' : undefined}

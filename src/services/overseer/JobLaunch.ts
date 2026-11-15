@@ -17,6 +17,7 @@ import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConvent
 import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { PlatformPorts }           from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts';
+import type { Decision }                from '../../lib/tracker-model/@types/Decision.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
@@ -574,8 +575,9 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const run = { ...stepExitReportOf(end, jobFolder, step.folder), output: watcherOutputOf(watcherFolder) };
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
+    const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));
     verdict = {
-      treeId, ...stamp, outcome: shellLine.exitMeaningOf(run) === 'passed' ? 'passed' : 'setup-failed', output: run.output, exitCode: run.exitCode
+      treeId, ...stamp, outcome: failureOutput === null ? 'passed' : 'setup-failed', output: failureOutput ?? run.output, exitCode: run.exitCode
     };
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
@@ -648,6 +650,15 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
       conflictReReview: conflictReReviewReadingOf(context, jobs, job, pipeline),
     };
   });
+}
+
+/**
+ * Read outside the lock: the worktree HEAD's tree of each review waiting `awaiting-answer` whose waiver no open decision names any more,
+ * which the hold that acts on User's answer queues on; `null` when git cannot read it.
+ */
+function answeredWaiverTreesOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], decisions: readonly Readonly<Decision>[]): ReadonlyMap<string, string | null> {
+  const answeredReviews = jobs.filter((job) => job.kind === REVIEW_JOB_KIND && job.state === 'awaiting-answer' && !decisions.some((decision) => decision.jobId === job.id));
+  return new Map(answeredReviews.map((job) => [job.id, treeOf(worktreeOf(context.workspace, job))]));
 }
 
 function readJsonFile<Content>(path: string): Content | null {
@@ -1959,6 +1970,7 @@ export const JobLaunch = Object.freeze({
   recordLaunchSettings,
   recordedLaunchSettingsOf,
   observeBuildJobs,
+  answeredWaiverTreesOf,
   applyBuildJobObservations,
   runBuildJobEffects,
   deliverBuildJobFrames,

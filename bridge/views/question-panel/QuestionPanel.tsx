@@ -200,7 +200,7 @@ export function QuestionPanel({
         </SidePanelHead>
         <SidePanelBody contentKey={model.decisionId}>
           <div className="bridge-question-panel-columns">
-            <QuestionAskColumn key={model.decisionId} decision={displayed.decision} model={model} />
+            <QuestionAskColumn key={model.decisionId} decision={displayed.decision} model={model} holdsTheFlintSlot={!isHiddenBehindDetail} />
             <QuestionBackgroundColumn key={`${model.decisionId}-background`} model={model} followTranscript={followTranscript} todayCalendarDate={format.todayCalendarDate} />
           </div>
         </SidePanelBody>

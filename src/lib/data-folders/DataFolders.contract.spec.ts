@@ -29,9 +29,9 @@ runPortContract('DataFolders', [
   { name: 'the native adapter', build: () => dataFoldersFor('darwin', '.example-monitor') },
   {
     name:  'WindowsDataFolders on an injected temporary folder',
-    build: () => createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '.example-monitor' }),
+    build: () => createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '.example-monitor', systemRoot: () => 'C:\\Windows' }),
   },
-  { name: 'the win32 selector', build: () => dataFoldersFor('win32', '.example-monitor') },
+  { name: 'the win32 selector', build: () => dataFoldersFor('win32', '.example-monitor', () => 'C:\\Windows') },
 ], CLAUSES);
 
 test('the temporary roots are the machine\'s own folder, then the two every Unix machine has', () => {
@@ -46,16 +46,26 @@ test('a POSIX child\'s temporary folder is its TMPDIR, and TEMP means nothing th
 });
 
 test('a Windows child\'s temporary folder is its TEMP under any spelling, and TMPDIR means nothing there', () => {
-  const dataFolders = createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '' });
+  const dataFolders = createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '', systemRoot: () => undefined });
   expect(dataFolders.temporaryFolderOf({ TEMP: 'C:\\Example\\Child' })).toBe('C:\\Example\\Child');
   expect(dataFolders.temporaryFolderOf({ Temp: 'C:\\Example\\Child' })).toBe('C:\\Example\\Child');
   expect(dataFolders.temporaryFolderOf({ TMPDIR: 'C:\\Example\\Child' })).toBeNull();
 });
 
 test('Windows folders join with a backslash and the root is the machine\'s own', () => {
-  const dataFolders = createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '.example-monitor' });
+  const dataFolders = createWindowsDataFolders({ temporaryDirectory: () => 'C:\\Example\\Temporary', monitorFolderName: '.example-monitor', systemRoot: () => undefined });
   expect(dataFolders.temporaryRoots()).toEqual(['C:\\Example\\Temporary']);
   expect(dataFolders.monitorFolderOf('C:\\Users\\example')).toBe('C:\\Users\\example\\.example-monitor');
+});
+
+test('the Windows system folder sits under SystemRoot, a Windows off C: included, and none is guessed without a drive-absolute one', () => {
+  const temporaryDirectory = (): string => 'D:\\Example\\Temporary';
+  const dataFoldersUnder = (systemRoot: string | undefined): DataFolders => createWindowsDataFolders({ temporaryDirectory, monitorFolderName: '', systemRoot: () => systemRoot });
+  expect(dataFoldersUnder('D:\\Windows').systemFolder()).toBe('D:\\Windows\\System32');
+  expect(dataFoldersUnder('D:\\Windows\\').systemFolder()).toBe('D:\\Windows\\System32');
+  for (const unusableRoot of [undefined, '', 'Windows', '\\Windows']) {
+    expect(() => dataFoldersUnder(unusableRoot).systemFolder()).toThrow('SystemRoot');
+  }
 });
 
 test('names fold case on macOS and Windows but not on Linux', () => {

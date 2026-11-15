@@ -43,6 +43,12 @@ test('a file with no byte order mark reads as exactly its bytes, so a write of t
   expect(readFileSync(filePath).equals(storedBytes)).toBe(true);
 });
 
+test('a file that is not UTF-8 is unreadable, so no lossy text of it is ever written back', () => {
+  const filePath = scratchFilePath('stored-file-not-utf8');
+  writeFileSync(filePath, Buffer.from([0x7B, 0x22, 0x63, 0x61, 0x66, 0xE9, 0x22, 0x7D, 0x0A]));
+  expect(storedFileTextOf(filePath)).toEqual({ verdict: 'unreadable', reason: 'it is not UTF-8 text' });
+});
+
 test('a file that is not there reads as absent', () => {
   expect(storedFileTextOf(scratchFilePath('stored-file-absent'))).toEqual({ verdict: 'absent' });
 });

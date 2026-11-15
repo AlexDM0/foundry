@@ -6,7 +6,8 @@
  * statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
  * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building
  * and reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree. The status details are the
- * usage windows the facts carry and never a placeholder or the confinement; while the board has no readable pipeline the header is in
+ * usage windows the facts carry and never a placeholder or the confinement, a limit hit naming its reset on the viewer's clock, since the
+ * stored stamp is UTC; while the board has no readable pipeline the header is in
  * setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps linking to their route) and no usage,
  * and a board that says nothing of a pipeline is never in setup.
  */
@@ -255,8 +256,18 @@ describe('concurrency, usage and the statistics', () => {
     ]);
   });
 
-  test('a usage limit hit reads with its window and when it resets', () => {
-    expect(headerModelOf(boardStateFixture({ usage: { resetsAt: '2026-10-29T15:30:00+01:00', window: 'five-hour' } }), FIXTURE_NOW, 'live').statusDetails[0])
-      .toBe('five-hour usage limit hit, resets 15:30');
+  test('a usage limit hit reads with its window\'s word and when it resets on the viewer\'s clock, not the stored UTC one', () => {
+    const resetsAt = '2026-10-29T14:30:00.000Z';
+    const resetMoment = new Date(Date.parse(resetsAt));
+    const viewerClock = `${String(resetMoment.getHours()).padStart(2, '0')}:${String(resetMoment.getMinutes()).padStart(2, '0')}`;
+    const detailOf = (stamp: string): string | undefined =>
+      headerModelOf(boardStateFixture({ usage: { resetsAt: stamp, window: 'five_hour' } }), FIXTURE_NOW, 'live').statusDetails[0];
+    expect(detailOf(resetsAt)).toBe(`5-hour window usage limit hit, resets ${viewerClock}`);
+    expect(detailOf('2026-10-29T15:30:00+01:00')).toBe(detailOf(resetsAt));
+  });
+
+  test('a usage limit hit whose reset does not parse reads without a reset time', () => {
+    expect(headerModelOf(boardStateFixture({ usage: { resetsAt: 'soon', window: 'seven_day' } }), FIXTURE_NOW, 'live').statusDetails[0])
+      .toBe('week usage limit hit');
   });
 });

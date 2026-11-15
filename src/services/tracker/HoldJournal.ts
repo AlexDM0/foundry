@@ -4,6 +4,7 @@
  */
 import { lstatSync, readFileSync, statSync } from 'node:fs';
 import { join }                              from 'node:path';
+import { isDeepStrictEqual }                 from 'node:util';
 
 import { HoldJournalIngestion, type HoldJournalReading, type JournaledFile } from '../../adapters/hold-journal/HoldJournalIngestion.ts';
 import { createHoldJournalWriter }                                           from '../../adapters/hold-journal/HoldJournalWriter.ts';
@@ -97,6 +98,22 @@ function entriesThatChangeTheDisk(files: readonly JournaledFile[]): JournaledFil
 }
 
 /**
+ * A holder paused between its fence and its journal write may write the journal after a successor took the lock and committed; left
+ * behind, it would replay stale contents over the successor's. So the fence runs again once the journal is on disk, and a taken-over
+ * hold removes the journal while it still holds this hold's entries.
+ */
+function writeJournalWhileHeld(workspace: Workspace, changingFiles: readonly JournaledFile[], fence: HoldFence, fileReplace: FileReplace): void {
+  createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(changingFiles);
+  try {
+    fence.requireStillHeld();
+  } catch (failure) {
+    const reading = readHoldJournal(workspace);
+    if (reading.verdict === 'readable' && isDeepStrictEqual(reading.files, changingFiles)) removeUnlessAbsent(holdJournalFilePathOf(workspace), fileReplace);
+    throw failure;
+  }
+}
+
+/**
  * Run under the lock, so no other holder changes a file between its comparison and the commit. Only the files whose bytes change are
  * journaled and written; a hold that changes none writes nothing, though its fence still runs. `afterFileWritten` is the step a spec
  * interrupts to cut a hold short between two files.
@@ -111,7 +128,7 @@ export function commitHold(
   const changingFiles = entriesThatChangeTheDisk(files);
   fence.requireStillHeld();
   if (changingFiles.length === 0) return;
-  createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(changingFiles);
+  writeJournalWhileHeld(workspace, changingFiles, fence, fileReplace);
   applyThenDeleteJournal(workspace, changingFiles, fence, afterFileWritten, fileReplace);
 }
 

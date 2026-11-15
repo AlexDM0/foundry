@@ -71,6 +71,8 @@ function boardRefusalMessageOf(detail: BoardRefusalDetail): string {
     case 'ticket-already-has-row':
       return `Ticket #${detail.ticketId} already has task #${detail.taskId} ("${detail.taskName}"). `
         + 'Pass --force to move the ticket on to the new row, or leave --ticket off.';
+    case 'ticket-id-already-filed':
+      return `Ticket #${detail.ticketId} is already on the board, so a second ticket cannot take its id. ${NOTHING_WAS_WRITTEN}`;
     case 'task-belongs-to-another-ticket':
       return `Task #${detail.taskId} already belongs to ticket #${detail.owningTicketId}. Pass --force to move it to ticket #${detail.ticketId}.`;
     case 'ticket-already-in-status':

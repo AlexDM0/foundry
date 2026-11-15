@@ -79,21 +79,29 @@ function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[
   return [...new Set(named.filter((path) => !isDataFolderPath(path)))];
 }
 
+type InstructionFileText = { verdict: 'read'; text: string } | { verdict: 'missing' } | { verdict: 'unreadable' };
+
 /**
  * A path leaving the repository on any host, a backslash included, is read as missing, never followed. `mainRevision` is the main line's
- * name or a commit of it.
+ * name or a commit of it. A git that could not be started is `unreadable`, never `missing`, so a caller keeps no answer of it.
  */
-function fileTextOf(rootDirectory: string, mainRevision: string, path: string): string | null {
-  if (!PathNestingUtil.relativeWirePathStaysInside(path)) return null;
+function fileTextReadingOf(rootDirectory: string, mainRevision: string, path: string): InstructionFileText {
+  if (!PathNestingUtil.relativeWirePathStaysInside(path)) return { verdict: 'missing' };
   if (isDataFolderPath(path)) {
     try {
-      return readFileSync(join(rootDirectory, path), 'utf8');
+      return { verdict: 'read', text: readFileSync(join(rootDirectory, path), 'utf8') };
     } catch {
-      return null;
+      return { verdict: 'missing' };
     }
   }
   const shown = GitProcess.run(rootDirectory, ['show', `${mainRevision}:${path}`]);
-  return GitProcess.succeeded(shown) ? shown.standardOutput : null;
+  if (shown === null) return { verdict: 'unreadable' };
+  return GitProcess.succeeded(shown) ? { verdict: 'read', text: shown.standardOutput } : { verdict: 'missing' };
+}
+
+function fileTextOf(rootDirectory: string, mainRevision: string, path: string): string | null {
+  const reading = fileTextReadingOf(rootDirectory, mainRevision, path);
+  return reading.verdict === 'read' ? reading.text : null;
 }
 
 function contentHashOf(text: string): string {
@@ -162,6 +170,7 @@ export const InstructionFiles = Object.freeze({
   instructionPathOf,
   isDataFolderPath,
   fileTextOf,
+  fileTextReadingOf,
   mainConstitutionOf,
   mainConstitutionAt
 });

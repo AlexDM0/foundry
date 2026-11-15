@@ -15,13 +15,13 @@ import {
   openSync,
   readlinkSync,
   realpathSync,
-  statSync,
-  writeSync
+  statSync
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import type { ExclusiveCreation, FileReplace } from './FileReplace.ts';
 import { fileReplaceOfThisProcess }            from './FileReplaceFor.ts';
+import { writeEveryByte }                      from './WriteEveryByte.ts';
 
 const TEMPORARY_NAME_RANDOM_CHARACTERS = 8;
 
@@ -79,8 +79,7 @@ function replaceFileAtomically(targetPath: string, contents: string | Uint8Array
     try {
       // The mode handed to `open` is masked by the umask; only an explicit `fchmod` carries every bit over.
       if (temporaryMode !== null) fchmodSync(temporaryFileDescriptor, temporaryMode);
-      if (typeof contents === 'string') writeSync(temporaryFileDescriptor, contents);
-      else writeSync(temporaryFileDescriptor, contents);
+      writeEveryByte(temporaryFileDescriptor, contents);
       fsyncSync(temporaryFileDescriptor);
     } finally {
       closeSync(temporaryFileDescriptor);
@@ -139,8 +138,7 @@ function createdBesideTemporaryFile(
   try {
     const temporaryFileDescriptor = openSync(temporaryPath, 'wx');
     try {
-      if (typeof contents === 'string') writeSync(temporaryFileDescriptor, contents);
-      else writeSync(temporaryFileDescriptor, contents);
+      writeEveryByte(temporaryFileDescriptor, contents);
       fsyncSync(temporaryFileDescriptor);
     } finally {
       closeSync(temporaryFileDescriptor);

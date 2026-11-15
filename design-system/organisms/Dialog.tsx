@@ -5,11 +5,9 @@
  * the element that held it before.
  */
 import {
-  useEffect,
   useId,
   useLayoutEffect,
   useRef,
-  useState,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -17,9 +15,8 @@ import {
   type SyntheticEvent
 } from 'react';
 
-import { IconButton } from '../atoms/IconButton.tsx';
-
-const MILLISECONDS_PER_SECOND = 1000;
+import { IconButton }  from '../atoms/IconButton.tsx';
+import { usePresence } from '../utils/Presence.ts';
 
 const FIELD_SELECTOR = 'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [contenteditable="true"]';
 
@@ -59,32 +56,6 @@ function focusableElementsIn(container: HTMLElement): HTMLElement[] {
   return [...container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)].filter((element) => element.closest('[hidden], [inert]') === null);
 }
 
-function outroMillisecondsOf(element: HTMLElement): number {
-  const style = getComputedStyle(element);
-  if (style.animationName === '' || style.animationName === 'none') return 0;
-  const seconds = (Number.parseFloat(style.animationDuration) || 0) + (Number.parseFloat(style.animationDelay) || 0);
-  return seconds * MILLISECONDS_PER_SECOND;
-}
-
-/** Shown while open and through the slide out after `isOpen` turns false; `isLeaving` is true during that slide. */
-function useShowing(isOpen: boolean, dialog: RefObject<HTMLDialogElement | null>): { isShown: boolean; isLeaving: boolean } {
-  const [showing, setShowing] = useState({ isShown: isOpen, isLeaving: false });
-  if (isOpen && (!showing.isShown || showing.isLeaving)) setShowing({ isShown: true, isLeaving: false });
-  if (!isOpen && showing.isShown && !showing.isLeaving) setShowing({ isShown: true, isLeaving: true });
-  useEffect(() => {
-    if (!showing.isLeaving) return undefined;
-    const finish = (): void => setShowing({ isShown: false, isLeaving: false });
-    const duration = dialog.current === null ? 0 : outroMillisecondsOf(dialog.current);
-    if (duration === 0) {
-      finish();
-      return undefined;
-    }
-    const timer = window.setTimeout(finish, duration);
-    return () => window.clearTimeout(timer);
-  }, [showing.isLeaving, dialog]);
-  return showing;
-}
-
 /**
  * Shows the dialog as a modal, moves the focus into it, and on close hands the focus back to its opener. The ref it returns is true
  * while the component closes the dialog itself, so a `close` event then is not the browser's.
@@ -121,7 +92,7 @@ export function Dialog({
   const pressStartedOnBackdrop = useRef(false);
   const titleId = useId();
   const descriptionId = useId();
-  const { isShown, isLeaving } = useShowing(isOpen, dialog);
+  const { isShown, isLeaving } = usePresence(isOpen, dialog);
   const isClosingItself = useModalFocus(isShown, dialog, closeButton, initialFocus);
   if (!isShown) return null;
 

@@ -33,10 +33,10 @@
   display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   padding: var(--space-14) var(--sp-5); border-top: 1px solid var(--line);
 }
-.design-system-dialog[data-motion="in"] { animation: design-system-modal var(--motion-modal) var(--ease-out) 60ms both; }
-.design-system-dialog[data-motion="in"]::backdrop { animation: design-system-fade 260ms var(--ease-out) both; }
+.design-system-dialog[data-motion="in"] { animation: design-system-modal var(--motion-modal) var(--ease-out) calc(var(--motion-modal) / 6) both; }
+.design-system-dialog[data-motion="in"]::backdrop { animation: design-system-fade var(--motion-fade) var(--ease-out) both; }
 .design-system-dialog[data-motion="out"] { animation: design-system-modal var(--motion-modal) var(--ease-out) reverse both; }
-.design-system-dialog[data-motion="out"]::backdrop { animation: design-system-fade 260ms var(--ease-out) reverse both; }
+.design-system-dialog[data-motion="out"]::backdrop { animation: design-system-fade var(--motion-fade) var(--ease-out) reverse both; }
 @media (prefers-reduced-motion: reduce) {
   .design-system-dialog[data-motion], .design-system-dialog[data-motion]::backdrop { animation: none; }
 }

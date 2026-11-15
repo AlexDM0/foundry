@@ -81,6 +81,9 @@ const EXACT_REASONS: readonly (readonly [string, Record<string, unknown>, string
   ['incident kind', withFields('incident-opened', { kind: 'outage' }), `fields.kind is "outage", which is not one of ${INCIDENT_KINDS.join(', ')}`],
   ['incident move', withFields('incident-handled', { move: 'ticket-waive' }), `fields.move is "ticket-waive", which is not one of ${INCIDENT_MOVES.join(', ')}`],
   ['incident default cause', withFields('incident-defaulted', { cause: 'timeout' }), 'fields.cause is "timeout", which is not one of turn-closed, turn-budget, no-assistant'],
+  ['optional ticket ids', withFields('hatch-applied', { ticketIds: ['001', 2] }), 'fields.ticketIds is not a list of ticket ids'],
+  ['optional refusal status', withFields('hatch-applied', { status: 'denied' }), 'fields.status is "denied", which is not one of refused, unrepaired'],
+  ['optional refusal detail', withFields('hatch-applied', { detail: { requestId: 'request-5' } }), 'fields.detail is not a refusal detail, an object naming its kind'],
   ['decision id', withKeys('decision-answered', { decisionId: 7 }), 'decisionId is not a string'],
   ['incident id', withKeys('incident-escalated', { incidentId: null }), 'incidentId is not a string'],
   ['ticket id', withKeys('ticket-started', { ticketId: null }), 'ticketId is not a string'],
@@ -107,6 +110,12 @@ describe('a well-formed record', () => {
 
   test('an agent stop naming its workflow run and label passes', () => {
     expect(logRecordProblemOf(withFields('agent-stopped', { workflowRunId: 'wf_example', agentLabel: 'build #7' }))).toBeNull();
+  });
+
+  test('a refused relayed request\'s record carrying its reply\'s status and detail passes, and so does one from before it carried a reply', () => {
+    const refused = { outcome: 'refused', status: 'refused', detail: { kind: 'hatch-identity-mismatch', requestId: 'request-5', jobId: 'J1' } };
+    expect(logRecordProblemOf(withFields('hatch-applied', refused))).toBeNull();
+    expect(logRecordProblemOf(withFields('hatch-applied', { ticketIds: undefined }))).toBeNull();
   });
 
   test('a review bar on task 0 passes, as a row with id 0 reads', () => {

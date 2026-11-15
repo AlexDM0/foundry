@@ -7,7 +7,7 @@ export interface DataFolders {
   /** The folder a child launched with `environment` keeps its temporary files in; `null` when that environment names none. */
   temporaryFolderOf(environment: Readonly<Record<string, string>>): string | null;
   monitorFolderOf(home: string): string;
-  /** The folder the platform's own programs sit in, outside any repository. */
+  /** The folder the platform's own programs sit in, outside any repository; throws when the machine names none. */
   systemFolder(): string;
   readonly pathModule:               typeof posix;
   /** True when the file system compares names without case, as on Windows and macOS. */

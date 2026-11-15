@@ -13,25 +13,27 @@ import type {
   WatcherRefusalReason,
   WelcomeFrame
 } from './@types/WatcherFrame.ts';
-import type { EventLogEntry }                from './EventLog.ts';
-import type { LocalEndpoint }                from './LocalEndpoint.ts';
-import { clientFrameOf, watcherFrameLineOf } from './WatcherFrames.ts';
-import { WATCHER_PROTOCOL_VERSION }          from './constants/WatcherProtocol.ts';
+import type { EventLogEntry }                                             from './EventLog.ts';
+import type { LocalEndpoint }                                             from './LocalEndpoint.ts';
+import { clientFrameOf, watcherFrameLineOf }                              from './WatcherFrames.ts';
+import { WATCHER_CLIENT_LINE_LIMIT_CHARACTERS, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
 const LINE_SEPARATOR = '\n';
 
 export interface WatcherSocketOptions {
-  readonly endpoint:       LocalEndpoint;
-  readonly socketPath:     string;
-  readonly watcherSecret:  string;
+  readonly endpoint:          LocalEndpoint;
+  readonly socketPath:        string;
+  readonly watcherSecret:     string;
   /** The acting frames this Watcher takes; any other is a protocol refusal. */
-  readonly acceptedKinds:  readonly ActingFrame['kind'][];
-  readonly welcomeOf:      () => Omit<WelcomeFrame, 'kind' | 'lastSequence' | 'protocolVersion'>;
+  readonly acceptedKinds:     readonly ActingFrame['kind'][];
+  readonly welcomeOf:         () => Omit<WelcomeFrame, 'kind' | 'lastSequence' | 'protocolVersion'>;
   /** The whole event log as it stands on the disk, read after it is synced. */
-  readonly durableEntries: () => readonly EventLogEntry[];
+  readonly durableEntries:    () => readonly EventLogEntry[];
   /** Every complete line any client sends, before it is judged, so an ended Watcher can count them. */
-  readonly onClientLine:   () => void;
-  readonly onActingFrame:  (frame: ActingFrame) => void;
+  readonly onClientLine:      () => void;
+  readonly onActingFrame:     (frame: ActingFrame) => void;
+  /** A line whose handling threw, such as an event log the disk refused: its connection is dropped unanswered, and the Watcher fails. */
+  readonly onHandlingFailure: (cause: unknown) => void;
 }
 
 export interface WatcherSocketServer {
@@ -67,6 +69,7 @@ function serveConnection(socket: Socket, options: WatcherSocketOptions, attached
   let refused = false;
   const refuse = (reason: WatcherRefusalReason): void => {
     refused = true;
+    pending = '';
     attachedClients.delete(socket);
     socket.end(watcherFrameLineOf({ kind: 'refused', reason }));
   };
@@ -91,15 +94,27 @@ function serveConnection(socket: Socket, options: WatcherSocketOptions, attached
     options.onActingFrame(frame);
   };
   socket.setEncoding('utf8');
+  const failHandling = (cause: unknown): void => {
+    refused = true;
+    attachedClients.delete(socket);
+    socket.destroy();
+    options.onHandlingFailure(cause);
+  };
   socket.on('data', (chunk: string) => {
+    if (refused) return;
     pending += chunk;
     let separatorIndex = pending.indexOf(LINE_SEPARATOR);
     while (separatorIndex !== -1 && !refused) {
       const line = pending.slice(0, separatorIndex);
       pending = pending.slice(separatorIndex + 1);
-      consumeLine(line);
+      try {
+        consumeLine(line);
+      } catch (cause) {
+        failHandling(cause);
+      }
       separatorIndex = pending.indexOf(LINE_SEPARATOR);
     }
+    if (!refused && pending.length > WATCHER_CLIENT_LINE_LIMIT_CHARACTERS) refuse('protocol');
   });
   socket.on('close', () => attachedClients.delete(socket));
   socket.on('error', () => attachedClients.delete(socket));

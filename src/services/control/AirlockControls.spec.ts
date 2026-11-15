@@ -2,7 +2,8 @@
  * `merge accept` and `merge update`. What matters: an accept is refused with merge approval off, for a ticket not waiting for merge, and
  * whenever git does not predict a clean merge into the target's current tip, and only a clean prediction sets `mergeAccepted`; an update
  * merges the target into the ticket's worktree with no Airlock held, leaving the queue mark for the Overseer's gate run, while a conflict is
- * aborted, the worktree put back at its tip, and the ticket loses its review done and its accept.
+ * aborted, the worktree put back at its tip, and the ticket loses its review done and its accept. A merge git refuses to start resets
+ * nothing, so an uncommitted edit in its way stays.
  * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, so each case names the git calls its command makes.
  */
 import { mkdirSync } from 'node:fs';
@@ -21,22 +22,23 @@ import {
   ancestryAsked,
   branchTreeRead,
   commitResolved,
-  conflictAborted,
   createPlantedRepository,
   currentBranchRead,
   mergedIn,
   mergePredicted,
   plantedCommitOf,
   plantedTreeOf,
-  treeRead
+  revisionMissing,
+  treeRead,
+  unmergedFilesRead
 } from '../../testing/RecordedAirlockGit.ts';
-import type { RecordedGitStage }  from '../../testing/RecordedGit.ts';
-import { useRecordedGit }         from '../../testing/RecordedGit.ts';
-import { removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }  from '../../testing/ToolGuard.ts';
-import type { TrackerChange }     from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }      from '../tracker/Workspace.ts';
-import { ControlService }         from './ControlService.ts';
+import type { RecordedGitStage }                                  from '../../testing/RecordedGit.ts';
+import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
+import { ControlService }                                         from './ControlService.ts';
 
 const AT = '2026-11-03T10:00:00+01:00';
 const BRANCH = 'ticket-001';
@@ -135,7 +137,14 @@ testWhenGitIsRecorded('merge update: merges the target into the worktree with no
 testWhenGitIsRecorded('merge update: a conflict is aborted, the worktree put back at its tip, and the ticket loses its review done and its accept', async () => {
   const { board, apply } = scenario();
   board.setTicketMergeAccepted('001', true, AT);
-  const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP, 'base.ts'), ...conflictAborted(MAIN_TIP, BRANCH_TIP, 'base.ts')]);
+  const update = await apply(UPDATE, [
+    ...MERGE_IN_START,
+    mergedIn(MAIN_TIP, 'base.ts'),
+    unmergedFilesRead('base.ts'),
+    commitResolved('MERGE_HEAD', MAIN_TIP),
+    { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
+    commitResolved('HEAD', BRANCH_TIP),
+  ]);
   expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', fields: { outcome: 'conflicted' } }] });
   expect(board.ticketIsMergeQueued('001')).toBe(false);
   expect(board.ticketIsMergeAccepted('001')).toBe(false);
@@ -148,4 +157,21 @@ testWhenGitIsRecorded('merge update: is refused with merge approval off and for 
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
   }, AT);
   expect(await refusalOf(apply(UPDATE, [MAIN_LINE_READ]))).toEqual({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '001', status: 'in-review' });
+});
+
+testWhenGitIsRecorded('merge update: a merge git refuses for an uncommitted edit in its way is refused, the worktree never reset, so the edit stays', async () => {
+  const { board, apply } = scenario();
+  const refusal = await refusalOf(apply(UPDATE, [
+    ...MERGE_IN_START,
+    {
+      gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', MAIN_TIP],
+      answeredAs:   GIT_CALL_SHAPES.MERGE_IN_BLOCKED_BY_A_LOCAL_CHANGE,
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: 'base.ts' },
+    },
+    { gitArguments: ['diff', '--name-only', '--diff-filter=U', '-z'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_FILE_OF_A_REFUSED_MERGE },
+    revisionMissing('MERGE_HEAD'),
+    commitResolved('HEAD', BRANCH_TIP),
+  ]));
+  expect(refusal).toMatchObject({ reason: 'merge-update-failed', ticketId: '001', target: 'main' });
+  expect(board.ticketIsMergeQueued('001')).toBe(true);
 });

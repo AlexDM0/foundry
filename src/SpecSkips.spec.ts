@@ -22,6 +22,7 @@ const ROOT_GUARDED_SPECS: Readonly<Record<string, string>> = {
   'src/lib/atomic-file/AtomicFile.spec.ts':                       'It stages a write that a read-only folder refuses, and keeps the permission bits of a restricted file.',
   'src/lib/atomic-file/FileReplace.contract.spec.ts':             'It renames into a read-only folder to see the Windows retry wait.',
   'cli/adoption/update/UpdateCommand.spec.ts':                    'It cuts a refresh short with an unwritable skills folder.',
+  'src/services/lifecycle/Customs.provenance.spec.ts':            'It makes a hook unreadable, which root reads anyway.',
   'src/lib/process-identity/ProcessIdentity.integration.spec.ts': 'It records the refused forced stop of another user\'s group; as root the signal would land on a system process.',
 };
 

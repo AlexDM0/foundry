@@ -18,13 +18,15 @@ export interface PerceivedCopyTarget {
 }
 
 export interface PerceivedHabitat {
-  readonly id:         string;
-  readonly kind:       string;
-  readonly box:        PlaceBox;
+  readonly id:               string;
+  readonly kind:             string;
+  readonly box:              PlaceBox;
   /** At least the minimum size on both sides; Flint never goes into a smaller habitat. */
-  readonly isRoomy:    boolean;
+  readonly isRoomy:          boolean;
   /** Read only for the habitat Flint lives in; null elsewhere. */
-  readonly copyTarget: PerceivedCopyTarget | null;
+  readonly copyTarget:       PerceivedCopyTarget | null;
+  /** Flint never shows outside the box, also while it visits it. */
+  readonly keepsFlintInside: boolean;
 }
 
 export interface PerceivedPoint {

@@ -181,7 +181,7 @@ function profileBoxViewOf(gateName: string, phase: GatePhase, profileRuns: reado
 }
 
 function profileLeadOf(phase: GatePhase): string {
-  return `runs the command once in the ${phase} phase, on main`;
+  return `Runs the command once in the ${phase} phase, on main.`;
 }
 
 /** Every line of a profile's stream is the command's own output; its number, unique within the run, keys it. */

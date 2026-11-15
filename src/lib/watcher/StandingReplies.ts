@@ -41,5 +41,5 @@ export function standingReplyFor(line: string, standingReplies: readonly Standin
   if (typeof requestIdentifier !== 'string') return null;
   // The placeholder sits inside a JSON string, so the identifier goes in escaped as one.
   const escapedRequestIdentifier = JSON.stringify(requestIdentifier).slice(1, -1);
-  return matchingRule.replyTemplate.replaceAll(REQUEST_IDENTIFIER_PLACEHOLDER, escapedRequestIdentifier);
+  return matchingRule.replyTemplate.replaceAll(REQUEST_IDENTIFIER_PLACEHOLDER, () => escapedRequestIdentifier);
 }

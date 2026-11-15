@@ -11,7 +11,7 @@ import { pageStylesheets }                         from './testing/PageStyleshee
 import { rulesOf, selectorLineOf, type StyleRule } from './testing/StyleRuleReader.ts';
 
 const SMALLEST_STYLESHEET_COUNT = 40;
-const SMALLEST_ANIMATED_RULE_COUNT = 37;
+const SMALLEST_ANIMATED_RULE_COUNT = 65;
 
 /**
  * An ancestor compound a reduce selector may name though the animated selector does not, because the markup always puts it around

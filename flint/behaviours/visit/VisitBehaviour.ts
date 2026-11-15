@@ -2,7 +2,9 @@
  * Visit, with `02-animations.md`, "Pop-in around a corner": Flint walks to 28 units outside an edge of the component, goes behind it while
  * it turns sideways, waits, peeks, ducks, peeks again, waves, and moves in while it turns to face the user; then it lives there. The
  * component is drawn in front of Flint for the whole sequence. A Flint on another floor line starts hidden behind the edge, at the wait.
- * Under reduced motion it arrives at once.
+ * A habitat that keeps Flint inside gets the same steps mirrored through its edge: Flint waits hidden outside the box, where the page is
+ * drawn in front, peeks in, and moves in to 28 units inside, so it never shows over what is around the box. Under reduced motion it
+ * arrives at once.
  */
 import type { Facing }                                  from '../../SpriteGeometry.ts';
 import { BODY_SHAPE }                                   from '../../constants/BodyShape.ts';
@@ -27,13 +29,15 @@ export type PopInStep = 'go' | 'go-behind' | 'wait' | 'peek' | 'duck' | 'peek-ag
 export interface VisitState {
   readonly name:                      'visit';
   readonly habitatId:                 string;
-  /** The side of the box Flint comes around: 1 its right edge, -1 its left edge. It is also the way out of the box. */
+  /** The side of the box Flint comes around: 1 its right edge, -1 its left edge. */
   readonly edgeSide:                  Facing;
+  /** The side of the edge Flint shows on: outside the box (`edgeSide`) around a corner, inside it for a habitat that keeps Flint inside. */
+  readonly shownSide:                 Facing;
   /** Overlay units, measured on each frame, so the component drawn in front moves with the page. */
   readonly edgeX:                     number;
   readonly step:                      PopInStep;
   readonly stepStartedAtMilliseconds: number;
-  /** The x of the body centre from the edge, positive outside the box. */
+  /** The x of the body centre from the edge, positive on the shown side. */
   readonly offsetUnits:               number;
 }
 
@@ -108,22 +112,25 @@ export function visitStarted(state: SpriteMindState, habitat: PerceivedHabitat, 
     };
     return withArrival(placed, habitat.id, elapsedMilliseconds, null);
   }
-  const isOnItsFloorLine = state.isPlaced && !JumpMotionUtil.isAirborne(state.motion.jump) && Math.abs(state.motion.floorY - box.floorY) <= POP_IN.SAME_FLOOR_TOLERANCE_UNITS;
+  // A walk to the edge on the floor line would show Flint outside a box that keeps it inside, so it starts hidden there.
+  const isOnItsFloorLine = !habitat.keepsFlintInside && state.isPlaced && !JumpMotionUtil.isAirborne(state.motion.jump)
+    && Math.abs(state.motion.floorY - box.floorY) <= POP_IN.SAME_FLOOR_TOLERANCE_UNITS;
   const edgeSide = edgeSideFor(state, habitat, perception, isOnItsFloorLine);
+  const shownSide: Facing = habitat.keepsFlintInside ? (-edgeSide as Facing) : edgeSide;
   const edgeX = PlaceUtil.edgeXOf(box, edgeSide);
-  const offsetUnits = isOnItsFloorLine ? (state.motion.positionX - edgeX) * edgeSide : POP_IN.BEHIND_OFFSET_UNITS;
+  const offsetUnits = isOnItsFloorLine ? (state.motion.positionX - edgeX) * shownSide : POP_IN.BEHIND_OFFSET_UNITS;
   const step: PopInStep = isOnItsFloorLine ? 'go' : 'wait';
   const visit: VisitState = {
-    name: 'visit', habitatId: habitat.id, edgeSide, edgeX, step, stepStartedAtMilliseconds: elapsedMilliseconds, offsetUnits,
+    name: 'visit', habitatId: habitat.id, edgeSide, shownSide, edgeX, step, stepStartedAtMilliseconds: elapsedMilliseconds, offsetUnits,
   };
   return {
     ...woken,
     behaviour: visit,
     motion:    {
       ...woken.motion,
-      positionX:     edgeX + (edgeSide * offsetUnits),
+      positionX:     edgeX + (shownSide * offsetUnits),
       floorY:        box.floorY,
-      facing:        isOnItsFloorLine ? woken.motion.facing : (-edgeSide as Facing),
+      facing:        isOnItsFloorLine ? woken.motion.facing : (-shownSide as Facing),
       walkDirection: 0,
       jump:          GROUNDED,
     },
@@ -141,7 +148,7 @@ function enteredStep(state: SpriteMindState, visit: VisitState, step: PopInStep,
   const entered: VisitState = {
     ...visit, step, stepStartedAtMilliseconds: elapsedMilliseconds, offsetUnits: HELD_OFFSET_UNITS[step] ?? visit.offsetUnits
   };
-  const facing: Facing = step === 'go-behind' ? (-visit.edgeSide as Facing) : step === 'peek' ? visit.edgeSide : state.motion.facing;
+  const facing: Facing = step === 'go-behind' ? (-visit.shownSide as Facing) : step === 'peek' ? visit.shownSide : state.motion.facing;
   const moved = { ...state, behaviour: entered, motion: { ...state.motion, facing } };
   if (step === 'wave') return withGesture(moved, GREETING_INTENT, elapsedMilliseconds);
   if (step === 'move-in') return withoutGesture(moved);
@@ -173,12 +180,12 @@ export function visitAfterFrame(state: SpriteMindState, visit: VisitState, perce
   if (current.step === 'go' || current.step === 'go-behind' || current.step === 'move-in') {
     const walked = walkedOffsetOf(current, time.deltaMilliseconds);
     const facing = current.step === 'go'
-      ? MovementUtil.facingToward(current.offsetUnits * current.edgeSide, walked.offsetUnits * current.edgeSide, next.motion.facing)
+      ? MovementUtil.facingToward(current.offsetUnits * current.shownSide, walked.offsetUnits * current.shownSide, next.motion.facing)
       : next.motion.facing;
     current = { ...current, offsetUnits: walked.offsetUnits };
     next = { ...next, behaviour: current, motion: { ...next.motion, facing } };
     if (walked.isThere && current.step === 'move-in') {
-      const arrivedAt = { ...next, motion: { ...next.motion, positionX: current.edgeX + (current.edgeSide * current.offsetUnits), floorY: habitat.box.floorY } };
+      const arrivedAt = { ...next, motion: { ...next.motion, positionX: current.edgeX + (current.shownSide * current.offsetUnits), floorY: habitat.box.floorY } };
       return withArrival(arrivedAt, habitat.id, time.elapsedMilliseconds, GREETING_INTENT);
     }
     if (walked.isThere) {
@@ -190,7 +197,7 @@ export function visitAfterFrame(state: SpriteMindState, visit: VisitState, perce
   return {
     ...next,
     motion: {
-      ...next.motion, positionX: current.edgeX + (current.edgeSide * current.offsetUnits), floorY: habitat.box.floorY, walkDirection: 0,
+      ...next.motion, positionX: current.edgeX + (current.shownSide * current.offsetUnits), floorY: habitat.box.floorY, walkDirection: 0,
     },
   };
 }
@@ -203,7 +210,7 @@ export function visitPartOf(visit: VisitState): BehaviourPart {
       eyes:        isPeeking ? { shift: POP_IN.EYE_SHIFT_UNITS, height: POP_IN.PEEK_EYE_HEIGHT_UNITS } : { shift: POP_IN.EYE_SHIFT_UNITS },
       exactFields: ['sideways-width'],
     },
-    occlusion:      { edgeX: visit.edgeX, hiddenSide: -visit.edgeSide as Facing },
+    occlusion:      { edgeX: visit.edgeX, hiddenSide: -visit.shownSide as Facing },
     positionEasing: PEEKING_STEPS.includes(visit.step) ? 'peek' : 'exact',
     blinkIsAllowed: false,
   };

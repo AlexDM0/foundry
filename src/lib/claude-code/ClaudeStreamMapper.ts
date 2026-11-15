@@ -50,6 +50,11 @@ function numberAt(record: StreamRecord | null, key: string): number {
   return typeof value === 'number' ? value : 0;
 }
 
+function nullableNumberAt(record: StreamRecord | null, key: string): number | null {
+  const value = fieldOf(record, key);
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 function arrayAt(record: StreamRecord | null, key: string): readonly unknown[] {
   const value = fieldOf(record, key);
   return Array.isArray(value) ? value : [];
@@ -143,8 +148,12 @@ function controlRequestEventsOf(record: StreamRecord): AgentSessionEvent[] {
   return [{ kind: 'question', requestId: stringAt(record, 'request_id'), questions: recordsAt(recordAt(request, 'input'), 'questions').map(questionOf) }];
 }
 
-function isoStampOfEpochSeconds(epochSeconds: number): string {
-  return new Date(epochSeconds * MILLISECONDS_PER_SECOND).toISOString();
+/** `null` for a reset that is missing, not a positive number, or past what a date holds: never epoch 0, which would hold nothing. */
+function resetStampOf(record: StreamRecord | null): string | null {
+  const epochSeconds = nullableNumberAt(record, 'resetsAt');
+  if (epochSeconds === null || epochSeconds <= 0) return null;
+  const reset = new Date(epochSeconds * MILLISECONDS_PER_SECOND);
+  return Number.isNaN(reset.getTime()) ? null : reset.toISOString();
 }
 
 /** A window `unifiedWindows` lacks but `rateLimitType` names is read from the top-level fields, as an event without the list carries it. */
@@ -153,7 +162,7 @@ function namedWindowEventOf(information: StreamRecord, window: string, requestsR
     kind:        'usage-window',
     window,
     utilization: numberAt(information, 'utilization'),
-    resetsAt:    isoStampOfEpochSeconds(numberAt(information, 'resetsAt')),
+    resetsAt:    resetStampOf(information),
     status:      stringAt(information, 'status'),
     requestsRefused,
   };
@@ -175,7 +184,7 @@ function usageWindowEventsOf(record: StreamRecord): AgentSessionEvent[] {
       kind:            'usage-window',
       window,
       utilization:     numberAt(windowInformation, 'utilization'),
-      resetsAt:        isoStampOfEpochSeconds(numberAt(windowInformation, 'resetsAt')),
+      resetsAt:        resetStampOf(windowInformation),
       status:          stringAt(windowInformation, 'status'),
       requestsRefused: topLevelRefuses && window === namedWindow,
     }));
@@ -204,11 +213,6 @@ function contextTokensOf(usage: StreamRecord | null): number | null {
   const lastIteration = recordsAt(usage, 'iterations').at(-1);
   if (lastIteration === undefined) return null;
   return numberAt(lastIteration, 'input_tokens') + numberAt(lastIteration, 'cache_creation_input_tokens') + numberAt(lastIteration, 'cache_read_input_tokens');
-}
-
-function nullableNumberAt(record: StreamRecord | null, key: string): number | null {
-  const value = fieldOf(record, key);
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 /** P10: an `is_error` result with `api_error_status` 429 is the limit whatever its `subtype`; a refused key answers 401 or 403. */

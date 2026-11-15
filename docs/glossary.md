@@ -109,7 +109,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | **sweep** | the Overseer's timed [wake](#wake) | `OVERSEER_SWEEP_SECONDS`, `DataFolderWatch`; "silent sweeps" (`silentSweepsOf`) counts those a job's [cursor](#cursor) stood still for |
 | | the [Airlock sweep](#airlock-sweep), a step inside a Pass | `airlocks.sweep` |
 | **marker** | the [usage marker](#usage-marker) | `<monitor>/usage-limit.json` |
-| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out once |
+| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out, written after the Watcher took it, so an Overseer that dies in between sends it again: at least once |
 | | an [install marker](#install-marker) | `session-instructions.md` or `agent-brief.md`: its presence tells the version check an install exists |
 | | a managed-block marker | the start and end comments of the [managed block](#managed-block) |
 | **request** | a Hatch request | `<worktrees>/hatch/J<n>/requests/<requestId>.json`, a session's file for the Overseer |
@@ -1109,9 +1109,7 @@ The pure data a Bridge view renders, derived from the board state by a `*Model.t
 ### waiver
 
 Dropping an Acceptance item: a session proposes it and a `waiver` [decision](#decision) asks User. An item written
-`A<n>. Waived: <reason>` is waived.
-
-> **As built.** Answering the decision does not apply it.
+`A<n>. Waived: <reason>` is waived. The Overseer's next [Pass](#pass) after User's answer applies it.
 
 ### wake
 

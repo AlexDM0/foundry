@@ -15,13 +15,21 @@ const NAMED_CHARACTERS: Readonly<Record<string, string>> = {
   apos: '\'',
   nbsp: ' ',
 };
-const HEXADECIMAL_RADIX = 16;
-const DECIMAL_RADIX     = 10;
+const HEXADECIMAL_RADIX       = 16;
+const DECIMAL_RADIX           = 10;
+const LAST_UNICODE_CODE_POINT = 0x10ffff;
+const REPLACEMENT_CHARACTER   = '\ufffd';
+
+/** A browser reads a reference to no character as the replacement character, never as an error. */
+function characterForCodePoint(codePoint: number): string {
+  if (Number.isNaN(codePoint) || codePoint === 0 || codePoint > LAST_UNICODE_CODE_POINT) return REPLACEMENT_CHARACTER;
+  return String.fromCodePoint(codePoint);
+}
 
 function characterOfReference(reference: string, name: string): string {
   const lowerName = name.toLowerCase();
-  if (lowerName.startsWith('#x')) return String.fromCodePoint(Number.parseInt(lowerName.slice(2), HEXADECIMAL_RADIX));
-  if (lowerName.startsWith('#')) return String.fromCodePoint(Number.parseInt(lowerName.slice(1), DECIMAL_RADIX));
+  if (lowerName.startsWith('#x')) return characterForCodePoint(Number.parseInt(lowerName.slice(2), HEXADECIMAL_RADIX));
+  if (lowerName.startsWith('#')) return characterForCodePoint(Number.parseInt(lowerName.slice(1), DECIMAL_RADIX));
   return Object.hasOwn(NAMED_CHARACTERS, lowerName) ? NAMED_CHARACTERS[lowerName] ?? reference : reference;
 }
 

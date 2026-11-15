@@ -89,10 +89,15 @@ import type {
   OverseerStopReason,
   PictureReference
 }                                              from './@types/Job.ts';
-import type { LaunchSlots }                              from './@types/LaunchSlots.ts';
-import type { LifecycleLimits }                          from './@types/LifecycleLimits.ts';
-import type { AgentUsage, LogRecord, LogRecordFieldsOf } from './@types/LogRecord.ts';
-import type { QuestionOptionNotes }                      from './@types/OptionConsequences.ts';
+import type { LaunchSlots }     from './@types/LaunchSlots.ts';
+import type { LifecycleLimits } from './@types/LifecycleLimits.ts';
+import type {
+  AgentUsage,
+  HatchAppliedRecord,
+  LogRecord,
+  LogRecordFieldsOf
+} from './@types/LogRecord.ts';
+import type { QuestionOptionNotes } from './@types/OptionConsequences.ts';
 import type {
   Pipeline,
   PipelineApproval,
@@ -348,7 +353,12 @@ export class Board {
   }
 
   messageJob(jobId: string, text: string, pictures: readonly PictureReference[], at: string): JobChanged {
-    return this.jobControls.messageJob(jobId, text, pictures, at);
+    return this.jobControls.messageJob(jobId, { text, pictures, sender: 'user' }, at);
+  }
+
+  /** The Overseer's wording of User's setup move for the pipeline agent: delivered like User's message, never read as User's words. */
+  messageJobAsOverseer(jobId: string, text: string, at: string): JobChanged {
+    return this.jobControls.messageJob(jobId, { text, pictures: [], sender: 'overseer' }, at);
   }
 
   startIntake(text: string, pictures: readonly PictureReference[], at: string): JobChanged {
@@ -447,12 +457,12 @@ export class Board {
     return this.jobRules.recordUsageLimitHit(jobId, limit, at);
   }
 
-  recordHatchApplied(jobId: string, applied: { requestId: string; commandKind: string; outcome: string }, at: string): Logged {
+  recordHatchApplied(jobId: string, applied: LogRecordFieldsOf<'hatch-applied'>, at: string): Logged {
     return this.jobRules.recordHatchApplied(jobId, applied, at);
   }
 
-  hatchRequestIsApplied(requestId: string): boolean {
-    return this.jobRules.hatchRequestIsApplied(requestId);
+  hatchAppliedRecordOf(requestId: string): HatchAppliedRecord | null {
+    return this.jobRules.hatchAppliedRecordOf(requestId);
   }
 
   setTicketMergeQueued(ticketId: string, queued: boolean, at: string): Readonly<Task> | null {
@@ -715,6 +725,9 @@ export class Board {
       case 'pause-overseer':
         return this.setOverseerState('paused', at).logged;
       case 'await-machine-slot':
+        return [];
+      // The Overseer acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
+      case 'act-on-waiver-answer':
         return [];
     }
   }

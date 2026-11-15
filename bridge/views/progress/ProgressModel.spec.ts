@@ -231,14 +231,15 @@ describe('the state chip', () => {
     expect(row?.nameTitle).toBe('Example dependent work\nticket\nWaiting on #5');
   });
 
-  test('reads Done ✓ on a delivered row the Board counts as reviewed', () => {
+  test('checks the Done badge of a delivered row the Board counts as reviewed, and titles it with the review', () => {
     const board = exampleProgressBoard({
       tasks:    [exampleProgressTask(1, { status: 'delivered', reviewed: '2026-09-18T10:30:00+02:00' })],
       rowFacts: { 1: { deliveredRowCountsAsReviewed: true } },
     });
     const [row] = ProgressModel.progressChartOf(board, CHOICES).rows;
 
-    expect(row?.chipText).toBe('Done ✓');
+    expect(row?.chipText).toBe('Done');
+    expect(row?.chipShowsReviewedCheck).toBe(true);
     expect(row?.chipTitle).toStartWith('Done · Reviewed ');
   });
 });

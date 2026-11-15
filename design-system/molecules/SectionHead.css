@@ -6,3 +6,10 @@
 .design-system-section-head[data-inline] { align-items: baseline; }
 .design-system-section-head[data-inline] > .design-system-section-count { margin-left: 0; }
 .design-system-section-head .design-system-id-link { font-size: var(--fs-small); }
+/* The heading look: the title in the title size, the count in a quiet pill right after it, what the caller adds at the head's end. */
+.design-system-section-head[data-look="heading"] { min-height: 30px; }
+.design-system-section-head[data-look="heading"] > .design-system-section-count {
+  display: inline-flex; align-items: center; box-sizing: border-box; height: 20px; margin-left: 0; padding: 0 var(--space-8);
+  font: 500 var(--fs-pill)/1 var(--font-ui); color: var(--ink-muted); background: var(--wash); border-radius: var(--r-pill);
+}
+.design-system-section-head-end { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; }

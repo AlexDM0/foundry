@@ -2,12 +2,14 @@
  * The event log's own contract: entries are numbered from 1 in the order appended, the file holds them after `syncAndClose`, and a reader
  * ignores a last line cut short mid-append while naming a malformed terminated line rather than skipping it.
  */
+import * as fileSystem                  from 'node:fs';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { join }                         from 'node:path';
 import {
   afterEach,
   beforeEach,
   expect,
+  spyOn,
   test
 } from 'bun:test';
 
@@ -46,6 +48,34 @@ test('numbers entries from 1 in append order, and a reader reads them back', () 
       },
       {
         sequence: 3, origin: 'watcher', line: 'a standing reply', at: EXAMPLE_STAMP
+      },
+    ],
+  });
+});
+
+// A disk that fills partway stores a short count with no error; a spy plays it, since no spec can fill one.
+test('an append the disk cuts short is written on, so no torn line sits between two entries', () => {
+  const eventLogPath = join(scratchFolder, 'events-1.ndjson');
+  const writer = createEventLogWriter(eventLogPath, () => EXAMPLE_STAMP);
+  const realWriteSync = fileSystem.writeSync;
+  const shortWrites = spyOn(fileSystem, 'writeSync').mockImplementation(((descriptor: number, buffer: Uint8Array, offset: number, length: number) => (
+    realWriteSync(descriptor, buffer, offset, Math.ceil(length / 2))
+  )) as typeof fileSystem.writeSync);
+  try {
+    writer.append('agent', 'first');
+  } finally {
+    shortWrites.mockRestore();
+  }
+  writer.append('agent', 'second');
+  writer.syncAndClose();
+  expect(eventLogEntriesOf(readFileSync(eventLogPath, 'utf8'))).toEqual({
+    verdict: 'read',
+    entries: [
+      {
+        sequence: 1, origin: 'agent', line: 'first', at: EXAMPLE_STAMP
+      },
+      {
+        sequence: 2, origin: 'agent', line: 'second', at: EXAMPLE_STAMP
       },
     ],
   });

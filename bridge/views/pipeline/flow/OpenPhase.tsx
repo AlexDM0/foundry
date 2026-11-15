@@ -78,7 +78,7 @@ function PhaseHead({ flow, phase, onOpen }: PhaseHeadProps) {
   const { nextPhase } = header;
   return (
     <header className="bridge-pipeline-phase-head">
-      <div className="bridge-pipeline-phase-head-text">
+      <div key={phase} className="bridge-pipeline-phase-head-text">
         <Row centerY gap="seven">
           <span className="bridge-pipeline-phase-dot" data-phase={phase} aria-hidden="true" />
           <Text typeRole="small" muted>{header.numberText}</Text>

@@ -1,10 +1,12 @@
 /**
  * The Bridge's host of Flint (`flint/`), the sprite of its agents: the home corner, a fixed box at the bottom right of the page; the
  * habitat Flint lives in, stored per board once the board is known, and asked of the handle for the views that start a behaviour on one of
- * their elements (`bridge/flint/FlintDwelling.ts`); and the visit target, the habitat User last focused or clicked, counted over its
- * workplace (`bridge/flint/LastWorkedInTracker.ts`); and the board occasions, which Flint answers wherever it is
- * (`bridge/flint/UseBoardOccasions.ts`). The habitats are the components below it that call `useFlintHabitat`; a component below it that
- * starts an intent with one of its own elements calls `useFlintPerform`. Every choice here is the host's, and easy to change.
+ * their elements (`bridge/flint/FlintDwelling.ts`); the visit target, the open screen's Flint slot unless User focused or clicked in
+ * another habitat since it showed (`bridge/flint/VisitTargetTracker.ts`), which each slot reaches through `FlintSlotShowingContext`, and
+ * where Flint goes at once when a slot shows or Flint is made, not at its director's next turn, so it never waits at home on a screen; and
+ * the board occasions, which Flint answers wherever it is (`bridge/flint/UseBoardOccasions.ts`). The habitats are the components below it
+ * that call `useFlintHabitat`; a component below it that starts an intent with one of its own elements calls `useFlintPerform`. Every
+ * choice here is the host's, and easy to change.
  */
 import {
   useEffect,
@@ -20,8 +22,9 @@ import type { PreferenceStore }             from '../preferences/PreferenceStore
 import type { BoardReading }                from './BoardOccasionModel.ts';
 import { dwellingOf, FlintDwellingContext } from './FlintDwelling.ts';
 import { flintHabitatStorageOf }            from './FlintHabitatStorage.ts';
-import { createLastWorkedInTracker }        from './LastWorkedInTracker.ts';
+import { FlintSlotShowingContext }          from './FlintSlotShowing.ts';
 import { useBoardOccasions }                from './UseBoardOccasions.ts';
+import { createVisitTargetTracker }         from './VisitTargetTracker.ts';
 
 /** Flint is 40 by 50 units; at this size it takes 30 by 37.5 pixels. */
 const PIXELS_FOR_ONE_UNIT = 0.75;
@@ -45,27 +48,30 @@ export function BridgeFlint({
 }: BridgeFlintProps) {
   const home = useRef<HTMLDivElement>(null);
   const [handle, setHandle] = useState<FlintHandle | null>(null);
+  const [visitTargetTracker] = useState(createVisitTargetTracker);
   const [takeHandle] = useState(() => (made: FlintHandle | null): void => {
+    visitTargetTracker.flintMade(made);
     setHandle(made);
     onHandle?.(made);
   });
   useBoardOccasions(handle, boardReading ?? null);
   const dwelling = useMemo(() => dwellingOf(handle), [handle]);
   const storage = useMemo(() => (boardStore === null ? null : flintHabitatStorageOf(boardStore)), [boardStore]);
-  const [lastWorkedIn] = useState(createLastWorkedInTracker);
-  useEffect(() => lastWorkedIn.follow(document), [lastWorkedIn]);
+  useEffect(() => visitTargetTracker.follow(document), [visitTargetTracker]);
   return (
     <FlintDwellingContext.Provider value={dwelling}>
-      <Flint
-        home={home}
-        pixelsForOneUnit={PIXELS_FOR_ONE_UNIT}
-        visitTarget={lastWorkedIn.visitTarget}
-        {...(storage === null ? {} : { storage })}
-        {...(frameSource === undefined ? {} : { frameSource })}
-        onHandle={takeHandle}
-      >
-        {children}
-      </Flint>
+      <FlintSlotShowingContext.Provider value={visitTargetTracker.slotShown}>
+        <Flint
+          home={home}
+          pixelsForOneUnit={PIXELS_FOR_ONE_UNIT}
+          visitTarget={visitTargetTracker.visitTarget}
+          {...(storage === null ? {} : { storage })}
+          {...(frameSource === undefined ? {} : { frameSource })}
+          onHandle={takeHandle}
+        >
+          {children}
+        </Flint>
+      </FlintSlotShowingContext.Provider>
       <div className="bridge-flint-home" ref={home} aria-hidden="true" />
     </FlintDwellingContext.Provider>
   );

@@ -326,6 +326,34 @@ function productOwnerStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: L
   return resumesAreHeld || awaitsAnAnswer ? [] : [{ kind: 'resume-job', jobId: job.id }];
 }
 
+/** User's answers, in question order, to the newest `waiver` decision opened on the job's ticket since it launched; `null` while unanswered. */
+function waiverAnswersOf(job: Readonly<Job>, logRecords: readonly LogRecord[]): string[] | null {
+  const ticketId = job.ticketIds[0] ?? '';
+  let launched = false;
+  let waiverDecisionId: string | null = null;
+  let answers: string[] | null = null;
+  for (const record of logRecords) {
+    if (record.kind === 'job-launched' && record.jobId === job.id) launched = true;
+    if (!launched) continue;
+    if (record.kind === 'decision-opened' && record.fields.kind === 'waiver' && record.fields.ticketIds.includes(ticketId)) {
+      waiverDecisionId = record.decisionId;
+      answers = null;
+    }
+    if (record.kind === 'decision-answered' && record.decisionId === waiverDecisionId) answers = Object.values(record.fields.answer);
+  }
+  return answers;
+}
+
+/** A review waits `awaiting-answer` only on its waiver: once User answered it, from any surface, the next pass acts on the answer. */
+function waiverAnswerStepsOf(facts: PlaybookFacts): PlaybookStep[] {
+  return facts.jobs
+    .filter((job) => job.kind === 'review' && job.state === 'awaiting-answer')
+    .flatMap((job): PlaybookStep[] => {
+      const answers = waiverAnswersOf(job, facts.logRecords);
+      return answers === null ? [] : [{ kind: 'act-on-waiver-answer', jobId: job.id, answers }];
+    });
+}
+
 /** A red handoff resumes the same session while its cycle has resumes left; the next red ends it and parks its ticket for User. */
 function redHandoffStepsOf(job: Readonly<Job>, facts: IndexedPlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
   const ticketId = job.ticketIds[0];
@@ -514,6 +542,7 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   steps.push(...retiredDecisionStepsOf(facts));
   // The pipeline agent sets the pipeline up, so neither the missing pipeline nor the pause holds its resume.
   steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));
+  steps.push(...waiverAnswerStepsOf(facts));
   if (!assistantIsLive && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
   const parkSteps    = parkStepsOf(facts, limits);
   const jobLostSteps = jobLostStepsOf(facts, limits);

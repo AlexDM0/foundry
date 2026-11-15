@@ -202,6 +202,12 @@ describeWhenGitIsRecorded('verification by code', () => {
     expect(CUSTOMS_CHECKS.V5(builderSubject())).toEqual({ verdict: 'refused', reason: 'data-folder-touched', facts: [`${caseChangedDataFolder}/progress.json`] });
   });
 
+  test('V5 refuses a data folder file whose name git would quote, read unquoted', () => {
+    enter(GIT_SCENARIOS.DATA_FOLDER_QUOTED_NAME_COMMITTED);
+
+    expect(CUSTOMS_CHECKS.V5(builderSubject())).toEqual({ verdict: 'refused', reason: 'data-folder-touched', facts: [`${PRODUCT_NAMES.DATA_FOLDER}/example"quoted\tname.json`] });
+  });
+
   test('V11 refuses agents.md under a pipeline naming AGENTS.md, and V5, V11 and V13 pass an honest different case elsewhere', () => {
     enter(GIT_SCENARIOS.LOWER_CASE_AGENTS_FILE_COMMITTED);
     expect(CUSTOMS_CHECKS.V11(builderSubject({ instructionFiles: ['AGENTS.md'] }))).toEqual({ verdict: 'refused', reason: 'instruction-file-changed', facts: ['agents.md'] });

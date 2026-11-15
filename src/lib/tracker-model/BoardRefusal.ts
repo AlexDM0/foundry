@@ -18,6 +18,7 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-task'; taskId: number }
   | { reason: 'ticket-owned-row'; taskId: number; ticketId: string; targetStatus: Exclude<TaskStatus, 'paused'> }
   | { reason: 'ticket-already-has-row'; ticketId: string; taskId: number; taskName: string }
+  | { reason: 'ticket-id-already-filed'; ticketId: string }
   | { reason: 'task-belongs-to-another-ticket'; taskId: number; owningTicketId: string; ticketId: string }
   | { reason: 'ticket-already-in-status'; ticketId: string; status: TicketStatus }
   | { reason: 'illegal-ticket-move'; ticketId: string; status: TicketStatus; targetStatus: RowedTicketStatus }

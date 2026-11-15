@@ -14,6 +14,7 @@ import { join } from 'node:path';
 
 import type { AgentPicture }                                      from '../../lib/agent-launch/AgentAdapter.ts';
 import { removeHeldFile, writeOwnerOnlyFileAtomically }           from '../../lib/atomic-file/AtomicFile.ts';
+import type { FileReplace }                                       from '../../lib/atomic-file/FileReplace.ts';
 import type { OwnerOnlyFiles }                                    from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
 import type { Job, PictureReference }                             from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -103,16 +104,23 @@ function referencedPictureIdsOf(logRecords: readonly LogRecord[], jobs: readonly
   return new Set(pictureLists.flat().map((picture) => picture.pictureId));
 }
 
-/** Removes every stored picture whose id is not referenced, and answers the removed ids. */
-function sweepUnreferenced(trackerDirectory: string, referencedPictureIds: ReadonlySet<string>): string[] {
+/**
+ * Removes every stored picture whose id is not referenced, and answers the removed ids. Best effort, since it runs in the Overseer's start
+ * hold: an entry that is no file, or a file whose removal fails, stays for the next sweep.
+ */
+function sweepUnreferenced(trackerDirectory: string, referencedPictureIds: ReadonlySet<string>, fileReplace?: FileReplace): string[] {
   const folder = picturesFolderOf(trackerDirectory);
   if (!existsSync(folder)) return [];
   const removed: string[] = [];
-  for (const fileName of readdirSync(folder)) {
-    const pictureId = fileName.split('.')[0] ?? '';
-    if (referencedPictureIds.has(pictureId)) continue;
-    removeHeldFile(join(folder, fileName));
-    removed.push(pictureId);
+  for (const entry of readdirSync(folder, { withFileTypes: true })) {
+    const pictureId = entry.name.split('.')[0] ?? '';
+    if (!entry.isFile() || referencedPictureIds.has(pictureId)) continue;
+    try {
+      removeHeldFile(join(folder, entry.name), fileReplace);
+      removed.push(pictureId);
+    } catch {
+      // Held, or renamed away by an upload since the folder was read.
+    }
   }
   return removed;
 }

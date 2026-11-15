@@ -1,7 +1,8 @@
 /**
  * A row of tabs with one selected. As links, each tab is a link and the selected one the current page; as a switch, the row is a tablist
- * whose selected tab alone takes the tab stop. The arrow keys, Home and End move to a tab and select it, as a click would; a tab may show a
- * count badge after its label, and then its accessible name says what the count means.
+ * whose selected tab alone takes the tab stop, or the first tab when no tab is the selected one. The arrow keys, Home and End move to a
+ * tab and select it, as a click would; a tab may show a count badge after its label, and then its accessible name says what the count
+ * means.
  */
 import { useRef, type KeyboardEvent, type ReactElement } from 'react';
 
@@ -83,6 +84,7 @@ export function Tabs<Key extends string>({
       </nav>
     );
   }
+  const tabStopKey = items.some((item) => item.key === selectedKey) ? selectedKey : items[0]?.key;
   return (
     <div className="design-system-tabs" role="tablist" aria-label={label} data-mode={mode} data-size={size} onKeyDown={moveTab}>
       {items.map((item, position) => (
@@ -94,7 +96,7 @@ export function Tabs<Key extends string>({
           className="design-system-tab"
           aria-selected={item.key === selectedKey}
           aria-label={item.accessibleName}
-          tabIndex={item.key === selectedKey ? 0 : -1}
+          tabIndex={item.key === tabStopKey ? 0 : -1}
           onClick={() => onSelect(item.key)}
         >
           <TabContent item={item} />

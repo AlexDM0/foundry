@@ -16,6 +16,7 @@ import { useId, useState } from 'react';
 
 import type { InstructionEntry }         from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { ResolvedInstructionEntry } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { FlowGlyph }                     from '../flow/FlowGlyph.tsx';
 
 import type { StepDialogRole }                                                      from './AgentStepDialogModel.ts';
 import { InstructionsEditorModel, type ConstitutionPlace, type InstructionRowView } from './InstructionsEditorModel.ts';
@@ -133,7 +134,10 @@ export function InstructionsEditor({
             )
             : (
               <>
-                <span className="bridge-pipeline-dialog-brief-add"><TextButton label="Add a file" onPress={() => setAddsFile(true)} /></span>
+                <span className="bridge-pipeline-dialog-brief-add">
+                  <FlowGlyph glyph="plus" />
+                  <TextButton label="Add a file" onPress={() => setAddsFile(true)} />
+                </span>
                 <Text typeRole="tab" subtle>The file must exist on main.</Text>
               </>
             )}

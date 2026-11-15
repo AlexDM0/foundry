@@ -4,6 +4,7 @@
  */
 
 import { GitProcess }                       from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                     from '../../lib/git/GitWorktrees.ts';
 import { predictMerge }                     from '../../lib/git/MergeTree.ts';
 import type { Logged }                      from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { TicketStatus }                from '../../lib/tracker-model/@types/Ticket.ts';
@@ -62,6 +63,16 @@ function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: TrackerC
 }
 
 /**
+ * A merge git stopped on is aborted, which keeps the edits it never touched; the worktree is reset to its tip only when the abort failed or
+ * HEAD moved, so a merge git refused to start, such as one an uncommitted edit stands in the way of, discards nothing.
+ */
+function undoMergeUpdate(worktree: string, startTip: string): void {
+  const abortFailed = MergeRun.mergeIsInProgress(worktree)
+    && !GitProcess.succeeded(GitProcess.run(worktree, ['merge', '--abort'], 'hooks-off', undefined, GitWorktrees.ceilingOf(worktree)));
+  if (abortFailed || MergeRun.headOf(worktree) !== startTip) MergeRun.restoreBranchTip(worktree, startTip);
+}
+
+/**
  * The target merged into the ticket's worktree, never while a job is on the ticket. Clean, the branch's green goes stale, so the Overseer
  * gates it again: green queues it again, red returns it to its reviewer. A conflict is aborted and the ticket leaves the queue, so its
  * reviewer takes it back.
@@ -81,7 +92,7 @@ function updateBranch(command: ControlCommandOf<'merge-update'>, change: Tracker
   const merge = MergeRun.mergeInOnce(worktree, { startTip, mergedTip: targetTip });
   if (merge.verdict === 'already-descends') return { logged: [], changed: false };
   if (merge.verdict === 'merged') return change.board.recordMergeUpdated(ticketId, target, 'merged', change.at);
-  MergeRun.restoreBranchTip(worktree, startTip);
+  undoMergeUpdate(worktree, startTip);
   if (merge.verdict !== 'conflicted') {
     throw new BoardRefusal({
       reason: 'merge-update-failed', ticketId, target, gitReason: merge.verdict === 'git-failed' ? merge.reason : 'unknown commit'

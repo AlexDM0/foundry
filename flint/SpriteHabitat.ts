@@ -19,7 +19,7 @@ export const FLINT_OVERLAY_ATTRIBUTE = 'data-flint';
 
 /** Each contract carries its own version; a change of shape or meaning raises it. */
 export const FLINT_CONTRACT_VERSIONS = Object.freeze({
-  spriteHabitat:    3,
+  spriteHabitat:    4,
   spriteIntents:    3,
   spriteAttendants: 1,
   storedHabitat:    1,
@@ -92,14 +92,19 @@ export interface SpriteCopyTarget {
 /** The sprite field one host component declares. A suggestion is not a command: the director selects one. */
 export interface SpriteHabitat {
   /** The host's own name for this kind of place, such as `chat` or `agent-panel`. */
-  readonly kind:           string;
+  readonly kind:              string;
   /** What this place is, in one sentence. */
-  readonly description:    string;
-  readonly suggestions:    readonly SpriteSuggestion[];
+  readonly description:       string;
+  readonly suggestions:       readonly SpriteSuggestion[];
   /** What the component shows at this time; optional, since it sends conversation text to a brain. */
-  readonly contentFor?:    () => SpriteContent;
+  readonly contentFor?:       () => SpriteContent;
   /** What a `copy` intent copies here, now; null copies nothing. Flint reads it on each frame while it copies, so keep it cheap. */
-  readonly copyTargetFor?: () => SpriteCopyTarget | null;
+  readonly copyTargetFor?:    () => SpriteCopyTarget | null;
+  /**
+   * True for a box with content around it, such as a small slot: Flint never shows outside the box. A visit comes in through an edge from
+   * outside, where the page is drawn in front, and arrives inside. By default a visit pops in around a corner of the box.
+   */
+  readonly keepsFlintInside?: boolean;
 }
 
 /** What a director knows when it picks the next intent. The habitat is the one Flint lives in; null is its home. */

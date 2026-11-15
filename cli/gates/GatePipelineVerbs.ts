@@ -2,25 +2,25 @@
  * `gate prepare|add|order|none|remove|approval|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one control command
  * applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
  */
-import { PipelineFile }                                   from '../../src/adapters/pipeline/PipelineFile.ts';
-import { GATE_PHASES, type GatePhase }                    from '../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { Pipeline, PipelineGate }                    from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
-import { ControlService }                                 from '../../src/services/control/ControlService.ts';
-import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
-import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
-import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
-import type { CommandContext }                            from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                        from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
-import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
-import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
-import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
-import { OutputUtil }                                     from '../utils/OutputUtil.ts';
+import { PipelineFile }                                     from '../../src/adapters/pipeline/PipelineFile.ts';
+import { GATE_PHASES, type GatePhase }                      from '../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { Pipeline, PipelineGate, PipelinePhaseOrders } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                     from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
+import { ControlService }                                   from '../../src/services/control/ControlService.ts';
+import { type CacheFolderRefusal, GateCachePaths }          from '../../src/services/overseer/GateCachePaths.ts';
+import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommand }                              from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
+import { PathNestingUtil }                                  from '../../src/shared/utils/PathNestingUtil.ts';
+import type { CommandContext }                              from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
+import { hatchWhenUnderJob }                                from '../HatchUnderJob.ts';
+import { openTrackerForWriting }                            from '../OpenTrackerForWriting.ts';
+import { refuseUsage }                                      from '../RecordedIncidentMove.ts';
+import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
+import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT }   from '../arguments/constants/SubcommandPositionalCounts.ts';
+import { OutputUtil }                                       from '../utils/OutputUtil.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -164,15 +164,21 @@ export async function setApproval(commandArguments: ArgumentParser, context: Com
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-approval-set', approval, on: switchState === 'on' });
 }
 
-function gateLineOf(gate: Readonly<PipelineGate>): string {
-  return `  ${gate.name}${gate.in === undefined ? '' : ` (in ${gate.in})`}: ${gate.run}`;
+/** A gate in every phase, as a plain `gate add` stores it, is marked with no phase; any other names the phases it runs in. */
+function gateLineOf(gate: Readonly<PipelineGate>, phases: Readonly<PipelinePhaseOrders>): string {
+  const phasesOfGate = GATE_PHASES.filter((phase) => phases[phase].includes(gate.name));
+  const marks = [
+    ...(gate.in === undefined ? [] : [`in ${gate.in}`]),
+    ...(phasesOfGate.length === GATE_PHASES.length ? [] : [`runs in ${phasesOfGate.length === 0 ? 'no phase' : phasesOfGate.join(', ')}`]),
+  ];
+  return `  ${gate.name}${marks.length === 0 ? '' : ` (${marks.join('; ')})`}: ${gate.run}`;
 }
 
 function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   if (pipeline === null) return `No pipeline is set, so no gate runs and the board holds new work (checks-not-set). Add a gate with \`${GATE_PIPELINE_USAGE.add}\`, or `
     + `\`${PROGRAM} gate none\` for none on purpose.`;
   const prepare = pipeline.prepare.map((step) => `  ${step.name}: ${step.run}`);
-  const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map(gateLineOf);
+  const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map((gate) => gateLineOf(gate, pipeline.phases));
   const ticketReview  = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
   const mergeApproval = `Merge approval: ${pipeline.approvals?.merge === true ? 'on' : 'off'}`;
   return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval].join('\n');

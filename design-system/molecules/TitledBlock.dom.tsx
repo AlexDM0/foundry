@@ -1,6 +1,7 @@
 /**
  * The titled block, in a happy-dom document. What matters: it is a region named by its title, which heads it as an `h3` unless the screen
- * picks another element; its rule sets `data-rule`, none by default; and the title is text, never markup.
+ * picks another element; the label look sets the title in the small role, bold and muted; its rule sets `data-rule`, none by default; and
+ * the title is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -22,6 +23,12 @@ describe('the titled block', () => {
     const block = screen.getByRole('region', { name: 'Timeline' });
     expect([block.firstElementChild?.tagName, block.firstElementChild?.getAttribute('data-type-role'), block.firstElementChild?.textContent, block.lastElementChild?.textContent])
       .toEqual(['H3', 'micro', 'Timeline', 'Example contents']);
+  });
+
+  test('the label look sets the title in the small role, bold and muted', () => {
+    render(<TitledBlock title="Timeline" look="label">x</TitledBlock>);
+    const title = screen.getByRole('heading', { name: 'Timeline' });
+    expect([title.getAttribute('data-type-role'), title.hasAttribute('data-bold'), title.getAttribute('data-ink')]).toEqual(['small', true, 'muted']);
   });
 
   test('the screen picks the title\'s element', () => {

@@ -1,14 +1,20 @@
-/* A surface card: its head bar (the title in the panel-head size with a mono mark, a subtitle, a count and actions at its end), its body,
-   padded or filled edge to edge, and a quiet foot. */
+/* A surface card: its head bar (the title in the page face with a mono mark and the count's quiet pill, the subtitle under them, and
+   actions at its end), its body, padded or filled edge to edge, and a quiet foot. */
 .design-system-pane { min-width: 0; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3); }
 .design-system-pane-head {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2) var(--space-10); padding: var(--sp-3) var(--space-14); border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--space-12);
+  padding: var(--space-14) var(--space-18) var(--space-12); border-bottom: 1px solid var(--line);
 }
+.design-system-pane-heading { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.design-system-pane-title-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-10); }
 .design-system-pane-mark { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 500; font-variant-numeric: tabular-nums; }
 .design-system-pane-subtitle { font-size: var(--fs-tab); color: var(--ink-muted); }
-.design-system-pane-count { margin-left: auto; font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
-.design-system-pane-head-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; align-self: center; }
-.design-system-pane-count + .design-system-pane-head-end { margin-left: 0; }
+.design-system-pane-count {
+  display: inline-flex; flex: none; align-items: center; box-sizing: border-box; height: 20px; padding: 0 var(--space-8);
+  font-size: var(--fs-pill); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--ink-muted); background: var(--wash); border-radius: var(--r-pill);
+}
+.design-system-pane-head-end { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-left: auto; }
 .design-system-pane-body[data-body="padded"] { padding: var(--sp-3) var(--space-14) var(--sp-4); }
 .design-system-pane-foot {
   padding: var(--sp-2) var(--space-14); font-size: var(--fs-small); color: var(--ink-muted);

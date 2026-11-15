@@ -48,6 +48,13 @@
   --rise-step:        80ms;
   --glow-period:      2.6s;
   --toast-duration:   5s;
+  /* A part fading over the page, a stroke or an edge drawing itself, a line growing to the next step, a meter filling to its value, and
+     the wait before a drawn part follows its holder in. */
+  --motion-fade:      240ms;
+  --motion-draw:      420ms;
+  --motion-grow:      700ms;
+  --motion-fill:      480ms;
+  --motion-follow:    200ms;
 
   /* The graphite light theme: pure neutral greys with no tint, and one orange family. */
   --bg:           #f6f6f6;
@@ -119,6 +126,7 @@
   :root {
     --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
     --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
+    --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms;
   }
 }
 
@@ -200,12 +208,13 @@
 :root[data-theme] [data-palette="quiet"][data-state-tone="muted"]        { --s-tint: var(--badge-muted-tint);   --s-ink: var(--badge-muted-ink);   --s-edge: var(--badge-muted-edge); }
 
 /* The side panels: the standard width, the wide width and their slide. */
-:root { --side-panel-width: 480px; --side-panel-wide-width: 800px; --side-panel-motion: 220ms; }
+:root { --side-panel-width: 480px; --side-panel-wide-width: 800px; --side-panel-motion: var(--motion-slow); }
 
 /* Every motion token is 0ms until the host's first paint, so a first render shows its final state at once. */
 :root:not([data-motion="ready"]) {
   --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
   --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
+  --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms;
 }
 
 /* The names for colours a token above already holds, and the washes mixed from them: one line follows both themes. */

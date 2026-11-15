@@ -14,9 +14,15 @@ import {
   symlinkSync,
   writeFileSync
 } from 'node:fs';
+import * as fileSystem              from 'node:fs';
 import { chmod, readFile, readdir } from 'node:fs/promises';
 import { join }                     from 'node:path';
-import { afterAll, expect, test }   from 'bun:test';
+import {
+  afterAll,
+  expect,
+  spyOn,
+  test
+} from 'bun:test';
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenNotRunningAsRoot }                       from '../../testing/ToolGuard.ts';
@@ -172,6 +178,28 @@ testWhenNotRunningAsRoot('a write that cannot be performed leaves the previous f
   expect(() => writeFileAtomically(filePath, '{"version":1,"project":"Example Agency"}')).toThrow();
 
   await chmod(directory, 0o700);
+  expect(readFileSync(filePath, 'utf8')).toBe('{"version":1}');
+  expect(await unexpectedLeftovers(directory, [TARGET_FILE_NAME])).toEqual([]);
+});
+
+// A disk that fills partway stores a short count with no error, then refuses the next write; a spy plays it, since no spec can fill one.
+test('a write the disk cuts short leaves the previous file exactly as it was and no temporary file', async () => {
+  const directory = trackedScratchDirectory();
+  const filePath = join(directory, TARGET_FILE_NAME);
+  writeFileSync(filePath, '{"version":1}');
+  const realWriteSync = fileSystem.writeSync;
+  let writeCount = 0;
+  const fillingDisk = spyOn(fileSystem, 'writeSync').mockImplementation(((descriptor: number, buffer: Uint8Array, offset: number, length: number) => {
+    writeCount += 1;
+    if (writeCount > 1) throw Object.assign(new Error('ENOSPC: no space left on device, write'), { code: 'ENOSPC' });
+    return realWriteSync(descriptor, buffer, offset, Math.floor(length / 2));
+  }) as typeof fileSystem.writeSync);
+  try {
+    expect(() => writeFileAtomically(filePath, '{"version":1,"project":"Example Agency"}')).toThrow('ENOSPC');
+  } finally {
+    fillingDisk.mockRestore();
+  }
+
   expect(readFileSync(filePath, 'utf8')).toBe('{"version":1}');
   expect(await unexpectedLeftovers(directory, [TARGET_FILE_NAME])).toEqual([]);
 });

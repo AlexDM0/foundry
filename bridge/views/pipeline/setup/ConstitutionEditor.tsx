@@ -2,12 +2,14 @@
  * The constitution's Edit view: one textarea holds the whole markdown, so typing, selection, undo and paste are the browser's own. Its
  * text is transparent over a mirror that draws the same lines, `#` and `##` lines in the link colour and a source tag after each line an
  * annotation anchors; the mirror follows the textarea's scroll. A blur or Cmd/Ctrl+S saves the whole text with the revision User saw, only
- * when it changed. A refused save keeps User's text until User saves again or discards it.
+ * when it changed; a save asked for while the one before it is on its way goes once that one is applied. A refused save keeps User's text
+ * until User saves again or discards it.
  */
 
 import { Tag }         from 'design-system/Tag';
 import { TextButton }  from 'design-system/TextButton';
 import {
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -73,15 +75,25 @@ export function ConstitutionEditor({
   });
   // Only a refusal that just arrived holds; one that Discard my edit let go stays let go.
   const [heldRefusal, setHeldRefusal] = useState<string | null>(null);
+  const [saveIsQueued, setSaveIsQueued] = useState(false);
   if (sender.refusal !== heldRefusal) {
     setHeldRefusal(sender.refusal);
-    if (sender.refusal !== null) setRefusalIsHeld(true);
+    if (sender.refusal !== null) {
+      setRefusalIsHeld(true);
+      setSaveIsQueued(false);
+    }
   }
   const refusalIsShown = refusalIsHeld && sender.refusal !== null && ConstitutionEditorModel.textIsUnsaved(savedOnText);
 
   const save = (): void => {
-    void sender.send();
+    if (sender.enabled) void sender.send();
+    else if (command !== null) setSaveIsQueued(true);
   };
+  const queuedSaveIsDue = saveIsQueued && sender.enabled;
+  useEffect(() => {
+    if (!queuedSaveIsDue) return;
+    void sender.send().then(() => setSaveIsQueued(false));
+  }, [queuedSaveIsDue, sender]);
   const lines = ConstitutionEditorModel.mirrorLinesOf(followedText.text, annotations);
   const sourceItems = ConstitutionEditorModel.sourceListItemsOf(lines);
 

@@ -2,9 +2,11 @@
  * The board occasions of Flint. What matters: each row of the table "Board occasions" gives its intent on the change it names and on no
  * other, so a board that stays as it was gives none; the first board after none is no change; a baton pass shows once, on the
  * passing-baton board or, when the Bridge missed that board, on the rise of the generation, and the regroup follows on the rise after a
- * pass that was shown; the occasions come in the table's order, the connection first and the refused command last; an incident that
- * opens while Flint lives in the questions habitat is that habitat's to answer, so the board does not intercept it; a stream that keeps
- * reopening through `connecting` is unplugged once; and the count of `watcher-spark` is the agents in flight, at most 4, and 0 before a
+ * pass that was shown; an incident settles only on a record that closes it, never on an escalation or on leaving the list; a pipeline is
+ * applied only when the revision of its newest Apply rises from one the board could read; the occasions come in the table's order, the
+ * lost connection first, the refused command after the board and the connection that comes back last; an incident that opens or settles
+ * while Flint lives in the questions habitat is that habitat's to answer, so the board does not; a stream that keeps reopening through
+ * `connecting` is unplugged once and comes back once; and the count of `watcher-spark` is the agents in flight, at most 4, and 0 before a
  * board.
  */
 import { describe, expect, test } from 'bun:test';
@@ -33,11 +35,29 @@ function reading(changes: Partial<BoardReading> = {}): BoardReading {
   };
 }
 
+function readingOfBoard(changes: BoardChanges): BoardReading {
+  return reading({ board: board(changes) });
+}
+
 const BOARD_WITHOUT_COUNT: OccasionBoard = {
   usage: null, jobs: [], incidents: [], overseer: { state: 'serving', paused: false },
 };
 
 const LIMIT_HIT = { resetsAt: '2026-10-29T20:00:00', window: 'five-hour' };
+
+type QuestionHistory = NonNullable<OccasionBoard['questionHistory']>;
+
+const INCIDENT_OPEN: QuestionHistory = [{ kind: 'incident-opened', incidentId: 'I1', fields: { kind: 'gate-red', ticketIds: [] } }];
+
+function incidentClosedBy(kind: string): QuestionHistory {
+  return [...INCIDENT_OPEN, { kind, incidentId: 'I1', fields: {} }];
+}
+
+const SETTLED_BY_DEFAULT = incidentClosedBy('incident-defaulted');
+
+function appliedPipeline(appliedRevision: number): NonNullable<OccasionBoard['pipeline']> {
+  return { readingVerdict: 'readable', application: { appliedRevision } };
+}
 
 /** Flint at home: the kind of no habitat. */
 const AT_HOME = null;
@@ -55,7 +75,11 @@ describe('each row of the table', () => {
     ['usage loses its resetsAt', reading({ board: board({ usage: LIMIT_HIT }) }), reading(), ['refuel']],
     ['paused becomes true', reading(), reading({ board: board({ overseer: { paused: true } }) }), ['hold']],
     ['an incident opens', reading({ board: board({ incidents: [{ id: 'I1' }] }) }), reading({ board: board({ incidents: [{ id: 'I1' }, { id: 'I2' }] }) }), ['intercept']],
+    ['an incident settles', readingOfBoard({ questionHistory: INCIDENT_OPEN }), readingOfBoard({ questionHistory: incidentClosedBy('incident-handled') }), ['happy']],
+    ['a pipeline is applied again', readingOfBoard({ pipeline: appliedPipeline(1) }), readingOfBoard({ pipeline: appliedPipeline(2) }), ['happy']],
+    ['the first pipeline is applied', readingOfBoard({ pipeline: { readingVerdict: 'absent' } }), readingOfBoard({ pipeline: appliedPipeline(1) }), ['happy']],
     ['the Overseer refuses a control command', reading({ refusedCommandCount: 2 }), reading({ refusedCommandCount: 3 }), ['refuse']],
+    ['the connection comes back', reading({ connection: 'down' }), reading(), ['wave']],
   ])('%s', (_change, previous, next, occasions) => {
     expect(BoardOccasionModel.occasionsOf(previous, next, AT_HOME)).toEqual(occasions);
   });
@@ -70,7 +94,12 @@ describe('each row of the table', () => {
     ['a generation that falls', reading({ board: board({ overseer: { generation: 4 } }) }), reading()],
     ['a usage limit that stays', reading({ board: board({ usage: LIMIT_HIT }) }), reading({ board: board({ usage: LIMIT_HIT }) })],
     ['a pause that ends', reading({ board: board({ overseer: { paused: true } }) }), reading()],
-    ['an incident that closes', reading({ board: board({ incidents: [{ id: 'I1' }] }) }), reading()],
+    ['an incident that leaves the list with no record that closes it', reading({ board: board({ incidents: [{ id: 'I1' }] }) }), reading()],
+    ['an incident that escalates to a decision', readingOfBoard({ questionHistory: INCIDENT_OPEN }), readingOfBoard({ questionHistory: incidentClosedBy('incident-escalated') })],
+    ['an incident that stays settled', readingOfBoard({ questionHistory: SETTLED_BY_DEFAULT }), readingOfBoard({ questionHistory: SETTLED_BY_DEFAULT })],
+    ['a pipeline that stays applied', readingOfBoard({ pipeline: appliedPipeline(2) }), readingOfBoard({ pipeline: appliedPipeline(2) })],
+    ['a pipeline that is readable again after a hand edit', readingOfBoard({ pipeline: { readingVerdict: 'malformed' } }), readingOfBoard({ pipeline: appliedPipeline(2) })],
+    ['a pipeline the previous board did not serve', reading(), readingOfBoard({ pipeline: appliedPipeline(2) })],
     ['a refusal count that stays', reading({ refusedCommandCount: 2 }), reading({ refusedCommandCount: 2 })],
   ])('%s gives none', (_change, previous, next) => {
     expect(BoardOccasionModel.occasionsOf(previous, next, AT_HOME)).toEqual([]);
@@ -100,6 +129,13 @@ describe('the order', () => {
     expect(BoardOccasionModel.occasionsOf(previous, next, AT_HOME)).toEqual(['unplugged', 'bank-fire', 'baton-pass', 'regroup', 'out-of-fuel', 'hold', 'intercept', 'refuse']);
   });
 
+  test('a settled incident comes before an applied pipeline, and the refusal before a connection that comes back', () => {
+    const previous = readingOfBoard({ questionHistory: INCIDENT_OPEN, pipeline: appliedPipeline(1) });
+    const settledAndApplied = board({ questionHistory: incidentClosedBy('incident-answered'), pipeline: appliedPipeline(2) });
+    expect(BoardOccasionModel.occasionsOf(previous, reading({ board: settledAndApplied }), AT_HOME)).toEqual(['happy', 'happy']);
+    expect(BoardOccasionModel.occasionsOf(reading({ connection: 'down' }), reading({ refusedCommandCount: 1 }), AT_HOME)).toEqual(['refuse', 'wave']);
+  });
+
   test('a lost limit comes before the pause it shares a board with', () => {
     const next = reading({ board: board({ overseer: { paused: true } }) });
     expect(BoardOccasionModel.occasionsOf(reading({ board: board({ usage: LIMIT_HIT }) }), next, AT_HOME)).toEqual(['refuel', 'hold']);
@@ -114,7 +150,14 @@ describe('one answer for one change', () => {
     expect(BoardOccasionModel.occasionsOf(previous, next, 'tickets')).toEqual(['intercept']);
   });
 
-  test('a stream that keeps reopening is unplugged once: connecting keeps the last settled connection', () => {
+  test('an incident that settles while Flint lives in the questions habitat is that habitat\'s answer, not the board\'s', () => {
+    const previous = readingOfBoard({ questionHistory: INCIDENT_OPEN });
+    const next = readingOfBoard({ questionHistory: incidentClosedBy('incident-handled') });
+    expect(BoardOccasionModel.occasionsOf(previous, next, 'questions')).toEqual([]);
+    expect(BoardOccasionModel.occasionsOf(previous, next, 'tickets')).toEqual(['happy']);
+  });
+
+  test('a stream that keeps reopening is unplugged once and comes back once: connecting keeps the last settled connection', () => {
     const states = ['live', 'connecting', 'down', 'connecting', 'down', 'connecting', 'live', 'down'] as const;
     let kept = reading({ connection: 'live' });
     const occasions: SpriteIntent[] = [];
@@ -123,7 +166,7 @@ describe('one answer for one change', () => {
       occasions.push(...BoardOccasionModel.occasionsOf(kept, next, AT_HOME));
       kept = BoardOccasionModel.keptReadingOf(kept, next);
     }
-    expect(occasions).toEqual(['unplugged', 'unplugged']);
+    expect(occasions).toEqual(['unplugged', 'wave', 'unplugged']);
   });
 
   test('a settled reading is kept as it is, and connecting keeps the connection before it', () => {

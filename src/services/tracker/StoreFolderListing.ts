@@ -2,8 +2,8 @@
  * Lists a store folder, one stored item per file of an extension, in file-name order. A missing folder reads as an empty store, so a
  * tracker that never opened one reads as it always did; nothing here throws because a stored file is bad.
  */
-import { readdirSync } from 'node:fs';
-import { join }        from 'node:path';
+import { readdirSync, type Dirent } from 'node:fs';
+import { join }                     from 'node:path';
 
 export type KeyedFileReading<Item> =
   | { verdict: 'read'; item: Item; key: string }
@@ -22,14 +22,15 @@ export interface KeyedStoreFolder<Item> {
   readingOf: (filePath: string) => KeyedFileReading<Item>;
 }
 
+/** A folder or other entry that is no file is not a stored item: `clear --all` could never remove it, and no reading could read it. */
 export function storeFolderFileNamesIn(directory: string, extension: string): string[] {
-  let entries: string[];
+  let entries: Dirent[];
   try {
-    entries = readdirSync(directory);
+    entries = readdirSync(directory, { withFileTypes: true });
   } catch {
     return [];
   }
-  return entries.filter((entry) => entry.endsWith(extension)).sort();
+  return entries.filter((entry) => (entry.isFile() || entry.isSymbolicLink()) && entry.name.endsWith(extension)).map((entry) => entry.name).sort();
 }
 
 /** An item is its file name: a file whose key says otherwise is listed as malformed, since which of the two is the item cannot be judged. */

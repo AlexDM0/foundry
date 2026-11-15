@@ -1,8 +1,9 @@
 /**
  * `draft` as the command surface sees it. What matters: an open writes the draft file with the request byte for byte and stores the id
- * counter, which is never wound back; a claim another owner holds is refused with every stored file as it was, and taken with `--force`;
- * a close needs every ticket to exist; a tracker that never opens a draft keeps `progress.json` byte for byte and gains no folder; and a
- * malformed draft file is reported, never thrown, while every other command keeps working.
+ * counter, which is never wound back, and `--request-file -` in a terminal is refused rather than read as an empty request; a claim
+ * another owner holds is refused with every stored file as it was, and taken with `--force`; a close needs every ticket to exist; a
+ * tracker that never opens a draft keeps `progress.json` byte for byte and gains no folder; and a malformed draft file is reported,
+ * never thrown, while every other command keeps working.
  */
 import {
   existsSync,
@@ -130,6 +131,16 @@ describeWhenGitIsRecorded('draft', () => {
     });
     expect(storedJsonOf(join(trackerDirectory(), 'progress.json'))['nextDraftId']).toBe(2);
     expect(logKinds().slice(logLengthBefore)).toEqual(['draft-opened']);
+  });
+
+  test('draft open --request-file - in a terminal is refused at exit 1 with every stored file as it was', async () => {
+    const before   = storedFiles();
+    const terminal = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputIsTerminal: true });
+
+    expect(await runCommandLineWithOverseerMoves(['draft', 'open', 'Example feature', '--owner', 'opus', '--request-file', '-'], terminal)).toBe(1);
+
+    expect(terminal.errorText()).toContain('--request-file - reads standard input, and standard input is a terminal');
+    expect(storedFiles()).toEqual(before);
   });
 
   test('draft open --json prints the stored draft, and show --json prints it back whole', async () => {

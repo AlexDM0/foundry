@@ -256,7 +256,10 @@ export function createFlint(options: FlintOptions): FlintHandle {
       runtime.brain = brain;
       runtime.awaitedAskNumber = null;
     }
-    if (sensors.isPaused(standingPlaceOf(runtime.mind))) return;
+    const isPaused = sensors.isPaused(standingPlaceOf(runtime.mind));
+    // A paused Flint is hidden, so it is never left drawn, and pressable, over the page where its place used to be.
+    renderer.element.style.visibility = isPaused ? 'hidden' : '';
+    if (isPaused) return;
     const isReducedMotion = reducedMotion();
     const before = runtime.mind;
     const perception = sensors.perceive({

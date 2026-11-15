@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useState }            from 'react';
 import { fn }                  from 'storybook/test';
 
 import {
@@ -8,6 +9,33 @@ import {
   ChoiceOption
 } from './ChoiceOption.tsx';
 import { FactList } from './FactList.tsx';
+
+/** Options the reader chooses between: the chosen input bumps once. */
+function ChoosingOptions() {
+  const [chosenLetter, setChosenLetter] = useState('A');
+  return (
+    <ul>
+      {['A', 'B'].map((letter) => (
+        <ChoiceOption
+          key={letter}
+          letter={letter}
+          label={`Example option ${letter}`}
+          chosen={chosenLetter === letter}
+          variant="card"
+          input={(
+            <ChoiceInput
+              type="radio"
+              name="example-choosing"
+              checked={chosenLetter === letter}
+              accessibleName={`Example option ${letter}`}
+              onChange={() => setChosenLetter(letter)}
+            />
+          )}
+        />
+      ))}
+    </ul>
+  );
+}
 
 const meta = {
   title:     'Molecules/ChoiceOption',
@@ -61,3 +89,4 @@ export const FreeText: Story = {
   },
 };
 export const ReadOnly: Story = { render: () => <ul><ChoiceOption letter="B" label="Example read-only option" chosen variant="row" /></ul>, };
+export const Choosing: Story = { render: () => <ChoosingOptions /> };

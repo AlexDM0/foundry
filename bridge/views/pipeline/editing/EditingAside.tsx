@@ -57,7 +57,7 @@ export function EditingAside({
         {
           key:            'changes',
           label:          'Changes',
-          countBadge:     <CountBadge count={changeList.length} tone="warn" />,
+          countBadge:     <CountBadge count={changeList.length} tone="neutral" />,
           accessibleName: DesignStepModel.changesTabNameOf(changeList.length),
         },
         { key: 'agent', label: 'Pipeline agent' },

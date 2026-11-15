@@ -5,7 +5,8 @@
  * with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line: the
  * install and the gate run wait on each step's own Watcher in turn. A run's steps and stamp are its manifest's, written at its start: a
  * pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and the settlement
- * stamps the manifest's hash. git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
+ * stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first gate's red.
+ * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -65,6 +66,7 @@ function treeOf(revision: string, answeredAs: GitCallShape): RecordedGitStep {
 
 const HEAD_ON_THE_START_TREE = treeOf('HEAD', GIT_CALL_SHAPES.TREE_OF_AN_EMPTY_COMMIT);
 const START_TREE = treeOf(START_COMMIT, GIT_CALL_SHAPES.TREE_OF_AN_EMPTY_COMMIT);
+const TRACKED_TREE_UNCHANGED: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
 
 interface GatingScene {
   context: JobLaunchContext;
@@ -151,16 +153,29 @@ testWhenGitIsRecorded('a failed first prepare step fails the install without wai
 
 testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own before the first gate', async () => {
   const scene = gatingScene();
-  const gateWith = (): Promise<unknown> => recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(
+  const gateWith = (stage: RecordedGitStage): Promise<unknown> => recordedGit.playStage([HEAD_ON_THE_START_TREE, ...stage], () => Promise.resolve(
     JobLaunch.observeBuildJobs(scene.context, [scene.jobOf('build')], TWO_PREPARE_STEPS)[0]?.gate
   ));
-  expect(await gateWith()).toMatchObject({ verdict: 'running', stepIndex: 0 });
+  expect(await gateWith([])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 
   endStepWatcher(scene, 'gate-prepare', 0);
-  expect(await gateWith()).toMatchObject({ verdict: 'running', stepIndex: 1 });
+  expect(await gateWith([TRACKED_TREE_UNCHANGED])).toMatchObject({ verdict: 'running', stepIndex: 1 });
 
   endStepWatcher(scene, 'gate-prepare2', 0);
-  expect(await gateWith()).toMatchObject({ verdict: 'running', stepIndex: 2 });
+  expect(await gateWith([TRACKED_TREE_UNCHANGED])).toMatchObject({ verdict: 'running', stepIndex: 2 });
+});
+
+testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is a setup failure with its diff, before the first gate runs', async () => {
+  const scene = gatingScene();
+  endStepWatcher(scene, 'gate-prepare', 0);
+  const trackedTreeChanged: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE };
+
+  const gate = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, trackedTreeChanged], TWO_PREPARE_STEPS);
+
+  expect(gate).toMatchObject({
+    verdict: 'judged', outcome: 'setup-failed', step: 'prepare', ran: true
+  });
+  expect(JSON.stringify(gate)).toContain('source.txt');
 });
 
 /** Each phase runs a gate of its own, none of them first in the gate list, so the gate a job's first gate folder runs names its phase. */
@@ -170,14 +185,13 @@ const ONE_GATE_PER_PHASE: Pipeline = {
   gates:   [{ name: 'audit', run: 'bun run audit' }, { name: 'tests', run: 'bun test' }, { name: 'lint', run: 'bun run lint' }],
   phases:  { build: ['lint'], review: ['tests'], merge: ['audit'] },
 };
-const TRACKED_TREE_UNCHANGED: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
 
 testWhenGitIsRecorded('a build job runs only the build phase\'s gates, after the prepare steps', async () => {
   const scene = gatingScene();
   endStepWatcher(scene, 'gate-prepare', 0);
   endStepWatcher(scene, 'gate-1', 1);
 
-  expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
+  expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
     verdict: 'judged', outcome: 'failed', step: 'lint', ran: true
   });
 });
@@ -188,7 +202,7 @@ testWhenGitIsRecorded('a review job runs only the review phase\'s gates, after t
   endStepWatcher(scene, 'gate-prepare', 0);
   endStepWatcher(scene, 'gate-1', 1);
 
-  expect(await gateOf(scene, 'review', [headOnAChangedTree, START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
+  expect(await gateOf(scene, 'review', [headOnAChangedTree, START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
     verdict: 'judged', outcome: 'failed', step: 'tests', ran: true
   });
 });

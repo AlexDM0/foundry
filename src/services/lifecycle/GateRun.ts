@@ -9,14 +9,14 @@ import { readFileSync, rmSync } from 'node:fs';
 import { tmpdir }               from 'node:os';
 import { join }                 from 'node:path';
 
-import type { ConfinedLine }                         from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                              from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }               from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellLine, ShellRunRefusal }           from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                          from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }           from '../../lib/tracker-model/@types/Pipeline.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
+import type { ConfinedLine }                                from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
+import type { SupervisedSpawnOptions }                      from '../../lib/process-identity/ProcessSupervision.ts';
+import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shell-line/ShellLine.ts';
+import type { GateOutcome }                                 from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }        from '../../shared/Environment.ts';
 
 export interface GateRequest {
   argv:               readonly string[];
@@ -68,6 +68,10 @@ export interface PipelineRunRequest {
   confinedLineOf:   GateLineConfiner;
   /** Waits for one of the machine's gate run slots and answers its release; prepare steps take none. */
   acquireGateSlot?: () => Promise<() => void>;
+  /** Told the process id of each step as it starts, prepare steps included, so the caller can stop its tree. */
+  onSpawned?:       (processId: number) => void;
+  /** Told each piece of every step's output as it arrives. */
+  onOutput?:        (text: string) => void;
 }
 
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
@@ -182,6 +186,16 @@ function trackedChangesOf(directory: string): string {
   return GitProcess.succeeded(run) ? run.standardOutput : '';
 }
 
+/**
+ * A prepare step passes only when it exits 0 and leaves every tracked file as it was, so a gate is never blamed for its change. `null` on a
+ * pass; otherwise what its setup failure reports: its own output, or the diff it left.
+ */
+function prepareFailureOutputOf(shellLine: ShellLine, run: ShellExitReport & { output: string }, directory: string): string | null {
+  if (shellLine.exitMeaningOf(run) !== 'passed') return run.output;
+  const trackedChanges = trackedChangesOf(directory);
+  return trackedChanges === '' ? null : trackedChanges;
+}
+
 /** A gate passes only when it exits 0 and leaves the tree unchanged. */
 function gateOutcomeOf(shellLine: ShellLine, run: GateProcessRun, trackedChanges = ''): GateOutcome {
   const exitMeaning = shellLine.exitMeaningOf(run);
@@ -209,13 +223,16 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
 }
 
 /**
- * A prepare step that does not pass is a setup failure, never a red gate; the Overseer never runs a gate's `fix`. A phase with no gates
- * passes at once: its prepare steps would prepare for nothing.
+ * A prepare step that does not pass, or changes a tracked file, is a setup failure, never a red gate; the Overseer never runs a gate's
+ * `fix`. A phase with no gates passes at once: its prepare steps would prepare for nothing.
  */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
   if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [] };
   const prepareConfinement = prepareConfinementOf(request.gates);
-  const { shellLine, environment, spawnOptions } = request;
+  const {
+    shellLine, environment, spawnOptions, onSpawned, onOutput
+  } = request;
+  const listeners = { ...(onSpawned === undefined ? {} : { onSpawned }), ...(onOutput === undefined ? {} : { onOutput }) };
   for (const step of request.prepare) {
     const statusFile = lineStatusFileOf();
     const line = runnableLineOf(request, step.run, { directory: request.directory, statusFile }, prepareConfinement);
@@ -223,10 +240,11 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
       outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
     };
     const run = await runGate({
-      argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: request.directory, environment, spawnOptions
+      argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: request.directory, environment, spawnOptions, ...listeners
     });
-    if (shellLine.exitMeaningOf(run) !== 'passed') return {
-      outcome: 'setup-failed', step: step.name, output: run.output, gatesRun: []
+    const failureOutput = prepareFailureOutputOf(shellLine, run, request.directory);
+    if (failureOutput !== null) return {
+      outcome: 'setup-failed', step: step.name, output: failureOutput, gatesRun: []
     };
   }
   const gatesRun: string[] = [];
@@ -242,7 +260,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     try {
       gatesRun.push(gate.name);
       run = await runGate({
-        argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory, environment, spawnOptions
+        argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory, environment, spawnOptions, ...listeners
       });
     } finally {
       releaseGateSlot?.();
@@ -260,6 +278,7 @@ export const GateRun = Object.freeze({
   gateEnvironmentOf,
   gateOutcomeOf,
   gateErrorOutputOf,
+  prepareFailureOutputOf,
   gateDirectoryOf,
   gateConfinementOf,
   prepareConfinementOf,

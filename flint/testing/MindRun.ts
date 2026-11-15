@@ -23,7 +23,7 @@ export const AGENTS_BOX: PlaceBox = Object.freeze({
 
 export function habitatOf(id: string, box: PlaceBox, changes: Partial<PerceivedHabitat> = {}): PerceivedHabitat {
   return {
-    id, kind: id, box, isRoomy: true, copyTarget: null, ...changes,
+    id, kind: id, box, isRoomy: true, copyTarget: null, keepsFlintInside: false, ...changes,
   };
 }
 

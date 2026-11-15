@@ -1,14 +1,16 @@
 /**
  * Keeps the Progress chart usable beside a right-edge panel: while the detail panel or the question panel is open the chart gains trailing
  * scroll room the width the panel covers, with its timeline width frozen so no bar moves, and the opened row's bars scroll clear of the
- * panel. On close the chart glides back to its own end before the room goes, so nothing it shows jumps.
+ * panel. On close the chart glides back to its own end before the room goes, so nothing it shows jumps; a glide User's own scroll cut
+ * short still lets the room go after `PANEL_ROOM_RELEASE_MILLISECONDS`.
  */
 import { useLayoutEffect, type RefObject } from 'react';
 
-import type { CoveringPanelWidthProperty } from '../../shell/CoveringPanel.ts';
-import type { DetailItem }                 from '../../shell/DetailRoute.ts';
-import { PANEL_GUTTER_PIXELS }             from './constants/ProgressChart.ts';
-import { PanelRoomUtil }                   from './utils/PanelRoomUtil.ts';
+import { useBridgeClock, type BridgeClock } from '../../shell/BridgeClock.ts';
+import type { CoveringPanelWidthProperty }  from '../../shell/CoveringPanel.ts';
+import type { DetailItem }                  from '../../shell/DetailRoute.ts';
+import { PANEL_GUTTER_PIXELS }              from './constants/ProgressChart.ts';
+import { PanelRoomUtil }                    from './utils/PanelRoomUtil.ts';
 
 const PANEL_ROOM_ATTRIBUTE           = 'data-panel-room';
 const PANEL_ROOM_PROPERTY            = '--panel-room';
@@ -17,6 +19,8 @@ const HEAD_TRACK_SELECTOR            = '.bridge-progress-chart-head > .bridge-pr
 const HEAD_NAME_SELECTOR             = '.bridge-progress-chart-head > .bridge-progress-name';
 /** A scroll position within this of the natural end counts as there: scroll offsets are fractional. */
 const SCROLL_END_TOLERANCE_PIXELS    = 1;
+/** The longest a glide back may hold the room before it goes anyway. */
+const PANEL_ROOM_RELEASE_MILLISECONDS = 1000;
 
 function pixelsOf(text: string): number {
   return Number.parseFloat(text) || 0;
@@ -52,7 +56,7 @@ function dropRoom(chart: HTMLElement): void {
 }
 
 /** Glides back to the natural end, then drops the room; answers what stops a glide still under way. */
-function releaseRoom(chart: HTMLElement): (() => void) | undefined {
+function releaseRoom(chart: HTMLElement, clock: BridgeClock): (() => void) | undefined {
   if (!chart.hasAttribute(PANEL_ROOM_ATTRIBUTE)) return undefined;
   const naturalEnd = PanelRoomUtil.naturalScrollEndOf(chart.scrollWidth, pixelsOf(chart.style.getPropertyValue(PANEL_ROOM_PROPERTY)), chart.clientWidth);
   const glideIsNeeded = chart.clientWidth > 0 && chart.scrollLeft > naturalEnd + SCROLL_END_TOLERANCE_PIXELS;
@@ -68,8 +72,15 @@ function releaseRoom(chart: HTMLElement): (() => void) | undefined {
     dropRoom(chart);
   };
   chart.addEventListener('scrollend', dropAtNaturalEnd);
+  const cancelRelease = clock.after(PANEL_ROOM_RELEASE_MILLISECONDS, () => {
+    chart.removeEventListener('scrollend', dropAtNaturalEnd);
+    dropRoom(chart);
+  });
   chart.scrollTo({ left: naturalEnd, behavior: 'smooth' });
-  return () => chart.removeEventListener('scrollend', dropAtNaturalEnd);
+  return () => {
+    chart.removeEventListener('scrollend', dropAtNaturalEnd);
+    cancelRelease();
+  };
 }
 
 function scrollRowClearOfPanel(chart: HTMLElement, row: HTMLElement): void {
@@ -90,11 +101,12 @@ function scrollRowClearOfPanel(chart: HTMLElement, row: HTMLElement): void {
 
 export function useChartPanelRoom(chartRef: RefObject<HTMLElement | null>, openItem: DetailItem | null, coveringWidthProperty: CoveringPanelWidthProperty | null): void {
   const openTaskId = openItem?.form === 'task-row' ? openItem.taskId : null;
+  const clock = useBridgeClock();
 
   useLayoutEffect(() => {
     const chart = chartRef.current;
     if (chart === null) return undefined;
-    if (coveringWidthProperty === null) return releaseRoom(chart);
+    if (coveringWidthProperty === null) return releaseRoom(chart, clock);
     makeRoom(chart, coveringWidthProperty);
     const remakeRoom = (): void => {
       dropRoom(chart);
@@ -102,7 +114,7 @@ export function useChartPanelRoom(chartRef: RefObject<HTMLElement | null>, openI
     };
     window.addEventListener('resize', remakeRoom);
     return () => window.removeEventListener('resize', remakeRoom);
-  }, [chartRef, coveringWidthProperty]);
+  }, [chartRef, coveringWidthProperty, clock]);
 
   useLayoutEffect(() => {
     const chart = chartRef.current;

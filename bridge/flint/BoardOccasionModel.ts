@@ -1,20 +1,28 @@
 /**
  * The board occasions of Flint: the changes of the whole board, wherever Flint is, from the last reading of the board to the next one, in
- * the order of the table "Board occasions" of the Bridge wiring; the host performs the first. Also the count of `watcher-spark` for a
- * board. A reading holds the board, the event stream's connection and how many commands the Overseer refused so far. An incident that
- * opens has one answer: while Flint lives in the questions habitat, that habitat lights its fuse, so the board does not intercept it.
+ * the order of the table "Board occasions" of the Bridge wiring, with a settled incident and an applied pipeline after its incident row and
+ * a connection that comes back last; the host performs the first. Also the count of `watcher-spark` for a board. A reading holds the board,
+ * the event stream's connection and how many commands the Overseer refused so far. An incident that opens or settles has one answer: while
+ * Flint lives in the questions habitat, that habitat answers it, so the board does not.
  */
-import type { SpriteAttendant, SpriteIntent } from '../../flint/SpriteHabitat.ts';
-import type { ConnectionState }               from '../api/EventStreamClient.ts';
-import { QUESTIONS_SPRITE_HABITAT }           from './QuestionsSpriteHabitat.ts';
+import type { SpriteAttendant, SpriteIntent }         from '../../flint/SpriteHabitat.ts';
+import type { ConnectionState }                       from '../api/EventStreamClient.ts';
+import { QUESTIONS_SPRITE_HABITAT }                   from './QuestionsSpriteHabitat.ts';
+import { QuestionsSpriteModel, type QuestionHistory } from './QuestionsSpriteModel.ts';
 
-/** The fields of the board state the occasions read; the Overseer serves `generation`, which the shell's document leaves out. */
+/**
+ * The fields of the board state the occasions read; the Overseer serves `generation` and `questionHistory`, which the shell's document
+ * leaves out.
+ */
 export interface OccasionBoard {
-  readonly overseer:     { readonly state: string; readonly paused: boolean; readonly generation?: number | null };
-  readonly usage:        unknown;
-  readonly jobs:         readonly unknown[];
-  readonly incidents:    readonly { readonly id: string }[];
-  readonly concurrency?: { readonly agentsInFlight: number };
+  readonly overseer:         { readonly state: string; readonly paused: boolean; readonly generation?: number | null };
+  readonly usage:            unknown;
+  readonly jobs:             readonly unknown[];
+  readonly incidents:        readonly { readonly id: string }[];
+  readonly concurrency?:     { readonly agentsInFlight: number };
+  readonly questionHistory?: QuestionHistory;
+  /** The pipeline the board reads; only a readable one names its newest Apply. */
+  readonly pipeline?:        { readonly readingVerdict: string; readonly application?: { readonly appliedRevision: number } | null };
 }
 
 export interface BoardReading {
@@ -34,12 +42,36 @@ const PASSING_BATON_STATE = 'passing-baton';
 
 const DOWN_STATE = 'down';
 
+const LIVE_STATE = 'live';
+
+const ABSENT_PIPELINE_VERDICT = 'absent';
+
+const READABLE_PIPELINE_VERDICT = 'readable';
+
 /** The stream between two settled states: it reopens through it every few seconds while the Overseer stays unreachable. */
 const CONNECTING_STATE = 'connecting';
 
 function resetsAtOf(usage: unknown): string | null {
   const resetsAt = (usage as { readonly resetsAt?: unknown } | null)?.resetsAt;
   return typeof resetsAt === 'string' ? resetsAt : null;
+}
+
+/**
+ * The revision of the newest Apply, 0 before the first; null when the board cannot say: it serves no pipeline, or one it cannot read, so a
+ * file that is readable again after a hand edit is no Apply.
+ */
+function appliedRevisionOf(board: OccasionBoard): number | null {
+  const { pipeline } = board;
+  if (pipeline === undefined) return null;
+  if (pipeline.readingVerdict === ABSENT_PIPELINE_VERDICT) return 0;
+  if (pipeline.readingVerdict !== READABLE_PIPELINE_VERDICT) return null;
+  return pipeline.application?.appliedRevision ?? 0;
+}
+
+function pipelineWasApplied(previous: OccasionBoard, next: OccasionBoard): boolean {
+  const previousRevision = appliedRevisionOf(previous);
+  const nextRevision = appliedRevisionOf(next);
+  return previousRevision !== null && nextRevision !== null && nextRevision > previousRevision;
 }
 
 function generationRose(previous: OccasionBoard, next: OccasionBoard): boolean {
@@ -53,6 +85,8 @@ function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLiv
   const previousIncidentIds = new Set(previous.incidents.map((incident) => incident.id));
   const generationIsNew = generationRose(previous, next);
   const batonPassWasShown = previous.overseer.state === PASSING_BATON_STATE;
+  const questionsHabitatAnswers = flintLivesIn === QUESTIONS_SPRITE_HABITAT.kind;
+  const incidentSettled = QuestionsSpriteModel.incidentSettled(previous.questionHistory ?? [], next.questionHistory ?? []);
   const rows: readonly (readonly [boolean, SpriteIntent])[] = [
     [previous.overseer.state !== DOWN_STATE && next.overseer.state === DOWN_STATE, 'bank-fire'],
     // A rise after a passing-baton board is the pass already shown; only a pass the Bridge missed shows on the rise.
@@ -61,7 +95,9 @@ function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLiv
     [resetsAtOf(previous.usage) === null && resetsAtOf(next.usage) !== null, 'out-of-fuel'],
     [resetsAtOf(previous.usage) !== null && resetsAtOf(next.usage) === null, 'refuel'],
     [!previous.overseer.paused && next.overseer.paused, 'hold'],
-    [flintLivesIn !== QUESTIONS_SPRITE_HABITAT.kind && next.incidents.some((incident) => !previousIncidentIds.has(incident.id)), 'intercept'],
+    [!questionsHabitatAnswers && next.incidents.some((incident) => !previousIncidentIds.has(incident.id)), 'intercept'],
+    [!questionsHabitatAnswers && incidentSettled, 'happy'],
+    [pipelineWasApplied(previous, next), 'happy'],
   ];
   return rows.flatMap(([matches, intent]) => (matches ? [intent] : []));
 }
@@ -74,7 +110,9 @@ function occasionsOf(previous: BoardReading, next: BoardReading, flintLivesIn: s
   const unplugged: SpriteIntent[] = previous.connection !== DOWN_STATE && next.connection === DOWN_STATE ? ['unplugged'] : [];
   const boardOccasions = previous.board === null || next.board === null ? [] : boardOccasionsOf(previous.board, next.board, flintLivesIn);
   const refused: SpriteIntent[] = next.refusedCommandCount > previous.refusedCommandCount ? ['refuse'] : [];
-  return [...unplugged, ...boardOccasions, ...refused];
+  // A one action, so it ends the unplugged loop; last, since a board that came back with news says more.
+  const reconnected: SpriteIntent[] = previous.connection === DOWN_STATE && next.connection === LIVE_STATE ? ['wave'] : [];
+  return [...unplugged, ...boardOccasions, ...refused, ...reconnected];
 }
 
 /** The reading to compare the next one with: `connecting` is no settled connection, so the last settled one is kept in its place. */

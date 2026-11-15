@@ -41,6 +41,7 @@ export class TicketMoves {
   /** Judged against the tickets already on the board, before the new one joins, so a ticket naming its own id names no ticket. */
   fileTicket(ticket: Ticket, at: string): TicketChanged {
     const { frontmatter } = ticket;
+    if (this.records.ticketRecordById(frontmatter.id) !== undefined) throw new BoardRefusal({ reason: 'ticket-id-already-filed', ticketId: frontmatter.id });
     this.dependencies.refuseAnUnworkableDependencyList(frontmatter.id, frontmatter.dependsOn ?? []);
     this.records.ticketRecords.push(ticket);
     this.records.ensureTaskForTicketOnTheChart(ticket, at);

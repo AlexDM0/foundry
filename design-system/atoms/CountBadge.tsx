@@ -1,8 +1,11 @@
 /**
  * A count in a small mono pill after a label, such as a tab's: neutral, in a state tone's colours, or in the warn or error colours; a
- * marked count leads with a dot, hidden from the accessibility tree, where its colour alone says something is urgent.
+ * marked count leads with a dot, hidden from the accessibility tree, where its colour alone says something is urgent. A changed count
+ * rises in when it grew and drops in when it shrank.
  */
 import type { StateTone } from '../@types/StateTone.ts';
+
+import { useValueChange } from '../utils/ValueChange.ts';
 
 export type CountBadgeTone = 'neutral' | 'state' | 'warn' | 'error';
 
@@ -19,10 +22,11 @@ export type CountBadgeProps = CountBadgeColours & {
 export function CountBadge({
   count, tone, stateTone, marked = false
 }: CountBadgeProps) {
+  const { changeCount, direction } = useValueChange(count);
   return (
     <span className="design-system-count-badge" data-tone={tone} data-state-tone={stateTone}>
       {marked ? <span className="design-system-count-badge-dot" aria-hidden="true" /> : null}
-      {count}
+      <span key={changeCount} className="design-system-count-badge-number" data-change={direction}>{count}</span>
     </span>
   );
 }

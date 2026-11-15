@@ -165,6 +165,14 @@ describe('acceptanceVerdictOf', () => {
     expect(acceptanceVerdictOf(body)).toEqual({ verdict: 'accounted-for' });
   });
 
+  /** As CommonMark reads it: only a fence of the opening character, at least as long and with nothing after it, closes one. */
+  test('a fence of the other character, a shorter one or one with an info string inside a fence closes nothing', () => {
+    const mixedFences = ['## Acceptance', 'A1. works', '## Brief', '~~~markdown', '```ts', 'code', '~~~', '## Review', '- A1 holds', ''].join('\n');
+    expect(acceptanceVerdictOf(mixedFences)).toEqual({ verdict: 'accounted-for' });
+    const nestedFences = ['## Brief', '````markdown', '```', '## Acceptance', 'A9. Quoted.', '```ts', '````', '## Review', 'A1 holds', ''].join('\n');
+    expect(sectionsOf(nestedFences).map(({ heading }) => heading)).toEqual(['Brief', 'Review']);
+  });
+
   test('a malformed body is a verdict, never a throw', () => {
     for (const body of ['## Acceptance', '## Acceptance\nA1.', '```\n## Review\nA1 holds', '\r\n## Acceptance\r\nA1. Holds.\r\n## Review\r\nA1 holds\r\n']) {
       expect(() => acceptanceVerdictOf(body)).not.toThrow();

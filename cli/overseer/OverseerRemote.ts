@@ -189,6 +189,9 @@ async function startDetached(
     const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;
   }
+  // A child that lost the Baton to an Overseer started at the same time leaves the board served all the same.
+  const racingBaton = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
+  if (child.exitCode !== null && racingBaton.verdict === 'live' && await identityAnswers(racingBaton.record)) return racingBaton.record.url;
   throw new OperationRefusal('refused', { kind: 'overseer-did-not-start', exitCode: child.exitCode, logFilePath: files.logFilePath });
 }
 

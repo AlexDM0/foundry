@@ -20,9 +20,14 @@ import {
   OVERSEER_STOP_REASONS,
   JOB_STOP_MODES
 }                                                            from '../../lib/tracker-model/constants/JobStates.ts';
-import type { LogFieldShape }                                                   from '../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS, RETIRED_DISPATCHER_STATES } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { OVERSEER_STATES }                                                      from '../../lib/tracker-model/constants/OverseerStates.ts';
+import type { LogFieldShape } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+import {
+  HATCH_REFUSAL_STATUSES,
+  LOG_RECORD_SCHEMA,
+  LOG_RECORD_SUBJECT_IDS,
+  RETIRED_DISPATCHER_STATES
+} from '../../lib/tracker-model/constants/LogRecordSchema.ts';
+import { OVERSEER_STATES } from '../../lib/tracker-model/constants/OverseerStates.ts';
 import {
   PIPELINE_BILLING_MODES,
   PIPELINE_SETUP_MODES,
@@ -69,6 +74,11 @@ function costIsWellFormed(value: unknown): boolean {
 function picturesProblem(value: unknown, path: string): string | null {
   if (value === undefined || StoredValueUtil.picturesAreWellFormed(value)) return null;
   return `${path} is not a list of at least one picture, each a pictureId of 64 hex digits and a name`;
+}
+
+function refusalDetailProblem(value: unknown, path: string): string | null {
+  if (value === undefined || (JsonRecordUtil.valueIsAPlainObject(value) && typeof value['kind'] === 'string')) return null;
+  return `${path} is not a refusal detail, an object naming its kind`;
 }
 
 function checkCommandProblem(value: unknown, path: string): string | null {
@@ -120,60 +130,63 @@ function retiredDispatcherRunIdProblem(value: unknown, path: string): string | n
 }
 
 const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = {
-  'text':                   textProblem,
+  'text':                    textProblem,
   // The same rule as a task's own `id`, so every id a row can hold is one a review-bar record can name.
-  'task-id':                (value, path) => (StoredValueUtil.valueIsAWholeNumber(value) ? null : `${path} is not a whole number`),
-  'optional-text':          (value, path) => (value === undefined ? null : textProblem(value, path)),
-  'priority':               priorityProblem,
-  'ticket-size':            ticketSizeProblem,
-  'optional-size':          (value, path) => (value === undefined ? null : ticketSizeProblem(value, path)),
-  'agent-pair':             agentPairProblem,
-  'ticket-ids':             (value, path) => listOfTextProblem(value, path, 'ticket ids'),
-  'epic-keys':              (value, path) => listOfTextProblem(value, path, 'epic keys'),
-  'network-domains':        (value, path) => listOfTextProblem(value, path, 'domains'),
-  'review-round':           reviewRoundProblem,
-  'chart-range':            (value, path) => (BoardSettingsUtil.viewRangeIsWellFormed(value) ? null : `${path} is not a chart range`),
-  'concurrency-limit':      (value, path) => (BoardSettingsUtil.concurrencyLimitIsWellFormed(value) ? null : `${path} is not a whole number of agents`),
-  'overseer-state':         overseerStateProblem,
-  'dispatcher-state':       (value, path) => vocabularyProblem(value, path, RETIRED_DISPATCHER_STATES),
-  'dispatcher-run-id':      retiredDispatcherRunIdProblem,
-  'check-command':          checkCommandProblem,
-  'count':                  (value, path) => (StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? null : `${path} is not a whole number of at least 0`),
-  'review-bar-round':       reviewBarRoundProblem,
-  'review-verdict':         ReviewRecordFieldsUtil.verdictProblem,
-  'review-claims':          ReviewRecordFieldsUtil.claimsProblem,
-  'review-findings':        ReviewRecordFieldsUtil.findingsProblem,
-  'nullable-text':          (value, path) => (value === null ? null : textProblem(value, path)),
-  'job-kind':               (value, path) => vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_KINDS),
-  'job-role':               (value, path) => (value === null ? null : vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_ROLES)),
-  'job-outcome':            (value, path) => vocabularyProblem(value, path, JOB_OUTCOMES),
-  'interruption-cause':     (value, path) => vocabularyProblem(value, path, INTERRUPTION_CAUSES),
-  'watcher-instance':       watcherInstanceProblem,
-  'permission-names':       (value, path) => listOfTextProblem(value, path, 'permission names'),
-  'overseer-stop-reason':   (value, path) => vocabularyProblem(value, path, OVERSEER_STOP_REASONS),
-  'job-stop-mode':          (value, path) => vocabularyProblem(value, path, JOB_STOP_MODES),
-  'decision-kind':          (value, path) => vocabularyProblem(value, path, DECISION_KINDS),
-  'decision-answer':        decisionAnswerProblem,
-  'incident-kind':          (value, path) => vocabularyProblem(value, path, INCIDENT_KINDS),
-  'incident-move':          (value, path) => vocabularyProblem(value, path, INCIDENT_MOVES),
-  'incident-default-cause': (value, path) => vocabularyProblem(value, path, INCIDENT_DEFAULT_CAUSES),
-  'gate-outcome':           (value, path) => vocabularyProblem(value, path, GATE_OUTCOMES),
-  'file-paths':             (value, path) => listOfTextProblem(value, path, 'file paths'),
-  'gate-phase':             (value, path) => vocabularyProblem(value, path, GATE_PHASES),
-  'gate-names':             (value, path) => listOfTextProblem(value, path, 'gate names'),
-  'landing-kind':           (value, path) => vocabularyProblem(value, path, LANDING_KINDS),
-  'flag':                   (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
-  'optional-flag':          (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),
-  'optional-cost-usd':      (value, path) => (value === undefined || costIsWellFormed(value) ? null : `${path} is not a cost of at least 0`),
-  'optional-pictures':      picturesProblem,
-  'setup-mode':             (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_MODES),
-  'billing-mode':           (value, path) => vocabularyProblem(value, path, PIPELINE_BILLING_MODES),
-  'setup-step':             (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEPS),
-  'setup-step-state':       (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEP_STATES),
-  'setup-steps':            setupStepsProblem,
-  'setup-item-ids':         (value, path) => listOfTextProblem(value, path, 'setup item ids'),
-  'draft-fields':           (value, path) => listOfTextProblem(value, path, 'draft fields'),
-  'gate-profile-ending':    (value, path) => vocabularyProblem(value, path, GATE_PROFILE_RUN_ENDINGS),
+  'task-id':                 (value, path) => (StoredValueUtil.valueIsAWholeNumber(value) ? null : `${path} is not a whole number`),
+  'optional-text':           (value, path) => (value === undefined ? null : textProblem(value, path)),
+  'priority':                priorityProblem,
+  'ticket-size':             ticketSizeProblem,
+  'optional-size':           (value, path) => (value === undefined ? null : ticketSizeProblem(value, path)),
+  'agent-pair':              agentPairProblem,
+  'ticket-ids':              (value, path) => listOfTextProblem(value, path, 'ticket ids'),
+  'epic-keys':               (value, path) => listOfTextProblem(value, path, 'epic keys'),
+  'network-domains':         (value, path) => listOfTextProblem(value, path, 'domains'),
+  'review-round':            reviewRoundProblem,
+  'chart-range':             (value, path) => (BoardSettingsUtil.viewRangeIsWellFormed(value) ? null : `${path} is not a chart range`),
+  'concurrency-limit':       (value, path) => (BoardSettingsUtil.concurrencyLimitIsWellFormed(value) ? null : `${path} is not a whole number of agents`),
+  'overseer-state':          overseerStateProblem,
+  'dispatcher-state':        (value, path) => vocabularyProblem(value, path, RETIRED_DISPATCHER_STATES),
+  'dispatcher-run-id':       retiredDispatcherRunIdProblem,
+  'check-command':           checkCommandProblem,
+  'count':                   (value, path) => (StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? null : `${path} is not a whole number of at least 0`),
+  'review-bar-round':        reviewBarRoundProblem,
+  'review-verdict':          ReviewRecordFieldsUtil.verdictProblem,
+  'review-claims':           ReviewRecordFieldsUtil.claimsProblem,
+  'review-findings':         ReviewRecordFieldsUtil.findingsProblem,
+  'nullable-text':           (value, path) => (value === null ? null : textProblem(value, path)),
+  'job-kind':                (value, path) => vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_KINDS),
+  'job-role':                (value, path) => (value === null ? null : vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_ROLES)),
+  'job-outcome':             (value, path) => vocabularyProblem(value, path, JOB_OUTCOMES),
+  'interruption-cause':      (value, path) => vocabularyProblem(value, path, INTERRUPTION_CAUSES),
+  'watcher-instance':        watcherInstanceProblem,
+  'permission-names':        (value, path) => listOfTextProblem(value, path, 'permission names'),
+  'overseer-stop-reason':    (value, path) => vocabularyProblem(value, path, OVERSEER_STOP_REASONS),
+  'job-stop-mode':           (value, path) => vocabularyProblem(value, path, JOB_STOP_MODES),
+  'decision-kind':           (value, path) => vocabularyProblem(value, path, DECISION_KINDS),
+  'decision-answer':         decisionAnswerProblem,
+  'incident-kind':           (value, path) => vocabularyProblem(value, path, INCIDENT_KINDS),
+  'incident-move':           (value, path) => vocabularyProblem(value, path, INCIDENT_MOVES),
+  'incident-default-cause':  (value, path) => vocabularyProblem(value, path, INCIDENT_DEFAULT_CAUSES),
+  'gate-outcome':            (value, path) => vocabularyProblem(value, path, GATE_OUTCOMES),
+  'file-paths':              (value, path) => listOfTextProblem(value, path, 'file paths'),
+  'gate-phase':              (value, path) => vocabularyProblem(value, path, GATE_PHASES),
+  'gate-names':              (value, path) => listOfTextProblem(value, path, 'gate names'),
+  'landing-kind':            (value, path) => vocabularyProblem(value, path, LANDING_KINDS),
+  'flag':                    (value, path) => (typeof value === 'boolean' ? null : `${path} is not true or false`),
+  'optional-flag':           (value, path) => (value === undefined || typeof value === 'boolean' ? null : `${path} is not true or false`),
+  'optional-cost-usd':       (value, path) => (value === undefined || costIsWellFormed(value) ? null : `${path} is not a cost of at least 0`),
+  'optional-pictures':       picturesProblem,
+  'optional-ticket-ids':     (value, path) => (value === undefined ? null : listOfTextProblem(value, path, 'ticket ids')),
+  'optional-refusal-status': (value, path) => (value === undefined ? null : vocabularyProblem(value, path, HATCH_REFUSAL_STATUSES)),
+  'optional-refusal-detail': refusalDetailProblem,
+  'setup-mode':              (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_MODES),
+  'billing-mode':            (value, path) => vocabularyProblem(value, path, PIPELINE_BILLING_MODES),
+  'setup-step':              (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEPS),
+  'setup-step-state':        (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEP_STATES),
+  'setup-steps':             setupStepsProblem,
+  'setup-item-ids':          (value, path) => listOfTextProblem(value, path, 'setup item ids'),
+  'draft-fields':            (value, path) => listOfTextProblem(value, path, 'draft fields'),
+  'gate-profile-ending':     (value, path) => vocabularyProblem(value, path, GATE_PROFILE_RUN_ENDINGS),
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

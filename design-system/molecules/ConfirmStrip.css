@@ -1,4 +1,8 @@
-.design-system-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted); }
+/* An in-place confirmation rises into the place of the action it confirms. */
+.design-system-confirm {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: var(--fs-small); color: var(--ink-muted);
+  animation: design-system-rise var(--motion-slow) var(--ease-out) both;
+}
 /* The danger strip is a card in the error colours: its question, the consequence under it, then its actions. */
 .design-system-confirm[data-tone="danger"] {
   display: flex; flex-direction: column; align-items: flex-start;
@@ -13,3 +17,7 @@
 .design-system-confirm-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .design-system-confirm[data-tone="danger"] .design-system-confirm-question { font-weight: 600; }
 .design-system-confirm[data-tone="danger"] .design-system-confirm-consequence { display: block; margin: var(--space-2) 0 var(--sp-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-confirm { animation: none; }
+}

@@ -89,6 +89,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<I>` | An [incident](glossary.md#incident) id, such as `I1`. |
 | `<decision>` | A [decision](glossary.md#decision) id, such as `E7`. |
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
+| `-` | As the path of `--body-file`, `--request-file` or `--file`, reads standard input to its end. In a terminal, with nothing piped in, it is refused at exit 1 with nothing written, since it would read as empty text; an empty file or an empty pipe supplies empty text. |
 | `--json` | Accepted by every command but `open`, `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `1`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
@@ -769,9 +770,10 @@ phase's run order, the first red gate stopping the rest. Each place a tree is ga
 | a stale green, gated again with no slot held | the row's `greenPhase` (with none: `review` with a review phase, `build` without one) |
 
 A phase with no gates passes at once and runs no prepare step. A gate passes only when it exits 0 and leaves every
-tracked file as it was. Exit 126 or 127, or a signal, is `gate-cannot-run`. A failed prepare step is a setup failure,
-never a red gate. The Overseer never runs a gate's `fix`. Customs and a worker's sandbox read every gate, whatever
-phases run it.
+tracked file as it was. Exit 126 or 127, or a signal, is `gate-cannot-run`. A prepare step fails when it does not
+exit 0, or when it exits 0 but changes a tracked file; its output is then the diff of that change. A failed prepare
+step is a setup failure, never a red gate, so no gate is blamed for it. The Overseer never runs a gate's `fix`. Customs
+and a worker's sandbox read every gate, whatever phases run it.
 
 A job's gate run starts by writing its manifest, `<data>/jobs/<J>/gate-run.json`, atomically: `{ phase, phaseHash,
 prepare, gates }`, the phase, that phase's hash, and the prepare steps and gates it runs in order, as the pipeline held
@@ -806,7 +808,7 @@ before the first listing is out of reach, as it is on POSIX.
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Overseer reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Overseer claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at the Overseer's next sweep; a slot whose Overseer is gone is taken over by the next claim, and a job that outlived its Overseer's restart keeps its slot under the new Overseer. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Overseer takes the same change as the control command `machine-agent-limit-set`. |
-| `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
+| `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. The text names the phases of a gate that runs in only some (`lint (runs in merge): bun run lint`); a gate with none runs in every phase. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
 | `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate order build\|review\|merge <name>… [--json]` | Set the run order of the gates a phase runs, with one log line (`Gates of the merge phase ordered: <names>`, kind `pipeline-gates-ordered`). Name each gate the phase runs once and no other: a gate joins or leaves a phase only through `gate add --phases`, so no gate is left in no phase. An unknown gate (`unknown-gate`) or any other list (`phase-order-not-a-reorder`) is refused at exit 1 with nothing written. |
@@ -925,7 +927,7 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline billing <S> subscription\|api [--max-budget-usd <n>] [--json]` | Change the record's billing (`pipeline-setup-billing`), logged `pipeline-setup-billing-set`. A cap of 0 or below is refused `billing-cap-not-positive`. |
 | `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. A first setup opens past billing, so `billing` is current only in a record a reopen left there. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. |
 | `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
-| `pipeline constitution <S> --revision <n> [--file <path>\|-] [--sources <source>,…\|none] [--json]` | Store User's constitution (`pipeline-constitution-edit`), logged `pipeline-constitution-set`: the whole text from the file, or from standard input with `--file -`, byte for byte, and the SOURCES ticks, the sources named on (`contributing`, `research`, `installed-default`) and the others off. Give the text, the sources or both. `--revision` is the constitution revision User read; another is refused `constitution-draft-stale`. |
+| `pipeline constitution <S> --revision <n> [--file <path>\|-] [--sources <source>,…\|none] [--json]` | Store User's constitution (`pipeline-constitution-edit`), logged `pipeline-constitution-set`: the whole text from the file, or from standard input with `--file -`, byte for byte (an empty file clears it), and the SOURCES ticks, the sources named on (`contributing`, `research`, `installed-default`) and the others off. Give the text, the sources or both. `--revision` is the constitution revision User read; another is refused `constitution-draft-stale`. |
 | `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. |
 | `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`. |
 | `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
@@ -938,8 +940,9 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
 An answer, a constitution edit, a draft edit, an Undo, a discard, a check and a Continue also message the record's
-pipeline agent in the same hold, logged `job-messaged`, when its job is live and not stopping, so its next turn starts
-from User's move; an agent a stop closed is opened again with the message, logged `job-reopened`. The agent cannot read
+pipeline agent in the same hold, logged `job-messaged` with `byOverseer`, when its job is live and not stopping, so its
+next turn starts from User's move; an agent a stop closed is opened again with the message, logged `job-reopened` with
+`byOverseer`. Its transcript reads the message as the Overseer's chat, never as User's words. The agent cannot read
 the record, so the message carries what the move changed: a constitution edit the whole new text and the new SOURCES
 ticks, each when it changed; a draft edit, an Undo and a discard each draft field the move changed, with the value the
 draft holds there now (`null` for none). A record with no
@@ -1434,7 +1437,7 @@ must pass. A builder ends by reporting; it never edits its ticket file.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
-| worktree creation, the install line or a gating prepare step fails | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |
+| worktree creation, the install line or a gating prepare step fails, or a gating prepare step changes a tracked file | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |
 | the session exits without a valid report, the report says `cannot-build`, a commit carries an attribution trailer, or Customs refuses for any reason the next row does not name | a [failed pass](glossary.md#failed-pass), `job-ended` `failed` with its cause; an attribution trailer also shows the `attribution-found` notice, and a V13 refusal also opens the `branch-touches-agent-config` decision | none: the next attempt is automatic, up to the bound; answer the decision where one opened |
 | a gate fails, Customs refuses V3 (no commit), V4 (a dirty worktree) or V15 (missing or stale gate claims), or a session working off a red handoff spends its call budget and grace | a [red handoff](glossary.md#red-handoff): the same session resumes on `gate-failure.md`, the red-handoff note, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, then the ticket parks `parked:red-resumes-spent` with a `parked` decision | `ticket unhold` for a fresh attempt |
 | the report says `blocked` | incident `blocked`; the job ends `blocked` | `job fresh`, `worktree repair`, `ticket park` |
@@ -1486,7 +1489,7 @@ branch back at its own tip. With `airlock.reReview` absent no conflict re-review
 | a group refresh's merge-in conflicts | the refresh aborts, the Airlock slot frees and the `merge-refused` decision opens | answer the decision |
 | a merged tree's gate cannot run | incident `gate-cannot-run`; the Airlock slot waits | `gate retry`, `worktree repair`, `ticket park` |
 | a merged tree's line is refused because confinement is `unavailable` | incident `sandbox-unavailable`; the Airlock slot waits | `gate retry`, `ticket park` |
-| a merged tree's prepare step fails | incident `setup-failed`; the Airlock slot waits | `worktree repair`, `ticket park` |
+| a merged tree's prepare step fails or changes a tracked file | incident `setup-failed`, its `gate` fact naming the step; the Airlock slot waits | `worktree repair`, `ticket park` |
 | the Acceptance is not accounted for at landing | the ticket leaves the queue, held, with the `landing-refused` decision | answer the decision |
 | the main checkout is off the main line, or its changes block the fast-forward | that target's landings wait under the `dirty-main-checkout` notice | clean the main checkout |
 | another process holds a file of the target's checkout open, so git cannot replace it (Windows), on each of `HELD_CHECKOUT_RETRY_TRIES` (3) tries | the files git already wrote go back to HEAD; that target's landings wait under the `target-file-held` notice, which names the held files | close the program that holds the file |
@@ -1614,7 +1617,7 @@ must also converge.
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
 | reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
-| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. Answering does not act on the ruling |
+| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with the Overseer down too; the Overseer's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` that cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target; with merge approval on, the job first moves to `merging-main` and ends there ([Merge approval](#merge-approval)) |
 
 Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
@@ -1653,7 +1656,9 @@ variables](#environment-variables)).
   `<hatch>/requests/<requestId>.json` atomically, `{hatchFormatVersion: 1, requestId, command, bodyText?}`, and waits
   for `<hatch>/replies/<requestId>.json`, up to `HATCH_REPLY_TRIES` times `HATCH_REPLY_INTERVAL_MILLISECONDS` apart. It
   prints `done <requestId>` or `nothing-to-do <requestId>` with the tickets it touched at exit 0, or the refusal worded
-  as a direct run words it. With no reply it prints `queued <requestId>` at exit 0.
+  as a direct run words it. With no reply it prints `queued <requestId>` at exit 0. A request the Overseer applied but
+  whose reply it did not write (a crash or a Baton takeover after the hold committed) is not applied again: a later pass
+  writes the same reply from its `hatch-applied` record.
 - **Refused:** every other verb, at exit 1 (`verb-not-relayable`).
 - **Identity:** a request names no job and no role. The Overseer takes both from the Hatch folder's job record and
   refuses a request carrying either `hatch-identity-mismatch`.
@@ -1888,7 +1893,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `attempt` | no | From 1. |
 | `target` | no | The main line or `group-<name>`, or null for a session. |
 | `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging-main`, `merging`, `landing` or `stopping`. |
-| `interruption` | yes | Why it was last interrupted: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
+| `interruption` | yes | Why it was last interrupted: `watcher-lost` (its Watcher died without recording an end; one that failed, such as on a full disk, first writes `watcher failed: <cause>` to its `watcher-<n>.log`), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
 | `watcherInstance` | no | The newest Watcher instance spawned or to spawn, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
@@ -1972,6 +1977,9 @@ lives in [`pipeline.json`](#datapipelinejson).
 - Keys the tool does not know survive a read and a write, in the file's order: at the top level, on a row, on a job, its
   `eventCursor` and its `airlock`, and on a decision, its questions and their options, an incident and its
   `deliveredInTurn`. A ticket's unknown frontmatter lines do the same.
+- One exception to that order: an unknown key whose name is an integer, such as `"2024"`, keeps its value, but a write
+  moves it to the front of its object, before every other key, because JavaScript lists such keys first. Give a key you
+  add by hand a name that is not a number, so the file stays byte-identical.
 - `jobs`, `nextJobId`, a row's `mergeQueued` and `mergeAccepted`, `decisions`, `nextDecisionId`, `incidents` and
   `nextIncidentId` are each written only once set, so a file without them stays byte-identical.
 - A stored `dispatcherState` or `dispatcherRunId` is an unknown key: kept byte for byte and never read, so such a board
@@ -2353,11 +2361,11 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
-| `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some |
-| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner, `text`: User's message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some |
+| `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byOverseer` (`true`) only when the text is the Overseer's wording of User's setup move |
+| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byOverseer` as on `job-messaged` |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |
 | `agent-stopped` | none | below |
-| `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`): a relayed request the Overseer answered, never applied again |
+| `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`), then the reply's `ticketIds`, or its `status` and `detail` when refused: a relayed request the Overseer answered, never applied again; a reply lost after the hold committed is written again from this record |
 
 #### Merge records
 

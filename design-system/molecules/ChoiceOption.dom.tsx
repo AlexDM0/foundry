@@ -3,7 +3,8 @@
  * and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
  * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`, the tone `data-tone`, a size other
  * than the standard one `data-size` and mono `data-mono`; an option with no letter shows none; the Other option's text field takes the
- * focus when the option is chosen, chooses the option once when it takes the focus itself, and hands each typed value on; a text field
+ * focus when the option is chosen and keeps out of it when the option is unchosen, so an uncheck is never chosen again, chooses the option
+ * once when it takes the focus itself, and hands each typed value on; a text field
  * without an input does not compile; the recommended mark is a word in its own class; and the words are text, never markup.
  */
 import {
@@ -94,6 +95,23 @@ describe('the choice option', () => {
     const textField = screen.getByRole('textbox', { name: 'Other answer' });
     expect([document.activeElement === textField, changes, textField.getAttribute('placeholder')]).toEqual([true, ['other'], 'Describe another way']);
     expect(textField.closest('.design-system-choice')?.getAttribute('data-tone')).toBe('question');
+  });
+
+  test('unchecking a chosen Other checkbox calls onChange once and leaves the focus out of its text field', () => {
+    const changes: string[] = [];
+    render(
+      <ChoiceOption
+        letter="C"
+        label="Other"
+        chosen
+        variant="card"
+        input={<ChoiceInput type="checkbox" name="E2-2" checked accessibleName="Other" onChange={() => changes.push('other')} />}
+        freeText={<ChoiceFreeText value="" placeholder="Describe another way" accessibleName="Other answer" onChange={() => undefined} />}
+      />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Other' }));
+    const textField = screen.getByRole('textbox', { name: 'Other answer' });
+    expect([changes, document.activeElement === textField]).toEqual([['other'], false]);
   });
 
   test('the text field chooses the Other option when it takes the focus itself, and hands each typed value on', () => {

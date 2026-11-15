@@ -350,8 +350,8 @@ function storeFirstMessage(jobFolder: string, instance: number, message: string)
 
 /**
  * The task text of each fresh instance, its session's first input, written once its Watcher answers, with the pictures of a product owner's
- * request. The marker is written only after the Watcher took the line, so one not yet listening is tried again on the next pass, and a
- * delivered line is never sent twice.
+ * request. The marker is written only after the Watcher took the line, so one not yet listening is tried again on the next pass; an
+ * Overseer that dies before the marker sends the line again, so the session can get its task text twice.
  */
 async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>): Promise<void> {
   for (const job of board.jobs()) {

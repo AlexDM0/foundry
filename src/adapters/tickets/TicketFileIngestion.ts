@@ -1,6 +1,7 @@
 /** One ticket file read into the model: a file that cannot be read or parsed is a `malformed` verdict with its reason and line, never a throw. */
 import { readFileSync }       from 'node:fs';
 import type { Ticket }        from '../../lib/tracker-model/@types/Ticket.ts';
+import { utf8TextOf }         from '../Utf8Text.ts';
 import { TicketDocumentUtil } from './utils/TicketDocumentUtil.ts';
 
 export type TicketFileReading =
@@ -13,12 +14,14 @@ export class TicketFileIngestion {
   constructor(private readonly ticketFilePath: string) {}
 
   read(): TicketFileReading {
-    let text: string;
+    let bytes: Uint8Array;
     try {
-      text = readFileSync(this.ticketFilePath, 'utf8');
+      bytes = readFileSync(this.ticketFilePath);
     } catch (problem) {
       return { verdict: 'malformed', reason: `the file could not be read: ${String(problem)}`, line: 0 };
     }
+    const text = utf8TextOf(bytes);
+    if (text === null) return { verdict: 'malformed', reason: 'the file is not UTF-8 text', line: 0 };
 
     const parsed = TicketDocumentUtil.parsedTicketDocumentOf(text);
     if (parsed.verdict === 'malformed') {

@@ -1,8 +1,8 @@
 /**
- * The Intake view as data: every product-owner session, live ones from the board and closed ones read back from the log, each with its
+ * The Intake view as data: every product-owner session, live ones from the board and ended ones read back from the log, each with its
  * title, the tickets it filed, its open decisions and its last line; which one the route selects, or the new chat; and the selected one's
  * chat worded as turns, User's request after the line that started it and each open decision placed where it was asked. A closed session
- * keeps its transcript and chat: a message resumes it by id.
+ * keeps its transcript and chat: a message resumes it by id. A session that ended any other way, stopped or failed, is read only.
  */
 import type { TagProps } from 'design-system/Tag';
 
@@ -26,16 +26,19 @@ import { TimeUtil }                                                from '../../u
 
 export interface IntakeSession {
   readonly jobId:       string;
-  /** The job's state while it is on the board; `closed` once intake closed and the job left it. */
+  /** The job's state while it is on the board; once the job left it, the outcome its newest `job-ended` record names. */
   readonly state:       string;
+  /** The job left the board, with any outcome. */
+  readonly ended:       boolean;
+  /** The job left the board with outcome `closed`: a message resumes it. */
   readonly closed:      boolean;
   readonly title:       string;
   readonly requestText: string | null;
   readonly drafts:      readonly TicketDocument[];
   readonly questions:   readonly DecisionDocument[];
-  /** The newest line the session or User said; a closed session shows none. */
+  /** The newest line the session or User said; an ended session shows none. */
   readonly lastLine:    string | null;
-  /** The session's API calls; `null` for a closed session and while the board sends no live facts. */
+  /** The session's API calls; `null` for an ended session and while the board sends no live facts. */
   readonly calls:       number | null;
   readonly turn:        SessionTurnDocument | null;
 }
@@ -51,7 +54,7 @@ export interface IntakeSessionFacts {
   readonly pill:        IntakePill;
   /** "E5 waits on User", one per open decision of the job. */
   readonly askTexts:    readonly string[];
-  /** "2 drafts" on a live session, "2 tickets filed" on a closed one; `null` with none. */
+  /** "2 drafts" on a live session, "2 tickets filed" on an ended one; `null` with none. */
   readonly ticketsText: string | null;
   readonly resumeText:  string | null;
 }
@@ -85,6 +88,8 @@ export const INTAKE_NEW_CHAT_ITEM = 'new';
 
 const PRODUCT_OWNER_KIND = 'product-owner';
 const CLOSED_OUTCOME = 'closed';
+/** A `job-ended` record with no outcome text; the store always writes one. */
+const UNKNOWN_OUTCOME = 'ended';
 const DRAFT_STATUS = 'draft';
 
 const PRODUCT_OWNER_SPEAKER = 'Product owner';
@@ -144,29 +149,35 @@ function intakeOf(history: readonly HistoryRecordDocument[], jobId: string, jobI
   return { text: text ?? '', ...(title === null ? {} : { title }) };
 }
 
-/** The product-owner jobs whose intake closed and that left the board, the newest close first. */
-function closedSessionIdsOf(history: readonly HistoryRecordDocument[], liveJobIds: ReadonlySet<string>): string[] {
+/** The product-owner jobs that left the board, each with the outcome of its newest `job-ended` record, the newest end first. */
+function endedSessionsOf(history: readonly HistoryRecordDocument[], liveJobIds: ReadonlySet<string>): { jobId: string; outcome: string }[] {
   const productOwnerIds = new Set(history.flatMap((record) => (
     record.kind === 'job-launched' && record.fields['kind'] === PRODUCT_OWNER_KIND && record.jobId !== undefined ? [record.jobId] : []
   )));
-  const closedIds: string[] = [];
+  const endedSessions: { jobId: string; outcome: string }[] = [];
   for (const record of history.toReversed()) {
-    if (record.kind !== 'job-ended' || record.jobId === undefined || !productOwnerIds.has(record.jobId) || closedIds.includes(record.jobId)) continue;
-    if (liveJobIds.has(record.jobId)) continue;
-    const newestEnd = history.findLast((candidate) => candidate.kind === 'job-ended' && candidate.jobId === record.jobId);
-    if (newestEnd?.fields['outcome'] === CLOSED_OUTCOME) closedIds.push(record.jobId);
+    const { jobId } = record;
+    if (record.kind !== 'job-ended' || jobId === undefined || !productOwnerIds.has(jobId) || liveJobIds.has(jobId)) continue;
+    if (endedSessions.some((ended) => ended.jobId === jobId)) continue;
+    endedSessions.push({ jobId, outcome: textField(record, 'outcome') ?? UNKNOWN_OUTCOME });
   }
-  return closedIds;
+  return endedSessions;
 }
 
-/** Sessions that wait on User first, then the live ones newest first, then the closed ones newest first. */
+/** Whether a `job-ended` record names the job: a job that ended before any board listed it is no longer starting. */
+function jobHasEnded(board: ConversationBoardDocument, jobId: string): boolean {
+  return (board.questionHistory ?? []).some((record) => record.kind === 'job-ended' && record.jobId === jobId);
+}
+
+/** Sessions that wait on User first, then the live ones newest first, then the ended ones newest first. */
 function intakeSessionsOf(board: ConversationBoardDocument): IntakeSession[] {
   const history = board.questionHistory ?? [];
   const tickets = board.page?.tickets ?? [];
-  const sessionOf = (jobId: string, state: string, intake: SessionIntakeDocument | null): Omit<IntakeSession, 'lastLine' | 'calls' | 'turn'> => ({
+  const sessionOf = (jobId: string, state: string, ended: boolean, intake: SessionIntakeDocument | null): Omit<IntakeSession, 'lastLine' | 'calls' | 'turn'> => ({
     jobId,
     state,
-    closed:      state === CLOSED_OUTCOME,
+    ended,
+    closed:      ended && state === CLOSED_OUTCOME,
     title:       sessionTitleOf(intake, jobId),
     requestText: intake === null ? null : intake.text,
     drafts:      tickets.filter((ticket) => ticket.filedByJob === jobId),
@@ -177,21 +188,28 @@ function intakeSessionsOf(board: ConversationBoardDocument): IntakeSession[] {
     .filter((job) => job.kind === PRODUCT_OWNER_KIND)
     .toSorted((a, b) => (launchPositions.get(b.id) ?? -1) - (launchPositions.get(a.id) ?? -1));
   const liveSessions = liveJobs.map((job): IntakeSession => ({
-    ...sessionOf(job.id, job.state, intakeOf(history, job.id, job.intake ?? null)),
+    ...sessionOf(job.id, job.state, false, intakeOf(history, job.id, job.intake ?? null)),
     lastLine: job.live?.lastLine?.text ?? null,
     calls:    job.live?.calls ?? null,
     turn:     job.live?.turn ?? null,
   }));
-  const closedSessions = closedSessionIdsOf(history, new Set(liveJobs.map((job) => job.id))).map((jobId): IntakeSession => ({
-    ...sessionOf(jobId, CLOSED_OUTCOME, intakeOf(history, jobId, null)), lastLine: null, calls: null, turn: null
+  const endedSessions = endedSessionsOf(history, new Set(liveJobs.map((job) => job.id))).map(({ jobId, outcome }): IntakeSession => ({
+    ...sessionOf(jobId, outcome, true, intakeOf(history, jobId, null)), lastLine: null, calls: null, turn: null
   }));
   const waitsOnUser = (session: IntakeSession): boolean => session.questions.length > 0;
-  return [...liveSessions.filter(waitsOnUser), ...liveSessions.filter((session) => !waitsOnUser(session)), ...closedSessions];
+  return [...liveSessions.filter(waitsOnUser), ...liveSessions.filter((session) => !waitsOnUser(session)), ...endedSessions];
 }
 
-/** A closed session reads as ended; a live one by its job's state. */
-function sessionPillOf(session: Pick<IntakeSession, 'state' | 'closed'>): IntakePill {
-  return session.closed ? { state: 'abandoned', label: CLOSED_OUTCOME } : { state: JobStateUtil.displayStateOf(session.state), label: session.state };
+/** An ended session reads as ended, labelled with its outcome; a live one by its job's state. */
+function sessionPillOf(session: Pick<IntakeSession, 'state' | 'ended'>): IntakePill {
+  return session.ended ? { state: 'abandoned', label: session.state } : { state: JobStateUtil.displayStateOf(session.state), label: session.state };
+}
+
+/** A session that ended other than closed takes no message: no composer, only this tag, which names its outcome. */
+function readOnlyTagOf(session: Pick<IntakeSession, 'state' | 'ended' | 'closed'>): TagProps | null {
+  if (!session.ended || session.closed) return null;
+  const outcomeWord = `${session.state.charAt(0).toUpperCase()}${session.state.slice(1)}`;
+  return { text: `${outcomeWord}: read only; a new chat starts a fresh session`, ...StateToneUtil.tagLookOf('abandoned'), dot: true };
 }
 
 /** A filed ticket's badge by its status; a status that is no display state shows as its word on the waiting row. */
@@ -212,14 +230,14 @@ function sessionFactsOf(session: IntakeSession): IntakeSessionFacts {
   return {
     pill:        sessionPillOf(session),
     askTexts:    session.questions.map((decision) => `${decision.id} waits on User`),
-    ticketsText: session.closed ? filedText : (draftCount === 0 ? null : countTextOf(draftCount, 'draft', 'drafts')),
+    ticketsText: session.ended ? filedText : (draftCount === 0 ? null : countTextOf(draftCount, 'draft', 'drafts')),
     resumeText:  session.closed ? 'a message resumes it' : null,
   };
 }
 
 /**
- * `new` opens the new chat, a known job selects its session, the job a Start session just started is starting until a board names it, and
- * any other item the first session; with no session the new chat opens.
+ * `new` opens the new chat, a known job selects its session, ended or live, the job a Start session just started is starting until a board
+ * names it or its end, and any other item the first session; with no session the new chat opens.
  */
 function selectedOf(sessions: readonly IntakeSession[], routeItem: string | null, startedJobId: string | null = null): IntakeSelection {
   if (routeItem === INTAKE_NEW_CHAT_ITEM) return { form: 'new-chat' };
@@ -246,15 +264,15 @@ function closeIntakeCaptionOf(tickets: readonly TicketDocument[]): string | null
   return `Close intake offers ${named} to ready.`;
 }
 
-/** "2 turns · 7 calls" after the job's link; a closed session has no calls to show. */
+/** "2 turns · 7 calls" after the job's link; an ended session has no calls to show. */
 function paneMetaOf(turnCount: number, calls: number | null): string {
   const { countTextOf } = ChatTurnWordingUtil;
   return [countTextOf(turnCount, 'turn', 'turns'), ...calls === null ? [] : [countTextOf(calls, 'call', 'calls')]].join(' · ');
 }
 
-/** The product owner at work while the session is open; a closed session has no live turn. */
-function productOwnerAtWorkOf(session: Pick<IntakeSession, 'state' | 'closed' | 'calls'>): ProductOwnerAtWorkFacts | null {
-  if (session.closed) return null;
+/** The product owner at work while the session is open; an ended session has no live turn. */
+function productOwnerAtWorkOf(session: Pick<IntakeSession, 'state' | 'ended' | 'calls'>): ProductOwnerAtWorkFacts | null {
+  if (session.ended) return null;
   return {
     pill:      sessionPillOf(session),
     callsText: session.calls === null ? null : `${ChatTurnWordingUtil.countTextOf(session.calls, 'call', 'calls')} so far`,
@@ -367,9 +385,11 @@ export const IntakeModelUtil = Object.freeze({
   intakeSessionsOf,
   sessionTitleOf,
   sessionPillOf,
+  readOnlyTagOf,
   draftPillOf,
   sessionFactsOf,
   selectedOf,
+  jobHasEnded,
   composerTagOf,
   closeIntakeCaptionOf,
   paneMetaOf,

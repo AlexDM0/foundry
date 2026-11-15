@@ -10,7 +10,6 @@ export function ConcurrencyLimitControl({ limit }: { readonly limit: number }) {
   return (
     <span className="bridge-field">
       <label className="bridge-field-label">
-        agents at most
         <input
           className="bridge-field-input"
           type="number"
@@ -20,6 +19,7 @@ export function ConcurrencyLimitControl({ limit }: { readonly limit: number }) {
           aria-label="Concurrency limit"
           onChange={(event) => setWanted(Number(event.currentTarget.value))}
         />
+        agents at most
       </label>
       {AgentsModel.concurrencyLimitIsSendable(wanted, limit) ? <CommandButton label="Set" command={{ kind: 'concurrency-set', limit: wanted }} /> : null}
     </span>

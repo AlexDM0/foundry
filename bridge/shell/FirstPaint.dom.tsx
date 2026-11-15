@@ -25,7 +25,9 @@ afterEach(() => {
 function preparedWithSearch(search: string) {
   const outcome = FirstPaint.prepare(
     storeHoldingLight,
-    { root: document.documentElement, search, systemPrefersDark: () => false },
+    {
+      root: document.documentElement, search, systemPrefersDark: () => false, onSystemSchemeChange: () => () => undefined
+    },
     () => ({ window, parent, parentOrigin: PARENT_ORIGIN }),
   );
   stopFollowing = outcome.stopFollowingParentTheme;

@@ -1,6 +1,6 @@
 /**
- * A section of a view: its head (a small-capitals title, an optional count apart at its end, then whatever the caller adds), then either
- * its list of items or, with none, its empty card in the section's own words.
+ * A section of a view: its head (the title in the title size, an optional count in a quiet pill after it, then whatever the caller adds at
+ * its end), then either its list of items or, with none, its empty card in the section's own words.
  */
 import { Fragment, type ReactNode } from 'react';
 
@@ -30,7 +30,7 @@ export function ListSection<Item>({
 }: ListSectionProps<Item>) {
   return (
     <section className="design-system-section" aria-label={label}>
-      <SectionHead title={title} {...(titleElement === undefined ? {} : { titleElement })} {...(count === undefined ? {} : { count })}>
+      <SectionHead title={title} look="heading" {...(titleElement === undefined ? {} : { titleElement })} {...(count === undefined ? {} : { count })}>
         {headEnd}
       </SectionHead>
       {items.length === 0

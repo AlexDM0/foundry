@@ -5,8 +5,10 @@
 import { createHash } from 'node:crypto';
 import {
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
+  readlinkSync,
   statSync
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
@@ -182,6 +184,13 @@ function gitLines(directory: string, gitArguments: readonly string[]): string[] 
   return run.standardOutput.split('\n').filter((line) => line !== '');
 }
 
+/** The fields of a `-z` answer: git quotes no path there, so a name holding `"`, `\` or a control character keeps its own spelling. */
+function gitFields(directory: string, gitArguments: readonly string[]): string[] | null {
+  const run = worktreeGitRun(directory, gitArguments);
+  if (!GitProcess.succeeded(run)) return null;
+  return run.standardOutput.split('\0').filter((field) => field !== '');
+}
+
 type RangeSubject = Pick<CustomsSubject, 'worktreePath' | 'startCommit' | 'merge'>;
 
 /** A merge job's own commits leave out every commit the target tip holds, so the target's history is never judged as the job's. */
@@ -212,8 +221,8 @@ function netDiffBaseOf(subject: RangeSubject): string | null {
 /** Each commit's own paths, so a change a later commit undoes still counts, and the range's net diff, which holds a merge's resolution. */
 function pathsChangedInRange(subject: RangeSubject): string[] | null {
   const netDiffBase       = netDiffBaseOf(subject);
-  const pathsOfEachCommit = gitLines(subject.worktreePath, ['log', '--name-only', '--no-renames', '--format=', ...rangeArgumentsOf(subject), '--']);
-  const pathsOfTheRange   = netDiffBase === null ? null : gitLines(subject.worktreePath, ['diff', '--name-only', '--no-renames', netDiffBase, 'HEAD', '--']);
+  const pathsOfEachCommit = gitFields(subject.worktreePath, ['log', '--name-only', '--no-renames', '-z', '--format=', ...rangeArgumentsOf(subject), '--']);
+  const pathsOfTheRange   = netDiffBase === null ? null : gitFields(subject.worktreePath, ['diff', '--name-only', '--no-renames', '-z', netDiffBase, 'HEAD', '--']);
   if (pathsOfEachCommit === null || pathsOfTheRange === null) return null;
   return [...new Set([...pathsOfEachCommit, ...pathsOfTheRange])];
 }
@@ -454,16 +463,34 @@ function hooksFolderInsideWorktree(style: GitPathStyle, worktreePath: string): s
   return gitPath === null || protectedFormOf(gitPath).split('/')[0] === GIT_FOLDER_NAME ? null : gitPath;
 }
 
-function hooksFolderDigestOf(worktreePath: string): string | null {
+/** Any of the owner, group and other execute bits: git runs a hook only when it is executable. */
+const EXECUTABLE_MODE_BITS = 0o111;
+
+type HooksFolderReading = { verdict: 'read'; digest: string | null } | { verdict: 'unreadable' };
+
+/**
+ * The hooks folder as one digest of each entry's path and kind: a symbolic link by its target, which git follows to run it, and a file by
+ * its content and whether it is executable. `null` when the folder is missing; an entry that cannot be read, or that went between the list
+ * and the read, makes the folder unreadable, which no snapshot matches.
+ */
+function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
   const hooksFolder = hooksFolderOf(worktreePath);
-  // A hooks path that is no folder, such as the hooks-off path below the git program, holds no hook.
-  if (hooksFolder === null || !existsSync(hooksFolder) || !statSync(hooksFolder).isDirectory()) return null;
-  const digest = createHash('sha256');
-  for (const entry of readdirSync(hooksFolder, { recursive: true, withFileTypes: true }).filter((each) => each.isFile())) {
-    const filePath = join(entry.parentPath, entry.name);
-    digest.update(`${relative(hooksFolder, filePath)}\0`).update(readFileSync(filePath)).update('\0');
+  try {
+    // A hooks path that is no folder, such as the hooks-off path below the git program, holds no hook.
+    if (hooksFolder === null || !existsSync(hooksFolder) || !statSync(hooksFolder).isDirectory()) return { verdict: 'read', digest: null };
+    const digest = createHash('sha256');
+    for (const entry of readdirSync(hooksFolder, { recursive: true, withFileTypes: true })) {
+      const entryPath = join(entry.parentPath, entry.name);
+      const name = relative(hooksFolder, entryPath);
+      if (entry.isSymbolicLink()) digest.update(`link\0${name}\0${readlinkSync(entryPath)}\0`);
+      if (!entry.isFile()) continue;
+      const kind = (lstatSync(entryPath).mode & EXECUTABLE_MODE_BITS) === 0 ? 'file' : 'executable';
+      digest.update(`${kind}\0${name}\0`).update(readFileSync(entryPath)).update('\0');
+    }
+    return { verdict: 'read', digest: digest.digest('hex') };
+  } catch {
+    return { verdict: 'unreadable' };
   }
-  return digest.digest('hex');
 }
 
 /** The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case matches. */
@@ -479,9 +506,9 @@ export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGi
 /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree hooks folder. */
 function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, sinceCommit: string, merge?: MergeUnderVerification): string[] | null {
   const paths = pathsChangedInRange({ worktreePath, startCommit: sinceCommit, ...(merge === undefined ? {} : { merge }) });
-  const status = worktreeGitRun(worktreePath, ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames']);
-  if (paths === null || !GitProcess.succeeded(status)) return null;
-  const worktreePaths = status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
+  const status = gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
+  if (paths === null || status === null) return null;
+  const worktreePaths = status.map((entry) => entry.slice('XY '.length));
   return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath)).sort();
 }
 
@@ -489,15 +516,17 @@ function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
   const style = subject.pathStyle ?? HOST_PATH_STYLE;
   const touched = agentConfigPathsTouched(style, subject.worktreePath, subject.startCommit, subject.merge);
   if (touched === null) return refused('git-failed', [rangeOf(subject)]);
-  const hooksFolderChanged = subject.launchSnapshot !== undefined
-    && hooksFolderInsideWorktree(style, subject.worktreePath) === null
-    && hooksFolderDigestOf(subject.worktreePath) !== subject.launchSnapshot.hooksFolderDigest;
+  const hooksFolderReading = subject.launchSnapshot === undefined || hooksFolderInsideWorktree(style, subject.worktreePath) !== null
+    ? null
+    : hooksFolderReadingOf(subject.worktreePath);
+  const hooksFolderChanged = hooksFolderReading !== null
+    && (hooksFolderReading.verdict === 'unreadable' || hooksFolderReading.digest !== subject.launchSnapshot?.hooksFolderDigest);
   const facts = [...touched, ...(hooksFolderChanged ? [hooksFolderOf(subject.worktreePath) ?? DEFAULT_HOOKS_FOLDER] : [])];
   return facts.length === 0 ? PASSED : refused('branch-touches-agent-config', facts);
 }
 
 /** Each ref's commit and each detached worktree's HEAD, read from the repository the worktree belongs to. */
-export function launchSnapshotOf(worktreePath: string): LaunchSnapshot | null {
+function refsOf(worktreePath: string): Record<string, string> | null {
   const refLines = gitLines(worktreePath, ['for-each-ref', '--format=%(refname) %(objectname)']);
   const worktreeLines = gitLines(worktreePath, ['worktree', 'list', '--porcelain']);
   if (refLines === null || worktreeLines === null) return null;
@@ -513,7 +542,15 @@ export function launchSnapshotOf(worktreePath: string): LaunchSnapshot | null {
     if (line.startsWith('HEAD ')) head = line.slice('HEAD '.length);
     if (line === 'detached') refs[`HEAD:${worktree}`] = head;
   }
-  return { refs, hooksFolderDigest: hooksFolderDigestOf(worktreePath) };
+  return refs;
+}
+
+/** `null` when git cannot list the refs or the hooks folder cannot be read, so no snapshot is taken that V13 could not hold. */
+export function launchSnapshotOf(worktreePath: string): LaunchSnapshot | null {
+  const refs = refsOf(worktreePath);
+  const hooksFolderReading = hooksFolderReadingOf(worktreePath);
+  if (refs === null || hooksFolderReading.verdict === 'unreadable') return null;
+  return { refs, hooksFolderDigest: hooksFolderReading.digest };
 }
 
 const WORKTREE_HEAD_PREFIX = 'HEAD:';
@@ -555,9 +592,9 @@ export function foreignRefsMovedOf(
 function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
   const { launchSnapshot, refMovesAllowed } = subject;
   if (launchSnapshot === undefined || refMovesAllowed === undefined) return refused('foreign-ref-moved', ['no launch snapshot']);
-  const now = launchSnapshotOf(subject.worktreePath);
-  if (now === null) return refused('git-failed', ['for-each-ref']);
-  const moved = foreignRefsMovedOf(subject.pathStyle ?? HOST_PATH_STYLE, { launchRefs: launchSnapshot.refs, nowRefs: now.refs }, refMovesAllowed, subject.worktreePath);
+  const nowRefs = refsOf(subject.worktreePath);
+  if (nowRefs === null) return refused('git-failed', ['for-each-ref']);
+  const moved = foreignRefsMovedOf(subject.pathStyle ?? HOST_PATH_STYLE, { launchRefs: launchSnapshot.refs, nowRefs }, refMovesAllowed, subject.worktreePath);
   return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved);
 }
 

@@ -1,7 +1,7 @@
 /**
  * The switch, in a happy-dom document. What matters: it is a switch whose `aria-checked` is its state; a click, Space and Enter each hand
- * on one toggle, and another key none; a disabled switch hands nothing on; it is named by its accessible name, or by a visible label in its
- * place.
+ * on one toggle, and another key none; a held key's auto-repeat hands on no more; a disabled switch hands nothing on; it is named by its
+ * accessible name, or by a visible label in its place.
  */
 import {
   cleanup,
@@ -44,6 +44,15 @@ describe('the switch', () => {
     fireEvent.keyDown(switchElement, { key: 'Enter' });
     fireEvent.keyDown(switchElement, { key: 'a' });
     expect(toggles).toEqual(['toggle', 'toggle', 'toggle']);
+  });
+
+  test('a held Space hands on one toggle, its auto-repeated presses none', () => {
+    const toggles: string[] = [];
+    const switchElement = renderedSwitch(false, toggles);
+    fireEvent.keyDown(switchElement, { key: ' ' });
+    expect(fireEvent.keyDown(switchElement, { key: ' ', repeat: true })).toBe(false);
+    fireEvent.keyDown(switchElement, { key: ' ', repeat: true });
+    expect(toggles).toEqual(['toggle']);
   });
 
   test('a disabled switch hands nothing on', () => {

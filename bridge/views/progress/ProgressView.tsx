@@ -10,6 +10,7 @@
 import { Icon }           from 'design-system/Icon';
 import { Menu, MenuItem } from 'design-system/Menu';
 import { Row }            from 'design-system/Row';
+import { StateBadge }     from 'design-system/StateBadge';
 import {
   useCallback,
   useLayoutEffect,
@@ -53,7 +54,18 @@ export interface ProgressViewProps {
   readonly todayCalendarDate:    string;
 }
 
-const FOLD_CARET = '▾';
+/** The group head's fold mark, a chevron pointing down while the group is open. */
+function FoldChevron() {
+  return (
+    <svg className="bridge-progress-epic-caret" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M3 4.5 L6 7.5 L9 4.5" />
+    </svg>
+  );
+}
+
+function rowCountTextOf(rowCount: number): string {
+  return rowCount === 1 ? '1 row' : `${rowCount} rows`;
+}
 
 function ticketRowHrefOf(ticketId: string): string {
   return HashRouter.fragmentOf({ tab: 'tickets', item: DetailRoute.itemTextOf({ form: 'ticket-row', ticketId }) });
@@ -150,9 +162,15 @@ function ChartRow({ row, isChanged, onChangeShown }: ChartRowProps) {
           ? <span className="bridge-progress-number">{row.labelText}</span>
           : <a className="bridge-progress-number" href={ticketRowHrefOf(row.linkedTicketId)}>{row.labelText}</a>}
         <span className="bridge-progress-row-name" title={row.nameTitle}>{row.nameText}</span>
-        <span className="bridge-progress-chip" title={row.chipTitle}>
-          <span className="bridge-progress-chip-dot" aria-hidden="true" />
-          <span className="bridge-progress-chip-word">{row.chipText}</span>
+        <span className="bridge-progress-chip">
+          <StateBadge
+            {...StateToneUtil.lookOf(row.stateToken)}
+            label={row.chipText}
+            title={row.chipTitle}
+            checked={row.chipShowsReviewedCheck}
+            fitted
+            shrinkable
+          />
         </span>
       </div>
       <div className="bridge-progress-track">
@@ -183,15 +201,9 @@ function GroupHeadRow({ head, onToggle }: { readonly head: EpicGroupHeadModel; r
       onKeyDown={toggleOnKey}
     >
       <div className="bridge-progress-name">
-        <span className="bridge-progress-epic-caret" aria-hidden="true">{FOLD_CARET}</span>
-        {head.slot === null
-          ? (
-            <>
-              {head.label}
-              <span className="bridge-progress-epic-count">{String(head.memberCount)}</span>
-            </>
-          )
-          : <EpicChips epics={[{ key: head.key, title: head.label, slot: head.slot }]} />}
+        <FoldChevron />
+        {head.slot === null ? head.label : <EpicChips epics={[{ key: head.key, title: head.label, slot: head.slot }]} />}
+        <span className="bridge-progress-epic-count">{rowCountTextOf(head.memberCount)}</span>
         {head.sharedMemberCount === 0
           ? null
           : <span className="bridge-progress-epic-count" title={`${head.sharedMemberCount} of its tickets show under another epic`}>{`+${head.sharedMemberCount} shared`}</span>}
@@ -358,7 +370,7 @@ export function ProgressView({
           resolveBound={resolveBound}
           onApply={applyOverride}
         />
-        <Menu label="Row options" trigger="icon" align="end" triggerName="Row options" triggerTitle="Row options" triggerContent={<Icon name="narrowing-lines" label={null} />}>
+        <Menu label="Row options" trigger="button" align="end" triggerContent={<><Icon name="narrowing-lines" label={null} />Row options</>}>
           <MenuItem
             label="Review passes as rows"
             title="Draw each review pass as a row of its own, above its ticket's row"

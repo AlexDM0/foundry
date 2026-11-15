@@ -5,8 +5,7 @@
  * the message; the composer says whether a message queues and sends `job-message` on Enter; no live session says a fresh one is booting,
  * its Send disabled; and the open and handled incidents sit in the Incidents rail, a delivery linking its Assistant job and an escalation
  * its decision, an applied default in the warning state, each step with its time. The view opens with its title row, and the chat head
- * holds the one Flint slot (100, lane), idle until a decision the Assistant put to User waits, then waiting beside the count that links to
- * Questions.
+ * holds the one Flint slot (100, lane), and the count of the decisions the Assistant put to User links to Questions.
  */
 import {
   act,
@@ -192,24 +191,23 @@ describe('the Assistant view', () => {
 });
 
 describe('the title row and the chat head', () => {
-  test('the view opens with its title, and the chat head holds one idle Flint and no asks while none waits', () => {
+  test('the view opens with its title, and the chat head holds the one Flint slot and no asks while none waits', () => {
     renderedWithBoard(BOARD);
     expect(screen.getByRole('heading', { level: 2, name: 'Assistant' }).dataset['typeRole']).toBe('display');
     expect(screen.getByText('The Overseer\'s Assistant. Talk to it here; its incidents are on the right.')).toBeDefined();
     const flint = screen.getByRole('img', { name: 'Flint, the Assistant' });
-    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['100', 'lane', 'idle']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'lane']);
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
     expect(screen.queryByText(/waits? on User/)).toBeNull();
   });
 
-  test('a decision the Assistant escalated waits on User: Flint waits and the head links the count to Questions', () => {
+  test('a decision the Assistant escalated waits on User: the head links the count to Questions', () => {
     renderedWithBoard({
       ...BOARD,
       decisions: [{
         id: 'E5', kind: 'system-question', ticketIds: ['041'], jobId: null, askedBy: 'assistant', questions: [], context: '', openedAt: AT
       }],
     });
-    expect(screen.getByRole('img', { name: 'Flint, the Assistant' }).dataset['flintPose']).toBe('waiting');
     expect(screen.getByRole('link', { name: '1 decision waits on User' }).getAttribute('href')).toBe('#questions');
   });
 

@@ -2,7 +2,8 @@
  * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/RecordedWatcherStages.ts` playing each session. What matters: a
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
  * are applied request first; a build's launch file asks its Watcher to stop the groups its session left and the Assistant's does not; a
- * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a pass with nothing changed does not run,
+ * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a reply lost after its hold committed is
+ * written again from its `hatch-applied` record, unapplied, and a record carrying no reply leaves it unanswered; a pass with nothing changed does not run,
  * however late; one pass reads the install version once, so its runtime state and notices never disagree; a launched job's Hatch folder
  * watch closes once the job has left the board; and a job the pass hold ends has its session's tokens on its ticket's row by the end of
  * that hold.
@@ -10,6 +11,7 @@
  * holds the real-system claims.
  */
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -40,7 +42,7 @@ import { DataFolderWatch }                                  from '../../src/serv
 import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
 import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
-import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
+import { requireWorkspace, workspacePathsFor }              from '../../src/services/tracker/Workspace.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
 import {
@@ -330,10 +332,76 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {
     const appliedRecords = storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line !== '')
       .map((line) => JSON.parse(line) as { kind: string; fields: unknown }).filter((entry) => entry.kind === 'hatch-applied');
     expect(appliedRecords.map((entry) => entry.fields)).toEqual([
-      { requestId: 'request-1', commandKind: 'ticket-add', outcome: 'done' },
-      { requestId: 'request-forged', commandKind: 'unread', outcome: 'refused' },
+      {
+        requestId: 'request-1', commandKind: 'ticket-add', outcome: 'done', ticketIds: [expect.any(String)]
+      },
+      {
+        requestId:   'request-forged',
+        commandKind: 'unread',
+        outcome:     'refused',
+        status:      'refused',
+        detail:      { kind: 'hatch-identity-mismatch', requestId: 'request-forged', jobId },
+      },
     ]);
     expect(storedProgressOf(repositoryDirectory).tasks.length).toBeGreaterThan(0);
+  });
+
+  test('a commit whose replies were never written (a crash or a Baton takeover) has each reply written again from its record, nothing applied twice', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    const jobId = buildJobId();
+    writeHatchRequest(hatchDirectory(jobId), { ...lowFinding('request-forged', 'Forged finding'), jobId: 'J7' } as never);
+    writeHatchRequest(hatchDirectory(jobId), lowFinding('request-1', 'Example finding'));
+    await passOnce(drivePass);
+    const replyTextOf = (requestId: string): string => readFileSync(hatchReplyFilePathOf(hatchDirectory(jobId), requestId), 'utf8');
+    const firstReplies = [replyTextOf('request-1'), replyTextOf('request-forged')];
+    const logTextAfterCommit = storedLogTextOf(repositoryDirectory);
+    const ticketCountAfterCommit = storedProgressOf(repositoryDirectory).tasks.length;
+
+    rmSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-1'));
+    rmSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-forged'));
+    await passOnce(drivePass);
+    expect([replyTextOf('request-1'), replyTextOf('request-forged')]).toEqual(firstReplies);
+    expect(JSON.parse(replyTextOf('request-1'))).toMatchObject({ outcome: 'done', ticketIds: [expect.any(String)] });
+    expect(storedLogTextOf(repositoryDirectory)).toBe(logTextAfterCommit);
+    expect(storedProgressOf(repositoryDirectory).tasks.length).toBe(ticketCountAfterCommit);
+  });
+
+  test('a reply write cut short after the first reply has only the missing reply written again, the written one left as it is', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    const jobId = buildJobId();
+    writeHatchRequest(hatchDirectory(jobId), lowFinding('request-1', 'Example finding'));
+    writeHatchRequest(hatchDirectory(jobId), lowFinding('request-2', 'Second example finding'));
+    await passOnce(drivePass);
+    const replyFileOf = (requestId: string): string => hatchReplyFilePathOf(hatchDirectory(jobId), requestId);
+    const lostReplyText = readFileSync(replyFileOf('request-2'), 'utf8');
+    // A marker the rebuild would overwrite, so the spec sees the written reply is not touched.
+    const writtenReplyText = `${readFileSync(replyFileOf('request-1'), 'utf8')}\n`;
+    writeFileSync(replyFileOf('request-1'), writtenReplyText);
+
+    rmSync(replyFileOf('request-2'));
+    await passOnce(drivePass);
+    expect(readFileSync(replyFileOf('request-2'), 'utf8')).toBe(lostReplyText);
+    expect(readFileSync(replyFileOf('request-1'), 'utf8')).toBe(writtenReplyText);
+  });
+
+  test('an applied request whose record carries no reply stays unanswered, never applied again', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    const jobId = buildJobId();
+    const appliedWithoutReply = { requestId: 'request-1', commandKind: 'ticket-add', outcome: 'done' };
+    appendFileSync(
+      workspacePathsFor(repositoryDirectory).logFilePath,
+      `${JSON.stringify({
+        at: '2026-09-26T10:15:00+02:00', kind: 'hatch-applied', jobId, fields: appliedWithoutReply
+      })}\n`,
+    );
+    const ticketCountBefore = storedProgressOf(repositoryDirectory).tasks.length;
+    writeHatchRequest(hatchDirectory(jobId), lowFinding('request-1', 'Example finding'));
+    await passOnce(drivePass);
+    expect(existsSync(hatchReplyFilePathOf(hatchDirectory(jobId), 'request-1'))).toBe(false);
+    expect(storedProgressOf(repositoryDirectory).tasks.length).toBe(ticketCountBefore);
   });
 
   test('a request of a Hatch format this Overseer does not read stays pending, unanswered and unlogged, for the Overseer a Baton pass brings', async () => {

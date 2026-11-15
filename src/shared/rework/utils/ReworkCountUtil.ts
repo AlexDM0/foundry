@@ -159,11 +159,23 @@ function asymmetricBlockComments(syntax: CommentSyntax): DelimiterPair[] {
   return syntax.blockComments.filter((pair) => pair.opening !== pair.closing);
 }
 
-function earliestClosingIndex(text: string, from: number, syntax: CommentSyntax): number {
-  const indexes = asymmetricBlockComments(syntax)
-    .map((pair) => text.indexOf(pair.closing, from))
-    .filter((index) => index !== -1);
-  return indexes.length === 0 ? -1 : Math.min(...indexes);
+function isLineEdgeOrWhitespace(character: string | undefined): boolean {
+  return character === undefined || /\s/.test(character);
+}
+
+// A closing delimiter that stands alone, the line's edge or whitespace on both sides: in code a `*/` is mostly part of a token, such as
+// the `\d*/` of a regular expression or the `**/` of a glob, and must not turn the lines before it into comment.
+function standaloneClosingAt(text: string, position: number, syntax: CommentSyntax): DelimiterPair | undefined {
+  return asymmetricBlockComments(syntax).find((pair) => text.startsWith(pair.closing, position)
+    && isLineEdgeOrWhitespace(text[position - 1])
+    && isLineEdgeOrWhitespace(text[position + pair.closing.length]));
+}
+
+function earliestStandaloneClosingIndex(text: string, from: number, syntax: CommentSyntax): number {
+  for (let i = from; i < text.length; i++) {
+    if (standaloneClosingAt(text, i, syntax) !== undefined) return i;
+  }
+  return -1;
 }
 
 /**
@@ -214,7 +226,7 @@ function lexLine(text: string, state: SideState): LineLexing {
 
     if (syntax.lineCommentMarkers.some((marker) => text.startsWith(marker, position))) {
       // Inside a comment the hunk began in, `// x */` is comment text followed by the comment's end.
-      const laterOrphanClosing = state.regionStateIsKnown ? -1 : earliestClosingIndex(text, position, syntax);
+      const laterOrphanClosing = state.regionStateIsKnown ? -1 : earliestStandaloneClosingIndex(text, position, syntax);
       if (laterOrphanClosing === -1) break;
       position = laterOrphanClosing;
       continue;
@@ -230,9 +242,7 @@ function lexLine(text: string, state: SideState): LineLexing {
     }
 
     // A closing delimiter nobody opened in this hunk means the hunk began inside that comment: all before it was comment text.
-    const orphanClosing = state.regionStateIsKnown
-      ? undefined
-      : asymmetricBlockComments(syntax).find((pair) => text.startsWith(pair.closing, position));
+    const orphanClosing = state.regionStateIsKnown ? undefined : standaloneClosingAt(text, position, syntax);
     if (orphanClosing !== undefined) {
       state.regionStateIsKnown   = true;
       closedARegionOpenedEarlier = true;
@@ -291,8 +301,13 @@ function unquotedGitPath(quoted: string): string {
   const encoder = new TextEncoder();
   const inner = quoted.slice(1, -1);
   const namedEscapes: Record<string, string> = {
+    'a':  '\u0007',
+    'b':  '\b',
+    'f':  '\f',
     'n':  '\n',
+    'r':  '\r',
     't':  '\t',
+    'v':  '\v',
     '"':  '"',
     '\\': '\\',
   };

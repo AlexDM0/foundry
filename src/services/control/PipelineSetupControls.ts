@@ -134,7 +134,7 @@ function messagedToTheAgent(changed: PipelineSetupChanged, change: TrackerChange
 export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Board, text: string, at: string): PipelineSetupChanged {
   const { agentJobId } = changed.setup;
   if (agentJobId === null || !agentTakesAMessage(board, agentJobId)) return changed;
-  const messaged = board.messageJob(agentJobId, text, [], at);
+  const messaged = board.messageJobAsOverseer(agentJobId, text, at);
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
 }
 

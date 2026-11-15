@@ -2,17 +2,19 @@
  * The shell against fake services, in a happy-dom document. What matters: every control is disabled while the event stream is down and
  * while launches are held for an install change, a 423 raises that banner with the Overseer's sentence, a refusal shows verbatim beside
  * its control and an unreachable Overseer is said there too, each refused command has Flint refuse, a refused session code or a lost
- * session raises the session banner in place of an empty board, a reconnect to an Overseer running new code reloads the page, each tab
- * routes to its view, the root says whether the board is live so every live animation follows the stream, the theme button stores and
- * applies each choice in turn, a header chip links to its job on the Agents tab and its flag opens that tab, the Waiting on User pill and
- * the tab counts read the board the stream sends, the question panel shows over every tab, hides behind a routed detail and closes on Esc
- * only after it, holds the page's one Flint slot over the Assistant, whose chat head gets its own back once it folds,
+ * session raises the session banner in place of an empty board, a reconnect to an Overseer running new code reloads the page (also when
+ * the identity fetch gave up at load, since the next connection asks again), each tab routes to its view, the root says whether the board
+ * is live so every live animation follows the stream, the theme button stores and applies each choice in turn, a header chip links to its
+ * job on the Agents tab and its flag opens that tab, the Waiting on User pill and the tab counts read the board the stream sends, Mark
+ * defaults seen hands the focus to the panel, the question panel shows over every tab, hides behind a routed detail and closes on Esc only
+ * after it, holds the page's one Flint slot over the Assistant, whose chat head gets its own back once it folds, renders no slot while it
+ * hides behind a detail, also for a decision that arrives then, and the page draws one Flint, the live sprite, in no slot,
  * `#questions/<id>` points it at that question, an embedded page's Esc leaves the board on any route no panel takes it on, Gaia's frame
  * hears `ready`, each route, `leave` and `session-lost` in the versioned channel's shape and is followed on `navigate`, a message of
  * another channel version is answered by nothing, a board control in Gaia's frame shows the Overseer's refusal verbatim and posts
- * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's
- * no-pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there
- * even from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
+ * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's no-
+ * pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even
+ * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
  */
 import {
   act,
@@ -30,6 +32,7 @@ import {
 } from 'bun:test';
 
 import type { FlintHandle }                                        from '../../flint/CreateFlint.ts';
+import { FLINT_OVERLAY_ATTRIBUTE }                                 from '../../flint/SpriteHabitat.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';
@@ -65,14 +68,14 @@ interface FakeBridge {
   readonly sent:         ControlCommandBody[];
   readonly reloads:      () => number;
   readonly answerWith:   (outcome: CommandOutcome) => void;
-  readonly identityNext: (identity: OverseerIdentity) => void;
+  readonly identityNext: (identity: OverseerIdentity | null) => void;
 }
 
 function fakeBridge(): FakeBridge {
   let handlers: EventStreamHandlers | null = null;
   let reloadCount = 0;
   let nextOutcome: CommandOutcome = { verdict: 'applied', outcome: 'done', result: null };
-  let identity = IDENTITY;
+  let identity: OverseerIdentity | null = IDENTITY;
   const sent: ControlCommandBody[] = [];
   const storage = new Map<string, string>();
   return {
@@ -401,6 +404,17 @@ describe('the incident line', () => {
     expect((line as Node).compareDocumentPosition(document.querySelector('.bridge-header') as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  test('Mark defaults seen moves the focus to the panel, not to the body, since its button goes with the line', async () => {
+    const bridge = fakeBridge();
+    await renderedLive(bridge, boardWithDefaults(INCIDENT_BOARD));
+    fireEvent.click(screen.getByRole('button', { name: 'Show incidents' }));
+    const markButton = screen.getByRole('button', { name: 'Mark defaults seen' });
+    markButton.focus();
+    fireEvent.click(markButton);
+    expect(incidentLine()).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+
   test('Mark defaults seen stores the noticed ids for this board in this browser and hides the line until a new default', async () => {
     const bridge = fakeBridge();
     await renderedLive(bridge, boardWithDefaults(INCIDENT_BOARD));
@@ -439,6 +453,25 @@ describe('new code behind the same port', () => {
       await Promise.resolve();
     });
     expect(bridge.reloads()).toBe(0);
+    bridge.identityNext({ ...IDENTITY, codeVersion: 'code-2' });
+    await act(async () => {
+      bridge.stream().onConnection('down');
+      bridge.stream().onConnection('live');
+      await Promise.resolve();
+    });
+    expect(bridge.reloads()).toBe(1);
+  });
+
+  test('an identity fetch that gave up at load is asked again on the next connection, which turns the reload on new code back on', async () => {
+    const bridge = fakeBridge();
+    bridge.identityNext(null);
+    await renderedLive(bridge);
+    bridge.identityNext(IDENTITY);
+    await act(async () => {
+      bridge.stream().onConnection('down');
+      bridge.stream().onConnection('live');
+      await Promise.resolve();
+    });
     bridge.identityNext({ ...IDENTITY, codeVersion: 'code-2' });
     await act(async () => {
       bridge.stream().onConnection('down');
@@ -588,10 +621,10 @@ describe('the shell\'s routing', () => {
 });
 
 describe('the question panel', () => {
-  const panelBoard = (): unknown => ({
+  const panelBoard = (decisions: readonly unknown[] = [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }]): unknown => ({
     ...BOARD,
     ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
-    decisions:       [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }],
+    decisions,
     questionHistory: [],
   });
 
@@ -675,29 +708,51 @@ describe('the question panel', () => {
     expect(bridge.storage.get(`${PRODUCT_NAMES.STORAGE_PREFIX}:${IDENTITY.trackerId}:question-panel`)).toBe('["E7"]');
   });
 
-  const shownFlintSlots = (): Element[] => [...document.querySelectorAll('.design-system-flint-slot')].filter((slot) => slot.closest('[hidden]') === null);
+  const flintSlots = (): Element[] => [...document.querySelectorAll('.design-system-flint-slot')];
+
+  /** The page shows one Flint: the live sprite, and a slot is only a place it visits, drawing nothing of its own. */
+  function expectOneFlint(): void {
+    expect(document.querySelectorAll(`svg[${FLINT_OVERLAY_ATTRIBUTE}]`)).toHaveLength(1);
+    expect(flintSlots().filter((slot) => slot.childElementCount > 0)).toEqual([]);
+  }
 
   test('over the Assistant the panel holds the page\'s one Flint slot, and a fold gives the chat head its own back', async () => {
     window.location.hash = '#assistant';
     await renderedWithIdentity(fakeBridge());
     expect(questionPanel()).not.toBeNull();
-    expect(shownFlintSlots()).toHaveLength(1);
-    expect(shownFlintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
+    expect(flintSlots()).toHaveLength(1);
+    expect(flintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
     act(() => {
       fireEvent.click(within(questionPanel() as HTMLElement).getByRole('button', { name: 'Fold to the tab' }));
     });
-    expect(shownFlintSlots()).toHaveLength(1);
-    expect(shownFlintSlots()[0]?.closest('.bridge-assistant-chat-head')).not.toBeNull();
+    expect(flintSlots()).toHaveLength(1);
+    expect(flintSlots()[0]?.closest('.bridge-assistant-chat-head')).not.toBeNull();
+    expectOneFlint();
   });
 
   test('on a routed ticket of the Kanban the detail\'s state card holds the page\'s one Flint slot, and the question panel holds it once the detail closes', async () => {
     window.location.hash = '#kanban/ticket/002';
     await renderedWithIdentity(fakeBridge());
-    expect(shownFlintSlots()).toHaveLength(1);
-    expect(shownFlintSlots()[0]?.closest('.bridge-detail-state-card')).not.toBeNull();
+    expect(flintSlots()).toHaveLength(1);
+    expect(flintSlots()[0]?.closest('.bridge-detail-state-card')).not.toBeNull();
     await routeTo('#kanban');
-    expect(shownFlintSlots()).toHaveLength(1);
-    expect(shownFlintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
+    expect(flintSlots()).toHaveLength(1);
+    expect(flintSlots()[0]?.closest('.bridge-question-panel')).not.toBeNull();
+    expectOneFlint();
+  });
+
+  test('a decision that arrives while a ticket detail is open puts no slot behind the detail, whose state card keeps the page\'s one', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const bridge = fakeBridge();
+    await renderedLive(bridge, panelBoard([]));
+    await act(async () => {
+      bridge.stream().onEvent('board', panelBoard());
+      await Promise.resolve();
+    });
+    expect(document.querySelector('.bridge-question-panel[hidden]')).not.toBeNull();
+    expect(flintSlots()).toHaveLength(1);
+    expect(flintSlots()[0]?.closest('.bridge-detail-state-card')).not.toBeNull();
+    expectOneFlint();
   });
 });
 

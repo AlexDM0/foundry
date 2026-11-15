@@ -1,6 +1,8 @@
-/* A state's dot in its shape: a solid dot, a ring or a dashed ring; 8px, small 7px, tiny 6px. */
+/* A state's dot in its shape: a solid dot, a ring or a dashed ring; 8px, small 7px, tiny 6px. It keeps its size in a line of text too. */
 .design-system-state-dot {
+  display: inline-block;
   flex: none;
+  vertical-align: middle;
   box-sizing: border-box;
   width: 8px;
   height: 8px;

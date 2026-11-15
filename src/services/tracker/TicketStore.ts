@@ -3,9 +3,10 @@
  * file is a listing entry and a `null`, so one broken file cannot take down `status` or `render`.
  */
 
-import { join }                  from 'node:path';
+import { basename, join }        from 'node:path';
 import { ProgressFileIngestion } from '../../adapters/progress/ProgressFileIngestion.ts';
 import { TicketFileIngestion }   from '../../adapters/tickets/TicketFileIngestion.ts';
+import type { LogRecord }        from '../../lib/tracker-model/@types/LogRecord.ts';
 import type {
   Ticket,
   TicketFrontmatter,
@@ -40,6 +41,15 @@ export interface CreateTicketInput {
   bodyFor:   (ticketId: string) => string;
   /** The timestamp the ticket records as both `filed` and `updated`; the caller owns the clock. */
   at:        string;
+}
+
+/**
+ * What a hold has spent beyond the disk: the Board's tickets, a filed one not yet written among them, and every ticket its log names as
+ * filed, a ticket deleted by hand among them. A Board satisfies it.
+ */
+export interface TicketsSpentInHold {
+  tickets():         readonly Readonly<Pick<Ticket, 'frontmatter' | 'filePath'>>[];
+  logRecordsSoFar(): readonly LogRecord[];
 }
 
 const TICKET_FILE_EXTENSION      = '.md';
@@ -108,11 +118,11 @@ export function readTicket(workspace: Workspace, reference: string): Ticket | nu
 }
 
 /**
- * One past the highest of every file name's number, every parsed frontmatter `id` and every `ticket` a row in the progress file
- * names, so neither a malformed file, a file renamed by hand nor a row whose ticket file was never written has its id issued again.
- * Gaps are tolerated and never filled.
+ * One past the highest of every file name's number, every parsed frontmatter `id`, every `ticket` a row in the progress file names
+ * and every ticket the hold spent, so neither a malformed file, a file renamed or deleted by hand, a row whose ticket file was never
+ * written nor a ticket filed earlier in the same hold has its id issued again. Gaps are tolerated and never filled.
  */
-export function nextTicketId(workspace: Workspace): string {
+export function nextTicketId(workspace: Workspace, spentInHold: TicketsSpentInHold): string {
   let highest = 0;
   const markIdentifierSpent = (identifier: string | null): void => {
     if (identifier !== null) highest = Math.max(highest, Number(identifier));
@@ -126,13 +136,19 @@ export function nextTicketId(workspace: Workspace): string {
   for (const identifier of ticketIdsNamedByTaskRows(workspace)) {
     markIdentifierSpent(identifier);
   }
+  for (const ticket of spentInHold.tickets()) {
+    markIdentifierSpent(ticket.frontmatter.id);
+  }
+  for (const record of spentInHold.logRecordsSoFar()) {
+    if (record.kind === 'ticket-filed') markIdentifierSpent(TicketIdUtil.parseTicketReference(record.ticketId));
+  }
   return TicketIdUtil.padTicketId(Math.max(highest + 1, FIRST_TICKET_NUMBER));
 }
 
 /** Writes nothing: the caller holds the lock and writes the ticket after the progress file, so the id it assigns is only safe to use inside that hold. */
-export function createTicket(workspace: Workspace, input: CreateTicketInput): Ticket {
-  const identifier  = nextTicketId(workspace);
-  const fileName    = `${identifier}-${unusedSlugFor(workspace, slugFromTitle(input.title))}${TICKET_FILE_EXTENSION}`;
+export function createTicket(workspace: Workspace, spentInHold: TicketsSpentInHold, input: CreateTicketInput): Ticket {
+  const identifier  = nextTicketId(workspace, spentInHold);
+  const fileName    = `${identifier}-${unusedSlugFor(workspace, spentInHold, slugFromTitle(input.title))}${TICKET_FILE_EXTENSION}`;
   const frontmatter: TicketFrontmatter = {
     id:          identifier,
     title:       input.title,
@@ -194,8 +210,9 @@ function ticketFileNamesIn(workspace: Workspace): string[] {
 }
 
 /** The id already makes the path unique, so the `-2` suffix buys readability, not collision safety. */
-function unusedSlugFor(workspace: Workspace, slug: string): string {
-  const takenSlugs = new Set(ticketFileNamesIn(workspace).map(slugPortionOf));
+function unusedSlugFor(workspace: Workspace, spentInHold: TicketsSpentInHold, slug: string): string {
+  const heldFileNames = spentInHold.tickets().map((ticket) => basename(ticket.filePath));
+  const takenSlugs    = new Set([...ticketFileNamesIn(workspace), ...heldFileNames].map(slugPortionOf));
   let candidate    = slug;
   let attempt      = 2;
 

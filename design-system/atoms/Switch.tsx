@@ -1,6 +1,6 @@
 /**
  * An on and off switch: a button of role `switch` whose `aria-checked` is its state, drawn as a track and a knob that slides by a transform,
- * so the move never changes the layout. A click, Space or Enter hands the toggle on; a disabled switch hands nothing on.
+ * so the move never changes the layout. A click, Space or Enter hands the toggle on, a held key once; a disabled switch hands nothing on.
  */
 import type { KeyboardEvent } from 'react';
 
@@ -18,9 +18,10 @@ export function Switch({
 }: SwitchProps) {
   const toggleOnKey = (event: KeyboardEvent<HTMLButtonElement>): void => {
     if (event.key !== ' ' && event.key !== 'Enter') return;
-    // Toggled here, once, on the key's press; the default is stopped so the button's own click does not toggle it a second time.
+    // Toggled here, once, on the key's press, never on its auto-repeat; the default is stopped so the button's own click does not toggle
+    // it a second time.
     event.preventDefault();
-    if (!disabled) onToggle();
+    if (!disabled && !event.repeat) onToggle();
   };
 
   return (

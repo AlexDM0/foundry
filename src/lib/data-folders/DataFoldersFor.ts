@@ -6,11 +6,12 @@ import type { DataFolders }         from './DataFolders.ts';
 import { createPosixDataFolders }   from './PosixDataFolders.ts';
 import { createWindowsDataFolders } from './WindowsDataFolders.ts';
 
-export function dataFoldersFor(platform: string, monitorFolderName: string): DataFolders {
+/** `systemRoot` is Windows' `SystemRoot`, read only there. */
+export function dataFoldersFor(platform: string, monitorFolderName: string, systemRoot: () => string | undefined = () => undefined): DataFolders {
   if (platform === 'darwin' || platform === 'linux') {
     return createPosixDataFolders({ temporaryDirectory: tmpdir, monitorFolderName, foldsCase: platform === 'darwin' });
   }
-  if (platform === 'win32') return createWindowsDataFolders({ temporaryDirectory: tmpdir, monitorFolderName });
+  if (platform === 'win32') return createWindowsDataFolders({ temporaryDirectory: tmpdir, monitorFolderName, systemRoot });
   const refuse = (): never => {
     throw new Error(`no data folders exist for the platform ${platform}`);
   };

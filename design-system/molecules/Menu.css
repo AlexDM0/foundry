@@ -1,5 +1,5 @@
 /* A menu: its trigger, outlined, an icon or a button, over a popover of 32px items on the surface; a signal dot on the trigger or an
-   item marks it. */
+   item marks it. A pressed trigger scales inside its own box, and the popover drops in and lifts away. */
 .design-system-menu { position: relative; display: flex; min-width: 0; }
 .design-system-menu-button[data-trigger="outlined"] {
   position: relative;
@@ -13,6 +13,7 @@
   border: 1px solid var(--line-strong); border-radius: var(--r-2);
   cursor: pointer;
 }
+.design-system-menu-button { transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out); }
 .design-system-menu-button[data-trigger="icon"] {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; padding: 0;
@@ -26,6 +27,7 @@
 .design-system-menu-button[data-trigger="outlined"]:hover,
 .design-system-menu-button[data-trigger="icon"]:hover { filter: brightness(0.94); }
 .design-system-menu-button[data-trigger="icon"][aria-expanded="true"] { border-color: var(--line-strong); }
+.design-system-menu-button:not([data-trigger="button"]):active { transform: scale(0.98); }
 .design-system-menu-button:focus-visible,
 .design-system-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .design-system-menu-button[data-marked]::after,
@@ -44,6 +46,7 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--r-3);
   box-shadow: var(--shadow-menu);
+  animation: design-system-drop var(--motion-base) var(--ease-out) both;
 }
 .design-system-menu-popover[data-align="end"] { right: 0; left: auto; }
 .design-system-menu-popover[data-wide] { width: min(356px, calc(100vw - 2 * var(--sp-4))); }
@@ -83,8 +86,10 @@
 .design-system-menu-insert-glyph { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .design-system-menu-popover[data-trigger="insert"] {
   top: calc(-1 * var(--space-6)); left: calc(100% + var(--space-8)); width: 268px; box-sizing: border-box;
-  animation: design-system-menu 260ms var(--ease-out) both;
+  animation: design-system-menu var(--motion-fade) var(--ease-out) both;
 }
+.design-system-menu-popover[data-motion="out"] { animation: design-system-drop var(--motion-fast) var(--ease-out) reverse both; }
+.design-system-menu-popover[data-trigger="insert"][data-motion="out"] { animation: design-system-menu var(--motion-fast) var(--ease-out) reverse both; }
 .design-system-menu-heading {
   padding: var(--space-4) var(--space-10) var(--space-6); font-size: var(--fs-micro); font-weight: 600; line-height: var(--line-height-micro); letter-spacing: var(--letter-spacing-micro);
   text-transform: uppercase; color: var(--ink-4);
@@ -92,7 +97,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-menu-button[data-trigger="insert"][aria-expanded="false"],
-  .design-system-menu-popover[data-trigger="insert"] { animation: none; }
+  .design-system-menu-popover,
+  .design-system-menu-popover[data-trigger="insert"],
+  .design-system-menu-popover[data-motion],
+  .design-system-menu-popover[data-trigger][data-motion] { animation: none; }
+  .design-system-menu-button:not([data-trigger="button"]):active { transform: none; }
 }
 @keyframes design-system-menu { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
 @keyframes design-system-ring {

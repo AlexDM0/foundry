@@ -8,19 +8,19 @@ import {
   linkSync,
   openSync,
   renameSync,
-  unlinkSync,
-  writeSync
+  unlinkSync
 } from 'node:fs';
 
 import type { FileReplace }                                            from './FileReplace.ts';
 import { createPosixFileReplace }                                      from './PosixFileReplace.ts';
 import { createWindowsFileReplace, type WindowsFileReplacePrimitives } from './WindowsFileReplace.ts';
+import { writeEveryByte }                                              from './WriteEveryByte.ts';
 
 function createNewFile(path: string, contents: string): void {
   const fileDescriptor = openSync(path, 'wx');
   try {
     try {
-      writeSync(fileDescriptor, contents);
+      writeEveryByte(fileDescriptor, contents);
       fsyncSync(fileDescriptor);
     } finally {
       closeSync(fileDescriptor);

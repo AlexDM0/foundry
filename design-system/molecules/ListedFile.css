@@ -1,5 +1,5 @@
-/* One instruction file, an option row on the page ground: its mono name, what it is, an action and a remove ×; a change tints its ground
-   in the change marker's colour, and a removed name is struck. */
+/* One instruction file, an option row on the page ground: a document glyph, its mono name, what it is, an action and a remove ×; a
+   change tints its ground in the change marker's colour, and a removed name is struck. */
 .design-system-listed-file {
   display: flex; align-items: center; gap: var(--space-10);
   height: 32px; padding: 0 var(--space-10);
@@ -9,6 +9,7 @@
   transition: var(--feedback-transition);
 }
 .design-system-listed-file:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-listed-file-glyph { display: flex; flex: none; width: 14px; height: 14px; color: var(--ink-muted); }
 .design-system-listed-file-name { flex: 1 1 auto; min-width: 0; overflow: hidden; font-family: var(--font-mono); white-space: nowrap; text-overflow: ellipsis; }
 .design-system-listed-file-role { flex: none; font-size: var(--fs-micro); color: var(--ink-4); }
 .design-system-listed-file > .design-system-icon-button { width: 18px; height: 18px; font-size: 14px; color: var(--ink-4); background: transparent; border: 0; border-radius: var(--r-1); }

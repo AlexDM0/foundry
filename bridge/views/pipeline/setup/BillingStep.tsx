@@ -10,7 +10,6 @@ import { ActionBar }                       from 'design-system/ActionBar';
 import { Button }                          from 'design-system/Button';
 import { Card }                            from 'design-system/Card';
 import { ChoiceInput, ChoiceOption }       from 'design-system/ChoiceOption';
-import { FlintSlot }                       from 'design-system/FlintSlot';
 import { Row }                             from 'design-system/Row';
 import { Tag }                             from 'design-system/Tag';
 import { Text }                            from 'design-system/Text';
@@ -18,6 +17,8 @@ import { View }                            from 'design-system/View';
 import { useId, useState, type ReactNode } from 'react';
 
 import type { PipelineSetup }                        from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { FlintSlotHabitat }                          from '../../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                       from '../../../flint/FlintSlotHabitats.ts';
 import { CommandButton }                             from '../../../shell/CommandButton.tsx';
 import { useCoveringPanelHoldsTheFlintSlot }         from '../../../shell/CoveringPanel.ts';
 import { HashRouter }                                from '../../../shell/HashRouter.ts';
@@ -143,7 +144,16 @@ function MeetFlint() {
   return (
     <>
       <Row centerY gap="fourteen">
-        {flintSlotIsCovered ? null : <FlintSlot label={PIPELINE_AGENT_FLINT_LABEL} size="100" ground="page" pose="waving" />}
+        {flintSlotIsCovered
+          ? null
+          : (
+            <FlintSlotHabitat
+              habitat={FLINT_SLOT_HABITATS.setup}
+              cue={null}
+              label={PIPELINE_AGENT_FLINT_LABEL}
+              ground="page"
+            />
+          )}
         <View gap="four">
           <Text typeRole="page" element="h4">Meet Flint</Text>
           <Text muted>Your pipeline agent. You work out the pipeline together.</Text>

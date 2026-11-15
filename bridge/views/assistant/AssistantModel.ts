@@ -3,7 +3,6 @@
  * messages it has not taken yet as queued bubbles; the composer's status; its open incidents; and the handled ones read back from the log
  * through `IncidentTrailUtil`, each with the moves, notes and escalations made under it.
  */
-import type { FlintPose }  from 'design-system/FlintSlot';
 import type { StampProps } from 'design-system/Stamp';
 import type { TagProps }   from 'design-system/Tag';
 
@@ -18,6 +17,7 @@ import type {
 import type { ChatTurn }                         from '../../conversation/ChatThread.tsx';
 import type { ChatThreadItem, QueuedMessage }    from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                   from '../../conversation/ChatTurnWordingUtil.ts';
+import { FLINT_SLOT_CUES, type FlintSlotCue }    from '../../flint/FlintSlotCues.ts';
 import { IncidentTrailUtil, type IncidentEntry } from '../../utils/IncidentTrailUtil.ts';
 import { JobStateUtil }                          from '../../utils/JobStateUtil.ts';
 import { StateToneUtil }                         from '../../utils/StateToneUtil.ts';
@@ -94,9 +94,9 @@ function assistantModelOf(board: ConversationBoardDocument): AssistantModel {
   };
 }
 
-/** Flint waits while one of the Assistant's asks waits on User, and idles otherwise. */
-function flintPoseOf(model: Pick<AssistantModel, 'askingDecisionCount'>): FlintPose {
-  return model.askingDecisionCount > 0 ? 'waiting' : 'idle';
+/** The cue of Flint's slot: the Assistant waits on User while one of its asks waits, and is idle otherwise. */
+function flintCueOf(model: Pick<AssistantModel, 'askingDecisionCount'>): FlintSlotCue {
+  return model.askingDecisionCount > 0 ? FLINT_SLOT_CUES.AGENT_WAITS_ON_USER : FLINT_SLOT_CUES.AGENT_IS_IDLE;
 }
 
 /** "1 decision waits on User", "2 decisions wait on User"; nothing while none waits. */
@@ -166,5 +166,5 @@ function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts):
 }
 
 export const AssistantModelUtil = Object.freeze({
-  assistantModelOf, flintPoseOf, askingDecisionsTextOf, stepStampOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
+  assistantModelOf, flintCueOf, askingDecisionsTextOf, stepStampOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
 });

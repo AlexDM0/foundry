@@ -19,7 +19,7 @@ export function IntakeSessionRow({ session, selected }: { readonly session: Inta
         href={HashRouter.fragmentOf({ tab: 'intake', item: session.jobId })}
         aria-current={selected ? 'true' : undefined}
         aria-label={`Intake ${session.jobId}`}
-        data-closed={session.closed ? '' : undefined}
+        data-closed={session.ended ? '' : undefined}
       >
         <span className="bridge-intake-session-top">
           <MonoId text={session.jobId} tone="strong" weight="bold" />

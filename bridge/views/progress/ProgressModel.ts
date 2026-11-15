@@ -58,23 +58,25 @@ export interface ProgressBarModel {
 }
 
 export interface ProgressRowModel {
-  readonly taskId:           number;
+  readonly taskId:                 number;
   /** The ticket a row's own label links to; a review bar and a ticketless row link nowhere. */
-  readonly linkedTicketId:   string | null;
+  readonly linkedTicketId:         string | null;
   /** The ticket the row is or reviews, which the epic grouping files it under; null for a ticketless row. */
-  readonly groupTicketId:    string | null;
-  readonly labelText:        string;
-  readonly nameText:         string;
-  readonly nameTitle:        string;
-  readonly stateToken:       DisplayState;
-  readonly isLive:           boolean;
-  readonly chipText:         string;
-  readonly chipTitle:        string;
+  readonly groupTicketId:          string | null;
+  readonly labelText:              string;
+  readonly nameText:               string;
+  readonly nameTitle:              string;
+  readonly stateToken:             DisplayState;
+  readonly isLive:                 boolean;
+  readonly chipText:               string;
+  readonly chipTitle:              string;
+  /** A delivered row the Board counts as reviewed first: its badge ends in the check. */
+  readonly chipShowsReviewedCheck: boolean;
   /** The ticket whose row this review row is drawn directly above, or null at the top level. */
-  readonly nestedWithTicket: string | null;
-  readonly bars:             readonly ProgressBarModel[];
-  readonly clippedLeft:      boolean;
-  readonly clippedRight:     boolean;
+  readonly nestedWithTicket:       string | null;
+  readonly bars:                   readonly ProgressBarModel[];
+  readonly clippedLeft:            boolean;
+  readonly clippedRight:           boolean;
 }
 
 export interface ProgressChartModel {
@@ -123,7 +125,6 @@ interface NumberedReview {
 /** Only the prefix is read, as when the bar was filed: `Review 2 #13, #5 — …` is round 2. */
 const REVIEW_BAR_NAME_PATTERN = /^Review (\d+) #\d+/;
 const WAITING_CHIP_LABEL = 'Waiting';
-const REVIEWED_CHIP_SUFFIX = ' ✓';
 const FITTED_RANGE_TITLE = 'Fitted to the rows shown; re-fits when the finished-work choice changes';
 const HELD_RANGE_TITLE = 'Held: this range stays when the finished-work choice changes; Fit follows the rows again';
 
@@ -312,22 +313,21 @@ function rowModelOf(placed: PlacedRow, state: ProgressBoardState, todayCalendarD
   const reviewedTitle = task.reviewed === undefined ? 'Reviewed before it was done' : `Reviewed ${TimeUtil.fullStampText(task.reviewed, limits)} before it was done`;
   const drawnBars = [row.bar, ...reviewSegments.map(({ review }) => review.bar)].filter((bar) => bar.visible);
   return {
-    taskId:         task.id,
-    linkedTicketId: task.ticket,
-    groupTicketId:  task.ticket ?? nestedWithTicket ?? task.reviewOf ?? null,
-    labelText:      RowLabelUtil.rowLabelOf(task),
-    nameText:       RowLabelUtil.displayedRowNameOf(task),
-    nameTitle:      nameTitleOf(row),
-    stateToken:     row.displayState,
-    isLive:         row.displayState === 'in-progress' || row.displayState === 'reviewing' || row.displayState === 're-review',
-    chipText:       row.displayState === 'pending' && row.waitingOn.length > 0
-      ? WAITING_CHIP_LABEL
-      : `${fullLabel}${row.deliveredRowCountsAsReviewed ? REVIEWED_CHIP_SUFFIX : ''}`,
-    chipTitle:    row.deliveredRowCountsAsReviewed ? `${fullLabel} · ${reviewedTitle}` : fullLabel,
+    taskId:                 task.id,
+    linkedTicketId:         task.ticket,
+    groupTicketId:          task.ticket ?? nestedWithTicket ?? task.reviewOf ?? null,
+    labelText:              RowLabelUtil.rowLabelOf(task),
+    nameText:               RowLabelUtil.displayedRowNameOf(task),
+    nameTitle:              nameTitleOf(row),
+    stateToken:             row.displayState,
+    isLive:                 row.displayState === 'in-progress' || row.displayState === 'reviewing' || row.displayState === 're-review',
+    chipText:               row.displayState === 'pending' && row.waitingOn.length > 0 ? WAITING_CHIP_LABEL : fullLabel,
+    chipTitle:              row.deliveredRowCountsAsReviewed ? `${fullLabel} · ${reviewedTitle}` : fullLabel,
+    chipShowsReviewedCheck: row.deliveredRowCountsAsReviewed,
     nestedWithTicket,
-    bars:         [...ownBarsOf(row, reviewPassRound), ...reviewSegmentBarsOf(reviewSegments, state, todayCalendarDate)],
-    clippedLeft:  drawnBars.some((bar) => bar.clippedLeft),
-    clippedRight: drawnBars.some((bar) => bar.clippedRight),
+    bars:                   [...ownBarsOf(row, reviewPassRound), ...reviewSegmentBarsOf(reviewSegments, state, todayCalendarDate)],
+    clippedLeft:            drawnBars.some((bar) => bar.clippedLeft),
+    clippedRight:           drawnBars.some((bar) => bar.clippedRight),
   };
 }
 

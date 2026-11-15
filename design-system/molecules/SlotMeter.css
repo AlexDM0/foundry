@@ -1,5 +1,13 @@
-/* Slots: one small cell per slot of the limit, filled in its state's fill, and a cell in the orange edge for each past the limit. */
-.design-system-slot-meter { display: inline-flex; flex: none; gap: var(--space-2); }
-.design-system-slot-meter-cell { width: 14px; height: 8px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 2px; }
-.design-system-slot-meter-cell[data-cell="filled"] { background: var(--s-fill); border-color: var(--s-fill); }
-.design-system-slot-meter-cell[data-cell="over"] { background: var(--accent-edge); border-color: var(--accent-edge); }
+/* Slots: one small square per slot of the limit, dashed while free, filled in its state's fill, and a square in the orange edge for each
+   past the limit. A square turns its colour as it fills, and a square past the limit pops in. */
+.design-system-slot-meter { display: inline-flex; flex: none; gap: var(--space-3); }
+.design-system-slot-meter-cell {
+  box-sizing: border-box; width: 12px; height: 12px; background: transparent; border: 1.5px dashed var(--line-strong); border-radius: 2px;
+  transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+.design-system-slot-meter-cell[data-cell="filled"] { background: var(--s-fill); border-style: solid; border-color: var(--s-fill); }
+.design-system-slot-meter-cell[data-cell="over"] { background: var(--accent-edge); border-style: solid; border-color: var(--accent-edge); animation: design-system-pop var(--motion-pop) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-slot-meter-cell[data-cell] { animation: none; }
+}

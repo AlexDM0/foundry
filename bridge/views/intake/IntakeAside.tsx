@@ -67,7 +67,7 @@ export function IntakeAside({ session, pictures }: IntakeAsideProps) {
             </ul>
           </div>
         )}
-      {session.closed
+      {session.ended
         ? null
         : (
           <div className="bridge-intake-close">

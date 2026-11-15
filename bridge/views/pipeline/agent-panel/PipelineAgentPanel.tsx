@@ -38,20 +38,22 @@ export function PipelineAgentPanel({
 }: PipelineAgentPanelProps) {
   const { record } = setup;
   const { agentJobId } = record;
-  const entries = useTranscript(agentJobId, followTranscript);
+  const { entries, historyKey } = useTranscript(agentJobId, followTranscript);
   const cards = PipelineAgentPanelModel.questionCardsOf(record.questions, step, record.findings);
   const activityLine = PipelineAgentPanelModel.activityLineOf(entries);
   const turns = agentJobId === null ? [] : PipelineAgentPanelModel.chatTurnsOf(entries, agentJobId, todayCalendarDate);
   return (
     <>
-      <PipelinePanelBody>
+      <PipelinePanelBody followsEnd>
         {beforeChat}
-        {turns.length === 0 ? null : <ChatThread label={`Conversation of ${agentJobId ?? PIPELINE_AGENT_SPEAKER}`} turns={turns} renderDecision={() => null} />}
+        {turns.length === 0
+          ? null
+          : <ChatThread label={`Conversation of ${agentJobId ?? PIPELINE_AGENT_SPEAKER}`} turns={turns} renderDecision={() => null} historyKey={historyKey} />}
         {afterChat}
         {activityLine === null ? null : <TypingIndicator text={activityLine} accessibleName={`${PIPELINE_AGENT_SPEAKER} is working`} />}
         {cards.map((card) => <SetupQuestionForm key={card.questionId} setupId={record.setupId} card={card} layout="stack" />)}
       </PipelinePanelBody>
-      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, record)} /> : null}
+      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, record, setup.agentJobState)} /> : null}
       <PipelinePanelFoot>
         <Composer
           label="Message the pipeline agent"

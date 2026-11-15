@@ -28,7 +28,7 @@ design-system/
   atoms/              one element, or a small fixed group of elements: Button, Icon, StateDot, View, Text
   molecules/          a logical combination of atoms: Row, Card, Tag, ConfirmStrip
   organisms/          a larger composition: Dialog, SidePanel, Tabs, MultipleChoiceQuestion
-  utils/              helpers that are not components: Dismissal, RovingFocusUtil, SpacingStyleUtil
+  utils/              helpers that are not components: Dismissal, Presence, ValueChange, RovingFocusUtil, SpacingStyleUtil
   constants/          design decisions as values: SPACING, the spacing scale, each step a token of tokens.css
   @types/             types several layers share: StateTone and StateDotShape
   styles/             tokens.css, base.css, keyframes.css and the entry stylesheet design-system.css
@@ -71,8 +71,11 @@ design-system/
   look from a state's name. `PackageIsolation.spec.ts` holds that no file names a word of the host: its names, its
   views and its lifecycle. The scan reads every file, this constitution and the README among them, so neither names
   the host either.
-- **The handoff's names are the design's own vocabulary, not host words:** `FlintSlot` with its poses and grounds, the
+- **The handoff's names are the design's own vocabulary, not host words:** `FlintSlot` with its sizes and grounds, the
   `decision` flag of `Card`, and the tokens such as `--lane-bg` and `--pass-tint`.
+- **A place that the host fills is an empty box with a ref prop.** `FlintSlot` draws no sprite and says nothing of what
+  the sprite does. It is the square box (its size, its ground and its accessible name), and it gives its element through
+  `slotRef`. The host puts its sprite there. Each size is at least 100px square.
 - **Graphs, charts, Gantt charts, flow graphs and editors are not design system.** They stay in the host and compose
   the package. The owner's criticism of an earlier app was that "lib components and design system are mixed in there".
 - **A building block of the host that draws data** (a dependency graph, a Gantt chart, a markdown editor) is a lib
@@ -198,6 +201,14 @@ design-system/
 - **Every motion token is `0ms` until the host sets `data-motion="ready"`** on the root, after the first paint.
 - **Reduced motion stops everything.** Under `prefers-reduced-motion: reduce`, every motion token is `0ms` and every
   animation stops, the pressed scale too. The reduce rule wins over the rule it stops.
+- **Motion explains a change:** a part that appears, leaves, changes state, is pressed or is counted. It is
+  short, and it never plays only because the page renders again.
+- **Each duration and delay of a motion that plays once is a motion token, or a `calc()` of one,** so the
+  first paint and reduced motion zero it. A new token is zeroed in both zeroing blocks of `styles/tokens.css`.
+  The toast's reading time is no motion: reduced motion keeps it.
+- **A part that leaves animates out through `usePresence` (`utils/Presence.ts`),** inert while it goes. A
+  number that ticks when it changes keys its element through `useValueChange` (`utils/ValueChange.ts`), so the
+  first showing plays nothing.
 
 ### Fonts
 

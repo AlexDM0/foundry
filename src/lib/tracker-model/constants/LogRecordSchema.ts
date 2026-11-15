@@ -62,6 +62,9 @@ export type LogFieldShape =
   | 'optional-flag'
   | 'optional-cost-usd'
   | 'optional-pictures'
+  | 'optional-ticket-ids'
+  | 'optional-refusal-status'
+  | 'optional-refusal-detail'
   | 'setup-mode'
   | 'billing-mode'
   | 'setup-step'
@@ -287,13 +290,14 @@ export const LOG_RECORD_SCHEMA = {
   // User's stop, wind-down or fresh agent, recorded whether or not a Watcher is up; the Overseer sends the frames from the job record.
   'job-stop-requested': { subject: 'job', fields: { mode: 'job-stop-mode' } },
   // A chat turn for the session, which the Overseer writes from the log in order; `pictures` is set only when User sent some.
-  'job-messaged':       { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures' } },
-  // User messaged a closed product owner: `watcherInstance` resumes its session with `text` (and `pictures`, when set) first;
-  // `offeredTicketIds` is recorded only.
+  // `byOverseer` is set only on the Overseer's own wording of User's setup move, so the transcript never reads it as User's.
+  'job-messaged':       { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byOverseer: 'optional-flag' } },
+  // A message reopened a closed product owner or pipeline agent: `watcherInstance` resumes its session with `text` (and `pictures`,
+  // when set) first; `offeredTicketIds` is recorded only; `byOverseer` as on `job-messaged`.
   'job-reopened':       {
     subject: 'job',
     fields:  {
-      watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures'
+      watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byOverseer: 'optional-flag'
     },
   },
   // The product owner's short title for its intake; a later record replaces an earlier one.
@@ -329,8 +333,14 @@ export const LOG_RECORD_SCHEMA = {
   },
   // The Overseer moved `target` to `commit`: the list of tips it landed, which a moved target is judged against.
   'merge-landed':  { subject: 'job', fields: { target: 'text', commit: 'text', kind: 'landing-kind' } },
-  // A relayed request the Overseer answered, so a replay of its request file never applies it twice.
-  'hatch-applied': { subject: 'job', fields: { requestId: 'text', commandKind: 'text', outcome: 'text' } },
+  // A relayed request the Overseer answered, so a replay of its request file never applies it twice, with what its reply carried, so a
+  // reply lost after the hold committed is written again.
+  'hatch-applied': {
+    subject: 'job',
+    fields:  {
+      requestId: 'text', commandKind: 'text', outcome: 'text', ticketIds: 'optional-ticket-ids', status: 'optional-refusal-status', detail: 'optional-refusal-detail'
+    },
+  },
   // `totalInputTokens` is fresh input plus cache read plus cache creation; the run id and label are stored only for an agent a workflow run spawned.
   'agent-stopped': {
     subject: 'board',
@@ -349,6 +359,9 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
 } as const satisfies Readonly<Record<string, LogRecordKindSchema>>;
+
+/** The statuses a refused relayed request's reply carries, as its `hatch-applied` record stores them. */
+export const HATCH_REFUSAL_STATUSES = ['refused', 'unrepaired'] as const;
 
 /** The states a retired `dispatcher-set` record holds. */
 export const RETIRED_DISPATCHER_STATES = ['running', 'finished', 'stopped'] as const;

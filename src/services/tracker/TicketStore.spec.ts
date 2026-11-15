@@ -1,6 +1,7 @@
 /**
  * Every way an id-to-path mapping can go wrong in a directory a person also edits: the `3`/`003`/`#3`
- * spellings, colliding slugs, a deleted file whose number stays spent, and a file that no longer parses.
+ * spellings, colliding slugs, a deleted file whose number stays spent, and a file that no longer parses. A hold
+ * spends ids the disk does not show yet: a ticket filed earlier in it, and one whose filing only the log keeps.
  */
 
 import {
@@ -20,6 +21,7 @@ import {
 } from 'bun:test';
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                         from '../../adapters/tickets/TicketFileWriter.ts';
+import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Ticket, TicketType }                        from '../../lib/tracker-model/@types/Ticket.ts';
 import { TaskRecordUtil }                                 from '../../lib/tracker-model/utils/TaskRecordUtil.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
@@ -30,11 +32,14 @@ import {
   listTickets,
   nextTicketId,
   readTicket,
+  type TicketsSpentInHold,
 } from './TicketStore.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
 
 const FILED_AT    = '2026-09-18T09:00:00+02:00';
 const TICKET_BODY = '# Example\n\n## Report\n\nReported by Alex Example.\n';
+
+const NOTHING_SPENT_IN_HOLD: TicketsSpentInHold = { tickets: () => [], logRecordsSoFar: () => [] };
 
 const scratchRootDirectories: string[] = [];
 
@@ -46,7 +51,7 @@ function scratchWorkspace(): Workspace {
 }
 
 function fileTicket(workspace: Workspace, title: string, type: TicketType): Ticket {
-  const ticket = createTicket(workspace, {
+  const ticket = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
     title,
     type,
     bodyFor: () => TICKET_BODY,
@@ -82,7 +87,7 @@ describe('createTicket and listTickets', () => {
 
   test('a new ticket opens as a draft with no timeline and no task row of its own', () => {
     const workspace = scratchWorkspace();
-    const ticket    = createTicket(workspace, {
+    const ticket    = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
       title:   'Fix the export dialog',
       type:    'bug',
       group:   'export-dialog',
@@ -105,7 +110,7 @@ describe('createTicket and listTickets', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
 
-    const ticket = createTicket(workspace, {
+    const ticket = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
       title:   'Add a keyboard shortcut',
       type:    'research',
       bodyFor: (ticketId) => `# ${ticketId} — Add a keyboard shortcut\n`,
@@ -144,7 +149,7 @@ describe('createTicket and listTickets', () => {
     rmSync(workspace.ticketsDirectory, { recursive: true, force: true });
 
     expect(listTickets(workspace)).toEqual({ verdict: 'listed', tickets: [], malformed: [] });
-    expect(nextTicketId(workspace)).toBe('001');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('001');
   });
 });
 
@@ -195,14 +200,44 @@ describe('nextTicketId', () => {
     fileTicket(workspace, 'Tidy the seed data', 'ticket');
     unlinkSync(second.filePath);
 
-    expect(nextTicketId(workspace)).toBe('004');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('004');
+  });
+
+  // A draft has no row, so once its file is deleted by hand only its `ticket-filed` record still holds its id.
+  test('a draft deleted by hand still spends its id through the log record of its filing', () => {
+    const workspace = scratchWorkspace();
+    fileTicket(workspace, 'Fix the export dialog', 'bug');
+    const draft = fileTicket(workspace, 'Add a keyboard shortcut', 'research');
+    unlinkSync(draft.filePath);
+    const filingRecord: LogRecord = {
+      at: FILED_AT, kind: 'ticket-filed', ticketId: '002', fields: { title: 'Add a keyboard shortcut' }
+    };
+
+    expect(nextTicketId(workspace, { tickets: () => [], logRecordsSoFar: () => [filingRecord] })).toBe('003');
+  });
+
+  // Two relayed filings applied in one hold: the first is on the Board but not yet on disk when the second takes its id.
+  test('a ticket filed earlier in the same hold, not yet written, spends its id and its slug', () => {
+    const workspace  = scratchWorkspace();
+    const unwritten  = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
+      title: 'Fix the export dialog', type: 'bug', bodyFor: () => TICKET_BODY, at: FILED_AT
+    });
+    const second     = createTicket(workspace, { tickets: () => [unwritten], logRecordsSoFar: () => [] }, {
+      title:   'Fix the export dialog',
+      type:    'bug',
+      bodyFor: () => TICKET_BODY,
+      at:      FILED_AT,
+    });
+
+    expect(second.frontmatter.id).toBe('002');
+    expect(basename(second.filePath)).toBe('002-fix-the-export-dialog-2.md');
   });
 
   test('a malformed file still spends its number', () => {
     const workspace = scratchWorkspace();
     writeFileSync(join(workspace.ticketsDirectory, '002-broken.md'), 'not a ticket at all\n');
 
-    expect(nextTicketId(workspace)).toBe('003');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('003');
   });
 });
 
@@ -213,7 +248,7 @@ describe('a ticket file renamed by hand', () => {
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
     renameSync(first.filePath, join(workspace.ticketsDirectory, 'renamed-by-hand.md'));
 
-    expect(nextTicketId(workspace)).toBe('002');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('002');
     expect(readTicket(workspace, '1')?.frontmatter.title).toBe('Fix the export dialog');
   });
 
@@ -230,7 +265,7 @@ describe('a ticket file renamed by hand', () => {
       tickets:   [],
       malformed: [{ filePath: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2 }],
     });
-    expect(nextTicketId(workspace)).toBe('013');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('013');
   });
 
   test('two files holding one id are both listed as malformed, and neither answers for it', () => {
@@ -265,7 +300,7 @@ describe('a ticket file renamed by hand', () => {
       ],
     });
 
-    expect(nextTicketId(workspace)).toBe('006');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('006');
   });
 
   test('a progress file that does not parse leaves the ids to the ticket files', () => {
@@ -273,7 +308,7 @@ describe('a ticket file renamed by hand', () => {
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     writeFileSync(workspace.progressFilePath, '{ not json');
 
-    expect(nextTicketId(workspace)).toBe('002');
+    expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('002');
   });
 });
 

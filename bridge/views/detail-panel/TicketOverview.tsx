@@ -5,7 +5,6 @@
  */
 
 import { Button }      from 'design-system/Button';
-import { FlintSlot }   from 'design-system/FlintSlot';
 import { MonoId }      from 'design-system/MonoId';
 import { Row }         from 'design-system/Row';
 import { Stamp }       from 'design-system/Stamp';
@@ -15,6 +14,8 @@ import { TitledBlock } from 'design-system/TitledBlock';
 import { View }        from 'design-system/View';
 import { useState }    from 'react';
 
+import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }               from '../../flint/FlintSlotHabitats.ts';
 import { CommandButton }                     from '../../shell/CommandButton.tsx';
 import { useQuestionPanelHoldsTheFlintSlot } from '../../shell/CoveringPanel.ts';
 import { HashRouter }                        from '../../shell/HashRouter.ts';
@@ -37,7 +38,7 @@ function NowCard({ now }: { readonly now: NowCardModel }) {
   const flintSlotIsCovered = useQuestionPanelHoldsTheFlintSlot();
   return (
     <section className="bridge-detail-state-card" data-state={now.stateToken} data-state-tone={StateToneUtil.toneOf(now.stateToken)}>
-      {flintSlotIsCovered ? null : <FlintSlot label={null} size="100" ground="strip" pose={now.flintPose} />}
+      {flintSlotIsCovered ? null : <FlintSlotHabitat habitat={FLINT_SLOT_HABITATS.ticketDetail} cue={now.flintCue} label={null} ground="strip" />}
       <View grow centerY gap="four" paddingVertical="ten" paddingHorizontal="fourteen">
         <Row centerY gap="eight">
           <StateDot {...StateToneUtil.dotOf(now.stateToken)} />
@@ -46,7 +47,8 @@ function NowCard({ now }: { readonly now: NowCardModel }) {
         {job === null ? null : (
           <>
             <Text element="p" muted>
-              {`${job.jobId}, ${job.roleText}, attempt `}
+              <span className="bridge-detail-figure">{job.jobId}</span>
+              {`, ${job.roleText}, attempt `}
               <span className="bridge-detail-figure">{job.attempt}</span>
               {job.since === null ? null : (
                 <>

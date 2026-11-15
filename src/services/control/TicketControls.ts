@@ -3,6 +3,8 @@ import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
 import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
@@ -27,13 +29,24 @@ function finderGroupOf(command: CommandOf<'ticket-add'>, change: TrackerChange):
 }
 
 /**
+ * The refusals `setTicketNetwork` gives a new ticket, judged before it is filed: the Board keeps no undo, so a relayed filing refused after
+ * it would still store the ticket while its reply says refused.
+ */
+function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly string[]): void {
+  const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
+  const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
+  if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
+  if (requestedDomains.length === 0) throw new BoardRefusal({ reason: 'network-unchanged', ticketId, domains: [] });
+}
+
+/**
  * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
  * land, against their code.
  */
 function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
   const group           = command.group ?? finderGroupOf(command, change);
-  const ticket = createTicket(change.workspace, {
+  const ticket = createTicket(change.workspace, change.board, {
     title:   command.title,
     type:    command.type,
     ...(command.priority === undefined ? {} : { priority: command.priority }),
@@ -50,6 +63,7 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   if (command.model !== undefined) ticket.frontmatter.model = command.model;
   if (command.effort !== undefined) ticket.frontmatter.effort = command.effort;
   if (command.admission !== undefined) ticket.frontmatter.filedByJob = command.admission.filedByJob;
+  if (command.network.length > 0) refuseANetworkTheFilingCannotSet(ticket.frontmatter.id, command.network);
   const filing     = change.board.fileTicket(ticket, change.at);
   const networkSet = command.network.length === 0 ? [] : change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at).logged;
   const submitted  = finderTicketIds.length === 0 || ticket.frontmatter.status !== 'draft'

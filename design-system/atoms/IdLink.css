@@ -1,2 +1,2 @@
-/* An id link: the mono face with tabular figures, in the link colour. */
-.design-system-id-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/* An id link: the mono face with tabular figures, in the link colour and underlined, so it reads as a link without its colour. */
+.design-system-id-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-decoration: underline; text-underline-offset: 2px; }

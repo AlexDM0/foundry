@@ -50,6 +50,7 @@ const CUSTOMS_STATE_READS: readonly RecordedScenarioCall[] = [
   { gitArguments: ['rev-parse', '--path-format=absolute', '--git-common-dir'] },
   { gitArguments: resolved('HEAD') },
   { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'] },
+  { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'] },
   { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all'] },
   { gitArguments: ['worktree', 'list', '--porcelain'] },
   { gitArguments: ['merge-base', SCENARIO_MAIN_LINE, 'HEAD'] },
@@ -58,8 +59,8 @@ const CUSTOMS_STATE_READS: readonly RecordedScenarioCall[] = [
 
 function workReadsFrom(workStart: string): RecordedScenarioCall[] {
   return [
-    { gitArguments: ['diff', '--name-only', '--no-renames', workStart, 'HEAD', '--'] },
-    { gitArguments: ['log', '--name-only', '--no-renames', '--format=', `${workStart}..HEAD`, '--'] },
+    { gitArguments: ['diff', '--name-only', '--no-renames', '-z', workStart, 'HEAD', '--'] },
+    { gitArguments: ['log', '--name-only', '--no-renames', '-z', '--format=', `${workStart}..HEAD`, '--'] },
     { gitArguments: ['merge-base', '--is-ancestor', workStart, 'HEAD'] },
     { gitArguments: ['rev-list', `${workStart}..HEAD`] },
     { gitArguments: ['log', '-1', '--format=%B', PRINTED], forEachObjectPrintedBy: ['rev-list', `${workStart}..HEAD`] },
@@ -70,9 +71,9 @@ function mergeReadsAgainst(target: string): RecordedScenarioCall[] {
   const branchCommits = ['<branch tip>..HEAD', `^${target}`];
   const mergeTree = ['merge-tree', '--write-tree', '--no-messages', '<branch tip>', target];
   return [
-    { gitArguments: ['log', '--name-only', '--no-renames', '--format=', ...branchCommits, '--'] },
+    { gitArguments: ['log', '--name-only', '--no-renames', '-z', '--format=', ...branchCommits, '--'] },
     { gitArguments: mergeTree },
-    { gitArguments: ['diff', '--name-only', '--no-renames', PRINTED, 'HEAD', '--'], forEachObjectPrintedBy: mergeTree },
+    { gitArguments: ['diff', '--name-only', '--no-renames', '-z', PRINTED, 'HEAD', '--'], forEachObjectPrintedBy: mergeTree },
     { gitArguments: ['rev-list', ...branchCommits] },
     { gitArguments: ['rev-list', '--merges', ...branchCommits] },
     { gitArguments: ['rev-list', '--merges', '--reverse', ...branchCommits] },

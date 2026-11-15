@@ -18,7 +18,8 @@ export type ReportedReviewFinding =
 
 const DRAFT_07 = 'http://json-schema.org/draft-07/schema#';
 
-const COMMIT_SHA: JsonSchema = { type: 'string', pattern: '^[0-9a-f]{40}$' };
+/** A SHA-1 commit id, or a SHA-256 one in a repository made with `--object-format=sha256`. */
+const COMMIT_SHA: JsonSchema = { type: 'string', pattern: '^(?:[0-9a-f]{40}|[0-9a-f]{64})$' };
 
 const SHORT_NOTE_CHARACTERS = 300;
 

@@ -56,7 +56,8 @@ export type AgentSessionEvent =
     readonly kind:            'usage-window';
     readonly window:          string;
     readonly utilization:     number;
-    readonly resetsAt:        string;
+    /** `null` when the vendor named no usable reset. */
+    readonly resetsAt:        string | null;
     readonly status:          string;
     readonly requestsRefused: boolean;
   }

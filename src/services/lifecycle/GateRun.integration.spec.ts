@@ -73,8 +73,9 @@ function gatedRepository(): string {
 const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
 
 /** The tree read once after each of `gateCount` gates, each time unchanged. */
-function treeUnchangedAfter(gateCount: number): RecordedGitStage {
-  return Array.from({ length: gateCount }, () => ({ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }));
+/** The tree is read unchanged after each passing prepare step and after each gate. */
+function treeUnchangedAfter(stepCount: number): RecordedGitStage {
+  return Array.from({ length: stepCount }, () => ({ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }));
 }
 
 function playedPipeline(stage: RecordedGitStage, request: Omit<PipelineRunRequest, 'environment' | 'spawnOptions'>): Promise<PipelineVerdict> {
@@ -169,7 +170,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     writeFileSync(join(repository, 'service', '.gitkeep'), '');
     const confinements: [string, GateConfinement][] = [];
 
-    await playedPipeline(treeUnchangedAfter(2), {
+    await playedPipeline(treeUnchangedAfter(3), {
       shellLine,
       prepare: [{ name: 'install', run: 'true' }],
       gates:   [
@@ -326,7 +327,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     const repository = gatedRepository();
     const slotEvents: string[] = [];
 
-    await playedPipeline(treeUnchangedAfter(2), {
+    await playedPipeline(treeUnchangedAfter(3), {
       shellLine,
       prepare:         [{ name: 'install', run: 'true' }],
       gates:           [gateOf('a', 'true'), gateOf('b', 'true')],

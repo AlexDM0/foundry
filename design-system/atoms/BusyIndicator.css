@@ -1,18 +1,21 @@
-/* Work under way with no measure: a turning three-quarter ring, or a band running along a 4px track, both in the signal colour. Under
-   reduced motion the ring stands still and the band fills the track at rest. */
+/* Work under way with no measure: a turning three-quarter ring, or a band running along a 4px track, both in the signal colour, fading in
+   as the work starts. Under reduced motion the ring stands still and the band fills the track at rest. */
 .design-system-busy { display: inline-block; flex: none; }
 .design-system-busy[data-shape="spinner"] {
   box-sizing: border-box; width: 16px; height: 16px; border: 2px solid var(--signal); border-left-color: transparent; border-radius: 50%;
-  animation: design-system-spin 0.9s linear infinite;
+  animation: design-system-fade var(--motion-fade) var(--ease-out) both, design-system-spin 0.9s linear infinite;
 }
-.design-system-busy[data-shape="bar"] { position: relative; display: block; height: 4px; overflow: hidden; background: var(--wash); border-radius: var(--r-pill); }
+.design-system-busy[data-shape="bar"] {
+  position: relative; display: block; height: 4px; overflow: hidden; background: var(--wash); border-radius: var(--r-pill);
+  animation: design-system-fade var(--motion-fade) var(--ease-out) both;
+}
 .design-system-busy[data-shape="bar"]::after {
   content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; background: var(--signal); border-radius: var(--r-pill);
   animation: design-system-indeterminate 1.3s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .design-system-busy[data-shape="spinner"] { animation: none; }
+  .design-system-busy[data-shape] { animation: none; }
   .design-system-busy[data-shape="bar"]::after { width: 100%; animation: none; background: var(--accent-outline); }
 }
 @keyframes design-system-indeterminate { from { transform: translateX(-100%); } to { transform: translateX(300%); } }

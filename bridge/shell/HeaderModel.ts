@@ -97,23 +97,27 @@ const INCIDENT_DEFAULTED = 'incident-defaulted';
 
 const NEW_CODE = 'new-code';
 
-const CLOCK_SLICE = { start: 11, end: 16 } as const;
-
 const PAUSED_DISPLAY_STATE = 'paused';
 
 /** A window's word where it differs from the stored value. */
 const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: '5-hour window', seven_day: 'week' };
 
-/** Each usage window the facts carry, "5-hour window 14%" or "week 18%", then a limit hit with its reset; nothing to say is no text. */
+function usageWindowWordOf(window: string): string {
+  return Object.hasOwn(USAGE_WINDOW_WORDS, window) ? USAGE_WINDOW_WORDS[window] ?? window : window;
+}
+
+/**
+ * Each usage window the facts carry, "5-hour window 14%" or "week 18%", then a limit hit with its reset on the viewer's clock (the stamp
+ * is stored in UTC); a reset that does not parse is left out; nothing to say is no text.
+ */
 function usageTextsOf(usage: unknown): string[] {
   const facts = usage as Partial<UsageDocument> | null;
-  const windowTexts = (facts?.windows ?? []).map((usageWindow) => {
-    const word = Object.hasOwn(USAGE_WINDOW_WORDS, usageWindow.window) ? USAGE_WINDOW_WORDS[usageWindow.window] ?? usageWindow.window : usageWindow.window;
-    return `${word} ${Math.round(usageWindow.utilization)}%`;
-  });
+  const windowTexts = (facts?.windows ?? []).map((usageWindow) => `${usageWindowWordOf(usageWindow.window)} ${Math.round(usageWindow.utilization)}%`);
   if (typeof facts?.resetsAt !== 'string') return windowTexts;
-  const window = typeof facts.window === 'string' ? `${facts.window} ` : '';
-  return [...windowTexts, `${window}usage limit hit, resets ${facts.resetsAt.slice(CLOCK_SLICE.start, CLOCK_SLICE.end)}`];
+  const window = typeof facts.window === 'string' ? `${usageWindowWordOf(facts.window)} ` : '';
+  const resetsAtMilliseconds = Date.parse(facts.resetsAt);
+  const resetText = Number.isNaN(resetsAtMilliseconds) ? '' : `, resets ${TimeUtil.clockOf(new Date(resetsAtMilliseconds))}`;
+  return [...windowTexts, `${window}usage limit hit${resetText}`];
 }
 
 /** The record's current step is current; a done or recheck step links back to its route; with no record, Billing is current. */

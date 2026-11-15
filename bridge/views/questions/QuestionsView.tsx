@@ -16,7 +16,9 @@ import type { ConversationBoardDocument }                              from '../
 import { DecisionCard }                                                from '../../conversation/DecisionCard.tsx';
 import type { QuestionsFacts }                                         from '../../flint/QuestionsSpriteModel.ts';
 import { useQuestionsHabitat }                                         from '../../flint/UseQuestionsHabitat.ts';
+import { presenceAttributeOf, useItemPresence }                        from '../../shell/ItemPresence.ts';
 import { useQuestionPanelOpener }                                      from '../../shell/QuestionPanelOpener.ts';
+import type { ItemPresence }                                           from '../../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                                               from '../../utils/StateToneUtil.ts';
 import { ViewTitle }                                                   from '../ViewTitle.tsx';
 import { NotificationAllowanceControl }                                from './NotificationAllowanceControl.tsx';
@@ -30,9 +32,9 @@ export interface QuestionsViewProps {
   readonly selectedDecisionId?: string | null;
 }
 
-function AnsweredDecisionItem({ answered }: { readonly answered: AnsweredDecision }) {
+function AnsweredDecisionItem({ answered, presence }: { readonly answered: AnsweredDecision; readonly presence: ItemPresence }) {
   return (
-    <li className="bridge-card" data-state="answered" aria-label={`Answered ${answered.decisionId}`}>
+    <li className="bridge-card" data-state="answered" data-presence={presenceAttributeOf(presence)} aria-label={`Answered ${answered.decisionId}`}>
       <Row between centerY>
         <Row gap="eight" centerY>
           <MonoId text={answered.decisionId} />
@@ -62,6 +64,10 @@ function NoticeItem({ notice }: { readonly notice: NoticeEntry }) {
   );
 }
 
+function answeredKeyOf(answered: AnsweredDecision): string {
+  return `${answered.decisionId}-${answered.answeredAt}`;
+}
+
 export function QuestionsView({ board, notifier, selectedDecisionId = null }: QuestionsViewProps) {
   const model = QuestionsModelUtil.questionsModelOf(board);
   const openQuestionPanel = useQuestionPanelOpener();
@@ -70,8 +76,11 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
     decisions: board.decisions, selectedDecisionId, incidents: board.incidents, history: board.questionHistory ?? [],
   }), [board, selectedDecisionId]);
   useQuestionsHabitat(viewElement, questionsFacts);
+  // An asked question rises in and an answered one fades out of the open list as its answer rises into the answered one.
+  const presentDecisions = useItemPresence(model.openDecisions, ({ decision }) => decision.id);
+  const presentAnswers = useItemPresence(model.answeredDecisions, answeredKeyOf);
   return (
-    <div className="bridge-view" ref={viewElement} data-flint-workplace="">
+    <div className="bridge-view" ref={viewElement} data-flint-workplace="" data-question-open={selectedDecisionId === null ? undefined : ''}>
       <ViewTitle title="Questions" lead="Agents stop here when they need User's answer." />
       <ListSection
         label="Open questions"
@@ -79,12 +88,14 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
         count={model.openQuestionCount}
         headEnd={<NotificationAllowanceControl notifier={notifier} />}
         emptyText="No question waits on User."
-        items={model.openDecisions}
-        keyOf={({ decision }) => decision.id}
-        renderItem={({ decision, escalated }) => (
+        items={presentDecisions}
+        keyOf={({ key }) => key}
+        renderItem={({ item: { decision, escalated }, presence }) => (
           <DecisionCard
             decision={decision}
             escalated={escalated}
+            presence={presence}
+            isOpenBeside={decision.id === selectedDecisionId}
             besideAnswer={<Button label="Open beside the board" onPress={() => openQuestionPanel(decision.id)} />}
           />
         )}
@@ -93,9 +104,9 @@ export function QuestionsView({ board, notifier, selectedDecisionId = null }: Qu
         label="Answered questions"
         title="Answered"
         emptyText="No answered question yet."
-        items={model.answeredDecisions}
-        keyOf={(answered) => `${answered.decisionId}-${answered.answeredAt}`}
-        renderItem={(answered) => <AnsweredDecisionItem answered={answered} />}
+        items={presentAnswers}
+        keyOf={({ key }) => key}
+        renderItem={({ item, presence }) => <AnsweredDecisionItem answered={item} presence={presence} />}
       />
       <ListSection
         label="Notices"

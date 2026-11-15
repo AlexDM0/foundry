@@ -207,8 +207,8 @@ function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDire
 }
 
 /**
- * After the hold: each numbered chat as one line, in order, a marker keeping a restart from sending one twice, and the interrupt line once
- * the open turn spent its call budget.
+ * After the hold: each numbered chat as one line, in order, a marker keeping a restart from sending one again (at least once: not when the
+ * Overseer died before the marker), and the interrupt line once the open turn spent its call budget.
  */
 async function deliverChats(request: AssistantChatDelivery): Promise<void> {
   const { board, adapter } = request;

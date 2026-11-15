@@ -250,6 +250,10 @@ const VERIFICATION_PLANTS: readonly (readonly [string, (built: BuiltRepository) 
     commitPath(directory, `${SCENARIO_DATA_FOLDER.toUpperCase()}/progress.json`, '{}\n');
     return {};
   }],
+  [GIT_SCENARIOS.DATA_FOLDER_QUOTED_NAME_COMMITTED, ({ directory }) => {
+    commitPath(directory, `${SCENARIO_DATA_FOLDER}/example"quoted\tname.json`, '{}\n');
+    return {};
+  }],
   [GIT_SCENARIOS.LOWER_CASE_AGENTS_FILE_COMMITTED, ({ directory }) => {
     commitFile(directory, 'agents.md', '# Example instructions\n');
     return {};
@@ -347,6 +351,13 @@ describeWhenGitIsPresent('the git scenarios the Customs provenance spec replays'
     recordStateOf(GIT_SCENARIOS.AGENT_CONFIG_UNDONE, directory, { '<start>': startCommit });
   });
 
+  test('an untracked file under .claude/ whose name git would quote', () => {
+    const { directory, startCommit } = startedRepository();
+    mkdirSync(join(directory, '.claude'));
+    writeFileSync(join(directory, '.claude', 'example"untracked.md'), '# Example\n');
+    recordStateOf(GIT_SCENARIOS.CLAUDE_FILE_QUOTED_NAME_UNTRACKED, directory, { '<start>': startCommit });
+  });
+
   test('a core.hooksPath, a commit beside it and a hook committed under it', () => {
     const { directory, startCommit } = startedRepository();
     git(directory, ['config', 'core.hooksPath', 'example-hooks']);
@@ -372,6 +383,7 @@ describeWhenGitIsPresent('the git scenarios the Customs provenance spec replays'
     [GIT_SCENARIOS.CLAUDE_FOLDER_IN_CAPITALS, '.CLAUDE/settings.json'],
     [GIT_SCENARIOS.CLAUDE_FOLDER_CAPITALISED, '.Claude/agents/example.md'],
     [GIT_SCENARIOS.MCP_FILE_IN_CAPITALS, '.MCP.json'],
+    [GIT_SCENARIOS.CLAUDE_FILE_QUOTED_NAME, '.claude/agents/example"quoted.md'],
   ])('%s', (scenario, gitPath) => {
     const { directory, startCommit } = startedRepository();
     commitPath(directory, gitPath, '{}\n');

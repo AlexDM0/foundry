@@ -7,7 +7,8 @@
  * Flint and takes only a steering of its list; reduced motion holds the hover still; the theme sets the
  * custom properties; a press that moves past the threshold carries Flint and a shorter one is a click; the habitat below a carried Flint
  * is marked as the drop target, and a drop there lands Flint and stores it; a habitat smaller than 100 by 100 pixels is never a drop
- * target nor visited; Flint stops while the tab is hidden or its place is off the screen; a brain answers in place of the rule director
+ * target nor visited; Flint stops, hidden, while the tab is hidden or its place is off the screen, and a habitat with no box sends it home
+ * instead; a brain answers in place of the rule director
  * for its maximum time only, never while Flint sleeps, never twice at once, and an answer off the list is answered by the rule director;
  * the handle tells the kind of the habitat Flint lives in; `destroy` stops everything, after which a new Flint may be made.
  */
@@ -413,7 +414,8 @@ describe('stopping', () => {
     expect(figureTransformOf(root)).not.toBeNull();
   });
 
-  test('Flint stops while the habitat it lives in is off the screen', () => {
+  /** Replaces the page's IntersectionObserver with one the spec answers, and gives the function that reports a target's visibility. */
+  function reportedIntersections(): (target: Element, isIntersecting: boolean) => void {
     const view = document.defaultView;
     if (view === null) throw new Error('no window');
     const observed: ((entries: { target: Element; isIntersecting: boolean }[]) => void)[] = [];
@@ -431,15 +433,39 @@ describe('stopping', () => {
     }
     Object.defineProperty(view, 'IntersectionObserver', { value: RecordingIntersectionObserver, configurable: true, writable: true });
     restorers.push(() => Object.defineProperty(view, 'IntersectionObserver', { value: original, configurable: true, writable: true }));
+    return (target, isIntersecting) => {
+      for (const callback of observed) callback([{ target, isIntersecting }]);
+    };
+  }
+
+  test('Flint stops, hidden and so not pressable, while the habitat it lives in is off the screen, and shows again when it is back', () => {
+    const report = reportedIntersections();
     const { root, frames, chat } = madeOnPage({ storage: recordingStorage('1:chat') });
     frames.advance(16);
-    for (const callback of observed) callback([{ target: chat, isIntersecting: false }]);
+    report(chat, false);
     const stopped = figureTransformOf(root);
     advanceFor(frames, 500);
     expect(figureTransformOf(root)).toBe(stopped);
-    for (const callback of observed) callback([{ target: chat, isIntersecting: true }]);
+    expect(overlayOf(root).style.visibility).toBe('hidden');
+    report(chat, true);
     advanceFor(frames, 500);
     expect(figureTransformOf(root)).not.toBe(stopped);
+    expect(overlayOf(root).style.visibility).toBe('');
+  });
+
+  test('a habitat that has no box any more, such as one set to display none, does not stop Flint: it sends Flint home', () => {
+    const report = reportedIntersections();
+    const {
+      root, frames, chat, handle
+    } = madeOnPage({ storage: recordingStorage('1:chat') });
+    advanceFor(frames, 500);
+    expect(handle.livesIn()).toBe('chat');
+    placeAt(chat, 0, 0, 0, 0);
+    chat.getClientRects = () => ({ length: 0 }) as DOMRectList;
+    report(chat, false);
+    advanceFor(frames, 500);
+    expect(handle.livesIn()).toBeNull();
+    expect(overlayOf(root).style.visibility).toBe('');
   });
 });
 

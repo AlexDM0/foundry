@@ -6,22 +6,39 @@ import { Stamp, type StampProps } from 'design-system/Stamp';
 import { useEffect, useState }    from 'react';
 
 import type { TranscriptEntryDocument, TranscriptStreamHandlers } from '../api/TranscriptStreamClient.ts';
+import { presenceAttributeOf, useItemPresence }                   from '../shell/ItemPresence.ts';
 
 export type TranscriptFollower = (jobId: string, handlers: TranscriptStreamHandlers) => { close: () => void };
 
-/** Every entry of the job's transcript so far, followed while mounted; starts empty again for another job. */
-export function useTranscript(jobId: string | null, followTranscript: TranscriptFollower): readonly TranscriptEntryDocument[] {
-  const [entries, setEntries] = useState<{ jobId: string | null; entries: readonly TranscriptEntryDocument[] }>({ jobId, entries: [] });
+/**
+ * Every entry of the job's transcript so far, followed while mounted; starts empty again for another job. `historyKey` is the job's id once
+ * its history arrived, `null` before, so a chat tells the history batch from a happening.
+ */
+export interface FollowedTranscript {
+  readonly entries:    readonly TranscriptEntryDocument[];
+  readonly historyKey: string | null;
+}
+
+const NO_TRANSCRIPT: FollowedTranscript = { entries: [], historyKey: null };
+
+export function useTranscript(jobId: string | null, followTranscript: TranscriptFollower): FollowedTranscript {
+  const [followed, setFollowed] = useState<FollowedTranscript & { readonly jobId: string | null }>({ jobId, ...NO_TRANSCRIPT });
   useEffect(() => {
     if (jobId === null) return undefined;
-    const followed = (received: readonly TranscriptEntryDocument[]): void => setEntries((previous) => ({
+    const receive = (received: readonly TranscriptEntryDocument[]): void => setFollowed((previous) => ({
       jobId,
-      entries: previous.jobId === jobId ? [...previous.entries, ...received] : [...received],
+      historyKey: jobId,
+      entries:    previous.jobId === jobId ? [...previous.entries, ...received] : [...received],
     }));
-    const stream = followTranscript(jobId, { onEntries: followed });
+    const historyArrived = (): void => setFollowed((previous) => ({
+      jobId,
+      historyKey: jobId,
+      entries:    previous.jobId === jobId ? previous.entries : [],
+    }));
+    const stream = followTranscript(jobId, { onEntries: receive, onHistory: historyArrived });
     return () => stream.close();
   }, [jobId, followTranscript]);
-  return entries.jobId === jobId ? entries.entries : [];
+  return followed.jobId === jobId ? { entries: followed.entries, historyKey: followed.historyKey } : NO_TRANSCRIPT;
 }
 
 export interface TranscriptLogProps {
@@ -38,12 +55,14 @@ export interface TranscriptLogProps {
 export function TranscriptLog({
   label, entries, roleTextOf = (entry) => entry.role, textOf = (entry) => entry.text, stampOf
 }: TranscriptLogProps) {
+  // The log mounts with the entries so far; each line the stream brings after rises in, and no line leaves.
+  const presentEntries = useItemPresence(entries, ({ entryKey }) => entryKey).filter(({ presence }) => presence !== 'leaving');
   return (
     <ol className="bridge-transcript" aria-label={label} data-stamped={stampOf === undefined ? undefined : ''}>
-      {entries.map((entry) => {
+      {presentEntries.map(({ item: entry, presence }) => {
         const stamp = stampOf?.(entry) ?? null;
         return (
-          <li key={entry.entryKey} className="bridge-transcript-entry" data-role={entry.role}>
+          <li key={entry.entryKey} className="bridge-transcript-entry" data-role={entry.role} data-presence={presenceAttributeOf(presence)}>
             {stampOf === undefined ? null : <span className="bridge-transcript-time">{stamp === null ? null : <Stamp {...stamp} />}</span>}
             <span className="bridge-transcript-line">
               <span className="bridge-mark">{roleTextOf(entry)}</span>

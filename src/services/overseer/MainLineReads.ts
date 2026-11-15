@@ -17,12 +17,14 @@ export class MainLineReads {
     this.movedCounts = new MainMovedCounts(repositoryRoot);
   }
 
-  /** The file's text at the main tip; null when the tip holds no such file. */
+  /** The file's text at the main tip; null when the tip holds no such file, or git could not be started, which is not kept. */
   textAt(mainTip: string, path: string): string | null {
     if (InstructionFiles.isDataFolderPath(path)) return InstructionFiles.fileTextOf(this.repositoryRoot, mainTip, path);
     this.keepOnlyTip(mainTip);
     if (this.textByPath.has(path)) return this.textByPath.get(path) ?? null;
-    const text = InstructionFiles.fileTextOf(this.repositoryRoot, mainTip, path);
+    const reading = InstructionFiles.fileTextReadingOf(this.repositoryRoot, mainTip, path);
+    if (reading.verdict === 'unreadable') return null;
+    const text = reading.verdict === 'read' ? reading.text : null;
     this.textByPath.set(path, text);
     return text;
   }

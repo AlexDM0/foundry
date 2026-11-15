@@ -48,7 +48,7 @@ export function platformPortsFor(platform: string, hostFacts: PlatformHostFacts)
     shellLine:          shellLineFor(platform, hostFacts),
     executableResolver: executableResolverFor(platform),
     ownerOnlyFiles:     ownerOnlyFilesFor(platform),
-    dataFolders:        dataFoldersFor(platform, hostFacts.monitorFolderName),
+    dataFolders:        dataFoldersFor(platform, hostFacts.monitorFolderName, hostFacts.systemRoot),
     launchEnvironment:  launchEnvironmentFor(platform),
   });
 }

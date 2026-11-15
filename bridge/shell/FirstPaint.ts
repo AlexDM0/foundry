@@ -1,5 +1,6 @@
 /**
- * What the entry does before the first paint and before the session exchange: the theme and the embedded mark.
+ * What the entry does before the first paint and before the session exchange: the theme, followed through each change of the system's
+ * scheme while it is `auto`, and the embedded mark.
  */
 import type { PreferenceStore }                       from '../preferences/PreferenceStore.ts';
 import { EmbeddedChannel, type EmbeddedSurroundings } from './EmbeddedChannel.ts';
@@ -12,8 +13,9 @@ import {
 import { VersionedEmbedChannel } from './VersionedEmbedChannel.ts';
 
 export interface FirstPaintOutcome {
-  readonly embeddingHost:            EmbeddingHost | null;
-  readonly stopFollowingParentTheme: () => void;
+  readonly embeddingHost:             EmbeddingHost | null;
+  readonly stopFollowingParentTheme:  () => void;
+  readonly stopFollowingSystemScheme: () => void;
 }
 
 function prepare(
@@ -22,12 +24,13 @@ function prepare(
   embeddedSurroundings: () => EmbeddedSurroundings = EmbeddedChannel.browserSurroundings,
 ): FirstPaintOutcome {
   const { embeddingHost } = ThemeBootstrap.applyBeforeFirstPaint(store, documentSurroundings);
-  if (embeddingHost === null) return { embeddingHost, stopFollowingParentTheme: () => undefined };
+  const stopFollowingSystemScheme = ThemeBootstrap.followSystemScheme(documentSurroundings);
+  if (embeddingHost === null) return { embeddingHost, stopFollowingParentTheme: () => undefined, stopFollowingSystemScheme };
   const onTheme = (choice: ThemeChoice): void => ThemeBootstrap.applyParentTheme(choice, documentSurroundings);
   const follower = embeddingHost === 'gaia'
     ? VersionedEmbedChannel.followParent(embeddedSurroundings(), { onTheme })
     : EmbeddedChannel.followParentTheme(embeddedSurroundings(), onTheme);
-  return { embeddingHost, stopFollowingParentTheme: follower.close };
+  return { embeddingHost, stopFollowingParentTheme: follower.close, stopFollowingSystemScheme };
 }
 
 export const FirstPaint = Object.freeze({ prepare });

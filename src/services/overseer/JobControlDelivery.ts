@@ -2,7 +2,7 @@
  * After the hold, the frames User's job controls ask of a live Watcher (design section 7.4): every `job-messaged` record as a chat line in log
  * order, with the pictures it names read from the board's picture store, the wind-down turn of a `wind-down` request, and a session's closed
  * input, with a stop frame after it for a `stop`. A frame waits until its Watcher is live, and a marker written once it was taken keeps a
- * restart from sending it twice.
+ * restart from sending it again, unless the Overseer died before the marker: delivery is at least once.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';

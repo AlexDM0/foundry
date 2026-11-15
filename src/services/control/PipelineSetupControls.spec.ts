@@ -5,7 +5,8 @@
  * an update starts from a readable stored pipeline only; a start launches the record's pipeline agent, the only launch besides `advise`,
  * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
  * words the injected context gives, carrying what changed (the constitution's new text and ticks, each changed draft field's value now),
- * since the agent cannot read the record, and opens it again with its conversation when a stop closed it, while a record with no agent,
+ * since the agent cannot read the record, logged as the Overseer's so its transcript never reads it as User's words, and opens it again
+ * with its conversation when a stop closed it, while a record with no agent,
  * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
  * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
  * agent which. Git answers from the recordings of `src/testing/RecordedGit.ts`.
@@ -415,6 +416,21 @@ describe('the message to the pipeline agent', () => {
 
     expect(fixture.records.map((record) => record.kind)).toEqual(['job-stop-requested', 'job-ended', 'pipeline-draft-discarded', 'job-reopened']);
     expect(fixture.board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
+  });
+
+  test('the setup move\'s message and the reopening it makes are logged as the Overseer\'s, and User\'s own job message is not', () => {
+    const fixture = liveAgentBoard();
+    apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
+    apply(fixture, { kind: 'job-message', jobId: 'J1', text: 'Keep the lint gate.' });
+    fixture.board.requestJobStop('J1', 'stop', CHANGED_AT);
+    apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
+
+    const sentRecords = fixture.records.filter((record) => record.kind === 'job-messaged' || record.kind === 'job-reopened');
+    expect(sentRecords.map((record) => [record.kind, 'byOverseer' in record.fields ? record.fields.byOverseer : null])).toEqual([
+      ['job-messaged', true],
+      ['job-messaged', null],
+      ['job-reopened', true],
+    ]);
   });
 
   test('an agent that ended other than by a stop is not opened again: the record is what a later agent starts from', () => {

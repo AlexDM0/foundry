@@ -7,8 +7,8 @@
  * read as one line; the figures link to their tabs, a lane's figure asks for its lane and the agents figure says what it counts; the
  * arrow keys, Home and End move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none
  * for a session job, the counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds
- * Flint's slot only on the Kanban tab with no side panel open, posed for the first running job, and ticks from the injected clock only
- * while it is live; the summary line counts the states and today's figures; the stale notice shows only while the stream is down; the
+ * Flint's slot only on the Kanban tab with no side panel open, cued by the first running chip, and ticks from the injected clock
+ * only while it is live; the summary line counts the states and today's figures; the stale notice shows only while the stream is down; the
  * Waiting on User pill names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a
  * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no
  * badge at zero. In setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice,
@@ -30,6 +30,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import type { ReactElement } from 'react';
 
 import type { BoardStateDocument, IdentifiedRecord } from '../@types/BoardStateDocument.ts';
 import type { ControlCommandBody }                   from '../api/CommandClient.ts';
@@ -41,7 +42,8 @@ import {
   FIXTURE_BUILDER_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import { pipelineBoardStateOf }    from '../testing/PipelineFixture.ts';
+import { elementOf, flintHabitatSceneOf, placeAt } from '../testing/FlintHabitatScene.ts';
+import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
 import {
   nothingWaitingBoard,
   WAITING_FIXTURE_NOW,
@@ -105,8 +107,7 @@ interface HeaderSurroundings {
   readonly sidePanelIsOpen?: boolean;
 }
 
-function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
-  const sent: ControlCommandBody[] = [];
+function headerElementOf(state: BoardStateDocument, surroundings: HeaderSurroundings, sent: ControlCommandBody[]): ReactElement {
   const controlSurroundings = {
     availability:  'enabled' as const,
     commandClient: {
@@ -119,7 +120,7 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
   };
   const { waitingBoard } = surroundings;
   const waitingOnUser = waitingBoard === undefined ? null : WaitingOnUserModel.waitingOnUserOf(waitingBoard);
-  render(
+  return (
     <ControlSurroundingsContext.Provider value={controlSurroundings}>
       <Header
         project="Example Agency"
@@ -137,8 +138,13 @@ function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundi
         questionNotifier={surroundings.notifier ?? NO_NOTIFIER}
         timestampSlices={state.page?.payload.limits ?? null}
       />
-    </ControlSurroundingsContext.Provider>,
+    </ControlSurroundingsContext.Provider>
   );
+}
+
+function renderedHeader(state: BoardStateDocument, surroundings: HeaderSurroundings = {}): ControlCommandBody[] {
+  const sent: ControlCommandBody[] = [];
+  render(headerElementOf(state, surroundings, sent));
   return sent;
 }
 
@@ -366,16 +372,23 @@ describe('the activity strip', () => {
     expect(strip().querySelector('.design-system-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Overseer job behind it');
   });
 
-  test('on the Kanban tab the strip opens with Flint\'s hidden 100px slot on the strip ground, posed for the first running job', () => {
+  test('on the Kanban tab the strip opens with Flint\'s hidden 100px slot on the strip ground', () => {
     renderedHeader(stripBoard([REVIEWER_JOB, FIXTURE_BUILDER_JOB], ['J12', 'J14']));
     const flintSlot = strip().querySelector('.design-system-flint-slot');
     expect(strip().firstElementChild).toBe(flintSlot);
-    expect(['aria-hidden', 'data-size', 'data-ground', 'data-flint-pose'].map((name) => flintSlot?.getAttribute(name))).toEqual([
-      'true', '100', 'strip', 'typing',
-    ]);
-    cleanup();
-    renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB], []));
-    expect(strip().querySelector('.design-system-flint-slot')?.getAttribute('data-flint-pose')).toBe('idle');
+    expect(['aria-hidden', 'data-size', 'data-ground'].map((name) => flintSlot?.getAttribute(name))).toEqual(['true', '100', 'strip']);
+  });
+
+  test('the strip\'s Flint slot cues Flint from the first running chip, and is idle once no chip runs', () => {
+    const scene = flintHabitatSceneOf<BoardStateDocument>({
+      storedHabitatKind: 'kanban-slot',
+      viewOf:            (state) => headerElementOf(state, {}, []),
+      firstProps:        stripBoard([FIXTURE_BUILDER_JOB, REVIEWER_JOB], ['J12', 'J14']),
+      placeView:         () => placeAt(elementOf('.bridge-activity .design-system-flint-slot'), 100, 100, 100, 100),
+    });
+    const waitingBuilder = exampleAgentJob({ ...FIXTURE_BUILDER_JOB, state: 'waiting-for-answer' });
+    expect(scene.cuesReceived(() => scene.show(stripBoard([waitingBuilder, REVIEWER_JOB], ['J12', 'J14'])))).toEqual(['agent-reviews']);
+    expect(scene.cuesReceived(() => scene.show(stripBoard([waitingBuilder], ['J12'])))).toEqual(['agent-is-idle']);
   });
 
   test('with a ticket detail or the question panel open over the Kanban the strip holds no Flint slot: the panel holds the page\'s one', () => {

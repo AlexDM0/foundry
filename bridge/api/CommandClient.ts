@@ -16,6 +16,8 @@ export type CommandOutcome =
   | { readonly verdict: 'refused'; readonly refusal: string }
   | { readonly verdict: 'install-held'; readonly refusal: string }
   | { readonly verdict: 'unreachable' }
+  /** The Overseer answered 200, so it may have applied the command, but the body was lost: a resend could apply it twice. */
+  | { readonly verdict: 'outcome-unknown' }
   /** `/api/session-token` answered 401: the page's session cookie is unknown to the Overseer. */
   | { readonly verdict: 'no-session' };
 
@@ -34,11 +36,15 @@ function create(
     const posted = await tokenSource.post(COMMANDS_PATH, { 'content-type': 'application/json' }, JSON.stringify(command));
     if (posted.verdict !== 'answered') return { verdict: posted.verdict };
     const { response } = posted;
-    try {
-      if (response.status === HTTP_STATUS.OK) {
+    if (response.status === HTTP_STATUS.OK) {
+      try {
         const body = await response.json() as { outcome?: unknown; result?: unknown };
         return { verdict: 'applied', outcome: body.outcome, result: body.result };
+      } catch {
+        return { verdict: 'outcome-unknown' };
       }
+    }
+    try {
       if (response.status === HTTP_STATUS.LOCKED) return { verdict: 'install-held', refusal: await refusalOf(response) };
       return { verdict: 'refused', refusal: await refusalOf(response) };
     } catch {

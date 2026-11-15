@@ -14,7 +14,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -30,6 +30,7 @@ import {
   storedFileContentsOf,
   writeReadableTracker
 } from '../../testing/TrackerFileFixtures.ts';
+import { createTicket, listTickets }         from './TicketStore.ts';
 import { LockGenerationSteps }               from './TrackerLock.ts';
 import { writeTracker, type TrackerChange }  from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
@@ -232,6 +233,35 @@ describe('writeTracker', () => {
 
     expect(written.result).toBe(1);
     expect(readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n')).toHaveLength(2);
+  });
+
+  // The Hatch inbox applies every pending relayed `ticket add` in one hold, before any ticket file is written.
+  test('two tickets filed in one hold take two ids and two files, and both list', async () => {
+    writeReadableTracker(workspace);
+    const fileExampleTicket = (change: TrackerChange): void => {
+      const ticket = createTicket(change.workspace, change.board, {
+        title: 'Example finding', type: 'bug', bodyFor: () => '# Example finding\n', at: change.at
+      });
+      change.board.fileTicket(ticket, change.at);
+    };
+
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => {
+        fileExampleTicket(change);
+        fileExampleTicket(change);
+      },
+    });
+
+    const listing = listTickets(workspace);
+    expect(listing.malformed).toEqual([]);
+    expect(listing.tickets.map((ticket) => basename(ticket.filePath))).toEqual([
+      EXAMPLE_TICKET_FILE_NAME,
+      '002-example-finding.md',
+      '003-example-finding-2.md',
+    ]);
   });
 
   test('a hold that changes nothing writes no file: every stored file keeps its inode and its bytes', async () => {

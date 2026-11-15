@@ -12,14 +12,27 @@ export interface CueOccasion {
   readonly occasionKey: string;
 }
 
-/** `sendCue` must stay the same function across renders, as `useFlintHabitat` gives it. Null is no happening and sends nothing. */
-export function useCueOnChange(sendCue: (cueName: SpriteCue) => void, occasion: CueOccasion | null): void {
+/** The baseline of a habitat whose data is whole at mount: only the mounted occasion is no happening. */
+const MOUNTED_DATA_BASELINE = 'mounted-data';
+
+/**
+ * `sendCue` must stay the same function across renders, as `useFlintHabitat` gives it. Null is no happening and sends nothing.
+ * `baselineKey` names the data the occasion is read from when it arrives after mount, such as a chat's history: the occasion that comes
+ * with a new key is that data's state, no happening, and while the key is `null` the data has not arrived and nothing is sent.
+ */
+export function useCueOnChange(
+  sendCue: (cueName: SpriteCue) => void,
+  occasion: CueOccasion | null,
+  baselineKey: string | null = MOUNTED_DATA_BASELINE,
+): void {
   const cueName = occasion?.cueName ?? null;
   const occasionKey = occasion?.occasionKey ?? null;
-  const sentOccasionKey = useRef(occasionKey);
+  const seen = useRef({ occasionKey, baselineKey });
   useEffect(() => {
-    if (occasionKey === sentOccasionKey.current) return;
-    sentOccasionKey.current = occasionKey;
+    const previous = seen.current;
+    if (occasionKey === previous.occasionKey && baselineKey === previous.baselineKey) return;
+    seen.current = { occasionKey, baselineKey };
+    if (baselineKey === null || baselineKey !== previous.baselineKey) return;
     if (cueName !== null) sendCue(cueName);
-  }, [cueName, occasionKey, sendCue]);
+  }, [cueName, occasionKey, baselineKey, sendCue]);
 }

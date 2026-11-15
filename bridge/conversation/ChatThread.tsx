@@ -20,6 +20,8 @@ import {
 import { useFlintHabitat }                         from '../../flint/react/UseFlintHabitat.ts';
 import type { DisplayState }                       from '../../src/lib/tracker-model/@types/Task.ts';
 import { useCueOnChange }                          from '../flint/UseCueOnChange.ts';
+import { presenceAttributeOf, useItemPresence }    from '../shell/ItemPresence.ts';
+import type { ItemPresence }                       from '../utils/ItemPresenceUtil.ts';
 import { StateToneUtil }                           from '../utils/StateToneUtil.ts';
 import { chatCueOccasionOf }                       from './ChatCueOccasion.ts';
 import { ChatCueRelayContext, createChatCueRelay } from './ChatCueRelay.ts';
@@ -87,12 +89,20 @@ export interface ChatThreadProps {
   readonly label:          string;
   readonly turns:          readonly ChatTurn[];
   readonly renderDecision: (decisionId: string) => ReactNode;
+  /** The transcript's `historyKey` (`useTranscript`): the turns its history brings are no happening, so they cue nothing and rise in no turn. */
+  readonly historyKey:     string | null;
 }
 
-function SystemLine({ turn }: { readonly turn: SystemChatTurn }) {
+/** A turn and whether it arrived after the history, so it rises in. */
+interface TurnProps<Turn> {
+  readonly turn:     Turn;
+  readonly presence: ItemPresence;
+}
+
+function SystemLine({ turn, presence }: TurnProps<SystemChatTurn>) {
   const [isRevealed, setIsRevealed] = useState(false);
   return (
-    <li className="bridge-chat-system">
+    <li className="bridge-chat-system" data-presence={presenceAttributeOf(presence)}>
       <span>{turn.text}</span>
       {turn.revealText === null ? null : <TextButton label={isRevealed ? 'Hide prompt' : 'Show prompt'} onPress={() => setIsRevealed(!isRevealed)} />}
       {turn.stamp === null ? null : <span className="bridge-chat-stamp"><Stamp {...turn.stamp} /></span>}
@@ -101,9 +111,9 @@ function SystemLine({ turn }: { readonly turn: SystemChatTurn }) {
   );
 }
 
-function AgentTurn({ turn }: { readonly turn: AgentChatTurn }) {
+function AgentTurn({ turn, presence }: TurnProps<AgentChatTurn>) {
   return (
-    <li className="bridge-chat-turn" data-speaker="agent">
+    <li className="bridge-chat-turn" data-speaker="agent" data-presence={presenceAttributeOf(presence)}>
       <div className="bridge-chat-who" data-state={turn.state} data-state-tone={StateToneUtil.toneOf(turn.state)}>
         <StateDot {...StateToneUtil.dotOf(turn.state)} small />
         <span>{turn.speaker}</span>
@@ -116,9 +126,9 @@ function AgentTurn({ turn }: { readonly turn: AgentChatTurn }) {
   );
 }
 
-function UserTurn({ turn }: { readonly turn: UserChatTurn }) {
+function UserTurn({ turn, presence }: TurnProps<UserChatTurn>) {
   return (
-    <li className="bridge-chat-turn" data-speaker="user">
+    <li className="bridge-chat-turn" data-speaker="user" data-presence={presenceAttributeOf(presence)}>
       <div className="bridge-chat-who">
         <span>{turn.speaker}</span>
         {turn.stamp === null
@@ -145,24 +155,32 @@ function UserTurn({ turn }: { readonly turn: UserChatTurn }) {
   );
 }
 
-export function ChatThread({ label, turns, renderDecision }: ChatThreadProps) {
+export function ChatThread({
+  label, turns, renderDecision, historyKey
+}: ChatThreadProps) {
   const threadElement = useRef<HTMLOListElement>(null);
   const sendCue = useFlintHabitat(threadElement, CHAT_SPRITE_HABITAT);
-  useCueOnChange(sendCue, chatCueOccasionOf(turns));
+  useCueOnChange(sendCue, chatCueOccasionOf(turns), historyKey);
   const cueRelay = useContext(ChatCueRelayContext);
   useEffect(() => cueRelay?.connect(sendCue), [cueRelay, sendCue]);
+  // A turn that goes is replaced at once, such as a queued message by the delivered one, so no turn lingers as it leaves.
+  const presentTurns = useItemPresence(turns, ({ key }) => key, historyKey).filter(({ presence }) => presence !== 'leaving');
   return (
     <ol className="bridge-chat-thread" aria-label={label} ref={threadElement}>
-      {turns.map((turn) => {
+      {presentTurns.map(({ item: turn, presence }) => {
         switch (turn.kind) {
           case 'system':
-            return <SystemLine key={turn.key} turn={turn} />;
+            return <SystemLine key={turn.key} turn={turn} presence={presence} />;
           case 'agent':
-            return <AgentTurn key={turn.key} turn={turn} />;
+            return <AgentTurn key={turn.key} turn={turn} presence={presence} />;
           case 'user':
-            return <UserTurn key={turn.key} turn={turn} />;
+            return <UserTurn key={turn.key} turn={turn} presence={presence} />;
           case 'decision':
-            return <li key={turn.key} className="bridge-chat-turn" data-speaker="decision">{renderDecision(turn.decisionId)}</li>;
+            return (
+              <li key={turn.key} className="bridge-chat-turn" data-speaker="decision" data-presence={presenceAttributeOf(presence)}>
+                {renderDecision(turn.decisionId)}
+              </li>
+            );
         }
       })}
     </ol>

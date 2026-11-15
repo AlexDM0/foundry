@@ -50,7 +50,7 @@ export interface SingleGateRun {
 }
 
 export interface GateLinesRun {
-  /** The first prepare step that did not exit 0, `null` where every one did. */
+  /** The first prepare step that did not exit 0 or changed a tracked file, `null` where every one passed. */
   failedStep:    string | null;
   prepareOutput: string;
   gates:         SingleGateRun[];
@@ -81,14 +81,19 @@ async function runLine(request: GateLineRequest, storedLine: string, directory: 
   });
 }
 
-/** A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. */
+/**
+ * A run whose prepare failed judges no gate: each gate of it is recorded `cannot-run` with the prepare's output. A prepare step that changed a
+ * tracked file failed too, with its diff as the output, and the change is undone.
+ */
 async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | GateLineRefusal> {
   const prepareConfinement = GateRun.prepareConfinementOf(request.gates);
   for (const step of request.prepare) {
     const run = await runLine(request, step.run, request.directory, request.grantsWrites ? prepareConfinement : withoutWrites(prepareConfinement));
     if ('verdict' in run) return run;
-    if (request.shellLine.exitMeaningOf(run) === 'passed') continue;
-    return { failedStep: step.name, prepareOutput: run.output, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: run.output })) };
+    const failureOutput = GateRun.prepareFailureOutputOf(request.shellLine, run, request.directory);
+    if (failureOutput === null) continue;
+    if (request.shellLine.exitMeaningOf(run) === 'passed') restoreCheckout(request.directory);
+    return { failedStep: step.name, prepareOutput: failureOutput, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: failureOutput })) };
   }
   const gates: SingleGateRun[] = [];
   for (const gate of request.gates) {

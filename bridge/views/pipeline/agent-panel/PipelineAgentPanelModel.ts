@@ -2,25 +2,27 @@
  * The pipeline agent panel's model, pure: the chat the agent's transcript reads as, the line of what the agent does while a turn runs, the
  * setup questions of one step worded as question cards, and the commands an answer and a message send. Questions are setup questions in
  * the record, never decisions: an answer is `pipeline-setup-answer`, a message `job-message` to the agent's job. The agent strip above
- * the composer says what Flint does on each step, in the pose the later Flint reads.
+ * the composer says what the agent does on each step, beside Flint's slot: the habitat of the step, with its cue.
  */
-import type { FlintPose } from 'design-system/FlintSlot';
-import type { TagProps }  from 'design-system/Tag';
+import type { TagProps } from 'design-system/Tag';
 
-import type { JobState } from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { SpriteHabitat } from '../../../../flint/SpriteHabitat.ts';
+import type { JobState }      from '../../../../src/lib/tracker-model/@types/Job.ts';
 import type {
   PipelineSetup,
   ResearchFinding,
   SetupQuestion,
   SetupQuestionStep
 } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DisplayState }            from '../../../../src/lib/tracker-model/@types/Task.ts';
-import type { ControlCommandBody }      from '../../../api/CommandClient.ts';
-import type { TranscriptEntryDocument } from '../../../api/TranscriptStreamClient.ts';
-import type { ChatTurn }                from '../../../conversation/ChatThread.tsx';
-import { ChatThreadModelUtil }          from '../../../conversation/ChatThreadModel.ts';
-import { ChatTurnWordingUtil }          from '../../../conversation/ChatTurnWordingUtil.ts';
-import { StateToneUtil }                from '../../../utils/StateToneUtil.ts';
+import type { DisplayState }                  from '../../../../src/lib/tracker-model/@types/Task.ts';
+import type { ControlCommandBody }            from '../../../api/CommandClient.ts';
+import type { TranscriptEntryDocument }       from '../../../api/TranscriptStreamClient.ts';
+import type { ChatTurn }                      from '../../../conversation/ChatThread.tsx';
+import { ChatThreadModelUtil }                from '../../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }                from '../../../conversation/ChatTurnWordingUtil.ts';
+import { FLINT_SLOT_CUES, type FlintSlotCue } from '../../../flint/FlintSlotCues.ts';
+import { FLINT_SLOT_HABITATS }                from '../../../flint/FlintSlotHabitats.ts';
+import { StateToneUtil }                      from '../../../utils/StateToneUtil.ts';
 
 export const PIPELINE_AGENT_SPEAKER = 'Pipeline agent';
 
@@ -61,21 +63,32 @@ export interface SetupQuestionCard {
   readonly answeredText:       string | null;
 }
 
-/** The agent strip's words and Flint's pose. */
+/** The agent strip's words, and the habitat of Flint's slot on the step with its cue. */
 export interface AgentStripView {
-  readonly text: string;
-  readonly pose: FlintPose;
+  readonly text:         string;
+  readonly flintHabitat: SpriteHabitat;
+  /** `null` on a step whose agent does one thing the whole time: Flint's arrival in the slot says it. */
+  readonly flintCue:     FlintSlotCue | null;
 }
 
-const RESEARCH_STRIP: AgentStripView = { text: 'Reading the repository', pose: 'typing' };
+const RESEARCH_STRIP: AgentStripView = { text: 'Reading the repository', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_READS, };
 
-const CONSTITUTION_STRIP: AgentStripView = { text: 'Drafting the constitution', pose: 'thinking' };
+const CONSTITUTION_STRIP: AgentStripView = { text: 'Drafting the constitution', flintHabitat: FLINT_SLOT_HABITATS.constitution, flintCue: null, };
 
-const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', pose: 'thinking' };
+const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_THINKS, };
 
-const QUESTION_OPEN_STRIP: AgentStripView = { text: 'Waiting for your answer', pose: 'waiting' };
+const PROPOSAL_READY_STRIP: AgentStripView = { text: 'Proposal ready', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE, };
 
-const PROPOSAL_READY_STRIP: AgentStripView = { text: 'Proposal ready', pose: 'happy' };
+const QUESTION_OPEN_TEXT = 'Waiting for your answer';
+
+/** The panel head's word for an agent with no job on the board. */
+const STOPPED_TEXT = 'Stopped';
+
+const WORKING_STRIPS: Readonly<Record<SetupQuestionStep, AgentStripView>> = Object.freeze({
+  research:     RESEARCH_STRIP,
+  constitution: CONSTITUTION_STRIP,
+  design:       DESIGNING_STRIP,
+});
 
 /** The chat of the agent's session: the Overseer's lines as system lines, User's messages as bubbles, the agent's turns with their tools. */
 function chatTurnsOf(entries: readonly TranscriptEntryDocument[], agentJobId: string, todayCalendarDate: string): ChatTurn[] {
@@ -230,15 +243,21 @@ function messageCommandOf(agentJobId: string | null, text: string): ControlComma
 }
 
 /**
- * Research reads, the constitution drafts; the design waits while one of its questions is open, says its proposal is ready once the agent
- * suggests to continue past the design, as the panel head does, and designs until then.
+ * A question of the step that waits on User comes first, on every step; the design then says its proposal is ready once the agent suggests
+ * to continue past the design, as the panel head does; a stopped agent, with no job on the board, shows no work; else research reads, the
+ * constitution drafts and the design designs.
  */
-function agentStripOf(step: SetupQuestionStep, record: Pick<PipelineSetup, 'questions' | 'readyToContinue'>): AgentStripView {
-  if (step === 'research') return RESEARCH_STRIP;
-  if (step === 'constitution') return CONSTITUTION_STRIP;
-  const designQuestionIsOpen = record.questions.some((question) => question.step === 'design' && question.answer === null);
-  if (designQuestionIsOpen) return QUESTION_OPEN_STRIP;
-  return record.readyToContinue.includes('design') ? PROPOSAL_READY_STRIP : DESIGNING_STRIP;
+function agentStripOf(
+  step: SetupQuestionStep,
+  record: Pick<PipelineSetup, 'questions' | 'readyToContinue'>,
+  agentJobState: JobState | null
+): AgentStripView {
+  const { flintHabitat } = WORKING_STRIPS[step];
+  const questionIsOpen = record.questions.some((question) => question.step === step && question.answer === null);
+  if (questionIsOpen) return { text: QUESTION_OPEN_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER };
+  if (step === 'design' && record.readyToContinue.includes('design')) return PROPOSAL_READY_STRIP;
+  if (agentJobState === null) return { text: STOPPED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
+  return WORKING_STRIPS[step];
 }
 
 function composerTagOf(agentJobState: JobState | null): TagProps {

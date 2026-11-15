@@ -1,8 +1,9 @@
 /**
  * The `GET /api/monitor` document. What matters: for a board with one entry of every attention kind and one job of every role, plus a merge
- * job with none, `monitorSnapshotOf` answers `monitorVersion: 1` exactly as `testing/fixtures/monitor-v1.json` holds it, so a change to the
- * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one. Beside it: `activity` keeps
- * only the kinds a person cares about, newest last, each at its log position, and holds at most the newest fifty.
+ * job with none, `monitorSnapshotOf` answers `monitorVersion: 2` exactly as `testing/fixtures/monitor-v2.json` holds it, so a change to the
+ * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` stays
+ * as version 1 froze it. Beside it: `activity` keeps only the kinds a person cares about, newest last, each at its log position, and holds
+ * at most the newest fifty.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -13,7 +14,7 @@ import type { BoardState, JobLiveFactsWithSilence, JobWithLiveFacts }           
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';
 import { liveJobFixture }                                                                 from './testing/LiveJobFixture.ts';
 
-const MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v1.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v2.json');
 
 /** Midday, so today's local calendar date is the stamps' date in any zone a spec runs in. */
 const NOW = new Date(2026, 10, 12, 12, 0, 0);
@@ -202,7 +203,7 @@ const SOURCE: MonitorSnapshotSource = {
 };
 
 describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
-  test('answers monitorVersion 1 exactly as the fixture holds it, for every attention kind and every job role', () => {
+  test('answers monitorVersion 2 exactly as the fixture holds it, for every attention kind and every job role', () => {
     const fixture: unknown = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8'));
     expect(JSON.parse(JSON.stringify(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE)))).toEqual(fixture);
   });

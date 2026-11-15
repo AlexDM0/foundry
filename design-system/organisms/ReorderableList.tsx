@@ -40,13 +40,18 @@ export interface ReorderableListProps {
   readonly measureRows?: () => readonly RowBox[];
 }
 
-interface KeyboardDrag {
+/** The rows' keys, in order, when the drag began; a drag whose list has changed since then no longer holds, and ends unapplied. */
+interface DragStart {
+  readonly keysAtGrab: readonly string[];
+}
+
+interface KeyboardDrag extends DragStart {
   readonly kind:      'keyboard';
   readonly fromIndex: number;
   readonly toIndex:   number;
 }
 
-interface PointerDrag {
+interface PointerDrag extends DragStart {
   readonly kind:      'pointer';
   readonly fromIndex: number;
   readonly toIndex:   number;
@@ -68,6 +73,10 @@ function pixels(value: number): string {
   return `${value}px`;
 }
 
+function keysAreUnchanged(keysAtGrab: readonly string[], keys: readonly string[]): boolean {
+  return keysAtGrab.length === keys.length && keysAtGrab.every((key, index) => key === keys[index]);
+}
+
 /** The grip's six dots, two columns of three. */
 function GripGlyph() {
   return (
@@ -85,13 +94,16 @@ function GripGlyph() {
 export function ReorderableList({
   label, items, onReorder, announce, measureRows
 }: ReorderableListProps) {
-  const [drag, setDrag] = useState<Drag | null>(null);
+  const [storedDrag, setDrag] = useState<Drag | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const rowElements = useRef(new Map<string, HTMLLIElement>());
   const gripElements = useRef(new Map<string, HTMLButtonElement>());
   /** The grip a keyboard grab holds the focus on, up to the render after its drop, while the rows around it move in the page. */
   const keyKeepingFocus = useRef<string | null>(null);
   const bands = items.map((item) => item.band);
+  const keys = items.map((item) => item.key);
+  const drag = storedDrag !== null && keysAreUnchanged(storedDrag.keysAtGrab, keys) ? storedDrag : null;
+  if (storedDrag !== null && drag === null) setDrag(null);
 
   useLayoutEffect(() => {
     const key = keyKeepingFocus.current;
@@ -138,10 +150,16 @@ export function ReorderableList({
       if (!GRAB_KEYS.includes(event.key)) return;
       event.preventDefault();
       keyKeepingFocus.current = items[index]?.key ?? null;
-      setDrag({ kind: 'keyboard', fromIndex: index, toIndex: index });
+      setDrag({
+        kind: 'keyboard', fromIndex: index, toIndex: index, keysAtGrab: keys
+      });
       return;
     }
     if (drag.kind !== 'keyboard') return;
+    if (index !== drag.fromIndex) {
+      cancel(drag);
+      return;
+    }
     if (GRAB_KEYS.includes(event.key)) {
       event.preventDefault();
       drop(drag);
@@ -174,7 +192,15 @@ export function ReorderableList({
     const grip = event.currentTarget;
     grip.setPointerCapture(event.pointerId);
     setDrag({
-      kind: 'pointer', fromIndex: index, toIndex: index, pointerId: event.pointerId, grip, startY: event.clientY, offsetY: 0, rowBoxes: measuredRowBoxes()
+      kind:       'pointer',
+      fromIndex:  index,
+      toIndex:    index,
+      pointerId:  event.pointerId,
+      grip,
+      startY:     event.clientY,
+      offsetY:    0,
+      rowBoxes:   measuredRowBoxes(),
+      keysAtGrab: keys
     });
   };
 

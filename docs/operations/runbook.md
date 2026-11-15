@@ -256,7 +256,8 @@ jq -r .line .forge/jobs/J7/install/events-1.ndjson | tail -n 40   # the install 
 ```
 
 **Cause:** the worktree could not be created, the install line failed, or a gating [prepare
-step](../glossary.md#prepare-step) failed. A reboot during an install ends the same way.
+step](../glossary.md#prepare-step) failed. A prepare step that exits 0 but changes a tracked file, such as an install that
+rewrites the lockfile, fails too, and `gate.log` holds the diff. A reboot during an install ends the same way.
 
 **Fix:** by what the file says. The first `setup-failed` incident on a ticket takes its default, `worktree-repair`, and
 the next attempt launches. The second parks it `parked:setup-failed`: repair, then `ticket unhold`.
@@ -351,7 +352,7 @@ forge decisions
 | `checks-not-set` | Closes it | Set the pipeline with `forge pipeline setup` and its Apply, which withdraws it; or with `gate add` or `gate none`, then answer. Answered with no pipeline, it opens again on the next Pass. |
 | `merge-refused` | Closes it | Read its context, fix the branch. With a review phase a review relaunches regardless; `ticket hold` first if you want it to wait. Without one, the ticket queues again once answered. |
 | `landing-refused` | Closes it | Fix `## Acceptance`, then `ticket unhold`. |
-| `waiver` | Closes it, lifting the launch block | The review job stays `awaiting-answer` and keeps its launch slot. Run `forge job fresh J7` for another review. |
+| `waiver` | Closes it; the next Pass acts on it. An answer starting with `refuse` sends the ticket back to its builder; any other writes the items `Waived:` and ends the review, queueing the ticket to merge while its green is current | Answer. |
 | `branch-touches-agent-config` | Closes it, lifting the launch block until another job on the ticket ends | Revert the `.claude/`, `.mcp.json` or hooks change on the ticket's branch first, or the next verification refuses it again. |
 | `quiet-job` | Closes it | Follow [An agent looks stuck](#an-agent-looks-stuck). |
 | `leftover-worktree` | Closes it | Inspect the folder its context names, remove it, then answer. A folder still there opens the decision again at the next Overseer start. |
@@ -376,7 +377,7 @@ forge oversee status
 | `merge-in` | The Overseer's git step | A failure opens `merge-refused`. |
 | `resolving` | The ticket's last worker, its newest ended builder or [reviewer](../glossary.md#reviewer), resumed as a [merge agent](../glossary.md#merge-agent) | Its budget ends it. `merge-refused` opens. |
 | `re-reviewing` | A conflict re-reviewer of a resolution larger than the merge train's threshold | Its budget ends it, or a claim that does not hold refuses the merge: `merge-refused` opens. |
-| `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `forge gate retry J7`. A failed prepare step opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
+| `gating` | The merged-tree gate | Red resumes the merge agent, or parks `merge-gate-red` once its resumes are spent. A gate that cannot run opens `gate-cannot-run`: correct the gate, then `forge gate retry J7`. A failed prepare step, or one that changed a tracked file, opens `setup-failed`, where `gate retry` does nothing: correct the step and wait for its default to gate the tree again. A second default parks the ticket. |
 | `fixing` | The same merge agent, resumed with the red handoff | Red past its resumes aborts and parks. |
 | `landing` | The compare-and-swap | See the table below. |
 
@@ -454,7 +455,7 @@ tail -n 40 .forge/overseer.log                                # what the Oversee
 jq -c 'select(.ticketId == "003" or (.fields.ticketIds? // [] | index("003")))' .forge/log.jsonl | tail -n 20
 jq -r 'select(.kind == "job-ended") | [.at, .jobId, .fields.outcome, .fields.cause] | @tsv' .forge/log.jsonl | tail
 tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at          # the job's last sign of life
-tail -n 20 .forge/jobs/J7/watcher-1.log                       # Watcher and child stderr
+tail -n 20 .forge/jobs/J7/watcher-1.log                       # Watcher and child stderr; `watcher failed:` says why it died
 ls -t .forge/jobs/J7/watcher-*.log | head -n 1 | xargs tail -n 20   # the same, for a job that left jobs
 jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .forge/log.jsonl | tail -n 1   # the newest Assistant job
 cat .forge/jobs/J7/gate.log                                   # red gate output

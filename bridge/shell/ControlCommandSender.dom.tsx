@@ -1,10 +1,11 @@
 /**
- * The control-command sender, through a probe component in a happy-dom document, against a command client whose answers the spec sets.
- * What matters: an applied command clears the last refusal and hands its result to `onApplied`; a refusal shows verbatim and an unreachable
- * Overseer shows the one sentence for it; only the Overseer's refusal reaches the shell's refusal handler; a 423 goes to the shell's
- * install-held handler and a lost session to its session handler; the sender is disabled while a send is in flight, while the stream is
- * down, while launches are held unless the command is answered then, and while there is no command or nothing to send, and a send past the
- * disabled button, as a key would make, then sends nothing.
+ * The control-command sender, through a probe component in a happy-dom document, against a command client whose answers the spec sets. What
+ * matters: an applied command clears the last refusal and hands its result to `onApplied`; a refusal shows verbatim and an unreachable
+ * Overseer shows the one sentence for it; a command whose answer was lost after a 200 says it may have been applied, never that the Overseer
+ * was unreachable, and calls neither `onApplied` nor the refusal handler, so a form keeps its text for User to check; only the Overseer's
+ * refusal reaches the shell's refusal handler; a 423 goes to the shell's install-held handler and a lost session to its session handler; the
+ * sender is disabled while a send is in flight, while the stream is down, while launches are held unless the command is answered then, and
+ * while there is no command or nothing to send, and a send past the disabled button, as a key would make, then sends nothing.
  */
 import {
   act,
@@ -20,10 +21,10 @@ import {
   test
 } from 'bun:test';
 
-import type { CommandOutcome, ControlCommandBody }       from '../api/CommandClient.ts';
-import type { ControlAvailability, ControlSurroundings } from './ControlAvailability.ts';
-import { ControlSurroundingsContext }                    from './ControlAvailability.ts';
-import { UNREACHABLE_WORDING, useControlCommand }        from './ControlCommandSender.ts';
+import type { CommandOutcome, ControlCommandBody }                         from '../api/CommandClient.ts';
+import type { ControlAvailability, ControlSurroundings }                   from './ControlAvailability.ts';
+import { ControlSurroundingsContext }                                      from './ControlAvailability.ts';
+import { OUTCOME_UNKNOWN_WORDING, UNREACHABLE_WORDING, useControlCommand } from './ControlCommandSender.ts';
 
 const PAUSE_COMMAND: ControlCommandBody = { kind: 'overseer-pause' };
 /** A caller that sends on a key, not through the disabled button: the sender itself must refuse. */
@@ -123,6 +124,14 @@ describe('the answers', () => {
     expect([screen.getByRole('status').textContent, screen.getByRole('status').querySelector('b')]).toEqual(['<b>planted</b> refusal', null]);
     await sent();
     expect(screen.getByRole('status').textContent).toBe(UNREACHABLE_WORDING);
+  });
+
+  test('a command whose answer was lost after a 200 says it may have been applied, and neither clears the form nor counts as a refusal', async () => {
+    const applied: unknown[] = [];
+    const answers = [Promise.resolve<CommandOutcome>({ verdict: 'outcome-unknown' })];
+    const probe = renderedProbe({ command: PAUSE_COMMAND, onApplied: (result) => applied.push(result) }, { answers });
+    await sent();
+    expect([screen.getByRole('status').textContent, applied, probe.refusedWith]).toEqual([OUTCOME_UNKNOWN_WORDING, [], []]);
   });
 
   test('only the Overseer\'s refusal reaches the shell\'s refusal handler, verbatim, so Flint can answer it', async () => {

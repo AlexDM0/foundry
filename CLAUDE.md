@@ -84,8 +84,9 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
   `OLDER_FORMAT_ADVICE` (`src/adapters/constants/OlderFormatAdvice.ts`), held by `cli/OlderTrackerRefusal.spec.ts`.
   Nothing migrates; a retired verb, word or flag is unknown.
 - A malformed stored file is a verdict and a report, never a throw that takes down `status`.
-- `progress.json` keeps unknown keys, top level and on rows, in order. An optional key is written only once set, and
-  a read never adds or rewrites one, so a file stays byte-identical.
+- `progress.json` keeps unknown keys, top level and on rows, in order; a write moves an integer-named key to the front
+  (`docs/cli.md`). An optional key is written only once set, and a read never adds or rewrites one, so a file stays
+  byte-identical.
 - An epic is `.forge/epics/<key>.md`, known by its file name, its description kept byte for byte like a
   ticket body; the folder exists only once an epic was added. Its colour `slot` is stored at `epic add`, never derived.
 - The Board logs ids and values through one `log(record)` over a typed record union (the vocabulary, no method per
@@ -456,14 +457,31 @@ flint/  →  bridge/ (only through the entry files of flint/package.json)
   `steer`. The command in `flint/README.md` builds it into one file in `flint/demo/build/`. Git ignores this folder.
 - `bridge/flint/` is the host of Flint in the Bridge. `bridge/flint/BridgeFlint.tsx` gives the home corner at the
   bottom right, the storage port on `bridge/preferences/PreferenceStore.ts` for each board, the visit target and the
-  board occasions. The visit target is the habitat that User last focused or clicked. An element with
-  `data-flint-workplace` around a habitat, such as the chat card, counts as part of that habitat. The Bridge learns
-  where Flint lives only from the handle's `livesIn`.
+  board occasions. The visit target (`bridge/flint/VisitTargetTracker.ts`) is the Flint slot of the open screen. When
+  User focuses or clicks in another habitat after that slot shows, the visit target is that habitat. A slot that
+  shows, as on a change of screen, is the visit target again. An element with `data-flint-workplace` around a
+  habitat, such as the chat card, counts as part of that habitat; a slot counts only as its own box. The innermost
+  habitat around the element that User worked in wins. The Bridge learns where Flint lives only from the handle's
+  `livesIn`.
 - The habitats of the Bridge are the chat thread (`bridge/conversation/`), the Agents view, the Questions view and the
-  question panel, the Tickets and Kanban views, the merge queue, the Epics view and the Progress timeline. A habitat
-  makes its cues from the data that its component gets, through a pure model with a plain spec. It never reads text
-  from the page and never calls a model. One change of the board has one answer of Flint, not a cue and an occasion
-  that replace each other. `bridge/flint/BridgeFlint.dom.tsx` holds the host.
+  question panel, the Tickets and Kanban views, the merge queue, the Epics view, the Progress timeline, and the Flint
+  slot of each screen. A habitat makes its cues from the data that its component gets, through a pure model with a
+  plain spec. It never reads text from the page and never calls a model. One change of the board has one answer of
+  Flint, not a cue and an occasion that replace each other: while Flint lives in the questions habitat, that habitat
+  answers an incident that opens or settles, and the board occasions do not. A change that ends a loop of Flint, such
+  as the connection that comes back, gets a one-action gesture, because an emote does not stop a gesture.
+  `bridge/flint/BridgeFlint.dom.tsx` holds the host.
+- Each Flint slot (`design-system/FlintSlot`) is the habitat of its screen. The slot draws no sprite. It gives its box
+  to `bridge/flint/FlintSlotHabitat.tsx` through `slotRef`. That component registers the box with the habitat of the
+  screen, a module constant in `bridge/flint/FlintSlotHabitats.ts`, and sends the cue of the screen's data
+  (`bridge/flint/FlintSlotCues.ts`) when the data changes it. While a lasting cue holds, Flint keeps up its answer in
+  the slot through `copy`. A screen whose agent does one thing for the whole time sends no cue: the arrival answer of
+  its habitat shows it. A slot is at least 100 by 100 pixels, because Flint ignores a smaller habitat. A page shows
+  one slot; a slot under a covering panel, or in a panel that is hidden behind one, is not rendered, so it is not
+  registered. Each slot habitat sets `keepsFlintInside`: Flint does not show outside the slot, and a visit comes in
+  through the edge of the slot. When a slot shows, or when Flint is made while a slot shows,
+  `bridge/flint/BridgeFlint.tsx` sends Flint to the slot at once with `perform('visit')`, so Flint does not wait at
+  home for its director.
 
 ### Skills
 

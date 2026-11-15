@@ -1,10 +1,11 @@
 /**
  * The side panel, in a happy-dom document. What matters: its top docks under the bottom of what `dockBelow` returns and follows it on a
- * scroll; it mounts out of view and enters after a frame; closing slides it out and reports it gone once the slide ends, at once without
- * motion; the head's close button is named by `closeLabel` and calls `onClose`; it takes the focus on the first showing only, and only when
- * asked; a new content key on the body cross-fades the contents; the head, body and foot sit in that order, the head's title and children
- * before ×, and a head of × alone says so; the width sets `data-width`, `detail` by default; `panelRef` and `scrollRef` give a host the
- * panel and its scrolling body; and the words are text, never markup.
+ * scroll and on a change of the page's or the dock's size, as a banner coming above the dock makes, which fires no scroll; it mounts out
+ * of view and enters after a frame; closing slides it out and reports it gone once the slide ends, at once without motion; the head's
+ * close button is named by `closeLabel` and calls `onClose`; it takes the focus on the first showing only, and only when asked; a new
+ * content key on the body cross-fades the contents; the head, body and foot sit in that order, the head's title and children before ×, and
+ * a head of × alone says so; the width sets `data-width`, `detail` by default; `panelRef` and `scrollRef` give a host the panel and its
+ * scrolling body; and the words are text, never markup.
  */
 import {
   act,
@@ -99,6 +100,47 @@ describe('the docking', () => {
     expect(panel().style.getPropertyValue('--side-panel-top')).toBe(`${SCROLLED_DOCK_BOTTOM_PIXELS}px`);
   });
 
+  test('the top follows the dock when the page or the dock changes size, and the panel stops watching once it is gone', () => {
+    let dockBottom = DOCK_BOTTOM_PIXELS;
+    const dock = document.createElement('div');
+    dock.getBoundingClientRect = () => DOMRect.fromRect({
+      x: 0, y: 0, width: 0, height: dockBottom
+    });
+    const resizeCallbacks: (() => void)[] = [];
+    const observedTargets: Element[] = [];
+    let disconnections = 0;
+    class RecordingResizeObserver {
+      public constructor(callback: () => void) {
+        resizeCallbacks.push(callback);
+      }
+
+      public observe(target: Element): void {
+        observedTargets.push(target);
+      }
+
+      public unobserve(): void {}
+
+      public disconnect(): void {
+        disconnections += 1;
+      }
+    }
+    const original = globalThis.ResizeObserver;
+    Object.defineProperty(globalThis, 'ResizeObserver', { value: RecordingResizeObserver, configurable: true, writable: true });
+    try {
+      renderPanel({ dockBelow: () => dock });
+      expect([observedTargets.includes(document.body), observedTargets.includes(dock)]).toEqual([true, true]);
+      dockBottom = DOCK_BOTTOM_PIXELS + SCROLLED_DOCK_BOTTOM_PIXELS;
+      act(() => {
+        for (const callback of resizeCallbacks) callback();
+      });
+      expect(panel().style.getPropertyValue('--side-panel-top')).toBe(`${DOCK_BOTTOM_PIXELS + SCROLLED_DOCK_BOTTOM_PIXELS}px`);
+      cleanup();
+      expect(disconnections).toBe(1);
+    } finally {
+      Object.defineProperty(globalThis, 'ResizeObserver', { value: original, configurable: true, writable: true });
+    }
+  });
+
   test('with nothing to dock under, the top is the window\'s', () => {
     renderPanel();
     expect(panel().style.getPropertyValue('--side-panel-top')).toBe('0px');
@@ -187,6 +229,23 @@ describe('the parts', () => {
       ['design-system-side-panel-head', true],
       ['design-system-side-panel-scroll', false],
     ]);
+  });
+
+  test('a first line shares its line with ×, and the title and children sit under that line', () => {
+    render(
+      <SidePanel label="Example panel" isClosing={false} onClosed={() => undefined}>
+        <SidePanelHead closeLabel="Close" onClose={() => undefined} firstLine={<span>#012</span>} title="Example detail" titleElement="h2">
+          <span>Running</span>
+        </SidePanelHead>
+        <SidePanelBody><p>Example contents</p></SidePanelBody>
+      </SidePanel>,
+    );
+    const head = panel().querySelector('.design-system-side-panel-head');
+    expect([...head?.children ?? []].map((part) => [part.className, part.textContent])).toEqual([
+      ['design-system-side-panel-head-first-line', '#012×'],
+      ['design-system-side-panel-head-content', 'Example detailRunning'],
+    ]);
+    expect([head?.hasAttribute('data-first-line'), head?.hasAttribute('data-close-alone')]).toEqual([true, false]);
   });
 
   test('panelRef holds the panel and scrollRef its scrolling body, so a host needs none of their classes', () => {

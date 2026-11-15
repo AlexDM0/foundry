@@ -131,6 +131,8 @@ export const GIT_CALL_SHAPES = {
   MERGE_IN_CONFLICTED:                 'merge --no-ff --no-edit --quiet <commit>, <path> conflicted',
   UNMERGED_FILES_OF_A_CONFLICT:        'diff --name-only --diff-filter=U -z, <path> unmerged',
   MERGE_ABORT_OF_A_CONFLICT:           'merge --abort, a conflicted merge in progress',
+  MERGE_IN_BLOCKED_BY_A_LOCAL_CHANGE:  'merge --no-ff --no-edit --quiet <commit>, an uncommitted change to <path> in the way',
+  NO_UNMERGED_FILE_OF_A_REFUSED_MERGE: 'diff --name-only --diff-filter=U -z, a merge git refused to start',
   HARD_RESET_TO_A_COMMIT:              'reset --hard --quiet <commit>, the commit in the history',
   NUL_STATUS_OF_A_CLEAN_CHECKOUT:      'status --porcelain=v1 -z --untracked-files=all, the checkout clean',
   FILES_CHANGED_UP_TO_A_COMMIT:        'diff --name-only --no-renames -z HEAD <commit> --, <path> changed',

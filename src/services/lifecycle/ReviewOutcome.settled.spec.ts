@@ -2,9 +2,10 @@
  * A verified and gated review pass settled by code on recorded git scenarios and a Board in memory. What matters: the rework
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
- * round to the merge queue with its notice, and a waiver proposal to User, whose grant writes the waived item and whose refusal is a failed
- * pass. A grant whose stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass. The
- * board's pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
+ * round to the merge queue with its notice, and a waiver proposal to User. User's answer is only recorded, as it is with the Overseer down;
+ * the Overseer's next pass acts on it: a grant writes the waived item and a refusal is a failed pass. A grant whose
+ * stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass. The board's
+ * pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
  * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
  * it did not record fails the case, so the commit a pass makes is answered only with the message the recording holds.
  */
@@ -173,6 +174,29 @@ function recordsOfKind<Kind extends LogRecord['kind']>(kind: Kind): Extract<LogR
   return logRecords.filter((record): record is Extract<LogRecord, { kind: Kind }> => record.kind === kind);
 }
 
+function followThePlaybook(): ReturnType<Board['followPlaybook']> {
+  return board.followPlaybook({ ...LIFECYCLE_LIMITS, now: AT, usageResetsAt: null }, {
+    mainLine:                     target,
+    groupTargetPrefix:            'group-',
+    installVersionChanged:        false,
+    targetsHoldingManagedBlock:   [],
+    ticketIdsTouchingAgentConfig: [],
+    closedDeliveryTurns:          [],
+    budgetSpentDeliveryTurns:     [],
+    assistantHasAnswered:         false,
+    assistantBootRetryDue:        false,
+  }, () => WORDING);
+}
+
+/** User's answer is recorded as `decide` records it; the Overseer's next pass acts on each answer its Playbook names, on `headTree`. */
+function answerTheWaiver(answer: string, headTree: string): void {
+  const [decision] = board.decisions();
+  board.answerDecision(decision?.id ?? '', [answer], AT);
+  for (const step of followThePlaybook().steps) {
+    if (step.kind === 'act-on-waiver-answer') ReviewOutcome.actOnWaiverAnswer(board, step.jobId, step.answers, jobFolder, headTree, AT);
+  }
+}
+
 beforeEach(() => {
   repositoryDirectory = createScratchDirectory('review-outcome');
   jobFolder = createScratchDirectory('review-job');
@@ -322,25 +346,25 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     expect(board.ticketIsMergeQueued('001')).toBe(false);
     expect(board.jobById(jobId)?.state).toBe('awaiting-answer');
     board.endJob(jobId, { outcome: 'stopped' }, AT);
-    const advanced = board.followPlaybook({ ...LIFECYCLE_LIMITS, now: AT, usageResetsAt: null }, {
-      mainLine:                     target,
-      groupTargetPrefix:            'group-',
-      installVersionChanged:        false,
-      targetsHoldingManagedBlock:   [],
-      ticketIdsTouchingAgentConfig: [],
-      closedDeliveryTurns:          [],
-      budgetSpentDeliveryTurns:     [],
-      assistantHasAnswered:         false,
-      assistantBootRetryDue:        false,
-    }, () => WORDING);
-    expect(advanced.steps.filter((step) => step.kind === 'launch-review')).toEqual([]);
+    expect(followThePlaybook().steps.filter((step) => step.kind === 'launch-review')).toEqual([]);
   });
 
-  test('granting the waiver writes the item waived in the answering hold and queues the ticket to merge', () => {
+  test('the answer alone moves nothing; the next pass names the waiting review with the answer to act on', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+    expect(followThePlaybook().steps.filter((step) => step.kind === 'act-on-waiver-answer')).toEqual([]);
     const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+    board.answerDecision(decision?.id ?? '', ['Grant'], AT);
+
+    expect(board.jobById(jobId)?.state).toBe('awaiting-answer');
+    expect(board.ticketIsMergeQueued('001')).toBe(false);
+    expect(followThePlaybook().steps.filter((step) => step.kind === 'act-on-waiver-answer')).toEqual([{ kind: 'act-on-waiver-answer', jobId, answers: ['Grant'] }]);
+  });
+
+  test('granting the waiver writes the item waived in the pass after the answer and queues the ticket to merge', () => {
+    const jobId = reviewJobAtRound(1);
+    settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
+    answerTheWaiver('Grant', GATED_TREE);
 
     expect(ticketBody()).toContain('## Acceptance\nA1. The example page loads.\nA2. Waived: The export was retired\n\n## Brief\n');
     expect(board.decisions()).toEqual([]);
@@ -351,9 +375,8 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
   test('granting the waiver on a tree the gates did not pass ends the review but queues nothing, so a fresh review gates it', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
-    const [decision] = board.decisions();
     // A commit after the gate, which changes the tree the waiver is answered on.
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, TREE_AFTER_THE_GATE, AT);
+    answerTheWaiver('Grant', TREE_AFTER_THE_GATE);
 
     expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
     expect(board.ticketIsMergeQueued('001')).toBe(false);
@@ -363,8 +386,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
   test('refusing the waiver is a failed pass back to a fixer', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
-    const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Refuse: the export stays'], jobFolder, GATED_TREE, AT);
+    answerTheWaiver('Refuse: the export stays', GATED_TREE);
 
     expect(ticketBody()).not.toContain('Waived:');
     expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause])).toEqual([['does-not-hold', 'waiver-refused']]);
@@ -382,8 +404,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
       const jobId = reviewJobAtRound(1);
       settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
       writeFileSync(join(jobFolder, 'waiver-proposals.json'), storedProposals);
-      const [decision] = board.decisions();
-      ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+      answerTheWaiver('Grant', GATED_TREE);
 
       expect(ticketBody()).not.toContain('Waived:');
       expect(recordsOfKind('job-ended').map((record) => [record.fields.outcome, record.fields.cause]))
@@ -397,8 +418,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
     rmSync(join(jobFolder, 'waiver-proposals.json'));
-    const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+    answerTheWaiver('Grant', GATED_TREE);
 
     expect(recordsOfKind('job-ended').map((record) => record.fields.cause)).toEqual(['waiver-proposals-unreadable']);
     expect(board.ticketIsMergeQueued('001')).toBe(false);
@@ -420,8 +440,7 @@ describeWhenGitIsRecorded('a waiver on a CRLF ticket', () => {
     board = newBoard([], TICKET_BODY.replaceAll('\n', '\r\n'));
     const jobId = reviewJobAtRound(1);
     settle(jobId, report([claim('A1', 'holds'), claim('A2', 'waiver-proposed', 'The export was retired')]));
-    const [decision] = board.decisions();
-    ReviewOutcome.answerWaiver(board, decision?.id ?? '', ['Grant'], jobFolder, GATED_TREE, AT);
+    answerTheWaiver('Grant', GATED_TREE);
 
     expect(ticketBody()).toContain('## Acceptance\r\nA1. The example page loads.\r\nA2. Waived: The export was retired\r\n\r\n## Brief\r\n');
     expect(ticketBody().replaceAll('\r\n', '')).not.toContain('\n');

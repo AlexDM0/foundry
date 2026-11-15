@@ -1,8 +1,9 @@
 /**
  * The `pipeline` verbs over a scratch tracker. What matters: each verb builds its command from the command line and writes the setup
  * record through the lock; ids are read in either case; the constitution text arrives byte for byte from a file or standard input, line
- * endings and all; a draft edit sets several fields in one move; outside a job the pipeline agent's verbs name the record and apply its
- * moves; and a usage mistake or a Board refusal exits 1 with the record, the progress file and the log as they were.
+ * endings and all, while `--file -` in a terminal is refused rather than read as empty text; a draft edit sets several fields in one
+ * move; outside a job the pipeline agent's verbs name the record and apply its moves; and a usage mistake or a Board refusal exits 1
+ * with the record, the progress file and the log as they were.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
@@ -110,6 +111,27 @@ describeWhenGitIsRecorded('the pipeline verbs', () => {
 
     await run(['pipeline', 'constitution', 'S1', '--revision', '1', '--file', '-', '--sources', 'installed-default'], '# Piped\n');
     expect(storedSetup().constitution).toMatchObject({ markdown: '# Piped\n', revision: 2, draftedFrom: { contributing: false, research: false, installedDefault: true } });
+  });
+
+  test('--file - in a terminal is refused at exit 1 with nothing written, for User\'s text and the agent\'s payload; an empty file still clears the text', async () => {
+    await setupAtDesign();
+    writeFileSync(join(repositoryDirectory, 'constitution-draft.md'), CONSTITUTION_TEXT);
+    writeFileSync(join(repositoryDirectory, 'empty.md'), '');
+    await run(['pipeline', 'constitution', 'S1', '--revision', '0', '--file', 'constitution-draft.md']);
+    const before = storedFiles();
+
+    for (const commandLine of [
+      ['pipeline', 'constitution', 'S1', '--revision', '1', '--file', '-'],
+      ['pipeline', 'draft-constitution', 'S1', '--file', '-'],
+    ]) {
+      const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputIsTerminal: true });
+      expect(await runCommandLine(commandLine, context), commandLine.join(' ')).toBe(1);
+      expect(context.errorText()).toContain('--file - reads standard input, and standard input is a terminal');
+    }
+    expect(storedFiles()).toEqual(before);
+
+    await run(['pipeline', 'constitution', 'S1', '--revision', '1', '--file', 'empty.md']);
+    expect(storedSetup().constitution).toMatchObject({ markdown: '', revision: 2 });
   });
 
   test('pipeline edit sets several fields in one move, pipeline undo takes one back unless that leaves no valid pipeline, and discard all', async () => {

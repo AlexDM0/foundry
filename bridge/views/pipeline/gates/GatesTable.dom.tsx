@@ -6,7 +6,8 @@
  * shows in the Build phase only; a keyboard reorder sends the phase's new order and never lifts a gate above a prepare step; Delete on a
  * focused row sends the order without it, or removes a prepare step; on a live board the add buttons hide, the head names the tickets in
  * the phase's gates once, since the facts tie a ticket to the phase's gates and not to one gate, so no row names one, and a reorder sends
- * `pipeline-update-start` first.
+ * `pipeline-update-start` first; a second gesture while the first is held or on its way is not taken, so an order built on the old rows
+ * never undoes the edit before it, nor replaces a live board's held edits.
  */
 import {
   act,
@@ -188,6 +189,44 @@ describe('reorder and Delete', () => {
     expect(controls.sent.map((command) => command['edits'])).toEqual([
       [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests'] }],
       [{ field: 'prepare:install', value: null }],
+    ]);
+  });
+
+  test('a second Delete while the first edit is on its way is not taken, so its order built on the old rows never undoes the first', async () => {
+    const { controls, handle } = renderGates('A2');
+    controls.holdCommands();
+    fireEvent.keyDown(rowOf('lint'), { key: 'Delete' });
+    await settle();
+    const facts = pipelineBoardStateOf('A2');
+    const setup = facts.pipelineSetup;
+    if (setup === null || setup === undefined) throw new Error('the A2 fixture has no setup record');
+    await act(async () => {
+      handle.showFacts({ ...facts, pipelineSetup: { ...setup, record: { ...setup.record, draftRevision: 8 } } });
+      await Promise.resolve();
+    });
+    fireEvent.keyDown(rowOf('typecheck'), { key: 'Delete' });
+    await settle();
+    await controls.releaseCommands();
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests'] }]
+    }]);
+  });
+
+  test('on a live board a second gesture before the opened record shows is not taken, so the first gesture\'s edits still go', async () => {
+    const { controls, handle } = renderGates('A5');
+    moveByKeyboard('lint', ['ArrowDown']);
+    await settle();
+    moveByKeyboard('typecheck', ['ArrowDown']);
+    await settle();
+    await act(async () => {
+      handle.showFacts(pipelineBoardStateOf('A6'));
+      await Promise.resolve();
+    });
+    expect(controls.sent).toEqual([
+      { kind: 'pipeline-update-start' },
+      {
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests', 'lint'] }]
+      },
     ]);
   });
 

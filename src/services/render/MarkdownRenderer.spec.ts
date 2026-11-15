@@ -162,6 +162,10 @@ describe('withAcceptanceItemsSeparated', () => {
     expect(html).toContain('<p>A3. The third claim.</p>');
   });
 
+  test('separates the items after a tilde fence that quotes a backtick fence, which closes only the fence it opened', () => {
+    expect(withAcceptanceItemsSeparated('## Acceptance\n~~~\n```\n~~~\nA1. One.\nA2. Two.\n')).toBe('## Acceptance\n~~~\n```\n~~~\n\nA1. One.\n\nA2. Two.\n');
+  });
+
   test('without it the same items render as one joined paragraph, which is the blob it fixes', () => {
     const html = renderMarkdown(ticketBodyWithJoinedItems);
 

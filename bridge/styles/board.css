@@ -6,6 +6,10 @@
  * Containers
  *   :root[data-freshness] `live` while the event stream is up: every live animation plays only then; [data-motion="ready"] once
  *                           the first board has painted, before which every motion token is 0ms
+ *   [data-presence]         `arriving` or `leaving` on a list item that came or went after its list's data arrived
+ *                           (bridge/shell/ItemPresence.ts): a .bridge-chat-turn or .bridge-chat-system line, a .bridge-transcript-entry,
+ *                           a decision's or an incident's .bridge-card, a .bridge-activity-job; [data-value-changed] on a header figure, a
+ *                           lane count or the state pill once its value changed since it mounted (bridge/shell/ChangedSinceMount.ts)
  *   #bridge-root            the React root
  *   .bridge-shell           the page frame, edge to edge, each row keeping the --page-gutter: the banners, the header, the panel
  *   .bridge-header          the rows: .bridge-head-title-row (the .bridge-brand of the .bridge-forge-mark and the .bridge-wordmark, a
@@ -35,7 +39,7 @@
  *                           .bridge-pipeline-setup-phases grid of step cards; in the panel, the -agent-steps list of -agent-step rows
  *                           over the -agent-note
  *   .bridge-pipeline-resume the resume summary (A0bResume): the centred -resume-column holding the stepper, whose details carry a
- *                           .bridge-pipeline-resume-recheck word
+ *                           .bridge-pipeline-resume-recheck word, over the -resume-footer
  *   .bridge-pipeline-panel  the 388 px panel of every pipeline screen: the -panel-head[data-tabbed?] with the
  *                           -panel-status-dot[data-tone] and the tabs, the -panel-content of a -panel-body, the
  *                           .bridge-pipeline-agent-strip with Flint, and a -panel-foot; a setup question is a .bridge-pipeline-agent-question
@@ -47,7 +51,7 @@
  *                           the -done pill), its -steps row of .bridge-pipeline-step[data-kind][data-highlighted?][data-change?] cards
  *                           and .bridge-pipeline-add-step cards (-choice buttons with their -choice-name), and the phase's gates or
  *                           the Ticket phase's .bridge-pipeline-readiness (-lines of -line)) and the -aside column of the stage's
- *                           panel, over the stage's footer; .bridge-pipeline-glyph[data-glyph] draws the step kinds, plus, check,
+ *                           panel, over the stage's -footer; .bridge-pipeline-glyph[data-glyph] draws the step kinds, plus, check,
  *                           chevron and arrow. The smallest pipeline's About tab: the .bridge-pipeline-minimal-note-warning with its
  *                           -warning-mark, the -steps block with its -step-list of -step lines
  *   .bridge-pipeline-research[data-state] the research step (A1Reading): the -status[data-state] line with its -status-dot, the -cards
@@ -60,12 +64,12 @@
  *                           .bridge-pipeline-gate-row[data-row-kind][data-change?][data-selected?] rows (-name with its
  *                           -name-text and tags, -command, -profile holding the .bridge-pipeline-gate-time[data-tone][data-busy?] chip)
  *   .bridge-pipeline-constitution[data-mode][data-state] the constitution step (A3bConstitution): the -status[data-state] line with
- *                           its -status-dot[data-state], the -article[data-view] with its -article-head over the -editor or the
- *                           Preview frame; in the panel, the -readers block with its -reader-list of -reader pills and the -sources
- *                           block with its -source-list of -source[data-mono?] rows and their -source-note. The -editor is a
- *                           .bridge-pipeline-constitution-input textarea, its text transparent over the aria-hidden -mirror of
- *                           -mirror-line[data-heading?][data-changed?] rows (-mirror-text, a source tag, the drafting -caret), the
- *                           visually hidden -sources-list, and the -refusal line
+ *                           its -status-dot[data-state], the -view-switch, the -article[data-view] with its -article-head over the
+ *                           -editor or the Preview frame; in the panel, the -readers block with its -reader-list of -reader pills
+ *                           and the -sources block with its -source-list of -source[data-mono?] rows and their -source-note. The
+ *                           -editor is a .bridge-pipeline-constitution-input textarea, its text transparent over the aria-hidden
+ *                           -mirror of -mirror-line[data-heading?][data-changed?] rows (-mirror-text, a source tag, the drafting
+ *                           -caret), the visually hidden -sources-list, and the -refusal line
  *   .bridge-pipeline-design[data-state] the design step (A2Proposal): the -latest-change block (-latest-change-text,
  *                           -latest-change-links) under the agent's chat, the .bridge-pipeline-change-list of -change-list-item cards
  *                           or the -change-list-empty line; the footer's -hint[data-tone] with its -hint-dot, and the -apply holder
@@ -181,8 +185,9 @@
  * Detail panel (bridge/views/detail-panel/)
  *   SidePanel (detail width)  the detail panel, holding one form in its scroll. Each opens with
  *                           .bridge-detail-head[data-state] (.bridge-detail-id, h2.bridge-detail-title, a StatePill,
- *                           .bridge-detail-reviewed-mark). Ticket form: in the panel's head, .bridge-ticket-detail-head[data-state] (id line,
- *                           title and state pill) over .bridge-detail-tab-bar holding the section Tabs; in its body one
+ *                           .bridge-detail-reviewed-mark). Ticket form: in the panel's head, the .bridge-ticket-detail-id-line beside ×,
+ *                           then .bridge-ticket-detail-head[data-state] (title and state pill) over .bridge-detail-tab-bar holding the
+ *                           section Tabs; in its body one
  *                           section. Overview: the .bridge-detail-state-card[data-state] (a FlintSlot beside the job's
  *                           words), the .bridge-detail-incident line, .bridge-detail-lead (the
  *                           one likely action and its .bridge-detail-effect), the live job's .bridge-detail-job-controls (message, Send,
@@ -349,20 +354,20 @@ body {
   padding: 0 var(--page-gutter); overflow-x: auto; font-size: var(--fs-tab); white-space: nowrap;
 }
 
-/* The concurrency limit on the Agents tab: an underlined mono figure after its label. */
-.bridge-field { display: inline-flex; align-items: baseline; gap: 6px; }
-.bridge-field-label { display: inline-flex; align-items: baseline; gap: 6px; font-size: var(--fs-small); color: var(--ink-muted); }
+/* The concurrency limit on the Agents tab: a small boxed number field before its label. */
+.bridge-field { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.bridge-field-label { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-tab); color: var(--ink-muted); }
 .bridge-field-input {
-  font: var(--fs-small)/1.4 var(--font-mono);
+  box-sizing: border-box; width: 54px; height: 30px; padding: 0 8px;
+  font: var(--fs-body)/1 var(--font-ui);
   font-variant-numeric: tabular-nums;
-  width: 48px;
-  padding: 4px 2px;
   color: var(--ink);
-  background: transparent;
-  border: 0; border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
 }
-.bridge-field-input:focus { outline: 0; border-bottom-color: var(--ink); }
+.bridge-field-input:focus { outline: 0; border-color: var(--ink); }
+.bridge-field-input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* The figures on one line, each mono figure before its label on one baseline. */
 .bridge-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
@@ -427,7 +432,8 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--link); outline-offset: 2p
 .bridge-attention-pill:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .bridge-attention-pill-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--err-fill); }
 .bridge-attention-pill-figure { font: 600 var(--fs-small)/1 var(--font-mono); font-variant-numeric: tabular-nums; }
-.bridge-attention-pill-caret { flex: none; width: 0; height: 0; border-inline: 4px solid transparent; border-top: 5px solid currentColor; opacity: 0.8; }
+/* A chevron pointing down, as the filter line's. */
+.bridge-attention-pill-caret { flex: none; box-sizing: border-box; width: 7px; height: 7px; margin: -4px 1px 0; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: 0.8; }
 /* The inbox hangs 10px under the pill (4px of this drop, then the popover's own 6px), from the pill's end or, in a narrow window, its start. */
 .bridge-attention-drop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20; }
 /* Its head, the groups of rows under small-capitals names, and a foot of links; a long inbox scrolls inside the popover. */
@@ -475,7 +481,8 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--link); outline-offset: 2p
 .bridge-filter-range strong { font-weight: 600; color: var(--ink); }
 .bridge-filter-epic { flex: 0 10000 auto; display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--ink); }
 .bridge-filter-epic-name { min-width: 96px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
-.bridge-filter-caret { flex: none; width: 0; height: 0; border-inline: 4px solid transparent; border-top: 5px solid currentColor; opacity: 0.8; }
+/* A chevron pointing down, as the attention pill's. */
+.bridge-filter-caret { flex: none; box-sizing: border-box; width: 7px; height: 7px; margin: -4px 1px 0; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: 0.8; }
 .bridge-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* Pinned inside the filter's box: left where the line ends, the 1px status would widen the tab row past its edge. */
 .bridge-filter > .bridge-visually-hidden { top: 0; left: 0; }
@@ -606,6 +613,45 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 @keyframes bridge-pulse { 50% { opacity: 0.45; } }
 @keyframes bridge-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes bridge-pop { 0% { opacity: 0; transform: scale(0.6); } 70% { opacity: 1; transform: scale(1.08); } 100% { transform: scale(1); } }
+/* A state word swaps in as the boards' .pop; a changed figure ticks up into its place; a leaving item fades out where it stands. */
+@keyframes bridge-word-swap { from { opacity: 0; transform: scale(0.8); } }
+@keyframes bridge-figure-tick { from { opacity: 0; transform: translateY(40%); } }
+@keyframes bridge-leave { to { opacity: 0; transform: scale(0.97); } }
+
+/* What a list gains after its data arrived rises in, and what it loses fades out where it stood (`bridge/shell/ItemPresence.ts`): a chat
+   turn, a transcript line, a decision or an incident card, and a worker job's chip, which pops in. Reduced motion shows an arrival at
+   once and takes a leaving item away at once. */
+.bridge-chat-turn[data-presence="arriving"],
+.bridge-chat-system[data-presence="arriving"],
+.bridge-transcript-entry[data-presence="arriving"],
+.bridge-card[data-presence="arriving"] { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
+.bridge-activity-job[data-presence="arriving"] { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
+.bridge-card[data-presence="leaving"],
+.bridge-activity-job[data-presence="leaving"] { pointer-events: none; animation: bridge-leave var(--motion-leave) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-chat-turn[data-presence],
+  .bridge-chat-system[data-presence],
+  .bridge-transcript-entry[data-presence],
+  .bridge-card[data-presence],
+  .bridge-activity-job[data-presence] { animation: none; }
+  .bridge-card[data-presence="leaving"],
+  .bridge-activity-job[data-presence="leaving"] { display: none; }
+}
+
+/* Once the header's state changed its pill pops in, and once a figure changed it ticks up into its place: the header's statistics, the
+   embedded summary line, the strip's counts and a Kanban lane's count, each keyed by its value (`bridge/shell/ChangedSinceMount.ts`). */
+.bridge-status-pill[data-value-changed] { animation: bridge-word-swap var(--motion-tick) var(--ease-out) both; }
+.bridge-stat-figure[data-value-changed],
+.bridge-summary-line-figure[data-value-changed],
+.bridge-activity-count-figure[data-value-changed],
+.bridge-lane-count[data-value-changed] { animation: bridge-figure-tick var(--motion-tick) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .bridge-status-pill[data-value-changed],
+  .bridge-stat-figure[data-value-changed],
+  .bridge-summary-line-figure[data-value-changed],
+  .bridge-activity-count-figure[data-value-changed],
+  .bridge-lane-count[data-value-changed] { animation: none; }
+}
 
 .bridge-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .bridge-chip {
@@ -778,8 +824,8 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .bridge-kanban-card[data-state="abandoned"]::before { background: transparent; border: 1px solid var(--s-fill); }
 .bridge-kanban-card:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 
-/* The "needed first" slot is always laid out, so it fading in on hover moves nothing; a head too crowded for one line wraps its right
-   end, "↦ N" and the tokens together, rather than run them under one another. */
+/* "Needed first" sits on the card's top edge, out of the head's line, so it fading in on hover moves nothing and takes no room from the
+   id line; a head too crowded for one line wraps its right end, "↦ N" and the tokens together, rather than run them under one another. */
 .bridge-kanban-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; min-width: 0; min-height: 18px; }
 .bridge-kanban-size {
   flex: none; padding: 0 5px; font: 600 10.5px/16px var(--font-mono); color: var(--ink-muted);
@@ -788,7 +834,10 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .bridge-kanban-size:hover { color: var(--ink); border-color: var(--line-strong); }
 .bridge-kanban-head-end { display: flex; align-items: center; gap: 6px; margin-left: auto; white-space: nowrap; }
 .bridge-kanban-needed-first {
-  font: 500 var(--fs-micro)/18px var(--font-ui); color: var(--link); white-space: nowrap; opacity: 0; transition: opacity var(--motion-fast);
+  position: absolute; top: -9px; right: 10px; z-index: 2; padding: 0 6px;
+  font: 500 var(--fs-micro)/18px var(--font-ui); color: var(--link); white-space: nowrap;
+  background: var(--surface); border: 1px solid var(--accent-edge); border-radius: var(--r-pill);
+  opacity: 0; pointer-events: none; transition: opacity var(--motion-fast);
 }
 .bridge-kanban-card[data-needed-first] .bridge-kanban-needed-first { opacity: 1; }
 .bridge-kanban-held-count { font: var(--fs-small)/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
@@ -821,8 +870,10 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
    ticket rows through this keyframe; reduced motion holds a still outline as long instead. */
 @keyframes bridge-changed { from { background-color: var(--s-tint); } }
 @keyframes bridge-changed-outline { from, to { outline: 2px solid var(--s-edge); outline-offset: -2px; } }
+/* A Kanban card that changed has also arrived in its lane, new or moved, so it rises into its place as it washes. */
+.bridge-kanban-card[data-changed] { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) {
-  .bridge-kanban-card[data-changed] { outline: 2px solid var(--s-edge); outline-offset: -2px; }
+  .bridge-kanban-card[data-changed] { outline: 2px solid var(--s-edge); outline-offset: -2px; animation: none; }
 }
 
 /* A card an agent works on pulses while the stream is live: its bar flares, then a sheen leaves the bar and crosses the card. */
@@ -887,6 +938,10 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 
 /* Questions, Assistant and Intake: sections under micro-caps heads, each a list of cards; an empty section is an empty card. */
 .bridge-view { display: flex; flex-direction: column; gap: var(--sp-5); }
+/* While the question panel shows beside the Questions tab, a wide window keeps the list clear of it, as the board docks it. */
+@media (min-width: 1100px) {
+  .bridge-view[data-question-open] { padding-right: calc(var(--side-panel-wide-width) - 8px); }
+}
 
 .bridge-card {
   display: flex; flex-direction: column; gap: var(--sp-2);
@@ -901,6 +956,8 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .bridge-card[data-state="warning"],
 .bridge-card[data-state="notice"] { border-color: var(--warn-edge); background: var(--warn-tint); color: var(--warn-ink); }
 .bridge-card:is([data-state="warning"], [data-state="notice"]) :is(.bridge-card-meta, .bridge-note) { color: inherit; }
+/* The decision the question panel shows beside the board waits on User: the orange decision tint and edge. */
+.bridge-card[data-open-beside] { background: var(--link-tint); border-color: var(--accent-edge); }
 .bridge-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .bridge-card-head-pill { display: flex; margin-left: auto; }
 .bridge-card-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); min-width: 0; margin: 0; font-size: var(--fs-body); font-weight: 600; }
@@ -939,12 +996,13 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
   overflow: hidden; font: var(--fs-small)/19px var(--font-mono); color: var(--ink-muted); text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* The Assistant: the chat card beside a 388px card of its incidents; under 1180px one column, the incidents after the chat. The chat's
-   head holds Flint, the session's name and facts, and the count of its asks at the end. Each incident is a quiet card whose steps keep
-   their time in a column of its own. */
+/* The Assistant: the chat card beside a 388px card of its incidents, which stays in view and scrolls inside itself once it is taller
+   than the window; under 1180px one column, the incidents after the chat. The chat's head holds Flint, the session's name and facts,
+   and the count of its asks at the end. Each incident is a quiet card whose steps keep their time in a column of its own. */
 .bridge-assistant-layout { display: grid; grid-template-columns: minmax(0, 1fr) 388px; gap: var(--sp-5); align-items: start; }
 .bridge-assistant-rail {
   display: flex; flex-direction: column; gap: 18px; min-width: 0; box-sizing: border-box; padding: 16px 18px;
+  position: sticky; top: var(--sp-4); max-height: calc(100dvh - 2 * var(--sp-4)); overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
 }
 .bridge-assistant-rail .bridge-card { gap: 6px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-2); }
@@ -954,6 +1012,7 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .bridge-incident-step-time { flex: none; min-width: 36px; font: 11.5px/18px var(--font-mono); color: var(--ink-4); }
 @media (max-width: 1180px) {
   .bridge-assistant-layout { grid-template-columns: minmax(0, 1fr); }
+  .bridge-assistant-rail { position: static; max-height: none; overflow-y: visible; }
 }
 
 /* Intake: the session list beside one chat; the list stays in view while the chat scrolls. Under 900px one column. */
@@ -1043,10 +1102,10 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
   font-size: var(--fs-small); color: var(--ink-muted); border: 1px dashed var(--line-strong); border-radius: var(--r-2);
 }
 .bridge-picture-drop[data-active] { color: var(--link); background: var(--link-tint); border-color: var(--link); }
-/* Attach pictures: a pill-shaped label over a file field hidden from sight, never from the keyboard. */
+/* Attach pictures: a compact secondary button, a label over a file field hidden from sight, never from the keyboard. */
 .bridge-picture-attach {
-  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
-  font: 500 var(--fs-small)/1 var(--font-ui); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-pill); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 30px; padding: 0 10px;
+  font: 500 var(--fs-body)/1 var(--font-ui); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); cursor: pointer;
 }
 .bridge-picture-attach:hover { border-color: var(--ink-muted); }
 .bridge-picture-attach:focus-within { outline: 2px solid var(--link); outline-offset: 1px; }
@@ -1083,13 +1142,14 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-scroll { overflow-x: auto; }
 .agents-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-tab); }
 .agents-table[data-diagnostics] { min-width: 1900px; }
-.agents-table col[data-column="job"] { width: 172px; }
-.agents-table col[data-column="subject"] { width: 230px; }
-.agents-table col[data-column="state"] { width: 156px; }
-.agents-table col[data-column="calls"] { width: 150px; }
-.agents-table col[data-column="subagents"] { width: 132px; }
-.agents-table col[data-column="last-tool"] { width: 132px; }
-.agents-table col[data-column="tokens"] { width: 110px; }
+/* The seven columns add up to the 910px a card keeps beside an open job panel, so Tokens so far never scrolls out of sight. */
+.agents-table col[data-column="job"] { width: 140px; }
+.agents-table col[data-column="subject"] { width: 170px; }
+.agents-table col[data-column="state"] { width: 150px; }
+.agents-table col[data-column="calls"] { width: 130px; }
+.agents-table col[data-column="subagents"] { width: 116px; }
+.agents-table col[data-column="last-tool"] { width: 110px; }
+.agents-table col[data-column="tokens"] { width: 94px; }
 .agents-table col[data-column="phase"] { width: 90px; }
 .agents-table col[data-column="tool-calls"] { width: 150px; }
 .agents-table col[data-column="silent-sweeps"] { width: 100px; }
@@ -1132,7 +1192,7 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-subject-text { overflow: hidden; font-size: var(--fs-tab); text-overflow: ellipsis; white-space: nowrap; }
 .agents-state-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .agents-budget { display: flex; align-items: center; gap: var(--sp-2); }
-.agents-budget-meter { display: flex; flex: 1 1 56px; }
+.agents-budget-meter { display: flex; flex: 0 1 56px; }
 .agents-budget-figure { flex: none; font-variant-numeric: tabular-nums; }
 .agents-budget-figure[data-near] { color: var(--link); }
 .agents-subagents { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
@@ -1140,6 +1200,7 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-subagent-square { flex: none; box-sizing: border-box; width: 10px; height: 10px; border: 1.5px solid var(--s-fill); border-radius: 2px; }
 .agents-subagent-square[data-running] { background: var(--s-fill); }
 .agents-subagents-figure { font-size: var(--fs-small); color: var(--ink-muted); }
+.agents-subagents[data-one-line] { flex-direction: row; align-items: center; gap: 6px; }
 
 /* A job that asks User keeps its row; the orange decision card under it is the Asks User strip. A selected row is the wash with a signal edge. */
 .agents-job-row[data-asking] > td { border-bottom: 0; }
@@ -1300,13 +1361,13 @@ body:has(.bridge-progress-view) #bridge-root { height: 100%; }
 body:has(.bridge-progress-view) .bridge-shell { height: 100%; display: flex; flex-direction: column; }
 /* A column flex item with auto side margins would shrink to its content; the shell keeps its full width and stays centred. */
 body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
-/* The floor holds the chart's 320px and a few finished-work lines under it. */
-.bridge-panel[data-tab="progress"] { flex: 1; min-height: 480px; display: flex; flex-direction: column; }
+/* The panel never gets shorter than the view's own rows over a few finished-work lines; a shorter viewport scrolls the page. */
+.bridge-panel[data-tab="progress"] { --row-h: 36px; flex: 1; min-height: auto; display: flex; flex-direction: column; }
 
 /* Registered, so the Wide titles toggle eases the name column instead of jumping. */
 @property --col-name { syntax: "<length>"; inherits: true; initial-value: 432px; }
 .bridge-progress-view {
-  flex: 1; min-height: 320px;
+  flex: 1;
   display: flex; flex-direction: column; gap: 14px;
   transition: --col-name var(--motion-base) var(--ease-out);
 }
@@ -1377,19 +1438,8 @@ body:has(.bridge-progress-view) .bridge-shell { width: 100%; }
 a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-progress-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Every chip is the same box, so chips line up down the column and a state change never shifts the title. */
-.bridge-progress-chip {
-  flex: none; display: inline-flex; align-items: center; gap: 6px;
-  width: 156px; height: 20px; margin-left: 6px; padding: 0 8px;
-  font: 500 var(--fs-small)/1 var(--font-ui);
-  white-space: nowrap;
-  border-radius: var(--r-1);
-  background: var(--s-tint);
-  color: var(--s-ink);
-}
-.bridge-progress-chip-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.bridge-progress-chip-dot { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--s-fill); }
-.bridge-progress-row[data-state="pending"] .bridge-progress-chip-dot { background: transparent; border: 1.5px dashed var(--s-ink); }
+/* Every state badge starts in the same column, so badges line up down the chart and a state change never shifts the title. */
+.bridge-progress-chip { flex: none; display: flex; width: 156px; min-width: 0; margin-left: 6px; }
 .bridge-progress-row[data-state="abandoned"] .bridge-progress-row-name { text-decoration: line-through; color: var(--ink-muted); }
 .bridge-progress-row[data-state="abandoned"] { opacity: 0.72; }
 
@@ -1400,8 +1450,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
   background: linear-gradient(var(--surface-2), var(--surface-2)) var(--surface);
 }
 .bridge-progress-epic-caret {
-  flex: none; width: 12px;
-  font-size: var(--fs-micro); text-align: center; color: var(--ink-muted);
+  flex: none; width: 12px; height: 12px;
+  fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
   transition: transform var(--motion-fast) var(--ease-out);
 }
 .bridge-progress-epic-head[data-collapsed] .bridge-progress-epic-caret { transform: rotate(-90deg); }
@@ -1417,6 +1467,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-progress-epic-count { flex: none; font: 400 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); }
 .bridge-progress-epic-span {
   position: absolute; top: 50%; transform: translateY(-50%);
+  transition: left var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
   height: 8px;
   border-radius: var(--r-pill);
   background: var(--epic-tint);
@@ -1456,6 +1507,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
   height: 12px; min-width: 3px;
   border-radius: var(--r-1);
   background: var(--s-fill);
+  transition: left var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
 }
 .bridge-progress-bar:is([data-state="reviewing"], [data-state="re-review"]) {
   background-image: repeating-linear-gradient(125deg, var(--hatch-live) 0 2px, transparent 2px 6px);
@@ -1540,7 +1592,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-progress-now[data-label-side="left"] .bridge-progress-now-label { right: 4px; left: auto; }
 .bridge-progress-empty { margin: 0; padding: var(--sp-5) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
 
-/* A row an agent works on pulses while the stream is live: its bar flares and a sheen crosses it, its chip flares and its dot rings. */
+/* A row an agent works on pulses while the stream is live: its bar flares and a sheen crosses it, and its state badge flares. */
 @media (prefers-reduced-motion: no-preference) {
   :root:has(.bridge-status-pill[data-running]) .bridge-progress-row[data-live] :is(.bridge-progress-bar[data-live], .bridge-progress-chip) {
     animation: bridge-progress-flare var(--pulse-card) ease-in-out infinite;
@@ -1554,10 +1606,6 @@ a.bridge-progress-number:hover { color: var(--ink); }
     background: linear-gradient(100deg, transparent 30%, var(--s-sheen) 50%, transparent 70%) 117% 0 / 250% 100% no-repeat;
     animation: bridge-progress-sheen var(--pulse-card) ease-in-out infinite;
   }
-  :root:has(.bridge-status-pill[data-running]) .bridge-progress-row[data-live] .bridge-progress-chip-dot::after {
-    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--s-fill);
-    animation: bridge-progress-ring var(--pulse-status) ease-out infinite;
-  }
 }
 /* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
 @keyframes bridge-progress-flare {
@@ -1565,7 +1613,6 @@ a.bridge-progress-number:hover { color: var(--ink); }
   12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
 }
 @keyframes bridge-progress-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
-@keyframes bridge-progress-ring { from { transform: scale(1); opacity: 0.55; } to { transform: scale(2); opacity: 0; } }
 
 /* ----------------------------------------------------------- range control -- */
 /* Above the chart: the presets and Custom… in one segmented control, the range they draw, and the row options at the far end. */
@@ -1612,8 +1659,8 @@ a.bridge-progress-number:hover { color: var(--ink); }
 
 /* ---------------------------------------------------------- finished work -- */
 /* The Bridge's own list of closed tickets under the chart: a card like the chart's, its lines drawn as chart rows. */
-/* Capped so the chart above keeps its 320px floor. */
-.bridge-panel[data-tab="progress"] > .bridge-finished { flex: none; max-height: min(35%, calc(100% - 320px - var(--sp-4))); margin-top: var(--sp-4); }
+/* Capped at a third of the panel and never shorter than its head and two lines; the list scrolls inside it. */
+.bridge-panel[data-tab="progress"] > .bridge-finished { flex: 0 1 auto; min-height: 120px; max-height: 35%; margin-top: var(--sp-4); }
 .bridge-finished {
   display: flex; flex-direction: column;
   min-height: 0;
@@ -1808,6 +1855,7 @@ a.bridge-progress-number:hover { color: var(--ink); }
 .bridge-ticket-row:hover > td { background: var(--wash); }
 .bridge-ticket-row[data-selected] > td { background: var(--surface-selected); }
 .bridge-ticket-row[data-selected] > td:first-child { box-shadow: inset 3px 0 0 var(--signal); }
+.bridge-ticket-title { font-weight: 500; }
 .bridge-ticket-row[data-state="abandoned"] .bridge-ticket-title { color: var(--ink-muted); text-decoration: line-through; }
 .bridge-ticket-row:focus { outline: none; }
 .bridge-ticket-row:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
@@ -1968,13 +2016,16 @@ span.bridge-ticket-epic-title { cursor: default; }
 .bridge-detail-title { margin: 0; min-width: 0; font: 500 var(--fs-page)/var(--line-height-page) var(--font-display); }
 .bridge-detail-head .bridge-priority-mark[data-priority="high"] { margin-left: var(--sp-2); }
 .bridge-detail-reviewed-mark { margin-left: var(--sp-1); font: 600 var(--fs-small)/1 var(--font-ui); color: var(--s-fill); cursor: help; }
-/* The ticket form's head, in the side panel's head beside ×: the id line, then the title beside its state pill. */
+/* The ticket form's head: the id line beside ×, then the title beside its state pill across the head's full width. */
+.bridge-ticket-detail-id-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .bridge-ticket-detail-head { display: flex; flex-direction: column; gap: 6px; }
 /* The state card: Flint's strip beside the job's words, an orange edge on the card ground; the tint is kept for what waits on User. */
 .bridge-detail-state-card {
   display: flex; align-items: stretch; overflow: hidden;
   border: 1px solid var(--accent-edge); border-radius: var(--r-3); background: var(--surface);
 }
+/* Its figures (the job, the attempt, the times and the calls) read in ink within the muted line. */
+.bridge-detail-state-card .bridge-detail-figure { color: var(--ink); }
 
 .bridge-integration { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
 .bridge-integration .bridge-integration-branch { font-weight: 500; color: var(--ink); }
@@ -2152,31 +2203,33 @@ b.bridge-detail-figure { font-weight: 500; color: var(--ink); }
 
 /* The Overview's one likely action, then its effect; each other move a fixed button column beside its effect, a refusal under the effect. */
 .bridge-detail-lead { display: flex; align-items: center; gap: var(--sp-3); padding-top: var(--sp-3); }
-.bridge-detail-effect { margin: 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
-.bridge-detail-move { display: grid; grid-template-columns: 112px 1fr; gap: 6px var(--sp-3); align-items: start; }
+.bridge-detail-effect { margin: 0; font-size: var(--fs-tab); line-height: 18px; color: var(--ink-muted); }
+.bridge-detail-move { display: grid; grid-template-columns: 148px 1fr; gap: 6px var(--sp-3); align-items: start; }
 .bridge-detail-move + .bridge-detail-move { margin-top: 10px; }
 .bridge-detail-move > .bridge-control { display: contents; }
 .bridge-detail-move > .bridge-detail-effect { grid-column: 2; grid-row: 1; }
 .bridge-detail-move .bridge-refusal { grid-column: 2; grid-row: 2; }
 .bridge-detail-reason { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 10px; }
 
-/* Next: numbered circles, the step under way in ink with its circle filled. */
+/* Next: numbered circles, the step under way in ink and weight 600 with its circle filled. */
 .bridge-detail-steps { margin: 0; padding: 0; list-style: none; counter-reset: bridge-detail-step; }
-.bridge-detail-steps li { position: relative; padding: 0 0 10px 26px; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
+.bridge-detail-steps li { position: relative; min-height: 20px; padding: 0 0 8px 30px; font-size: var(--fs-body); line-height: 20px; color: var(--ink-muted); }
 .bridge-detail-steps li:last-child { padding-bottom: 0; }
 .bridge-detail-steps li::before {
   counter-increment: bridge-detail-step; content: counter(bridge-detail-step);
   position: absolute; left: 0; top: 0;
-  width: 17px; height: 17px; box-sizing: border-box;
+  width: 20px; height: 20px; box-sizing: border-box;
   border: 1px solid var(--line-strong); border-radius: 50%;
-  font: 500 var(--fs-micro)/15px var(--font-mono); text-align: center; color: var(--ink-muted);
+  font: 600 var(--fs-micro)/18px var(--font-mono); text-align: center; color: var(--ink-muted);
 }
-.bridge-detail-steps li[data-current] { color: var(--ink); }
+.bridge-detail-steps li[data-current] { font-weight: 600; color: var(--ink); }
 .bridge-detail-steps li[data-current]::before { border-color: var(--ink); background: var(--ink); color: var(--surface); }
 
 /* The newest open incident under the state card; then the live job's message box and More, whose menu is as wide as its confirmations. */
 .bridge-detail-incident { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.45; color: var(--ink-muted); }
 .bridge-detail-job-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-3); }
+/* The message box stands as tall as Send and More beside it. */
+.bridge-detail-job-controls > .bridge-detail-input { height: 36px; padding: 0 10px; font-size: var(--fs-body); }
 
 /* --------------------------------------------------------- question panel -- */
 /* One open decision beside the board over every tab, hidden while the detail panel shows. Its head and foot span both columns; the ask
@@ -2288,8 +2341,10 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-setup-agent-note {
   display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding: 12px 14px; background: var(--wash); border-radius: var(--r-2);
 }
-.bridge-pipeline-resume { display: flex; flex-direction: column; min-width: 0; }
-.bridge-pipeline-resume-column { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 760px; margin: 0 auto; padding: 40px 0 20px; }
+.bridge-pipeline-resume { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; min-height: 0; }
+.bridge-pipeline-resume-column {
+  display: flex; flex: 1 1 auto; flex-direction: column; gap: 20px; width: 100%; max-width: 760px; margin: 0 auto; padding: 40px 0 20px;
+}
 .bridge-pipeline-resume-recheck { margin-right: 6px; font-weight: 600; color: var(--link); }
 @media (max-width: 900px) {
   .bridge-pipeline-billing-cards, .bridge-pipeline-setup-phases { grid-template-columns: minmax(0, 1fr); }
@@ -2304,12 +2359,35 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 /* The Focus layout of every stage that draws the flow: the main column (the title row, the phase stepper, the open phase) beside the
    stage's 388 px panel column, over the stage's full-width footer. The column holds the panel slot, a wrapper of the Bridge's own sized
    to its contents; an empty slot takes no room. */
-.bridge-pipeline-focus { display: flex; flex-direction: column; min-width: 0; }
-.bridge-pipeline-focus-body { display: flex; align-items: flex-start; gap: var(--sp-5); min-height: 0; }
-.bridge-pipeline-focus-main { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-2) 0 20px; }
-.bridge-pipeline-focus-aside { display: flex; flex: 0 0 388px; flex-direction: column; min-width: 0; margin: var(--sp-2) 0 20px; }
+.bridge-pipeline-focus { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; min-height: 0; }
+.bridge-pipeline-focus-body { display: flex; flex: 1 1 auto; align-items: stretch; gap: var(--sp-5); min-height: 0; }
+/* The main column scrolls inside the page; its 4 px side padding keeps a focus ring inside the scroll box. */
+.bridge-pipeline-focus-main {
+  display: flex; flex: 1 1 0; flex-direction: column; gap: var(--sp-4); min-width: 0; min-height: 0;
+  margin: 0 -4px; padding: var(--sp-2) 4px 20px; overflow-y: auto;
+}
+.bridge-pipeline-focus-aside { display: flex; flex: 0 0 388px; flex-direction: column; min-width: 0; min-height: 0; margin: var(--sp-2) 0 20px; }
 .bridge-pipeline-focus-aside:has(> .bridge-pipeline-focus-panel:empty) { display: none; }
-.bridge-pipeline-focus-panel { display: flex; flex: 0 0 auto; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-pipeline-focus-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-4); min-width: 0; min-height: 0; }
+.bridge-pipeline-focus-panel > .bridge-pipeline-panel { flex: 1 1 auto; min-height: 0; }
+/* A page's lead under its title keeps a readable measure, as the Flow boards wrap it. */
+.bridge-pipeline-focus-main h2 + p { max-width: 800px; }
+/* The footer bar runs edge to edge, as the Flow boards draw it; its own padding keeps the page gutter. */
+.bridge-pipeline-focus-footer,
+.bridge-pipeline-resume-footer { flex: none; margin: 0 calc(-1 * var(--page-gutter)); }
+
+/* Every pipeline page is one viewport tall, as the Flow boards draw it: the main column and the panel's body scroll inside it and the
+   footer bar stays at the bottom; a viewport shorter than the floor scrolls the page instead. Flint's home corner stands above the
+   footer, so it never covers the footer's actions. */
+body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) { height: 100dvh; }
+body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) #bridge-root { height: 100%; }
+body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) .bridge-shell { display: flex; flex-direction: column; width: 100%; height: 100%; }
+body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) .bridge-flint-home { bottom: 72px; }
+.bridge-panel[data-tab="pipeline"]:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-height: 560px; padding-bottom: 0;
+}
+.bridge-pipeline:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)),
+.bridge-pipeline > :is(.bridge-pipeline-research, .bridge-pipeline-constitution, .bridge-pipeline-design) { flex: 1 1 auto; min-height: 0; }
 .bridge-pipeline-glyph {
   flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round;
 }
@@ -2327,14 +2405,17 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
   box-sizing: border-box; margin: 0; padding: 6px 14px;
   color: var(--ink); font: inherit; text-align: left; cursor: pointer;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3);
-  transition: box-shadow var(--motion-fast) var(--ease-out);
+  transition: var(--feedback-transition);
 }
 .bridge-pipeline-phase-tab:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
 .bridge-pipeline-phase-tab:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .bridge-pipeline-phase-tab[aria-pressed="true"] { background: var(--link-tint); border-color: var(--accent-edge); }
 .bridge-pipeline-phase-tab-head { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .bridge-pipeline-phase-tab-sub { padding-left: var(--sp-4); }
-.bridge-pipeline-phase-dot { flex: none; width: 8px; height: 8px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--signal); }
+.bridge-pipeline-phase-dot {
+  flex: none; width: 8px; height: 8px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--signal);
+  transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
 .bridge-pipeline-phase-dot[data-phase="ticket"] { background: var(--phase-ticket); }
 .bridge-pipeline-phase-dot[data-phase="review"] { background: var(--tone-info); }
 .bridge-pipeline-phase-dot[data-phase="merge"] { background: var(--tone-success); }
@@ -2351,7 +2432,10 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 }
 .bridge-pipeline-phase > .bridge-refusal { padding: 0 22px 10px; }
 .bridge-pipeline-phase-head { display: flex; align-items: flex-end; gap: var(--sp-4); padding: var(--sp-4) 22px 14px; }
-.bridge-pipeline-phase-head-text { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.bridge-pipeline-phase-head-text {
+  display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0;
+  animation: bridge-rise var(--motion-rise) var(--ease-out) both;
+}
 .bridge-pipeline-phase-head-end { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: var(--sp-2); }
 .bridge-pipeline-phase-done {
   display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
@@ -2364,7 +2448,7 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 }
 
 /* A step card is the 212 px step ground; it takes the focus itself, and Human code review while on carries the orange tint of what
-   waits on User. An add card is 300 px, its choices quiet buttons on the page ground. */
+   waits on User. An add card is 300 px and dashed on the surface, its choices quiet buttons on the page ground. */
 .bridge-pipeline-step {
   display: flex; flex: 0 0 212px; min-width: 0; border-radius: var(--r-2); outline: none;
   animation: bridge-rise var(--motion-rise) var(--ease-out) both;
@@ -2385,7 +2469,10 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-readiness-lines { display: flex; flex-direction: column; margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
 .bridge-pipeline-readiness-line { display: flex; align-items: center; gap: 10px; min-height: 36px; border-top: 1px solid var(--line); }
 @media (max-width: 1100px) {
+  body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) { height: auto; }
+  body:has(:is(.bridge-pipeline-focus, .bridge-pipeline-resume)) :is(#bridge-root, .bridge-shell) { height: auto; }
   .bridge-pipeline-focus-body { flex-direction: column; align-items: stretch; }
+  .bridge-pipeline-focus-main { flex-basis: auto; overflow-y: visible; }
   .bridge-pipeline-focus-aside { flex-basis: auto; }
 }
 
@@ -2396,7 +2483,7 @@ p.bridge-question-panel-excerpt { white-space: pre-wrap; }
 .bridge-pipeline-phase-steps > :nth-child(n+7) { animation-delay: calc(var(--rise-step) * 3); }
 .bridge-pipeline-phase-steps > :nth-child(n+9) { animation-delay: calc(var(--rise-step) * 4); }
 @media (prefers-reduced-motion: reduce) {
-  .bridge-pipeline-phase-done, .bridge-pipeline-step, .bridge-pipeline-add-step { animation: none; }
+  .bridge-pipeline-phase-head-text, .bridge-pipeline-phase-done, .bridge-pipeline-step, .bridge-pipeline-add-step { animation: none; }
 }
 
 /* A phase's gates table: its head (title, count, line, add buttons), then the rows on the board's grid of columns, which the column
@@ -2522,7 +2609,9 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-panel-content { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 .bridge-pipeline-panel-body { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-4); min-height: 0; padding: 16px 18px; overflow-y: auto; }
 .bridge-pipeline-panel-foot { display: flex; flex-direction: column; gap: 6px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
-.bridge-pipeline-agent-strip { display: flex; flex: none; align-items: center; gap: var(--sp-3); box-sizing: border-box; height: 100px; padding: 0 18px; }
+/* The foot's one command runs the panel's width, its refusal under it. */
+.bridge-pipeline-panel-foot > .bridge-control { flex-direction: column; align-items: stretch; }
+.bridge-pipeline-agent-strip { display: flex; flex: none; align-items: center; gap: var(--sp-3); box-sizing: border-box; padding: 10px 18px; }
 .bridge-pipeline-agent-question { display: flex; flex-direction: column; gap: 6px; }
 .bridge-pipeline-agent-question-context { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 @media (prefers-reduced-motion: no-preference) {
@@ -2534,6 +2623,8 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
    sources as outlined checkbox rows. The editor's textarea and mirror share one font, line height and padding, so the mirror's lines
    stand under the textarea's; the textarea's own text is transparent and its caret stays visible. */
 .bridge-pipeline-constitution { display: flex; flex-direction: column; min-width: 0; }
+/* Edit or Preview sits at the foot of the title row, level with the lead, at its own height. */
+.bridge-pipeline-constitution-view-switch { display: flex; flex: none; align-self: flex-end; padding-bottom: 2px; }
 .bridge-pipeline-constitution-status {
   display: inline-flex; align-items: center; gap: var(--sp-2); padding-bottom: 4px; font-size: var(--fs-tab); color: var(--ink-muted);
 }
@@ -2622,7 +2713,7 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 }
 .bridge-pipeline-dialog-brief-row[data-quiet] { background: var(--bg); }
 .bridge-pipeline-dialog-brief-row[data-foot] { flex-wrap: wrap; padding: 4px; border-bottom: 0; }
-.bridge-pipeline-dialog-brief-add { display: flex; padding: 0 var(--sp-2); }
+.bridge-pipeline-dialog-brief-add { display: flex; align-items: center; gap: 6px; padding: 0 var(--sp-2); color: var(--link); }
 .bridge-pipeline-dialog-brief-row-text { flex: 1 1 auto; min-width: 0; }
 .bridge-pipeline-dialog-add-file { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: 4px var(--sp-2); }
 .bridge-pipeline-dialog-add-file > .bridge-pipeline-dialog-input { flex: 1 1 240px; height: 30px; }
@@ -2646,7 +2737,7 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-dialog-check { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); cursor: pointer; }
 .bridge-pipeline-dialog-check > input { margin: 0; accent-color: var(--link); }
 .bridge-pipeline-dialog-foot { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-2); min-width: 0; }
-.bridge-pipeline-dialog-foot-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-dialog-foot-row { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
 .bridge-pipeline-dialog-foot-gap { flex: 1 1 auto; }
 .bridge-pipeline-profile {
   display: flex; flex-direction: column; gap: 12px; padding: 14px;

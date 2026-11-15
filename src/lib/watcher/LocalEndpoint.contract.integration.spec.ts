@@ -142,14 +142,15 @@ async function connectIsRefused(port: LocalEndpoint, endpoint: string): Promise<
 
 async function watcherSocketOn(port: LocalEndpoint, socketPath: string): Promise<WatcherSocketListening> {
   return await listenOnWatcherSocket({
-    endpoint:       port,
+    endpoint:          port,
     socketPath,
-    watcherSecret:  'example-secret',
-    acceptedKinds:  [],
-    welcomeOf:      () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries: () => [],
-    onClientLine:   () => undefined,
-    onActingFrame:  () => undefined,
+    watcherSecret:     'example-secret',
+    acceptedKinds:     [],
+    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
+    durableEntries:    () => [],
+    onClientLine:      () => undefined,
+    onActingFrame:     () => undefined,
+    onHandlingFailure: () => undefined,
   });
 }
 

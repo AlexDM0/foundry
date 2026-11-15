@@ -1,8 +1,9 @@
 /**
  * The constitution step against fake controls. What matters: a source tag shows exactly on the lines the annotations anchor; READ BY
  * lists the facts' readers; Preview is a sandboxed frame and the mirror draws the text through React, never as HTML; a blur or Cmd/Ctrl+S
- * saves the whole markdown with the revision User saw, only when it changed; a stale save shows its refusal verbatim, keeps User's text,
- * and the next save goes on top of the new facts, but after Discard my edit a new edit saves on the revision User saw; the facts'
+ * saves the whole markdown with the revision User saw, only when it changed, and a save asked for while one is on its way goes after it;
+ * a stale save shows its refusal verbatim, keeps User's text, and the next save goes on top of the new facts, but after Discard my edit a
+ * new edit saves on the revision User saw; the facts'
  * re-anchored annotations drop the edited line's tag and keep the others; the footer counts the outline with the Draft chip; the
  * mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and Continue send their commands; at
  * `#pipeline/edit/constitution` the same step shows only Back to the flow.
@@ -156,6 +157,30 @@ describe('the save', () => {
     expect(controls.sent).toHaveLength(1);
   });
 
+  test('a save asked for while the one before it is on its way goes once that one is applied, on the revision it made', async () => {
+    const { controls } = renderConstitution();
+    const firstText = `${editor().value}- First.\n`;
+    const secondText = `${firstText}- Second.\n`;
+    controls.holdCommands();
+    fireEvent.change(editor(), { target: { value: firstText } });
+    await blurSettled(editor());
+    fireEvent.change(editor(), { target: { value: secondText } });
+    await act(async () => {
+      fireEvent.keyDown(editor(), { key: 's', metaKey: true });
+      await Promise.resolve();
+    });
+    expect(controls.sent).toHaveLength(1);
+    await controls.releaseCommands();
+    expect(controls.sent).toEqual([
+      {
+        kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown: firstText
+      },
+      {
+        kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 4, markdown: secondText
+      },
+    ]);
+  });
+
   test('a stale save shows its refusal verbatim, keeps the text, and the next save goes on top of the new facts', async () => {
     const { controls, show } = renderConstitution();
     const typed = `${editor().value}- Typed by User.\n`;
@@ -261,7 +286,7 @@ describe('the aside and the footer', () => {
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByText('Drafting')).toBeDefined();
     const flint = within(panel).getByRole('img', { name: 'Flint, the pipeline agent' });
-    expect([flint.dataset['size'], flint.dataset['ground'], flint.dataset['flintPose']]).toEqual(['76', 'page', 'thinking']);
+    expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'page']);
     expect(within(panel).getByText('Drafting the constitution')).toBeDefined();
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
   });

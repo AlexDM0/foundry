@@ -105,8 +105,10 @@ function fieldWordsOf(field: PipelineDraftField): FieldWords {
   }
 }
 
+/** An edit with no sentence, such as one User made on the flow, has no note: its author alone says nothing. */
 function noteOf(edit: SetupEdit | undefined): string | null {
-  return edit === undefined ? null : `${AUTHOR_WORDS[edit.by]}: ${edit.summary}`;
+  if (edit === undefined || edit.summary.trim() === '') return null;
+  return `${AUTHOR_WORDS[edit.by]}: ${edit.summary}`;
 }
 
 /** "build, review and merge" */

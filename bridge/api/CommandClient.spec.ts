@@ -1,8 +1,9 @@
 /**
  * The command client against the recorded Overseer API. What matters: a command rides the session token as a bearer header (the token's
- * fetch, rotation and refusals are `SessionTokenSource.spec.ts`'s); 200, 409, 423 and an unreachable Overseer each map to their verdict,
- * the refusal kept verbatim; a session token answered 401 is `no-session`; and a command client and a picture client given one token source
- * fetch the token once between them.
+ * fetch, rotation and refusals are `SessionTokenSource.spec.ts`'s); 200, 409, 423 and an unreachable Overseer each map to their verdict, the
+ * refusal kept verbatim; a 200 whose body cannot be read is `outcome-unknown`, never `unreachable`, since the Overseer may have applied it;
+ * a session token answered 401 is `no-session`; and a command client and a picture client given one token source fetch the token once
+ * between them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -42,6 +43,13 @@ describe('the command client', () => {
     expect(await client.send({ kind: 'ticket-ready' })).toEqual({ verdict: 'install-held', refusal: recordedRefusalOf(OVERSEER_CALL_SHAPES.COMMAND_INSTALL_HELD) });
     overseer.stop();
     expect(await CommandClient.create(overseer.fetch).send({ kind: 'overseer-pause' })).toEqual({ verdict: 'unreachable' });
+  });
+
+  test('a 200 whose body is lost is outcome-unknown, not unreachable, since the Overseer may have applied the command', async () => {
+    const lostBodyFetch = (path: string): Promise<Response> => Promise.resolve(path === '/api/session-token'
+      ? Response.json({ token: 'token-1' })
+      : new Response('{"outcome":"do', { status: 200, headers: { 'content-type': 'application/json' } }));
+    expect(await CommandClient.create(lostBodyFetch).send({ kind: 'chat-send' })).toEqual({ verdict: 'outcome-unknown' });
   });
 
   test('A4: a session token answered 401 leaves the command unsent as no-session', async () => {

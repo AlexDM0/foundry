@@ -246,7 +246,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.escalateIncident('I3', { askedBy: 'builder', questions: [question], context: 'Example cart' }, at);
   board.recordOverseerStopped('stopped', at);
   board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'build-bundles', error: 'Example bundle error' }, at);
-  board.recordHatchApplied('J1', { requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done' }, at);
+  board.recordHatchApplied('J1', {
+    requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done', ticketIds: ['001']
+  }, at);
   logEverySetupRecordKind(board, at);
   logEveryGateProfileRecordKind(board, at);
   board.clearTracker({ ticketsSurvive: true }, at);

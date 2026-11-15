@@ -1,5 +1,6 @@
 /* A count after a label, in a small mono pill: quiet on the wash, a state's colours, orange for a warning or the failure colours; marked
-   leads with a dot. It is never filled orange. */
+   leads with a dot, which pops in. It is never filled orange. A changed count rises in from below when it grew and drops in from above
+   when it shrank. */
 .design-system-count-badge {
   display: inline-flex; align-items: center; gap: var(--space-4);
   margin-left: var(--space-6); padding: var(--space-1) var(--space-6);
@@ -7,8 +8,21 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-muted); background: var(--wash);
   border: 1px solid transparent; border-radius: var(--r-pill);
+  overflow: hidden;
+  transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
 .design-system-count-badge[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
 .design-system-count-badge[data-tone="warn"] { font-weight: 600; color: var(--link); background: var(--link-tint); }
 .design-system-count-badge[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); }
-.design-system-count-badge-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor; }
+.design-system-count-badge-dot {
+  flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor;
+  animation: design-system-pop var(--motion-pop) var(--ease-out) both;
+}
+.design-system-count-badge-number { display: inline-block; }
+.design-system-count-badge-number[data-change="up"] { animation: design-system-rise var(--motion-slow) var(--ease-out) both; }
+.design-system-count-badge-number[data-change="down"] { animation: design-system-drop var(--motion-slow) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-count-badge-dot,
+  .design-system-count-badge-number[data-change] { animation: none; }
+}

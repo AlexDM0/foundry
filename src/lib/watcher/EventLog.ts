@@ -2,12 +2,9 @@
  * One Watcher instance's append-only event log: a line per child stdout line and per line the Watcher or a client wrote to the child, numbered
  * from 1. It is appended in place rather than replaced, so a reader may find a last line cut short by a power loss, and ignores it.
  */
-import {
-  closeSync,
-  fsyncSync,
-  openSync,
-  writeSync
-} from 'node:fs';
+import { closeSync, fsyncSync, openSync } from 'node:fs';
+
+import { writeEveryByte } from '../atomic-file/WriteEveryByte.ts';
 
 export type EventOrigin = 'agent' | 'client' | 'watcher';
 
@@ -42,7 +39,7 @@ export function createEventLogWriter(eventLogPath: string, stampNow: () => strin
       const entry: EventLogEntry = {
         sequence: lastSequence, origin, line, at: stampNow()
       };
-      writeSync(fileDescriptor, `${JSON.stringify(entry)}\n`);
+      writeEveryByte(fileDescriptor, `${JSON.stringify(entry)}\n`);
       return entry;
     },
     sync: () => {

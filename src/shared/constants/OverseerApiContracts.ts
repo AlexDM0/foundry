@@ -7,7 +7,7 @@ export const IDENTITY_VERSION = 1;
 
 export const SERVED_CONTRACT_VERSIONS = {
   summary: 1,
-  monitor: 1,
+  monitor: 2,
   control: 1,
   embed:   1,
 } as const;

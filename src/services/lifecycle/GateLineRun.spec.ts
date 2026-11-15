@@ -3,7 +3,7 @@
  * it arrives and its process id is told once it started, so a gate profile can stream it and stop its tree; a gate is recorded with its
  * outcome and measured time; with writes not granted, no prepare step and no gate is confined with a `writes` folder, while a granted run
  * keeps them; and a gate that changed the checkout fails and the checkout is restored (`ProposalTwiceRun.spec.ts` holds the ceiling of that
- * restore).
+ * restore). A prepare step that exits 0 but changes a tracked file fails the prepare with its diff, never the first gate, and is restored.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
@@ -73,7 +73,8 @@ testWhenGitIsRecorded('with writes not granted, no line is confined with a write
   const prepare = [{ name: 'install', run: RECORDED_GATE_LINES.GREEN }];
   const confinementsOf = async (grantsWrites: boolean): Promise<GateConfinement[]> => {
     const confinements: GateConfinement[] = [];
-    await recordedGit.playStage([{ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }], () => GateLineRun.runOnce(requestOf([gate], {
+    const treeUnchanged = { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
+    await recordedGit.playStage([treeUnchanged, treeUnchanged], () => GateLineRun.runOnce(requestOf([gate], {
       prepare,
       grantsWrites,
       confinedLineOf: (argv, confinement) => {
@@ -96,4 +97,16 @@ testWhenGitIsRecorded('a gate that changed the checkout fails, and the checkout 
 
   if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
   expect(run.gates[0]?.outcome).toBe('failed');
+});
+
+testWhenGitIsRecorded('a prepare step that changed the checkout fails the prepare with its diff, judges no gate, and is restored', async () => {
+  const run = await recordedGit.playStage([
+    { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE },
+    { gitArguments: ['checkout', '-q', '--', '.'], answeredAs: GIT_CALL_SHAPES.CHECKOUT_OF_A_REFORMATTED_FILE },
+  ], () => GateLineRun.runOnce(requestOf([{ name: 'tests', run: RECORDED_GATE_LINES.GREEN }], { prepare: [{ name: 'install', run: RECORDED_GATE_LINES.GREEN }] })));
+
+  if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
+  expect(run.failedStep).toBe('install');
+  expect(run.prepareOutput).toContain('source.txt');
+  expect(run.gates.map((gate) => gate.outcome)).toEqual(['cannot-run']);
 });

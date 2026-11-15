@@ -46,9 +46,9 @@ export function ChoiceInput({
       name={name}
       aria-label={accessibleName}
       checked={checked}
-      onChange={() => {
+      onChange={(event) => {
         onChange();
-        focusLink?.freeText.current?.focus();
+        if (event.currentTarget.checked) focusLink?.freeText.current?.focus();
       }}
     />
   );

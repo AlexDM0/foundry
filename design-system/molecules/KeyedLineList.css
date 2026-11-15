@@ -1,8 +1,17 @@
 /* Lines led by a mono key in a column of their own, a time or a wider tool name; the current line's key in the warn ink, an alert line
-   bold behind an error dot. */
+   bold behind an error dot. Tool lines sit in a bordered box, a hairline between rows, the current row on the link tint. */
 .design-system-keyed-lines { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); }
 .design-system-keyed-line { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: var(--sp-3); min-width: 0; }
-.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line { grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-2); }
+.design-system-keyed-lines[data-key-column="tool"] {
+  gap: 0; font-size: var(--fs-tab); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); overflow: hidden;
+}
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line {
+  grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: var(--space-10); min-height: 30px; padding: 0 var(--space-10);
+}
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line + .design-system-keyed-line { border-top: 1px solid var(--line); }
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line-key { font-size: var(--fs-small); }
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line[data-mark="current"] { color: var(--link); font-weight: 500; background: var(--link-tint); }
+.design-system-keyed-lines[data-key-column="tool"] .design-system-keyed-line[data-mark="current"] .design-system-keyed-line-key { font-weight: 400; }
 .design-system-keyed-line-key { overflow: hidden; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; text-overflow: ellipsis; }
 .design-system-keyed-line-text { min-width: 0; overflow-wrap: anywhere; }
 .design-system-keyed-line[data-mark="current"] .design-system-keyed-line-key { font-weight: 600; color: var(--link); }

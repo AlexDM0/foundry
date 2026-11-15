@@ -103,8 +103,17 @@ describe('the report table', () => {
     }
   });
 
+  test('a commit id is a full SHA-1 or SHA-256 one, never a shortened or a mixed-length one', () => {
+    for (const commit of ['b'.repeat(64), 'c'.repeat(40)]) {
+      expect(reportVerdictOf(BUILDER_REPORT_SCHEMA, { ...BUILT, headCommit: commit, gates: [{ name: 'tests', commit }] }).verdict).toBe('valid');
+    }
+    for (const commit of ['d'.repeat(39), 'e'.repeat(52), 'f'.repeat(65)]) {
+      expect(reportVerdictOf(BUILDER_REPORT_SCHEMA, { ...BUILT, headCommit: commit }).verdict, commit).toBe('invalid');
+    }
+  });
+
   test('an invalid report names each problem by its path', () => {
-    const problems = ['$.headCommit does not match ^[0-9a-f]{40}$', '$.blockedOn is not allowed'];
+    const problems = ['$.headCommit does not match ^(?:[0-9a-f]{40}|[0-9a-f]{64})$', '$.blockedOn is not allowed'];
     expect(reportVerdictOf(BUILDER_REPORT_SCHEMA, { ...BUILT, blockedOn: 'x', headCommit: 'abc' })).toEqual({ verdict: 'invalid', problems });
   });
 });

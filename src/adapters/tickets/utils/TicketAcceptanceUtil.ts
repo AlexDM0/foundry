@@ -3,8 +3,9 @@
  * item, and its `##` sections as text, so a page can quote one. It only reads: a body it cannot make sense of is a verdict, never a throw.
  */
 
-import type { ReadinessGap }       from '../../../lib/tracker-model/@types/Ticket.ts';
-import { TICKET_SECTION_PATTERNS } from '../../../shared/constants/TicketSectionPatterns.ts';
+import type { ReadinessGap }                      from '../../../lib/tracker-model/@types/Ticket.ts';
+import { openCodeFenceAfter, type OpenCodeFence } from '../../../shared/OpenCodeFence.ts';
+import { TICKET_SECTION_PATTERNS }                from '../../../shared/constants/TicketSectionPatterns.ts';
 
 export interface AcceptanceItem {
   label:        string;
@@ -60,10 +61,10 @@ interface HeadedLines {
 /** Every `#` or `##` heading with the lines under it; a heading inside a code fence is a line, and lines before the first heading belong to none. */
 function headedLinesOf(body: string): HeadedLines[] {
   const sections: HeadedLines[] = [];
-  let insideCodeFence = false;
+  let openFence: OpenCodeFence | null = null;
   for (const line of body.split(LINE_BREAK_PATTERN)) {
-    if (TICKET_SECTION_PATTERNS.CODE_FENCE.test(line)) insideCodeFence = !insideCodeFence;
-    if (!insideCodeFence && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
+    openFence = openCodeFenceAfter(line, openFence);
+    if (openFence === null && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
       sections.push({ headingLine: line, lines: [] });
       continue;
     }

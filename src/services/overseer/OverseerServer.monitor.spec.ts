@@ -24,7 +24,7 @@ const TOKEN_HEADERS = { host: `127.0.0.1:${PORT}`, authorization: `Bearer ${TOKE
 const QUIET_HEARTBEAT_MILLISECONDS = 600_000;
 
 function snapshotWith(openIncidents: number): MonitorSnapshot {
-  return { monitorVersion: 1, openIncidents } as unknown as MonitorSnapshot;
+  return { monitorVersion: 2, openIncidents } as unknown as MonitorSnapshot;
 }
 
 const openHandlers: OverseerRequestHandler[] = [];
@@ -75,7 +75,7 @@ describe('the identity', () => {
     expect(await answer.json()).toMatchObject({
       identityVersion: 1,
       contracts:       {
-        summary: 1, monitor: 1, control: 1, embed: 1
+        summary: 1, monitor: 2, control: 1, embed: 1
       }
     });
   });

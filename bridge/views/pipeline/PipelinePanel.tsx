@@ -3,9 +3,17 @@
  * dot and a word, and an end such as the agent's model and effort, over the panel's tabs; under the head, the content that the caller
  * composes from the parts this file exports: a scrolling body, then a foot such as the composer.
  */
-import { Row }            from 'design-system/Row';
-import { Text }           from 'design-system/Text';
-import type { ReactNode } from 'react';
+import { Row }     from 'design-system/Row';
+import { Text }    from 'design-system/Text';
+import {
+  useEffect,
+  useRef,
+  type ReactNode,
+  type RefObject
+} from 'react';
+
+/** How near the end a reader may scroll and still be taken along to new lines. */
+const FOLLOWED_END_SLACK_PIXELS = 24;
 
 
 /** `working` pulses in the signal colour, `ready` is the merge green, `idle` the quiet grey. */
@@ -62,9 +70,48 @@ export function PipelinePanel({
   );
 }
 
+/**
+ * Keeps a followed body scrolled to its end as its content grows, as a chat shows its newest line, while the reader stays at the end; a
+ * reader who scrolled up keeps their place.
+ */
+function useFollowedEnd(bodyRef: RefObject<HTMLDivElement | null>, followsEnd: boolean): void {
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!followsEnd || body === null) return undefined;
+    let readerIsAtEnd = true;
+    let endScrolledTo = 0;
+    // A scroll event arrives a frame late, after more lines may have grown the body: at or past the end this hook scrolled to is the end.
+    const noteReaderPlace = (): void => {
+      readerIsAtEnd = body.scrollTop >= endScrolledTo
+        || body.scrollHeight - body.scrollTop - body.clientHeight <= FOLLOWED_END_SLACK_PIXELS;
+    };
+    const keepEndInView = (): void => {
+      if (!readerIsAtEnd) return;
+      body.scrollTop = body.scrollHeight;
+      endScrolledTo = body.scrollTop;
+    };
+    keepEndInView();
+    const contentWatcher = new MutationObserver(keepEndInView);
+    contentWatcher.observe(body, { childList: true, subtree: true, characterData: true });
+    body.addEventListener('scroll', noteReaderPlace);
+    return () => {
+      contentWatcher.disconnect();
+      body.removeEventListener('scroll', noteReaderPlace);
+    };
+  }, [bodyRef, followsEnd]);
+}
+
+export interface PipelinePanelBodyProps {
+  /** A chat's body opens at its end and follows new lines while the reader is there. */
+  readonly followsEnd?: boolean;
+  readonly children:    ReactNode;
+}
+
 /** The panel's scrolling body: its rows, its chat, its cards. */
-export function PipelinePanelBody({ children }: { readonly children: ReactNode }) {
-  return <div className="bridge-pipeline-panel-body">{children}</div>;
+export function PipelinePanelBody({ followsEnd = false, children }: PipelinePanelBodyProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useFollowedEnd(bodyRef, followsEnd);
+  return <div ref={bodyRef} className="bridge-pipeline-panel-body">{children}</div>;
 }
 
 /** The panel's foot under a hairline: the composer, or the panel's one action. */

@@ -5,16 +5,15 @@
 import { readFileSync } from 'node:fs';
 import { resolve }      from 'node:path';
 
-import type { ConstitutionSources }                   from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { OperationRefusal }                           from '../../src/shared/OperationRefusal.ts';
-import type { CommandContext }                        from '../CommandContext.ts';
-import { refuseUsage }                                from '../RecordedIncidentMove.ts';
-import { suppliedTextOf }                             from '../SuppliedText.ts';
-import type { ArgumentParser }                        from '../arguments/ArgumentParser.ts';
-import { applySetupCommand, revisionFrom, setupIdOf } from './SetupCommandLine.ts';
-import { PIPELINE_USAGE }                             from './constants/PipelineUsage.ts';
-
-const STANDARD_INPUT_MARKER = '-';
+import type { ConstitutionSources }                         from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
+import type { CommandContext }                              from '../CommandContext.ts';
+import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';
+import { refuseUsage }                                      from '../RecordedIncidentMove.ts';
+import { suppliedTextOf }                                   from '../SuppliedText.ts';
+import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
+import { applySetupCommand, revisionFrom, setupIdOf }       from './SetupCommandLine.ts';
+import { PIPELINE_USAGE }                                   from './constants/PipelineUsage.ts';
 
 const NO_SOURCES_WORD = 'none';
 
@@ -28,7 +27,10 @@ const SOURCE_OF_WORD: Readonly<Record<string, keyof ConstitutionSources>> = {
 async function markdownFrom(commandArguments: ArgumentParser, context: CommandContext): Promise<string | undefined> {
   const file = commandArguments.option('file');
   if (file === undefined) return undefined;
-  if (file === STANDARD_INPUT_MARKER) return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --file -');
+  if (file === STANDARD_INPUT_MARKER) {
+    requirePipedStandardInput(context, 'file');
+    return suppliedTextOf(await context.readStandardInputBytes(), 'Standard input for --file -');
+  }
   let bytes: Uint8Array;
   try {
     bytes = readFileSync(resolve(context.currentDirectory, file));

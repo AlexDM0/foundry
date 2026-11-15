@@ -75,7 +75,7 @@ registered, so a host whose storage comes later (once it knows whose page it sho
 | Subject | The host gives |
 | --- | --- |
 | Home | The element whose bottom edge is Flint's floor. |
-| Habitats | Each large component registers its element with a `SpriteHabitat`: its kind, a description, its suggestions, and optionally `contentFor`. Flint ignores a habitat smaller than 100 by 100 pixels. |
+| Habitats | Each large component registers its element with a `SpriteHabitat`: its kind, a description, its suggestions, and optionally `contentFor`. Flint ignores a habitat smaller than 100 by 100 pixels. A box with content around it, such as a slot, sets `keepsFlintInside`: Flint never shows outside it, and a visit pops in through its edge in place of around its corner. |
 | Cues | The host's own cue names, sent with `cue` while Flint lives in that habitat. |
 | Visit target | Which habitat is "the component the user works in": `last-focused-or-clicked` (the default), `under-pointer`, `content-changed-last`, or a function of the host. |
 | Storage | A `FlintStorage` port that remembers the habitat Flint lives in. By default nothing is stored. |

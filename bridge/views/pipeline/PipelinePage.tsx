@@ -22,7 +22,7 @@ export function PipelinePage({
           <div className="bridge-pipeline-focus-panel">{panel}</div>
         </div>
       </div>
-      {footer}
+      {footer === null ? null : <div className="bridge-pipeline-focus-footer">{footer}</div>}
     </div>
   );
 }

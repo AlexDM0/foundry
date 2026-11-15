@@ -1,7 +1,8 @@
 /**
  * The redo journal on real files. What matters: the journal is whole on disk before the first target file changes and gone after the last;
- * the fence runs before the journal and before every file, so a taken-over hold writes nothing further; replay rewrites every file verbatim,
- * so replaying twice leaves the same bytes even over a hand-edited log; and a malformed journal is refused before any file is touched.
+ * the fence runs before and after the journal and before every file, so a taken-over hold writes nothing further and leaves no journal of
+ * its own that was never applied; replay rewrites every file verbatim, so replaying twice leaves the same bytes even over a hand-edited
+ * log; and a malformed journal is refused before any file is touched.
  * A file whose bytes on disk already are its new contents is neither journaled nor written, judged by its bytes alone: a hold that changes
  * nothing makes no file move at all, observed through a recording file replace and the files' inodes, yet still runs its fence.
  */
@@ -127,13 +128,31 @@ describe('commitHold', () => {
     expect(existsSync(workspace.progressFilePath)).toBe(false);
   });
 
+  // A holder paused past the lock's staleness between its first fence and the journal write must not leave a stale journal to replay.
+  test('a fence that refuses once the journal is written removes the journal, and no file is written', async () => {
+    let fenceChecks = 0;
+    const refusal = new Error('taken over');
+    const fence: HoldFence = {
+      requireStillHeld: () => {
+        fenceChecks++;
+        if (fenceChecks > 1) throw refusal;
+      },
+    };
+
+    const failure = await thrownFailureOf(() => Promise.resolve(commitHold(workspace, exampleFiles(), fence)));
+
+    expect(failure).toBe(refusal);
+    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(workspace.progressFilePath)).toBe(false);
+  });
+
   test('the fence runs before every file: refused after the first, the rest stay as they were and the journal stays for the successor', async () => {
     let fenceChecks = 0;
     const fence: HoldFence = {
       requireStillHeld: () => {
         fenceChecks++;
-        // The journal's check and the progress file's pass; the ticket's is the first after the takeover.
-        if (fenceChecks > 2) throw new Error('taken over');
+        // The checks before and after the journal and the progress file's pass; the ticket's is the first after the takeover.
+        if (fenceChecks > 3) throw new Error('taken over');
       },
     };
 

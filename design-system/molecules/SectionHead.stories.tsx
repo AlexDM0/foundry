@@ -19,3 +19,4 @@ export const Counted: Story = { args: { count: 3 } };
 export const WithAction: Story = { args: { count: 3, children: <TextButton label="Example action" onPress={fn()} /> } };
 export const NestedHeading: Story = { args: { titleElement: 'h3' } };
 export const Inline: Story = { args: { count: 3, inline: true, children: <TextButton label="Example action" onPress={fn()} /> } };
+export const Heading: Story = { args: { count: 3, look: 'heading', children: <TextButton label="Example action" onPress={fn()} /> } };

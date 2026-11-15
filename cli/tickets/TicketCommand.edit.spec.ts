@@ -1,10 +1,11 @@
 /**
- * `ticket edit`, as the command surface sees it. The byte-for-byte guarantee of a ticket body is what the cases are about: a CRLF body
- * stays CRLF throughout, a body holding a `---` line round-trips, an append puts exactly one line ending before its text where the body
- * ends without one, an empty append writes nothing, and the frontmatter's bytes (unknown keys, comments, a hand-written layout) survive
- * an edit while `updated` is not stamped and nothing is logged. A rename touches the title line, the ticket's own row and a generated
- * heading only, keeping the file path, a review bar's name and a hand-changed heading, and logs one line. Past `pending` an edit needs
- * `--force`, checked inside the same lock hold as the write, and a forced body edit reads as changed since the claim while a rename does not.
+ * `ticket edit`, as the command surface sees it. The byte-for-byte guarantee of a ticket body is what the cases are about: a CRLF body stays
+ * CRLF throughout, a body holding a `---` line round-trips, an append puts exactly one line ending before its text where the body ends
+ * without one, an empty append writes nothing, `--body-file -` in a terminal is refused rather than read as empty text, and the frontmatter's
+ * bytes (unknown keys, comments, a hand-written layout) survive an edit while `updated` is not stamped and nothing is logged. A rename
+ * touches the title line, the ticket's own row and a generated heading only, keeping the file path, a review bar's name and a hand-changed
+ * heading, and logs one line. Past `pending` an edit needs `--force`, checked inside the same lock hold as the write, and a forced body edit
+ * reads as changed since the claim while a rename does not.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
@@ -162,6 +163,16 @@ describeWhenGitIsRecorded('editing a ticket body', () => {
     const output = (await run(['ticket', 'edit', '1', '--append', '--body-file', '-'], '')).outputText();
 
     expect(output).toContain('Ticket #001 body unchanged');
+    expect(storedTicketText()).toBe(before);
+  });
+
+  test('--body-file - in a terminal is refused at exit 1, writing nothing, rather than read as an empty body', async () => {
+    const before   = storedTicketText();
+    const terminal = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputIsTerminal: true });
+
+    expect(await runCommandLineWithOverseerMoves(['ticket', 'edit', '1', '--append', '--body-file', '-'], terminal)).toBe(1);
+
+    expect(terminal.errorText()).toContain('--body-file - reads standard input, and standard input is a terminal');
     expect(storedTicketText()).toBe(before);
   });
 

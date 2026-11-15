@@ -69,7 +69,8 @@ tree as it was, the Overseer runs no gate. The reviewer judges each Acceptance i
 the ticket from the report. A review ends in one of four moves: the ticket is queued, another round is granted, a waiver
 is proposed, or the reviewer finds an Acceptance item unmet.
 
-> **As built.** A proposed waiver waits for an answer that has no effect.
+User's answer to a waiver is recorded, with the Overseer down too, and the next Pass acts on it: a refusal sends the
+ticket back to its builder, and a grant writes each proposed item `Waived:` and queues the ticket.
 
 **Merge queue.** A passed review sets `mergeQueued` on the row and adds `merge-queued` to the
 [log](../glossary.md#log). The status does not change, and no job exists until an Airlock claims the ticket.

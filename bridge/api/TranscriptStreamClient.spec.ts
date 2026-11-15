@@ -1,9 +1,9 @@
 /**
- * The transcript client against a fake `EventSource`. What matters: the stream asks after the cursor it was given, `history` and
- * `message` both reach the handler, an entry of another shape is dropped (one with no `entryKey` among them), and the last cursor received
- * is kept for a reopened panel; a stream the browser gave up on reopens after that cursor, and an entry replayed across the reopen is
- * delivered once. Entries of one log line share a cursor and differ in `entryKey`, so all of them arrive while following, every field intact,
- * a chat's pictures among them.
+ * The transcript client against a fake `EventSource`. What matters: the stream asks after the cursor it was given, `history` and `message`
+ * both reach the handler, the history says it arrived also when it brought no entry (a chat cues nothing for its history), an entry of
+ * another shape is dropped (one with no `entryKey` among them), and the last cursor received is kept for a reopened panel; a stream the
+ * browser gave up on reopens after that cursor, and an entry replayed across the reopen is delivered once. Entries of one log line share a
+ * cursor and differ in `entryKey`, so all of them arrive while following, every field intact, a chat's pictures among them.
  */
 import {
   afterEach,
@@ -42,6 +42,19 @@ function fakeSource(): { eventSourceOf: (url: string) => EventStreamSource; fire
 }
 
 describe('the transcript client', () => {
+  test('says the history arrived after its entries, also when it brought none, and never for a message', () => {
+    const source = fakeSource();
+    const heard: string[] = [];
+    TranscriptStreamClient.follow('J12', {
+      onEntries: (entries) => heard.push(...entries.map((entry) => entry.cursor)),
+      onHistory: () => heard.push('history'),
+    }, { eventSourceOf: source.eventSourceOf });
+    source.fire('history', []);
+    source.fire('message', entryOf('1.1', 0, 'assistant', 'Example reply'));
+    source.fire('history', [entryOf('1.2', 0, 'assistant', 'Example replay')]);
+    expect(heard).toEqual(['history', '1.1', '1.2', 'history']);
+  });
+
   test('follows history then messages after the cursor, keeping the last cursor and dropping malformed entries', () => {
     const listeners = new Map<string, (event: Event) => void>();
     let openedUrl = '';

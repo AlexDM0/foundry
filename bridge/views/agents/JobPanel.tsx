@@ -3,9 +3,8 @@
  * job's facts (role, tickets, calls, last tool, subagents); the job's controls; its transcript; and in the foot the message box where the
  * job takes messages.
  */
-import { FlintSlot } from 'design-system/FlintSlot';
-import { MonoId }    from 'design-system/MonoId';
-import { Row }       from 'design-system/Row';
+import { MonoId } from 'design-system/MonoId';
+import { Row }    from 'design-system/Row';
 import {
   SidePanel,
   SidePanelBody,
@@ -17,9 +16,11 @@ import { Text }     from 'design-system/Text';
 import { View }     from 'design-system/View';
 
 import type { IdentifiedRecord }                                         from '../../@types/BoardStateDocument.ts';
+import { FlintSlotHabitat }                                              from '../../flint/FlintSlotHabitat.tsx';
+import { FLINT_SLOT_HABITATS }                                           from '../../flint/FlintSlotHabitats.ts';
 import { useCoveringPanelHoldsTheFlintSlot }                             from '../../shell/CoveringPanel.ts';
 import { ElapsedTimeUtil }                                               from '../../utils/ElapsedTimeUtil.ts';
-import { FlintPoseUtil }                                                 from '../../utils/FlintPoseUtil.ts';
+import { FlintSlotCueUtil }                                              from '../../utils/FlintSlotCueUtil.ts';
 import { JobStateUtil }                                                  from '../../utils/JobStateUtil.ts';
 import { StateToneUtil }                                                 from '../../utils/StateToneUtil.ts';
 import type { AgentJobDocument }                                         from './AgentJobDocument.ts';
@@ -83,7 +84,7 @@ function JobFacts({ job, ticketTitleOf, now }: Pick<JobPanelProps, 'job' | 'tick
         <Text typeRole="tab" muted>Last tool</Text>
         <LastToolCallCell lastToolCall={job.live.lastToolCall} silentSweeps={job.live.silentSweeps} now={now} />
       </Row>
-      <SubagentSquares {...AgentsModel.subagentSquaresOf(job)} state={roleMark.state} />
+      <SubagentSquares {...AgentsModel.subagentSquaresOf(job)} state={roleMark.state} oneLine />
     </View>
   );
 }
@@ -102,7 +103,15 @@ export function JobPanel({
           <Row gap="fourteen">
             {flintSlotIsCovered
               ? null
-              : <FlintSlot label="Flint, the selected job's agent" size="112" ground="lane" pose={FlintPoseUtil.poseOfJob(job)} />}
+              : (
+                <FlintSlotHabitat
+                  habitat={FLINT_SLOT_HABITATS.agents}
+                  cue={FlintSlotCueUtil.cueOfJob(job)}
+                  label="Flint, the selected job's agent"
+                  size="112"
+                  ground="lane"
+                />
+              )}
             <JobFacts job={job} ticketTitleOf={ticketTitleOf} now={now} />
           </Row>
           <JobControls job={job} openDecision={AgentsModel.openDecisionOf(decisions, job.id)} />

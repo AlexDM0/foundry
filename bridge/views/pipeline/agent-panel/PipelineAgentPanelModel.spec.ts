@@ -1,17 +1,19 @@
 /**
- * The pipeline agent panel's model. What matters: the activity line shows only while a turn runs, and says the newest line the agent wrote
- * or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer sends the chosen letters or the
- * Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with every recommended one, a single
- * one keeps one letter, and Other excludes the letters, since the control contract takes either letters or a text; a message goes to the
- * agent's job; a flow node's question cards are only its open ones; the agent strip reads on research, drafts on the constitution, and
- * waits on the design only while a design question is open.
+ * The pipeline agent panel's model. What matters: the Overseer's chats, its step prompts among them, are its system lines with the prompt
+ * on User's ask, never User bubbles, which are User's own messages alone; the activity line shows only while a turn runs, and says the
+ * newest line the agent wrote or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer
+ * sends the chosen letters or the Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with
+ * every recommended one, a single one keeps one letter, and Other excludes the letters, since the control contract takes either letters or
+ * a text; a message goes to the agent's job; a flow node's question cards are only its open ones; the agent strip waits on User with the
+ * ask cue on any step whose own question is open, then reads on research, drafts on the constitution and designs or has its proposal ready
+ * on the design, and once the agent's job stopped it shows no work at all.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { SetupQuestion }           from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { TranscriptEntryDocument } from '../../../api/TranscriptStreamClient.ts';
-import { pipelineBoardStateOf }         from '../../../testing/PipelineFixture.ts';
-import { PipelineAgentPanelModel }      from './PipelineAgentPanelModel.ts';
+import type { SetupQuestion }                           from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { TranscriptEntryDocument }                 from '../../../api/TranscriptStreamClient.ts';
+import { pipelineBoardStateOf }                         from '../../../testing/PipelineFixture.ts';
+import { PipelineAgentPanelModel, type AgentStripView } from './PipelineAgentPanelModel.ts';
 
 function entry(sequence: number, changes: Partial<TranscriptEntryDocument> & Pick<TranscriptEntryDocument, 'role'>): TranscriptEntryDocument {
   return {
@@ -24,6 +26,29 @@ function researchRecord() {
   if (record === undefined) throw new Error('the fixture A1 has no setup record');
   return record;
 }
+
+describe('the chat', () => {
+  test('the Overseer\'s step prompt is its system line with the prompt to reveal, and only User\'s own message is a User bubble', () => {
+    const stepPrompt = 'User completed the research step. The current step is constitution.';
+    const turns = PipelineAgentPanelModel.chatTurnsOf([
+      entry(1, {
+        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: 'You are the pipeline agent.'
+      }),
+      entry(2, {
+        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: stepPrompt
+      }),
+      entry(3, {
+        role: 'user', clientAct: 'chat', sentBy: 'user', text: 'Keep the lint gate.'
+      }),
+    ], 'J4', '2026-11-12');
+    expect(turns.map((turn) => (turn.kind === 'system' ? [turn.kind, turn.text, turn.revealText] : [turn.kind, turn.kind === 'user' ? turn.text : null, null])))
+      .toEqual([
+        ['system', 'Overseer started J4 for the pipeline setup', 'You are the pipeline agent.'],
+        ['system', 'Overseer sent a message', stepPrompt],
+        ['user', 'Keep the lint gate.', null],
+      ]);
+  });
+});
 
 describe('the activity line', () => {
   test('while a turn runs it is the newest line the agent wrote', () => {
@@ -131,20 +156,68 @@ describe('the questions of a flow node', () => {
 });
 
 describe('the agent strip', () => {
-  test('reads on research, drafts on the constitution, waits while a design question is open and is ready once the agent proposed', () => {
+  function partsOf(strip: AgentStripView): readonly (string | null)[] {
+    return [strip.text, strip.flintHabitat.kind, strip.flintCue];
+  }
+
+  function designQuestions(): SetupQuestion[] {
     const setup = pipelineBoardStateOf('A2-question-open').pipelineSetup;
     if (setup === null || setup === undefined) throw new Error('the fixture A2-question-open has no setup');
-    const { questions } = setup.record;
-    const proposed = { questions, readyToContinue: ['design' as const] };
-    expect(PipelineAgentPanelModel.agentStripOf('research', proposed)).toEqual({ text: 'Reading the repository', pose: 'typing' });
-    expect(PipelineAgentPanelModel.agentStripOf('constitution', proposed)).toEqual({ text: 'Drafting the constitution', pose: 'thinking' });
-    expect(PipelineAgentPanelModel.agentStripOf('design', proposed)).toEqual({ text: 'Waiting for your answer', pose: 'waiting' });
-    const answeredQuestions = questions.filter((question) => question.answer !== null);
-    expect(PipelineAgentPanelModel.agentStripOf('design', { ...proposed, questions: answeredQuestions })).toEqual({ text: 'Proposal ready', pose: 'happy' });
+    return [...setup.record.questions];
+  }
+
+  function openQuestionOn(step: SetupQuestion['step']): SetupQuestion {
+    const openQuestion = designQuestions().find((question) => question.answer === null);
+    if (openQuestion === undefined) throw new Error('the fixture A2-question-open has no open question');
+    return { ...openQuestion, step };
+  }
+
+  test('reads on research, drafts on the constitution, designs, and is ready once the agent proposed, while the job runs', () => {
+    const answeredQuestions = designQuestions().filter((question) => question.answer !== null);
+    const working = { questions: answeredQuestions, readyToContinue: ['research' as const] };
+    expect([
+      PipelineAgentPanelModel.agentStripOf('research', working, 'running'),
+      PipelineAgentPanelModel.agentStripOf('constitution', working, 'running'),
+      PipelineAgentPanelModel.agentStripOf('design', working, 'running'),
+      PipelineAgentPanelModel.agentStripOf('design', { ...working, readyToContinue: ['design'] }, 'running'),
+    ].map(partsOf)).toEqual([
+      ['Reading the repository', 'research-slot', 'agent-reads'],
+      ['Drafting the constitution', 'constitution-slot', null],
+      ['Designing the pipeline', 'pipeline-design-slot', 'agent-thinks'],
+      ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
+    ]);
   });
 
-  test('an open design step with no question and no proposal yet is designing, never ready', () => {
-    expect(PipelineAgentPanelModel.agentStripOf('design', { questions: [], readyToContinue: ['research'] }))
-      .toEqual({ text: 'Designing the pipeline', pose: 'thinking' });
+  test('waits on User with the ask cue on each step whose own question is open, before the proposal and while the job runs', () => {
+    const stripOf = (step: SetupQuestion['step']) => PipelineAgentPanelModel.agentStripOf(
+      step, { questions: [openQuestionOn(step)], readyToContinue: ['research', 'design'] }, 'running'
+    );
+    expect((['research', 'constitution', 'design'] as const).map((step) => partsOf(stripOf(step)))).toEqual([
+      ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
+      ['Waiting for your answer', 'constitution-slot', 'agent-waits-on-user'],
+      ['Waiting for your answer', 'pipeline-design-slot', 'agent-waits-on-user'],
+    ]);
+  });
+
+  test('an open question of another step leaves the strip at its work: the research strip reads while a design question is open', () => {
+    expect(partsOf(PipelineAgentPanelModel.agentStripOf('research', { questions: designQuestions(), readyToContinue: [] }, 'running')))
+      .toEqual(['Reading the repository', 'research-slot', 'agent-reads']);
+  });
+
+  test('a stopped job shows no work on any step, yet an open question still waits and a ready proposal stays ready', () => {
+    const idle = { questions: [], readyToContinue: [] };
+    expect([
+      PipelineAgentPanelModel.agentStripOf('research', idle, null),
+      PipelineAgentPanelModel.agentStripOf('constitution', idle, null),
+      PipelineAgentPanelModel.agentStripOf('design', idle, null),
+      PipelineAgentPanelModel.agentStripOf('research', { ...idle, questions: [openQuestionOn('research')] }, null),
+      PipelineAgentPanelModel.agentStripOf('design', { ...idle, readyToContinue: ['design'] }, null),
+    ].map(partsOf)).toEqual([
+      ['Stopped', 'research-slot', 'agent-is-idle'],
+      ['Stopped', 'constitution-slot', 'agent-is-idle'],
+      ['Stopped', 'pipeline-design-slot', 'agent-is-idle'],
+      ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
+      ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
+    ]);
   });
 });

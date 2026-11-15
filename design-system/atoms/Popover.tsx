@@ -1,11 +1,12 @@
 /**
  * A card that hangs under its anchor, the trigger's wrapper, which the host positions: nothing while closed; open, dismissed by Esc or by
  * a pointer down or focus outside it and its anchor, with the reason. Its Esc is caught before any panel's, as a popover lies over them.
- * The trigger hands the focus back itself, as only it knows where the focus belongs.
+ * The trigger hands the focus back itself, as only it knows where the focus belongs. It drops in on open, and on close lifts away inert.
  */
 import { useRef, type ReactNode, type RefObject } from 'react';
 
 import { useDismissal, type DismissalReason } from '../utils/Dismissal.ts';
+import { usePresence }                        from '../utils/Presence.ts';
 
 export type PopoverPlacement = 'below-end' | 'below-start';
 
@@ -31,9 +32,19 @@ export function Popover({
   useDismissal({
     isOpen, insideRefs: [popoverRef, anchorRef], onDismiss, escapePhase: 'capture',
   });
-  if (!isOpen) return null;
+  const { isShown, isLeaving } = usePresence(isOpen, popoverRef);
+  if (!isShown) return null;
   return (
-    <div ref={popoverRef} className="design-system-popover" role={role} aria-label={label} data-placement={placement} data-width={width}>
+    <div
+      ref={popoverRef}
+      className="design-system-popover"
+      role={role}
+      aria-label={label}
+      data-placement={placement}
+      data-width={width}
+      data-motion={isLeaving ? 'out' : undefined}
+      inert={isLeaving}
+    >
       {children}
     </div>
   );

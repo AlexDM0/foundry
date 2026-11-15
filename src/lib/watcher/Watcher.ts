@@ -28,6 +28,7 @@ import {
 import type { LocalEndpoint }                                       from './LocalEndpoint.ts';
 import { localEndpointFor }                                         from './LocalEndpointFor.ts';
 import { standingReplyFor }                                         from './StandingReplies.ts';
+import { forEachLine }                                              from './StreamLines.ts';
 import { type WatcherFiles, watcherFilesOf }                        from './WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret } from './WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf } from './WatcherRecord.ts';
@@ -43,8 +44,6 @@ const WATCHER_DONE_EXIT_CODE    = 0;
 const WATCHER_REFUSED_EXIT_CODE = 1;
 
 const INSTANCE_PATTERN = /^[1-9]\d*$/;
-
-const STDOUT_LINE_SEPARATOR = '\n';
 
 const TREE_SWEEP_INTERVAL_MILLISECONDS = 100;
 const TREE_SWEEP_ATTEMPTS              = 20;
@@ -77,29 +76,21 @@ function closeChildInput(stdin: ChildStdin | null): void {
   }
 }
 
-/** Each complete line of the stream as it arrives, then an unterminated tail as the last line. */
-async function forEachLine(stream: ReadableStream<Uint8Array>, consumeLine: (line: string) => void): Promise<void> {
-  const decoder = new TextDecoder();
-  let pending = '';
-  for await (const chunk of stream) {
-    pending += decoder.decode(chunk, { stream: true });
-    let separatorIndex = pending.indexOf(STDOUT_LINE_SEPARATOR);
-    while (separatorIndex !== -1) {
-      consumeLine(pending.slice(0, separatorIndex));
-      pending = pending.slice(separatorIndex + 1);
-      separatorIndex = pending.indexOf(STDOUT_LINE_SEPARATOR);
-    }
-  }
-  pending += decoder.decode();
-  if (pending.length > 0) consumeLine(pending);
-}
-
 /** Bytes as they arrive, so a child's partial lines stay as it wrote them; nothing here may end the Watcher. */
 async function appendStreamToLog(stream: ReadableStream<Uint8Array>, logPath: string): Promise<void> {
   try {
     for await (const chunk of stream) appendFileSync(logPath, chunk);
   } catch {
     // A log that cannot be written, or a stream that broke, costs only these lines.
+  }
+}
+
+/** Why the Watcher fails, before it fails into the Overseer's `watcher-lost` recovery with its record left unended. */
+function logFailureCause(watcherLogPath: string, cause: unknown): void {
+  try {
+    appendFileSync(watcherLogPath, `watcher failed: ${String(cause)}\n`);
+  } catch {
+    // The disk that failed the Watcher may refuse this line too; the failure goes on without its cause.
   }
 }
 
@@ -128,13 +119,21 @@ export interface WatcherSession {
   stopSignalsSent: Promise<void> | null;
   /** A `force` reached the tree: what `endOf` needs where the runtime reports a kill from outside as an exit. */
   forcedStopRan:   boolean;
+  /** A socket line whose handling threw: the run fails with that cause, as a throw of its own does. */
+  failWatcher:     (cause: unknown) => void;
 }
 
-export function createWatcherSession(): { session: WatcherSession; lingered: Promise<void> } {
+export function createWatcherSession(): { session: WatcherSession; lingered: Promise<void>; failed: Promise<never> } {
   let finishLinger = (): void => undefined;
+  let failWatcher = (_cause: unknown): void => undefined;
   const lingered = new Promise<void>((resolve) => {
     finishLinger = resolve;
   });
+  const failed = new Promise<never>((_resolve, reject) => {
+    failWatcher = reject;
+  });
+  // A failure after the run stopped waiting on it fails nothing more.
+  failed.catch(() => undefined);
   return {
     session: {
       activity:        'idle',
@@ -147,8 +146,10 @@ export function createWatcherSession(): { session: WatcherSession; lingered: Pro
       finishLinger,
       stopSignalsSent: null,
       forcedStopRan:   false,
+      failWatcher,
     },
     lingered,
+    failed,
   };
 }
 
@@ -387,6 +388,7 @@ async function listenFor(
     onActingFrame: (frame) => {
       if (parts !== null) actOnFrame(parts, frame);
     },
+    onHandlingFailure: session.failWatcher,
   });
   if (listening.verdict === 'unbindable') return listening.reason;
   parts = {
@@ -398,7 +400,9 @@ async function listenFor(
 /**
  * Runs `<job folder> <instance>` to the end and returns the exit code; it never exits. A second Watcher of a claimed instance returns 0
  * without spawning anything, so a re-spawn of the same instance is safe. A Watcher whose child ran keeps its socket after the end until the
- * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. It has no command context, so it chooses its own ports from `platform`.
+ * acknowledgement or `WATCHER_LINGER_FRAMES` client frames. A throw after the claim, such as a full disk, is written to the Watcher log and
+ * thrown on with the record unended, so the Overseer reads the Watcher as lost. It has no command context, so it chooses its own ports from
+ * `platform`.
  */
 export async function runWatcher(
   watcherArguments: readonly string[],
@@ -425,6 +429,15 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   const claim = claimWhole(files.watcherRecordPath, watcherRecordTextOf(claimedRecord), ports.fileReplace ?? fileReplaceOfThisProcess());
   if (claim === 'already-exists') return WATCHER_DONE_EXIT_CODE;
   if (claim === 'not-created-whole') return WATCHER_REFUSED_EXIT_CODE;
+  try {
+    return await runClaimedWatcher(files, claimedRecord, stampNow, ports);
+  } catch (cause) {
+    logFailureCause(files.watcherLogPath, cause);
+    throw cause;
+  }
+}
+
+async function runClaimedWatcher(files: WatcherFiles, claimedRecord: WatcherRecord, stampNow: () => string, ports: WatcherPorts): Promise<number> {
   const launchReading = readWatcherLaunch(files.launchPath, ports.endpoint);
   const watcherSecret = launchReading.verdict === 'read' ? readWatcherSecret(launchReading.launch.secretFilePath) : null;
   if (launchReading.verdict === 'unreadable' || watcherSecret === null) {
@@ -437,7 +450,7 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   const { launch } = launchReading;
   const launchedRecord: WatcherRecord = { ...claimedRecord, watcherCodeVersion: launch.watcherCodeVersion, socketPath: launch.socketPath };
   const eventLog = createEventLogWriter(files.eventLogPath, stampNow);
-  const { session, lingered } = createWatcherSession();
+  const { session, lingered, failed } = createWatcherSession();
   const parts = await listenFor(ports, launch, watcherSecret, files, eventLog, session);
   if (typeof parts === 'string') {
     eventLog.syncAndClose();
@@ -447,7 +460,7 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
     return WATCHER_REFUSED_EXIT_CODE;
   }
   const { server } = parts;
-  const { lastRecord, end } = await superviseChild(parts, launchedRecord);
+  const { lastRecord, end } = await Promise.race([superviseChild(parts, launchedRecord), failed]);
   eventLog.syncAndClose();
   session.logClosed = true;
   writeFileAtomically(files.watcherRecordPath, watcherRecordTextOf(endedRecordOf(lastRecord, end)));
@@ -457,7 +470,7 @@ export async function runWatcherOnPorts(watcherArguments: readonly string[], sta
   }
   session.end = end;
   changeActivity(parts, 'ended');
-  await lingered;
+  await Promise.race([lingered, failed]);
   stopTreeLeftAtEnd(parts);
   server.close();
   await session.stopSignalsSent;

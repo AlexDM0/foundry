@@ -2,8 +2,9 @@
  * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
  * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write version 2, a gate in every phase
  * unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per phase, the
- * content hash moving on any change and a phase hash only on its own phase's; a malformed file is refused, never overwritten, and a
- * refused write leaves the progress file, the pipeline and the log as they were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
+ * content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate that runs in
+ * only some, since a line with none reads as every phase; a malformed file is refused, never overwritten, and a refused write leaves the
+ * progress file, the pipeline and the log as they were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
   existsSync,
@@ -192,6 +193,16 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(ordered.pipeline).toEqual(stored);
     expect(ordered.contentHash).toBe((await listed()).contentHash);
     expect(storedLogTextOf(repositoryDirectory)).toContain('"kind":"pipeline-gates-ordered","fields":{"phase":"merge","names":["lint","types","test"]}');
+  });
+
+  test('gate list in text names the phases of a gate that runs in only some, and marks a gate in every phase with none', async () => {
+    await run(['gate', 'add', 'types', '--', 'bun run typecheck']);
+    await run(['gate', 'add', 'test', '--phases', 'build,merge', '--', 'bun test']);
+    await run(['gate', 'add', 'lint', '--phases', 'merge', '--', 'bun run lint']);
+
+    const gateLines = (await run(['gate', 'list'])).outputText().split('\n').filter((line) => line.startsWith('  '));
+
+    expect(gateLines).toEqual(['  types: bun run typecheck', '  test (runs in build, merge): bun test', '  lint (runs in merge): bun run lint']);
   });
 
   test.each([

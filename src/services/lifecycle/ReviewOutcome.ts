@@ -10,7 +10,6 @@ import { writeFileAtomically }                 from '../../lib/atomic-file/Atomi
 import { readChangeSize, readCommitsDiff }     from '../../lib/git/BranchDiffs.ts';
 import { GitProcess }                          from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                        from '../../lib/git/GitWorktrees.ts';
-import type { DecisionAnswer }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                            from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                      from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                       from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -274,24 +273,20 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 }
 
 /**
- * Answers a `waiver` decision and acts on it in the same hold: granted, each proposed item is written waived and the ticket queued to
- * merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits unqueued for a fresh review, which gates it);
- * refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant whose stored proposals cannot be read waives
- * nothing it cannot name, so it fails closed as that same failed pass.
+ * Acts on User's recorded answer to the review job's `waiver` decision, in the Overseer's hold after the answer: granted, each proposed
+ * item is written waived and the ticket queued to merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits
+ * unqueued for a fresh review, which gates it); refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant
+ * whose stored proposals cannot be read waives nothing it cannot name, so it fails closed as that same failed pass.
  */
-function answerWaiver(
-  board: Board, decisionId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string
-): { answer: DecisionAnswer; logged: LogRecord[] } {
-  const decision = board.decisionById(decisionId);
-  const answered = board.answerDecision(decisionId, answers, at);
-  const logged: LogRecord[] = [...answered.logged];
-  const job = decision?.jobId === null || decision === undefined ? undefined : board.jobById(decision.jobId);
-  if (decision?.kind !== 'waiver' || job === undefined) return { answer: answered.answer, logged };
+function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string[], jobFolder: string, headTree: string | null, at: string): LogRecord[] {
+  const job = board.jobById(jobId);
+  if (job === undefined) return [];
   const ticketId = ticketIdOf(job);
-  const endAsFailedPass = (cause: string): { answer: DecisionAnswer; logged: LogRecord[] } => {
+  const logged: LogRecord[] = [];
+  const endAsFailedPass = (cause: string): LogRecord[] => {
     logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', cause }, at).logged);
     logged.push(...board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, at).logged);
-    return { answer: answered.answer, logged };
+    return logged;
   };
   if (answers.some((answer) => answer.trim().toLowerCase().startsWith(WAIVER_REFUSAL_ANSWER))) return endAsFailedPass('waiver-refused');
   const reading = readWaiverProposals(jobFolder);
@@ -300,7 +295,7 @@ function answerWaiver(
   logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, allowsPastPending: true }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
   if (board.greenIsCurrent(ticketId, headTree, board.greenPhaseOf(ticketId))) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
-  return { answer: answered.answer, logged };
+  return logged;
 }
 
 /** A failed pass takes no round verdict, and a granted one is converging: neither was refused another round. */
@@ -326,7 +321,7 @@ function nonConvergingTicketIdsOf(records: readonly LogRecord[], pipeline: Reado
 
 export const ReviewOutcome = Object.freeze({
   settleReviewPass,
-  answerWaiver,
+  actOnWaiverAnswer,
   nonConvergingTicketIdsOf,
   bodyWithWaivedItems,
 });

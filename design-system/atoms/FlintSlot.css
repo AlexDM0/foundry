@@ -1,16 +1,9 @@
-/* The Flint slot: a square box that centres the sprite, its ground, border and radius per slot ground; the sprite reads theme colours. */
-.design-system-flint-slot { display: flex; flex: none; align-items: center; justify-content: center; border: 1px solid transparent; }
+/* The Flint slot: an empty square box for the host's sprite, its ground, border and radius per slot ground. */
+.design-system-flint-slot { flex: none; border: 1px solid transparent; }
 .design-system-flint-slot[data-size="112"] { width: 112px; height: 112px; }
 .design-system-flint-slot[data-size="100"] { width: 100px; height: 100px; }
-.design-system-flint-slot[data-size="98"] { width: 98px; height: 98px; }
-.design-system-flint-slot[data-size="84"] { width: 84px; height: 84px; }
-.design-system-flint-slot[data-size="76"] { width: 76px; height: 76px; }
 .design-system-flint-slot[data-ground="page"] { background: var(--bg); border-color: var(--line); border-radius: var(--r-3); }
 .design-system-flint-slot[data-ground="strip"] { background: var(--lane-bg); border-width: 0 1px 0 0; border-color: var(--line); border-radius: 0; }
 .design-system-flint-slot[data-ground="lane"] { background: var(--lane-bg); border-width: 0; border-radius: var(--r-2); }
 .design-system-flint-slot[data-ground="decision"] { background: var(--surface); border-color: var(--accent-edge); border-radius: var(--r-2); }
 .design-system-flint-slot[data-ground="plain"] { background: var(--bg); border-width: 0; border-radius: var(--r-2); }
-.design-system-flint-sprite { display: block; flex: none; }
-.design-system-flint-shadow { fill: var(--line); }
-.design-system-flint-body { fill: var(--signal); }
-.design-system-flint-eye { fill: var(--flint-eye); }

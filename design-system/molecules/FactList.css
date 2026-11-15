@@ -21,6 +21,10 @@
   letter-spacing: var(--letter-spacing-micro); color: var(--ink-4);
 }
 .design-system-facts[data-layout="grid"] dd { font-size: var(--fs-body); color: var(--ink); overflow-wrap: anywhere; }
-.design-system-facts[data-layout="table"] { display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-6); border-top: 1px dashed var(--line); font-size: var(--fs-small); }
-.design-system-facts[data-layout="table"] .design-system-fact { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: var(--sp-2); }
+.design-system-facts[data-layout="table"] {
+  display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--line);
+  font-size: var(--fs-tab); line-height: var(--line-height-tab);
+}
+.design-system-facts[data-layout="table"] .design-system-fact { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: var(--space-8); }
 .design-system-facts[data-layout="table"] dt { color: var(--ink-muted); }
+.design-system-facts[data-layout="table"] dd { color: var(--ink-muted); }

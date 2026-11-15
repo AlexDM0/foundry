@@ -170,6 +170,9 @@ async function handOverSteps(request: HandOverRequest): Promise<BatonPassOutcome
   if (ready.report.state === 'successor-failed') return { verdict: 'kept-driving', failure: failureOf(ready.report) };
 
   await request.release();
+  // A successor that gave up waiting during a long release keeps its own report, which `released` would overwrite.
+  const reportAfterRelease = readBatonPass(request.batonPassFilePath);
+  if (reportAfterRelease?.state === 'successor-failed') return { verdict: 'taken-back', failure: failureOf(reportAfterRelease) };
   writeBatonPass(request.batonPassFilePath, { state: 'released' });
   const served = await awaitReport(request, releaseTries, (report) => report.state === 'serving' || report.state === 'successor-failed');
   if (served.verdict !== 'report') return { verdict: 'taken-back', failure: unreportedFailure(request, served, 'serve', releaseTries) };

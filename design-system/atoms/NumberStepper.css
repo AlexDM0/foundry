@@ -12,4 +12,12 @@
   display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 56px; height: 30px;
   color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;
   background: var(--bg); border-inline: 1px solid var(--line);
+  overflow: hidden;
+}
+.design-system-number-stepper-number { display: inline-block; }
+.design-system-number-stepper-number[data-change="up"] { animation: design-system-rise var(--motion-slow) var(--ease-out) both; }
+.design-system-number-stepper-number[data-change="down"] { animation: design-system-drop var(--motion-slow) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-number-stepper-number[data-change] { animation: none; }
 }

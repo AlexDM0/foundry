@@ -1,33 +1,34 @@
-/* An agent's model and effort: the bars rise from the bottom, each 2px taller than the one before, the filled ones in the signal colour; a
-   derived meter is dashed and explains itself in its tooltip. */
+/* An agent's model and effort as plain words on no ground: the bars rise from the bottom, each 2px taller than the one before, the filled
+   ones in ink. A derived meter is dashed and explains itself in its tooltip. */
 .design-system-effort-meter {
-  display: inline-flex; flex: none; align-items: center; gap: var(--space-5); box-sizing: border-box; height: 18px; padding: 0 var(--space-6);
-  color: var(--ink-muted); font-size: var(--fs-micro); line-height: 1; white-space: nowrap; background: var(--wash); border-radius: var(--r-1);
+  display: inline-flex; flex: none; align-items: center; gap: var(--space-6); box-sizing: border-box; height: 18px;
+  color: var(--ink-muted); font-size: var(--fs-small); line-height: 1; white-space: nowrap; border-radius: var(--r-1);
 }
-.design-system-effort-meter[data-size="dialog"] { height: 20px; padding: 0 var(--space-7); font-size: var(--fs-pill); }
-.design-system-effort-meter[data-size="hero"] { height: 22px; padding: 0 var(--sp-2); font-size: var(--fs-small); }
-.design-system-effort-meter[data-derived] { border: 1px dashed var(--line-strong); cursor: help; }
+.design-system-effort-meter[data-size="dialog"] { height: 20px; font-size: var(--fs-tab); }
+.design-system-effort-meter[data-size="hero"] { height: 22px; font-size: var(--fs-tab); }
+.design-system-effort-meter[data-derived] { padding: 0 var(--space-6); border: 1px dashed var(--line-strong); cursor: help; }
 .design-system-effort-meter[data-derived]:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-effort-meter-glyph { flex: none; width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; }
 .design-system-effort-meter-model,
 .design-system-effort-meter-effort { flex: none; }
+.design-system-effort-meter-model { text-transform: capitalize; }
 .design-system-effort-meter-bars { display: inline-flex; flex: none; align-items: flex-end; gap: var(--space-2); height: 10px; }
 .design-system-effort-meter-bar {
   flex: none; width: 3px; height: 2px; background: var(--line-strong); border-radius: 1px; transform-origin: bottom;
-  animation: design-system-bar 480ms var(--ease-out) both;
+  animation: design-system-bar var(--motion-fill) var(--ease-out) both;
   transition: height var(--motion-slow) var(--ease-out), background-color var(--motion-slow) var(--ease-out);
 }
-.design-system-effort-meter-bar:nth-child(2) { height: 4px; animation-delay: 60ms; }
-.design-system-effort-meter-bar:nth-child(3) { height: 6px; animation-delay: 120ms; }
-.design-system-effort-meter-bar:nth-child(4) { height: 8px; animation-delay: 180ms; }
-.design-system-effort-meter-bar:nth-child(5) { height: 10px; animation-delay: 240ms; }
+.design-system-effort-meter-bar:nth-child(2) { height: 4px; animation-delay: calc(var(--motion-fill) / 8); }
+.design-system-effort-meter-bar:nth-child(3) { height: 6px; animation-delay: calc(var(--motion-fill) / 4); }
+.design-system-effort-meter-bar:nth-child(4) { height: 8px; animation-delay: calc(var(--motion-fill) * 3 / 8); }
+.design-system-effort-meter-bar:nth-child(5) { height: 10px; animation-delay: calc(var(--motion-fill) / 2); }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bars { height: 11px; }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bar { height: 3px; }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bar:nth-child(2) { height: 5px; }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bar:nth-child(3) { height: 7px; }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bar:nth-child(4) { height: 9px; }
 .design-system-effort-meter[data-size="hero"] .design-system-effort-meter-bar:nth-child(5) { height: 11px; }
-.design-system-effort-meter-bar[data-filled] { background: var(--signal); }
+.design-system-effort-meter-bar[data-filled] { background: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-effort-meter-bar { animation: none; transition: none; }

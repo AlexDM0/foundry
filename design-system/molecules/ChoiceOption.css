@@ -1,11 +1,13 @@
-/* A lettered option: a label led by its input chooses on a click anywhere; chosen reads bold; a card is an option row with a strong line. */
+/* A lettered option: a label led by its input chooses on a click anywhere; chosen reads bold, its input bumping once; a card is an option
+   row with a strong line. */
 .design-system-choice { display: flex; align-items: baseline; gap: var(--sp-2); }
 label.design-system-choice { cursor: pointer; }
 .design-system-choice-input { flex: none; margin: 0; accent-color: var(--signal); }
+.design-system-choice-input:checked { animation: design-system-choice-check var(--motion-pop) var(--ease-out); }
 .design-system-choice-letter { flex: none; width: 1.2em; font-family: var(--font-mono); font-weight: 700; color: var(--ink-muted); }
 .design-system-choice-text { display: flex; flex-direction: column; min-width: 0; }
 .design-system-choice[data-chosen] .design-system-choice-text { font-weight: 600; }
-.design-system-choice-description { color: var(--ink-muted); }
+.design-system-choice-description { font-weight: 400; color: var(--ink-muted); }
 .design-system-choice-facts { margin-top: var(--space-6); font-weight: 400; }
 .design-system-choice[data-variant="card"] {
   padding: var(--space-9) var(--space-12); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
@@ -57,4 +59,6 @@ label.design-system-choice { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-choice[data-variant="card"] { transition: none; }
+  .design-system-choice-input:checked { animation: none; }
 }
+@keyframes design-system-choice-check { 40% { transform: scale(1.2); } }

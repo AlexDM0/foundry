@@ -6,7 +6,7 @@
   color: var(--ink); font-size: var(--fs-small); font-weight: 400; line-height: 17px; text-align: start; white-space: normal;
   background: var(--tooltip-surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); box-shadow: var(--shadow-tooltip);
   pointer-events: none; opacity: 0; visibility: hidden;
-  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out), visibility 140ms;
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out), visibility var(--motion-base);
 }
 .design-system-tooltip[data-placement="above"] { bottom: calc(100% + var(--space-8)); transform: translateY(4px); }
 .design-system-tooltip[data-placement="below"] { top: calc(100% + var(--space-8)); transform: translateY(-4px); }
