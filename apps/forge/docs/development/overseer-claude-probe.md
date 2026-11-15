@@ -362,7 +362,8 @@ as behaviour.
 
 ## The probe record
 
-**This is what Claude Code 2.1.311 did on 2026-10-27.** Past tense is deliberate: each entry reports a run.
+**P1 to P17 are what Claude Code 2.1.311 did on 2026-10-27; P18 to P21 what Claude Code 2.1.323 and Turborepo 2.11.10
+did on 2026-11-15.** Past tense is deliberate: each entry reports a run.
 
 ### Reading the record
 
@@ -769,6 +770,105 @@ Selects: the setting confines sandboxed Bash as well as Read and leaves git work
 `<data>`, which the read-only verbs need under a job. T13 adds it only together with a read grant of `<data>` (untested
 here); otherwise the `denyRead` list stays the read confinement. (Not used; see [the
 ledger](#what-was-selected-against-what-runs).)
+
+### P18 to P21: a session started in a subfolder of a workspace
+
+**These four ran for the monorepo move, in a scratch repository, and select nothing in the code yet.** The repository
+held a root `CLAUDE.md`, `.claude/settings.json`, `.claude/settings.local.json`, `.claude/rules/` (one rule with no
+`paths`, one scoped to `apps/x/**`) and `.claude/skills/root-skill/`; `apps/x/` held its own `CLAUDE.md`,
+`.claude/settings.json` and `.claude/skills/marker-skill/`; `apps/y/` held no `.claude/`. Each settings file had a
+`SessionStart` hook `"$CLAUDE_PROJECT_DIR"/.claude/hooks/mark.sh <which file>`, a script that records
+`$CLAUDE_PROJECT_DIR` and its own path; both `.claude/hooks/` folders held a copy.
+
+Every session ran `claude -p --model haiku --output-format stream-json --verbose --debug-file <file>` under
+`env -i HOME=<scratch home> PATH USER`. **No session reached the model:** under a scratch home Claude Code found no login and
+every `result` was "Not logged in · Please run /login". Hooks, skills and instruction files are settled before the first
+request, so the hooks ran, and the transcript's `instructions` and `skill_listing` attachments name the files read.
+Evidence: `.claude/.evidence/monorepo-migration/l8-claude-probe/` in the owner's main checkout, one folder per run under
+`runs/`, with `run.sh`, the repository as `repo/` and the `claudeMdExcludes` files.
+
+### P18: settings, hooks and `$CLAUDE_PROJECT_DIR`
+
+<details>
+<summary>What the run showed</summary>
+
+| Started in | `--setting-sources` | `apps/x` settings hook | Root `settings.json` hook | Root `settings.local.json` hook | `$CLAUDE_PROJECT_DIR` |
+| --- | --- | --- | --- | --- | --- |
+| `apps/x` | default | ran | not read | ran `apps/x/.claude/hooks/mark.sh` | `<repo>/apps/x` |
+| `apps/x` | `project` | ran | not read | not read | `<repo>/apps/x` |
+| `apps/y` | default | none there | not read | exit 127: `apps/y/.claude/hooks/mark.sh` missing | `<repo>/apps/y` |
+| `apps/y` | `project` | none there | not read | not read | none ran |
+| root | default | not read | ran | ran | `<repo>` |
+
+The debug log's watched settings files agree: from `apps/x` they were the home's `settings.json`,
+`apps/x/.claude/settings.json`, `apps/x/.claude/settings.local.json` and the root's `.claude/settings.local.json`, never
+the root's `.claude/settings.json` (`runs/app-default/debug.txt`, `runs/app-without-claude-folder/debug.txt`).
+
+</details>
+
+For the monorepo: a subfolder's own `.claude/settings.json` hooks load, so a project's settings may live in its
+subfolder. The root's `.claude/settings.json` does not load in a session started below it, so the root's lint hook never
+runs there. `$CLAUDE_PROJECT_DIR` is the folder the session started in, so a root hook written
+`"$CLAUDE_PROJECT_DIR"/.claude/...` finds no script from a subfolder; a hook script that must run from both finds itself
+by its own path.
+
+### P19: skills in a subfolder and its ancestors
+
+<details>
+<summary>What the run showed</summary>
+
+From `apps/x` the skill listing held `marker-skill` and `root-skill`, under the default sources and under `project`;
+from `apps/y` and from the root it held `root-skill` alone (`runs/*/transcript.jsonl`, the `skill_listing` attachment).
+
+</details>
+
+For the monorepo: skills load from the starting folder's `.claude/skills/` and from every ancestor's, so a root skill
+reaches every project and a project's skill stays its own.
+
+### P20: ancestor `.claude/rules/*.md` and `claudeMdExcludes`
+
+<details>
+<summary>What the run showed</summary>
+
+From `apps/x` the `instructions` attachment held the root's `CLAUDE.md`, the root's unscoped rule and
+`apps/x/CLAUDE.md`, under the default sources and under `project`; the rule scoped to `apps/x/**` was not among them at
+the start. A `--settings` file holding `claudeMdExcludes` gave:
+
+| `claudeMdExcludes` | Instruction files read from `apps/x` |
+| --- | --- |
+| none | root `CLAUDE.md`, root `rules/unconditional.md`, `apps/x/CLAUDE.md` |
+| the root's `CLAUDE.md` and `.claude/rules/unconditional.md`, absolute | `apps/x/CLAUDE.md` |
+| `<repo>/.claude/rules/**` | root `CLAUDE.md`, `apps/x/CLAUDE.md` |
+| `<repo>/.claude/rules`, a folder | unchanged from none |
+| `<repo>/.claude/rules/**` under `--setting-sources project` | root `CLAUDE.md`, `apps/x/CLAUDE.md` |
+
+</details>
+
+For the monorepo: an ancestor's unscoped rules load in a subfolder session, an absolute path or a glob in
+`claudeMdExcludes` excludes them, and a bare folder path excludes nothing. Whether the scoped rule loads once the
+session reads a file under `apps/x/` needs a model turn and was not run.
+
+### P21: Turborepo's read-only cache flag
+
+<details>
+<summary>What the run showed</summary>
+
+In a scratch Bun workspace with one package and one task, `turbo run probe` at 2.11.10: `--cache=local:r` on an empty
+cache missed, ran the task and wrote no entry; the default run wrote one; `--cache=local:r` then replayed it as a hit;
+after an edit, `--cache=local:r` missed and ran, still writing nothing (`turbo-lab/`).
+
+</details>
+
+For the monorepo: the flag reads hits and never writes, as the migration's earlier lab run found.
+
+### Not answered on 2026-11-15
+
+- Whether `sandbox.network.allowLocalBinding` lets a sandboxed Bash bind and reach `127.0.0.1`: it needs a model turn
+  that runs Bash, and no session under a scratch home was logged in.
+- How the probe's Claude Code authenticates under a scratch home: it does not by itself. Pointing `CLAUDE_CONFIG_DIR` at
+  the owner's real configuration was refused by the probing session's own permission check and not tried; a login of the
+  scratch home, or a run under the owner's home, is the owner's call.
+- A `PostToolUse` hook from a subfolder: no tool ran, so `SessionStart` stands in for every hook event in P18.
 
 ## A scratch run outside the probe record
 
