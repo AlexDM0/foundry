@@ -122,8 +122,9 @@ describe('the view follows the fleet source, with no reload', () => {
 });
 
 function pageTitleFiguresIn(markup: string): string[] {
-  const pageTitle = /<header class="gaia-page-title">.*?<\/header>/.exec(markup)?.[0] ?? '';
-  const figure = /<div class="gaia-figure" data-form="stacked"( data-attention="")?><span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g;
+  const pageTitle = /<header class="design-system-page-head">.*?<\/header>/.exec(markup)?.[0] ?? '';
+  const figure = new RegExp('<div class="design-system-figure" data-form="stacked"( data-state-tone="accent")?>'
+    + '<span class="design-system-figure-value">([^<]*)</span><span class="design-system-figure-label">([^<]*)<', 'g');
   return [...pageTitle.matchAll(figure)]
     .map(([, attention, value, label]) => `${value} ${label}${attention === undefined ? '' : ' (waits on you)'}`);
 }
@@ -141,7 +142,7 @@ describe('the page title and the clock', () => {
       '1.24M tokens today',
       '0 open incidents',
     ]);
-    expect(fleet).not.toContain('gaia-page-title-actions');
+    expect(fleet).not.toContain('design-system-page-head-actions');
     expect(fleet).not.toContain('class="gaia-attention-figures"');
   });
 
@@ -156,7 +157,7 @@ describe('the page title and the clock', () => {
     expect(pageTitleFiguresIn(degraded)).toEqual([]);
     expect(degraded).toContain('<div class="gaia-attention-figures" data-form="line">');
     const empty = renderToStaticMarkup(appAt(sourceHolding(FLEET_EMPTY)));
-    expect(empty).not.toContain('gaia-page-title');
+    expect(empty).not.toContain('design-system-page-head');
     expect(empty).toMatch(/<div class="gaia-attention-no-forge-actions"><button[^>]*>Look again<\/button><\/div>/);
   });
 

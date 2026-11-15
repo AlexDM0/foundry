@@ -81,8 +81,8 @@ describe('no forge yet', () => {
   test('offers Look again, says why nothing waits and offers the form, its fields named and "Add and start" the one primary button', () => {
     const { unfolded } = layoutOf(false);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-no-forge-title')])).toBe('Nothing waits on you, because no forge is registered.');
-    const fields = tree.hostElementsIn(unfolded, tree.withClass('gaia-text-field'));
-    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'gaia-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
+    const fields = tree.hostElementsIn(unfolded, tree.withClass('design-system-text-field'));
+    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'design-system-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
     expect(fields.map((field) => tree.onlyWithTag([field], 'input').props['value'])).toEqual(['~/development/example-storefront', 'example-storefront']);
     const buttons = tree.hostElementsIn(unfolded, PackageButtons.isButton);
     expect(buttons.map((button) => [tree.textOf([button]), PackageButtons.emphasisOf(button)])).toEqual([
@@ -137,15 +137,17 @@ describe('no forge yet', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(INIT_REFUSED))]);
     await sender.send(AddRepositoryForm.addCommandOf(FILLED_FORM));
     const add = tree.onlyWithClass(layoutOf(false, FILLED_FORM, sender.states()).unfolded, 'gaia-attention-add');
-    expect(tree.textOf([tree.onlyWithClass([add], 'gaia-refusal-text')])).toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
+    expect(tree.textOf([tree.onlyWithClass([add], 'design-system-failed-action-text')]))
+      .toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
   });
 
   test('a refused Look again shows under its button, and Try again sends it once more', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(LOOK_AGAIN_REFUSED))]);
     await sender.send({ kind: 'fleet-look-again' });
     const { unfolded, pressed } = layoutOf(false, FILLED_FORM, sender.states());
-    const refusal = tree.onlyWithClass(unfolded, 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('Gaia could not Look again: registry-unreadable. The registry could not be read.');
+    const refusal = tree.onlyWithClass(unfolded, 'design-system-failed-action');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
+      .toBe('Gaia could not Look again: registry-unreadable. The registry could not be read.');
     tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
     expect(pressed.lookAgain).toBe(1);
   });

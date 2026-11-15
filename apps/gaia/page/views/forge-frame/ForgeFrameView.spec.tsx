@@ -110,7 +110,7 @@ describe('the bar\'s commands', () => {
     const sender = senderOver([async () => answerResponse(refused)]);
     await sender.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' });
     const markup = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender);
-    expect(markup).toContain('The forge refused Stop: <span class="gaia-refusal-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
+    expect(markup).toContain('The forge refused Stop: <span class="design-system-failed-action-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
     expect(buttonsIn(markup)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
 });

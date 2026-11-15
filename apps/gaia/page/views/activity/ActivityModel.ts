@@ -12,9 +12,9 @@ import type {
   FleetDocumentForge,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { PageFigure }    from '../../design-system/PageTitle.tsx';
 import type { DotRole }       from '../../design-system/RoleDot.tsx';
 import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
+import type { PageFigure }    from '../../shared/@types/ViewParts.ts';
 import { HashRouter }         from '../../shared/HashRouter.ts';
 import { ACTIVITY_SENTENCES } from '../../shared/constants/ActivitySentences.ts';
 import { CountTextUtil }      from '../../shared/utils/CountTextUtil.ts';

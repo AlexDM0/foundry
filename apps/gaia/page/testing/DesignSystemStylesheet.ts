@@ -1,14 +1,16 @@
 /**
- * Test-only: the design-system package's stylesheet and fonts for a page a browser opens from a file, where no bundler runs. The entry
- * stylesheet comes with its imports inlined; the fonts come as the `@font-face` rules the font loader stands in for, each file inlined as a
- * `data:` address, since a file page may not load a font from another file.
+ * Test-only: the packages' stylesheets and fonts for a page a browser opens from a file, where no bundler runs. The entry stylesheets, the
+ * design-system package's and then the contributions package's, as the page links them, come with their imports inlined; the fonts come
+ * as the `@font-face` rules the font loader stands in for, each file inlined as a `data:` address, since a file page may not load a font
+ * from another file.
  */
 import { readFileSync }  from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { type FontFaceFactory, loadDesignSystemFonts } from 'design-system/FontLoader';
 
-const ENTRY_STYLESHEET_EXPORT = 'design-system/design-system.css';
+/** The packages' entry stylesheets in the order `page/index.html` links them. */
+const ENTRY_STYLESHEET_EXPORTS = ['design-system/design-system.css', 'design-system-contributions/design-system-contributions.css'];
 
 const STYLESHEET_IMPORT = /@import\s+"([^"]+)";/g;
 
@@ -47,9 +49,9 @@ function fontFaceRuleOf(fontFace: RecordedFontFace): string {
 let fontFaceRulesText: string | null = null;
 
 export const DesignSystemStylesheet = {
-  /** The entry stylesheet as a bundler links it: every imported stylesheet in place of its import, in order. */
+  /** The entry stylesheets as a bundler links them: every imported stylesheet in place of its import, in order. */
   text(): string {
-    return inlinedStylesheetOf(Bun.resolveSync(ENTRY_STYLESHEET_EXPORT, import.meta.dir));
+    return ENTRY_STYLESHEET_EXPORTS.map((entryExport) => inlinedStylesheetOf(Bun.resolveSync(entryExport, import.meta.dir))).join('\n');
   },
 
   /** A rule per face the font loader registers, read once and kept, since the files are large and the same for every screen. */

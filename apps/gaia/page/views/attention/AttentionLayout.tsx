@@ -15,20 +15,21 @@ import { Stamp }       from 'design-system/Stamp';
 import { Tag }         from 'design-system/Tag';
 import { Text }        from 'design-system/Text';
 import { TextButton }  from 'design-system/TextButton';
+import { Figure }      from 'design-system-contributions/Figure';
+import { PendingStep } from 'design-system-contributions/PendingStep';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
 import { BrainDiamond }                                           from '../../design-system/BrainDiamond.tsx';
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
-import { Figure }                                                 from '../../design-system/Figure.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
 import { OpenInNewTabGlyph }                                      from '../../design-system/OpenInNewTabGlyph.tsx';
-import { PendingStep }                                            from '../../design-system/PendingStep.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
+import { FigureLookUtil }                                         from '../../shared/utils/FigureLookUtil.ts';
 import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
@@ -235,7 +236,7 @@ function Figures({ content }: { readonly content: AttentionContent }) {
           value={figure.value}
           label={figure.label}
           form={content.figuresForm === 'line' ? 'inline' : 'stacked'}
-          attention={figure.attention}
+          {...FigureLookUtil.toneOf(figure.attention)}
         />
       ))}
     </div>

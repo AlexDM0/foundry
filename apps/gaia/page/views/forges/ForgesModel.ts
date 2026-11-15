@@ -16,8 +16,8 @@ import type {
 import type { FleetDocument, FleetDocumentCondition, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandStates }                              from '../../api/CommandSender.ts';
 import type { DotCondition }                                              from '../../design-system/ConditionDot.tsx';
-import type { PageFigure }                                                from '../../design-system/PageTitle.tsx';
 import type { ClockReading }                                              from '../../shared/@types/ClockReading.ts';
+import type { PageFigure }                                                from '../../shared/@types/ViewParts.ts';
 import { HashRouter }                                                     from '../../shared/HashRouter.ts';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { CommandFailureTextUtil, type RefusalText }                       from '../../shared/utils/CommandFailureTextUtil.ts';

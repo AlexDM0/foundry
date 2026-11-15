@@ -119,7 +119,7 @@ describe('the list of what waits on User', () => {
   });
 
   test('with every forge read in full the layout draws no figures: they stand stacked in the page title', () => {
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-figure'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('design-system-figure'))).toEqual([]);
   });
 });
 
@@ -146,15 +146,15 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(UPDATE_REFUSED)), () => new Promise<Response>(() => undefined)], sent);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const refused = unfoldedLayout(FLEET_FIVE_FORGES, sender);
-    const refusal = tree.onlyWithClass([calloutNamed(refused, 'Example Mobile App')], 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe(
+    const refusal = tree.onlyWithClass([calloutNamed(refused, 'Example Mobile App')], 'design-system-failed-action');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')])).toBe(
       'The forge refused Update forge: update-in-progress. An update already runs in this repository.',
     );
-    expect(tree.hostElementsIn([calloutNamed(refused, 'Design System')], tree.withClass('gaia-refusal'))).toEqual([]);
+    expect(tree.hostElementsIn([calloutNamed(refused, 'Design System')], tree.withClass('design-system-failed-action'))).toEqual([]);
     tree.dispatch(buttonNamed([refusal], 'Try again'), 'onClick');
     expect(sent).toHaveLength(2);
     sender.dismissFailure({ trackerId: TRACKER_IDS.exampleMobileApp });
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-refusal'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('design-system-failed-action'))).toEqual([]);
   });
 
   test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
@@ -165,15 +165,15 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const pending = unfoldedLayout(FLEET_FIVE_FORGES, sender);
-    const pendingStep = tree.onlyWithClass([calloutNamed(pending, 'Example Mobile App')], 'gaia-pending-step');
-    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'gaia-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
-    expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withClass('gaia-pending-step'))).toEqual([]);
+    const pendingStep = tree.onlyWithClass([calloutNamed(pending, 'Example Mobile App')], 'design-system-pending-step');
+    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'design-system-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withClass('design-system-pending-step'))).toEqual([]);
     tree.dispatch(buttonNamed([pendingStep], 'Restart'), 'onClick');
     expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 2 });
-    const restarting = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'gaia-pending-step');
+    const restarting = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'design-system-pending-step');
     expect(buttonNamed([restarting], 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
-    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-pending-step'))).toEqual([]);
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('design-system-pending-step'))).toEqual([]);
   });
 
   test('a Restart the pending step sent that the forge refuses shows its refusal under the callout that offered it', async () => {
@@ -186,8 +186,9 @@ describe('a callout\'s command', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
-    const refusal = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Restart: overseer-busy. Its Overseer is busy with a baton pass.');
+    const refusal = tree.onlyWithClass([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], 'design-system-failed-action');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
+      .toBe('The forge refused Restart: overseer-busy. Its Overseer is busy with a baton pass.');
   });
 
   test('a callout that leaves the document leaves the view', () => {
@@ -248,7 +249,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const main = tree.onlyWithClass(unfolded, 'gaia-attention-main');
     const figuresRow = tree.onlyWithClass([main], 'gaia-attention-figures');
     expect(figuresRow.props['data-form']).toBe('line');
-    const figures = tree.hostElementsIn([figuresRow], tree.withClass('gaia-figure'));
+    const figures = tree.hostElementsIn([figuresRow], tree.withClass('design-system-figure'));
     expect(figures.map((figure) => [figure.props['data-form'], tree.textOf([figure])])).toEqual([
       ['inline', '4+waiting on you'],
       ['inline', '10 / 12agents'],

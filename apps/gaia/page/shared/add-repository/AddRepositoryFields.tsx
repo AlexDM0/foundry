@@ -7,6 +7,7 @@
  * form keeps the result of each send it made and shows a refusal of those subjects only beside the button whose send it was.
  */
 import { Button }                      from 'design-system/Button';
+import { TextField }                   from 'design-system-contributions/TextField';
 import { useEffect, useRef, useState } from 'react';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
@@ -17,7 +18,6 @@ import {
   type CommandSubject
 } from '../../api/CommandSender.ts';
 import { ConditionDot }          from '../../design-system/ConditionDot.tsx';
-import { TextField }             from '../../design-system/TextField.tsx';
 import { CommandFailureRefusal } from '../CommandFailureRefusal.tsx';
 import { AddRepositoryForm }     from './AddRepositoryForm.ts';
 
@@ -79,7 +79,7 @@ export function AddRepositoryFields({
   return (
     <div className="gaia-add-repository">
       <div className="gaia-add-repository-line">
-        <TextField label="Repository folder" face="mono" value={form.folder} onChange={handlers.onFolderTyped} placeholder="~/development/example-storefront" />
+        <TextField label="Repository folder" mono value={form.folder} onChange={handlers.onFolderTyped} placeholder="~/development/example-storefront" />
         <Button label="Choose a folder" disabled={isOnItsWay(commandStates, PATH_CHOOSE)} onPress={handlers.onChooseFolder} />
       </div>
       <div className="gaia-add-repository-field">

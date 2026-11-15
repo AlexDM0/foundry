@@ -9,10 +9,8 @@
 
 /* ── Design system: the parts the package does not have ────────────────────────────────────────────────────────────────────── */
 
-/* A label a screen reader reads where the layout already says what it is: a group's, a text field's, the Forges table's controls head */
-.gaia-visually-hidden,
-.gaia-text-field-label[data-hidden],
-.gaia-forges-main .gaia-table-row[data-head] .gaia-table-cell[data-align="end"] {
+/* A label a screen reader reads where the layout already says what it is, such as a group's */
+.gaia-visually-hidden {
   position: absolute;
   overflow: hidden;
   width: var(--hairline);
@@ -38,19 +36,15 @@
 .gaia-forge-mark-node-ring { stroke: var(--forge-mark-node-ring); }
 .gaia-forge-mark-node-core { fill: var(--forge-mark-node-core); }
 
-/* The drawn glyphs: the "Open in new tab" arrow and the theme circle, stroked in the colour of what holds them */
-.gaia-open-in-new-tab-glyph,
-.gaia-theme-glyph {
+/* The "Open in new tab" arrow, stroked in the colour of what holds it */
+.gaia-open-in-new-tab-glyph {
   flex: none;
   fill: none;
   stroke: currentColor;
+  stroke-width: var(--glyph-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.gaia-open-in-new-tab-glyph { stroke-width: var(--glyph-stroke-width); }
-.gaia-theme-glyph { display: block; stroke-width: var(--theme-glyph-stroke-width); }
-.gaia-theme-glyph[data-choice="dark"] { fill: currentColor; }
-.gaia-theme-glyph-half { fill: currentColor; }
 
 /* The dots the package cannot draw: the unreachable crimson fill and Flint's brain diamond */
 .gaia-condition-dot {
@@ -74,32 +68,6 @@
   transition: border-color var(--motion-base) var(--ease-out);
 }
 .gaia-brain-diamond[data-ended] { border-color: var(--neutral-fill); }
-
-/* Figure: a mono value over its label, a hairline on its left; folded, the value beside its label */
-.gaia-figure {
-  display: inline-flex;
-  flex-direction: column;
-  padding: 0 var(--sp-4);
-  border-left: var(--hairline) solid var(--line);
-}
-.gaia-figure-value {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--fs-figure);
-  line-height: var(--line-height-figure);
-  font-weight: var(--weight-figure);
-  color: var(--ink);
-}
-.gaia-figure[data-attention] .gaia-figure-value { color: var(--link); }
-.gaia-figure-label { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
-.gaia-figure[data-form="inline"] { flex-direction: row; align-items: baseline; gap: var(--sp-2); }
-.gaia-figure[data-form="inline"] .gaia-figure-value { font-size: var(--fs-figure-folded); line-height: var(--line-height-figure-folded); }
-
-/* Page title: the display heading and its lead, then the figures and the actions at the line's end */
-.gaia-page-title { display: flex; align-items: flex-end; gap: var(--sp-5); }
-.gaia-page-title-words { display: flex; flex: 1; flex-direction: column; gap: var(--sp-1); min-width: 0; }
-.gaia-page-title-figures { display: flex; flex: none; align-items: flex-end; }
-.gaia-page-title-actions { display: flex; flex: none; align-items: center; gap: var(--sp-2); }
 
 /* Brand bar: the mark and the wordmark, a divider, the status pill and its sentence, the theme button at the far end */
 .gaia-brand-bar {
@@ -175,38 +143,6 @@
 .gaia-callout-machine-line { display: block; font-family: var(--font-mono); font-size: var(--fs-pill); color: var(--ink-muted); }
 .gaia-callout-actions { display: inline-flex; flex: none; gap: var(--sp-2); }
 
-/* Data table: one grid per row inside a card; the selected row on the wash with an orange inset edge */
-.gaia-table {
-  overflow: hidden;
-  border: var(--hairline) solid var(--line-strong);
-  border-radius: var(--r-3);
-  background: var(--surface);
-}
-.gaia-table-row { border-bottom: var(--hairline) solid var(--line); transition: var(--feedback-transition); }
-.gaia-table-row:last-child { border-bottom: 0; }
-.gaia-table-row[data-selected] { background: var(--wash); box-shadow: inset var(--selected-edge-width) 0 0 var(--signal); }
-.gaia-table-cells {
-  display: grid;
-  align-items: center;
-  column-gap: var(--sp-3);
-  box-sizing: border-box;
-  min-height: var(--table-row-height);
-  padding: 0 var(--sp-4);
-}
-.gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--table-tall-row-height); }
-.gaia-table[data-column-gap="narrow"] .gaia-table-cells { column-gap: var(--sp-2); }
-.gaia-table-row[data-head] .gaia-table-cells {
-  min-height: var(--table-head-height);
-  font-size: var(--fs-micro);
-  font-weight: var(--weight-strong);
-  letter-spacing: var(--letter-spacing-micro);
-  text-transform: uppercase;
-  color: var(--ink-4);
-}
-.gaia-table-cell { min-width: 0; }
-.gaia-table-cell[data-align="end"] { text-align: end; }
-.gaia-table-below { display: block; padding: 0 var(--sp-4) var(--sp-4); }
-
 /* List card: rows with a hairline between them inside a card */
 .gaia-list-card {
   overflow: hidden;
@@ -236,70 +172,14 @@
 .gaia-confirm-footer { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-confirm-consequence { flex: 1; font-size: var(--fs-small); color: var(--ink-muted); }
 
-/* Refusal: crimson text with the forge's code in mono, beside Try again and the dismiss button; never a red button */
-.gaia-refusal { display: flex; align-items: center; gap: var(--sp-3); transition: opacity var(--motion-base) var(--ease-out); }
-.gaia-refusal-text { flex: 1; min-width: 0; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--err-ink); }
-.gaia-refusal-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: var(--weight-strong); }
-
-/* Pending step: a dashed orange card with a solid left edge, its word in orange and its sentence in the secondary ink */
-.gaia-pending-step {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border: var(--hairline) dashed var(--accent-edge);
-  border-left: var(--banner-edge-width) solid var(--accent-edge);
-  border-radius: var(--r-2);
-  background: var(--surface);
-  color: var(--ink-muted);
-  font-size: var(--fs-tab);
-  transition: opacity var(--motion-base) var(--ease-out);
-}
-.gaia-pending-step-text { flex: 1; min-width: 0; }
-.gaia-pending-step-word { font-weight: var(--weight-strong); color: var(--link); }
-
-/* Text field: 36 px on the surface, a path in mono; its label in small type over it, or hidden where the layout names it */
-.gaia-text-field { display: flex; flex: 1; flex-direction: column; gap: var(--sp-1); min-width: 0; }
-.gaia-text-field-label { font-size: var(--fs-small); font-weight: var(--weight-label); color: var(--ink-4); }
-.gaia-text-field-input {
-  box-sizing: border-box;
-  height: var(--field-height);
-  padding: 0 var(--sp-3);
-  border: var(--hairline) solid var(--line-strong);
-  border-radius: var(--r-2);
-  background: var(--surface);
-  color: var(--ink);
-  font: var(--fs-lead) var(--font-ui);
-  transition: var(--feedback-transition);
-}
-.gaia-text-field-input[data-face="mono"] { font: var(--fs-small) var(--font-mono); }
-.gaia-text-field-input:disabled { color: var(--ink-disabled); border-color: var(--line); }
-
-/* Checkbox: a 16 px box in the primary button's orange, its label and an optional second line */
-.gaia-checkbox { display: flex; align-items: flex-start; gap: var(--sp-2); cursor: pointer; }
-.gaia-checkbox-input {
-  flex: none;
-  width: var(--checkbox-size);
-  height: var(--checkbox-size);
-  margin: var(--sp-half) 0 0;
-  accent-color: var(--button);
-}
-.gaia-checkbox-text { display: flex; flex: 1; flex-direction: column; }
-.gaia-checkbox-label { color: var(--ink); }
-.gaia-checkbox-explanation { font-size: var(--fs-small); color: var(--ink-muted); }
-
-/* A refusal, a pending step and a stop panel fade in as they appear; once motion is ready, since the tokens are 0ms until then. */
+/* A brain's refusal and a stop panel fade in as they appear; once motion is ready, since the tokens are 0ms until then. */
 @starting-style {
-  .gaia-refusal,
   .gaia-brain-chip-refusal,
-  .gaia-pending-step,
   .gaia-confirm { opacity: 0; }
 }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
-.gaia-brand-bar-home:focus-visible,
-.gaia-checkbox-input:focus-visible,
-.gaia-text-field-input:focus-visible {
+.gaia-brand-bar-home:focus-visible {
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }
@@ -463,13 +343,6 @@ body {
 .gaia-activity-columns { display: flex; gap: var(--space-28); }
 .gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
 
-/* The table's rows are the artboard's: 36 px under a 32 px head, each with its hairline over it, 18 px in from the card's edges; a link
-   ringed on hover. */
-.gaia-activity .gaia-table-cells { min-height: calc(var(--activity-row-height) - var(--hairline)); padding: 0 var(--space-18); }
-.gaia-activity .gaia-table-row[data-head] .gaia-table-cells { min-height: var(--activity-head-height); }
-.gaia-activity .gaia-table-row { position: relative; border-top: var(--hairline) solid var(--line); border-bottom: 0; }
-.gaia-activity .gaia-table-row[data-head] { border-top: 0; }
-.gaia-activity .gaia-table-row:not([data-head]):has(a.gaia-activity-text):hover { box-shadow: 0 0 0 var(--focus-ring-width) var(--shadow-card-lift); }
 .gaia-activity-at { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 .gaia-activity-forge {
   display: block;
@@ -897,9 +770,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   min-width: var(--forges-aside-least-width);
 }
 
-/* The table: rows of the artboard's height, and the controls' head named for a screen reader only */
-.gaia-forges-main .gaia-table-row[data-height="tall"] .gaia-table-cells { min-height: var(--forges-row-height); }
-
 /* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */
 .gaia-forges-forge,
 .gaia-forges-condition { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
@@ -954,10 +824,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-controls-note { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
 /* The Stop dialog spans the row from its dot; a notice, a refusal and a pending restart are indented to the name (B2) */
 .gaia-forges-row-below { display: flex; flex-direction: column; gap: var(--sp-2); }
-.gaia-forges-row-below > .gaia-forges-row-notice,
-.gaia-forges-row-below > .gaia-refusal,
-.gaia-forges-row-below > .gaia-pending-step { margin-left: var(--sp-4); }
-.gaia-forges-row-notice { margin: 0; color: var(--link); }
+.gaia-forges-row-notice { margin: 0 0 0 var(--sp-4); color: var(--link); }
+.gaia-forges-row-indented { display: flex; flex-direction: column; gap: var(--sp-2); margin-left: var(--sp-4); }
 
 /* A held forge's banner: the orange tint with a 4 px left edge, its dot, name and word over the notice; under it, indented, the pending
    restart and the refusal of its Update forge */
@@ -979,8 +847,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-held-name { font-weight: var(--weight-strong); }
 .gaia-forges-held-word { font-weight: var(--weight-strong); color: var(--link); }
 .gaia-forges-held-below { display: flex; flex-direction: column; gap: var(--sp-2); padding-left: var(--sp-5); }
-/* Indented under the held banner, a pending restart is dashed all round: the banner above already carries the solid edge. */
-.gaia-forges-held-below > .gaia-pending-step { border-left: var(--hairline) dashed var(--accent-edge); }
 
 /* The forges outside the table: their repository is gone, or User hid them in Gaia */
 .gaia-forges-group { display: flex; flex-direction: column; gap: var(--space-10); }
@@ -1112,12 +978,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-gaia-fact dt { color: var(--ink-muted); }
 .gaia-forges-gaia-fact dd { margin: 0; overflow-wrap: anywhere; }
 
-/* What notifies (C2): the count at the head's end, then the kinds in a card, a hairline between each two, each name in the strong weight */
+/* What notifies (C2): the count at the head's end, then the kinds in a card, a hairline between each two */
 .gaia-forges-what-notifies-count { margin-left: auto; }
 .gaia-forges-what-notifies-off { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
-.gaia-forges-what-notifies-kinds .gaia-checkbox { gap: var(--space-10); padding: var(--sp-2) 0; }
-.gaia-forges-what-notifies-kinds .gaia-checkbox-label { font-weight: var(--weight-strong); }
-.gaia-forges-what-notifies-kinds .gaia-checkbox-explanation { line-height: var(--line-height-small); }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
 .gaia-forges-hidden-summary:focus-visible {
@@ -1141,8 +1004,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 /* While a forge is not fully read, the figures fold into one line atop the main column, so the side panel and Running fit the window. */
 .gaia-attention-figures[data-form="line"] { flex-wrap: nowrap; gap: 0; padding: 0; border-bottom: 0; white-space: nowrap; }
-.gaia-attention-figures[data-form="line"] .gaia-figure { padding: 0 var(--sp-3); }
-.gaia-attention-figures[data-form="line"] .gaia-figure:first-child { padding-left: 0; border-left: 0; }
 .gaia-attention-body { display: flex; flex: 1; gap: var(--space-20); padding: var(--sp-4) var(--sp-5) var(--sp-5) var(--space-28); }
 .gaia-attention-main { display: flex; flex: 1; flex-direction: column; gap: var(--sp-4); min-width: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
@@ -1404,7 +1265,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   transition: opacity var(--motion-base) var(--ease-out);
 }
 .gaia-forge-frame-notice > .gaia-callout,
-.gaia-forge-frame-notice > .gaia-refusal { align-self: stretch; }
+.gaia-forge-frame-notice-refusal { align-self: stretch; }
 .gaia-forge-frame-notice-text { margin: 0; }
 .gaia-forge-frame-notice-id { margin: 0; }
 
@@ -1421,10 +1282,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   transition: opacity var(--motion-fast) var(--ease-out);
 }
 
-/* A notice and Stop's question fade in as they appear; the refusal or panel inside one fades with it, not again. */
+/* A notice and Stop's question fade in as they appear; the panel inside Stop's question fades with it, not again. */
 @starting-style {
   .gaia-forge-frame-notice,
   .gaia-forge-frame-stop-popover { opacity: 0; }
 }
-.gaia-forge-frame-notice > .gaia-refusal,
 .gaia-forge-frame-stop-popover > .gaia-confirm { transition: none; }

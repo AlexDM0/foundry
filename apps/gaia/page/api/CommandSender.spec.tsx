@@ -123,7 +123,7 @@ describe('a refusal reaches the view with the forge\'s sentence', () => {
     expect(renderToStaticMarkup(view)).toBe('');
     await sender.send(STOP_EXAMPLE_MOBILE_APP);
     const refused = renderToStaticMarkup(view);
-    expect(refused).toContain('The forge refused Stop: <span class="gaia-refusal-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
+    expect(refused).toContain('The forge refused Stop: <span class="design-system-failed-action-code">overseer-still-live</span>. The Overseer did not stop within its tries.');
     sender.dismissFailure(subject);
     expect(renderToStaticMarkup(view)).toBe('');
   });

@@ -35,9 +35,9 @@ its own; the dev tools every workspace shares are the root's.
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
     or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
-    `page/design-system/` holds only the parts the package does not have (the marks, the brand bar, the page title, the brain chip, the
-    refusal, the callout, the data table and the like), composed from the package's components; a state reaches a package component as a
-    state tone mapped in one place, `ConditionDot` and `RoleDot`. Gaia's parts take no hooks, so their specs unfold them with
+    `page/design-system/` holds only the parts neither package has (the marks, the brand bar, the brain chip, the callout and the like)
+    and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
+    a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
     `page/testing/ReactElementTree.ts`. The page's specs have no document at all: a component that needs hooks keeps its layout in a
     hook-free part, and a spec renders a hooked root, or a package component, which may hold hooks, with `react-dom/server`, which runs the
     hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and `page/DesignSystemPackage.spec.tsx` do, or keeps the hooked package
@@ -48,7 +48,11 @@ its own; the dev tools every workspace shares are the root's.
     `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts, which the page build emits and
     Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
     symlinks, `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run, and the page build's
-    `SingleReactPlugin` (`src/features/page-server/routes/`) resolves every React import to Gaia's own copy.
+    `SingleReactPlugin` (`src/features/page-server/routes/`) resolves every React import to Gaia's own copy. The parts Gaia built for
+    the package (the text field, the checkbox, the figure, the page head, the data table, the theme button, the failed action and the
+    pending step) live in `packages/design-system-contributions`, staged to move into it under its constitution: Gaia depends on that
+    package with `workspace:^`, imports each part by its export name and passes every word in, and `page/index.html` links its stylesheet
+    after the design-system package's and before Gaia's own.
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
     no shadow at rest; mono for machine values. Gaia draws no Flint and calls no model: the brain's only mark is the diamond, a brain counts

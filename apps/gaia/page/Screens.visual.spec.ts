@@ -164,7 +164,7 @@ describe('each screen shows the state its artboard draws', () => {
       for (const theme of SCREEN_THEMES) {
         const markup = whatNotifiesMarkupOf(screen, theme);
         expect(markup).toContain('>5 of 7 on<');
-        expect(markup.match(/class="gaia-checkbox"/g)).toHaveLength(7);
+        expect(markup.match(/class="design-system-checkbox"/g)).toHaveLength(7);
         for (const inlineStyle of inlineStylesOf(markup)) expect(inlineStyle).not.toMatch(COLOUR_VALUE);
         const screenDocument = whatNotifiesDocumentOf(screen, theme);
         expect(screenDocument).toContain(`data-theme="${theme}"`);
@@ -226,7 +226,7 @@ describe('each screen shows the state its artboard draws', () => {
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
     expect(textsOfClass(markup, 'gaia-confirm-question')).toEqual(['Stop the Overseer of Example Storefront? 4 agents are running.']);
-    expect(textsOfClass(markup, 'gaia-refusal-code')).toEqual([B2_STOP_REFUSAL.refusal ?? '']);
+    expect(textsOfClass(markup, 'design-system-failed-action-code')).toEqual([B2_STOP_REFUSAL.refusal ?? '']);
     expect(markup).toContain(`${B2_STOP_REFUSAL.text ?? ''}</span><button type="button" class="design-system-button" data-compact="">Try again</button>`);
     expect(textsOfClass(markup, 'gaia-forges-condition-detail')).toContain('forge start · waiting for its API');
     expect(markup).toContain('<button type="button" class="design-system-button" disabled="" data-compact="">Starting</button>');
@@ -248,7 +248,7 @@ describe('each screen shows the state its artboard draws', () => {
   test('A4 and B2: the Forges table sets its columns close, each root carrying its full path', () => {
     for (const artboard of ['A4', 'B2'] as const) {
       const markup = screenMarkupOf(screenOf(artboard), 'dark');
-      expect(markup).toContain('class="gaia-table" role="table" aria-label="Forges" data-column-gap="narrow"');
+      expect(markup).toContain('class="design-system-data-table" role="table" aria-label="Forges" data-row-height="tall" data-column-gap="narrow"');
       expect(markup).toContain('<span class="gaia-forges-forge-root" title="/Users/alexexample/development/example-storefront">~/development/example-storefront</span>');
     }
   });
@@ -319,10 +319,10 @@ describe('the restart an update left pending, over the artboard it changes', () 
     if (attention === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(attention, 'dark');
     expect(attentionRowIdsOf(markup)).toEqual(['E4', '#015', 'E1', '#031', 'E2']);
-    expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
+    expect(markup.match(/class="design-system-pending-step"/g)).toHaveLength(1);
     const lookBlocks = markup.split('class="gaia-attention-look"').slice(1);
     const heldLook = lookBlocks.find((block) => block.includes('aria-label="Example Mobile App: Launches held."')) ?? '';
-    expect(heldLook).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span> Its Overseer runs the old code until it restarts.');
+    expect(heldLook).toContain('<span class="design-system-pending-step-word">Updated; restart pending.</span> Its Overseer runs the old code until it restarts.');
     expect(heldLook).toContain('>Restart</button>');
   });
 
@@ -331,9 +331,9 @@ describe('the restart an update left pending, over the artboard it changes', () 
     if (forges === undefined) throw new Error('A restart pending screen is missing.');
     const markup = screenMarkupOf(forges, 'dark');
     expect(pageTitleOf(markup)).toEqual(['Forges']);
-    expect(markup.match(/class="gaia-pending-step"/g)).toHaveLength(1);
+    expect(markup.match(/class="design-system-pending-step"/g)).toHaveLength(1);
     const heldGroup = markup.slice(markup.indexOf('class="gaia-forges-held-group"'));
-    expect(heldGroup).toContain('<span class="gaia-pending-step-word">Updated; restart pending.</span>');
+    expect(heldGroup).toContain('<span class="design-system-pending-step-word">Updated; restart pending.</span>');
     expect(heldGroup).toContain('>Restart</button>');
   });
 });

@@ -69,9 +69,9 @@ describe('the dialog', () => {
     const markup = renderToStaticMarkup(<AddRepositoryDialogLayout {...propsOf(false, senderOver([]).states(), [])} />);
     const titleId = /<h2 id="([^"]+)" class="design-system-dialog-title">Add a repository<\/h2>/.exec(markup)?.[1];
     expect(markup).toContain(`<dialog class="design-system-dialog" aria-modal="true" aria-labelledby="${titleId ?? 'no title'}"`);
-    expect(markup).toContain('class="gaia-text-field"');
-    const fields = tree.hostElementsIn([dialog], tree.withClass('gaia-text-field'));
-    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'gaia-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
+    expect(markup).toContain('class="design-system-text-field"');
+    const fields = tree.hostElementsIn([dialog], tree.withClass('design-system-text-field'));
+    expect(fields.map((field) => tree.textOf([tree.onlyWithClass([field], 'design-system-text-field-label')]))).toEqual(['Repository folder', 'Project name']);
     expect(buttonNamed(dialog, 'Add and start').props['disabled']).toBe(false);
     expect(tree.hostElementsIn([dialog], tree.withClass('gaia-add-repository-program-missing'))).toEqual([]);
     tree.dispatch(buttonNamed(dialog, 'Cancel'), 'onClick');
@@ -97,6 +97,7 @@ describe('the dialog', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(INIT_REFUSED))]);
     await sender.send(AddRepositoryForm.addCommandOf(FILLED_FORM));
     const { dialog } = dialogOf(false, sender.states());
-    expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-refusal-text')])).toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
+    expect(tree.textOf([tree.onlyWithClass([dialog], 'design-system-failed-action-text')]))
+      .toBe('The forge refused Add and start: not-a-git-repository. The folder is not a git repository.');
   });
 });

@@ -430,8 +430,8 @@ describe('Flint\'s brain', () => {
     };
     const { view, dismissed } = viewSending(servingTheBrain(FLEET_FIVE_FORGES), { commandStates });
     const invoiceService = groupsIn(view).find((group) => group.props['aria-label'] === 'Invoice Service') as HostElement;
-    const refusal = tree.onlyWithClass([invoiceService], 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Wake Flint\'s brain: no-flint. this forge has no Flint');
+    const refusal = tree.onlyWithClass([invoiceService], 'design-system-failed-action');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')])).toBe('The forge refused Wake Flint\'s brain: no-flint. this forge has no Flint');
     tree.dispatch(tree.onlyHostElementIn([refusal], tree.withTag('button')), 'onClick');
     expect(dismissed).toEqual([{ trackerId: TRACKER_IDS.invoiceService }]);
   });

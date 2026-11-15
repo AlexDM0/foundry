@@ -13,6 +13,7 @@ import { Stamp }                                from 'design-system/Stamp';
 import { StateDot }                             from 'design-system/StateDot';
 import type { StateTone }                       from 'design-system/StateTone';
 import { Text }                                 from 'design-system/Text';
+import { DataTable, type DataTableColumn }      from 'design-system-contributions/DataTable';
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -20,13 +21,12 @@ import {
   useState
 } from 'react';
 
-import { LIMITS }                          from '../../../src/shared/constants/Limits.ts';
-import type { FleetDocument }              from '../../@types/FleetDocument.ts';
-import { BrainDiamond }                    from '../../design-system/BrainDiamond.tsx';
-import { DataTable, type DataTableColumn } from '../../design-system/DataTable.tsx';
-import { RoleDot }                         from '../../design-system/RoleDot.tsx';
-import type { ClockReading }               from '../../shared/@types/ClockReading.ts';
-import type { ViewParts }                  from '../../shared/@types/ViewParts.ts';
+import { LIMITS }             from '../../../src/shared/constants/Limits.ts';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
+import { BrainDiamond }       from '../../design-system/BrainDiamond.tsx';
+import { RoleDot }            from '../../design-system/RoleDot.tsx';
+import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
+import type { ViewParts }     from '../../shared/@types/ViewParts.ts';
 import {
   type ActivityContent,
   type ActivityFilters,
@@ -105,10 +105,12 @@ function TextCell({ row }: { readonly row: ActivityRow }) {
   return <a className="gaia-activity-text" href={row.href} title={row.text}>{row.text}</a>;
 }
 
+/** A row whose text links to the entry is interactive: its link stretches over the row, which is ringed on hover. */
 function tableRowsOf(rows: readonly ActivityRow[]) {
   return rows.map((row) => ({
-    key:   row.key,
-    cells: {
+    key:         row.key,
+    interactive: row.href !== null,
+    cells:       {
       at:    <time className="gaia-activity-at" dateTime={row.at}>{row.clockTime}</time>,
       forge: <span className="gaia-activity-forge">{row.project}</span>,
       kind:  <KindCell row={row} />,
@@ -286,7 +288,7 @@ export function ActivityLayout({
       <div className="gaia-activity-columns">
         <section className="gaia-activity-entries" aria-label="Entries">
           {content.emptySentence === null
-            ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} />
+            ? <DataTable label="Activity" columns={COLUMNS} columnWidths={COLUMN_WIDTHS} rows={tableRowsOf(content.rows)} rowHeight="compact" inset="wide" />
             : <EmptyState text={content.emptySentence} />}
           <p className="gaia-activity-footnote">{FOOTNOTE}</p>
         </section>

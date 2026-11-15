@@ -4,24 +4,24 @@
  * beside them this machine's panel and Gaia's. A forge whose brain runs marks it after its name, and this machine's panel says the brain runs outside
  * its limit. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Button }                    from 'design-system/Button';
-import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
-import { CountBadge }                from 'design-system/CountBadge';
-import { EmptyState }                from 'design-system/EmptyState';
-import { NumberStepper }             from 'design-system/NumberStepper';
-import { SectionHead }               from 'design-system/SectionHead';
-import { SlotMeter }                 from 'design-system/SlotMeter';
-import { StatePill }                 from 'design-system/StatePill';
-import { Text }                      from 'design-system/Text';
+import { Button }                                             from 'design-system/Button';
+import { ChoiceInput, ChoiceOption }                          from 'design-system/ChoiceOption';
+import { CountBadge }                                         from 'design-system/CountBadge';
+import { EmptyState }                                         from 'design-system/EmptyState';
+import { NumberStepper }                                      from 'design-system/NumberStepper';
+import { SectionHead }                                        from 'design-system/SectionHead';
+import { SlotMeter }                                          from 'design-system/SlotMeter';
+import { StatePill }                                          from 'design-system/StatePill';
+import { Text }                                               from 'design-system/Text';
+import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system-contributions/DataTable';
+import { PendingStep }                                        from 'design-system-contributions/PendingStep';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
 import { BrainDiamond }                                        from '../../design-system/BrainDiamond.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
-import { DataTable, type DataTableColumn, type DataTableRow }  from '../../design-system/DataTable.tsx';
 import { OpenInNewTabGlyph }                                   from '../../design-system/OpenInNewTabGlyph.tsx';
-import { PendingStep }                                         from '../../design-system/PendingStep.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
 import type {
@@ -65,7 +65,9 @@ const COLUMNS: readonly DataTableColumn<ForgeColumn>[] = [
   { key: 'agents', label: 'Agents' },
   { key: 'waiting', label: 'Waiting' },
   { key: 'code', label: 'Code' },
-  { key: 'controls', label: 'Controls', align: 'end' },
+  {
+    key: 'controls', label: 'Controls', align: 'end', labelHidden: true
+  },
 ];
 
 /** The tracks live in tokens.css with every other size. */
@@ -141,9 +143,13 @@ interface PendingRestartLineProps {
   readonly pendingRestart: PendingRestart | null;
   readonly trackerId:      string;
   readonly handlers:       ForgesHandlers;
+  /** Under the held banner, which already draws the solid edge, the pending restart is dashed all round. */
+  readonly edgeless?:      boolean;
 }
 
-function PendingRestartLine({ pendingRestart, trackerId, handlers }: PendingRestartLineProps) {
+function PendingRestartLine({
+  pendingRestart, trackerId, handlers, edgeless = false
+}: PendingRestartLineProps) {
   if (pendingRestart === null) return null;
   return (
     <PendingStep
@@ -152,6 +158,7 @@ function PendingRestartLine({ pendingRestart, trackerId, handlers }: PendingRest
       action={<ForgeButtonView button={pendingRestart.restartButton} trackerId={trackerId} handlers={handlers} />}
       dismissLabel={pendingRestart.dismissLabel}
       onDismiss={() => handlers.onDismissRestartPending({ trackerId })}
+      edgeless={edgeless}
     />
   );
 }
@@ -282,8 +289,12 @@ function rowBelowOf(row: ForgeRow, handlers: ForgesHandlers) {
     <div className="gaia-forges-row-below">
       {row.noticeText === null ? null : <p className="gaia-forges-row-notice" role="status">{row.noticeText}</p>}
       {row.stopDialog === null ? null : <StopDialogPanel dialog={row.stopDialog} trackerId={row.trackerId} handlers={handlers} />}
-      <ShownRefusalLine refusal={row.refusal} trackerId={row.trackerId} handlers={handlers} />
-      <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} />
+      {row.refusal === null && row.pendingRestart === null ? null : (
+        <div className="gaia-forges-row-indented">
+          <ShownRefusalLine refusal={row.refusal} trackerId={row.trackerId} handlers={handlers} />
+          <PendingRestartLine pendingRestart={row.pendingRestart} trackerId={row.trackerId} handlers={handlers} />
+        </div>
+      )}
     </div>
   );
 }
@@ -335,7 +346,7 @@ function HeldBannerCard({ banner, handlers }: { readonly banner: HeldBanner; rea
       </section>
       <div className="gaia-forges-held-below">
         <ShownRefusalLine refusal={banner.refusal} trackerId={banner.trackerId} handlers={handlers} />
-        <PendingRestartLine pendingRestart={banner.pendingRestart} trackerId={banner.trackerId} handlers={handlers} />
+        <PendingRestartLine pendingRestart={banner.pendingRestart} trackerId={banner.trackerId} handlers={handlers} edgeless />
       </div>
     </div>
   );

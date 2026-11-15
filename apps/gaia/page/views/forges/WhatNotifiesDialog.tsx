@@ -38,11 +38,13 @@ export function WhatNotifiesBody({ content, handlers }: Omit<WhatNotifiesDialogP
   return (
     <View gap="twelve">
       {content.offLine === null ? null : <p className="gaia-forges-what-notifies-off">{content.offLine}</p>}
-      <div className="gaia-forges-what-notifies-kinds">
-        <Card paddingVertical="four" paddingHorizontal="sixteen" divider>
-          {content.kinds.map((checkbox) => <SettingsCheckboxView key={checkbox.label} checkbox={checkbox} handlers={handlers} />)}
-        </Card>
-      </div>
+      <Card paddingVertical="four" paddingHorizontal="sixteen" divider>
+        {content.kinds.map((checkbox) => (
+          <View key={checkbox.label} paddingVertical="eight">
+            <SettingsCheckboxView checkbox={checkbox} handlers={handlers} />
+          </View>
+        ))}
+      </Card>
       <SettingsRefusalLine refusal={content.refusal} handlers={handlers} />
     </View>
   );

@@ -300,14 +300,16 @@ function SessionArea({
     case 'refused':
       return (
         <div className="gaia-forge-frame-notice">
-          <Refusal
-            commandLabel="Open"
-            refusedBy={shown.refusal.refusedBy}
-            code={shown.refusal.code}
-            sentence={shown.refusal.sentence}
-            onTryAgain={onAskAgain}
-            onDismiss={onLeave}
-          />
+          <div className="gaia-forge-frame-notice-refusal">
+            <Refusal
+              commandLabel="Open"
+              refusedBy={shown.refusal.refusedBy}
+              code={shown.refusal.code}
+              sentence={shown.refusal.sentence}
+              onTryAgain={onAskAgain}
+              onDismiss={onLeave}
+            />
+          </div>
         </div>
       );
   }

@@ -6,6 +6,7 @@
  * disabled fieldset disables every button and field of the shell and the view, so a view's control needs no word of the stream; a link, as
  * every rail row is, still navigates.
  */
+import { PageHead }       from 'design-system-contributions/PageHead';
 import {
   useEffect,
   useLayoutEffect,
@@ -18,11 +19,11 @@ import type { FleetDocument }                                            from '.
 import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
 import { BrandBar }                                                      from '../design-system/BrandBar.tsx';
-import { PageTitle }                                                     from '../design-system/PageTitle.tsx';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
 import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
 import type { ViewParts }                                                from '../shared/@types/ViewParts.ts';
 import { type GaiaRoute, HashRouter, type HashSurroundings }             from '../shared/HashRouter.ts';
+import { FigureLookUtil }                                                from '../shared/utils/FigureLookUtil.ts';
 import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
 import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
 import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
@@ -133,7 +134,12 @@ export function GaiaShell({
           <main className="gaia-shell-main">
             {view.title === null ? null : (
               <div className="gaia-shell-page-title">
-                <PageTitle title={view.title} lead={view.lead} figures={view.figures} {...(view.actions === null ? {} : { actions: view.actions })} />
+                <PageHead
+                  title={view.title}
+                  lead={view.lead}
+                  figures={FigureLookUtil.pageHeadFiguresOf(view.figures)}
+                  {...(view.actions === null ? {} : { actions: view.actions })}
+                />
               </div>
             )}
             <ConnectionBanner streamState={streamState} />

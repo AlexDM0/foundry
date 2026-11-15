@@ -8,10 +8,10 @@
 import { Switch }                   from 'design-system/Switch';
 import { Text }                     from 'design-system/Text';
 import { TextButton }               from 'design-system/TextButton';
+import { Checkbox }                 from 'design-system-contributions/Checkbox';
 import { Fragment, type ReactNode } from 'react';
 
 import type { CommandSubject } from '../../api/CommandSender.ts';
-import { Checkbox }            from '../../design-system/Checkbox.tsx';
 import { Refusal }             from '../../design-system/Refusal.tsx';
 import type {
   GaiaFact,

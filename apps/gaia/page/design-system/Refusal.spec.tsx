@@ -25,14 +25,14 @@ function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy
 describe('the refusal', () => {
   test('it is an alert with the refused command, the forge\'s code in mono and its sentence', () => {
     const unfolded = refusalOf([], true);
-    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-refusal').props['role']).toBe('alert');
-    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-refusal-code')])).toBe('overseer-still-live');
-    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-refusal-text')]))
+    expect(ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action').props['role']).toBe('alert');
+    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action-code')])).toBe('overseer-still-live');
+    expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'design-system-failed-action-text')]))
       .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
   });
 
   test('a refusal Gaia gave, or one nothing answered, says Gaia could not carry out the command and never that the forge refused it', () => {
-    const text = ReactElementTree.textOf([ReactElementTree.onlyWithClass(refusalOf([], false, 'gaia'), 'gaia-refusal-text')]);
+    const text = ReactElementTree.textOf([ReactElementTree.onlyWithClass(refusalOf([], false, 'gaia'), 'design-system-failed-action-text')]);
     expect(text).toBe('Gaia could not Stop: overseer-still-live. The Overseer did not stop within its tries.');
   });
 

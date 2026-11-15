@@ -2,11 +2,14 @@
  * The 52 px bar across Gaia's window (COMPONENT_LIBRARY 3.4): the mark and the wordmark as a link to Attention, a divider, the fleet's
  * status pill and its sentence, and at the far end the theme button, which a forge in place leaves out (SCREENS D2). The pill is orange with
  * a pulsing dot while a forge runs, and neutral with a dormant ring while none does; before Gaia knows the fleet, the bar shows neither.
+ * The theme button's name says the current choice and the next, as "Theme: auto. Switch to light".
  */
-import { StateBadge } from 'design-system/StateBadge';
+import { StateBadge }       from 'design-system/StateBadge';
+import type { ThemeChoice } from 'design-system-contributions/ThemeChoice';
+import { ThemeCycleButton } from 'design-system-contributions/ThemeCycleButton';
+import { ThemeCycleUtil }   from 'design-system-contributions/ThemeCycleUtil';
 
-import { GaiaMark }                                     from './GaiaMark.tsx';
-import { ThemeCycleButton, type ThemeCycleButtonProps } from './ThemeCycleButton.tsx';
+import { GaiaMark } from './GaiaMark.tsx';
 
 const HOME_HREF = '#attention';
 
@@ -22,11 +25,21 @@ export interface BrandStatus {
   readonly sentence: string;
 }
 
+/** The theme button's choice and what a press does with the next one. */
+export interface BrandBarThemeButton {
+  readonly choice:  ThemeChoice;
+  readonly onCycle: (next: ThemeChoice) => void;
+}
+
 export interface BrandBarProps {
   /** `null` before Gaia knows the fleet. */
   readonly status:      BrandStatus | null;
   /** `null` where the bar leaves the theme button out. */
-  readonly themeButton: ThemeCycleButtonProps | null;
+  readonly themeButton: BrandBarThemeButton | null;
+}
+
+export function themeButtonNameOf(choice: ThemeChoice): string {
+  return `Theme: ${choice}. Switch to ${ThemeCycleUtil.nextChoiceOf(choice)}`;
 }
 
 function StatusPill({ status }: { readonly status: BrandStatus }) {
@@ -44,7 +57,7 @@ export function BrandBar({ status, themeButton }: BrandBarProps) {
       <span className="gaia-brand-bar-divider" aria-hidden="true" />
       {status === null ? null : <StatusPill status={status} />}
       <span className="gaia-brand-bar-sentence">{status?.sentence}</span>
-      {themeButton === null ? null : <ThemeCycleButton {...themeButton} />}
+      {themeButton === null ? null : <ThemeCycleButton {...themeButton} accessibleName={themeButtonNameOf(themeButton.choice)} />}
     </header>
   );
 }

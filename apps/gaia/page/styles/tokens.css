@@ -5,7 +5,7 @@
 :root {
   --sp-half: 2px;
 
-  --fs-figure: 17px; --line-height-figure: 22px; --fs-figure-folded: 15px; --line-height-figure-folded: 20px;
+  --fs-figure: 17px; --line-height-figure: 22px;
   --fs-wordmark: 20px; --line-height-wordmark: 24px;
   --fs-splash: 60px; --line-height-splash: 64px;
   --fs-confirm-question: 14px; --line-height-confirm-question: 20px;
@@ -16,7 +16,6 @@
   --wordmark-tracking: -0.035em;
   --weight-strong: 600;
 
-  --field-height:        36px;
   --menu-item-height:    24px;
   --segment-padding-vertical: 6px;
   --segment-padding-horizontal: 10px;
@@ -27,14 +26,9 @@
   --brain-diamond-scale: 0.85;
   --brain-chip-height:   24px;
   --brain-chip-refusal-width: 232px;
-  --checkbox-size:       16px;
   --glyph-stroke-width:  1.5;
-  --theme-glyph-stroke-width: 1.4;
   --selected-edge-width: 3px;
   --banner-edge-width:   4px;
-  --table-head-height:   34px;
-  --table-row-height:    40px;
-  --table-tall-row-height: 64px;
   --brand-bar-height:    52px;
   --brand-bar-start-padding: 22px;
   --brand-bar-end-padding: 20px;
@@ -51,8 +45,6 @@
   --activity-at-width:   52px;
   --activity-forge-width: 168px;
   --activity-kind-width: 112px;
-  --activity-head-height: 32px;
-  --activity-row-height: 36px;
   --activity-today-value-width: 56px;
   --agents-table-columns: 128px minmax(0, 1fr) 116px 124px 64px;
   --agents-head-height:  32px;
@@ -86,7 +78,6 @@
   --forges-table-width:            calc(var(--forges-forge-column-width) + var(--forges-condition-column-width) + var(--forges-agents-column-width)
                                    + var(--forges-waiting-column-width) + var(--forges-code-column-width) + var(--forges-controls-column-width)
                                    + 5 * var(--sp-2) + 2 * var(--sp-4) + 2 * var(--hairline));
-  --forges-row-height:             58px;
   --forges-aside-width:            258px;
   --forges-aside-least-width:      240px;
   --hairline:            1px;

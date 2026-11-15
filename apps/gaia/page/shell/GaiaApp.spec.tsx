@@ -15,6 +15,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Button }                 from 'design-system/Button';
 import { IconButton }             from 'design-system/IconButton';
+import { TextField }              from 'design-system-contributions/TextField';
 import type { ReactElement }      from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
@@ -22,7 +23,6 @@ import type { FleetDocument, FleetDocumentForge }                               
 import { CommandSender }                                                            from '../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
 import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
-import { TextField }                                                                from '../design-system/TextField.tsx';
 import { DEFAULT_ROUTE, HashRouter }                                                from '../shared/HashRouter.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';
 import { GaiaStylesheet }                                                           from '../testing/GaiaStylesheet.ts';
@@ -157,7 +157,7 @@ describe('the route and the theme', () => {
     const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
     expect(inPlace).toContain('<header class="gaia-brand-bar">');
     expect(themeButtonNameIn(inPlace)).toBeUndefined();
-    expect(inPlace).not.toContain('class="gaia-theme-glyph"');
+    expect(inPlace).not.toContain('class="design-system-theme-cycle-glyph"');
   });
 
   test('the brand bar shows the fleet\'s pill and sentence on every route', () => {
@@ -373,7 +373,8 @@ describe('the Agents view in the shell', () => {
     source.publish(FLEET_FIVE_FORGES);
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
     expect(pageTitleIn(markup)).toBe('Agents');
-    const figures = [...markup.matchAll(/<span class="gaia-figure-value">([^<]*)<\/span><span class="gaia-figure-label">([^<]*)</g)].map(([, value, label]) => `${value} ${label}`);
+    const figure = /<span class="design-system-figure-value">([^<]*)<\/span><span class="design-system-figure-label">([^<]*)</g;
+    const figures = [...markup.matchAll(figure)].map(([, value, label]) => `${value} ${label}`);
     expect(figures).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
     expect(markup).toContain('<div class="gaia-agents-table" role="table" aria-label="Agents">');
   });
@@ -381,7 +382,7 @@ describe('the Agents view in the shell', () => {
   test('before the first document the Agents route shows its page title with no figure and no view', () => {
     const markup = renderToStaticMarkup(appAt(createFleetSource(), '#agents'));
     expect(pageTitleIn(markup)).toBe('Agents');
-    expect(markup).not.toContain('gaia-figure');
+    expect(markup).not.toContain('design-system-figure');
     expect(markup).not.toContain('gaia-agents');
   });
 

@@ -9,8 +9,9 @@
  * no other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command states
  * come from the real sender over Gaia's server stood in for by authored answers.
  */
-import { describe, expect, test }               from 'bun:test';
-import { ChoiceOption, type ChoiceOptionProps } from 'design-system/ChoiceOption';
+import { describe, expect, test }                 from 'bun:test';
+import { ChoiceOption, type ChoiceOptionProps }   from 'design-system/ChoiceOption';
+import { NumberStepper, type NumberStepperProps } from 'design-system/NumberStepper';
 
 import type {
   CommandAnswerDocument,
@@ -78,7 +79,7 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
     lastSent:    new Map(),
     ...surroundings,
   });
-  // The package's choice option holds hooks, so the Stop dialog's choices stay folded, their props read and called as the view hands them.
+  // The package's choice option and number stepper hold hooks, so they stay folded, their props read and called as the view hands them.
   const unfolded = tree.unfoldedKeeping(
     <ForgesLayout
       content={content}
@@ -96,7 +97,7 @@ function layoutOf(fleetDocument: FleetDocument, surroundings: Partial<ForgesSurr
         onOpenWhatNotifies:      () => undefined,
       }}
     />,
-    [ChoiceOption],
+    [ChoiceOption, NumberStepper],
   );
   return { unfolded, handled };
 }
@@ -110,6 +111,12 @@ function rowOf(nodes: readonly RenderedNode[], trackerId: string): HostElement {
   const [only] = rows;
   if (rows.length !== 1 || only === undefined) throw new Error(`Expected one row for ${trackerId}, found ${rows.length}.`);
   return only;
+}
+
+/** The folded number stepper of this name; a press of its lower or raise button is its onChange with the value one step on. */
+function stepperNamed(nodes: readonly RenderedNode[], accessibleName: string): NumberStepperProps {
+  const stepper = tree.onlyHostElementIn(nodes, (element) => element.tag === 'NumberStepper' && element.props['accessibleName'] === accessibleName);
+  return stepper.props as unknown as NumberStepperProps;
 }
 
 function controlNamed(nodes: readonly RenderedNode[], name: string): HostElement {
@@ -137,7 +144,7 @@ describe('the table (A4)', () => {
 
   test('sets its many columns close, and each root carries its full path for a window too narrow to print it whole', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
-    expect(tree.onlyWithClass(unfolded, 'gaia-table').props['data-column-gap']).toBe('narrow');
+    expect(tree.onlyWithClass(unfolded, 'design-system-data-table').props['data-column-gap']).toBe('narrow');
     expect(rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge-root').props['title'])).toEqual([
       '/Users/alexexample/development/example-storefront',
       '/Users/alexexample/development/invoice-service',
@@ -187,9 +194,10 @@ describe('a row\'s controls', () => {
 
   test('the stepper sends the forge\'s limit one step down or up', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    const row = rowOf(unfolded, TRACKER_IDS.invoiceService);
-    tree.dispatch(controlNamed([row], 'Lower Invoice Service\'s agent limit'), 'onClick');
-    tree.dispatch(controlNamed([row], 'Raise Invoice Service\'s agent limit'), 'onClick');
+    const stepper = stepperNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Invoice Service\'s agent limit');
+    expect([stepper.lowerLabel, stepper.raiseLabel]).toEqual(['Lower Invoice Service\'s agent limit', 'Raise Invoice Service\'s agent limit']);
+    stepper.onChange(stepper.value - stepper.step);
+    stepper.onChange(stepper.value + stepper.step);
     expect(handled.commands).toEqual([
       { kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.invoiceService, limit: 4 },
       { kind: 'forge-concurrency-set', trackerId: TRACKER_IDS.invoiceService, limit: 6 },
@@ -237,8 +245,9 @@ describe('a refusal on a row (B2 acceptance 3)', () => {
     const stop: ForgeCommandBody = { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleMobileApp, agents: 'keep' };
     await sender.send(stop);
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent: new Map([[TRACKER_IDS.exampleMobileApp, stop]]) });
-    const refusal = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], 'gaia-refusal');
-    expect(tree.textOf([tree.onlyWithClass([refusal], 'gaia-refusal-text')])).toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
+    const refusal = tree.onlyWithClass([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], 'design-system-failed-action');
+    expect(tree.textOf([tree.onlyWithClass([refusal], 'design-system-failed-action-text')]))
+      .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
     tree.dispatch(controlNamed([refusal], 'Try again'), 'onClick');
     tree.dispatch(controlNamed([refusal], 'Dismiss this refusal'), 'onClick');
     expect(handled.commands).toEqual([stop]);
@@ -284,9 +293,9 @@ describe('an update that left a restart pending', () => {
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
     const group = tree.onlyWithClass(unfolded, 'gaia-forges-held-group');
-    const pendingStep = tree.onlyWithClass([group], 'gaia-pending-step');
-    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'gaia-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
-    expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withClass('gaia-pending-step'))).toEqual([]);
+    const pendingStep = tree.onlyWithClass([group], 'design-system-pending-step');
+    expect(tree.textOf([tree.onlyWithClass([pendingStep], 'design-system-pending-step-text')])).toBe('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withClass('design-system-pending-step'))).toEqual([]);
     tree.dispatch(controlNamed([pendingStep], 'Restart'), 'onClick');
     tree.dispatch(controlNamed([pendingStep], 'Dismiss the pending restart'), 'onClick');
     expect(handled.commands).toEqual([{ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp }]);
@@ -306,7 +315,7 @@ describe('an update that left a restart pending', () => {
   });
 
   test('without a pending restart no pending step shows anywhere', () => {
-    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('gaia-pending-step'))).toEqual([]);
+    expect(tree.hostElementsIn(layoutOf(FLEET_FIVE_FORGES).unfolded, tree.withClass('design-system-pending-step'))).toEqual([]);
   });
 });
 
@@ -365,9 +374,9 @@ describe('Flint\'s brain on A4 (acceptance 2)', () => {
 describe('this machine (A4 acceptance 2 and 3)', () => {
   test('a limit above the CPU count cannot be chosen: plus is off at the CPU count, minus sends one less', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    const panel = tree.onlyWithClass(unfolded, 'gaia-forges-machine');
-    expect(controlNamed([panel], 'Raise the machine\'s agent limit').props['disabled']).toBe(true);
-    tree.dispatch(controlNamed([panel], 'Lower the machine\'s agent limit'), 'onClick');
+    const stepper = stepperNamed([tree.onlyWithClass(unfolded, 'gaia-forges-machine')], 'The machine\'s agent limit');
+    expect([stepper.value, stepper.maximum, stepper.minimum]).toEqual([12, 12, 11]);
+    stepper.onChange(stepper.value - stepper.step);
     expect(handled.commands).toEqual([{ kind: 'machine-agent-limit-set', limit: 11 }]);
   });
 
@@ -375,7 +384,7 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(ABOVE_THE_CPUS))]);
     await sender.send({ kind: 'machine-agent-limit-set', limit: 13 });
     const panel = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }).unfolded, 'gaia-forges-machine');
-    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-refusal-text')])).toBe(
+    expect(tree.textOf([tree.onlyWithClass([panel], 'design-system-failed-action-text')])).toBe(
       'The forge refused Set the machine\'s agent limit: machine-agent-limit-above-cpus. The machine limit is at most the 12 CPUs of this machine.',
     );
   });
@@ -385,7 +394,7 @@ describe('this machine (A4 acceptance 2 and 3)', () => {
     const panel = tree.onlyWithClass(layoutOf(withoutF6).unfolded, 'gaia-forges-machine');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-sentence')])).toBe('This forge version does not enforce a machine limit.');
     expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-limit')])).toBe('Agent limit—');
-    expect(tree.hostElementsIn([panel], (element) => element.tag === 'button' && /agent limit/.test(String(element.props['aria-label'])))).toEqual([]);
+    expect(tree.hostElementsIn([panel], tree.withTag('NumberStepper'))).toEqual([]);
     expect(tree.hostElementsIn([panel], tree.withClass('design-system-fill-meter'))).toEqual([]);
   });
 

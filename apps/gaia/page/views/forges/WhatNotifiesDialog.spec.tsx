@@ -46,8 +46,8 @@ describe('"What notifies" in version 2 (C2)', () => {
 
   test('sets the seven kinds in one card, a hairline between each two', () => {
     const unfolded = tree.unfolded(<WhatNotifiesBody content={contentOf()} handlers={HANDLERS} />);
-    const card = tree.onlyWithClass([tree.onlyWithClass(unfolded, 'gaia-forges-what-notifies-kinds')], 'design-system-card');
-    expect(tree.hostElementsIn([card], tree.withClass('gaia-checkbox'))).toHaveLength(7);
+    const card = tree.onlyWithClass(unfolded, 'design-system-card');
+    expect(tree.hostElementsIn([card], tree.withClass('design-system-checkbox'))).toHaveLength(7);
     expect(tree.hostElementsIn([card], tree.withClass('design-system-view-divider'))).toHaveLength(6);
   });
 

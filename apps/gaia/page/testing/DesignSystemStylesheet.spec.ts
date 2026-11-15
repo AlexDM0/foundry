@@ -1,6 +1,7 @@
 /**
- * The package's stylesheet and fonts as the visual harness inlines them. What matters: no import is left for a file page to miss, the
- * package's tokens come first as its entry orders them, and every face the font loader registers becomes one rule whose file is inline.
+ * The packages' stylesheets and fonts as the visual harness inlines them. What matters: no import is left for a file page to miss, the
+ * package's tokens come first as its entry orders them, the contributions package's components after the design-system package's, and
+ * every face the font loader registers becomes one rule whose file is inline.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -12,6 +13,12 @@ describe('the inlined stylesheet', () => {
     expect(stylesheetText).not.toContain('@import');
     expect(stylesheetText.indexOf('--bg:')).toBeGreaterThan(0);
     expect(stylesheetText.indexOf('--bg:')).toBeLessThan(stylesheetText.indexOf('.design-system-button'));
+  });
+
+  test('holds the contributions package\'s components after the design-system package\'s', () => {
+    const stylesheetText = DesignSystemStylesheet.text();
+    expect(stylesheetText.indexOf('.design-system-button')).toBeLessThan(stylesheetText.indexOf('.design-system-failed-action'));
+    expect(stylesheetText).toContain('.design-system-data-table');
   });
 });
 

@@ -314,7 +314,8 @@ describe('a refusal under the bar', () => {
     const unfolded = tree.unfolded(<BarRefusalLine refusal={refusal} onCommand={() => undefined} onDismiss={() => {
       dismissed += 1;
     }} />);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-refusal-text')])).toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-failed-action-text')]))
+      .toBe('The forge refused Stop: overseer-still-live. The Overseer did not stop within its tries.');
     expect(buttonsIn(unfolded).map((button) => button.props['aria-label'] ?? tree.textOf([button]))).toEqual(['Dismiss this refusal']);
     tree.dispatch(buttonNamed(unfolded, 'Dismiss this refusal'), 'onClick');
     expect(dismissed).toBe(1);
@@ -408,7 +409,7 @@ describe('the frame area', () => {
   test('a refused session shows the reason with Try again, and dismissing it goes back', () => {
     const refusal = ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null);
     const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'refused', refusal } });
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-refusal-text')])).toBe('Gaia could not Open: token-rejected. The forge did not accept Gaia\'s token.');
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'design-system-failed-action-text')])).toBe('Gaia could not Open: token-rejected. The forge did not accept Gaia\'s token.');
     tree.dispatch(buttonNamed(unfolded, 'Try again'), 'onClick');
     tree.dispatch(buttonNamed(unfolded, 'Dismiss this refusal'), 'onClick');
     expect(events).toEqual(['ask again', 'leave']);
