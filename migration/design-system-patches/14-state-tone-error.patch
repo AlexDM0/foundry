@@ -1,0 +1,121 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: AlexDM0 <alexdemulder@gmail.com>
+Date: Sun, 15 Nov 2026 10:55:13 +0100
+Subject: StateTone: an error tone in the failure colours
+
+---
+ @types/StateTone.ts          | 3 ++-
+ README.md                    | 4 ++--
+ atoms/StateBadge.stories.tsx | 2 +-
+ atoms/StateDot.dom.tsx       | 9 +++++++--
+ atoms/StateDot.stories.tsx   | 3 ++-
+ styles/tokens.css            | 1 +
+ 6 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/@types/StateTone.ts b/@types/StateTone.ts
+index 7379f993b3be0b741be79f627643a767fceb8d4f..ac54a24ad054569f018046d8b4cf342cff8e1987 100644
+--- a/@types/StateTone.ts
++++ b/@types/StateTone.ts
+@@ -2,7 +2,7 @@
+  * The rows of the state palette, each named for how it looks: an element with `data-state-tone` set to one of them reads `--s-fill`,
+  * `--s-tint`, `--s-ink`, `--s-edge` and, on the grey and faded rows, `--s-head` from `styles/tokens.css`. `neutral` is grey; `accent` is
+  * orange and `info` teal, each on its own tint; an `-outline` tone keeps the plain surface as its ground; `info-deep` is teal on a deeper
+- * tint; `success` is green; `ink` is the text colour on the wash; `muted` is faded ink.
++ * tint; `success` is green; `error` is the failure crimson on its tint; `ink` is the text colour on the wash; `muted` is faded ink.
+  */
+ export type StateTone =
+   | 'neutral'
+@@ -12,6 +12,7 @@ export type StateTone =
+   | 'info-outline'
+   | 'info-deep'
+   | 'success'
++  | 'error'
+   | 'ink'
+   | 'muted';
+ 
+diff --git a/README.md b/README.md
+index 29638068fa1f4c23ad99c41bccfed66d371e1da7..7180d6b800407c5e3b6f9d16b9796b801993e943 100644
+--- a/README.md
++++ b/README.md
+@@ -90,8 +90,8 @@ change its look. The element is your choice, never the role's: pass `element="h2
+ - An element with `data-state-tone` set to a `StateTone` reads its colours from that tone's row: `--s-fill`,
+   `--s-tint`, `--s-ink`, `--s-edge` and `--s-head`. Each tone is named for how it looks: `neutral` (grey), `accent`
+   (orange on its tint), `accent-outline` (orange on the surface), `info`, `info-outline` and `info-deep` (teal),
+-  `success` (green), `ink` (the text colour on the wash) and `muted` (faded ink). Map the states of your own data to
+-  a tone in one place of your app; the shape of a state is a flag of the component:
++  `success` (green), `error` (the failure crimson), `ink` (the text colour on the wash) and `muted` (faded ink). Map
++  the states of your own data to a tone in one place of your app; the shape of a state is a flag of the component:
+ 
+   ```tsx
+   <StateBadge tone="neutral" label="Waiting" dashed dotShape="dashed-ring" />
+diff --git a/atoms/StateBadge.stories.tsx b/atoms/StateBadge.stories.tsx
+index 66536eec2b8298e1bf6d5c345755ab69805be38f..89d5b23cc983624f7f5e4911d8ed5015d474dce7 100644
+--- a/atoms/StateBadge.stories.tsx
++++ b/atoms/StateBadge.stories.tsx
+@@ -4,7 +4,7 @@ import type { StateTone } from '../@types/StateTone.ts';
+ import { StateBadge }     from './StateBadge.tsx';
+ import { View }           from './View.tsx';
+ 
+-const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'ink', 'muted'];
++const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
+ 
+ const meta = {
+   title:     'Atoms/StateBadge',
+diff --git a/atoms/StateDot.dom.tsx b/atoms/StateDot.dom.tsx
+index b5fd000a065af8ac267e536ea0a1f063af34f173..dfc26eafce0982f435eaf9263f867a6e5eae8ecb 100644
+--- a/atoms/StateDot.dom.tsx
++++ b/atoms/StateDot.dom.tsx
+@@ -1,6 +1,6 @@
+ /**
+- * The state dot, in a happy-dom document. What matters: it sets `data-state-tone`, which picks its fill, a shape other than solid sets
+- * `data-shape`, small and tiny set `data-size`, and it is hidden from the accessibility tree.
++ * The state dot, in a happy-dom document. What matters: it sets `data-state-tone`, which picks its fill, the error tone too; a shape other
++ * than solid sets `data-shape`; small and tiny set `data-size`; and it is hidden from the accessibility tree.
+  */
+ import { cleanup, render } from '@testing-library/react';
+ import {
+@@ -24,6 +24,11 @@ describe('the state dot', () => {
+       .toEqual(['info', false, 'true', '']);
+   });
+ 
++  test('the error tone sets data-state-tone like every other tone', () => {
++    const { container } = render(<StateDot tone="error" />);
++    expect(container.querySelector('.design-system-state-dot')?.getAttribute('data-state-tone')).toBe('error');
++  });
++
+   test('a ring, a dashed ring and a diamond set data-shape', () => {
+     const { container } = render(<><StateDot tone="muted" shape="ring" /><StateDot tone="neutral" shape="dashed-ring" /><StateDot tone="accent" shape="diamond" small /></>);
+     expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => dot.getAttribute('data-shape'))).toEqual(['ring', 'dashed-ring', 'diamond']);
+diff --git a/atoms/StateDot.stories.tsx b/atoms/StateDot.stories.tsx
+index 5a92e72182a612b3359905326db5a8009ec33893..d178ab475199fe004f2ddeb0325eb4935dce7e0a 100644
+--- a/atoms/StateDot.stories.tsx
++++ b/atoms/StateDot.stories.tsx
+@@ -5,7 +5,7 @@ import { StateDot }                      from './StateDot.tsx';
+ import { Text }                          from './Text.tsx';
+ import { View }                          from './View.tsx';
+ 
+-const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'ink', 'muted'];
++const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
+ const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring', 'diamond'];
+ 
+ const meta = {
+@@ -19,6 +19,7 @@ export default meta;
+ type Story = StoryObj<typeof meta>;
+ 
+ export const Accent: Story = {};
++export const ErrorTone: Story = { args: { tone: 'error' } };
+ export const Ring: Story = { args: { tone: 'muted', shape: 'ring' } };
+ export const DashedRing: Story = { args: { tone: 'neutral', shape: 'dashed-ring' } };
+ export const Diamond: Story = { args: { tone: 'accent', shape: 'diamond', small: true } };
+diff --git a/styles/tokens.css b/styles/tokens.css
+index 3c173fb88124233946e7c2e8efb1eca05a6733cb..93e05ab9a83260ce5070965d9f82faddc4a71f54 100644
+--- a/styles/tokens.css
++++ b/styles/tokens.css
+@@ -133,6 +133,7 @@
+ [data-state-tone="info"]           { --s-fill: var(--tone-info); --s-tint: #e0f2f5; --s-ink: #0e6672; --s-edge: #7cc3cd; }
+ [data-state-tone="info-deep"]      { --s-fill: var(--tone-info); --s-tint: #c9e8ed; --s-ink: #0a5761; --s-edge: #7cc3cd; }
+ [data-state-tone="success"]        { --s-fill: var(--tone-success); --s-tint: #e3f5e9; --s-ink: #156b37; --s-edge: #86cf9f; }
++[data-state-tone="error"]          { --s-fill: var(--err-fill); --s-tint: var(--err-tint); --s-ink: var(--err-ink); --s-edge: var(--err-edge); }
+ [data-state-tone="ink"]            { --s-fill: var(--ink); --s-tint: var(--wash); --s-ink: var(--ink); --s-edge: var(--line-strong); }
+ [data-state-tone="muted"]          { --s-fill: rgba(24, 24, 24, 0.3); --s-tint: var(--surface); --s-ink: var(--ink-4); --s-edge: var(--line); --s-head: var(--ink-4); }
+ 

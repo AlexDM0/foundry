@@ -11,7 +11,7 @@ git am --directory=packages/design-system migration/design-system-patches/*.patc
 or, without commits, `git apply --directory=packages/design-system <patch>` one by one in order. Each patch adds a DOM spec case
 and a story for each new prop or variant, and keeps the package's constitution: no host word, a variant is a `data-*` attribute,
 colours and spaces are tokens. The requirement numbers are the entries of Gaia's design-system requirements list (the v2 build's
-`gaia-v2-design-system-requirements.md`).
+`gaia-v2-design-system-requirements.md`). Gaia's paths below are under `apps/gaia/`.
 
 ## Made against
 
@@ -36,8 +36,8 @@ After every patch in order, and after the whole series on an untouched copy, the
 Every change adds an optional prop, a member to a union a caller passes, or a token, and widens two `count` props from `number` to
 `number | string`. Nothing a caller passes today stops compiling or changes its look, except where a patch says so. Under the
 owner's rule that is a minor bump: `0.1.0` to `0.2.0` once the series lands. A host that maps every member of `IconName`,
-`StateDotShape`, `CalloutTone` or `CountBadgeTone` in an exhaustive record must add the new members; forge's Bridge only passes
-values of them (read, not compiled).
+`StateTone`, `StateDotShape`, `CalloutTone` or `CountBadgeTone` in an exhaustive record must add the new members; forge's Bridge
+only passes values of them (read, not compiled).
 
 ## The patches
 
@@ -192,6 +192,19 @@ values of them (read, not compiled).
 - **Gaia deletes after:** the `:root[data-motion="ready"]` qualifier on `.gaia-agents-panel-live-dot`.
 - **Made against:** `styles/tokens.css` `1571fde5a073`.
 
+### 14-state-tone-error.patch
+
+- **Answers:** 5 (the `StateTone` half; 01 is the `Callout` half).
+- **Change:** `StateTone` gains `error`, a row in the failure colours (`--err-fill`, `--err-tint`, `--err-ink`, `--err-edge`), so a
+  state dot, pill or badge can be drawn failed; the README lists it with the other tones.
+- **Gaia switches over:** `page/design-system/ConditionDot.tsx` maps `unreachable` to `{ tone: 'error', shape: 'solid' }` in
+  `CONDITION_LOOKS` like every other condition.
+- **Gaia deletes after:** the `unreachable` branch of `ConditionDot`, the `.gaia-condition-dot` rules in `page/styles/gaia.css`
+  and their case in `page/testing/DrawnDots.ts`.
+- **Made against:** `@types/StateTone.ts` `7379f993b3be`, `README.md` `29638068fa1f`, `atoms/StateBadge.stories.tsx`
+  `66536eec2b82`, `atoms/StateDot.dom.tsx` `b5fd000a065a`, `atoms/StateDot.stories.tsx` `5a92e72182a6`, `styles/tokens.css`
+  `3c173fb88124`.
+
 ## Tickets
 
 Changes the list asked for that are not small or clean as a patch:
@@ -201,6 +214,6 @@ Changes the list asked for that are not small or clean as a patch:
   240, 700 and 200 ms, SidePanel's 140 ms swap, the 0.9 and 1.3 s spinners, Skeleton 1.4 s, Toast 420 to 600 ms, ChangeRow,
   TypingIndicator). Each needs a decision of the package's owner: which existing token holds it or which new token it gets, and
   what an endless loop (a spinner, the skeleton) shows before the gate opens, where a zero duration is no answer. Patch 13 does
-  the token half that needs no decision.
-- **5, an error state tone.** Patch 01 gives `Callout` its error tone; a `StateTone` row in the failure colours (for Gaia's
-  unreachable `ConditionDot`) is small but was not on this round's list.
+  the token half that needs no decision. Late on 2026-11-15 forge's own uncommitted work began moving these durations onto new
+  motion tokens and set `--side-panel-motion` to `var(--motion-slow)`, which makes 06, 13 and 14 stale against it: once that work
+  lands, make them again against it and drop what it already covers.
