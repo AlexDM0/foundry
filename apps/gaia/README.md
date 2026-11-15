@@ -8,7 +8,8 @@ without it.
 
 ## Develop
 
-Set up at the repository root, as its `README.md` says (install the workspace, link the design-system package). Then, in this folder:
+Set up and verify at the repository root, as its `README.md` says: `bun install --frozen-lockfile`, then `bun run verify`, which runs
+Gaia's tasks with every other workspace's through Turborepo. To work in this folder alone:
 
 ```bash
 bun run verify

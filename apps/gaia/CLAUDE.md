@@ -3,17 +3,23 @@
 Gaia is one window over every forge on this machine: what waits on User, every running agent, and every forge's state and controls. A Bun
 server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app. Gaia runs no agent and talks only to forges.
 
-Gaia lives in `apps/gaia/` of a Bun workspace, as it will in the forge monorepo, and every path below is relative to that folder. The
-repository root holds only the workspace: its manifest, the one `bun.lock`, the hoisted `node_modules` and the scripts that run each
-workspace's own (`README.md` there says how to set up and verify). Gaia's `package.json` names Gaia's own dependencies and is released on
-its own; the dev tools every workspace shares are the root's.
+Gaia lives in `apps/gaia/` of the forge monorepo, a Bun workspace, and every path below is relative to that folder. Forge lives beside it
+in `apps/forge/`, the shared packages in `packages/`. The repository root holds only the workspace: its manifest, the one `bun.lock`, the
+hoisted `node_modules`, `turbo.json` and the scripts that run every workspace's tasks through Turborepo (`README.md` there says how to set
+up and verify). Gaia's `package.json` names Gaia's own dependencies and is released on its own; the dev tools every workspace shares are
+the root's.
 
 ## Gaia's own rules
 
-1. **Write only in this repository.** The forge (`~/development/forge`), agent-dashboard, agent-progress and books-explorer are read-only
-   references. Never run a forge verb in the forge checkout.
+1. **Change Gaia and, under their own rules, the shared packages.** Claude and agents working on Gaia change `apps/gaia/` and, under
+   each package's `README.md` and constitution, `packages/*` (`packages/design-system` under its `CONSTITUTION.md` and
+   `.claude/rules/design-system.md`), and the root's `package.json`, `bun.lock` and `turbo.json` only for Gaia's own dependencies and
+   tasks. `apps/forge/` is forge's; agent-dashboard and books-explorer are read-only references outside this repository. They never run a
+   forge verb in this repository or talk to a running forge, but for the recordings' scratch forge: `apps/forge/agent-progress.ts` run
+   through `src/testing/ScratchForge.ts` with `FORGE_ROOT` pinned to a scratch repository.
 2. **Never touch the real home.** No spec reads or writes `~/.forge-monitor` or `~/.gaia` or talks to a running forge. The test preload
-   moves `HOME` and `TMPDIR` into the run's scratch folder under `.scratch/`; the leak check fails the run on what a spec leaves behind. A
+   moves `HOME` and `TMPDIR` into the run's scratch folder under `apps/gaia/.scratch/`; the leak check fails the run on what a spec leaves
+   behind in Gaia's folder, and judges no other app's or package's files, so a forge run beside a Gaia run fails neither. A
    child process starts through `realProcessRun(environmentCopy)`, and a spec that starts one directly passes `env: environmentCopy()`:
    without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. Forge and Gaia are released
@@ -44,9 +50,11 @@ its own; the dev tools every workspace shares are the root's.
 7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.
 8. **Commits:** one plain, human-written subject line. No AI attribution of any kind: no `Co-Authored-By`, no "generated with" footer.
    Never `--no-verify`.
-9. **Verify** with `bun run verify`, here or at the repository root, which runs every workspace's own (typecheck of `src/` and `page/`,
-   lint, specs, the recording-stamp check, and the supported-forge check, which warns while `SUPPORTED_FORGE_VERSION` is behind forge's
-   current version in `forge-contracts`), never with ad-hoc compiler flags.
+9. **Verify** with `bun run verify` at the repository root, which runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and
+   `check` through Turborepo and replays a task whose inputs have not changed; `bun run verify:gaia` there runs Gaia's and the packages
+   it depends on. Gaia's tasks are the typecheck of `src/` and `page/`, lint, specs, and `check`: the recording-stamp check and the
+   supported-forge check, which warns while `SUPPORTED_FORGE_VERSION` is behind forge's current version in `forge-contracts`. Never verify
+   with ad-hoc compiler flags.
 10. **Colour lives only in tokens:** the design-system package's `tokens.css`, the brand package's for Forge's mark, and, for Gaia's own
     parts only (its mark, a fill the package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
     package token.
@@ -63,13 +71,11 @@ its own; the dev tools every workspace shares are the root's.
     reads Gaia's own markup there, a package part only whole, as drawn for the props Gaia hands it. The visual harness reads its screens
     through `page/testing/MarkupTree.ts`: a control by its role and name, a text by what it reads, a part of Gaia's by its own class, and a
     package part whole or by the attributes a variant prop adds to its root, never by a package's class or nesting.
-11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system` at the repository
-    root, never named in a `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
-    `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
-    `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts, which the page build emits and
-    Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
-    symlinks, `page/testing/DesignSystemPeerPreload.ts` gives the package Gaia's own React in a test run, and the page build's
-    `SingleReactPlugin` (`src/features/page-server/routes/`) resolves every React import to Gaia's own copy. The parts Gaia built for
+11. **The design system is Forge's `design-system` package (`packages/design-system/`), used as it is.** It is a workspace member and a
+    dependency at `workspace:^`, so the root's `bun install` hoists it with the one React every workspace shares. Import each entry by its
+    export name (`design-system/Button`, `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no
+    export, is the one exception. `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts,
+    which the page build emits and Gaia's server serves under their hashed names. The parts Gaia built for
     the package (the text field, the checkbox, the figure, the page head, the data table, the theme button, the failed action and the
     pending step) live in `packages/design-system-contributions`, staged to move into it under its constitution: Gaia depends on that
     package with `workspace:^`, imports each part by its export name and passes every word in, and `page/index.html` links its stylesheet
@@ -130,7 +136,8 @@ and `overseer-fetch-versions`, forges ahead of it, newer, older and serving no `
 `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored,
 and verify fails while a recorded one still names them. macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:
-`GAIA_RECORDING_FORGE_PROGRAM=<a forge checkout's agent-progress.ts> bun run record <name>` runs that forge through
+`GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's
+`apps/forge/agent-progress.ts` or a detached worktree's for an older forge, through
 `src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a
 tracker never reaches a board above the scratch root (an Overseer it starts launches the forge's fake agent). It records the paths, tracker
 ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and
@@ -451,8 +458,8 @@ src/
 ## 14. Documentation
 
 - **One CLAUDE.md per app, at the app's root** (`apps/gaia/CLAUDE.md`); the repository root's CLAUDE.md only
-  points at it. It holds the rules and a short map of the app's top-level folders. No CLAUDE.md files inside
-  the code: a file's path and export name are its documentation.
+  points at each app's and names the packages' rules. It holds the rules and a short map of the app's top-level
+  folders. No CLAUDE.md files inside the code: a file's path and export name are its documentation.
 - **The app's CLAUDE.md stays small.** It carries only what the code cannot show: rules, boundaries and
   decisions. It never carries per-file descriptions or anything a reader can learn by opening the
   folder.
