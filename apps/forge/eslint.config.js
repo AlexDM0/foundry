@@ -15,8 +15,6 @@ const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
 const RAW_MARKUP_MESSAGE = 'React escapes every value; agent-written HTML reaches the DOM only as a sandboxed iframe\'s srcdoc.';
 
-const DESIGN_SYSTEM_MARKUP_MESSAGE = 'design-system/ renders every value through React, which escapes it; it injects no markup as text.';
-
 const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/**/*.ts'];
 
 /**
@@ -79,10 +77,6 @@ const CONFINED_REACH_SITES = [...new Set(CONFINED_REACHES.flatMap((reach) => rea
 
 const CLOCK_MESSAGE = 'Take the clock from the CommandContext.';
 
-const FLINT_CLOCK_MESSAGE = 'flint/ reads no clock: time comes from the injected frame source.';
-const FLINT_MARKUP_MESSAGE = 'flint/ draws with createElementNS and setAttribute, never with markup as text.';
-const FLINT_REACH_MESSAGE = 'flint/ makes no network call and reads no browser storage: the host gives a storage port.';
-
 export default [
   ...base,
   // The worktrees an Overseer makes inside a checkout hold copies of this repository, linted in their own checkout.
@@ -101,23 +95,6 @@ export default [
     rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] },
   },
   { files: ['**/*.spec.ts'], rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] } },
-  {
-    // design-system/ has its own package.json with React as its one peer; its specs and stories run on the forge's devDependencies until
-    // the split.
-    files: [
-      'design-system/testing/**/*.ts',
-      'design-system/**/*.spec.ts',
-      'design-system/**/*.dom.tsx',
-      'design-system/**/*.stories.tsx',
-      'design-system/.storybook/**/*.ts',
-    ],
-    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: [REPOSITORY_FOLDER, `${REPOSITORY_FOLDER}/design-system`] }] },
-  },
-  {
-    // flint/ has its own package.json with no dependencies; its specs run on the forge's test packages until the package is split off.
-    files: ['flint/testing/**/*.ts', 'flint/**/*.spec.ts', 'flint/**/*.dom.tsx'],
-    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: [REPOSITORY_FOLDER, `${REPOSITORY_FOLDER}/flint`] }] },
-  },
   { files: TYPESCRIPT_FILES, rules: { 'import/enforce-node-protocol-usage': ['error', 'always'] } },
   // The shared config's object-curly-newline fix leaves a trailing space where it breaks a line of properties, which then want one per line.
   { files: TYPESCRIPT_FILES, rules: { '@stylistic/no-trailing-spaces': 'error' } },
@@ -160,40 +137,6 @@ export default [
     },
   },
   {
-    files:   ['design-system/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules:   {
-      ...reactHooks.configs.flat.recommended.rules,
-      'react-hooks/exhaustive-deps': 'error',
-      'no-restricted-syntax':        [
-        'error',
-        { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: DESIGN_SYSTEM_MARKUP_MESSAGE },
-        { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: DESIGN_SYSTEM_MARKUP_MESSAGE },
-      ],
-    },
-  },
-  {
-    files: ['flint/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        { selector: "CallExpression[callee.object.name=/^(Date|performance)$/][callee.property.name='now']", message: FLINT_CLOCK_MESSAGE },
-        { selector: "NewExpression[callee.name='Date']", message: FLINT_CLOCK_MESSAGE },
-        { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: FLINT_MARKUP_MESSAGE },
-        { selector: "CallExpression[callee.property.name='insertAdjacentHTML']", message: FLINT_MARKUP_MESSAGE },
-        { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: FLINT_MARKUP_MESSAGE },
-        { selector: "CallExpression[callee.name='fetch']", message: FLINT_REACH_MESSAGE },
-        { selector: "NewExpression[callee.name=/^(XMLHttpRequest|WebSocket|EventSource)$/]", message: FLINT_REACH_MESSAGE },
-        { selector: "Identifier[name='indexedDB']", message: FLINT_REACH_MESSAGE },
-      ],
-    },
-  },
-  {
-    files:   ['flint/react/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules:   { ...reactHooks.configs.flat.recommended.rules, 'react-hooks/exhaustive-deps': 'error' },
-  },
-  {
     files: TYPESCRIPT_FILES,
     rules: {
       '@typescript-eslint/no-non-null-assertion':  'error',
@@ -204,7 +147,7 @@ export default [
   },
   {
     files:   TYPESCRIPT_FILES,
-    ignores: [...SPECS_AND_TESTING_FOLDERS, '**/constants/**/*.ts', '**/*.stories.tsx'],
+    ignores: [...SPECS_AND_TESTING_FOLDERS, '**/constants/**/*.ts'],
     rules:   {
       '@typescript-eslint/no-magic-numbers': ['error', {
         // Arithmetic identities stay inline: a step, a halving, the hexadecimal radix, a percent.

@@ -18,7 +18,7 @@ import {
 /** What a file that ships may import from outside the package. */
 const SHIPPING_PACKAGES: readonly string[] = ['react'];
 /** What a spec, a DOM spec or a testing helper may import from outside the package. */
-const SPEC_PACKAGES: readonly string[] = ['bun:test', 'react', '@testing-library/react', 'typescript', 'node:fs', 'node:path'];
+const SPEC_PACKAGES: readonly string[] = ['bun:test', 'react', '@testing-library/react', 'typescript', 'node:fs', 'node:path', 'eslint'];
 /** What a story may import from outside the package. */
 const STORY_PACKAGES: readonly string[] = ['react', '@storybook/react-vite', 'storybook/test'];
 const RUNTIME_PREFIXES = ['bun:', 'node:'];
