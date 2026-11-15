@@ -5,8 +5,10 @@
  * until dismissed; an update that left a restart pending offers Restart under the callout that sent it until dismissed, and a refused Restart's refusal
  * shows there too; nothing waiting says so; B3's banner, its stale rows that can be read and not acted on, its figures folded into one line atop the
  * main column so the side panel and Running fit the window, and the side panel that names the forges the totals cannot vouch for; an empty place says
- * so; Flint's brain running draws one line on its forge's card, the diamond beside its words with the time left in mono, and no line otherwise. The
- * content comes from the model over the artboards' fixtures; the command sender is the real one over Gaia's server stood in for by authored answers.
+ * so; U1's older forge's callout with its versions line and Update forge's pending and done steps, its newer forge's neutral callout, the side panel
+ * naming each forge's version and the notes naming the forges the totals leave out; Flint's brain running draws one line on its forge's card, the
+ * diamond beside its words with the time left in mono, and no line otherwise. The content comes from the model over the artboards' fixtures; the command
+ * sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
@@ -35,8 +37,9 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
-import { AttentionLayout } from './AttentionLayout.tsx';
-import { AttentionModel }  from './AttentionModel.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
+import { AttentionLayout }                            from './AttentionLayout.tsx';
+import { AttentionModel }                             from './AttentionModel.ts';
 
 const tree = ReactElementTree;
 
@@ -260,6 +263,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(tree.hostElementsIn(readings, tree.withClass('gaia-visually-hidden'))).toHaveLength(3);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-attention-note')]))
       .toBe('Gaia never guesses a count. The totals leave out the three forges it cannot read in full.');
+    expect(tree.hostElementsIn([tree.onlyWithClass(unfolded, 'gaia-attention-note')], tree.withComponent(TextButton))).toEqual([]);
     expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES), tree.withClass('gaia-attention-readings'))).toEqual([]);
   });
 
@@ -293,16 +297,88 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(looks.map((look) => look.props['data-look-kind'])).toEqual(['unreachable', 'launches-held', 'newer-contract', 'counts-only']);
   });
 
-  test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s with its dashed unreadable dot', () => {
+  test('B3\'s callouts are drawn in their tones, Analytics Sandbox\'s neutral, as Gaia is the one behind, with its dashed unreadable dot', () => {
     const callouts = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-callout'));
     expect(callouts.map((callout) => [callout.props['aria-label'], tree.onlyWithClass([callout], 'gaia-callout-body').props['data-tone']])).toEqual([
       ['Invoice Service: Unreachable.', 'error'],
       ['Example Mobile App: Launches held.', 'warn'],
-      ['Analytics Sandbox: Newer than this Gaia.', 'warn'],
+      ['Analytics Sandbox: Newer than this Gaia.', 'neutral'],
       ['Research Wiki: Counts only', 'neutral'],
     ]);
     const newer = callouts[2];
     expect(newer === undefined ? null : DrawnDots.conditionOf(tree.onlyHostElementIn([newer], DrawnDots.isDot))).toBe('unreadable|missing');
+    const looks = tree.hostElementsIn(unfoldedLayout(FLEET_DEGRADED), tree.withClass('gaia-attention-look'));
+    expect(looks.map((look) => look.props['data-word-form'])).toEqual(['sentence', 'sentence', 'sentence', 'pill']);
+  });
+});
+
+describe('forges at a version this Gaia cannot talk to (U1)', () => {
+  const BILLING = FLEET_VERSIONS_TRACKER_IDS.exampleBilling;
+
+  test('each callout sets its versions line in the sentence\'s face with the numbers in mono, and no machine line', () => {
+    const unfolded = unfoldedLayout(FLEET_VERSIONS);
+    for (const [project, line] of [
+      ['Example Billing', 'forge 1.8 · this Gaia is built for forge 3.1'],
+      ['Analytics Sandbox', 'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1'],
+    ] as const) {
+      const callout = calloutNamed(unfolded, project);
+      expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-versions-line')])).toBe(line);
+      expect(tree.hostElementsIn([callout], tree.withClass('gaia-callout-machine-line'))).toEqual([]);
+    }
+    const numbers = tree.hostElementsIn([calloutNamed(unfolded, 'Example Billing')], tree.withClass('gaia-version-number'));
+    expect(numbers.map((number) => tree.textOf([number]))).toEqual(['1.8', '3.1']);
+  });
+
+  test('Update forge on its way turns the older callout into its status beside a ring, and its one button waits as Updating', () => {
+    const answer = heldAnswer();
+    const sender = senderOver([() => answer.promise]);
+    PackageButtons.press(buttonNamed(unfoldedLayout(FLEET_VERSIONS, sender), 'Update forge'));
+    const callout = calloutNamed(unfoldedLayout(FLEET_VERSIONS, sender), 'Example Billing');
+    const status = tree.onlyWithClass([callout], 'gaia-attention-look-status');
+    expect(tree.textOf([status])).toBe('Updating the forge… its agents keep running');
+    expect(tree.hostElementsIn([status], DrawnDots.isDot).map(DrawnDots.conditionOf)).toEqual(['starting']);
+    const buttons = PackageButtons.buttonsIn([callout]);
+    expect(buttons.map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([['Updating', true]]);
+    expect(tree.hostElementsIn([callout], tree.withClass('gaia-versions-line'))).toEqual([]);
+  });
+
+  test('once the update leaves a restart pending, the callout says the forge stays older and the step under it offers a secondary Restart', async () => {
+    const restartPending: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
+    await sender.send({ kind: 'forge-update', trackerId: BILLING });
+    const callout = calloutNamed(unfoldedLayout(FLEET_VERSIONS, sender), 'Example Billing');
+    expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-callout-sentence')]))
+      .toBe('This forge stays older than the forge this Gaia is built for until its Overseer restarts.');
+    const pendingStep = tree.onlyOfComponent([callout], PendingStep);
+    expect([pendingStep.props['word'], pendingStep.props['sentence']])
+      .toEqual(['Updated; restart pending.', 'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.']);
+    const restart = buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart');
+    expect(PackageButtons.emphasisOf(restart)).toBe('quiet');
+    expect(PackageButtons.buttonsIn([tree.onlyWithClass([callout], 'gaia-callout')])).toEqual([]);
+  });
+
+  test('the side panel sets each forge\'s version, orange only for the older one, and the notes name the forges the totals leave out', () => {
+    const unfolded = unfoldedLayout(FLEET_VERSIONS);
+    const versions = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-reading-version'));
+    expect(versions.map((version) => [tree.textOf([version]), version.props['data-work'] !== undefined])).toEqual([
+      ['forge 3.4 · ahead', false],
+      ['forge 3.1', false],
+      ['forge 3.1', false],
+      ['forge 1.8 · older', true],
+      ['forge 4.1 · newer', false],
+    ]);
+    const [readingsNote, runningNote] = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-note'));
+    expect(tree.textOf([tree.onlyWithClass(readingsNote === undefined ? [] : [readingsNote], 'gaia-attention-note-sentence')]))
+      .toBe('Gaia never guesses a count. The totals leave out Example Billing and Analytics Sandbox.');
+    const versionsLink = tree.onlyOfComponent(readingsNote === undefined ? [] : [readingsNote], TextButton);
+    expect([versionsLink.props['label'], versionsLink.props['href']]).toEqual(['Versions', '#forges']);
+    expect(tree.textOf(runningNote === undefined ? [] : [runningNote])).toBe('Example Billing and Analytics Sandbox run too. This Gaia cannot read their agents.');
+  });
+
+  test('the figures stand in the page title, so the layout draws none', () => {
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_VERSIONS), tree.withComponent(Figure))).toEqual([]);
   });
 });
 

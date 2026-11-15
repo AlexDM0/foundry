@@ -62,7 +62,7 @@ export function Rail({ content }: { readonly content: RailContent }) {
           </div>
           {content.noForgeLine === null ? null : <p className="gaia-rail-no-forge">{content.noForgeLine}</p>}
           {content.forges.map((row) => (
-            <a key={row.trackerId} className="gaia-rail-row" href={row.href} aria-current={row.isCurrent ? 'page' : undefined}>
+            <a key={row.trackerId} className="gaia-rail-row" href={row.href} aria-current={row.isCurrent ? 'page' : undefined} title={row.title}>
               <ConditionDot condition={row.condition} />
               <span className="gaia-rail-row-label">{row.project}</span>
               <RailCountBadge count={row.count} />

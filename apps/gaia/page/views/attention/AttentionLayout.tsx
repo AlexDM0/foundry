@@ -27,6 +27,7 @@ import { ListCard }                                               from '../../de
 import { OpenInNewTabGlyph }                                      from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
+import { VersionsLine, VersionsText }                             from '../../shared/VersionsText.tsx';
 import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
 import { FigureLookUtil }                                         from '../../shared/utils/FigureLookUtil.ts';
@@ -38,6 +39,7 @@ import {
   type ForgeReadingLine,
   type LookAction,
   type LookCallout,
+  type ReadingsNote,
   type RecentEntry,
   type RunningBrainLine,
   type RunningCard,
@@ -63,6 +65,8 @@ interface CommandHandlers {
 const READINGS_HEAD = 'What Gaia reads of each forge';
 
 const RECENT_HEAD = 'Just happened';
+
+const VERSIONS_LINK_LABEL = 'Versions';
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 
@@ -196,7 +200,7 @@ function LookPendingRestart({ look, ...handlers }: { readonly look: LookCallout 
   return (
     <PendingStep
       word={word}
-      sentence={sentence}
+      sentence={look.updateSteps?.doneStepSentence ?? sentence}
       action={<LookActionButton action={restartAfterUpdate} {...handlers} />}
       dismissLabel={dismissLabel}
       onDismiss={() => handlers.onDismissRestartPending(subject)}
@@ -204,23 +208,49 @@ function LookPendingRestart({ look, ...handlers }: { readonly look: LookCallout 
   );
 }
 
-/** A warn or error callout's word is a sentence of its own, "Launches held."; a neutral one's is a pill, "Dormant". */
 function calloutWordOf(look: LookCallout): string {
-  return look.tone === 'neutral' ? look.word : `${look.word}.`;
+  return look.wordForm === 'pill' ? look.word : `${look.word}.`;
+}
+
+/** Where an older forge's Update forge stands: on its way, or done with the restart pending; every other callout stays idle. */
+type LookUpdateStep = 'idle' | 'pending' | 'done';
+
+function lookUpdateStepOf(look: LookCallout, commandStates: CommandStates): LookUpdateStep {
+  if (look.updateSteps === null) return 'idle';
+  const { onItsWay, restartPending } = CommandSender.stateOf(commandStates, { trackerId: look.trackerId });
+  if (onItsWay === 'forge-update') return 'pending';
+  return restartPending ? 'done' : 'idle';
+}
+
+/** While Update forge is on its way the callout says so beside a ring and its button waits; once done, the pending step under it acts. */
+function LookCalloutAtItsStep({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
+  const step = lookUpdateStepOf(look, handlers.commandStates);
+  const parts = {
+    tone:  look.tone,
+    dot:   <ConditionDot condition={look.condition} />,
+    title: look.project,
+    word:  calloutWordOf(look),
+  };
+  if (step === 'pending' && look.updateSteps !== null) {
+    const sentence = <span className="gaia-attention-look-status"><ConditionDot condition="starting" />{look.updateSteps.pendingText}</span>;
+    return <Callout {...parts} sentence={sentence} actions={<Button label={look.updateSteps.pendingButtonLabel} disabled onPress={() => undefined} />} />;
+  }
+  if (step === 'done' && look.updateSteps !== null) return <Callout {...parts} sentence={look.updateSteps.doneSentence} />;
+  return (
+    <Callout
+      {...parts}
+      sentence={look.sentence}
+      {...(look.machineLine === null ? {} : { machineLine: look.machineLine })}
+      {...(look.versionsLine === null ? {} : { versionsLine: <VersionsLine text={look.versionsLine} /> })}
+      actions={<>{look.actions.map((action) => <LookActionButton key={action.label} action={action} {...handlers} />)}</>}
+    />
+  );
 }
 
 function LookBlock({ look, ...handlers }: { readonly look: LookCallout } & CommandHandlers) {
   return (
-    <div className="gaia-attention-look" data-look-kind={look.lookKind}>
-      <Callout
-        tone={look.tone}
-        dot={<ConditionDot condition={look.condition} />}
-        title={look.project}
-        word={calloutWordOf(look)}
-        sentence={look.sentence}
-        {...(look.machineLine === null ? {} : { machineLine: look.machineLine })}
-        actions={<>{look.actions.map((action) => <LookActionButton key={action.label} action={action} {...handlers} />)}</>}
-      />
+    <div className="gaia-attention-look" data-look-kind={look.lookKind} data-word-form={look.wordForm}>
+      <LookCalloutAtItsStep look={look} {...handlers} />
       <LookRefusal look={look} {...handlers} />
       <LookPendingRestart look={look} {...handlers} />
     </div>
@@ -243,16 +273,27 @@ function Figures({ content }: { readonly content: AttentionContent }) {
   );
 }
 
-/** A small count in a sentence is written as a word, "the three forges", as SCREENS B3 words the readings' footnote. */
-const SMALL_COUNT_WORDS: readonly string[] = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-
-function readingsNoteOf(readings: readonly ForgeReadingLine[]): string {
-  const leftOut = readings.filter((reading) => reading.totalsCannotVouchForIt).length;
-  const leftOutText = `${SMALL_COUNT_WORDS[leftOut] ?? String(leftOut)} ${leftOut === 1 ? 'forge' : 'forges'}`;
-  return `Gaia never guesses a count. The totals leave out the ${leftOutText} it cannot read in full.`;
+function ReadingRight({ reading }: { readonly reading: ForgeReadingLine }) {
+  const { rightText } = reading;
+  if (rightText.kind === 'contract') return <span className="gaia-attention-reading-contract">{rightText.text}</span>;
+  return (
+    <span className="gaia-attention-reading-version" data-work={rightText.isWork ? '' : undefined}>
+      <VersionsText text={rightText.text} numberInk="inherit" />
+    </span>
+  );
 }
 
-function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingLine[] }) {
+function ReadingsNoteLine({ note }: { readonly note: ReadingsNote | null }) {
+  if (note === null) return null;
+  return (
+    <div className="gaia-attention-note">
+      <p className="gaia-attention-note-sentence">{note.sentence}</p>
+      {note.versionsHref === null ? null : <TextButton label={VERSIONS_LINK_LABEL} href={note.versionsHref} />}
+    </div>
+  );
+}
+
+function ReadingsPanel({ readings, note }: { readonly readings: readonly ForgeReadingLine[]; readonly note: ReadingsNote | null }) {
   return (
     <section className="gaia-attention-section" aria-label={READINGS_HEAD}>
       <SectionHead title={READINGS_HEAD} />
@@ -263,7 +304,7 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
               <ConditionDot condition={reading.condition} />
               <span className="gaia-attention-reading-forge">{reading.project}</span>
             </span>
-            <span className="gaia-attention-reading-contract">{reading.contractText}</span>
+            <ReadingRight reading={reading} />
             <span className="gaia-attention-reading-text">
               {reading.readingText}
               {reading.totalsCannotVouchForIt ? <span className="gaia-visually-hidden">{' The totals cannot vouch for it.'}</span> : null}
@@ -271,7 +312,7 @@ function ReadingsPanel({ readings }: { readonly readings: readonly ForgeReadingL
           </li>
         ))}
       </ul>
-      <p className="gaia-attention-note">{readingsNoteOf(readings)}</p>
+      <ReadingsNoteLine note={note} />
     </section>
   );
 }
@@ -400,11 +441,12 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           )}
         </div>
         <aside className="gaia-attention-aside">
-          {content.readings === null ? null : <ReadingsPanel readings={content.readings} />}
-          {content.running.length === 0 ? null : (
+          {content.readings === null ? null : <ReadingsPanel readings={content.readings} note={content.readingsNote} />}
+          {content.running.length === 0 && content.runningNote === null ? null : (
             <section className="gaia-attention-section" aria-label={content.runningHead}>
               <SectionHead title={content.runningHead} />
               {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} form={content.runningForm} />)}
+              {content.runningNote === null ? null : <p className="gaia-attention-note">{content.runningNote}</p>}
             </section>
           )}
           <RecentList recent={content.recent} />

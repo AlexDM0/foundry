@@ -1,10 +1,9 @@
 /**
- * The rail as markup (SCREENS "The shell"). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand bar
- * holds it); each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits on
- * User and plain otherwise, its mark after it; the current row, and only it, carries `aria-current`; a forge row leads with its condition
- * dot, which the package or Gaia hides from the accessibility tree; with no forge registered the forges' group says "No forge is
- * registered" and the slot meter is handed every slot free; and this machine is one link to the Forges view, with its slot meter and its
- * lines.
+ * The rail as markup (SCREENS "The shell"). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand bar holds it);
+ * each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits on User and plain otherwise,
+ * its mark after it; the current row, and only it, carries `aria-current`; a forge row leads with its condition dot, which the package or Gaia hides
+ * from the accessibility tree, and carries the model's title; with no forge registered the forges' group says "No forge is registered" and the slot
+ * meter is handed every slot free; and this machine is one link to the Forges view, with its slot meter and its lines.
  */
 import { describe, expect, test } from 'bun:test';
 import { CountBadge }             from 'design-system/CountBadge';
@@ -20,6 +19,7 @@ import { FLEET_AT_LIMIT }                                   from '../testing/fix
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS }                                   from '../testing/fixtures/fleet-versions.ts';
 import { Rail }                                             from './Rail.tsx';
 import { RailModel }                                        from './RailModel.ts';
 
@@ -160,5 +160,11 @@ describe('the rail', () => {
     const unfolded = unfoldedRail(null, DEFAULT_ROUTE);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-row')).map((row) => tree.textOf([row]))).toEqual(['Attention', 'Agents', 'Activity', 'Forges']);
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-machine'))).toEqual([]);
+  });
+
+  test('a forge row carries its title, what its version means where Gaia cannot fully use it', () => {
+    const rows = tree.hostElementsIn(unfoldedRail(FLEET_VERSIONS, DEFAULT_ROUTE), tree.withClass('gaia-rail-row')).slice(4);
+    expect(rows.map((row) => row.props['title'])).toEqual(RailModel.railContentOf(FLEET_VERSIONS, DEFAULT_ROUTE).forges.map((forge) => forge.title));
+    expect(rows[3]?.props['title']).toBe('Older than this Gaia · update the forge');
   });
 });

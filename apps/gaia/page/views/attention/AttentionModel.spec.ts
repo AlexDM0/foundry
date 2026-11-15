@@ -5,10 +5,12 @@
  * no forge reports today; the forges that need a look carry PLAN 7.2's actions, the machine's limit never among them. B3: the head and the figure say
  * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and callout name
  * what Gaia last saw, every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers
- * again is read normally. B4: no forge gives its own screen, while every forge hidden does not; the forge program is missing only when neither the
- * settings nor Gaia know one, and a known one is named from ~. Flint's brain (A1, R4.6): a running brain gives its forge's card a line with the model
- * and the time left, and changes nothing else; an ended, refused, off or unreported brain gives no line, and a brain in a forge with no job gives no
- * card.
+ * again is read normally. The Versions boards (U1): an older forge is an orange callout with Update forge and its steps, a newer one a neutral dashed
+ * callout that only explains, each with its versions line; the figures stay in the title with the agents marked `+`, the side panel names each forge by
+ * its version, and the totals and the running cards name the forges they leave out. B4: no forge gives its own screen, while every forge hidden does
+ * not; the forge program is missing only when neither the settings nor Gaia know one, and a known one is named from ~. Flint's brain (A1, R4.6): a
+ * running brain gives its forge's card a line with the model and the time left, and changes nothing else; an ended, refused, off or unreported brain
+ * gives no line, and a brain in a forge with no job gives no card.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -18,10 +20,11 @@ import type {
   FleetDocumentForge,
   FleetDocumentLookKind
 } from '../../@types/FleetDocument.ts';
-import type { ClockReading } from '../../shared/@types/ClockReading.ts';
-import { FLEET_AT_LIMIT }    from '../../testing/fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }    from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }       from '../../testing/fixtures/fleet-empty.ts';
+import type { ClockReading }     from '../../shared/@types/ClockReading.ts';
+import { ForgeVersionsTextUtil } from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { FLEET_AT_LIMIT }        from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }        from '../../testing/fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }           from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
   FLEET_FIVE_FORGES_BRAINS,
@@ -33,6 +36,7 @@ import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtur
 import {
   type AttentionContent,
   AttentionModel,
+  type ForgeReadingLine,
   type LookCallout,
   type NoForgeContent,
 } from './AttentionModel.ts';
@@ -59,6 +63,16 @@ function lookOf(content: AttentionContent, trackerId: string): LookCallout {
   const look = content.looks.find((candidate) => candidate.trackerId === trackerId);
   if (look === undefined) throw new Error(`No callout for ${trackerId}.`);
   return look;
+}
+
+/** A reading's right side as plain text, its version numbers in line. */
+function rightTextOf({ rightText }: ForgeReadingLine): string {
+  return rightText.kind === 'contract' ? rightText.text : ForgeVersionsTextUtil.plainTextOf(rightText.text);
+}
+
+/** A callout's versions line, or its machine line, as plain text. */
+function lineOf(look: LookCallout): string | null {
+  return look.versionsLine === null ? look.machineLine : ForgeVersionsTextUtil.plainTextOf(look.versionsLine);
 }
 
 function actionsOf(look: LookCallout) {
@@ -351,7 +365,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     expect(actionsOf(unreachable)).toEqual([['Look again', 'quiet', { kind: 'fleet-look-again' }, true]]);
   });
 
-  test('a counts-only forge is a dashed callout with its counts, and a newer one a warn callout with its contract numbers', () => {
+  test('a counts-only forge is a dashed callout with its counts, and a newer one a neutral callout with its contract numbers', () => {
     const content = fleetContentOf(FLEET_DEGRADED);
     const countsOnly = lookOf(content, TRACKER_IDS.researchWiki);
     expect([countsOnly.tone, countsOnly.word, countsOnly.sentence, countsOnly.machineLine]).toEqual([
@@ -366,8 +380,9 @@ describe('forges Gaia cannot fully read (B3)', () => {
     ]);
     expect(countsOnly.restartAfterUpdate).toMatchObject({ label: 'Restart', forgeAcceptsIt: false });
     const newer = lookOf(content, ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([newer.tone, newer.condition, newer.word, newer.sentence, newer.machineLine]).toEqual([
-      'warn',
+    expect([newer.tone, newer.wordForm, newer.condition, newer.word, newer.sentence, newer.machineLine]).toEqual([
+      'neutral',
+      'sentence',
       'unreadable',
       'Newer than this Gaia',
       'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing.',
@@ -388,7 +403,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(olderDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.word, older.machineLine]).toEqual(['warn', 'Older than this Gaia', 'forge 0.9 · this Gaia is built for forge 1.1']);
+    expect([older.tone, older.condition, older.word, lineOf(older)]).toEqual(['warn', 'outdated', 'Older than this Gaia', 'forge 0.9 · this Gaia is built for forge 1.1']);
     expect(older.sentence).toBe('This forge is older than the forge this Gaia is built for. Gaia shows nothing of its work and sends it no command until '
       + 'the forge is updated. Its agents keep running.');
     expect(actionsOf(older)).toEqual([
@@ -396,7 +411,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
     ]);
     expect(fleetContentOf(olderDocument).readings?.find((reading) => reading.trackerId === ANALYTICS_SANDBOX_TRACKER_ID)?.readingText)
-      .toBe('Nothing until the forge is updated. Its version is older than this Gaia talks to.');
+      .toBe('That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.');
   });
 
   test('a forge that serves no versions, as every released forge, is the same callout, saying it states no version', () => {
@@ -411,17 +426,17 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(unversionedDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.word, older.machineLine, actionsOf(older)[0]?.[0]])
+    expect([older.tone, older.word, lineOf(older), actionsOf(older)[0]?.[0]])
       .toEqual(['warn', 'Older than this Gaia', 'forge states no version · this Gaia is built for forge 1.1', 'Update forge']);
   });
 
-  test('the side panel names each forge\'s contract and what it gives, and marks exactly the forges figures.incompleteFor names', () => {
+  test('the side panel names a forge read in full by its version, any other by its contract, and marks the forges figures.incompleteFor names', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
-    expect(readings?.map((reading) => [reading.project, reading.contractText, reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
-      ['Example Storefront', 'monitor 3', 'Everything, live.', false],
+    expect(readings?.map((reading) => [reading.project, rightTextOf(reading), reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
+      ['Example Storefront', 'forge 1.1', 'Everything, live.', false],
       ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows show as last reported.', true],
       ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions or reviews by name.', true],
-      ['Example Mobile App', 'monitor 3', 'Everything, live.', false],
+      ['Example Mobile App', 'forge 1.1', 'Everything, live.', false],
       ['Analytics Sandbox', 'monitor 4', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
     const marked = readings?.filter((reading) => reading.totalsCannotVouchForIt).map((reading) => reading.trackerId);
@@ -447,13 +462,71 @@ describe('forges Gaia cannot fully read (B3)', () => {
 
   test('a forge newer than this Gaia is a callout that only explains, in its own terms, and offers no update of Gaia', () => {
     const newer = lookOf(fleetContentOf(FLEET_VERSIONS), FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox);
-    expect([newer.word, newer.sentence, newer.machineLine]).toEqual([
+    expect([newer.tone, newer.word, newer.sentence, lineOf(newer)]).toEqual([
+      'neutral',
       'Newer than this Gaia',
       'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
         + 'no command. Its own Bridge shows all of it.',
       'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1',
     ]);
     expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox }, true]]);
+    expect([newer.updateSteps, newer.restartAfterUpdate]).toEqual([null, null]);
+  });
+});
+
+describe('forges at a version this Gaia cannot talk to (U1)', () => {
+  const content = fleetContentOf(FLEET_VERSIONS);
+
+  test('the callouts come older first, then newer, and an ahead or current forge has none', () => {
+    expect(content.looksHead).toBe('Forges that need a look · 2');
+    expect(content.looks.map((look) => [look.project, look.tone, look.condition, look.word, look.wordForm])).toEqual([
+      ['Example Billing', 'warn', 'outdated', 'Older than this Gaia', 'sentence'],
+      ['Analytics Sandbox', 'neutral', 'unreadable', 'Newer than this Gaia', 'sentence'],
+    ]);
+  });
+
+  test('the older forge\'s callout offers Update forge as its primary, then a secondary Restart once the update is done, with each step\'s words', () => {
+    const older = lookOf(content, FLEET_VERSIONS_TRACKER_IDS.exampleBilling);
+    expect(lineOf(older)).toBe('forge 1.8 · this Gaia is built for forge 3.1');
+    expect(actionsOf(older).map(([label, emphasis]) => [label, emphasis])).toEqual([['Update forge', 'primary'], ['Open in new tab', 'quiet']]);
+    expect(older.restartAfterUpdate).toMatchObject({ label: 'Restart', emphasis: 'quiet' });
+    expect(older.updateSteps).toEqual({
+      pendingText:        'Updating the forge… its agents keep running',
+      pendingButtonLabel: 'Updating',
+      doneSentence:       'This forge stays older than the forge this Gaia is built for until its Overseer restarts.',
+      doneStepSentence:   'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.',
+    });
+  });
+
+  test('the figures stay in the title, the agents marked as leaving out forges whose agents Gaia cannot read', () => {
+    expect(content.figuresForm).toBe('row');
+    expect(AttentionModel.titleFiguresOf(FLEET_VERSIONS).map((figure) => figure.value)).toEqual(['5+', '8+ / 12', '9', '5', '1.02M', '0']);
+    expect(content.waitingCount).toBe('5 known, more possible');
+  });
+
+  test('the side panel names each forge by its version, in orange only for the forge that waits on Update forge', () => {
+    expect(content.readings?.map((reading) => [reading.project, rightTextOf(reading), reading.rightText.kind === 'versions' && reading.rightText.isWork, reading.readingText]))
+      .toEqual([
+        ['Example Storefront', 'forge 3.4 · ahead', false, 'All this Gaia knows. What 3.4 added shows in its Bridge.'],
+        ['Invoice Service', 'forge 3.1', false, 'Everything, live.'],
+        ['Research Wiki', 'forge 3.1', false, 'Everything, live.'],
+        ['Example Billing', 'forge 1.8 · older', true, 'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.'],
+        ['Analytics Sandbox', 'forge 4.1 · newer', false, 'That it runs, and its Bridge in a new tab. Nothing of its work.'],
+      ]);
+  });
+
+  test('the totals and the running cards name the forges they leave out, and the note links to their versions', () => {
+    expect(content.readingsNote).toEqual({
+      sentence:     'Gaia never guesses a count. The totals leave out Example Billing and Analytics Sandbox.',
+      versionsHref: '#forges',
+    });
+    expect(content.running.map((card) => card.project)).toEqual(['Example Storefront', 'Invoice Service', 'Research Wiki']);
+    expect(content.runningNote).toBe('Example Billing and Analytics Sandbox run too. This Gaia cannot read their agents.');
+    expect(fleetContentOf(FLEET_DEGRADED).readingsNote).toEqual({
+      sentence:     'Gaia never guesses a count. The totals leave out the three forges it cannot read in full.',
+      versionsHref: null,
+    });
+    expect(fleetContentOf(FLEET_DEGRADED).runningNote).toBeNull();
   });
 });
 

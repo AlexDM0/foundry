@@ -28,6 +28,7 @@ import { ForgeCommandTextUtil }  from '../../shared/utils/ForgeCommandTextUtil.t
 import { ForgeContractUtil }     from '../../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }         from '../../shared/utils/ForgeTextUtil.ts';
 import { ForgeVersionsTextUtil } from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import type { VersionsText }     from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import { PathTextUtil }          from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }         from '../../shared/utils/StampTextUtil.ts';
 
@@ -74,6 +75,17 @@ export type LookAction =
   }
   | { readonly kind: 'link'; readonly label: string; readonly emphasis: ButtonEmphasis; readonly href: string };
 
+/** A callout's word: a sentence of its own, "Launches held.", or a quiet pill, "Dormant". */
+export type LookWordForm = 'sentence' | 'pill';
+
+/** What a callout of a forge older than this Gaia says while its Update forge is on its way and once its restart is pending. */
+export interface UpdateForgeStepsText {
+  readonly pendingText:        string;
+  readonly pendingButtonLabel: string;
+  readonly doneSentence:       string;
+  readonly doneStepSentence:   string;
+}
+
 export interface LookCallout {
   readonly trackerId:          string;
   readonly lookKind:           FleetDocumentLookKind;
@@ -81,11 +93,16 @@ export interface LookCallout {
   readonly condition:          DotCondition;
   readonly project:            string;
   readonly word:               string;
+  readonly wordForm:           LookWordForm;
   readonly sentence:           string;
   readonly machineLine:        string | null;
+  /** In place of the machine line for a forge at a version Gaia cannot talk to: the forge's version beside the one this Gaia is built for. */
+  readonly versionsLine:       VersionsText | null;
   readonly actions:            readonly LookAction[];
   /** The Restart a callout with Update forge offers once an update left the forge's restart pending; `null` without Update forge. */
   readonly restartAfterUpdate: LookAction | null;
+  /** `null` but for a forge older than this Gaia, whose callout follows its Update forge step by step. */
+  readonly updateSteps:        UpdateForgeStepsText | null;
 }
 
 export interface RunningJob {
@@ -123,14 +140,29 @@ export interface RecentEntry {
   readonly text:      string;
 }
 
-/** One forge in "What Gaia reads of each forge"; the totals cannot vouch for a forge the figures name as incomplete. */
+/** A reading's right side: the forge's version, in orange while it waits on User's Update forge, or the contract it publishes. */
+export type ReadingRightText =
+  | { readonly kind: 'versions'; readonly text: VersionsText; readonly isWork: boolean }
+  | { readonly kind: 'contract'; readonly text: string };
+
+/**
+ * One forge in "What Gaia reads of each forge": its version, or for a forge read without one its contract, and what Gaia reads of it.
+ * The totals cannot vouch for a forge the figures name as incomplete.
+ */
 export interface ForgeReadingLine {
   readonly trackerId:              string;
   readonly project:                string;
   readonly condition:              DotCondition;
-  readonly contractText:           string;
+  readonly rightText:              ReadingRightText;
   readonly readingText:            string;
   readonly totalsCannotVouchForIt: boolean;
+}
+
+/** Under the readings: that Gaia never guesses a count, naming the forges the totals leave out, and the link to their versions. */
+export interface ReadingsNote {
+  readonly sentence:     string;
+  /** `null` unless every forge left out is at a version Gaia cannot talk to. */
+  readonly versionsHref: string | null;
 }
 
 export interface UnreachableBanner {
@@ -160,9 +192,12 @@ export interface AttentionContent {
   readonly runningHead:  string;
   readonly runningForm:  RunningCardForm;
   readonly running:      readonly RunningCard[];
+  /** Under the running cards: the forges at a version Gaia cannot talk to, whose agents it cannot read; `null` without one. */
+  readonly runningNote:  string | null;
   readonly recent:       readonly RecentEntry[];
   /** `null` while Gaia reads every forge in full. */
   readonly readings:     readonly ForgeReadingLine[] | null;
+  readonly readingsNote: ReadingsNote | null;
 }
 
 /** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
@@ -179,6 +214,7 @@ const META_SEPARATOR = ' · ';
 const RECENT_ENTRIES_SHOWN = 4;
 const COUNTS_ONLY_WORD = 'counts only';
 const ASKS_WORD = 'asks';
+const NEVER_GUESSES_A_COUNT = 'Gaia never guesses a count.';
 
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
   'escalated-question': 'Escalated',
@@ -206,10 +242,20 @@ function aForgeReportsToday(fleetDocument: FleetDocument): boolean {
   return fleetDocument.forges.some((forge) => forge.today !== null);
 }
 
+/**
+ * While a forge is not read in full the figures fold into one line atop the main column, so B3 fits the window; a forge Gaia cannot talk
+ * to at its version alone leaves them in the title, as the Versions boards draw A1.
+ */
+function figuresFoldIntoTheMainColumn(fleetDocument: FleetDocument): boolean {
+  const leftOut = new Set(fleetDocument.figures.incompleteFor);
+  return fleetDocument.forges.some((forge) => leftOut.has(forge.trackerId) && !FleetDocumentUtil.cannotTalkAtItsVersion(forge));
+}
+
 function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   const {
     waitingOnUser, agentsInFlight, machineLimit, readyTickets, deliveredToday, tokensToday, openIncidents, incompleteFor
   } = fleetDocument.figures;
+  const agentsText = `${agentsInFlight}${FleetDocumentUtil.forgesWhoseAgentsAreNotCountedIn(fleetDocument).length > 0 ? '+' : ''}`;
   const todayFigures: AttentionFigure[] = aForgeReportsToday(fleetDocument)
     ? [
       { value: String(deliveredToday), label: 'done today', attention: false },
@@ -219,8 +265,8 @@ function figuresOf(fleetDocument: FleetDocument): AttentionFigure[] {
   return [
     { value: `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`, label: 'waiting on you', attention: true },
     machineLimit === null
-      ? { value: String(agentsInFlight), label: 'agents', attention: false }
-      : { value: `${agentsInFlight} / ${machineLimit}`, label: 'agents', attention: false },
+      ? { value: agentsText, label: 'agents', attention: false }
+      : { value: `${agentsText} / ${machineLimit}`, label: 'agents', attention: false },
     { value: String(readyTickets), label: 'tickets ready', attention: false },
     ...todayFigures,
     { value: String(openIncidents), label: 'open incidents', attention: false },
@@ -257,8 +303,8 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       key:           `${item.trackerId}/${item.key}`,
       trackerId:     item.trackerId,
       project:       forge.project,
-      condition:     ForgeTextUtil.dotConditionOf(forge.condition),
-      conditionWord: ForgeTextUtil.conditionWordOf(forge.condition),
+      condition:     ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
+      conditionWord: ForgeTextUtil.conditionWordOf(ForgeTextUtil.shownConditionOf(forge)),
       kindText:      KIND_TEXTS[item.kind],
       kindTone:      item.kind === 'merge-accept' ? 'pass' : 'warn',
       idText:        item.idText,
@@ -307,19 +353,23 @@ function forgeTextOf(entries: readonly { readonly kind: string; readonly text: s
   return entries.find((entry) => entry.kind === kind)?.text ?? null;
 }
 
-function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading) {
+function unreachableCallout(forge: FleetDocumentForge, clock: ClockReading): CalloutParts {
   return {
-    tone:    'error' as const,
+    tone:    'error',
     ...ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock)),
     actions: [commandAction('Look again', 'quiet', { kind: 'fleet-look-again' })],
   };
 }
 
+/** A callout's parts by its look's kind; a part left out takes its plain value in `looksOf`. */
+type CalloutParts = Pick<LookCallout, 'tone' | 'word' | 'sentence' | 'machineLine' | 'actions'> & Partial<Pick<LookCallout, 'wordForm' | 'versionsLine' | 'updateSteps'>>;
+
 /**
- * Gaia cannot read the forge and Gaia is the one behind, so the callout only explains and offers no update. A forge whose version is newer
- * says so in its own terms; one whose version Gaia talks to but whose document is of a newer contract names that contract.
+ * Gaia cannot read the forge and Gaia is the one behind, so the callout is neutral and dashed, only explains and offers no update. A forge
+ * whose version is newer says so in its own terms; one whose version Gaia talks to but whose document is of a newer contract names that
+ * contract.
  */
-function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
+function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument): CalloutParts {
   const word = ForgeVersionsTextUtil.verdictWordOf('newer');
   const actions = [openInNewTabAction(forge.trackerId)];
   const versionsCallout = forge.versions === null
@@ -327,18 +377,21 @@ function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
     : ForgeVersionsTextUtil.calloutTextOf({ project: forge.project, versions: forge.versions }, fleetDocument.gaia.versions);
   if (versionsCallout !== null) {
     return {
-      tone:        'warn' as const,
+      tone:         'neutral',
       word,
-      sentence:    versionsCallout.sentence,
-      machineLine: ForgeVersionsTextUtil.plainTextOf(versionsCallout.versionsLine),
+      wordForm:     'sentence',
+      sentence:     versionsCallout.sentence,
+      machineLine:  null,
+      versionsLine: versionsCallout.versionsLine,
       actions,
     };
   }
   const newer = newerContractsOf(forge, fleetDocument);
   const [leading = 'monitor'] = newer;
   return {
-    tone:     'warn' as const,
+    tone:     'neutral',
     word,
+    wordForm: 'sentence',
     sentence: `This forge publishes ${leading} contract ${forge.contracts[leading] ?? ''}. This Gaia reads ${fleetDocument.gaia.knownContracts[leading]}, `
       + 'so it shows nothing of it and sends it nothing.',
     machineLine: newer.map((name) => `${name} ${forge.contracts[name] ?? ''}`).join(META_SEPARATOR) || null,
@@ -346,16 +399,27 @@ function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
   };
 }
 
+const { UPDATE_FORGE_TEXT } = ForgeVersionsTextUtil;
+
+const OLDER_FORGE_UPDATE_STEPS: UpdateForgeStepsText = {
+  pendingText:        UPDATE_FORGE_TEXT.pendingInCallout,
+  pendingButtonLabel: UPDATE_FORGE_TEXT.pendingButton,
+  doneSentence:       UPDATE_FORGE_TEXT.doneCalloutSentence,
+  doneStepSentence:   UPDATE_FORGE_TEXT.doneStandingAlone,
+};
+
 /** The forge's system version is older than the one this Gaia is built for, or it serves none: Update forge brings it level. */
-function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument) {
+function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument): CalloutParts {
   const versions = forge.versions ?? ForgeVersionsTextUtil.NO_VERSIONS_SERVED;
   const versionsCallout = ForgeVersionsTextUtil.calloutTextOf({ project: forge.project, versions }, fleetDocument.gaia.versions);
   return {
-    tone:        'warn' as const,
-    word:        ForgeVersionsTextUtil.verdictWordOf('older'),
-    sentence:    versionsCallout?.sentence ?? '',
-    machineLine: versionsCallout === null ? null : ForgeVersionsTextUtil.plainTextOf(versionsCallout.versionsLine),
-    actions:     [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
+    tone:         'warn',
+    word:         ForgeVersionsTextUtil.verdictWordOf('older'),
+    sentence:     versionsCallout?.sentence ?? '',
+    machineLine:  null,
+    versionsLine: versionsCallout?.versionsLine ?? null,
+    actions:      [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
+    updateSteps:  OLDER_FORGE_UPDATE_STEPS,
   };
 }
 
@@ -367,7 +431,7 @@ function countsOnlySentenceOf(forge: FleetDocumentForge): string {
   return `This forge is older than the monitor contract. Gaia reads its summary: ${known}. Open it to see what waits.`;
 }
 
-function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, fleetDocument: FleetDocument, clock: ClockReading) {
+function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, fleetDocument: FleetDocument, clock: ClockReading): CalloutParts | null {
   const { trackerId } = forge;
   switch (look.kind) {
     case 'unreachable':
@@ -425,12 +489,16 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
   }
 }
 
-/** Restart reaches the forge only through its Overseer, in the control contract Gaia knows. */
-function restartAfterUpdateOf(forge: FleetDocumentForge, actions: readonly LookAction[]): LookAction | null {
-  const offersAnUpdate = actions.some((action) => action.kind === 'command' && action.command.kind === 'forge-update');
+/**
+ * Restart reaches the forge only through its Overseer, in the control contract Gaia knows. Under an older forge's callout it is
+ * secondary, since that callout keeps its own primary.
+ */
+function restartAfterUpdateOf(forge: FleetDocumentForge, parts: CalloutParts): LookAction | null {
+  const offersAnUpdate = parts.actions.some((action) => action.kind === 'command' && action.command.kind === 'forge-update');
   if (!offersAnUpdate) return null;
   const { restartLabel } = ForgeCommandTextUtil.RESTART_PENDING;
-  return commandAction(restartLabel, 'primary', { kind: 'forge-restart', trackerId: forge.trackerId }, ForgeContractUtil.controlContractIsKnown(forge));
+  const emphasis = parts.updateSteps === undefined ? 'primary' : 'quiet';
+  return commandAction(restartLabel, emphasis, { kind: 'forge-restart', trackerId: forge.trackerId }, ForgeContractUtil.controlContractIsKnown(forge));
 }
 
 /**
@@ -463,10 +531,13 @@ function looksOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, F
     return [{
       trackerId:          forge.trackerId,
       lookKind:           look.kind,
-      condition:          ForgeTextUtil.dotConditionOf(forge.condition),
+      condition:          ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
       project:            forge.project,
       ...parts,
-      restartAfterUpdate: restartAfterUpdateOf(forge, parts.actions),
+      wordForm:           parts.wordForm ?? (parts.tone === 'neutral' ? 'pill' : 'sentence'),
+      versionsLine:       parts.versionsLine ?? null,
+      restartAfterUpdate: restartAfterUpdateOf(forge, parts),
+      updateSteps:        parts.updateSteps ?? null,
     }];
   });
 }
@@ -518,7 +589,7 @@ function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReadi
     return {
       trackerId:     forge.trackerId,
       project:       forge.project,
-      condition:     ForgeTextUtil.dotConditionOf(forge.condition),
+      condition:     ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
       conditionWord: runningConditionWordOf(forge, clock),
       href:          forgeInPlaceHrefOf(forge.trackerId, null),
       slotsText:     slotsTextOf(forge),
@@ -568,17 +639,60 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
   }
 }
 
+/**
+ * A forge read in full, or one Gaia cannot talk to at its version, is named by its version; any other, read in part or not at all, by
+ * the contract it publishes and what Gaia reads of it.
+ */
+function readingLineOf(forge: FleetDocumentForge, totalsCannotVouchForIt: boolean, clock: ClockReading): ForgeReadingLine {
+  const facts = {
+    trackerId: forge.trackerId,
+    project:   forge.project,
+    condition: ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
+    totalsCannotVouchForIt,
+  };
+  const namedByItsVersion = forge.fidelity === 'full' || FleetDocumentUtil.cannotTalkAtItsVersion(forge);
+  if (forge.versions === null || !namedByItsVersion) {
+    return { ...facts, rightText: { kind: 'contract', text: contractTextOf(forge) }, readingText: readingTextOf(forge, clock) };
+  }
+  const { versionsText, isWork, reading } = ForgeVersionsTextUtil.readingTextOf({ project: forge.project, versions: forge.versions });
+  return { ...facts, rightText: { kind: 'versions', text: versionsText, isWork }, readingText: reading };
+}
+
 function readingsOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[], clock: ClockReading): ForgeReadingLine[] | null {
   const leftOut = new Set(fleetDocument.figures.incompleteFor);
   if (leftOut.size === 0) return null;
-  return forges.map((forge) => ({
-    trackerId:              forge.trackerId,
-    project:                forge.project,
-    condition:              ForgeTextUtil.dotConditionOf(forge.condition),
-    contractText:           contractTextOf(forge),
-    readingText:            readingTextOf(forge, clock),
-    totalsCannotVouchForIt: leftOut.has(forge.trackerId),
-  }));
+  return forges.map((forge) => readingLineOf(forge, leftOut.has(forge.trackerId), clock));
+}
+
+/** A small count in a sentence is written as a word, "the three forges", as SCREENS B3 words the readings' footnote. */
+const SMALL_COUNT_WORDS: readonly string[] = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+
+/** `Example Billing`, `Example Billing and Analytics Sandbox`, `A, B and C`. */
+function namesInASentenceOf(names: readonly string[]): string {
+  const last = names.at(-1) ?? '';
+  return names.length < 2 ? last : `${names.slice(0, -1).join(', ')} and ${last}`;
+}
+
+/** Forges Gaia cannot talk to at their version are named, with the link to their versions; B3's forges read in part are counted. */
+function readingsNoteOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[]): ReadingsNote | null {
+  const leftOutIds = new Set(fleetDocument.figures.incompleteFor);
+  const leftOut = forges.filter((forge) => leftOutIds.has(forge.trackerId));
+  if (leftOut.length === 0) return null;
+  if (leftOut.every(FleetDocumentUtil.cannotTalkAtItsVersion)) {
+    return {
+      sentence:     `${NEVER_GUESSES_A_COUNT} The totals leave out ${namesInASentenceOf(leftOut.map((forge) => forge.project))}.`,
+      versionsHref: HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: null }),
+    };
+  }
+  const leftOutText = `${SMALL_COUNT_WORDS[leftOut.length] ?? String(leftOut.length)} ${leftOut.length === 1 ? 'forge' : 'forges'}`;
+  return { sentence: `${NEVER_GUESSES_A_COUNT} The totals leave out the ${leftOutText} it cannot read in full.`, versionsHref: null };
+}
+
+function runningNoteOf(forges: readonly FleetDocumentForge[]): string | null {
+  const unread = forges.filter(FleetDocumentUtil.cannotTalkAtItsVersion);
+  if (unread.length === 0) return null;
+  const names = namesInASentenceOf(unread.map((forge) => forge.project));
+  return unread.length === 1 ? `${names} runs too. This Gaia cannot read its agents.` : `${names} run too. This Gaia cannot read their agents.`;
 }
 
 function attentionContentOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[], clock: ClockReading): AttentionContent {
@@ -595,25 +709,27 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
       project:           forge.project,
       lastReportedClock: StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock),
     })),
-    figures:     figuresOf(fleetDocument),
-    figuresForm: morePossible ? 'line' : 'row',
-    waitingHead: `Waiting on you${HEAD_SEPARATOR}${waitingCount}`,
+    figures:      figuresOf(fleetDocument),
+    figuresForm:  figuresFoldIntoTheMainColumn(fleetDocument) ? 'line' : 'row',
+    waitingHead:  `Waiting on you${HEAD_SEPARATOR}${waitingCount}`,
     waitingCount,
-    rows:        rowsOf(fleetDocument, forgesById, clock),
-    nothingText: morePossible ? 'Nothing that Gaia can read waits on you.' : 'Nothing waits on you.',
-    looksHead:   `Forges that need a look${HEAD_SEPARATOR}${looks.length}`,
+    rows:         rowsOf(fleetDocument, forgesById, clock),
+    nothingText:  morePossible ? 'Nothing that Gaia can read waits on you.' : 'Nothing waits on you.',
+    looksHead:    `Forges that need a look${HEAD_SEPARATOR}${looks.length}`,
     looks,
-    runningHead: `Running${HEAD_SEPARATOR}${running.length}`,
-    runningForm: readings === null ? 'full' : 'compact',
+    runningHead:  `Running${HEAD_SEPARATOR}${running.length}`,
+    runningForm:  readings === null ? 'full' : 'compact',
     running,
-    recent:      recentOf(fleetDocument, forgesById, clock),
+    runningNote:  runningNoteOf(forges),
+    recent:       recentOf(fleetDocument, forgesById, clock),
     readings,
+    readingsNote: readingsNoteOf(fleetDocument, forges),
   };
 }
 
-/** The figures the page title shows: none while a forge is not fully read, when they fold into the main column instead (B3). */
+/** The figures the page title shows: none while a forge is read only in part, when they fold into the main column instead (B3). */
 function titleFiguresOf(fleetDocument: FleetDocument): AttentionFigure[] {
-  return fleetDocument.figures.incompleteFor.length > 0 ? [] : figuresOf(fleetDocument);
+  return figuresFoldIntoTheMainColumn(fleetDocument) ? [] : figuresOf(fleetDocument);
 }
 
 function noForgeContentOf(fleetDocument: FleetDocument): NoForgeContent {

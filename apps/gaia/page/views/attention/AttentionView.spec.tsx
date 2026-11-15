@@ -73,7 +73,7 @@ function rowIdsIn(markup: string): string[] {
 
 /** Whether the held forge's callout is in the list of forges that need a look. */
 function heldCalloutIn(markup: string): boolean {
-  return markup.includes('<div class="gaia-attention-look" data-look-kind="launches-held">');
+  return markup.includes('<div class="gaia-attention-look" data-look-kind="launches-held"');
 }
 
 function staleRowCountIn(markup: string): number {

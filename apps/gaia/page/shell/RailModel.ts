@@ -1,14 +1,17 @@
 /**
  * What the rail shows of a fleet document: the four views with their counts, one row per forge not hidden in registry order, or a line
  * saying the registry holds none, and this machine's agents against its limit. Every count is the document's own figure; one the document
- * does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit, so it is never counted.
+ * does not hold is absent, never zero. Agents counts the job rows only: a brain's row counts against no limit, so it is never counted; it
+ * is `8+` while a forge at a version Gaia cannot talk to runs agents no total counts.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
 import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
 import { type GaiaRoute, type GaiaView, HashRouter } from '../shared/HashRouter.ts';
 import { type MachineLoad, MachineLoadModel }        from '../shared/MachineLoadModel.ts';
+import { FleetDocumentUtil }                         from '../shared/utils/FleetDocumentUtil.ts';
 import { ForgeContractUtil }                         from '../shared/utils/ForgeContractUtil.ts';
 import { ForgeTextUtil }                             from '../shared/utils/ForgeTextUtil.ts';
+import { ForgeVersionsTextUtil }                     from '../shared/utils/ForgeVersionsTextUtil.ts';
 
 export type RailCountTone = 'attention' | 'muted';
 
@@ -35,6 +38,8 @@ export interface RailForgeRow {
   readonly trackerId: string;
   readonly project:   string;
   readonly condition: DotCondition;
+  /** The condition word, and for a forge at another version what that version means: `Older than this Gaia · update the forge`. */
+  readonly title:     string;
   readonly href:      string;
   readonly count:     RailCount | null;
   readonly isCurrent: boolean;
@@ -106,13 +111,20 @@ function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailC
   switch (view) {
     case 'attention':
       return attentionCountOf(fleetDocument);
-    case 'agents':
-      return countOf(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length, 'muted');
+    case 'agents': {
+      const notCounted = FleetDocumentUtil.forgesWhoseAgentsAreNotCountedIn(fleetDocument).length > 0;
+      return countOf(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length, 'muted', notCounted ? '+' : '');
+    }
     case 'forges':
       return countOf(visibleForgesOf(fleetDocument).length, 'muted');
     case 'activity':
       return null;
   }
+}
+
+function forgeTitleOf(forge: FleetDocumentForge): string {
+  const conditionWord = ForgeTextUtil.conditionWordInSentenceCaseOf(ForgeTextUtil.shownConditionOf(forge));
+  return forge.versions === null ? conditionWord : ForgeVersionsTextUtil.railTitleOf({ project: forge.project, versions: forge.versions }, conditionWord);
 }
 
 function railViewOf(route: GaiaRoute): RailView | null {
@@ -134,6 +146,7 @@ function railContentOf(fleetDocument: FleetDocument | null, route: GaiaRoute): R
       trackerId: forge.trackerId,
       project:   forge.project,
       condition: ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
+      title:     forgeTitleOf(forge),
       href:      forgeHrefOf(forge),
       count:     forgeCountOf(forge),
       isCurrent: forge.trackerId === currentTrackerId,

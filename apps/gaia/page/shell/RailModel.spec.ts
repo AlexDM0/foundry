@@ -5,7 +5,8 @@
  * not hidden, in registry order. A count the document does not hold is absent, never 0.
  * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
  * this machine's slots and lines at, under and without a limit: the brain outside the limit, and the agents an unreachable forge last
- * reported (B3).
+ * reported (B3). U1: Agents reads `8+` while a forge Gaia cannot talk to at its version runs agents no total counts, and each forge row's
+ * title says what its version means.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -213,5 +214,24 @@ describe('the current row', () => {
       ['Example Billing', 'outdated'],
       ['Analytics Sandbox', 'unreadable'],
     ]);
+  });
+
+  test('Attention and Agents read 5+ and 8+ while two forges run at a version Gaia cannot talk to, and neither forge row has a count', () => {
+    const content = RailModel.railContentOf(FLEET_VERSIONS, DEFAULT_ROUTE);
+    expect(viewCountsOf(content)).toEqual({
+      attention: '5+', agents: '8+', activity: null, forges: '5'
+    });
+    expect(content.forges.map((row) => countTextOf(row.count))).toEqual(['2', '2', '1', null, null]);
+  });
+
+  test('each forge row\'s title says its condition and, at another version, what that version means', () => {
+    expect(RailModel.railContentOf(FLEET_VERSIONS, DEFAULT_ROUTE).forges.map((row) => row.title)).toEqual([
+      'Live · forge 3.4, ahead of this Gaia',
+      'Live',
+      'Live',
+      'Older than this Gaia · update the forge',
+      'Newer than this Gaia',
+    ]);
+    expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).forges.map((row) => row.title)[3]).toBe('Launches held');
   });
 });

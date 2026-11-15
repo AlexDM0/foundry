@@ -1,7 +1,8 @@
 /**
  * A forge-level condition, composed from the design-system package: a title line with the forge's dot, its name and its word, one sentence,
- * one mono line, and the actions at the end. Warn (held) and error (unreachable) are the package's banner in its orange and crimson, with
- * the 4 px left edge; neutral, for what is only incomplete, is the package's dashed card. The section is named by its title and word.
+ * one mono line or a versions line, and the actions at the end. Warn (held) and error (unreachable) are the package's banner in its orange
+ * and crimson, with the 4 px left edge; neutral, for what is only incomplete or only explains, is the package's dashed card. The section
+ * is named by its title and word.
  */
 
 import { Banner }         from 'design-system/Banner';
@@ -12,18 +13,21 @@ import type { ReactNode } from 'react';
 export type CalloutTone = 'warn' | 'error' | 'neutral';
 
 export interface CalloutProps {
-  readonly tone:         CalloutTone;
+  readonly tone:          CalloutTone;
   /** The forge's condition dot; the word beside it carries the meaning. */
-  readonly dot:          ReactNode;
-  readonly title:        string;
-  readonly word:         string;
-  readonly sentence:     string;
-  readonly machineLine?: string;
-  readonly actions?:     ReactNode;
+  readonly dot:           ReactNode;
+  readonly title:         string;
+  readonly word:          string;
+  /** A sentence, or a status in its place, such as a step on its way. */
+  readonly sentence:      ReactNode;
+  readonly machineLine?:  string;
+  /** A line set in the sentence's face with its machine values in mono, in place of the machine line. */
+  readonly versionsLine?: ReactNode;
+  readonly actions?:      ReactNode;
 }
 
 function CalloutBody({
-  tone, dot, title, word, sentence, machineLine
+  tone, dot, title, word, sentence, machineLine, versionsLine
 }: Omit<CalloutProps, 'actions'>) {
   return (
     <span className="gaia-callout-body" data-tone={tone}>
@@ -34,6 +38,7 @@ function CalloutBody({
       </span>
       <span className="gaia-callout-sentence">{sentence}</span>
       {machineLine === undefined ? null : <span className="gaia-callout-machine-line">{machineLine}</span>}
+      {versionsLine ?? null}
     </span>
   );
 }
