@@ -1,9 +1,14 @@
+import { join } from 'node:path';
+
 import base       from '@reliquary/eslint-config';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
 const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.spec.tsx', '**/testing/**/*.ts'];
+
+/** Gaia's own manifest and the workspace root's, which holds the dev tools every workspace shares. */
+const MANIFEST_FOLDERS = [import.meta.dirname, join(import.meta.dirname, '..', '..')];
 
 const RAW_MARKUP_MESSAGE = 'React escapes every value; never set raw markup.';
 
@@ -46,7 +51,7 @@ export default [
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: SPECS_AND_TESTING_FOLDERS,
-    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true }] },
+    rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] },
   },
   { files: TYPESCRIPT_FILES, rules: { 'import/enforce-node-protocol-usage': ['error', 'always'] } },
   { files: TYPESCRIPT_FILES, rules: { '@stylistic/no-trailing-spaces': 'error' } },

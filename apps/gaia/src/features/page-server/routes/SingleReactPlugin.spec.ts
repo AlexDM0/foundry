@@ -3,7 +3,7 @@
  * from Gaia's own `node_modules` only, so the package's hooks run on Gaia's renderer; without the plugin the same build bundles the copy
  * beside the package's real folder, which proves the check can see a second copy.
  */
-import { join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
@@ -14,6 +14,11 @@ const REPOSITORY_ROOT = join(import.meta.dir, '..', '..', '..', '..');
 
 /** An unminified bundle names each module it holds in a comment line of its path, relative to the build's working folder. */
 const REACT_MODULE_COMMENT = /^\/\/ (?<modulePath>\S*node_modules\/react(?:-dom)?\/\S+)$/gm;
+
+/** Where Gaia's own React sits, as a bundle names it: the workspace install hoists it out of Gaia's folder. */
+function gaiaNodeModulesPrefix(): string {
+  return `${relative(process.cwd(), dirname(dirname(Bun.resolveSync('react/package.json', REPOSITORY_ROOT))))}/`;
+}
 
 async function reactModulePathsOf(plugins: Bun.BunPlugin[]): Promise<string[]> {
   const built = await Bun.build({
@@ -28,11 +33,11 @@ describe('the page build', () => {
   test('bundles React only from Gaia\'s own node_modules', async () => {
     const reactModulePaths = await reactModulePathsOf([singleReactPlugin(REPOSITORY_ROOT)]);
     expect(reactModulePaths.length).toBeGreaterThan(0);
-    expect(reactModulePaths.filter((modulePath) => !modulePath.startsWith('node_modules/'))).toEqual([]);
+    expect(reactModulePaths.filter((modulePath) => !modulePath.startsWith(gaiaNodeModulesPrefix()))).toEqual([]);
   });
 
   test('without the plugin it would bundle the second copy beside the linked package', async () => {
     const reactModulePaths = await reactModulePathsOf([]);
-    expect(reactModulePaths.some((modulePath) => !modulePath.startsWith('node_modules/'))).toBe(true);
+    expect(reactModulePaths.some((modulePath) => !modulePath.startsWith(gaiaNodeModulesPrefix()))).toBe(true);
   });
 });

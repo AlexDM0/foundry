@@ -3,6 +3,11 @@
 Gaia is one window over every forge on this machine: what waits on User, every running agent, and every forge's state and controls. A Bun
 server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app. Gaia runs no agent and talks only to forges.
 
+Gaia lives in `apps/gaia/` of a Bun workspace, as it will in the forge monorepo, and every path below is relative to that folder. The
+repository root holds only the workspace: its manifest, the one `bun.lock`, the hoisted `node_modules` and the scripts that run each
+workspace's own (`README.md` there says how to set up and verify). Gaia's `package.json` names Gaia's own dependencies and is released on
+its own; the dev tools every workspace shares are the root's.
+
 ## Gaia's own rules
 
 1. **Write only in this repository.** The forge (`~/development/forge`), agent-dashboard, agent-progress and books-explorer are read-only
@@ -23,8 +28,8 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
 7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.
 8. **Commits:** one plain, human-written subject line. No AI attribution of any kind: no `Co-Authored-By`, no "generated with" footer.
    Never `--no-verify`.
-9. **Verify** with `bun run verify` (typecheck of `src/` and `page/`, lint, specs, the recording-stamp check), never with ad-hoc compiler
-   flags.
+9. **Verify** with `bun run verify`, here or at the repository root, which runs every workspace's own (typecheck of `src/` and `page/`,
+   lint, specs, the recording-stamp check), never with ad-hoc compiler flags.
 10. **Colour lives only in tokens:** the design-system package's `tokens.css` and, for Gaia's own parts only (the marks, a fill the
     package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no package token.
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
@@ -37,8 +42,8 @@ server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app.
     hook-free part, and a spec renders a hooked root, or a package component, which may hold hooks, with `react-dom/server`, which runs the
     hooks but no effect, as `page/shell/GaiaApp.spec.tsx` and `page/DesignSystemPackage.spec.tsx` do, or keeps the hooked package
     component folded with `ReactElementTree.unfoldedKeeping` to read and call the props a view hands it.
-11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system`, never named in
-    `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
+11. **The design system is Forge's `design-system` package, used as it is.** It is linked with `bun link design-system` at the repository
+    root, never named in a `package.json`; link it again when an install removed it. Import each entry by its export name (`design-system/Button`,
     `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no export, is the one exception.
     `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts, which the page build emits and
     Gaia's server serves under their hashed names. Bun follows the link to the package's real folder, so `page/tsconfig.json` preserves
@@ -415,12 +420,13 @@ src/
 
 ## 14. Documentation
 
-- **One CLAUDE.md, at the repository root.** It holds the rules and a short map of the top-level
-  folders. No CLAUDE.md files inside the code: a file's path and export name are its documentation.
-- **The root CLAUDE.md stays small.** It carries only what the code cannot show: rules, boundaries and
+- **One CLAUDE.md per app, at the app's root** (`apps/gaia/CLAUDE.md`); the repository root's CLAUDE.md only
+  points at it. It holds the rules and a short map of the app's top-level folders. No CLAUDE.md files inside
+  the code: a file's path and export name are its documentation.
+- **The app's CLAUDE.md stays small.** It carries only what the code cannot show: rules, boundaries and
   decisions. It never carries per-file descriptions or anything a reader can learn by opening the
   folder.
-- **A change that invalidates a stated rule updates the root CLAUDE.md in the same change.**
+- **A change that invalidates a stated rule updates the app's CLAUDE.md in the same change.**
 - **A backlog document** holds what is agreed and not started, with the reason it waits. It is not a
   status page.
 - **One reference per fact.** A second copy of a command list, format or threshold is either
@@ -447,5 +453,5 @@ src/
 - [ ] Outside systems reached through one boundary util; only its specs touch the real system and
       record its answers; every other test mocks those answers; no emulators.
 - [ ] No test waits out a production bound or sleeps a fixed time; nothing leaks after a suite.
-- [ ] The root CLAUDE.md is updated in the same change when a rule changes; no CLAUDE.md files
+- [ ] The app's CLAUDE.md is updated in the same change when a rule changes; no CLAUDE.md files
       anywhere else.

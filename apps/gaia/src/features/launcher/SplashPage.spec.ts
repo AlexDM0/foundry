@@ -102,15 +102,15 @@ function renderedSplashAt(address: string, systemPrefersDark = false): RenderedS
 describe('the splash', () => {
   test('links the package\'s tokens and then Gaia\'s, by paths that reach them from the splash\'s folder', () => {
     const linked = linkedStylesheetsOf(splashText());
-    expect(linked).toEqual(['../../node_modules/design-system/styles/tokens.css', '../../page/styles/tokens.css']);
+    expect(linked).toEqual(['../../../../node_modules/design-system/styles/tokens.css', '../../page/styles/tokens.css']);
     for (const stylesheet of linked) expect(existsSync(join(dirname(SPLASH_PATH), stylesheet))).toBe(true);
   });
 
   test('draws in the package\'s own Inter files, by paths that reach them from the splash\'s folder, so no font is fetched off the machine', () => {
     const fontSources = [...styleOf(splashText()).matchAll(FONT_SOURCE)].map((source) => source[1] ?? '');
     expect(fontSources).toEqual([
-      '../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2',
-      '../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2',
+      '../../../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2',
+      '../../../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2',
     ]);
     for (const fontSource of fontSources) expect(existsSync(join(dirname(SPLASH_PATH), fontSource))).toBe(true);
     expect(splashText()).not.toMatch(/https?:\/\//);

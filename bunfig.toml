@@ -1,0 +1,3 @@
+[install]
+# One hoisted node_modules at the root, as forge keeps it: every workspace and its tools resolve from there.
+linker = "hoisted"

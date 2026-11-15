@@ -8,9 +8,7 @@ without it.
 
 ## Develop
 
-```bash
-bun install
-```
+Set up at the repository root, as its `README.md` says (install the workspace, link the design-system package). Then, in this folder:
 
 ```bash
 bun run verify
@@ -35,7 +33,7 @@ checkout; when Gaia's install version changes, the app says so and asks for this
 
 ## Read further
 
-- `CLAUDE.md`: the rules for working in this repository, its map and its boundaries.
+- `CLAUDE.md`: the rules for working on Gaia, its map and its boundaries.
 - `docs/architecture.md`: how the launcher, the server, the page and the forges fit together at run time.
 - `docs/contracts.md`: every versioned contract Gaia reads, writes, sends or serves, with its version.
 - `docs/backlog.md`: what is agreed and not started, with the reason it waits.
