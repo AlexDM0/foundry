@@ -137,8 +137,9 @@ Build, review, landing, as today, with the entity's constitution, pipeline and a
   difference, on the package's folders and on the `reach` paths a package stage changed, between the target and the
   branch, with the target's merged-in commits left out. This is how Customs already judges a branch against its
   target. Later jobs of the ticket may not alter that change. A merge of the main line never breaks a seal.
-- **Skipping `adapt`.** When, for every crossed package, the sealed change equals the ticket's own change at the
-  end of stage 1, the proposal landed as written and stage 4 is skipped.
+- **Skipping `adapt`.** When, for every crossed package, the package's builder reports that what the package
+  exposes is unchanged from the proposal, and the package's reviewer confirms it, stage 4 is skipped. When stage 4
+  runs, it resumes the stage 1 session if it can.
 - **Ticket status.** A stage job never moves the ticket's status. The ticket is `in-progress` through stages 1 to 4
   and `in-review` in stage 5; the Playbook launches by the row's `stage`, not by the status.
 - **Counters.** Red handoffs and failed passes are counted per stage and entity and start at zero when a stage
@@ -418,7 +419,7 @@ ticket. A non-empty `whitelist` is still refused.
 - Filing refuses E85.
 - Bridge: entity filter and swimlanes on the Kanban, the stages of a crossing ticket, a per-entity pipeline view.
 - `packages/forge-contracts`: entities and stages in the monitor snapshot as added keys. Gaia adopts that version.
-- `concurrency` per entity; a higher default limit for a top-level forge.
+- `concurrency` per entity, under the board's limit, which keeps today's default.
 
 ## 7. What may not change
 
@@ -441,14 +442,15 @@ Reported for forge's `ticket-014` and Gaia's `ticket-001`. They do not depend on
 A top-level forge starts its sessions at the worktree's root, where a root tracker commits today, so it does not
 depend on the outcome of the commit probe.
 
-## 9. Open decisions
+## 9. Decisions
 
-- Whether "the proposal landed as written" compares the package's change byte for byte (assumed here) or only what
-  the package exposes.
-- Whether stage 4 resumes the stage 1 session when it exists (assumed here) or always starts fresh.
-- The board's default concurrency for a top-level forge. A low-priority crossing ticket can wait long behind
-  higher ones while its branch ages.
-- Whether this repository moves from two folder forges to one top-level forge.
+The owner decided on 16 November 2026:
+
+- `adapt` is skipped when what the package exposes is unchanged from the proposal. The package's builder states it
+  in its report, and the package's reviewer confirms it.
+- Stage 4 resumes the stage 1 session when it exists, and starts fresh otherwise (E43).
+- A top-level forge keeps today's default concurrency. An entity's cap sits under it.
+- This repository moves from two folder forges to one top-level forge, as the last step of this work.
 
 ## Sources
 
