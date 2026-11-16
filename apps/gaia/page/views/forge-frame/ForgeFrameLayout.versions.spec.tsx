@@ -49,6 +49,7 @@ function controlsOf(trackerId: string, overrides: Partial<ForgeBarControlsProps>
     brainShown:        null,
     commandIsOnItsWay: false,
     stopIsOpen:        false,
+    stopAnchorRef:     { current: null },
     stopAgents:        'keep',
     onCommand:         (command) => sent.push(command),
     onOpenStop:        () => events.push('open stop'),

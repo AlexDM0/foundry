@@ -1,14 +1,12 @@
 /**
  * The callout. What matters: the title line holds the dot, the forge's name and the word, then the sentence and the mono line; the mono
- * line and the actions are absent when not given; it is a section named by its title and word; warn and error are the package's banner
- * in its warn and error tones, handed the body as its text and the actions as its action, and neutral is the package's dashed card
- * holding the body, then the actions; each tone's word has a rule.
+ * line and the actions are absent when not given; it is a section named by its title and word; it is the package's callout, warn tinted,
+ * error, and neutral dashed, holding the body and handed the actions as its own; each tone's word has a rule.
  */
-import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
-import { Button }                 from 'design-system/Button';
-import { Card }                   from 'design-system/Card';
-import { StateDot }               from 'design-system/StateDot';
+import { describe, expect, test }    from 'bun:test';
+import { Button }                    from 'design-system/Button';
+import { Callout as PackageCallout } from 'design-system/Callout';
+import { StateDot }                  from 'design-system/StateDot';
 
 import { GaiaStylesheet }            from '../testing/GaiaStylesheet.ts';
 import { PackageButtons }            from '../testing/PackageButtons.ts';
@@ -31,7 +29,7 @@ function calloutOf(tone: CalloutTone) {
 }
 
 describe('the callout', () => {
-  test('the title line, the sentence, the mono line and the actions come in that order', () => {
+  test('the title line, the sentence and the mono line come in that order as the callout\'s body, the actions handed as its actions', () => {
     const unfolded = calloutOf('neutral');
     const callout = ReactElementTree.onlyWithClass(unfolded, 'gaia-callout');
     expect([callout.tag, callout.props['aria-label']]).toEqual(['section', 'Example Mobile App: Launches held']);
@@ -41,35 +39,30 @@ describe('the callout', () => {
     expect(ReactElementTree.textOf(unfolded)).toBe(
       'Example Mobile AppLaunches heldThe install version changed. Nothing launches until this forge is updated.2 agents keep running through the update',
     );
-    const parts = ReactElementTree.hostElementsIn(unfolded, (element) => ReactElementTree.hasClass(element, 'gaia-callout-body') || PackageButtons.isButton(element));
-    expect(parts.map((part) => part.tag)).toEqual(['span', 'Button']);
-    expect(PackageButtons.buttonsIn(unfolded).map(PackageButtons.labelOf)).toEqual(['Update forge']);
+    const packageCallout = ReactElementTree.onlyOfComponent(unfolded, PackageCallout);
+    expect(ReactElementTree.hostElementsIn(ReactElementTree.unfoldedProp(packageCallout, 'children')).map((element) => element.props['className'])[0]).toBe('gaia-callout-body');
+    expect(PackageButtons.buttonsIn(ReactElementTree.unfoldedProp(packageCallout, 'actions')).map(PackageButtons.labelOf)).toEqual(['Update forge']);
   });
 
-  test('warn and error are the package\'s banner in that tone, its text the body and its action the actions', () => {
-    for (const tone of ['warn', 'error'] as const) {
-      const banner = ReactElementTree.onlyOfComponent(calloutOf(tone), Banner);
-      expect(banner.props['tone']).toBe(tone);
-      const body = ReactElementTree.onlyWithClass(ReactElementTree.unfoldedProp(banner, 'text'), 'gaia-callout-body');
+  test('each tone is the package\'s callout, warn tinted and neutral dashed, holding the body and handed the actions', () => {
+    const expectedLooks = { warn: ['warn', true, undefined], error: ['error', undefined, undefined], neutral: ['neutral', undefined, true] } as const;
+    for (const [tone, look] of Object.entries(expectedLooks)) {
+      const callout = ReactElementTree.onlyOfComponent(calloutOf(tone as CalloutTone), PackageCallout);
+      expect([callout.props['tone'], callout.props['tinted'], callout.props['dashed']]).toEqual([...look]);
+      const body = ReactElementTree.onlyWithClass(ReactElementTree.unfoldedProp(callout, 'children'), 'gaia-callout-body');
       expect([body.props['data-tone'], ReactElementTree.textOf([body])]).toEqual([
         tone, 'Example Mobile AppLaunches heldThe install version changed. Nothing launches until this forge is updated.2 agents keep running through the update',
       ]);
-      expect(PackageButtons.buttonsIn(ReactElementTree.unfoldedProp(banner, 'action')).map(PackageButtons.labelOf)).toEqual(['Update forge']);
+      expect(PackageButtons.buttonsIn(ReactElementTree.unfoldedProp(callout, 'actions')).map(PackageButtons.labelOf)).toEqual(['Update forge']);
     }
-  });
-
-  test('neutral is the package\'s dashed card, with no banner', () => {
-    const unfolded = calloutOf('neutral');
-    expect(ReactElementTree.onlyOfComponent(unfolded, Card).props['dashed']).toBe(true);
-    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withComponent(Banner))).toEqual([]);
   });
 
   test('the mono line and the actions are absent when not given', () => {
     const unfolded = ReactElementTree.unfolded(
       <Callout tone="neutral" dot={<ConditionDot condition="live" />} title="Research Wiki" word="Counts only" sentence="This forge is older than the monitor contract." />,
     );
-    const optionalParts = ['gaia-callout-machine-line', 'gaia-callout-actions'];
-    expect(ReactElementTree.hostElementsIn(unfolded, (element) => optionalParts.some((className) => ReactElementTree.hasClass(element, className)))).toEqual([]);
+    expect(ReactElementTree.hostElementsIn(unfolded, ReactElementTree.withClass('gaia-callout-machine-line'))).toEqual([]);
+    expect(ReactElementTree.onlyOfComponent(unfolded, PackageCallout).props['actions']).toBeUndefined();
   });
 
   test('each tone\'s word has a rule of its own', () => {

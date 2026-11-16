@@ -15,6 +15,7 @@
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
+import { ConfirmStrip }            from 'design-system/ConfirmStrip';
 import { DataTable }               from 'design-system/DataTable';
 import { FillMeter }               from 'design-system/FillMeter';
 import { Icon }                    from 'design-system/Icon';
@@ -236,15 +237,19 @@ describe('a row\'s controls', () => {
 describe('the Stop dialog (B2 acceptance 1)', () => {
   test('hands the view the chosen agents, the cancel and the command its Stop sends', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' } });
-    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => element.props['aria-label'] === 'Stop Example Storefront');
-    expect(tree.textOf([tree.onlyWithClass([dialog], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
+    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => tree.withComponent(ConfirmStrip)(element) && element.props['label'] === 'Stop Example Storefront');
+    expect(['question', 'tone', 'cancelLabel'].map((propName) => dialog.props[propName])).toEqual([
+      'Stop the Overseer of Example Storefront? 4 agents are running.',
+      'neutral',
+      'Cancel',
+    ]);
     const choices = tree.hostElementsIn([dialog], tree.withTag('ChoiceOption')).map((choice) => choice.props as unknown as ChoiceOptionProps);
     expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.props.type, choice.input?.props.checked, choice.input?.props.name])).toEqual([
       ['Stop the Overseer only', true, 'radio', true, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
       ['Stop the agents, then the Overseer', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
     ]);
     choices.find((choice) => !choice.chosen)?.input?.props.onChange();
-    press(controlNamed([dialog], 'Cancel'));
+    tree.dispatch(dialog, 'onCancel');
     press(tree.onlyHostElementIn([dialog], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary'));
     expect(handled.stopChoices).toEqual(['stop-first']);
     expect(handled.stopsCancelled).toEqual([1]);
@@ -253,7 +258,7 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
 
   test('with "Stop the agents, then the Overseer" chosen, its Stop sends stop-first', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } });
-    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => element.props['aria-label'] === 'Stop Example Storefront');
+    const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => tree.withComponent(ConfirmStrip)(element) && element.props['label'] === 'Stop Example Storefront');
     press(tree.onlyHostElementIn([dialog], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary'));
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' }]);
   });

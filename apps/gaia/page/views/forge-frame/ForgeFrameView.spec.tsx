@@ -82,6 +82,7 @@ function buttonsIn({
       brainShown={bar.brain === null ? null : ForgeFrameModel.brainShownAfter(bar.brain, commandState.failure)}
       commandIsOnItsWay={commandState.onItsWay !== null}
       stopIsOpen={false}
+      stopAnchorRef={{ current: null }}
       stopAgents="keep"
       onCommand={doNothing}
       onOpenStop={doNothing}

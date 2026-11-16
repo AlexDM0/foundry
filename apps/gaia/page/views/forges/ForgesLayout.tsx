@@ -6,7 +6,9 @@
  * and the table's note says what the verdicts mean. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
 import { Button }                                             from 'design-system/Button';
+import { Card }                                               from 'design-system/Card';
 import { ChoiceInput, ChoiceOption }                          from 'design-system/ChoiceOption';
+import { ConfirmStrip }                                       from 'design-system/ConfirmStrip';
 import { CountBadge }                                         from 'design-system/CountBadge';
 import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system/DataTable';
 import { EmptyState }                                         from 'design-system/EmptyState';
@@ -21,8 +23,8 @@ import { Text }                                               from 'design-syste
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
+import { ButtonGlyph }                                         from '../../design-system/ButtonGlyph.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
-import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { RoleDot }                                             from '../../design-system/RoleDot.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
@@ -119,7 +121,7 @@ function ForgeButtonControl({
       if (button.iconOnly) {
         return (
           <IconButton
-            drawing={<span className="gaia-forges-icon-drawing"><Icon name="arrow-out-of-square" label={null} /></span>}
+            drawing={<ButtonGlyph name="arrow-out-of-square" />}
             accessibleName={button.label}
             title={button.label}
             disabled={button.disabled}
@@ -280,25 +282,25 @@ function StopDialogPanel({ dialog, trackerId, handlers }: { readonly dialog: Sto
           name={`gaia-forges-stop-${trackerId}`}
           checked={choice.chosen}
           accessibleName={choice.title}
-          // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
-          onChange={() => {
-            if (!dialog.isOnItsWay) handlers.onStopChoice(choice.agents);
-          }}
+          disabled={dialog.isOnItsWay}
+          onChange={() => handlers.onStopChoice(choice.agents)}
         />
       )}
     />
   ));
   return (
-    <ConfirmPanel
-      label={dialog.label}
-      question={dialog.question}
-      {...(choices.length === 0 ? {} : { choices })}
-      {...(dialog.consequence === null ? {} : { consequence: dialog.consequence })}
-      confirmLabel="Stop"
-      onConfirm={() => handlers.onConfirmStop(dialog.command)}
-      onCancel={handlers.onCancelStop}
-      disabled={dialog.isOnItsWay}
-    />
+    <Card paddingVertical="twelve" paddingHorizontal="sixteen">
+      <ConfirmStrip
+        label={dialog.label}
+        question={dialog.question}
+        {...(choices.length === 0 ? {} : { choices })}
+        {...(dialog.consequence === null ? {} : { consequence: dialog.consequence })}
+        tone="neutral"
+        confirm={<Button label="Stop" emphasis="primary" compact disabled={dialog.isOnItsWay} onPress={() => handlers.onConfirmStop(dialog.command)} />}
+        cancelLabel="Cancel"
+        onCancel={handlers.onCancelStop}
+      />
+    </Card>
   );
 }
 

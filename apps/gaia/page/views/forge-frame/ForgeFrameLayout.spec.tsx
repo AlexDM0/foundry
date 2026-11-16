@@ -11,11 +11,13 @@
  * keeping the frame hidden behind it; says the forge cannot be shown inside Gaia with Open in new tab; shows B3's callout with Look again;
  * and offers Try again on a refused session.
  */
-import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
-import type { ChoiceOptionProps } from 'design-system/ChoiceOption';
-import { MonoId }                 from 'design-system/MonoId';
-import { StateDot }               from 'design-system/StateDot';
+import { describe, expect, test }    from 'bun:test';
+import { Callout as PackageCallout } from 'design-system/Callout';
+import type { ChoiceOptionProps }    from 'design-system/ChoiceOption';
+import { ConfirmStrip }              from 'design-system/ConfirmStrip';
+import { MonoId }                    from 'design-system/MonoId';
+import { Popover }                   from 'design-system/Popover';
+import { StateDot }                  from 'design-system/StateDot';
 
 import type { CommandBody }                                   from '../../@types/CommandDocument.ts';
 import type { FleetDocumentBrainState, FleetDocumentForge }   from '../../@types/FleetDocument.ts';
@@ -61,6 +63,7 @@ function controlsOf(overrides: Partial<ForgeBarControlsProps> = {}) {
     brainShown:        bar.brain?.shown ?? null,
     commandIsOnItsWay: false,
     stopIsOpen:        false,
+    stopAnchorRef:     { current: null },
     stopAgents:        'keep',
     onCommand:         (command) => sent.push(command),
     onOpenStop:        () => events.push('open stop'),
@@ -270,37 +273,41 @@ describe('the forge mark\'s double click (PLAN B2)', () => {
 describe('the Stop question as a popover under its button (B2)', () => {
   test('asks about the forge, offers both choices with "Stop the Overseer only" chosen, and says what keeps waiting', () => {
     const { unfolded } = controlsOf({ stopIsOpen: true });
-    const popover = tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover');
+    const popover = tree.onlyOfComponent(unfolded, Popover);
     expect(tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop').children).toContain(popover);
-    expect(tree.onlyWithClass([popover], 'gaia-confirm').props['aria-label']).toBe('Stop Example Storefront');
-    expect(tree.textOf([tree.onlyWithClass([popover], 'gaia-confirm-question')])).toBe('Stop the Overseer of Example Storefront? 4 agents are running.');
+    expect(['label', 'role', 'width', 'placement'].map((propName) => popover.props[propName])).toEqual(['Stop Example Storefront', 'dialog', 'wide', 'below-end']);
+    const strip = tree.onlyOfComponent([popover], ConfirmStrip);
+    expect(['label', 'question', 'consequence'].map((propName) => strip.props[propName])).toEqual([
+      'Stop Example Storefront',
+      'Stop the Overseer of Example Storefront? 4 agents are running.',
+      '2 entries keep waiting on you while it is stopped.',
+    ]);
     const choices = choicesIn(popover);
     expect(choices.map((choice) => [choice.label, choice.input?.props.checked])).toEqual([['Stop the Overseer only', true], ['Stop the agents, then the Overseer', false]]);
-    expect(tree.textOf([tree.onlyWithClass([popover], 'gaia-confirm-consequence')])).toBe('2 entries keep waiting on you while it is stopped.');
   });
 
   test('"Stop the Overseer only" sends forge-stop keeping the agents, and the other choice is handed on', () => {
     const { unfolded, sent, events } = controlsOf({ stopIsOpen: true });
-    const popover = tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover');
+    const popover = tree.onlyOfComponent(unfolded, Popover);
     const [, stopFirst] = choicesIn(popover);
     if (stopFirst?.input === undefined) throw new Error('The question has no second choice.');
     stopFirst.input.props.onChange();
     PackageButtons.press(buttonNamed([popover], 'Stop'));
-    PackageButtons.press(buttonNamed([popover], 'Cancel'));
+    tree.dispatch(tree.onlyOfComponent([popover], ConfirmStrip), 'onCancel');
     expect(events).toEqual(['choose stop-first', 'cancel stop']);
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'keep' }]);
   });
 
   test('with "Stop the agents, then the Overseer" chosen, Stop sends stop-first', () => {
     const { unfolded, sent } = controlsOf({ stopIsOpen: true, stopAgents: 'stop-first' });
-    PackageButtons.press(buttonNamed([tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover')], 'Stop'));
+    PackageButtons.press(buttonNamed([tree.onlyOfComponent(unfolded, Popover)], 'Stop'));
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'stop-first' }]);
   });
 
   test('with no agent running the question has no choices and Stop keeps the Overseer\'s agents, of which there are none', () => {
     const idle = barOf({ ...STOREFRONT, concurrency: null, agents: [] });
     const { unfolded, sent } = controlsOf({ bar: idle, stopIsOpen: true, stopAgents: 'stop-first' });
-    const popover = tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop-popover');
+    const popover = tree.onlyOfComponent(unfolded, Popover);
     expect(choicesIn(popover)).toEqual([]);
     PackageButtons.press(buttonNamed([popover], 'Stop'));
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'keep' }]);
@@ -397,7 +404,7 @@ describe('the frame area', () => {
     const unreachable = ForgeFrameModel.forgeFrameContentOf('invoice-service-2b9e', FLEET_DEGRADED, CLOCK).area;
     const { unfolded, events } = areaOf(unreachable);
     const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
-    expect(tree.onlyOfComponent([callout], Banner).props['tone']).toBe('error');
+    expect(tree.onlyOfComponent([callout], PackageCallout).props['tone']).toBe('error');
     expect(tree.textOf([callout])).toContain('Its Overseer stopped answering. The registry still names it.');
     expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-callout-machine-line')])).toBe('127.0.0.1:4957 · process 48211 · last answer 13:14');
     PackageButtons.press(buttonNamed(unfolded, 'Look again'));

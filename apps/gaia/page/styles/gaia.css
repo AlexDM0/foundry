@@ -9,6 +9,9 @@
 
 /* ── Design system: the parts the package does not have ────────────────────────────────────────────────────────────────────── */
 
+/* A package icon as a button's glyph, at the boards' 13 px */
+.gaia-button-glyph { display: inline-flex; flex: none; width: var(--space-13); height: var(--space-13); }
+
 /* A label a screen reader reads where the layout already says what it is, such as a group's */
 .gaia-visually-hidden {
   position: absolute;
@@ -106,7 +109,6 @@
 .gaia-callout-body[data-tone="neutral"] .gaia-callout-word { color: var(--ink-muted); }
 .gaia-callout-sentence { display: block; }
 .gaia-callout-machine-line { display: block; font-family: var(--font-mono); font-size: var(--fs-pill); color: var(--ink-muted); }
-.gaia-callout-actions { display: inline-flex; flex: none; gap: var(--sp-2); }
 
 /* Versions: a forge's version beside the one this Gaia is built for, the verdict's mark and word, and the pair of both */
 .gaia-version-number {
@@ -186,26 +188,9 @@
 .gaia-list-card-row { padding: var(--sp-3) var(--sp-4); border-bottom: var(--hairline) solid var(--line); }
 .gaia-list-card-row:last-child { border-bottom: 0; }
 
-/* Confirm panel: a card with its question, the choices side by side, and what follows beside Cancel and the confirming button */
-.gaia-confirm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-  border: var(--hairline) solid var(--line-strong);
-  border-radius: var(--r-3);
-  background: var(--surface);
-  transition: opacity var(--motion-base) var(--ease-out);
-}
-.gaia-confirm-question { margin: 0; font-size: var(--fs-confirm-question); line-height: var(--line-height-confirm-question); font-weight: var(--weight-strong); }
-.gaia-confirm-choices { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: var(--sp-3); }
-.gaia-confirm-footer { display: flex; align-items: center; gap: var(--sp-2); }
-.gaia-confirm-consequence { flex: 1; font-size: var(--fs-small); color: var(--ink-muted); }
-
-/* A brain's refusal and a stop panel fade in as they appear; once motion is ready, since the tokens are 0ms until then. */
+/* A brain's refusal fades in as it appears; once motion is ready, since the tokens are 0ms until then. */
 @starting-style {
-  .gaia-brain-chip-refusal,
-  .gaia-confirm { opacity: 0; }
+  .gaia-brain-chip-refusal { opacity: 0; }
 }
 
 /* A focus ring appears and leaves at once, and draws outside the box, so it moves nothing. */
@@ -844,8 +829,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
 .gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .gaia-forges-button-title { display: inline-flex; }
-/* The package's icon sizes to its holder: the open-in-new-tab arrow in the icon button's 16 px glyph box */
-.gaia-forges-icon-drawing { display: inline-flex; width: var(--space-16); height: var(--space-16); }
 /* A forge Gaia cannot talk to: its agents and what waits in it are not read */
 .gaia-forges-not-read { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-4); white-space: nowrap; }
 /* The versions disclosure under the condition: the forge's version and verdict in mono with a chevron, down while closed and up while open */
@@ -1391,24 +1374,12 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forge-frame-bar-update-refusal-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: var(--weight-strong); }
 
-/* Stop's question floats under its button, so it draws a shadow. */
+/* Stop's wrapper anchors its question's popover, which hangs under it. */
 .gaia-forge-frame-stop { position: relative; display: inline-flex; }
-.gaia-forge-frame-stop-popover {
-  position: absolute;
-  top: calc(100% + var(--sp-2));
-  right: 0;
-  z-index: 1;
-  width: var(--forge-frame-stop-popover-width);
-  border-radius: var(--r-3);
-  box-shadow: var(--shadow-menu);
-  transition: opacity var(--motion-fast) var(--ease-out);
-}
 
-/* A notice and Stop's question fade in as they appear; the panel inside Stop's question fades with it, not again. A refused notice
-   draws nothing of its own and its refusal fades in itself, so the notice holds still and the refusal fades once. */
+/* A notice fades in as it appears. A refused notice draws nothing of its own and its refusal fades in itself, so the notice holds still and
+   the refusal fades once. */
 @starting-style {
-  .gaia-forge-frame-notice,
-  .gaia-forge-frame-stop-popover { opacity: 0; }
+  .gaia-forge-frame-notice { opacity: 0; }
 }
-.gaia-forge-frame-notice[data-refused],
-.gaia-forge-frame-stop-popover > .gaia-confirm { transition: none; }
+.gaia-forge-frame-notice[data-refused] { transition: none; }

@@ -8,17 +8,18 @@
 import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
 import { Button }                         from 'design-system/Button';
 import { ChoiceInput, ChoiceOption }      from 'design-system/ChoiceOption';
-import { Icon }                           from 'design-system/Icon';
+import { ConfirmStrip }                   from 'design-system/ConfirmStrip';
 import { IconButton }                     from 'design-system/IconButton';
 import { MonoId }                         from 'design-system/MonoId';
+import { Popover }                        from 'design-system/Popover';
 import { Text }                           from 'design-system/Text';
-import type { ReactNode, Ref }            from 'react';
+import type { ReactNode, Ref, RefObject } from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents }            from '../../@types/CommandDocument.ts';
 import { BrainChip, type BrainChipProps, type BrainControl } from '../../design-system/BrainChip.tsx';
+import { ButtonGlyph }                                       from '../../design-system/ButtonGlyph.tsx';
 import { Callout }                                           from '../../design-system/Callout.tsx';
 import { ConditionDot }                                      from '../../design-system/ConditionDot.tsx';
-import { ConfirmPanel }                                      from '../../design-system/ConfirmPanel.tsx';
 import { Refusal }                                           from '../../design-system/Refusal.tsx';
 import { VersionsPair }                                      from '../../shared/VersionsPair.tsx';
 import { VersionsText }                                      from '../../shared/VersionsText.tsx';
@@ -44,6 +45,8 @@ export interface ForgeBarControlsProps {
   /** While a command to this forge is on its way, every control of the bar waits for it. */
   readonly commandIsOnItsWay: boolean;
   readonly stopIsOpen:        boolean;
+  /** Stop's wrapper, which holds its question's popover and counts as inside it. */
+  readonly stopAnchorRef:     RefObject<HTMLSpanElement | null>;
   readonly stopAgents:        ForgeStopAgents;
   readonly onCommand:         (command: ForgeCommandBody) => void;
   readonly onOpenStop:        () => void;
@@ -65,9 +68,9 @@ const DISMISS_REFUSAL_LABEL = 'Dismiss this refusal';
 
 const FIRST_CHOICE_LETTER_CODE = 'A'.charCodeAt(0);
 
-function StopPopover({
+function StopQuestionStrip({
   bar, question, commandIsOnItsWay, stopAgents, onCommand, onChooseStop, onCancelStop
-}: { readonly question: StopQuestion } & Omit<ForgeBarControlsProps, 'stopIsOpen' | 'onOpenStop'>) {
+}: { readonly question: StopQuestion } & Omit<ForgeBarControlsProps, 'stopIsOpen' | 'onOpenStop' | 'stopAnchorRef'>) {
   const choices = question.choices.length === 0 ? undefined : question.choices.map((choice, i) => (
     <ChoiceOption
       key={choice.agents}
@@ -82,27 +85,24 @@ function StopPopover({
           name={`gaia-stop-${bar.trackerId}`}
           checked={choice.agents === stopAgents}
           accessibleName={choice.title}
-          // The package's option cannot be disabled, so a choice made while the Stop is on its way changes nothing.
-          onChange={() => {
-            if (!commandIsOnItsWay) onChooseStop(choice.agents);
-          }}
+          disabled={commandIsOnItsWay}
+          onChange={() => onChooseStop(choice.agents)}
         />
       )}
     />
   ));
+  const confirmStop = () => onCommand({ kind: 'forge-stop', trackerId: bar.trackerId, agents: question.choices.length === 0 ? 'keep' : stopAgents });
   return (
-    <div className="gaia-forge-frame-stop-popover">
-      <ConfirmPanel
-        label={question.label}
-        question={question.question}
-        {...(choices === undefined ? {} : { choices })}
-        {...(question.consequence === null ? {} : { consequence: question.consequence })}
-        confirmLabel="Stop"
-        onConfirm={() => onCommand({ kind: 'forge-stop', trackerId: bar.trackerId, agents: question.choices.length === 0 ? 'keep' : stopAgents })}
-        onCancel={onCancelStop}
-        disabled={commandIsOnItsWay}
-      />
-    </div>
+    <ConfirmStrip
+      label={question.label}
+      question={question.question}
+      {...(choices === undefined ? {} : { choices })}
+      {...(question.consequence === null ? {} : { consequence: question.consequence })}
+      tone="neutral"
+      confirm={<Button label="Stop" emphasis="primary" compact disabled={commandIsOnItsWay} onPress={confirmStop} />}
+      cancelLabel="Cancel"
+      onCancel={onCancelStop}
+    />
   );
 }
 
@@ -184,7 +184,7 @@ function UpdateForgeStep({
 
 /** Open in new tab in the bar or a notice, compact, its arrow after its words. */
 function OpenInNewTabButton({ disabled, onPress }: { readonly disabled: boolean; readonly onPress: () => void }) {
-  return <Button label={OPEN_IN_NEW_TAB_LABEL} trailing={<Icon name="arrow-out-of-square" label={null} />} compact disabled={disabled} onPress={onPress} />;
+  return <Button label={OPEN_IN_NEW_TAB_LABEL} trailing={<ButtonGlyph name="arrow-out-of-square" />} compact disabled={disabled} onPress={onPress} />;
 }
 
 /** A control Gaia cannot send shows disabled; its title, on the span since a disabled button takes no pointer, names both versions. */
@@ -216,7 +216,7 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
  */
 export function ForgeBarControls(props: ForgeBarControlsProps) {
   const {
-    bar, commandIsOnItsWay, stopIsOpen, onCommand, onOpenStop
+    bar, commandIsOnItsWay, stopIsOpen, stopAnchorRef, onCommand, onOpenStop, onCancelStop
   } = props;
   if (bar.cannotTalk !== null) return <CannotTalkControls {...props} cannotTalk={bar.cannotTalk} />;
   const brainChip = brainChipPropsOf(props);
@@ -228,9 +228,13 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
         <Button label={pauseOrResume.label} emphasis={pauseOrResume.emphasis} compact disabled={!controlsMayAct} onPress={() => onCommand(pauseOrResume.command)} />
       )}
       {stop === null ? null : (
-        <span className="gaia-forge-frame-stop">
-          <Button label="Stop" trailing={<Icon name="caret-down" label={null} />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
-          {stopIsOpen && controlsMayAct ? <StopPopover question={stop} {...props} /> : null}
+        <span className="gaia-forge-frame-stop" ref={stopAnchorRef}>
+          <Button label="Stop" trailing={<ButtonGlyph name="caret-down" />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
+          {stopIsOpen && controlsMayAct ? (
+            <Popover label={stop.label} role="dialog" isOpen onDismiss={onCancelStop} anchorRef={stopAnchorRef} placement="below-end" width="wide">
+              <StopQuestionStrip question={stop} {...props} />
+            </Popover>
+          ) : null}
         </span>
       )}
       {brainChip === null ? null : <BrainChip {...brainChip} />}
@@ -371,7 +375,7 @@ function CannotTalkNotice({ area, onOpenInNewTab, commandIsOnItsWay }: CannotTal
       <span className="gaia-forge-frame-versions-actions">
         <Button
           label={OPEN_IN_NEW_TAB_LABEL}
-          trailing={<Icon name="arrow-out-of-square" label={null} />}
+          trailing={<ButtonGlyph name="arrow-out-of-square" />}
           // An older forge's primary is Update forge in the bar; a newer one offers nothing but its own Bridge.
           emphasis={verdict === 'newer' ? 'primary' : 'quiet'}
           disabled={commandIsOnItsWay}

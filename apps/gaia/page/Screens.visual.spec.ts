@@ -301,8 +301,9 @@ describe('each screen shows the state its artboard draws', () => {
 
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
-    expect(textsOfClass(markup, 'gaia-confirm-question')).toEqual(['Stop the Overseer of Example Storefront? 4 agents are running.']);
     const tree = MarkupTree.parse(markup);
+    const stopQuestion = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('group')(element) && element.attributes['aria-label'] === 'Stop Example Storefront');
+    expect(MarkupTree.textOf(stopQuestion)).toContain('Stop the Overseer of Example Storefront? 4 agents are running.');
     const refusalCode = B2_STOP_REFUSAL.refusal ?? '';
     expect(MarkupTree.textOf(tree).split(refusalCode)).toHaveLength(2);
     const refusal = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('alert')(element) && MarkupTree.textOf(element).includes(refusalCode));

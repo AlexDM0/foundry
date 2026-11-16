@@ -9,6 +9,7 @@
  * stays under its forge's head until dismissed.
  */
 import { describe, expect, test } from 'bun:test';
+import { ConfirmStrip }           from 'design-system/ConfirmStrip';
 import { EmptyState }             from 'design-system/EmptyState';
 import { FactList }               from 'design-system/FactList';
 import { FillMeter }              from 'design-system/FillMeter';
@@ -378,7 +379,7 @@ describe('Flint\'s brain', () => {
     const { view, sent } = viewSending(FLEET_FIVE_FORGES);
     PackageButtons.press(buttonNamed(view, 'Stop Flint\'s brain on Example Storefront'));
     expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }]);
-    expect(tree.hostElementsIn(view, tree.withClass('gaia-confirm'))).toEqual([]);
+    expect(tree.hostElementsIn(view, tree.withComponent(ConfirmStrip))).toEqual([]);
   });
 
   test('Wake on a forge\'s head sends forge-brain-start for that forge only, and a held forge has none', () => {

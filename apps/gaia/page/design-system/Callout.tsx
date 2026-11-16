@@ -1,14 +1,11 @@
 /**
- * A forge-level condition, composed from the design-system package: a title line with the forge's dot, its name and its word, one sentence,
- * one mono line or a versions line, and the actions at the end. Warn (held) and error (unreachable) are the package's banner in its orange
- * and crimson, with the 4 px left edge; neutral, for what is only incomplete or only explains, is the package's dashed card. The section
- * is named by its title and word.
+ * A forge-level condition, composed from the design-system package's callout: a title line with the forge's dot, its name and its word, one
+ * sentence, one mono line or a versions line, and the actions at the end. Warn (held) is the tinted warn callout and error (unreachable) the
+ * error one, each with the 4 px left edge; neutral, for what is only incomplete or only explains, is the dashed one. The section is named
+ * by its title and word.
  */
-
-import { Banner }         from 'design-system/Banner';
-import { Card }           from 'design-system/Card';
-import { Row }            from 'design-system/Row';
-import type { ReactNode } from 'react';
+import { Callout as PackageCallout } from 'design-system/Callout';
+import type { ReactNode }            from 'react';
 
 export type CalloutTone = 'warn' | 'error' | 'neutral';
 
@@ -43,25 +40,20 @@ function CalloutBody({
   );
 }
 
-function CalloutFrame({ tone, body, actions }: { readonly tone: CalloutTone; readonly body: ReactNode; readonly actions: ReactNode }) {
-  if (tone === 'neutral') {
-    return (
-      <Card dashed paddingVertical="twelve" paddingHorizontal="sixteen">
-        <Row centerY gap="sixteen">
-          {body}
-          {actions}
-        </Row>
-      </Card>
-    );
-  }
-  return <Banner tone={tone} text={body} {...(actions === null ? {} : { action: actions })} />;
+function PackageCalloutOf({ tone, actions, children }: { readonly tone: CalloutTone; readonly actions: ReactNode; readonly children: ReactNode }) {
+  const actionsProp = actions === undefined ? {} : { actions };
+  if (tone === 'warn') return <PackageCallout tone="warn" tinted {...actionsProp}>{children}</PackageCallout>;
+  if (tone === 'error') return <PackageCallout tone="error" {...actionsProp}>{children}</PackageCallout>;
+  return <PackageCallout tone="neutral" dashed {...actionsProp}>{children}</PackageCallout>;
 }
 
 export function Callout({ actions, ...bodyProps }: CalloutProps) {
   const { tone, title, word } = bodyProps;
   return (
     <section className="gaia-callout" aria-label={`${title}: ${word}`}>
-      <CalloutFrame tone={tone} body={<CalloutBody {...bodyProps} />} actions={actions === undefined ? null : <span className="gaia-callout-actions">{actions}</span>} />
+      <PackageCalloutOf tone={tone} actions={actions}>
+        <CalloutBody {...bodyProps} />
+      </PackageCalloutOf>
     </section>
   );
 }

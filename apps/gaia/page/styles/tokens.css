@@ -10,7 +10,6 @@
   --fs-figure: 17px; --line-height-figure: 22px;
   --fs-wordmark: 20px; --line-height-wordmark: 24px;
   --fs-splash: 60px; --line-height-splash: 64px;
-  --fs-confirm-question: 14px; --line-height-confirm-question: 20px;
   --weight-figure: 500;
   --weight-chip: 500;
   --weight-label: 500;
@@ -97,7 +96,6 @@
   --attention-no-forge-width:     640px;
 
   --forge-frame-notice-width:        640px;
-  --forge-frame-stop-popover-width:  560px;
   /* Wider than the brain's refusal, so the forge's code stays whole beside Try again. */
   --forge-bar-update-refusal-width:  340px;
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */

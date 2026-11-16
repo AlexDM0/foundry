@@ -8,6 +8,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
@@ -72,6 +73,7 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
   } = useCommandSender();
   const [stopIsOpen, setStopIsOpen] = useState(false);
   const [stopAgents, setStopAgents] = useState<ForgeStopAgents>('keep');
+  const stopAnchorRef = useRef<HTMLSpanElement | null>(null);
   const commandState = CommandSender.stateOf(states, { trackerId: bar.trackerId });
   const commandIsOnItsWay = commandState.onItsWay !== null;
   const brainShown = bar.brain === null ? null : ForgeFrameModel.brainShownAfter(bar.brain, commandState.failure);
@@ -94,6 +96,7 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
           brainShown={brainShown}
           commandIsOnItsWay={commandIsOnItsWay}
           stopIsOpen={stopIsOpen}
+          stopAnchorRef={stopAnchorRef}
           stopAgents={stopAgents}
           onCommand={(command) => {
             if (command.kind === 'forge-stop') setStopIsOpen(false);
