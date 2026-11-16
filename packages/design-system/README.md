@@ -83,6 +83,8 @@ change its look. The element is your choice, never the role's: pass `element="h2
   the first paint.
 - Every motion token is `0ms` until you set `data-motion="ready"` on the `html` element. Set it after the first paint,
   so the first render shows its final state at once. Under `prefers-reduced-motion: reduce` every animation stops.
+- A pressed button shrinks to `--press-scale` (0.98). Set `--press-scale: 1` on the `html` element for a press that
+  changes no size.
 - Every colour, space, radius, type size, shadow and time is a custom property of `styles/tokens.css`. Your own
   stylesheets can read them too.
 - An element with `data-state-tone` set to a `StateTone` reads its colours from that tone's row: `--s-fill`,

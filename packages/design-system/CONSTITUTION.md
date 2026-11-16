@@ -206,6 +206,7 @@ design-system/
 - **Each duration and delay of a motion that plays once is a motion token, or a `calc()` of one,** so the
   first paint and reduced motion zero it. A new token is zeroed in both zeroing blocks of `styles/tokens.css`.
   The toast's reading time is no motion: reduced motion keeps it.
+- **An easing is a token too:** `--ease-out` for a motion that plays once, `--ease-in-out` for one that loops.
 - **A part that leaves animates out through `usePresence` (`utils/Presence.ts`),** inert while it goes. A
   number that ticks when it changes keys its element through `useValueChange` (`utils/ValueChange.ts`), so the
   first showing plays nothing.
