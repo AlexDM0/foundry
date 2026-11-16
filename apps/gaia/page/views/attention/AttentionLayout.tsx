@@ -20,7 +20,6 @@ import { TextButton }  from 'design-system/TextButton';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
-import { BrainDiamond }                                           from '../../design-system/BrainDiamond.tsx';
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
@@ -336,7 +335,7 @@ function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) 
 function RunningBrain({ brain }: { readonly brain: RunningBrainLine }) {
   return (
     <span className="gaia-attention-running-brain">
-      <BrainDiamond />
+      <RoleDot role="brain" />
       <span>
         {BRAIN_NAME}
         {brain.model === null ? null : `${LINE_SEPARATOR}${brain.model}`}
@@ -378,7 +377,7 @@ function WaitingCard({ content }: { readonly content: AttentionContent }) {
       <Card padding="none" clipped>
         <div className="gaia-attention-waiting-head">
           <Row between centerY gap="twelve">
-            <Text typeRole="page" element="h2">
+            <Text typeRole="section" element="h2">
               Waiting on you
               <span className="gaia-visually-hidden">{HEAD_SEPARATOR}</span>
               <Tag text={content.waitingCount} tone="warn" />

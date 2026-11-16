@@ -15,6 +15,7 @@ import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
 import type { ChoiceOptionProps } from 'design-system/ChoiceOption';
 import { MonoId }                 from 'design-system/MonoId';
+import { StateDot }               from 'design-system/StateDot';
 
 import type { CommandBody }                                   from '../../@types/CommandDocument.ts';
 import type { FleetDocumentBrainState, FleetDocumentForge }   from '../../@types/FleetDocument.ts';
@@ -182,7 +183,7 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     const { unfolded } = controlsOf({ bar: barOf(storefrontWithBrain('ended')) });
     const group = brainGroupOf(unfolded);
     expect(tree.textOf([group])).toBe('Flint\'s brain stopped after 2:00 · 4.2k tokens');
-    expect(tree.onlyWithClass([group], 'gaia-brain-diamond').props['data-ended']).toBe('');
+    expect(['tone', 'shape'].map((propName) => tree.onlyOfComponent([group], StateDot).props[propName])).toEqual(['neutral', 'diamond']);
     expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
 

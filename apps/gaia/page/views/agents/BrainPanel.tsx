@@ -12,7 +12,7 @@ import { Stamp }            from 'design-system/Stamp';
 import { Text }             from 'design-system/Text';
 import type { ReactNode }   from 'react';
 
-import { BrainDiamond } from '../../design-system/BrainDiamond.tsx';
+import { RoleDot } from '../../design-system/RoleDot.tsx';
 import {
   BRAIN_NAME,
   BrainStopButton,
@@ -41,7 +41,7 @@ function shownFactOf(fact: BrainFact) {
 function BrainPanelHead({ ended, children }: { readonly ended: boolean; readonly children?: ReactNode }) {
   return (
     <div className="gaia-agents-panel-head">
-      <BrainDiamond ended={ended} />
+      <RoleDot role="brain" ended={ended} />
       <span className="gaia-agents-panel-kind">{BRAIN_NAME}</span>
       {children}
     </div>
@@ -77,7 +77,7 @@ function ModelLine({ content }: { readonly content: RunningBrain }) {
 function OutsideTheLimitLine({ machineLimitFigure }: { readonly machineLimitFigure: string | null }) {
   return (
     <div className="gaia-agents-panel-brain-outside">
-      <BrainDiamond />
+      <RoleDot role="brain" />
       {machineLimitFigure === null ? 'Not counted in any agent limit' : (
         <>
           {'Not counted in the '}

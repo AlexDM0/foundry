@@ -142,7 +142,7 @@ export function SettingsRefusalLine({ refusal, handlers }: {
 export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
   return (
     <section className="gaia-forges-gaia" aria-labelledby={GAIA_HEAD_ID}>
-      <Text typeRole="page" element="h2" id={GAIA_HEAD_ID}>Gaia</Text>
+      <Text typeRole="section" element="h2" id={GAIA_HEAD_ID}>Gaia</Text>
       {content.settingsFileLine === null ? null : <p className="gaia-forges-gaia-settings-file">{content.settingsFileLine}</p>}
       <SettingsSwitch checkbox={content.startAtLogin} labelId={START_AT_LOGIN_LABEL_ID} handlers={handlers} />
       <div className="gaia-forges-gaia-notify">

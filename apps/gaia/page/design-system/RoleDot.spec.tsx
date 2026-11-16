@@ -1,38 +1,49 @@
 /**
  * The role dot. What matters: each role draws the package's state dot in the tone and shape COMPONENT_LIBRARY 3.2 gives it, so a builder
- * and what asks User are orange, a reviewer teal and a landing green, a dot the package hides from the accessibility tree; Flint's brain is
- * Gaia's own diamond, orange, and grey once it ended, hidden too, since every mark is decoration only.
+ * and what asks User are orange, a reviewer teal and a landing green, and Flint's brain the 7 px orange diamond, grey once it ended; the
+ * package hides the dot from the accessibility tree, since every mark is decoration only. A dot pulses only when asked to.
  */
 import { describe, expect, test } from 'bun:test';
 import { StateDot }               from 'design-system/StateDot';
+import type { ReactNode }         from 'react';
 
-import { GaiaStylesheet }        from '../testing/GaiaStylesheet.ts';
 import { ReactElementTree }      from '../testing/ReactElementTree.ts';
-import { BrainDiamond }          from './BrainDiamond.tsx';
 import { type DotRole, RoleDot } from './RoleDot.tsx';
 
-const EXPECTED_LOOKS: Readonly<Record<Exclude<DotRole, 'brain'>, readonly [string, string]>> = {
+const EXPECTED_LOOKS: Readonly<Record<DotRole, readonly [string, string]>> = {
   'builder':    ['accent', 'solid'],
   'reviewer':   ['info', 'solid'],
   'needs-user': ['accent', 'dashed-ring'],
   'waiting':    ['neutral', 'dashed-ring'],
   'landed':     ['success', 'solid'],
   'forge':      ['neutral', 'solid'],
+  'brain':      ['accent', 'diamond'],
 };
+
+function drawnDotOf(element: ReactNode) {
+  return ReactElementTree.onlyOfComponent(ReactElementTree.unfolded(element), StateDot);
+}
 
 describe('the role dot', () => {
   test('each role is the package\'s state dot in its role\'s tone and shape', () => {
     for (const [role, look] of Object.entries(EXPECTED_LOOKS)) {
-      const dot = ReactElementTree.onlyOfComponent(ReactElementTree.unfolded(<RoleDot role={role as DotRole} />), StateDot);
+      const dot = drawnDotOf(<RoleDot role={role as DotRole} />);
       expect([dot.props['tone'], dot.props['shape']]).toEqual([...look]);
     }
   });
 
-  test('the brain is the diamond, hidden; an ended brain\'s diamond is a styled variant of its own', () => {
-    const diamond = ReactElementTree.onlyWithClass(ReactElementTree.unfolded(<RoleDot role="brain" />), 'gaia-brain-diamond');
-    expect([diamond.props['aria-hidden'], diamond.props['data-ended']]).toEqual(['true', undefined]);
-    const ended = ReactElementTree.onlyWithClass(ReactElementTree.unfolded(<BrainDiamond ended />), 'gaia-brain-diamond');
-    expect(ended.props['data-ended']).toBe('');
-    expect(GaiaStylesheet.text()).toContain('.gaia-brain-diamond[data-ended]');
+  test('the brain is the small diamond, every other role the full-size dot', () => {
+    expect(drawnDotOf(<RoleDot role="brain" />).props['small']).toBe(true);
+    expect(drawnDotOf(<RoleDot role="builder" />).props['small']).toBe(false);
+  });
+
+  test('an ended brain keeps its diamond in the neutral grey', () => {
+    const dot = drawnDotOf(<RoleDot role="brain" ended />);
+    expect([dot.props['tone'], dot.props['shape']]).toEqual(['neutral', 'diamond']);
+  });
+
+  test('a dot pulses only when asked to', () => {
+    expect(drawnDotOf(<RoleDot role="builder" />).props['pulsing']).toBe(false);
+    expect(drawnDotOf(<RoleDot role="builder" pulsing />).props['pulsing']).toBe(true);
   });
 });

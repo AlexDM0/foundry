@@ -10,6 +10,7 @@
 import { describe, expect, test } from 'bun:test';
 import { StateDot }               from 'design-system/StateDot';
 
+import { DrawnDots }                          from '../testing/DrawnDots.ts';
 import { PackageButtons }                     from '../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree } from '../testing/ReactElementTree.ts';
 import { BrainChip, type BrainChipProps }     from './BrainChip.tsx';
@@ -40,7 +41,7 @@ describe('the brain chip', () => {
     const [wake, ...others] = buttonsOf(unfolded);
     if (wake === undefined) throw new Error('The Wake button is missing.');
     expect([others, PackageButtons.labelOf(wake), wake.props['disabled']]).toEqual([[], 'Wake Flint\'s brain', false]);
-    expect(ReactElementTree.hostElementsIn(ReactElementTree.unfoldedProp(wake, 'leading'), ReactElementTree.withClass('gaia-brain-diamond'))).toHaveLength(1);
+    expect(ReactElementTree.hostElementsIn(ReactElementTree.unfoldedProp(wake, 'leading'), DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
     PackageButtons.press(wake);
     expect(presses).toEqual(['wake']);
   });
@@ -67,7 +68,7 @@ describe('the brain chip', () => {
     expect(ReactElementTree.textOf([chip])).toBe('Flint\'s brain · haiku low · 1:24 left · 3.1k tokens');
     const figures = ReactElementTree.hostElementsIn([chip], ReactElementTree.withClass('gaia-brain-chip-figure'));
     expect(figures.map((figure) => ReactElementTree.textOf([figure]))).toEqual(['1:24', '3.1k']);
-    expect(ReactElementTree.hostElementsIn([chip], ReactElementTree.withClass('gaia-brain-diamond'))).toHaveLength(1);
+    expect(ReactElementTree.hostElementsIn([chip], DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
     const [stop, ...others] = buttonsOf(unfolded);
     if (stop === undefined) throw new Error('The Stop button is missing.');
     expect([others, PackageButtons.labelOf(stop), PackageButtons.nameOf(stop), PackageButtons.emphasisOf(stop)])
@@ -111,7 +112,7 @@ describe('the brain chip', () => {
   test('ended: the grey diamond and the forge\'s own sentence, with no button', () => {
     const unfolded = chipOf({ state: 'ended', sentence: 'Flint\'s brain stopped after 2:00 · 4.2k tokens' });
     expect(ReactElementTree.textOf([ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-chip-note')])).toBe('Flint\'s brain stopped after 2:00 · 4.2k tokens');
-    expect(ReactElementTree.onlyWithClass(unfolded, 'gaia-brain-diamond').props['data-ended']).toBe('');
+    expect(['tone', 'shape'].map((propName) => ReactElementTree.onlyOfComponent(unfolded, StateDot).props[propName])).toEqual(['neutral', 'diamond']);
     expect(buttonsOf(unfolded)).toEqual([]);
   });
 

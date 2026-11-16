@@ -19,11 +19,11 @@ import { Text }                                               from 'design-syste
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
-import { BrainDiamond }                                        from '../../design-system/BrainDiamond.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
 import { OpenInNewTabGlyph }                                   from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
+import { RoleDot }                                             from '../../design-system/RoleDot.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
 import { VersionsPair }                                        from '../../shared/VersionsPair.tsx';
 import type {
@@ -183,7 +183,7 @@ function ForgeBrainMark({ brain }: { readonly brain: ForgeRowBrain }) {
     <span className="gaia-forges-brain">
       <span className="gaia-visually-hidden">{brain.accessibleName}</span>
       <span className="gaia-forges-brain-mark" aria-hidden="true">
-        <BrainDiamond />
+        <RoleDot role="brain" />
         <span className="gaia-forges-brain-word">Brain</span>
         {brain.countdown === null ? null : <span>{brain.countdown}</span>}
       </span>
@@ -452,7 +452,7 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
   return (
     <section className="gaia-forges-machine" aria-labelledby={MACHINE_HEAD_ID} data-at-the-limit={machine.isAtTheLimit ? '' : undefined}>
       <span className="gaia-forges-panel-head">
-        <Text typeRole="page" element="h2" id={MACHINE_HEAD_ID}>This machine</Text>
+        <Text typeRole="section" element="h2" id={MACHINE_HEAD_ID}>This machine</Text>
         {machine.isAtTheLimit ? <StatePill label="At the limit" tone="accent" width="fit" /> : null}
       </span>
       <div className="gaia-forges-machine-limit">
@@ -484,7 +484,7 @@ function MachinePanelCard({ machine, commandStates, handlers }: { readonly machi
       </dl>
       {machine.brainLine === null ? null : (
         <p className="gaia-forges-machine-brain">
-          <BrainDiamond />
+          <RoleDot role="brain" />
           <span>{machine.brainLine.runningSentence === null ? machine.brainLine.sentence : `${machine.brainLine.sentence} ${machine.brainLine.runningSentence}`}</span>
         </p>
       )}

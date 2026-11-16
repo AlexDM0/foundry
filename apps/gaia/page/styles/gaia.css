@@ -42,29 +42,6 @@
   stroke-linejoin: round;
 }
 
-/* The dots the package cannot draw: the unreachable crimson fill and Flint's brain diamond */
-.gaia-condition-dot {
-  display: inline-block;
-  flex: none;
-  width: var(--condition-dot-size);
-  height: var(--condition-dot-size);
-  border-radius: var(--r-pill);
-  transition: background-color var(--motion-base) var(--ease-out);
-}
-.gaia-condition-dot[data-condition="unreachable"] { background: var(--err-fill); }
-.gaia-brain-diamond {
-  display: inline-block;
-  flex: none;
-  box-sizing: border-box;
-  width: var(--brain-diamond-size);
-  height: var(--brain-diamond-size);
-  border: var(--dot-ring-width) solid var(--signal);
-  border-radius: var(--brain-diamond-radius);
-  transform: rotate(45deg) scale(var(--brain-diamond-scale));
-  transition: border-color var(--motion-base) var(--ease-out);
-}
-.gaia-brain-diamond[data-ended] { border-color: var(--neutral-fill); }
-
 /* Brand bar: the mark and the wordmark, a divider, the status pill and its sentence, the theme button at the far end */
 .gaia-brand-bar {
   display: flex;
@@ -705,12 +682,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-panel-section[data-section="foot"] { padding-bottom: var(--sp-4); border-top: var(--hairline) solid var(--line); }
 .gaia-agents-panel-head { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-agents-panel-kind { font-size: var(--fs-agents-panel-kind); font-weight: var(--weight-strong); }
-.gaia-agents-panel-live-dot { display: inline-flex; }
-/* The pulse token is not zeroed before motion is ready, so the gate is the selector's; an infinite pulse that starts late starts whole. */
-:root[data-motion="ready"] .gaia-agents-panel-live-dot { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  :root[data-motion="ready"] .gaia-agents-panel-live-dot { animation: none; }
-}
 .gaia-agents-panel-state { font-size: var(--fs-tab); color: var(--ink-muted); }
 .gaia-agents-panel-running { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .gaia-agents-panel-lines { display: flex; flex-direction: column; gap: var(--space-7); font-size: var(--fs-tab); }

@@ -23,7 +23,6 @@ import {
 
 import { LIMITS }             from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
-import { BrainDiamond }       from '../../design-system/BrainDiamond.tsx';
 import { RoleDot }            from '../../design-system/RoleDot.tsx';
 import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }     from '../../shared/@types/ViewParts.ts';
@@ -175,7 +174,7 @@ function ForgeMenu({
 function BrainTokensLine({ note }: { readonly note: BrainTokensNote }) {
   return (
     <p className="gaia-activity-brain-note">
-      <BrainDiamond />
+      <RoleDot role="brain" />
       <span>
         {'Includes '}
         <span className="gaia-activity-brain-note-figure">{note.totalText}</span>

@@ -1,6 +1,6 @@
 /**
  * Test-only: reads back which condition or role a drawn dot shows, from the tone and shape Gaia hands the package's state dot, kept folded,
- * or from Gaia's own crimson dot and brain diamond, so a view's spec can still claim "the dots read live, live, held".
+ * so a view's spec can still claim "the dots read live, live, held".
  */
 import { StateDot } from 'design-system/StateDot';
 
@@ -16,15 +16,13 @@ function lookKeyOf(tone: unknown, shape: unknown): string {
 }
 
 export const DrawnDots = {
-  /** Whether an element is a condition or role mark: the package's state dot, Gaia's crimson dot or the brain diamond. */
+  /** Whether an element is a condition or role mark: the package's state dot. */
   isDot(element: HostElement): boolean {
-    return ReactElementTree.withComponent(StateDot)(element)
-      || ['gaia-condition-dot', 'gaia-brain-diamond'].some((className) => ReactElementTree.hasClass(element, className));
+    return ReactElementTree.withComponent(StateDot)(element);
   },
 
   /** The conditions whose look this dot draws; the dormant and unreadable looks differ, but unreadable and missing share one, as held and outdated do. */
   conditionsOf(element: HostElement): DotCondition[] {
-    if (ReactElementTree.hasClass(element, 'gaia-condition-dot')) return [element.props['data-condition'] as DotCondition];
     const key = lookKeyOf(element.props['tone'], element.props['shape']);
     return Object.entries(CONDITION_LOOKS).filter(([, look]) => lookKeyOf(look.tone, look.shape) === key).map(([condition]) => condition as DotCondition);
   },
@@ -35,7 +33,6 @@ export const DrawnDots = {
   },
 
   roleOf(element: HostElement): DotRole | null {
-    if (ReactElementTree.hasClass(element, 'gaia-brain-diamond')) return 'brain';
     const key = lookKeyOf(element.props['tone'], element.props['shape']);
     const [role] = Object.entries(ROLE_LOOKS).filter(([, look]) => lookKeyOf(look.tone, look.shape) === key).map(([name]) => name as DotRole);
     return role ?? null;

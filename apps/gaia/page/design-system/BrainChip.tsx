@@ -7,9 +7,9 @@
  */
 import { Button } from 'design-system/Button';
 
-import { BrainDiamond }   from './BrainDiamond.tsx';
 import { ConditionDot }   from './ConditionDot.tsx';
 import type { RefusedBy } from './Refusal.tsx';
+import { RoleDot }        from './RoleDot.tsx';
 
 export type BrainState = 'off' | 'starting' | 'running' | 'refused' | 'ended';
 
@@ -50,7 +50,7 @@ const REFUSAL_LEAD_INS: Readonly<Record<RefusedBy, string>> = {
 
 function WakeButton({ wake }: { readonly wake: BrainControl | null }) {
   if (wake === null) return null;
-  return <Button label={WAKE_LABEL} leading={<BrainDiamond />} compact disabled={wake.disabled} onPress={wake.onPress} />;
+  return <Button label={WAKE_LABEL} leading={<RoleDot role="brain" />} compact disabled={wake.disabled} onPress={wake.onPress} />;
 }
 
 function RunningChip(props: Extract<BrainChipProps, { state: 'running' }>) {
@@ -58,7 +58,7 @@ function RunningChip(props: Extract<BrainChipProps, { state: 'running' }>) {
   return (
     <>
       <span className="gaia-brain-chip">
-        <BrainDiamond />
+        <RoleDot role="brain" />
         <span className="gaia-brain-chip-name">{BRAIN_NAME}</span>
         {` · ${props.model} ${props.effort} · `}
         <span className="gaia-brain-chip-figure">{props.countdown}</span>
@@ -102,7 +102,7 @@ function BrainStateParts(props: BrainChipProps) {
     case 'ended':
       return (
         <span className="gaia-brain-chip-note">
-          <BrainDiamond ended />
+          <RoleDot role="brain" ended />
           {props.sentence}
         </span>
       );

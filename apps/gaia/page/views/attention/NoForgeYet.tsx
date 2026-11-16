@@ -64,7 +64,7 @@ export function NoForgeYetLayout({
         </div>
         <section className="gaia-attention-add" aria-labelledby={ADD_HEAD_ID}>
           <Card padding="eighteen" paddingTop="sixteen" gap="sixteen">
-            <Text typeRole="page" element="h3" id={ADD_HEAD_ID}>Add a repository</Text>
+            <Text typeRole="section" element="h3" id={ADD_HEAD_ID}>Add a repository</Text>
             <AddRepositoryFields
               form={form}
               sentResults={sentResults}

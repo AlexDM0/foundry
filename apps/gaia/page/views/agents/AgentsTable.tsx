@@ -13,7 +13,6 @@ import { Tag }            from 'design-system/Tag';
 import type { ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type { CommandSubject }   from '../../api/CommandSender.ts';
 import { BrainChip }             from '../../design-system/BrainChip.tsx';
-import { BrainDiamond }          from '../../design-system/BrainDiamond.tsx';
 import { ConditionDot }          from '../../design-system/ConditionDot.tsx';
 import { Refusal }               from '../../design-system/Refusal.tsx';
 import { RoleDot }               from '../../design-system/RoleDot.tsx';
@@ -149,7 +148,7 @@ function WakeButton({ wake, project, onBrainCommand }: { readonly wake: BrainCom
     <Button
       label={WAKE_LABEL}
       accessibleName={`${WAKE_LABEL} on ${project}`}
-      leading={<BrainDiamond />}
+      leading={<RoleDot role="brain" />}
       emphasis="ghost"
       dense
       disabled={wake.disabled}
@@ -170,7 +169,7 @@ function GroupBrain({ brain, project, onBrainCommand }: { readonly brain: GroupB
     case 'running':
       return (
         <span className="gaia-agents-group-brain-pill">
-          <BrainDiamond />
+          <RoleDot role="brain" />
           + brain
         </span>
       );

@@ -38,7 +38,7 @@ function PanelHead({ jobId, children }: { readonly jobId: string; readonly child
 function RunningState({ content }: { readonly content: RunningAgent }) {
   return (
     <>
-      {content.dotRole === null ? null : <span className="gaia-agents-panel-live-dot"><RoleDot role={content.dotRole} /></span>}
+      {content.dotRole === null ? null : <RoleDot role={content.dotRole} pulsing />}
       <span className="gaia-agents-panel-state">
         {content.stateText}
         {content.runningText === null ? null : (
