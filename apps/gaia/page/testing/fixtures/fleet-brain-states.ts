@@ -1,7 +1,7 @@
 /**
  * The example data of artboard B1's `brain` tweak: the fleet of `fleet-five-forges` with Example Storefront's brain in each of its five
- * states, as B1 draws them, and the brain's agent row only while it runs. Storefront publishes control contract 2, which carries the
- * brain's commands, so its bar offers Wake and Stop as B1 draws them.
+ * states, as B1 draws them, and the brain's agent row only while it runs. Storefront publishes the control contract Gaia sends, so its bar
+ * offers Wake and Stop as B1 draws them.
  */
 import type { FleetDocument, FleetDocumentBrain, FleetDocumentBrainState } from '../../@types/FleetDocument.ts';
 

@@ -1,7 +1,7 @@
 /**
  * The fixture must hold artboard B1's five brain states on Example Storefront and change nothing else of the five forges, or B1's screens
- * compare the bar with another fleet. What matters: only Storefront's brain and its control contract differ; the brain's row is in the
- * fleet's agents only while the brain runs; an ended brain is still within the minute the forge keeps it (G1).
+ * compare the bar with another fleet. What matters: only Storefront's brain differs; the brain's row is in the fleet's agents only while
+ * the brain runs; an ended brain is still within the minute the forge keeps it (G1).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -16,7 +16,7 @@ const SECONDS_THE_FORGE_KEEPS_AN_ENDED_BRAIN = 60;
 const MILLISECONDS_PER_SECOND = 1000;
 
 describe('the fleet-brain-states fixture', () => {
-  test('changes only Example Storefront\'s brain, to each state of B1\'s tweak, and its control contract, to the one that carries the brain', () => {
+  test('changes only Example Storefront\'s brain, to each state of B1\'s tweak, and keeps its control contract at the one Gaia sends', () => {
     for (const state of STATES) {
       const fleetDocument = fleetWithStorefrontBrainOf(state);
       const changedForges = fleetDocument.forges.filter((forge, i) => forge !== FLEET_FIVE_FORGES.forges[i]);
@@ -24,7 +24,7 @@ describe('the fleet-brain-states fixture', () => {
         [FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront, state],
       ]);
       const [storefront] = changedForges;
-      expect(storefront?.contracts.control).toBe(2);
+      expect(storefront?.contracts.control).toBe(1);
       expect({ ...storefront, brain: null, contracts: null }).toEqual({ ...FLEET_FIVE_FORGES.forges[0], brain: null, contracts: null });
     }
   });

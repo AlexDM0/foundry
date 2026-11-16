@@ -49,7 +49,7 @@ export const OVERSEER_SITUATIONS = [
 
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];
 
-/** The states of Flint's brain on a forge at the version Gaia supports, each with the command answer that brought it there. */
+/** The states of Flint's brain on a forge that runs it, each with the command answer that brought it there. */
 export const FLINT_BRAIN_SITUATIONS = [
   'brain-running',
   'brain-ended',
@@ -98,10 +98,10 @@ export interface RecordedOverseerFetch extends OverseerFetch {
 }
 
 /**
- * The recordings of a forge at the version Gaia supports, its brain's states included, and of programs that are no forge. Each situation's
- * call shapes are unique across them.
+ * The recordings of a forge at the version Gaia supports, of a forge in each state of Flint's brain, and of programs that are no forge.
+ * Each situation's call shapes are unique across them.
  */
-export const OVERSEER_RECORDING_NAMES = ['overseer-fetch-supported-forge', 'overseer-fetch-other-programs'] as const;
+export const OVERSEER_RECORDING_NAMES = ['overseer-fetch-supported-forge', 'overseer-fetch-flint-brain', 'overseer-fetch-other-programs'] as const;
 
 /**
  * The recording of forges at another system version than the one Gaia supports: forge 1.0 as itself, and ahead or newer through its test
@@ -192,7 +192,7 @@ export function recordedOverseerAnswersOf(situation: OverseerSituation, operatin
   return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }
 
-/** The answers of one state of Flint's brain on a forge at the version Gaia supports, each call shape without its situation. */
+/** The answers of one state of Flint's brain on a forge that runs it, each call shape without its situation. */
 export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }

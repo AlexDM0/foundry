@@ -27,8 +27,8 @@ import {
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
 /** The code version and stamp of the Storefront at work; retake them after `bun run record overseer-fetch-supported-forge`. */
-const RECORDED_CODE_VERSION = '2b47322f0984';
-const RECORDED_STAMP = '2026-11-13T09:57:13+01:00';
+const RECORDED_CODE_VERSION = '077a92978254';
+const RECORDED_STAMP = '2026-11-16T02:32:05+01:00';
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
@@ -38,12 +38,12 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     trackerId:      STOREFRONT.trackerId,
     project:        STOREFRONT.project,
     codeVersion,
-    installVersion: 27,
+    installVersion: 28,
     processId:      48_107,
     contracts:      {
       summary: 1,
       monitor: 3,
-      control: 2,
+      control: 1,
       embed:   1,
     },
   };
@@ -57,7 +57,7 @@ async function storefrontSnapshot(): Promise<Record<string, unknown>> {
   return await recordedDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
 }
 
-/** What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened and two jobs launching. */
+/** What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened and its Assistant launching. */
 const RECORDED_READING: ForgeReading = {
   trackerId: STOREFRONT.trackerId,
   project:   'Example Storefront',
@@ -69,12 +69,12 @@ const RECORDED_READING: ForgeReading = {
   contracts: {
     summary: 1,
     monitor: 3,
-    control: 2,
+    control: 1,
     embed:   1,
   },
   codeVersion:       RECORDED_CODE_VERSION,
   lastReportedAt:    EXAMPLE_READ_STAMP,
-  overseerStartedAt: '2026-11-13T09:57:13+01:00',
+  overseerStartedAt: '2026-11-16T02:32:05+01:00',
   lastCommand:       STOREFRONT.lastCommand,
   lastChangedAt:     STOREFRONT.lastChangedAt,
   concurrency:       {
@@ -92,13 +92,13 @@ const RECORDED_READING: ForgeReading = {
       kind:                    'question',
       idText:                  'E1',
       ticketIds:               [],
-      subject:                 'The Overseer needs a decision (checks-not-set) about the board.',
+      subject:                 'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
       jobId:                   null,
       askedBy:                 'overseer',
       decisionKind:            'checks-not-set',
       escalatedFromIncidentId: null,
       metaText:                null,
-      stamp:                   '2026-11-13T09:57:13+01:00',
+      stamp:                   '2026-11-16T02:32:05+01:00',
       stampWord:               'opened',
       actionLabel:             'Answer',
       route:                   '#questions/E1',
@@ -114,7 +114,7 @@ const RECORDED_READING: ForgeReading = {
       decisionKind:            null,
       escalatedFromIncidentId: null,
       metaText:                'draft ticket, no row yet',
-      stamp:                   '2026-11-13T09:57:13+01:00',
+      stamp:                   '2026-11-16T02:32:05+01:00',
       stampWord:               'filed',
       actionLabel:             'Ready',
       route:                   '#kanban/ticket/001',
@@ -131,7 +131,7 @@ const RECORDED_READING: ForgeReading = {
       tokens:              0,
       ticketTitle:         null,
       attempt:             1,
-      startedAt:           '2026-11-13T09:57:13+01:00',
+      startedAt:           '2026-11-16T02:32:05+01:00',
       calls:               0,
       callBudget:          null,
       toolCalls:           0,
@@ -145,45 +145,18 @@ const RECORDED_READING: ForgeReading = {
       waitingOnDecisionId: null,
       route:               '#agents/J1',
     },
-    {
-      jobId:               'J2',
-      kind:                'onboarder',
-      role:                'onboarder',
-      state:               'launching',
-      ticketIds:           [],
-      tokens:              0,
-      ticketTitle:         null,
-      attempt:             1,
-      startedAt:           '2026-11-13T09:57:14+01:00',
-      calls:               0,
-      callBudget:          null,
-      toolCalls:           0,
-      lastToolCall:        null,
-      runningSubagents:    0,
-      silentSweeps:        0,
-      quiet:               false,
-      turn:                null,
-      messagesWaiting:     0,
-      lastLine:            null,
-      waitingOnDecisionId: null,
-      route:               '#agents/J2',
-    },
   ],
   notices: [
     {
       kind: 'watcher-endpoint-does-not-fit',
-      text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/4bea13f3b1e48bad.sock',
-    },
-    {
-      kind: 'watcher-endpoint-does-not-fit',
-      text: 'job J2 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/7fc0567e7acf1539.sock',
+      text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/815730a0735c01d6.sock',
     },
   ],
   warnings: [],
   activity: [
     {
       logPosition: 0,
-      at:          '2026-11-13T09:57:13+01:00',
+      at:          '2026-11-16T02:32:05+01:00',
       category:    'needs-user',
       text:        'Ticket #001 filed: Search suggestions',
       route:       '#kanban/ticket/001',
@@ -192,16 +165,16 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 1,
-      at:          '2026-11-13T09:57:13+01:00',
+      at:          '2026-11-16T02:32:05+01:00',
       category:    'forge',
-      text:        'Overseer started on code 2b47322f0984, install version 27',
+      text:        'Overseer started on code 077a92978254, install version 28',
       route:       null,
       kind:        null,
       tokens:      null,
     },
     {
       logPosition: 2,
-      at:          '2026-11-13T09:57:13+01:00',
+      at:          '2026-11-16T02:32:05+01:00',
       category:    'needs-user',
       text:        'Decision E1 opened: checks-not-set',
       route:       '#questions/E1',
@@ -210,7 +183,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 3,
-      at:          '2026-11-13T09:57:13+01:00',
+      at:          '2026-11-16T02:32:05+01:00',
       category:    'agent',
       text:        'Job J1 launched: assistant (assistant), attempt 1',
       route:       '#agents/J1',
@@ -219,19 +192,10 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 4,
-      at:          '2026-11-13T09:57:14+01:00',
+      at:          '2026-11-16T02:32:06+01:00',
       category:    'forge',
       text:        'Overseer set to running',
       route:       null,
-      kind:        null,
-      tokens:      null,
-    },
-    {
-      logPosition: 5,
-      at:          '2026-11-13T09:57:14+01:00',
-      category:    'agent',
-      text:        'Job J2 launched: onboarder (onboarder), attempt 1',
-      route:       '#agents/J2',
       kind:        null,
       tokens:      null,
     },
@@ -250,7 +214,7 @@ const RECORDED_READING: ForgeReading = {
 
 const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
-/** The code version the brain's answers were authored with; retake it after `bun run record overseer-fetch-supported-forge`. */
+/** The code version the brain's answers were authored with; retake it after `bun run record overseer-fetch-flint-brain`. */
 const BRAIN_CODE_VERSION = '3f9a2c1';
 
 function brainIngestion(): MonitorSnapshotIngestion {
@@ -426,7 +390,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       contracts: {
         summary: 1,
         monitor: NEWER_MONITOR_VERSION,
-        control: 2,
+        control: 1,
         embed:   1,
       },
       codeVersion:       RECORDED_CODE_VERSION,

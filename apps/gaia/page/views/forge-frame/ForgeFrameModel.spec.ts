@@ -305,11 +305,11 @@ describe('a refusal under the bar', () => {
 describe('Flint\'s brain in the bar', () => {
   const MILLISECONDS_PER_SECOND = 1000;
 
-  /** Example Storefront at control contract 2, which carries the brain's commands, unless the overrides say otherwise. */
+  /** Example Storefront at the control contract Gaia sends, unless the overrides say otherwise. */
   function brainOf(brain: FleetDocumentBrain | 'not-reported', overrides: Partial<FleetDocumentForge> = {}, clock: ClockReading = CLOCK) {
     const storefront = READINGS.exampleStorefront;
     const forge = {
-      ...storefront, contracts: { ...storefront.contracts, control: 2 }, brain, ...overrides,
+      ...storefront, contracts: { ...storefront.contracts, control: 1 }, brain, ...overrides,
     };
     const { bar } = ForgeFrameModel.forgeFrameContentOf(forge.trackerId, withForge(forge), clock);
     if (bar === null) throw new Error('The forge has no bar.');
@@ -367,9 +367,9 @@ describe('Flint\'s brain in the bar', () => {
     expect(brainOf('not-reported')).toBeNull();
   });
 
-  test('takes Wake and Stop only at control contract 2, never under 1, an unknown newer number or none', () => {
+  test('takes Wake and Stop only at the control contract Gaia sends, never under another number or none', () => {
     const servedAt = (control: number | null) => brainOf(STOREFRONT_BRAINS.running, { contracts: { ...READINGS.exampleStorefront.contracts, control } })?.controlsAreServed;
-    expect([servedAt(2), servedAt(1), servedAt(3), servedAt(null)]).toEqual([true, false, false, false]);
+    expect([servedAt(1), servedAt(2), servedAt(3), servedAt(null)]).toEqual([true, false, false, false]);
   });
 
   test('takes neither from an Overseer that stopped answering, whose brain shows as last reported', () => {
@@ -441,7 +441,7 @@ describe('Flint\'s brain in the bar', () => {
   });
 
   test('the mark wakes the brain only where Wake shows, and its title says so or says how the brain is', () => {
-    const markOf = (brain: FleetDocumentBrain | 'not-reported', control: number | null = 2) => {
+    const markOf = (brain: FleetDocumentBrain | 'not-reported', control: number | null = 1) => {
       const barBrain = brainOf(brain, { contracts: { ...READINGS.exampleStorefront.contracts, control } });
       return ForgeFrameModel.markWakeOf(barBrain, barBrain?.shown ?? null);
     };
@@ -451,7 +451,7 @@ describe('Flint\'s brain in the bar', () => {
     expect(markOf(STOREFRONT_BRAINS.ended)).toEqual(wakes);
     expect(markOf(STOREFRONT_BRAINS.starting)).toEqual({ title: 'Flint\'s brain is waking', wakesBrain: false });
     expect(markOf(STOREFRONT_BRAINS.running)).toEqual({ title: 'Flint\'s brain is awake', wakesBrain: false });
-    expect(markOf(STOREFRONT_BRAINS.off, 1)).toEqual({ title: null, wakesBrain: false });
+    expect(markOf(STOREFRONT_BRAINS.off, 3)).toEqual({ title: null, wakesBrain: false });
     expect(markOf('not-reported')).toEqual({ title: null, wakesBrain: false });
   });
 });

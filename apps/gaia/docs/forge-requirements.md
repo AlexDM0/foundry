@@ -136,8 +136,9 @@ version rule.
 
 ## 3. What Gaia does while a requirement is missing
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`) and keeps nothing for an older forge: until a forge serves V1
-to V3 with Flint's brain (G1 to G3), every forge Gaia meets reads as older, and Gaia offers Update forge.
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.0) and keeps nothing for an older forge: a forge that
+serves no V1 to V3 reads as older, and Gaia offers Update forge. Until a forge serves Flint's brain (G1 to G3) as forge 1.1, every forge
+Gaia supports reports no brain, so Gaia shows none of the brain's parts.
 
 | Missing | Gaia shows |
 | --- | --- |

@@ -74,10 +74,10 @@ interface ReadFacts {
 
 /** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 3, control: 2 },
+  'full':           { condition: 'live', monitor: 3, control: 1 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
   'newer-contract': { condition: 'unreadable', monitor: 4, control: 3 },
-  'unreachable':    { condition: 'unreachable', monitor: 3, control: 2 },
+  'unreachable':    { condition: 'unreachable', monitor: 3, control: 1 },
 };
 
 let scratchFolder = '';
@@ -388,7 +388,7 @@ describe('forge-pause, forge-resume and forge-restart, carried by the API', () =
 
   test('a resume to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
     const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
-    const forge = liveForgeAtControl(2);
+    const forge = liveForgeAtControl(1);
     const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
     const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
     expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-resume', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
@@ -453,29 +453,28 @@ const BRAIN_STOP: GaiaCommand = { kind: 'forge-brain-stop', trackerId: STOREFRON
 describe('forge-brain-start and forge-brain-stop, carried by the API of a forge at the control contract Gaia knows', () => {
   test('a start sends `flint-brain-start` with the token as the bearer, and answers done', async () => {
     const overseerFetch = overseerAnsweringTheBrain('brain-running');
-    expect(await controlOver({ forges: [liveForgeAtControl(2)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
+    expect(await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-start' }]);
     expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
   });
 
-
   test('a stop sends `flint-brain-stop`, and answers done', async () => {
     const overseerFetch = overseerAnsweringTheBrain('brain-ended');
-    expect(await controlOver({ forges: [liveForgeAtControl(2)], overseerFetch }).carry(BRAIN_STOP)).toEqual({ verdict: 'done' });
+    expect(await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch }).carry(BRAIN_STOP)).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-stop' }]);
   });
 
   test('passes the forge\'s refusals usage-limit-holds and no-flint on with their code and sentence unchanged', async () => {
     for (const situation of ['brain-refused', 'no-flint'] as const) {
-      const verdict = await controlOver({ forges: [liveForgeAtControl(2)], overseerFetch: overseerAnsweringTheBrain(situation) }).carry(BRAIN_START);
+      const verdict = await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch: overseerAnsweringTheBrain(situation) }).carry(BRAIN_START);
       expect([situation, verdict]).toEqual([situation, { verdict: 'refused', refusedBy: 'forge', ...recordedBrainRefusal(situation) }]);
     }
     expect([recordedBrainRefusal('brain-refused').refusal, recordedBrainRefusal('no-flint').refusal]).toEqual(['usage-limit-holds', 'no-flint']);
   });
 
-  test('sends nothing to a forge whose control contract Gaia does not know, older or newer, and answers unreachable for a dormant one', async () => {
+  test('sends nothing to a forge whose control contract Gaia does not know, the brain\'s or newer, and answers unreachable for a dormant one', async () => {
     const overseerFetch = recordedOverseerFetch([]);
-    for (const controlVersion of [1, 3]) {
+    for (const controlVersion of [2, 3]) {
       expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'not-supported' });
       expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
     }

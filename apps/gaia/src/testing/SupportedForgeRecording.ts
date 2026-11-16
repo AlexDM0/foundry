@@ -1,12 +1,13 @@
 /**
- * The real-system suite of overseer-fetch against a forge at the one system version Gaia supports, which the recording spec of
- * `overseer-fetch-supported-forge` runs: `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record overseer-fetch-supported-forge` with the
- * program of such a forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each
- * endpoint at the versioned path Gaia calls. As Example Project: serving, a token it refuses, and stopped. As Example Storefront, each
- * situation a running forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine
- * limit lowered, a board file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream,
- * starting, and the states of Flint's brain that the brain's commands bring it into. The values the run draws (paths, tracker ids, ports,
- * process ids) are recorded as example values; the forge's install and code versions stamp the recording. Test-only.
+ * The real-system suites of overseer-fetch against a forge, which two recording specs run: `overseer-fetch-supported-forge`, a forge at the
+ * one system version Gaia supports, and `overseer-fetch-flint-brain`, a forge that runs Flint's brain, each recorded with
+ * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` and the program of such a forge. Each starts that forge under a scratch
+ * home in scratch repositories and records `GET /api/versions` and each endpoint at the versioned path Gaia calls. The supported forge: as
+ * Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running forge can be brought into:
+ * serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board file it cannot read,
+ * suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. The brain: Example Storefront in the
+ * states of Flint's brain that the brain's commands bring it into. The values the run draws (paths, tracker ids, ports, process ids) are
+ * recorded as example values; the forge's install and code versions stamp the recording. Test-only.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -94,7 +95,10 @@ const PATHS = {
   sessionCodes:  pathOf('sessionCodes', 'session-codes'),
 } as const;
 
-export function describeSupportedForgeRecording(recordingName: string): void {
+/** `supported-forge`: every situation but Flint's brain's; `flint-brain`: the brain's states only. */
+export type ForgeRecordingPart = 'supported-forge' | 'flint-brain';
+
+export function describeSupportedForgeRecording(recordingName: string, recordingPart: ForgeRecordingPart): void {
   const monitorVersion = CONTRACT_VERSIONS.forgeMonitor;
   const controlVersion = CONTRACT_VERSIONS.forgeControl;
   let scratchForge: ScratchForge;
@@ -130,6 +134,12 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     const answer = await realOverseerFetch().request(versionsRequest);
     keep(situation, requestCallShapeOf(versionsRequest), answer);
     return answer;
+  }
+
+  /** Stamps the recording with the install and code versions the forge's identity answer names. */
+  function stampWithTheForgeIn(identityAnswer: OverseerAnswer): void {
+    const identity = identityAnswer.verdict === 'answered' ? JSON.parse(identityAnswer.bodyText) as Record<string, unknown> : {};
+    recordSystemVersion(recordingName, `install version ${String(identity['installVersion'])}, code ${String(identity['codeVersion'])}`);
   }
 
   async function sendCommand(command: Record<string, unknown>): Promise<OverseerAnswer> {
@@ -213,7 +223,9 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     const monitorRequest = requestOf('GET', PATHS.monitor, bearerToken);
     keep(situation, requestCallShapeOf(monitorRequest), await realOverseerFetch().request(monitorRequest));
     const identityRequest = requestOf('GET', PATHS.identity, null);
-    keep(situation, requestCallShapeOf(identityRequest), await realOverseerFetch().request(identityRequest));
+    const identityAnswer = await realOverseerFetch().request(identityRequest);
+    keep(situation, requestCallShapeOf(identityRequest), identityAnswer);
+    stampWithTheForgeIn(identityAnswer);
     await keepVersions(situation);
   }
 
@@ -246,6 +258,36 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     await scratchForge.remove();
     if (scratchPathsLeft.length > 0) throw new Error(`A scratch path is left in ${scratchPathsLeft.map(({ callShape }) => callShape).join(', ')}: nothing is recorded.`);
   }, SETUP_TIMEOUT_MILLISECONDS);
+
+  if (recordingPart === 'flint-brain') {
+    describe('Example Storefront running Flint\'s brain', () => {
+      const commandShape = (): string => requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken));
+
+      test('answers a start of the brain done, and serves the brain running', async () => {
+        const answer = await sendCommand({ kind: 'flint-brain-start' });
+        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
+        keep('brain-running', commandShape(), answer);
+        await keepTheBrainOnceItIs('brain-running', 'running');
+      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
+
+      test('answers a stop of the running brain done, and serves the brain ended', async () => {
+        const answer = await sendCommand({ kind: 'flint-brain-stop' });
+        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
+        keep('brain-ended', commandShape(), answer);
+        await keepTheBrainOnceItIs('brain-ended', 'ended');
+      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
+
+      // The forge's requirements name no way to hold a scratch forge's usage limit or to run it without Flint, so these refuse to record.
+      test('refuses a start while the usage limit holds, and serves the brain refused', () => {
+        throw new Error('No requirement of the forge says how a scratch forge holds its usage limit: `brain-refused` stays authored.');
+      });
+
+      test('refuses a start without Flint, and serves no brain', () => {
+        throw new Error('No requirement of the forge says how a scratch forge runs without Flint: `no-flint` stays authored.');
+      });
+    });
+    return;
+  }
 
   describe('Example Project, a second forge', () => {
     let projectRepository = '';
@@ -317,14 +359,13 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       const identityRequest = requestOf('GET', PATHS.identity, null);
       const answer = await realOverseerFetch().request(identityRequest);
       expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
-      const identity = answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as Record<string, unknown> : {};
-      expect(identity).toMatchObject({
+      expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : null).toMatchObject({
         identityVersion: 1,
         contracts:       {
           summary: 1, monitor: monitorVersion, control: controlVersion, embed: 1
         }
       });
-      recordSystemVersion(recordingName, `install version ${String(identity['installVersion'])}, code ${String(identity['codeVersion'])}`);
+      stampWithTheForgeIn(answer);
       keep('serving-every-contract', requestCallShapeOf(identityRequest), answer);
     });
 
@@ -383,33 +424,6 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       keep('machine-limit-lowered', streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending: 'stays-open' });
       // The situations after this one are recorded at the machine's own limit, its CPU count, again.
       expect(await sendCommand({ kind: 'machine-agent-limit-set', limit: cpuCount })).toMatchObject({ verdict: 'answered', status: 200 });
-    });
-
-    describe('Flint\'s brain', () => {
-      const commandShape = (): string => requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken));
-
-      test('answers a start of the brain done, and serves the brain running', async () => {
-        const answer = await sendCommand({ kind: 'flint-brain-start' });
-        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
-        keep('brain-running', commandShape(), answer);
-        await keepTheBrainOnceItIs('brain-running', 'running');
-      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
-
-      test('answers a stop of the running brain done, and serves the brain ended', async () => {
-        const answer = await sendCommand({ kind: 'flint-brain-stop' });
-        expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer).toMatchObject({ outcome: 'done' });
-        keep('brain-ended', commandShape(), answer);
-        await keepTheBrainOnceItIs('brain-ended', 'ended');
-      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
-
-      // The forge's requirements name no way to hold a scratch forge's usage limit or to run it without Flint, so these refuse to record.
-      test('refuses a start while the usage limit holds, and serves the brain refused', () => {
-        throw new Error('No requirement of the forge says how a scratch forge holds its usage limit: `brain-refused` stays authored.');
-      });
-
-      test('refuses a start without Flint, and serves no brain', () => {
-        throw new Error('No requirement of the forge says how a scratch forge runs without Flint: `no-flint` stays authored.');
-      });
     });
 
     test('answers its refusal to the summary and the monitor while its board file cannot be read, and what its stream answers then', async () => {

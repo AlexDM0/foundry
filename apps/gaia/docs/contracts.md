@@ -95,8 +95,8 @@ version, major.minor.
 | `forgeRegistry` | 1.0 | `version`, `minor` | `~/.forge-monitor/projects.json`, the registry every forge of the account writes itself into | reads | `src/adapters/forge-registry/RegistryFile.ts` | the forge; `program` per entry with F9 |
 | `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/v1/identity`; its `contracts` names the version of each contract below that the forge serves | reads | `forge-contracts/IdentityDocument`, `src/adapters/forge-api/IdentityIngestion.ts` | the forge; one without the version key or `contracts` is older than Gaia reads |
 | `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/v1/summary`, polled for a forge whose registry entry names no token file | reads | `forge-contracts/BoardSummaryDocument`, `src/adapters/forge-api/BoardSummaryIngestion.ts` | the forge |
-| `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge at 1.1, with `flintBrain`, `null` for a forge without Flint, and an ended brain's activity entry of kind `flint-brain` with its tokens (G1, G2) |
-| `forgeControl` | 2 | `contracts.control` of the identity | an Overseer's `POST /api/v1/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` | the forge at 1.1, with `flint-brain-start` and `flint-brain-stop` and their refusals (G3) |
+| `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge at 1.0, with `flintBrain` always `null`; the brain itself, and an ended brain's activity entry of kind `flint-brain` with its tokens, at 1.1 (G1, G2) |
+| `forgeControl` | 1 | `contracts.control` of the identity | an Overseer's `POST /api/v1/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` (`ForgeControlCommandOfVersionOne`) | the forge at 1.0; control 2, with `flint-brain-start` and `flint-brain-stop` and their refusals, at 1.1 (G3) |
 | `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity; every message also carries its sender's `systemVersion` | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `forge-contracts/EmbedChannelMessage`, `page/views/forge-frame/EmbedChannel.ts` | the forge from F5; the Bridge's `systemVersion` from V5 |
 | `forgeProgramAnswer` | 1 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1.0 | `version`, `minor` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
@@ -112,11 +112,11 @@ version, major.minor.
 
 The forge's requirements F1 to F9, G1 to G4 and V1 to V9 (`docs/forge-requirements.md`) are the owner's to run on the forge's own board. Every fixture of a forge
 contract is recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped
-`authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on. No forge serves the version Gaia
-supports before Flint's brain, so `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, is authored
-(G1 to G3). `overseer-fetch-versions` is recorded: forge 1.0 as itself (older), ahead and newer through its test setting
-`FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a system
-version.
+`authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on. `overseer-fetch-supported-forge`,
+forge 1.0 in each situation, is recorded from this repository's forge. `overseer-fetch-flint-brain`, a forge in each state of Flint's
+brain, is authored until forge 1.1 serves the brain (G1 to G3), and Gaia's brain is read and driven from it in the specs only.
+`overseer-fetch-versions` is recorded: forge 1.0 older, ahead and newer through its test setting `FORGE_VERSIONS_ANSWER`, and a forge
+from before system versions, serving no `/api/versions`. Every situation is a forge at a system version.
 
 ## The install version
 

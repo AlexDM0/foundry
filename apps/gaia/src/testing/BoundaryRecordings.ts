@@ -98,9 +98,15 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'bun',
   },
   {
-    recordingName:            'overseer-fetch-supported-forge',
+    recordingName:  'overseer-fetch-supported-forge',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.supportedForge.recording.spec.ts',
+    system:         'forge',
+  },
+  {
+    recordingName:            'overseer-fetch-flint-brain',
     boundaryModule:           'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:            'src/lib/forge-client/OverseerFetch.supportedForge.recording.spec.ts',
+    recordingSpec:            'src/lib/forge-client/OverseerFetch.flintBrain.recording.spec.ts',
     system:                   'forge',
     forgeRequirementsAwaited: ['G1', 'G2', 'G3'],
   },

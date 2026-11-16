@@ -69,7 +69,7 @@ interface OutcomeCase {
 }
 
 /** What a forge at the version this client supports answers at `/api/versions`. */
-const SUPPORTED_FORGE_VERSIONS = { current: { major: 1, minor: 1 }, minimumSupported: { major: 0, minor: 0 } };
+const SUPPORTED_FORGE_VERSIONS = { current: { major: 1, minor: 0 }, minimumSupported: { major: 0, minor: 0 } };
 
 const OUTCOME_CASES: readonly OutcomeCase[] = [
   ...(['serving', 'serving-every-contract', 'starting'] as const).map((situation): OutcomeCase => ({
@@ -110,7 +110,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
       document: expect.objectContaining({
         identityVersion: 1,
         contracts:       {
-          summary: 1, monitor: 3, control: 2, embed: 1
+          summary: 1, monitor: 3, control: 1, embed: 1
         }
       })
     },

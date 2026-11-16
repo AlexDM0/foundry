@@ -45,7 +45,7 @@ function withForge(fleetDocument: FleetDocument, trackerId: string, change: (for
 
 /** Every forge at a control contract Gaia does not send, so none is sent a command. */
 function atAnUnknownControlContract(fleetDocument: FleetDocument): FleetDocument {
-  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })) };
+  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 3 } })) };
 }
 
 function withBrain(fleetDocument: FleetDocument, trackerId: string, brain: Partial<FleetDocumentBrain> | 'not-reported'): FleetDocument {

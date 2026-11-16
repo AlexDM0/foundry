@@ -1,9 +1,9 @@
 /**
  * The real-system spec of overseer-fetch against forges at another system version than the one Gaia supports, run only by
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM=<program> bun run record overseer-fetch-versions`. Each
- * situation is its own scratch forge under its own scratch home: `versions-older` the named forge at the version it answers, older than
- * the one Gaia supports; `versions-ahead` and `versions-newer` the same forge with its test setting `FORGE_VERSIONS_ANSWER`, which replaces
- * only what `/api/versions` and the monitor stream name; and `versions-absent` the unversioned program, a forge from before system
+ * situation is its own scratch forge under its own scratch home: `versions-older`, `versions-ahead` and `versions-newer` the named forge
+ * with its test setting `FORGE_VERSIONS_ANSWER`, which replaces only what `/api/versions` and the monitor stream name, below, ahead of and
+ * past the version Gaia supports; and `versions-absent` the unversioned program, a forge from before system
  * versions, which answers `/api/versions` as any unknown path (404, `not-found`). The ahead forge is also asked at each versioned path Gaia
  * calls, a command it carries out among them. Every situation is recorded in one run or none is.
  */
@@ -47,6 +47,7 @@ const SUCCESS_STATUS = 200;
 const NOT_FOUND_STATUS = 404;
 /** Forge's test setting, `<current>/<minimum supported>`; empty reads as unset, so no setting of the recording's own shell reaches a forge. */
 const VERSIONS_ANSWER_VARIABLE = 'FORGE_VERSIONS_ANSWER';
+const OLDER_VERSIONS_ANSWER = '0.9/0.0';
 const AHEAD_VERSIONS_ANSWER = '1.3/1.0';
 const NEWER_VERSIONS_ANSWER = '2.1/2.0';
 const VERSIONS_ANSWER_UNSET = '';
@@ -74,7 +75,6 @@ interface KeptAnswer {
 const createdForges: ScratchForge[] = [];
 const situationForges = new Map<VersionsSituation, SituationForge>();
 const keptAnswers: KeptAnswer[] = [];
-let olderSystemVersionText = '';
 
 function versionedPathOf(endpointName: OverseerEndpointName, endpoint: string): string {
   return ApiPathUtil.versionedPathOf(endpoint, forgeEndpointVersionOf(endpointName));
@@ -145,9 +145,9 @@ async function versionsOf(situation: VersionsSituation): Promise<{ readonly verd
 }
 
 function stampText(): string {
-  const { programVersionText } = situationForgeOf('versions-older');
-  const versionsAnswers = `${AHEAD_VERSIONS_ANSWER} and ${NEWER_VERSIONS_ANSWER} through ${VERSIONS_ANSWER_VARIABLE}`;
-  return `${programVersionText}: system version ${olderSystemVersionText}, and ${versionsAnswers}; `
+  const { programVersionText } = situationForgeOf('versions-ahead');
+  const versionsAnswers = `${OLDER_VERSIONS_ANSWER}, ${AHEAD_VERSIONS_ANSWER} and ${NEWER_VERSIONS_ANSWER} through ${VERSIONS_ANSWER_VARIABLE}`;
+  return `${programVersionText}, answering ${versionsAnswers}; `
     + `before system versions: ${situationForgeOf('versions-absent').programVersionText}`;
 }
 
@@ -157,7 +157,7 @@ beforeAll(async () => {
   if (unversionedForgeProgram === null) {
     throw new Error(`Name a forge from before system versions too: GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM=<path> bun run record ${RECORDING_NAME}.`);
   }
-  situationForges.set('versions-older', await startedForge(forgeProgram, VERSIONS_ANSWER_UNSET));
+  situationForges.set('versions-older', await startedForge(forgeProgram, OLDER_VERSIONS_ANSWER));
   situationForges.set('versions-ahead', await startedForge(forgeProgram, AHEAD_VERSIONS_ANSWER));
   situationForges.set('versions-newer', await startedForge(forgeProgram, NEWER_VERSIONS_ANSWER));
   situationForges.set('versions-absent', await startedForge(unversionedForgeProgram, VERSIONS_ANSWER_UNSET));
@@ -175,10 +175,8 @@ afterAll(async () => {
 }, REMOVAL_TIMEOUT_MILLISECONDS);
 
 describe('forges at another system version than the one Gaia supports', () => {
-  test('the forge at the version it answers is older than the one Gaia supports', async () => {
-    const versions = await versionsOf('versions-older');
-    expect(versions?.verdict).toBe('older');
-    olderSystemVersionText = versions?.currentText ?? '';
+  test('the forge set older by its test setting is older: its current is below the version Gaia supports', async () => {
+    expect((await versionsOf('versions-older'))?.verdict).toBe('older');
   });
 
   test('the forge set newer by its test setting is newer: its minimum is above the version Gaia supports', async () => {

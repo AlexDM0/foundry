@@ -30,7 +30,7 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
 const CURRENT_CONTRACTS = {
   summary: 1,
   monitor: 3,
-  control: 2,
+  control: 1,
   embed:   1,
 };
 
@@ -47,8 +47,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      'example-storefront-7c41',
         project:        'Example Storefront',
-        codeVersion:    '2b47322f0984',
-        installVersion: 27,
+        codeVersion:    '077a92978254',
+        installVersion: 28,
         processId:      48_107,
         contracts:      CURRENT_CONTRACTS,
       },
@@ -62,8 +62,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
         project:        'Example Project',
-        codeVersion:    '3a6e9e6043da',
-        installVersion: 27,
+        codeVersion:    '077a92978254',
+        installVersion: 28,
         processId:      21_008,
         contracts:      CURRENT_CONTRACTS,
       },
@@ -96,7 +96,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
       contracts:   {
         summary: 1,
         monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
-        control: CONTRACT_VERSIONS.forgeControl + 1,
+        control: ANALYTICS_SANDBOX.contracts.control,
         embed:   1,
       },
     };

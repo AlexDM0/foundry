@@ -128,11 +128,12 @@ A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORD
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
 for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
-recording stays authored beside its spec. The other awaits forge requirements, since no forge serves the version Gaia supports before
-Flint's brain: `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, Flint's brain's included (G1 to
-G3). Its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge
-recording be authored, and verify fails while a recorded one still names them. `overseer-fetch-versions` is recorded from this
-repository's forge, as itself (older) and ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from
+recording stays authored beside its spec. The other awaits forge requirements, since no forge serves Flint's brain before forge 1.1:
+`overseer-fetch-flint-brain`, a forge in each state of the brain (G1 to G3). Its entry in `RECORDED_BOUNDARIES` names the forge
+requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored, and verify fails while a recorded
+one still names them. `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` (1.0) in each situation, is recorded from
+this repository's forge, and `overseer-fetch-versions` from it too, older, ahead and newer through forge's test setting
+`FORGE_VERSIONS_ANSWER`, and from a forge from
 before system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a detached worktree's `agent-progress.ts`). macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's

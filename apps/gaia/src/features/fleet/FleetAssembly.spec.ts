@@ -149,7 +149,7 @@ const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   contracts:      {
     summary: 1,
     monitor: 3,
-    control: 2,
+    control: 1,
     embed:   1,
   },
 };

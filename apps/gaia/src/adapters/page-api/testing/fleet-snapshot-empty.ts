@@ -33,12 +33,12 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     knownContracts:    {
       summary: 1,
       monitor: 3,
-      control: 2,
+      control: 1,
       embed:   1,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },
-      supportedForgeVersion: { major: 1, minor: 1 },
+      supportedForgeVersion: { major: 1, minor: 0 },
     },
   },
 };

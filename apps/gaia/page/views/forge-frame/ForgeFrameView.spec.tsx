@@ -215,7 +215,7 @@ describe('Flint\'s brain in the bar', () => {
   test('a wake refused on Example Storefront is not Invoice Service\'s: its bar offers its own Wake, with no refusal', async () => {
     const everyForgeServesTheBrain = {
       ...BRAIN_OFF,
-      forges: BRAIN_OFF.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 2 } })),
+      forges: BRAIN_OFF.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })),
     };
     const sender = senderOver([async () => answerResponse({
       answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'

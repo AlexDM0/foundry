@@ -18,7 +18,7 @@ import type {
 export const FLEET_FIXTURES_READ_AT = '2026-11-12T13:19:30.000Z';
 
 /** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
-export const CURRENT_FORGE_VERSIONS: FleetDocumentForgeVersions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } };
+export const CURRENT_FORGE_VERSIONS: FleetDocumentForgeVersions = { verdict: 'current', current: { major: 1, minor: 0 }, minimumSupported: { major: 1, minor: 0 } };
 
 export const FLEET_FIVE_FORGES_TRACKER_IDS = {
   exampleStorefront: 'example-storefront-7c41',
@@ -34,7 +34,7 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
   monitor: 3,
-  control: 2,
+  control: 1,
   embed:   1,
 };
 
@@ -948,12 +948,12 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     knownContracts:    {
       summary: 1,
       monitor: 3,
-      control: 2,
+      control: 1,
       embed:   1,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },
-      supportedForgeVersion: { major: 1, minor: 1 },
+      supportedForgeVersion: { major: 1, minor: 0 },
     },
   },
 };

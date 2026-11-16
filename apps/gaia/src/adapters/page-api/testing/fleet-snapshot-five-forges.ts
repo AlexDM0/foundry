@@ -19,12 +19,12 @@ const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
   monitor: 3,
-  control: 2,
+  control: 1,
   embed:   1,
 };
 
 /** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
-export const CURRENT_FORGE_VERSIONS: ForgeVersions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } };
+export const CURRENT_FORGE_VERSIONS: ForgeVersions = { verdict: 'current', current: { major: 1, minor: 0 }, minimumSupported: { major: 1, minor: 0 } };
 
 /** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
 const USAGE_UNDER_THE_LIMIT: ForgeUsage = {
@@ -910,12 +910,12 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     knownContracts:    {
       summary: 1,
       monitor: 3,
-      control: 2,
+      control: 1,
       embed:   1,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },
-      supportedForgeVersion: { major: 1, minor: 1 },
+      supportedForgeVersion: { major: 1, minor: 0 },
     },
   },
 };

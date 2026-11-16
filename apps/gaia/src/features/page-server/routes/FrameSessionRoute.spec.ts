@@ -39,7 +39,7 @@ const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
 const SESSION_CODES_CALL_SHAPE = 'POST /api/v1/session-codes with bearer';
 
 const EVERY_CONTRACT: ForgeContracts = {
-  summary: 1, monitor: 3, control: 2, embed: 1,
+  summary: 1, monitor: 3, control: 1, embed: 1,
 };
 
 const CONSOLE_METHOD_NAMES = ['log', 'info', 'warn', 'error', 'debug', 'trace'] as const;

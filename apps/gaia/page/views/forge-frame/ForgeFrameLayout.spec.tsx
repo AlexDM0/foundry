@@ -5,8 +5,8 @@
  * a forge whose control contract Gaia does not know keeps only Open in new tab; a refusal shows the forge's code and sentence with Try
  * again only where the command can be sent again as it was. Flint's brain sits between Stop and Open in new tab, in exactly the parts of
  * its state: Wake, the waking note, the chip with Stop, a refusal with Wake again, or the ended line; Wake and Stop send the brain's
- * commands for this forge alone and are disabled while a command to it is on its way; under a control contract without the brain's
- * commands the state shows with neither, and a forge that reports no brain shows no group at all. The forge mark wakes the brain by a
+ * commands for this forge alone and are disabled while a command to it is on its way; under a control contract Gaia does not send the
+ * state shows with neither, and a forge that reports no brain shows no group at all. The forge mark wakes the brain by a
  * double click wherever Wake shows, and says so in its title. The frame area says "Opening Example Storefront." until the Bridge is ready,
  * keeping the frame hidden behind it; says the forge cannot be shown inside Gaia with Open in new tab; shows B3's callout with Look again;
  * and offers Try again on a refused session.
@@ -132,7 +132,7 @@ describe('the bar\'s controls', () => {
 });
 
 /** Example Storefront with its brain in a state of B1's tweak, at a control contract number when one is named. */
-function storefrontWithBrain(state: FleetDocumentBrainState, control: number | null = 2): FleetDocumentForge {
+function storefrontWithBrain(state: FleetDocumentBrainState, control: number | null = 1): FleetDocumentForge {
   return { ...STOREFRONT, brain: STOREFRONT_BRAINS[state], contracts: { ...STOREFRONT.contracts, control } };
 }
 
@@ -217,13 +217,13 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     }
   });
 
-  test('under control contract 1 the brain\'s state shows with no Wake and no Stop, and off shows no group', () => {
-    const running = controlsOf({ bar: barOf(storefrontWithBrain('running', 1)) });
+  test('under a control contract Gaia does not send the brain\'s state shows with no Wake and no Stop, and off shows no group', () => {
+    const running = controlsOf({ bar: barOf(storefrontWithBrain('running', 3)) });
     expect(tree.textOf([tree.onlyWithClass(running.unfolded, 'gaia-brain-chip')])).toBe('Flint\'s brain · haiku low · 1:24 left · 3.1k tokens');
     expect(buttonTextsOf(running.unfolded)).toEqual(['Pause', 'Stop', 'Open in new tab']);
-    const ended = controlsOf({ bar: barOf(storefrontWithBrain('ended', 1)) });
+    const ended = controlsOf({ bar: barOf(storefrontWithBrain('ended', 3)) });
     expect(tree.textOf([brainGroupOf(ended.unfolded)])).toBe('Flint\'s brain stopped after 2:00 · 4.2k tokens');
-    const off = controlsOf({ bar: barOf(storefrontWithBrain('off', 1)) });
+    const off = controlsOf({ bar: barOf(storefrontWithBrain('off', 3)) });
     expect(tree.hostElementsIn(off.unfolded, tree.withClass('gaia-brain-chip-group'))).toEqual([]);
     expect(buttonTextsOf(off.unfolded)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
@@ -263,9 +263,9 @@ describe('the forge mark\'s double click (PLAN B2)', () => {
     expect(markOf(storefrontWithBrain('off'), true).mark).toEqual({ title: 'Double-click to wake Flint\'s brain' });
   });
 
-  test('under control contract 1 wakes nothing, and for a forge that reports no brain has no title', () => {
-    expect(markOf(storefrontWithBrain('off', 1)).mark).toEqual({});
-    expect(markOf(storefrontWithBrain('running', 1)).mark).toEqual({ title: 'Flint\'s brain is awake' });
+  test('under a control contract Gaia does not send wakes nothing, and for a forge that reports no brain has no title', () => {
+    expect(markOf(storefrontWithBrain('off', 3)).mark).toEqual({});
+    expect(markOf(storefrontWithBrain('running', 3)).mark).toEqual({ title: 'Flint\'s brain is awake' });
     expect(markOf(STOREFRONT).mark).toEqual({});
   });
 });

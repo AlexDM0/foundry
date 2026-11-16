@@ -37,7 +37,7 @@ describe('opening a forge in place', () => {
 describe('the control contract', () => {
   test('is known at the one number this Gaia sends, and at no other', () => {
     expect(ForgeContractUtil.controlContractIsKnown(STOREFRONT)).toBe(true);
-    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 1 } })).toBe(false);
+    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } })).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Research Wiki'))).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });
@@ -47,7 +47,7 @@ describe('the brain\'s commands', () => {
   test('are served only by an Overseer that answers, at the control contract Gaia sends', () => {
     expect(ForgeContractUtil.brainCommandsAreServed(STOREFRONT)).toBe(true);
     expect(ForgeContractUtil.brainCommandsAreServed({ ...STOREFRONT, fidelity: 'unreachable' })).toBe(false);
-    expect(ForgeContractUtil.brainCommandsAreServed({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 1 } })).toBe(false);
+    expect(ForgeContractUtil.brainCommandsAreServed({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } })).toBe(false);
     expect(ForgeContractUtil.brainCommandsAreServed(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });
 });

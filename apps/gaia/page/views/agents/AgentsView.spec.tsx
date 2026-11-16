@@ -46,7 +46,7 @@ const STOREFRONT_BRAIN = { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'fli
 
 /** Every forge at a control contract Gaia does not send, so none is sent a command. */
 function atAnUnknownControlContract(fleetDocument: FleetDocument): FleetDocument {
-  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })) };
+  return { ...fleetDocument, forges: fleetDocument.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 3 } })) };
 }
 
 /** The view unfolded with every brain command and dismissal it hands on kept, in order. */
