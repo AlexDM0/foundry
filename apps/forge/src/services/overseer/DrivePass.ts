@@ -46,6 +46,7 @@ import {
 } from '../../shared/constants/OverseerLimits.ts';
 import { ProjectPathsUtil }                                                    from '../../shared/utils/ProjectPathsUtil.ts';
 import { type GateConfinement, type PipelineRunRequest, type PipelineVerdict } from '../lifecycle/GateRun.ts';
+import { Landing }                                                             from '../lifecycle/Landing.ts';
 import { MergeRun }                                                            from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                                                       from '../lifecycle/ReviewOutcome.ts';
 import { type ProjectLocation, projectLocationOf }                             from '../tracker/ProjectLocation.ts';
@@ -976,6 +977,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   // Read once for the Overseer's life: a project moved in its repository moves only while no Overseer runs.
   const projectLocation = projectLocationOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
+  const sharedRepository = projectLocation.projectPrefix === ''
+    ? null
+    : Landing.sharedRepositoryLandingOf(projectLocation, requireProgressFile(request.workspace).trackerId, request.now, platformPorts.processSupervision.processIsGone);
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,
@@ -1013,6 +1017,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     log:                  request.log,
     resolutionLinesOf:    MergeRun.resolutionLinesOf,
     ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
+    ...(sharedRepository === null ? {} : { sharedRepository }),
   };
   const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
@@ -1149,6 +1154,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   const airlocks = createAirlocks({
+    ...(sharedRepository === null ? {} : { sharedRepository }),
     repositoryRoot: projectLocation.repositoryRoot,
     mainLine:       request.mainLine,
     branchNames:    request.branchNames,

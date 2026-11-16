@@ -12,6 +12,7 @@ import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.t
 import { confinedLineOf }               from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                   from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                 from '../../lib/git/GitWorktrees.ts';
+import { RepositoryLandings }           from '../../lib/git/RepositoryLandings.ts';
 import { changedTrackedPathsOf }        from '../../lib/git/Worktrees.ts';
 import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
@@ -49,10 +50,13 @@ import {
   type RefMovesAllowed,
   refMovesAllowedOf,
   retriedFailedBuildJobIdOf,
+  type SharedRepositoryRefs,
+  watchedRefsOf,
   CUSTOMS_CHECKS,
   clearCustoms
 } from '../lifecycle/Customs.ts';
 import { type GateConfinement, GateRun } from '../lifecycle/GateRun.ts';
+import type { SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import {
   MergeRun,
   type MergeSides,
@@ -96,6 +100,8 @@ export interface JobLaunchContext {
   /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:    (worktreePath: string) => number | null;
   processStarts?:       ProcessStarts;
+  /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
+  sharedRepository?:    SharedRepositoryLanding;
 }
 
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
@@ -947,7 +953,16 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, jobId),
-  });
+  }, sharedRepositoryRefsOf(context, worktreesRoot));
+}
+
+/** A namespaced tracker watches only its own refs, and a sibling's journaled landing moves the target as its own would. */
+function sharedRepositoryRefsOf(context: JobLaunchContext, worktreesRoot: string): SharedRepositoryRefs {
+  const journal = context.sharedRepository === undefined ? null : RepositoryLandings.readLandingJournal(context.sharedRepository.files);
+  return {
+    journaledLandings: journal?.verdict === 'readable' ? journal.landings : [],
+    watchedRefs:       watchedRefsOf(context.branchNames, context.mainLine, worktreesRoot),
+  };
 }
 
 /** Once per hit: none while one is open, and none again for a hit User already answered, until another job on the ticket ends. */
