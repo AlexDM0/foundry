@@ -18767,6 +18767,2086 @@
       }
     },
     {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/packages/design-system: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/packages/design-system: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/packages/design-system: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/design-system/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers in apps/forge and apps/gaia, main at <start>, the person checkout on person at <start>\", in <repository>/packages/design-system: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <forge ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/src/Example.ts\u0000packages/design-system/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <gaia ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git merge-base --is-ancestor main <forge ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git merge-base --is-ancestor main <gaia ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/src/Example.ts\u0000packages/design-system/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/forge/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<forge ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/forge/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <start>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/gaia/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<gaia ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "gaia/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/gaia/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/design-system/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers off <start>, forge/ticket-001 on apps/forge and the shared package at <forge ticket tip>, gaia/ticket-001 at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/person <person tip>\nrefs/stash <stash>\nrefs/tags/example-tag <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/gaia/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/gaia/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <person tip>\nbranch refs/heads/person\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/person <person tip>\nrefs/stash <stash>\nrefs/tags/example-tag <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<person tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <person tip>\nbranch refs/heads/person\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/packages/design-system: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/packages/design-system: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/packages/design-system: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/design-system/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, main at <start>, apps/gaia changed in the main checkout, <person tip> on person, a stash at <stash>, example-tag at <start>\", in <repository>/packages/design-system: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <forge ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/src/Example.ts\u0000apps/gaia/src/Example.ts\u0000packages/design-system/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <gaia ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <gaia ticket tip>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git merge-base --is-ancestor main <forge ticket tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git merge-base --is-ancestor main <gaia ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<gaia ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <gaia ticket tip>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <gaia ticket tip>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <gaia ticket tip>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/.claude/worktrees/person/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.claude/worktrees/person\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/src/Example.ts\u0000packages/design-system/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <gaia ticket tip>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/forge/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<forge ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <gaia ticket tip>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/forge/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/forge/.forge-worktrees/ticket-001/apps/forge: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/forge/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/ticket-001 <forge ticket tip>\nrefs/heads/gaia/ticket-001 <gaia ticket tip>\nrefs/heads/main <gaia ticket tip>\nrefs/heads/person <start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/gaia/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<gaia ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "gaia/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <gaia ticket tip>\nbranch refs/heads/main\n\nworktree <repository>/.claude/worktrees/person\nHEAD <start>\nbranch refs/heads/person\n\nworktree <repository>/apps/forge/.forge-worktrees/ticket-001\nHEAD <forge ticket tip>\nbranch refs/heads/forge/ticket-001\n\nworktree <repository>/apps/gaia/.forge-worktrees/ticket-001\nHEAD <gaia ticket tip>\nbranch refs/heads/gaia/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/gaia/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/apps/gaia/.forge-worktrees/ticket-001/apps/gaia: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/gaia/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/design-system/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"two trackers, the tickets built, main fast-forwarded to gaia's ticket at <gaia ticket tip>\", in <repository>/packages/design-system: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "show <branch>:<path>, the path not on the branch",
       "answer": {
         "exitCode": 128,
