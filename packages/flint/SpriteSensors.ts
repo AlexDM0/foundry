@@ -4,6 +4,7 @@
  * overlay units. It also says when Flint must stop: the tab is hidden, or the place Flint stands on is off the screen.
  */
 import type {
+  FlintConfinement,
   RegisteredHabitat,
   SpriteCue,
   SpriteHabitat,
@@ -20,13 +21,13 @@ import type {
   PlaceBox,
   PointerHappening
 } from './mind/Perception.ts';
-import { NO_TARGET }                                from './mind/Perception.ts';
-import type { HabitatRecord }                       from './sensors/HabitatRegistry.ts';
-import { createHabitatRegistry }                    from './sensors/HabitatRegistry.ts';
-import type { ClientPoint, SensedPointerHappening } from './sensors/PointerSensor.ts';
-import { createPointerSensor }                      from './sensors/PointerSensor.ts';
-import type { VisitCandidate }                      from './sensors/VisitTargetSelection.ts';
-import { visitTargetIdOf }                          from './sensors/VisitTargetSelection.ts';
+import { NO_TARGET }                                 from './mind/Perception.ts';
+import type { HabitatRecord }                        from './sensors/HabitatRegistry.ts';
+import { createHabitatRegistry }                     from './sensors/HabitatRegistry.ts';
+import type { ClientPoint, SensedPointerHappening }  from './sensors/PointerSensor.ts';
+import { BLIND_POINTER_SENSOR, createPointerSensor } from './sensors/PointerSensor.ts';
+import type { VisitCandidate }                       from './sensors/VisitTargetSelection.ts';
+import { visitTargetIdOf }                           from './sensors/VisitTargetSelection.ts';
 
 export interface SpriteSensorsOptions {
   readonly document:         Document;
@@ -37,6 +38,11 @@ export interface SpriteSensorsOptions {
   readonly home:             HTMLElement;
   readonly pixelsForOneUnit: number;
   readonly visitTarget:      VisitTargetPolicy;
+  /**
+   * `stays-in-its-box` reads no pointer, perceives every habitat as one that keeps Flint inside, and offers no copy target outside its
+   * habitat's element.
+   */
+  readonly confinement:      FlintConfinement;
 }
 
 export interface PerceptionRequest {
@@ -78,7 +84,8 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
     document, overlay, home, pixelsForOneUnit
   } = options;
   const registry = createHabitatRegistry({ document, home, tracksContentChanges: options.visitTarget === 'content-changed-last' });
-  const pointerSensor = createPointerSensor({ document, bodyElement: options.bodyElement });
+  const staysInItsBox = options.confinement === 'stays-in-its-box';
+  const pointerSensor = staysInItsBox ? BLIND_POINTER_SENSOR : createPointerSensor({ document, bodyElement: options.bodyElement });
   let lastPointer: ClientPoint | null = null;
 
   const measuredHabitats = (): readonly MeasuredHabitat[] => registry.records().map((record) => ({ record, rectangle: record.element.getBoundingClientRect() }));
@@ -105,6 +112,7 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
       if (record.id !== request.copyTargetHabitatId) return null;
       const target = record.habitat.copyTargetFor?.() ?? null;
       if (target === null || !isSpriteIntent(target.intent)) return null;
+      if (staysInItsBox && !record.element.contains(target.element)) return null;
       const rectangle = target.element.getBoundingClientRect();
       return { centreX: ((rectangle.left + rectangle.right) / 2 - overlayRectangle.left) / pixelsForOneUnit, intent: target.intent };
     };
@@ -115,7 +123,7 @@ export function createSpriteSensors(options: SpriteSensorsOptions): SpriteSensor
       box:              boxOf(rectangle),
       isRoomy:          rectangleIsRoomy(rectangle),
       copyTarget:       copyTargetOf(record),
-      keepsFlintInside: record.habitat.keepsFlintInside === true,
+      keepsFlintInside: staysInItsBox || record.habitat.keepsFlintInside === true,
     }));
     const reading = pointerSensor.readingOfFrame();
     lastPointer = reading.position;

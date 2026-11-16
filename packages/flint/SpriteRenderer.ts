@@ -4,7 +4,7 @@
  * shapes, which `flint/drawing/ShapeWriter.ts` writes. Every element is made once and each frame only sets attributes; every colour is a
  * `var(--flint-*, default)`. The pose mirrors with the facing, except the marks, a shape that is never mirrored, and the direction of
  * reading and writing. A behaviour's page shapes are drawn behind all of Flint, where the page puts them. Only the body takes pointer
- * input.
+ * input, unless the caller says it takes none. The caller can confine all of the drawing to a box, the page shapes too.
  */
 import type {
   EmoteMarkPose,
@@ -26,6 +26,7 @@ import { createShapeWriter }                          from './drawing/ShapeWrite
 import { SvgTextUtil }                                from './drawing/SvgTextUtil.ts';
 import type { MarkName }                              from './marks/MarkCatalog.ts';
 import { MARK_CATALOG, markDefinitionOf }             from './marks/MarkCatalog.ts';
+import type { PlaceBox }                              from './mind/Perception.ts';
 import type { PropName }                              from './props/PropCatalog.ts';
 import { PROP_CATALOG, PROP_NAMES, propDefinitionOf } from './props/PropCatalog.ts';
 import type { HoldingHand, PropLayer }                from './props/PropDefinition.ts';
@@ -33,10 +34,23 @@ import { AnimationCurveUtil }                         from './utils/AnimationCur
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
+/** The box of the confinement `nowhere`: nothing shows inside it. */
+const NO_BOX: PlaceBox = Object.freeze({
+  leftX: 0, rightX: 0, topY: 0, floorY: 0,
+});
+
 export interface SpriteRendererOptions {
   readonly document:         Document;
   readonly pixelsForOneUnit: number;
+  /** False leaves the body blind to the pointer too, so no part of Flint takes a press. */
+  readonly bodyTakesPointer: boolean;
 }
+
+/** Where the drawing may show: everywhere, nowhere (the box Flint stands in is not on the page), or inside a box in overlay units. */
+export type DrawingConfinement =
+  | { readonly kind: 'everywhere' }
+  | { readonly kind: 'nowhere' }
+  | { readonly kind: 'inside'; readonly box: PlaceBox };
 
 export interface SpriteRenderer {
   /** The overlay; the caller places it in the host's page and removes it. */
@@ -44,6 +58,8 @@ export interface SpriteRenderer {
   /** The one element that takes pointer input. */
   readonly bodyElement: SVGPathElement;
   readonly draw:        (pose: Pose) => void;
+  /** Holds every later drawing to the confinement until the next call; at the start the drawing shows everywhere. */
+  readonly confine:     (confinement: DrawingConfinement) => void;
 }
 
 type AttributeValue = string | number;
@@ -118,6 +134,8 @@ export function createSpriteRenderer(options: SpriteRendererOptions): SpriteRend
   }
   const occlusionClip = make('clipPath', definitions, { id: OVERLAY.OCCLUSION_CLIP_ID, clipPathUnits: 'userSpaceOnUse' });
   const occlusionRectangle = make('rect', occlusionClip);
+  const confinementClip = make('clipPath', definitions, { id: OVERLAY.CONFINEMENT_CLIP_ID, clipPathUnits: 'userSpaceOnUse' });
+  const confinementRectangle = make('rect', confinementClip);
 
   const scaled = make('g', svg, { transform: `scale(${numberText(options.pixelsForOneUnit)})` });
   const pageWriter = createShapeWriter(document, scaled, 'undisplayed', OVERLAY.PAGE_PART_NAME);
@@ -147,7 +165,7 @@ export function createSpriteRenderer(options: SpriteRendererOptions): SpriteRend
   writePropsOfLayer('behind-body');
 
   const body = make('g', flip);
-  const bodyElement = make('path', body, { 'd': BODY_SHAPE.PATH, 'fill': paintText('body'), 'pointer-events': 'visiblePainted' });
+  const bodyElement = make('path', body, { 'd': BODY_SHAPE.PATH, 'fill': paintText('body'), 'pointer-events': options.bodyTakesPointer ? 'visiblePainted' : 'none' });
   const tint = make('path', body, { d: BODY_SHAPE.PATH, display: 'none' });
   const glow = make('path', body, { d: BODY_SHAPE.GLOW_PATH, fill: paintText('glow'), opacity: 0 });
   const eyes = [EYE_SHAPE.LEFT_EYE_X_UNITS, EYE_SHAPE.RIGHT_EYE_X_UNITS].map(() => make('rect', body, { fill: paintText('eye') }));
@@ -308,5 +326,23 @@ export function createSpriteRenderer(options: SpriteRendererOptions): SpriteRend
     drawOcclusion(pose);
   };
 
-  return { element: svg, bodyElement, draw };
+  /** The clip sits on the scaled group, so the box is in overlay units, and it holds the page shapes as well as Flint. */
+  const confine = (confinement: DrawingConfinement): void => {
+    if (confinement.kind === 'everywhere') {
+      scaled.removeAttribute('clip-path');
+      return;
+    }
+    const box = confinement.kind === 'inside' ? confinement.box : NO_BOX;
+    setAttributes(confinementRectangle, {
+      x:      box.leftX,
+      y:      box.topY,
+      width:  Math.max(0, box.rightX - box.leftX),
+      height: Math.max(0, box.floorY - box.topY),
+    });
+    setAttributes(scaled, { 'clip-path': `url(#${OVERLAY.CONFINEMENT_CLIP_ID})` });
+  };
+
+  return {
+    element: svg, bodyElement, draw, confine,
+  };
 }

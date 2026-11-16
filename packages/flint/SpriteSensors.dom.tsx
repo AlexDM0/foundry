@@ -3,8 +3,9 @@
  * measured from the overlay's corner and divided by the size of one unit, so Flint is placed alike at half size and at full size; a
  * habitat narrower or lower than 100 pixels is not roomy, so Flint never goes into it, is never stored there and never drops there; the
  * copy target is read only for the habitat Flint lives in, at the centre of the element the host names, and an intent off the fixed list
- * gives none; a drop lands on the innermost roomy habitat below the pointer, passing over a small one; and a habitat that keeps Flint
- * inside is perceived so, every other habitat not.
+ * gives none; a drop lands on the innermost roomy habitat below the pointer, passing over a small one; a habitat that keeps Flint
+ * inside is perceived so, every other habitat not; and sensors of a Flint that stays in its box read no pointer (no position, no click, no
+ * drag), perceive every habitat as one that keeps Flint inside, and give no copy target outside its habitat's element.
  */
 import {
   afterEach,
@@ -13,7 +14,7 @@ import {
   test
 } from 'bun:test';
 
-import type { SpriteHabitat }                    from './SpriteHabitat.ts';
+import type { FlintConfinement, SpriteHabitat }  from './SpriteHabitat.ts';
 import type { PerceptionRequest, SpriteSensors } from './SpriteSensors.ts';
 import { createSpriteSensors }                   from './SpriteSensors.ts';
 import type { PlaceBox }                         from './mind/Perception.ts';
@@ -48,7 +49,7 @@ interface Page {
   readonly habitat: (habitat: SpriteHabitat, left: number, top: number, width: number, height: number) => HTMLElement;
 }
 
-function page(pixelsForOneUnit: number): Page {
+function page(pixelsForOneUnit: number, confinement: FlintConfinement = 'roams-the-page'): Page {
   const overlay = document.createElement('div');
   const home = document.createElement('div');
   const body = document.createElement('div');
@@ -56,7 +57,7 @@ function page(pixelsForOneUnit: number): Page {
   placeAt(overlay, OVERLAY_LEFT_PIXELS, OVERLAY_TOP_PIXELS, 1200, 800);
   placeAt(home, 1010, 720, 100, 60);
   const sensors = createSpriteSensors({
-    document, overlay, bodyElement: body, home, pixelsForOneUnit, visitTarget: 'last-focused-or-clicked',
+    document, overlay, bodyElement: body, home, pixelsForOneUnit, visitTarget: 'last-focused-or-clicked', confinement,
   });
   sensorsMade.push(sensors);
   return {
@@ -194,5 +195,37 @@ describe('the copy target', () => {
     habitat(habitatOf('agent-panel', { copyTargetFor }), 10, 20, 800, 600);
     const habitatId = sensors.perceive(NO_REQUEST).habitats[0]?.id ?? null;
     expect(sensors.perceive({ ...NO_REQUEST, copyTargetHabitatId: habitatId }).habitats[0]?.copyTarget).toBeNull();
+  });
+});
+
+describe('a Flint that stays in its box', () => {
+  test('reads no pointer: no position, and a press that moves far is neither a drag nor a click', () => {
+    const { sensors, body } = page(1, 'stays-in-its-box');
+    pointer('pointerdown', body, 0, 0);
+    pointer('pointermove', document, 400, 300);
+    pointer('pointerup', document, 400, 300);
+    const perception = sensors.perceive(NO_REQUEST);
+    expect([perception.pointer, perception.happenings]).toEqual([null, []]);
+  });
+
+  test('perceives every habitat as one that keeps Flint inside', () => {
+    const { sensors, habitat } = page(1, 'stays-in-its-box');
+    habitat(habitatOf('chat'), 210, 120, 400, 300);
+    expect(sensors.perceive(NO_REQUEST).habitats.map((perceived) => perceived.keepsFlintInside)).toEqual([true]);
+  });
+
+  test('gives no copy target outside the habitat\'s element, and one inside it', () => {
+    const { sensors, habitat } = page(1, 'stays-in-its-box');
+    const outsideRow = document.createElement('div');
+    document.body.appendChild(outsideRow);
+    let copiedRow: HTMLElement = outsideRow;
+    const panel = habitat(habitatOf('agent-panel', { copyTargetFor: () => ({ element: copiedRow, intent: 'type' }) }), 10, 20, 800, 600);
+    const habitatId = sensors.perceive(NO_REQUEST).habitats[0]?.id ?? null;
+    expect(sensors.perceive({ ...NO_REQUEST, copyTargetHabitatId: habitatId }).habitats[0]?.copyTarget).toBeNull();
+    const insideRow = document.createElement('div');
+    panel.appendChild(insideRow);
+    placeAt(insideRow, 110, 200, 100, 20);
+    copiedRow = insideRow;
+    expect(sensors.perceive({ ...NO_REQUEST, copyTargetHabitatId: habitatId }).habitats[0]?.copyTarget).toEqual({ centreX: 150, intent: 'type' });
   });
 });

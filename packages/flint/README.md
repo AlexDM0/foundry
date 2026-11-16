@@ -16,6 +16,7 @@ const flint = createFlint({
   root: document.body,                        // Flint draws its overlay here
   home: cornerElement,                        // the corner where Flint lives and sleeps
   pixelsForOneUnit: 0.5,                       // the size: Flint is 40 by 50 units
+  confinement: 'stays-in-its-box',             // optional: Flint never shows outside its box (default 'roams-the-page')
 });
 
 const removeHabitat = flint.registerHabitat(chatElement, {
@@ -42,7 +43,7 @@ There is one Flint on a document: a second `createFlint` throws a `FlintRefusal`
 
 `perform` answers a `PerformVerdict`: `performed`, `unknown-intent` for a value off the fixed list, `needs-an-element` for a behaviour
 that must have one given none (`lay-bar-along`), `already-running` for a behaviour that runs one at a time while it runs or its intent
-waits (`chase-bug`), and `destroyed`. A refused intent changes nothing. A behaviour given an element reads its box on each frame and ends
+waits (`chase-bug`), `outside-its-box` for an element outside the box a Flint that stays in its box lives in, and `destroyed`. A refused intent changes nothing. A behaviour given an element reads its box on each frame and ends
 once the element leaves the page. `livesIn` answers the kind of the habitat Flint lives in, null at home, before its first frame and after
 `destroy`: a host starts a behaviour on the floor of its own habitat only while Flint lives there.
 
@@ -77,6 +78,7 @@ registered, so a host whose storage comes later (once it knows whose page it sho
 | Home | The element whose bottom edge is Flint's floor. |
 | Habitats | Each large component registers its element with a `SpriteHabitat`: its kind, a description, its suggestions, and optionally `contentFor`. Flint ignores a habitat smaller than 100 by 100 pixels. A box with content around it, such as a slot, sets `keepsFlintInside`: Flint never shows outside it, and a visit pops in through its edge in place of around its corner. |
 | Cues | The host's own cue names, sent with `cue` while Flint lives in that habitat. |
+| Confinement | `roams-the-page` (the default): Flint comes around a habitat's corner, the user carries it and it plays with the pointer. `stays-in-its-box`: all of Flint, its page shapes too, is drawn only inside the box it stands in (its home, or the habitat it lives in or visits); every visit pops in through an edge; it reads no pointer, so it is never carried, a press on it reaches the page, it never plays with the pointer and the `under-pointer` visit target picks no habitat; it hears only the cues of the box it lives in, copies only inside that habitat's element, and `perform` refuses an element outside the element of that box with `outside-its-box`. |
 | Visit target | Which habitat is "the component the user works in": `last-focused-or-clicked` (the default), `under-pointer`, `content-changed-last`, or a function of the host. |
 | Storage | A `FlintStorage` port that remembers the habitat Flint lives in. By default nothing is stored. |
 | Time | A `FrameSource`. By default, the browser's animation frames. A spec gives a manual one. |

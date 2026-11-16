@@ -8,6 +8,7 @@ import { intendedGestureOf }      from './IntentMeaning.ts';
 import { easedPoseOf }            from './PoseEasing.ts';
 import type {
   Director,
+  FlintConfinement,
   SpriteCue,
   SpriteHabitat,
   SpriteIntent,
@@ -29,6 +30,7 @@ import {
   targetPoseOfMind
 } from './SpriteMind.ts';
 import type { Pose }                                                        from './SpritePose.ts';
+import type { DrawingConfinement }                                          from './SpriteRenderer.ts';
 import { createSpriteRenderer }                                             from './SpriteRenderer.ts';
 import { createSpriteSensors }                                              from './SpriteSensors.ts';
 import { behaviourDefinitionOf }                                            from './behaviours/BehaviourCatalog.ts';
@@ -44,11 +46,13 @@ import {
   directorIsDue,
   perceptionDigestOf
 } from './mind/DirectorAsk.ts';
-import { elementUseOf, intentIsRefused } from './mind/IntentApplication.ts';
-import type { SpriteMindState }          from './mind/MindState.ts';
-import { ruleDirectorIntentOf }          from './mind/RuleDirector.ts';
-import { mindStateSteered }              from './mind/Steering.ts';
-import { StoredHabitatUtil }             from './mind/utils/StoredHabitatUtil.ts';
+import { elementUseOf, intentIsRefused }       from './mind/IntentApplication.ts';
+import type { SpriteMindState, StandingPlace } from './mind/MindState.ts';
+import type { Perception }                     from './mind/Perception.ts';
+import { ruleDirectorIntentOf }                from './mind/RuleDirector.ts';
+import { mindStateSteered }                    from './mind/Steering.ts';
+import { PlaceUtil }                           from './mind/utils/PlaceUtil.ts';
+import { StoredHabitatUtil }                   from './mind/utils/StoredHabitatUtil.ts';
 
 /**
  * The host's store of the habitat Flint lives in. The value is the package's own (`flint/mind/utils/StoredHabitatUtil.ts`): it carries
@@ -76,14 +80,17 @@ export interface FlintOptions {
   readonly theme?:            Partial<FlintTheme>;
   /** Which habitat is "the component the user works in"; the default is the habitat last focused or clicked. */
   readonly visitTarget?:      VisitTargetPolicy;
+  /** Where Flint may be (`FlintConfinement` in `flint/SpriteHabitat.ts`); the default is `roams-the-page`. */
+  readonly confinement?:      FlintConfinement;
 }
 
 /**
  * `unknown-intent` when the value is not on the fixed intent list; `needs-an-element` for a behaviour that takes one (`lay-bar-along`)
- * given none; `already-running` for a behaviour that runs one at a time (`chase-bug`) while it runs or its intent waits; `destroyed` after
- * `destroy`. A refused intent changes nothing.
+ * given none; `already-running` for a behaviour that runs one at a time (`chase-bug`) while it runs or its intent waits; `outside-its-box`
+ * when a Flint that stays in its box is given an element outside the element of the box it lives in; `destroyed` after `destroy`. A
+ * refused intent changes nothing.
  */
-export type PerformVerdict = 'performed' | 'unknown-intent' | 'needs-an-element' | 'already-running' | 'destroyed';
+export type PerformVerdict = 'performed' | 'unknown-intent' | 'needs-an-element' | 'already-running' | 'outside-its-box' | 'destroyed';
 
 /** `unknown-steering` when the value is not one of `FLINT_STEERINGS`, `destroyed` after `destroy`. */
 export type SteerVerdict = 'steered' | 'unknown-steering' | 'destroyed';
@@ -155,6 +162,16 @@ function mindHoldsItsElement(mind: SpriteMindState): boolean {
   return gestureAims || behaviourDefinitionOf(mind.behaviour.name).element !== 'none' || mind.pendingIntent !== null;
 }
 
+const DRAWN_EVERYWHERE: DrawingConfinement = Object.freeze({ kind: 'everywhere' });
+
+const DRAWN_NOWHERE: DrawingConfinement = Object.freeze({ kind: 'nowhere' });
+
+/** The box of the place Flint stands in on this frame: a habitat, also one it visits, or else its home. */
+function drawingConfinementAt(place: StandingPlace, perception: Perception): DrawingConfinement {
+  const box = place.kind === 'habitat' ? PlaceUtil.habitatById(perception, place.habitatId)?.box ?? null : perception.home;
+  return box === null ? DRAWN_NOWHERE : { kind: 'inside', box };
+}
+
 function placeOverlay(overlay: SVGSVGElement, theme: Partial<FlintTheme>): void {
   const { style } = overlay;
   style.position = 'fixed';
@@ -177,7 +194,9 @@ export function createFlint(options: FlintOptions): FlintHandle {
   const frameSource = options.frameSource ?? (view === null ? null : animationFrameSourceOf(view));
   if (frameSource === null) throw new FlintRefusal('no-window');
   const pixelsForOneUnit = options.pixelsForOneUnit ?? DEFAULT_PIXELS_FOR_ONE_UNIT;
-  const renderer = createSpriteRenderer({ document, pixelsForOneUnit });
+  const confinement = options.confinement ?? 'roams-the-page';
+  const staysInItsBox = confinement === 'stays-in-its-box';
+  const renderer = createSpriteRenderer({ document, pixelsForOneUnit, bodyTakesPointer: !staysInItsBox });
   placeOverlay(renderer.element, options.theme ?? {});
   options.root.appendChild(renderer.element);
   const sensors = createSpriteSensors({
@@ -187,6 +206,7 @@ export function createFlint(options: FlintOptions): FlintHandle {
     home:        options.home,
     pixelsForOneUnit,
     visitTarget: options.visitTarget ?? 'last-focused-or-clicked',
+    confinement,
   });
 
   const reducedMotionQuery = options.reducedMotion === undefined ? view?.matchMedia(REDUCED_MOTION_MEDIA_QUERY) ?? null : null;
@@ -206,6 +226,12 @@ export function createFlint(options: FlintOptions): FlintHandle {
 
   const giveIntent = (intent: SpriteIntent, visitTargetId: string | null): void => {
     if (!runtime.isDestroyed) runtime.mind = mindStateWithPendingIntent(runtime.mind, { intent, visitTargetId });
+  };
+
+  /** The element of the box Flint lives in: its home, or the habitat's element; null while that habitat is no longer registered. */
+  const elementWhereFlintLives = (): Element | null => {
+    const { livesIn } = runtime.mind;
+    return livesIn === null ? options.home : sensors.registeredOf(livesIn)?.element ?? null;
   };
 
   const rememberWhereFlintLives = (livesIn: string | null): void => {
@@ -262,18 +288,20 @@ export function createFlint(options: FlintOptions): FlintHandle {
     if (isPaused) return;
     const isReducedMotion = reducedMotion();
     const before = runtime.mind;
-    const perception = sensors.perceive({
+    const perceived = sensors.perceive({
       copyTargetHabitatId: before.livesIn,
       storedHabitatKind:   before.mayRestoreStoredHabitat ? storedHabitatKind : null,
       reducedMotion:       isReducedMotion,
       targetElement:       runtime.targetElement,
     });
+    const perception = staysInItsBox ? { ...perceived, cues: perceived.cues.filter((heard) => heard.habitatId === before.livesIn) } : perceived;
     runtime.mind = mindStateAfterFrame(before, perception, { elapsedMilliseconds, deltaMilliseconds });
     if (!mindHoldsItsElement(runtime.mind)) runtime.targetElement = null;
     if (runtime.mind.livesIn !== before.livesIn) rememberWhereFlintLives(runtime.mind.livesIn);
     if (runtime.awaitedAskNumber === null && directorIsDue(runtime.mind, elapsedMilliseconds)) askDirector(elapsedMilliseconds);
     const targetPose = targetPoseOfMind(runtime.mind, elapsedMilliseconds, isReducedMotion);
     runtime.drawnPose = runtime.drawnPose === null ? targetPose : easedPoseOf(runtime.drawnPose, targetPose, deltaMilliseconds);
+    renderer.confine(staysInItsBox ? drawingConfinementAt(standingPlaceOf(runtime.mind), perception) : DRAWN_EVERYWHERE);
     renderer.draw(runtime.drawnPose);
   };
   const stopFrames = frameSource(onFrame);
@@ -290,6 +318,7 @@ export function createFlint(options: FlintOptions): FlintHandle {
       const elementUse = elementUseOf(intent);
       if (elementUse === 'required' && toward === undefined) return 'needs-an-element';
       if (intentIsRefused(runtime.mind, intent)) return 'already-running';
+      if (staysInItsBox && elementUse !== 'none' && toward !== undefined && elementWhereFlintLives()?.contains(toward) !== true) return 'outside-its-box';
       giveIntent(intent, sensors.visitTargetIdFor(runtime.mind.livesIn));
       runtime.targetElement = elementUse === 'none' ? null : toward ?? null;
       return 'performed';

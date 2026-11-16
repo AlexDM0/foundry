@@ -4,7 +4,9 @@
  * the facing but the marks, the ticks and the direction of writing do not; the sideways pose keeps the eyes and hands in shape; a prop
  * slides in with its level; the body's tint and dashed outline follow their channels; an attendant is drawn behind Flint with its x
  * mirrored; a behaviour's page shapes are drawn behind all of Flint where the page puts them, never moved with Flint or mirrored, and are
- * hidden when none is given; and the size follows `pixelsForOneUnit`. A part is found in the group named after it, since shared builders draw alike.
+ * hidden when none is given; the size follows `pixelsForOneUnit`; a body told to take no pointer is blind to it; and a confinement holds all
+ * of the drawing, the page shapes too, inside its box, shows nothing for nowhere, and is lifted for everywhere. A part is found in the group
+ * named after it, since shared builders draw alike.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -15,8 +17,8 @@ import type { PropsPose }                from './props/PropCatalog.ts';
 
 const BODY_PATH = 'M0 -50 L20 -24 L0 0 L-20 -24Z';
 
-function drawn(pose: Pose, pixelsForOneUnit = 1): SVGSVGElement {
-  const renderer = createSpriteRenderer({ document, pixelsForOneUnit });
+function drawn(pose: Pose, pixelsForOneUnit = 1, bodyTakesPointer = true): SVGSVGElement {
+  const renderer = createSpriteRenderer({ document, pixelsForOneUnit, bodyTakesPointer });
   renderer.draw(pose);
   return renderer.element;
 }
@@ -302,7 +304,7 @@ describe('the sideways pose', () => {
 describe('occlusion', () => {
   test('a component edge drawn in front of Flint clips the side it hides', () => {
     const svg = drawn(posed({ occlusion: { edgeX: 250, hiddenSide: 1 } }));
-    const clip = onlyElement(svg, 'clipPath rect');
+    const clip = onlyElement(svg, '#flint-occlusion rect');
     expect([clip.getAttribute('x'), clip.getAttribute('width')]).toEqual(['-99750', '100000']);
     expect(svg.querySelector('[clip-path="url(#flint-occlusion)"]')).not.toBeNull();
     expect(drawn(NEUTRAL_POSE).querySelector('[clip-path]')).toBeNull();
@@ -369,9 +371,43 @@ describe('the page shapes of a behaviour', () => {
   });
 
   test('with none given, the page group is hidden', () => {
-    const renderer = createSpriteRenderer({ document, pixelsForOneUnit: 1 });
+    const renderer = createSpriteRenderer({ document, pixelsForOneUnit: 1, bodyTakesPointer: true });
     renderer.draw(posed({ page: BUG_ON_THE_PAGE }));
     renderer.draw(NEUTRAL_POSE);
     expect(renderer.element.querySelector('g[data-flint-part="page"]')?.getAttribute('display')).toBe('none');
+  });
+
+  describe('confinement', () => {
+    const BOX = Object.freeze({
+      leftX: 100, rightX: 300, topY: 50, floorY: 150,
+    });
+
+    function confinementRectangleOf(svg: SVGSVGElement): readonly (string | null)[] {
+      const rectangle = onlyElement(svg, '#flint-confinement rect');
+      return ['x', 'y', 'width', 'height'].map((name) => rectangle.getAttribute(name));
+    }
+
+    test('a body told to take no pointer is blind to it, so no part of Flint takes a press', () => {
+      expect(bodyOf(drawn(NEUTRAL_POSE, 1, false)).getAttribute('pointer-events')).toBe('none');
+      expect(bodyOf(drawn(NEUTRAL_POSE, 1, true)).getAttribute('pointer-events')).toBe('visiblePainted');
+    });
+
+    test('a box holds all of the drawing, the page shapes too, in overlay units', () => {
+      const renderer = createSpriteRenderer({ document, pixelsForOneUnit: 2, bodyTakesPointer: false });
+      renderer.confine({ kind: 'inside', box: BOX });
+      renderer.draw(posed({ page: BUG_ON_THE_PAGE }));
+      const scaled = renderer.element.querySelector(':scope > g');
+      expect([scaled?.getAttribute('transform'), scaled?.getAttribute('clip-path')]).toEqual(['scale(2)', 'url(#flint-confinement)']);
+      expect(scaled?.contains(onlyElementOf(renderer.element, 'page', 'circle'))).toBe(true);
+      expect(confinementRectangleOf(renderer.element)).toEqual(['100', '50', '200', '100']);
+    });
+
+    test('nowhere shows nothing, and everywhere lifts the clip', () => {
+      const renderer = createSpriteRenderer({ document, pixelsForOneUnit: 1, bodyTakesPointer: false });
+      renderer.confine({ kind: 'nowhere' });
+      expect(confinementRectangleOf(renderer.element)).toEqual(['0', '0', '0', '0']);
+      renderer.confine({ kind: 'everywhere' });
+      expect(renderer.element.querySelector('[clip-path="url(#flint-confinement)"]')).toBeNull();
+    });
   });
 });

@@ -36,6 +36,14 @@ export interface PointerSensor {
   readonly destroy:        () => void;
 }
 
+/** The sensor of a Flint that stays in its box: it listens to nothing, so the pointer is never on the page and nothing is ever pressed. */
+export const BLIND_POINTER_SENSOR: PointerSensor = Object.freeze({
+  readingOfFrame: () => ({
+    position: null, hasMoved: false, isDragging: false, happenings: [],
+  }),
+  destroy: () => undefined,
+});
+
 interface Press {
   readonly startedAt: ClientPoint;
   readonly pointerId: number;

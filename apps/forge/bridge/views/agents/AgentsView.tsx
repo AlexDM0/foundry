@@ -1,7 +1,7 @@
 /**
  * The Agents view: its title row, the worker list (builders and reviewers, under the project row holding the launch-slot meter and the
- * concurrency limit), then Flint's brain's own card while the forge reports one awake or just ended, then Sessions (intake and the
- * Assistant), all ticking each second, and for the job the route names its side panel,
+ * concurrency limit), then Flint's brain's own card while its controls are shown and the forge reports one awake or just ended, then
+ * Sessions (intake and the Assistant), all ticking each second, and for the job the route names its side panel,
  * which slides out again when the route drops the job. Show diagnostics adds the same four columns to both cards. Its clock and transcript
  * stream arrive as props, so a DOM spec drives both. The view is the agent panel habitat of Flint.
  */
@@ -23,6 +23,7 @@ import type {
   PageTicketDocument
 } from '../../@types/BoardStateDocument.ts';
 import { TranscriptStreamClient }                       from '../../api/TranscriptStreamClient.ts';
+import type { FlintBrainControls }                      from '../../flint/FlintBrainControls.ts';
 import type { BridgeClock }                             from '../../shell/BridgeClock.ts';
 import { HashRouter }                                   from '../../shell/HashRouter.ts';
 import type { TimestampSlices }                         from '../../utils/TimeUtil.ts';
@@ -37,26 +38,28 @@ import { useAgentPanelHabitat }                         from './UseAgentPanelHab
 import { WorkerCard }                                   from './WorkerCard.tsx';
 
 export interface AgentsViewProps {
-  readonly project:           string;
-  readonly jobs:              readonly IdentifiedRecord[];
-  readonly decisions:         readonly IdentifiedRecord[];
-  readonly incidents:         readonly IdentifiedRecord[];
+  readonly project:             string;
+  readonly jobs:                readonly IdentifiedRecord[];
+  readonly decisions:           readonly IdentifiedRecord[];
+  readonly incidents:           readonly IdentifiedRecord[];
   /** `null` on a board that serves no launch slots: no slot meter, and no job is marked not counted. */
-  readonly launchSlots:       LaunchSlotsDocument | null;
+  readonly launchSlots:         LaunchSlotsDocument | null;
   /** `null` on a board that states no limit: the limit control is not offered. */
-  readonly concurrency:       ConcurrencyDocument | null;
-  readonly tickets:           readonly Pick<PageTicketDocument, 'id' | 'title'>[];
-  readonly selectedJobId:     string | null;
-  readonly clock:             BridgeClock;
+  readonly concurrency:         ConcurrencyDocument | null;
+  readonly tickets:             readonly Pick<PageTicketDocument, 'id' | 'title'>[];
+  readonly selectedJobId:       string | null;
+  readonly clock:               BridgeClock;
   /** How a full stamp is sliced; `null` on a board that serves no slices. */
-  readonly timestampSlices:   TimestampSlices | null;
-  readonly followTranscript?: FollowTranscript;
+  readonly timestampSlices:     TimestampSlices | null;
+  readonly followTranscript?:   FollowTranscript;
   /** The board's `endedJobs`, which Flint answers a landing from; without them it shows none. */
-  readonly endedJobs?:        readonly EndedAgentJobDocument[];
+  readonly endedJobs?:          readonly EndedAgentJobDocument[];
   /** Without the Overseer's state, Flint is never told that every agent is idle. */
-  readonly overseer?:         OverseerFactsDocument | null;
+  readonly overseer?:           OverseerFactsDocument | null;
   /** The Overseer's reading of Flint's brain; `null`, or absent, on a forge that reports none. */
-  readonly flintBrain?:       MonitorFlintBrainDocument | null;
+  readonly flintBrain?:         MonitorFlintBrainDocument | null;
+  /** `hidden` shows no card of Flint's brain; the default is `shown`. */
+  readonly flintBrainControls?: FlintBrainControls;
 }
 
 const NO_ENDED_JOBS: readonly EndedAgentJobDocument[] = Object.freeze([]);
@@ -80,7 +83,7 @@ const closeJobPanel = (): void => HashRouter.navigateTo({ tab: 'agents', item: n
 
 export function AgentsView({
   project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow,
-  endedJobs = NO_ENDED_JOBS, overseer = null, flintBrain = null
+  endedJobs = NO_ENDED_JOBS, overseer = null, flintBrain = null, flintBrainControls = 'shown'
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -115,7 +118,7 @@ export function AgentsView({
         showDiagnostics={showDiagnostics}
         onToggleDiagnostics={() => setShowDiagnostics((shown) => !shown)}
       />
-      {flintBrainRow === null ? null : <FlintBrainCard row={flintBrainRow} />}
+      {flintBrainRow === null || flintBrainControls === 'hidden' ? null : <FlintBrainCard row={flintBrainRow} />}
       <SessionCard
         project={project}
         jobs={sessionJobs}

@@ -158,8 +158,8 @@
  *                           .bridge-composer-input text box and the .bridge-send-button), the caller's .bridge-composer-foot
  *   .bridge-path            a repository path an option touches, a mono chip in the option's facts
  * Flint (bridge/flint/), the sprite of the agents, drawn by `flint/` in its own overlay
- *   .bridge-flint-home      Flint's home corner: a fixed box at the bottom right whose bottom edge Flint stands on; it takes no
- *                           pointer input
+ *   .bridge-flint-home      Flint's home corner: a fixed box at the bottom right whose bottom edge Flint stands on, and the box it shows
+ *                           in while it lives there; it takes no pointer input
  *   [data-sprite-habitat][data-sprite-drop-target]  the habitat below a Flint that User carries, outlined as the drop target
  * Kanban (bridge/views/kanban/)
  *   .bridge-kanban          its title row, then .bridge-kanban-frame[data-overflow?] (its edge fades), holding .bridge-kanban-lanes[data-panel-room?]
@@ -2781,6 +2781,7 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-apply-pending-next { margin: 0; }
 .bridge-pipeline-apply-pending-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
-/* Flint's home corner and the drop target of a carried Flint; Flint draws itself, and only its body takes pointer input. */
-.bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 56px; pointer-events: none; }
+/* Flint's home corner and the drop target of a carried Flint; Flint draws itself. Flint stays in its box and shows only inside it, so the
+   corner is tall enough for its marks and embers. */
+.bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 96px; pointer-events: none; }
 [data-sprite-habitat][data-sprite-drop-target] { outline: 2px dashed var(--flint-body); outline-offset: 2px; }
