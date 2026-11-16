@@ -1278,7 +1278,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           workspace:     request.workspace,
           worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
           branchNames:   request.branchNames,
+          mainLine:      request.mainLine,
           pathStyle:     platformPorts.dataFolders,
+          ...(sharedRepository === null ? {} : { sharedRepository }),
         }, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
         request.afterHoldPhase?.('watcher-events', change.board);

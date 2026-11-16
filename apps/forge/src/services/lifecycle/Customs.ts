@@ -19,7 +19,7 @@ import { TicketAcceptanceUtil }                                                 
 import { type GitPathStyle, GitPaths }                                                from '../../lib/git/GitPaths.ts';
 import { type GitHookPolicy, type GitRun, GitProcess }                                from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                                               from '../../lib/git/GitWorktrees.ts';
-import type { RepositoryLanding }                                                     from '../../lib/git/RepositoryLandings.ts';
+import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings }    from '../../lib/git/RepositoryLandings.ts';
 import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                           from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                                                           from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { JobOutcome }                                                            from '../../lib/tracker-model/@types/Job.ts';
@@ -756,6 +756,15 @@ function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
 /** `null` for a tracker whose branches keep their bare names: it watches every ref, as it always has. */
 export function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktreesRoot: string): WatchedRefs | null {
   return branchNames.namespacePrefix === '' ? null : { mainLine, namespacePrefix: branchNames.namespacePrefix, worktreesRoot };
+}
+
+/**
+ * What a tracker sharing its repository adds to V14: the journal's landings, none for a tracker with no journal or an unreadable one, and
+ * the refs it watches.
+ */
+export function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | null, watchedRefs: WatchedRefs | null): SharedRepositoryRefs {
+  const journal = landingFiles === null ? null : RepositoryLandings.readLandingJournal(landingFiles);
+  return { journaledLandings: journal?.verdict === 'readable' ? journal.landings : [], watchedRefs };
 }
 
 /**

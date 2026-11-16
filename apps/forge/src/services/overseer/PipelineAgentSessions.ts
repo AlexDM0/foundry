@@ -27,17 +27,20 @@ import {
   clearCustoms,
   launchSnapshotOf,
   refMovesAllowedOf,
+  sharedRepositoryRefsOf,
+  watchedRefsOf,
   type CustomsVerdict,
   type LaunchSnapshot,
   type RefMovesAllowed
 } from '../lifecycle/Customs.ts';
-import { projectLocationOf }         from '../tracker/ProjectLocation.ts';
-import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
-import type { Workspace }            from '../tracker/Workspace.ts';
-import { ConstitutionCommits }       from './ConstitutionCommits.ts';
-import { GroupWorktrees }            from './GroupWorktrees.ts';
-import { CONSTITUTION_DEFAULT_PATH } from './InstructionFiles.ts';
-import { WatcherFleet }              from './WatcherFleet.ts';
+import type { SharedRepositoryLanding } from '../lifecycle/Landing.ts';
+import { projectLocationOf }            from '../tracker/ProjectLocation.ts';
+import type { TrackerChange }           from '../tracker/TrackerPipeline.ts';
+import type { Workspace }               from '../tracker/Workspace.ts';
+import { ConstitutionCommits }          from './ConstitutionCommits.ts';
+import { GroupWorktrees }               from './GroupWorktrees.ts';
+import { CONSTITUTION_DEFAULT_PATH }    from './InstructionFiles.ts';
+import { WatcherFleet }                 from './WatcherFleet.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
@@ -61,12 +64,16 @@ export interface SnapshotContext {
 }
 
 export interface TurnEndContext {
-  workspace:     Workspace;
-  worktreesRoot: string;
+  workspace:         Workspace;
+  worktreesRoot:     string;
   /** A group ticket's work goes to its group's branch: a landing that releases a group deletes that branch. */
-  branchNames:   BranchNames;
+  branchNames:       BranchNames;
+  /** A namespaced tracker watches it beside its own namespace and worktrees. */
+  mainLine:          string;
   /** How a path compares with git's spelling, from the `DataFolders` port. */
-  pathStyle:     GitPathStyle;
+  pathStyle:         GitPathStyle;
+  /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
+  sharedRepository?: SharedRepositoryLanding;
 }
 
 function isPipelineAgentJob(job: Readonly<Job>): boolean {
@@ -181,8 +188,11 @@ function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: s
   };
 }
 
-/** The refs other jobs and the Overseer's own landings and refreshes move while the session runs, which V14 lets pass. */
-function refMovesAllowedFor(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
+/**
+ * The refs other jobs and the Overseer's own landings and refreshes move while the session runs, which V14 lets pass; a namespaced tracker
+ * also lets every ref outside its own pass, and a sibling's journaled landing.
+ */
+function turnEndRefMovesAllowedOf(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const tickets = board.tickets();
   const { ticketBranchOf } = context.branchNames;
   return refMovesAllowedOf(board.logRecordsSoFar(), {
@@ -196,7 +206,7 @@ function refMovesAllowedFor(context: TurnEndContext, board: Board, job: Readonly
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),
-  });
+  }, sharedRepositoryRefsOf(context.sharedRepository?.files ?? null, watchedRefsOf(context.branchNames, context.mainLine, context.worktreesRoot)));
 }
 
 function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<Job>): CustomsVerdict {
@@ -214,7 +224,7 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
     jobId:            job.id,
     logRecords:       board.logRecordsSoFar(),
     launchSnapshot:   start.launchSnapshot,
-    refMovesAllowed:  refMovesAllowedFor(context, board, job),
+    refMovesAllowed:  turnEndRefMovesAllowedOf(context, board, job),
     pathStyle:        context.pathStyle,
   });
 }
@@ -278,6 +288,7 @@ export const PipelineAgentSessions = Object.freeze({
   prepareSnapshot,
   pipelineAgentProfileOf,
   pipelineAgentFactsOf,
+  turnEndRefMovesAllowedOf,
   verifyTurnEnds,
   removeUnheldSnapshots,
 });

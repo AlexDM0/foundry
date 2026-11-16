@@ -5,8 +5,8 @@
  * and the facts its first message is built from (the record and the installed default constitution), so a fresh session in place of a replaced one
  * starts from the same; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a resume moved it, and takes the
  * snapshot start again. A snapshot no open record and no live agent holds is removed once per Overseer, and one the removal leaves is named as a
- * leftover. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of `src/testing/RecordedGitScenarios.ts`, whose snapshot
- * is setup S1's under a worktrees root at the repository.
+ * leftover. A namespaced tracker's turn end lets a ref outside its own move. Git answers from the recordings of `src/testing/RecordedGit.ts`
+ * and the scenarios of `src/testing/RecordedGitScenarios.ts`, whose snapshot is setup S1's under a worktrees root at the repository.
  */
 import {
   existsSync,
@@ -67,9 +67,13 @@ function workspace(): Workspace {
   return { rootDirectory: repositoryDirectory, trackerDirectory } as unknown as Workspace;
 }
 
-function turnEndContext() {
+function turnEndContext(branchNamespace: string | null = null) {
   return {
-    workspace: workspace(), worktreesRoot: repositoryDirectory, branchNames: branchNamesOf(null), pathStyle: { pathModule: path, foldsCase: false }
+    workspace:     workspace(),
+    worktreesRoot: repositoryDirectory,
+    branchNames:   branchNamesOf(branchNamespace),
+    mainLine:      'main',
+    pathStyle:     { pathModule: path, foldsCase: false },
   };
 }
 
@@ -131,6 +135,19 @@ testWhenGitIsRecorded('a refused turn end marks the snapshot touched and opens o
   expect(board.logRecordsSoFar().filter((record) => record.kind === 'pipeline-snapshot-touched')).toHaveLength(1);
   board.resumeSetup(SETUP_ID, MOVED_COMMIT, ['package.json'], AT);
   expect(board.setupSnapshotIsTouched(SETUP_ID)).toBe(false);
+});
+
+testWhenGitIsRecorded('a branch outside a namespaced tracker\'s own refs passes its turn end, and fails one with bare branch names as before', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  writeSnapshotStart(jobId);
+  enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_BRANCH_ADDED);
+
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext('example'), [jobId]);
+  expect(touchedIncidentsOf(board)).toEqual([]);
+  PipelineAgentSessions.verifyTurnEnds(changeOf(board), turnEndContext(), [jobId]);
+  expect(touchedIncidentsOf(board)).toEqual([[jobId, {
+    setupId: SETUP_ID, check: 'V14', reason: 'foreign-ref-moved', paths: 'refs/heads/pipeline-agent-moved'
+  }]]);
 });
 
 function headResolvedAs(commit: string): RecordedGitStep {
