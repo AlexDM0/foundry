@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entities: forge in a monorepo</title>
+<style>
+  :root {
+    --page: #f6f4ef; --surface: #ffffff; --surface-sunken: #efece5; --ink: #1d1b18; --ink-soft: #5c574f;
+    --line: #d9d4c9; --accent: #c2410c; --accent-soft: #fde7d9; --good: #1f7a4d; --good-soft: #dff3e8;
+    --bad: #b3261e; --bad-soft: #fbe3e1; --warn: #8a5a00; --warn-soft: #fbefd0; --blue: #1d5fa8; --blue-soft: #e0ecfa;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #171613; --surface: #211f1b; --surface-sunken: #1b1a17; --ink: #ece8df; --ink-soft: #a9a398;
+      --line: #3a362f; --accent: #f08a4b; --accent-soft: #3b2415; --good: #6fcf9a; --good-soft: #17301f;
+      --bad: #f2877f; --bad-soft: #3a1b18; --warn: #e6b450; --warn-soft: #33290f; --blue: #7fb2ee; --blue-soft: #16283d;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.55 var(--sans); }
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; }
+  nav.sidebar { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 28px 16px 28px 24px; border-right: 1px solid var(--line); }
+  nav.sidebar .brand { font-weight: 700; font-size: 15px; letter-spacing: .02em; margin-bottom: 4px; }
+  nav.sidebar .brand span { color: var(--accent); }
+  nav.sidebar .subtitle { color: var(--ink-soft); font-size: 13px; margin-bottom: 20px; }
+  nav.sidebar a { display: block; padding: 6px 10px; margin: 1px 0; border-radius: 6px; color: var(--ink-soft); text-decoration: none; font-size: 14px; }
+  nav.sidebar a:hover { background: var(--surface-sunken); color: var(--ink); }
+  nav.sidebar a.current { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  main { padding: 36px 40px 80px; min-width: 0; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -.01em; }
+  h2 { font-size: 24px; margin: 56px 0 12px; padding-top: 8px; letter-spacing: -.005em; }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; max-width: 78ch; }
+  .lede { font-size: 18px; color: var(--ink-soft); max-width: 72ch; }
+  code { font: 13.5px/1.4 var(--mono); background: var(--surface-sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  pre { font: 13px/1.5 var(--mono); background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 0 0 16px; }
+  pre code { background: none; padding: 0; }
+  sup a { color: var(--accent); text-decoration: none; font-size: 11px; padding: 0 1px; }
+  a { color: var(--accent); }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; max-width: 78ch; }
+  li { margin: 4px 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 18px 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h4 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+  .card .number { font: 600 12px var(--mono); color: var(--accent); letter-spacing: .06em; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 18px 0; max-width: 82ch; }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.good { border-color: var(--good); background: var(--good-soft); }
+  .callout.blue { border-color: var(--blue); background: var(--blue-soft); }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+  .callout strong.title { display: block; margin-bottom: 4px; }
+  .table-wrap { overflow-x: auto; margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); background: var(--surface-sunken); white-space: nowrap; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable::after { content: " \2195"; opacity: .45; }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; font: 600 12px var(--sans); padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.plain { background: var(--surface-sunken); color: var(--ink-soft); }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; max-width: 90ch; }
+  details > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; list-style-position: inside; }
+  details > .inner { padding: 0 18px 14px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 16px 0 0; }
+  .tabs button, .segmented button { font: 600 14px var(--sans); padding: 8px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 8px; cursor: pointer; }
+  .tabs button[aria-selected="true"], .segmented button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tab-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-top: 10px; }
+  .tab-panel[hidden] { display: none; }
+  .explorer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 18px 0; }
+  .explorer .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-bottom: 18px; }
+  .explorer label.heading { display: block; font: 600 12.5px var(--sans); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 8px; }
+  .segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+  .checklist label { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; font-size: 14.5px; cursor: pointer; }
+  .checklist code { font-size: 12.5px; }
+  .result-row { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 8px 0; background: var(--surface-sunken); }
+  .result-row .head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; font-weight: 600; }
+  .result-row p { margin: 4px 0 0; font-size: 14.5px; max-width: none; }
+  .result-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 14px; }
+  .result-summary .box { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .result-summary .box h5 { margin: 0 0 6px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+  .result-summary .box ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+  .figure { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 16px 0; overflow-x: auto; }
+  .figure svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .figure svg text { font-family: var(--sans); fill: var(--ink); }
+  .figure svg .soft { fill: var(--ink-soft); }
+  .figure svg .box { fill: var(--surface-sunken); stroke: var(--line); }
+  .figure svg .accent-box { fill: var(--accent-soft); stroke: var(--accent); }
+  .figure svg .blue-box { fill: var(--blue-soft); stroke: var(--blue); }
+  .figure svg .wire { stroke: var(--ink-soft); fill: none; stroke-width: 1.5; }
+  .figure svg .dashed { stroke-dasharray: 5 4; }
+  .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+  .filter-bar input { font: 15px var(--sans); padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 260px; }
+  ol.sources { font-size: 14.5px; }
+  ol.sources li { margin: 7px 0; }
+  ol.sources li:target { background: var(--accent-soft); border-radius: 6px; }
+  .small { font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 18px 16px; }
+    nav.sidebar .links { display: flex; flex-wrap: wrap; gap: 2px; }
+    main { padding: 24px 16px 60px; }
+    h1 { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar" aria-label="Sections">
+    <div class="brand"><span>forge</span> · monorepo support</div>
+    <div class="subtitle">Second iteration, 16 November 2026</div>
+    <div class="links">
+      <a href="#summary">Summary</a>
+      <a href="#today">Where forge stands today</a>
+      <a href="#scope">Scope</a>
+      <a href="#entity">The model</a>
+      <a href="#constitution">Lifecycle of a ticket</a>
+      <a href="#explorer">Scope explorer</a>
+      <a href="#edge-cases">Edge cases</a>
+      <a href="#pipeline">Pipeline per entity</a>
+      <a href="#setup">Setup</a>
+      <a href="#intake">Intake</a>
+      <a href="#monitoring">Monitoring</a>
+      <a href="#sandbox">The sandbox failures</a>
+      <a href="#implementation">Implementation</a>
+      <a href="#risks">Risks and open decisions</a>
+      <a href="#sources">Sources</a>
+    </div>
+  </nav>
+
+  <main>
+            <section id="summary">
+      <h1>Entities: one forge for a monorepo</h1>
+      <p class="lede">How one forge at the root of a monorepo gives every app and package its own constitution, pipeline and agents, with one intake and one board. A forge in a single app, and a forge on a plain repository, stay as they are.</p>
+
+      <div class="cards">
+        <div class="card"><div class="number">01</div><h4>Only in a top-level forge</h4><p>Entities exist when a tracker at the repository root names them. Folder forges and plain repositories keep today's behaviour.</p></div>
+        <div class="card"><div class="number">02</div><h4>One concept: the entity</h4><p>An app, a package or the root. Each owns its folders, a constitution, a pipeline and agent settings.</p></div>
+        <div class="card"><div class="number">03</div><h4>One job, one constitution</h4><p>Every builder and reviewer works under the rules of exactly one entity and writes only that entity's files.</p></div>
+        <div class="card"><div class="number">04</div><h4>A border is crossed in stages</h4><p>The app's builder proposes the package change. The package's builder implements it, the package's reviewer reviews it, then the app catches up and is reviewed last.</p></div>
+        <div class="card"><div class="number">05</div><h4>Intake splits by entity</h4><p>A strong model at the front door routes a request to entities and files a ticket for each, ordered and prioritised.</p></div>
+        <div class="card"><div class="number">06</div><h4>First make today's guard real</h4><p>The reach check exists in the code but no production caller switches it on. That comes before anything new.</p></div>
+      </div>
+
+      <div class="callout">
+        <strong class="title">The strategy in one paragraph</strong>
+        <p>A ticket belongs to one entity. When its work needs a change in a whitelisted package, the ticket runs in stages on one branch, one job at a time, each job under its own entity's constitution, and lands as one change. A need outside the whitelist becomes a ticket of the other entity, and the first ticket waits on it. A ticket that stays inside one entity runs exactly as today.</p>
+      </div>
+      <p class="small">The full text is <a href="strategy.md">strategy.md</a> beside this page; the functional brief for the pipeline builder is <a href="pipeline-builder-monorepo-mode.md">pipeline-builder-monorepo-mode.md</a>.</p>
+    </section>
+
+    <section id="today">
+      <h2>Where forge stands today</h2>
+      <p>The first monorepo iteration put one tracker in each app folder. These are the facts the strategy builds on; the last three rows are the gaps it has to close.</p>
+
+      <div class="filter-bar">
+        <input type="search" id="today-filter" placeholder="Filter (for example: constitution, reach, gate)" aria-label="Filter the table">
+        <span class="small" id="today-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="today-table">
+          <thead><tr><th class="sortable" data-column="0">Topic</th><th>How it works now</th><th class="sortable" data-column="2">For the strategy</th></tr></thead>
+          <tbody>
+            <tr><td>Trackers</td><td>Several trackers can share a repository, each in its own folder (<code>init --root</code>) with its own branch namespace; side by side, never nested. They meet in <code>&lt;git common dir&gt;/forge/</code>: <code>trackers.json</code>, <code>landings.jsonl</code>, <code>landings.lock</code>.<sup><a href="#source-3">[3]</a></sup></td><td><span class="pill good">keep</span></td></tr>
+            <tr><td>Pipeline</td><td>One <code>.forge/pipeline.json</code> per tracker: prepare steps, gates assigned to the phases <code>build</code>, <code>review</code>, <code>merge</code>, agent settings, one constitution path, one reach list. No variant per ticket.<sup><a href="#source-9">[9]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Constitution</td><td>A single <code>constitution: {path}</code>. The text is read from the main line with <code>git show</code>, not from the ticket branch, and injected into the system prompt of the builder, reviewer, re-reviewer and conflict re-reviewer.<sup><a href="#source-6">[6]</a><a href="#source-11">[11]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Agent settings</td><td><code>agents.&lt;role&gt;</code> with model, effort and an instruction list, for seven roles. A tracker's gates also feed the agent sandbox: their network domains, write folders and executables.<sup><a href="#source-9">[9]</a><a href="#source-7">[7]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Reach</td><td><code>reach</code> lists repository paths a tracker may change beside its home. The sandbox cannot enforce it, because an install writes across the workspace, so Customs is meant to.<sup><a href="#source-1">[1]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Setup</td><td><code>pipeline setup</code> runs the pipeline agent through <code>billing</code>, <code>research</code>, <code>constitution</code>, <code>design</code>, <code>apply</code>. Research already reads the project folder and the repository root.<sup><a href="#source-11">[11]</a><a href="#source-3">[3]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Intake</td><td>A product-owner job turns a request into draft tickets, split by mechanism and chained with <code>dependsOn</code> or landed together through a <code>group</code>. A ticket has no entity, area or package field.<sup><a href="#source-10">[10]</a><a href="#source-12">[12]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Landing</td><td>One Airlock per target merges the target into the ticket branch, gates the merged tree and fast-forwards. A tracker at the root takes no landing lock and writes no journal.<sup><a href="#source-15">[15]</a></sup></td><td><span class="pill good">keep</span></td></tr>
+            <tr><td>Concurrency</td><td>Two agents per board by default, ten at most, plus a machine-wide limit shared by every board.<sup><a href="#source-15">[15]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Monitoring</td><td>One Bridge per tracker; the Kanban filters by epic. Gaia lists forges from the machine registry and has no notion of forges that share a repository.<sup><a href="#source-13">[13]</a></sup></td><td><span class="pill warn">extend</span></td></tr>
+            <tr><td>Package constitution</td><td><code>packages/design-system/CONSTITUTION.md</code> is the only package constitution, and no pipeline or injection code references it. An agent learns of it only from prose: a Claude Code rule file, two <code>CLAUDE.md</code> files and the package README.<sup><a href="#source-21">[21]</a></sup></td><td><span class="pill bad">gap</span></td></tr>
+            <tr><td>Reach enforcement</td><td>The check <code>changesStayInHomeAndReach</code> (V17) passes whenever its subject carries no <code>projectScope</code>, and the builder and reviewer subject never sets one. The stored <code>reach</code> is read by the CLI and the pipeline file only.<sup><a href="#source-4">[4]</a><a href="#source-5">[5]</a></sup></td><td><span class="pill bad">gap</span></td></tr>
+            <tr><td>Agent sandbox</td><td>Build agents of a folder tracker cannot commit, cannot bind a local port, and are refused <code>ps</code> and <code>.git/hooks</code>.<sup><a href="#source-20">[20]</a></sup></td><td><span class="pill bad">gap</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout bad">
+        <strong class="title">The guard is written but not connected</strong>
+        <p>Customs holds the reach check, and a spec covers it, but the place that builds the Customs subject for a builder or reviewer passes no project scope, so the check returns "passed" before looking at a single path. Two related holes sit beside it: the instruction-file check receives project paths where it expects repository paths, so for a folder tracker a builder's change to its own constitution would not match; and the merge step calls only three checks by name instead of the whole column for its role.<sup><a href="#source-4">[4]</a><a href="#source-5">[5]</a><a href="#source-6">[6]</a></sup> Everything below assumes these are closed first.</p>
+      </div>
+    </section>
+
+        <section id="scope">
+      <h2>Scope: three configurations</h2>
+      <p>The first iteration rejected a root tracker with a package scope per ticket, because it gave no Overseer or Bridge per package.<sup><a href="#source-1">[1]</a></sup> This iteration adds that shape beside the folder forges instead of replacing them.</p>
+<div class="table-wrap"><table><thead><tr><th>Configuration</th><th>Tracker</th><th>Pipeline</th><th>Behaviour</th></tr></thead><tbody>
+<tr><td>Single repository</td><td>at the repository root</td><td>no <code>entities</code></td><td>as today</td></tr>
+<tr><td>Folder forges</td><td>in a folder, with a namespace</td><td>no <code>entities</code>; <code>reach</code> by path</td><td>as today, plus the fixes of step 0</td></tr>
+<tr><td>Top-level forge</td><td>at the repository root</td><td><code>entities</code></td><td>everything in this document</td></tr>
+</tbody></table></div>
+<ul><li><code>entities</code> in the pipeline of a tracker in a folder is refused when the pipeline is stored.
+</li><li>A repository uses one configuration: <code>init</code> already refuses a tracker above or below another.
+</li><li>Folder forges get no entities, no stages and no package constitutions. A repository that wants a package's
+ constitution enforced uses a top-level forge.
+</li></ul>
+      <div class="callout good">
+        <strong class="title">What may not change</strong>
+<ul><li>A forge without <code>entities</code>: no new git call, no new stored key, the same pipeline file version, the same landing.
+</li><li>A folder forge: only step 0.
+</li><li>Stored tickets and setup records are never rewritten. New keys are written once set.
+</li><li>One landing per ticket, through the Airlock, as today.
+</li></ul>
+      </div>
+    </section>
+
+            <section id="entity">
+      <h2>The model</h2>
+<h3>3.1 Entity</h3>
+<div class="table-wrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>key</code></td><td>Stable name. Tickets, jobs, log records and the monitor store the key, never a path.</td></tr>
+<tr><td><code>kind</code></td><td><code>app</code>, <code>package</code> or <code>root</code>. Exactly one <code>root</code> entity exists, made by forge. It owns every path no other entity owns.</td></tr>
+<tr><td><code>home</code></td><td>One or more repository folders, each leading with <code>/</code>. A deeper folder wins over a shallower one; two equal folders are refused.</td></tr>
+<tr><td><code>summary</code></td><td>Two lines for intake's routing, written by the research pass.</td></tr>
+<tr><td><code>constitution</code></td><td><code>{path}</code>; by convention <code>CONSTITUTION.md</code> in the first home folder. Absent: the installed default constitution, as today.</td></tr>
+<tr><td><code>prepare</code>, <code>gates</code>, <code>phases</code>, <code>review</code></td><td>The entity's pipeline, in today's format. A <code>package</code> that any entity whitelists must have <code>review</code>.</td></tr>
+<tr><td><code>agents</code></td><td>Settings for <code>builder</code>, <code>reviewer</code>, <code>reReviewer</code>, <code>conflictReReviewer</code>.</td></tr>
+<tr><td><code>whitelist</code></td><td>Keys of <code>package</code> entities its tickets may cross into by stages.</td></tr>
+<tr><td><code>reach</code></td><td>Repository paths its builder may change directly: derived root files such as the lockfile. Same meaning as today.</td></tr>
+<tr><td><code>dependsOn</code></td><td>Keys of entities it consumes. Decides whose gates run when a dependency changed. No circle. Every entity depends on <code>root</code> without saying so.</td></tr>
+<tr><td><code>concurrency</code></td><td>Optional cap on its running jobs, under the board's limit.</td></tr>
+</tbody></table></div>
+<p>Forge-level keys stay at the top of <code>pipeline.json</code>: <code>airlock</code>, <code>approvals</code>, <code>billing</code>, and <code>agents</code> for <code>productOwner</code>, <code>pipelineAgent</code> and <code>assistant</code>.</p>
+<pre><code>{
+  &quot;version&quot;: 4,
+  &quot;prepare&quot;: [], &quot;gates&quot;: [], &quot;phases&quot;: { &quot;build&quot;: [], &quot;review&quot;: [], &quot;merge&quot;: [] },
+  &quot;airlock&quot;: {}, &quot;approvals&quot;: {}, &quot;billing&quot;: {},
+  &quot;agents&quot;: { &quot;productOwner&quot;: { &quot;model&quot;: &quot;opus&quot;, &quot;effort&quot;: &quot;high&quot; } },
+  &quot;entities&quot;: {
+    &quot;gaia&quot;: {
+      &quot;kind&quot;: &quot;app&quot;, &quot;home&quot;: [&quot;/apps/gaia&quot;],
+      &quot;constitution&quot;: { &quot;path&quot;: &quot;/apps/gaia/CONSTITUTION.md&quot; },
+      &quot;whitelist&quot;: [&quot;design-system&quot;],
+      &quot;reach&quot;: [&quot;/bun.lock&quot;, &quot;/package.json&quot;],
+      &quot;dependsOn&quot;: [&quot;design-system&quot;],
+      &quot;gates&quot;: [{ &quot;name&quot;: &quot;verify&quot;, &quot;in&quot;: &quot;/&quot;, &quot;run&quot;: &quot;bun run gate:gaia&quot; }]
+    },
+    &quot;design-system&quot;: {
+      &quot;kind&quot;: &quot;package&quot;, &quot;home&quot;: [&quot;/packages/design-system&quot;],
+      &quot;constitution&quot;: { &quot;path&quot;: &quot;/packages/design-system/CONSTITUTION.md&quot; },
+      &quot;review&quot;: {},
+      &quot;gates&quot;: [{ &quot;name&quot;: &quot;verify&quot;, &quot;run&quot;: &quot;bun run typecheck &amp;&amp; bun run test&quot; }]
+    }
+  }
+}</code></pre>
+<h3>3.2 Ownership</h3>
+<ul><li>Every tracked path has exactly one owner: the entity with the longest home folder that contains it, else <code>root</code>.
+</li><li><code>.forge/</code>, <code>.claude/</code> and <code>.mcp.json</code> at any depth stay protected from every agent.
+</li><li><strong>Entity size is the release valve.</strong> A border costs stages. A package private to one app is a further home folder
+ of that app's entity, not an entity of its own.
+</li><li><strong>The root entity is an ordinary entity for tickets.</strong> The owner may give it gates and a constitution. Nobody can
+ whitelist it. Without gates it is for a person, as the root of this repository is now.
+</li></ul>
+<h3>3.3 Ticket</h3>
+<ul><li><code>entity</code>: required to ready a ticket in a top-level forge. The owner assigns it in the Bridge; the CLI verb is
+ <code>ticket entity</code>.
+</li><li><code>crosses</code>: optional list of whitelisted packages intake expects the ticket to cross into. A forecast for the
+ board; what the branch really changed decides the stages.
+</li></ul>
+<h3>3.4 Job</h3>
+<ul><li>A job gains <code>entity</code> (whose stage it runs) and <code>stage</code>. Its constitution, instruction list, model, effort, gates,
+ prepare steps and toolchain grants all come from that entity.
+</li><li><strong>A session starts at the worktree's root,</strong> as a root tracker's does today. Its prompt names the folders it may
+ change. Starting inside an entity's folder would cut off the lockfile and the root's settings, skills and
+ <code>CLAUDE.md</code>.
+</li><li>The session's Edit and Write rules list only the folders the stage may change. An edit elsewhere is denied at
+ once. Bash is not stopped there; Customs judges what the job left.
+</li></ul>
+    </section>
+
+            <section id="constitution">
+      <h2>Lifecycle of a ticket</h2>
+      <p>The problem in one sentence: an agent building a Gaia ticket that edits <code>packages/design-system</code> works under Gaia's rules and has no reason to know the package has its own. The answer is not to teach the app's agent the package's rules. It is to let the app's agent say what it needs, and let the package's own agents write and judge what lands in the package.</p>
+<h3>4.1 A ticket inside one entity</h3>
+<p>Build, review, landing, as today, with the entity's constitution, pipeline and agents.</p>
+<h3>4.2 A ticket that crosses into a whitelisted package</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Stage</th><th>Job</th><th>Under</th><th>May change</th><th>Ends with</th></tr></thead><tbody>
+<tr><td>1</td><td><code>build</code></td><td>the home entity's builder</td><td>home</td><td>home files, home <code>reach</code>, and a proposal in whitelisted package files</td><td>home gates</td></tr>
+<tr><td>2</td><td><code>package-build</code></td><td>the package's builder</td><td>package</td><td>package files, package <code>reach</code></td><td>package gates, then the gates of the package's dependents other than home</td></tr>
+<tr><td>3</td><td><code>package-review</code></td><td>the package's reviewer</td><td>package</td><td>package files, package <code>reach</code></td><td>the seal</td></tr>
+<tr><td>4</td><td><code>adapt</code></td><td>the home entity's builder</td><td>home</td><td>home files, home <code>reach</code></td><td>home gates</td></tr>
+<tr><td>5</td><td><code>review</code></td><td>the home entity's reviewer</td><td>home</td><td>home files, home <code>reach</code></td><td>ticket <code>reviewed</code></td></tr>
+<tr><td>6</td><td>landing</td><td>the Airlock</td><td></td><td></td><td>gates of every changed entity and its dependents on the merged tree</td></tr>
+</tbody></table></div>
+<ul><li><strong>What starts the stages.</strong> After stage 1, Customs sorts the paths the branch itself changed past its target by
+ owner. Home and <code>reach</code>: nothing more. A whitelisted package: stages 2 and 3 for it. Anything else: refused (E11).
+</li><li><strong>Several packages.</strong> Stages 2 and 3 run once per package, one package after the other, a package before the
+ packages that depend on it.
+</li><li><strong>The seal.</strong> At the end of stage 3 the Overseer stores a hash of the ticket's own change to the package: the
+ difference, on the package's folders and on the <code>reach</code> paths a package stage changed, between the target and the
+ branch, with the target's merged-in commits left out. This is how Customs already judges a branch against its
+ target. Later jobs of the ticket may not alter that change. A merge of the main line never breaks a seal.
+</li><li><strong>Skipping <code>adapt</code>.</strong> When, for every crossed package, the sealed change equals the ticket's own change at the
+ end of stage 1, the proposal landed as written and stage 4 is skipped.
+</li><li><strong>Ticket status.</strong> A stage job never moves the ticket's status. The ticket is <code>in-progress</code> through stages 1 to 4
+ and <code>in-review</code> in stage 5; the Playbook launches by the row's <code>stage</code>, not by the status.
+</li><li><strong>Counters.</strong> Red handoffs and failed passes are counted per stage and entity and start at zero when a stage
+ starts. Today's bounds apply within a stage.
+</li><li><strong>Review.</strong> One bar per review stage, labelled with its entity. Rounds are numbered per stage, so the home
+ review's round 1 is its first whatever the package review needed.
+</li><li><strong>Handoff and Acceptance.</strong> <code>## Handoff</code> has one part per stage that built, and a stage replaces only its own
+ part. The evidence for the ticket's Acceptance is owned by the last home build stage: stage 4, or stage 1 when
+ stage 4 was skipped.
+</li><li><strong>Questions.</strong> A question from any stage's agent goes to the owner, as today.
+</li></ul>
+<h3>4.3 A need outside the whitelist</h3>
+<ol><li>The agent of a build stage declares the need through its Hatch before it writes there: the entity, a title, a
+ numbered Acceptance that holds the intended use, and a Brief. An incomplete need is refused back to the agent.
+</li><li>Its job ends with the outcome <code>needs-declared</code>. The branch and its commits stay.
+</li><li>The Overseer files the ticket for the other entity, stamped <code>filedByJob</code>, and submits it. With ticket review off
+ it is <code>pending</code>; with it on it waits for the owner like any ticket, shown as blocking the first one. The first
+ ticket gets it in <code>dependsOn</code>. The new ticket does not wait on the first.
+</li><li>The first ticket keeps its status, its <code>stage</code>, its seals and its counters. The Playbook launches nothing for a
+ ticket with an unsettled dependency.
+</li><li>When the dependency is delivered, the stage that declared the need runs again: the main line is merged in, and
+ the session is resumed, or a fresh one starts with the earlier notes.
+</li><li><strong>Priority.</strong> The need's ticket runs at the highest priority among itself and the tickets that wait on it, also
+ when one of them is raised later.
+</li></ol>
+      <details>
+        <summary>Why this order</summary>
+        <div class="inner">
+          <ul>
+            <li><strong>The proposal is a working use.</strong> A change that already runs against the app is a better specification than a description written before any code, and the app's builder finishes its work in one go.</li>
+            <li><strong>The package's law holds.</strong> Every package line that lands was written or accepted by a builder under the package's constitution and then reviewed under it.</li>
+            <li><strong>The reviews are staggered.</strong> The package is settled first, the app is brought in line with the final package, and the app's reviewer looks last, so its review covers the seam.</li>
+            <li><strong>One job at a time.</strong> Forge reviewers fix what they find and commit on the ticket's branch.<sup><a href="#source-22">[22]</a></sup> In sequence, no reviewer changes code another has already judged.</li>
+            <li><strong>One branch, one landing.</strong> The package change never reaches the main line without its consumer.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+        <section id="explorer">
+      <h2>Scope explorer</h2>
+      <p>Pick a ticket and what its work needs, and see how it runs. The map is this repository's;<sup><a href="#source-14">[14]</a></sup> forge's private packages are folded into the forge entity.</p>
+
+      <div class="explorer">
+        <div class="controls">
+          <div>
+            <label class="heading">Ticket belongs to</label>
+            <div class="segmented" id="home-choice"></div>
+            <label class="heading" style="margin-top:16px">After package review, the package is</label>
+            <div class="segmented" id="outcome-choice">
+              <button type="button" data-outcome="identical" aria-pressed="false">Identical to the proposal</button>
+              <button type="button" data-outcome="changed" aria-pressed="true">Changed</button>
+            </div>
+          </div>
+          <div>
+            <label class="heading">The work also needs a change in</label>
+            <div class="checklist" id="touch-choice"></div>
+          </div>
+        </div>
+        <div id="explorer-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="edge-cases">
+      <h2>Edge cases</h2>
+      <p>Each case names what happens. "Decision" means a decision opened for the owner, with the ticket held.</p>
+      <div class="filter-bar">
+        <input type="search" id="edge-filter" placeholder="Filter (for example: seal, conflict, group, E41)" aria-label="Filter the edge cases">
+        <span class="small" id="edge-count"></span>
+      </div>
+<h3>5.1 Ownership and scope</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E1</td><td>A path in no entity's home</td><td>Owned by <code>root</code>.</td></tr>
+<tr><td>E2</td><td>A home inside another home</td><td>The deeper home wins. A seal on the outer entity covers only the paths the outer entity owns.</td></tr>
+<tr><td>E3</td><td>Lockfile and root manifests</td><td>Listed in <code>reach</code>; changed directly. A <code>reach</code> path a package stage changed joins that package's seal.</td></tr>
+<tr><td>E4</td><td>A change to a root-owned or <code>reach</code> path</td><td>Counts as a change of <code>root</code>: the landing runs every entity's gates.</td></tr>
+<tr><td>E5</td><td>A file moved across a border</td><td>A change in both entities. The rule for each side applies.</td></tr>
+<tr><td>E6</td><td>A new folder at the root, such as a new package</td><td>Owned by <code>root</code> until the owner adds an entity. A ticket of an app cannot create it.</td></tr>
+<tr><td>E7</td><td><code>.claude/</code>, <code>.mcp.json</code>, <code>.forge/</code> at any depth</td><td>Denied in the sandbox and refused by Customs in every entity home, not only at the root.</td></tr>
+<tr><td>E8</td><td>A change to a constitution</td><td>Only by a ticket of that entity whose body names the file (today's rule). Never in a package stage of another entity's ticket.</td></tr>
+<tr><td>E9</td><td>Generated files that one entity writes into another</td><td>The owner of the path decides. Put the output folder in the generating entity's home, or the change is a crossing.</td></tr>
+</tbody></table></div>
+<h3>5.2 Stage 1, build</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E10</td><td>No package file changed</td><td>No stages; the single-entity flow.</td></tr>
+<tr><td>E11</td><td>The branch changed files of an entity that is neither home nor whitelisted</td><td>Customs refuses. The session is resumed once to take the change out and declare the need (4.3); a second refusal fails the job.</td></tr>
+<tr><td>E12</td><td>The need is for the <code>root</code> entity</td><td>A ticket of <code>root</code> when <code>root</code> has gates. Otherwise a Decision: the owner makes the change or declines.</td></tr>
+<tr><td>E13</td><td>The need would close a circle in <code>dependsOn</code></td><td>Refused, as <code>ticket depends</code> refuses a circle today. Decision.</td></tr>
+<tr><td>E14</td><td>The ticket filed for a need is abandoned</td><td>The waiting ticket loses the dependency. Decision: continue without it, or abandon.</td></tr>
+<tr><td>E15</td><td>All the work belongs to another entity, or stage 1 changed only package files</td><td>Decision: move the ticket to that entity and drop the branch, or abandon. No status move reaches <code>ready-for-review</code> from a started ticket.</td></tr>
+<tr><td>E16</td><td>Home gates red with the proposal</td><td>Today's red handoff: the session is resumed.</td></tr>
+<tr><td>E17</td><td>The call budget ends mid-stage</td><td>Today's wind-down; the stage is resumed.</td></tr>
+<tr><td>E18</td><td>An Edit or Write outside the stage's folders</td><td>Denied at once by the session's edit rules.</td></tr>
+<tr><td>E19</td><td>A package is taken off the whitelist while the ticket crosses into it</td><td>Decision: finish under the old whitelist, or turn the package change into a need.</td></tr>
+</tbody></table></div>
+<h3>5.3 Stage 2, package build</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E20</td><td>The package builder accepts the proposal as it is</td><td>It commits nothing and reports so. The package gates run on the proposal.</td></tr>
+<tr><td>E21</td><td>It reshapes what the package exposes</td><td>Normal. Stage 4 brings the app in line.</td></tr>
+<tr><td>E22</td><td>It refuses: the constitution forbids the change</td><td>Job outcome <code>refused</code> with its reason. Decision: drop the package change (back to stage 1 with the reason), turn it into a need (4.3), or abandon.</td></tr>
+<tr><td>E23</td><td>It changes files outside the package</td><td>Customs refuses; resumed once, then failed.</td></tr>
+<tr><td>E24</td><td>It needs a change in a third entity</td><td>A crossing is one level deep: only the ticket's home whitelist counts. The package builder declares a need (4.3) and the ticket waits in stage 2.</td></tr>
+<tr><td>E25</td><td>Package gates red</td><td>Red handoff to the package builder.</td></tr>
+<tr><td>E26</td><td>A dependent's gates red: the change breaks another app</td><td>Red handoff to the package builder: a package change must not break its dependents. If it cannot hold, Decision <code>dependent-broken</code>: the owner files tickets for the dependents in one <code>group</code> with this ticket.</td></tr>
+<tr><td>E27</td><td>The package has no gates</td><td>Nothing runs; the board shows the entity as unchecked, as <code>checks-not-set</code> does today.</td></tr>
+<tr><td>E28</td><td>The package has no constitution</td><td>The installed default constitution, as today.</td></tr>
+<tr><td>E29</td><td>Stage 2 would resume the wrong session</td><td>A stage resumes only a session of its own entity and stage. Stage 2 never resumes the home builder's session.</td></tr>
+</tbody></table></div>
+<h3>5.4 Stage 3, package review and the seal</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E30</td><td>The reviewer fixes</td><td>It commits in package files; the package gates run on its last commit, as today.</td></tr>
+<tr><td>E31</td><td>The review finds too much</td><td>Today's re-review rounds, with the package's <code>reReviewer</code>, counted in this stage only.</td></tr>
+<tr><td>E32</td><td>The reviewer sees a problem in the app's files</td><td>It writes it in its review text, which stage 4 and stage 5 receive. It does not fix it and files no ticket.</td></tr>
+<tr><td>E33</td><td>A later job of the ticket alters the sealed change</td><td>Customs refuses; the session is resumed once to undo it. The Airlock's merge and conflict work are exempt.</td></tr>
+<tr><td>E34</td><td>The reviewer's verdict is that the change does not hold</td><td>Back to stage 2 with the review, within today's bound on rounds. This is not the one way back of E41.</td></tr>
+<tr><td>E35</td><td>The main line is merged in before the review, as today</td><td>The seal and the skip of <code>adapt</code> compare the ticket's own change, so the merge does not disturb them.</td></tr>
+<tr><td>E36</td><td>Human approval of the merge or the code</td><td>Once per ticket, at the end, as today. Not per stage.</td></tr>
+</tbody></table></div>
+<h3>5.5 Stage 4, adapt</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E40</td><td>Nothing to adapt</td><td>Skipped (4.2).</td></tr>
+<tr><td>E41</td><td>The final package no longer gives the app what it needs</td><td>The builder reports that with its reason. The seal is lifted and the ticket returns to stage 2. This counts as a package return.</td></tr>
+<tr><td>E42</td><td>The builder wants a further package change</td><td>The same return as E41, with the new need written out. It does not write package files.</td></tr>
+<tr><td>E43</td><td>The stage 1 session can no longer be resumed</td><td>A fresh session on the branch, with the stage 1 handoff and the package review in its prompt.</td></tr>
+<tr><td>E44</td><td>Home gates red</td><td>Red handoff to the home builder.</td></tr>
+<tr><td>E45</td><td>A second package return of any kind (E41, E42, E65)</td><td>Decision <code>second-return</code>. The owner agreed to one way back.</td></tr>
+</tbody></table></div>
+<h3>5.6 Stage 5, review</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E50</td><td>The reviewer fixes</td><td>In home files only.</td></tr>
+<tr><td>E51</td><td>The review does not hold</td><td>Back to stage 4. When stage 4 was skipped, the stage 1 session is resumed as stage 4, or a fresh home builder starts.</td></tr>
+<tr><td>E52</td><td>The cause lies in the package</td><td>Back to stage 4; the builder uses the return of E41.</td></tr>
+<tr><td>E53</td><td>A finding outside the ticket</td><td>Filed as a low ticket, as today, for the entity that owns the path.</td></tr>
+</tbody></table></div>
+<h3>5.7 Landing</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E60</td><td>The main line merges cleanly</td><td>The gates of every entity the ticket changed, and of their dependents, run on the merged tree.</td></tr>
+<tr><td>E61</td><td>The main line changed the same package, no conflict</td><td>The seal stands. The two package changes are combined without a second package review; the gates decide. Accepted.</td></tr>
+<tr><td>E62</td><td>A conflict in package files</td><td>Resolved by the package's builder under the package's constitution, then reviewed by the package's <code>conflictReReviewer</code>, whatever the size.</td></tr>
+<tr><td>E63</td><td>A conflict in home files</td><td>Today's path: the ticket's last home worker, the home <code>conflictReReviewer</code> above the threshold.</td></tr>
+<tr><td>E64</td><td>Conflicts in both</td><td>The package's worker resolves its files and leaves the merge open; the home worker resolves the rest and commits the one merge.</td></tr>
+<tr><td>E65</td><td>A gate red on the merged tree, or a stale green that turns red</td><td>Routed to the entity that owns the gate. A package's or a dependent's gate: the seal is lifted, the ticket returns to stage 2, and it counts as a package return (E45). A home gate: stage 4.</td></tr>
+<tr><td>E66</td><td>The same before a review: a conflict or a red gate when the target is merged in</td><td>Routed by owner in the same way, not to "the builder".</td></tr>
+<tr><td>E67</td><td>The ticket is abandoned in any stage</td><td>The branch is dropped. Nothing of the package change reached the main line.</td></tr>
+<tr><td>E68</td><td>The ticket is in a <code>group</code></td><td>The same stages; the target is the group branch. On a group target the landing runs only the ticket's own entities' gates; the dependents' gates run at the group's release.</td></tr>
+</tbody></table></div>
+<h3>5.8 Scheduling</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E70</td><td>Slots</td><td>A stage's job holds one slot. Between stages the ticket holds none.</td></tr>
+<tr><td>E71</td><td>Order</td><td>A ticket between stages is launched before a ready ticket of the same priority, so started work finishes first.</td></tr>
+<tr><td>E72</td><td>An entity's cap</td><td>Counts the jobs whose <code>entity</code> is that entity, whatever ticket they serve.</td></tr>
+<tr><td>E73</td><td>Two tickets cross into one package at once</td><td>Allowed. Each seals its own change; the second to land meets E61 or E62.</td></tr>
+<tr><td>E74</td><td>The Overseer restarts mid-stage</td><td>The stage, the seals and the counters are stored on the row; jobs resume as today.</td></tr>
+<tr><td>E75</td><td><code>ticket hold</code>, a job stopped, a fresh job asked</td><td>Between stages a hold holds, as between build and review today. A stop or a fresh job stays in its stage.</td></tr>
+<tr><td>E76</td><td>A usage limit</td><td>Today's wait; no stage rule.</td></tr>
+</tbody></table></div>
+<h3>5.9 Intake and tickets</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E80</td><td>A request for several entities</td><td>A ticket per entity, ordered with <code>dependsOn</code>, or in one <code>group</code> when they must land together.</td></tr>
+<tr><td>E81</td><td>Intake cannot tell the entity</td><td>It asks the owner, as it asks any question today.</td></tr>
+<tr><td>E82</td><td>A mechanical change across every entity: a rename, a tool upgrade</td><td>Expand and contract through <code>dependsOn</code> (the package first, keeping the old name; each app; then the removal), or one <code>group</code> of per-entity tickets. No job writes two entities outside a crossing.</td></tr>
+<tr><td>E83</td><td>A worker's finding</td><td>Filed for the entity that owns the path it names.</td></tr>
+<tr><td>E84</td><td>A <code>research</code> ticket</td><td>Needs an entity; its output belongs in that entity's folders. Research for the whole repository is a ticket of <code>root</code>.</td></tr>
+<tr><td>E85</td><td>A draft names files outside its entity and whitelist</td><td>Filing refuses it.</td></tr>
+</tbody></table></div>
+<h3>5.10 Configuration over time</h3>
+<div class="table-wrap"><table><thead><tr><th>Id</th><th>Case</th><th>Handling</th></tr></thead><tbody>
+<tr><td>E90</td><td>An entity is added</td><td>Through the pipeline builder's update; open tickets are not touched.</td></tr>
+<tr><td>E91</td><td>An entity is removed or renamed while a ticket names it</td><td>Refused. First move or finish those tickets.</td></tr>
+<tr><td>E92</td><td>An entity's folder moves</td><td>Its <code>home</code> changes; the key and every ticket stay.</td></tr>
+<tr><td>E93</td><td>A constitution changes on the main line while a ticket runs</td><td>Each job reads the main line's text at launch, as today. A seal is not affected.</td></tr>
+<tr><td>E94</td><td>A root forge without entities becomes a top-level forge</td><td>Through the pipeline builder's update, refused while a ticket is in progress or in review. Pending tickets need an entity before they launch.</td></tr>
+<tr><td>E95</td><td>An older forge reads the new pipeline file</td><td>It refuses the file by its version, as it refuses any version it does not know.</td></tr>
+<tr><td>E96</td><td>Folder forges become one top-level forge</td><td>Not supported: clear the trackers and set up at the root. History is not carried over.</td></tr>
+</tbody></table></div>
+    </section>
+
+        <section id="pipeline">
+      <h2>A pipeline per entity</h2>
+      <h3>Which gates run, and when</h3>
+      <ul>
+        <li><strong>Per stage.</strong> A stage ends with the gates of its own entity, run from that entity's pipeline with that entity's toolchain.</li>
+        <li><strong>At landing.</strong> On the merged tree the Airlock runs the gates of every entity the ticket changed, and of every entity that depends on a changed one, so a Gaia ticket that changes the design system cannot turn forge red unseen.</li>
+        <li><strong>Deduplicated.</strong> Prepare steps are merged on command and folder, not on name; one <code>bun install</code> at the root serves every entity.</li>
+        <li><strong>Tool-agnostic.</strong> Gates stay plain commands and forge keeps knowing no build tool. Where a repository has a cache such as Turborepo, a whole-repository gate line per entity remains valid and makes untouched work a replay, as now.<sup><a href="#source-1">[1]</a></sup></li>
+      </ul>
+      <h3>Landing</h3>
+      <ul>
+        <li>A top-level forge has one Airlock train per target, with today's ordering by priority and predicted conflicts.<sup><a href="#source-15">[15]</a></sup></li>
+        <li>The dispatcher can prefer tickets on disjoint entities, which rarely conflict; today the Overseer knows nothing about files and relies on filing-time ordering.<sup><a href="#source-12">[12]</a></sup></li>
+        <li>A conflict is resolved under the constitution of the entity whose files conflicted, and re-reviewed by that entity's reviewer.</li>
+        <li>Later optimisation: skip a re-gate after a landing that touched nothing in the ticket's entities or their dependencies. It trusts <code>dependsOn</code>, so it stays off by default.</li>
+      </ul>
+      <h3>Protection that must not weaken</h3>
+      <p>At the repository root only the root's <code>.claude</code> folder is denied to agents today; a folder tracker adds its own.<sup><a href="#source-7">[7]</a></sup> A top-level forge must deny <code>.claude</code> and <code>.mcp.json</code> in every entity home, in the sandbox and in Customs, or an agent could rewrite an entity's rules.</p>
+    </section>
+
+    <section id="setup">
+      <h2>Setup: single repository or monorepo</h2>
+      <p>The research pass already inspects the repository. It gains one finding and setup gains one step.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Step</th><th>Today</th><th>With entities</th></tr></thead>
+          <tbody>
+            <tr><td><code>billing</code></td><td>unchanged</td><td>unchanged</td></tr>
+            <tr><td><code>research</code></td><td>Findings on stack, scripts, conventions, CI.<sup><a href="#source-11">[11]</a></sup></td><td>Adds a <code>layout</code> finding: single or monorepo, the candidate entities, their dependency edges, and which already carry a constitution or <code>CLAUDE.md</code>. Read from whatever is there: workspace manifests of any ecosystem, or folder conventions.</td></tr>
+            <tr><td><code>entities</code> <span class="pill blue">new</span></td><td>—</td><td>The owner confirms the map through the existing question mechanism: which folders are entities, each one's whitelist, and whether this is a top-level forge. Skipped for a single repository.</td></tr>
+            <tr><td><code>constitution</code></td><td>One draft.</td><td>One pipeline-agent session per entity, in parallel, each reading its home and the root. An existing constitution is adopted, not rewritten.</td></tr>
+            <tr><td><code>design</code></td><td>One draft pipeline.</td><td>One per entity, plus the forge-level settings.</td></tr>
+            <tr><td><code>apply</code></td><td>Writes <code>pipeline.json</code>, commits the constitution.<sup><a href="#source-3">[3]</a></sup></td><td>Writes all entities and commits every new constitution in one landing.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li><strong>One entity at a time.</strong> <code>pipeline setup --entity &lt;key&gt;</code> redoes one; the existing check mode reports a workspace no entity owns, so a new package is noticed.</li>
+        <li><strong>Format.</strong> The setup steps are a stored vocabulary, so the new step raises the setup record's format.<sup><a href="#source-11">[11]</a></sup></li>
+        <li><strong>Folder forges and plain repositories.</strong> Setup stays as it is. The setup record keeps its format; entities are optional keys in it.</li>
+      </ul>
+    </section>
+
+        <section id="intake">
+      <h2>Intake: one front door, split by entity</h2>
+      <p>In a top-level forge one product owner serves the whole repository, and it is where the strongest model pays off: a good split at the front means few borders are discovered later. It receives the entity map (keys, folders, summaries, whitelists), not the constitutions, which it does not get today either.<sup><a href="#source-11">[11]</a></sup></p>
+      <ol>
+        <li><strong>Route.</strong> Name the entities the request affects.</li>
+        <li><strong>Split by entity,</strong> then by mechanism as today.<sup><a href="#source-12">[12]</a></sup> A package change that stands on its own (a new component, a changed contract) is a ticket of the package.</li>
+        <li><strong>Mark the crossings.</strong> Where an app ticket needs a small supporting change in a whitelisted package, the ticket names that package, and it will run in stages.</li>
+        <li><strong>Order and prioritise.</strong> <code>dependsOn</code> when the package ticket can land first; a <code>group</code> when tickets must land together. Both exist.<sup><a href="#source-10">[10]</a></sup> Priority orders the ready tickets, as now.<sup><a href="#source-3">[3]</a></sup></li>
+        <li><strong>Refuse early.</strong> Filing refuses a draft that names files of an entity outside its own and its whitelist, before any agent runs.</li>
+      </ol>
+      <p>What intake misses, the builder finds: a crossing into a whitelisted package simply adds the stages, and a need outside the whitelist becomes a ticket the first one waits on. A ticket created that way inherits the priority of the ticket that needs it, so urgent work does not queue behind routine work.</p>
+    </section>
+
+    <section id="monitoring">
+      <h2>Monitoring</h2>
+      <ul>
+        <li><strong>Bridge.</strong> The entity becomes a dimension beside the epic: a filter and swimlanes on the Kanban, an entity chip on every ticket, the stages of a crossing ticket with whose turn it is, the pipeline view per entity. The merge queue stays one list per target.</li>
+        <li><strong>Gaia, top-level forge.</strong> Still one forge; the monitor snapshot gains the entities. Added keys ship as a minor version, and Gaia, which supports one forge version, adopts it.<sup><a href="#source-13">[13]</a></sup></li>
+        <li><strong>Gaia, folder forges.</strong> The registry entry gains the repository root and prefix, already planned,<sup><a href="#source-1">[1]</a></sup> so Gaia can show the forges of one repository together.</li>
+      </ul>
+    </section>
+
+    <section id="sandbox">
+      <h2>The sandbox failures of a folder forge</h2>
+      <p>Reported for forge's <code>ticket-014</code> and Gaia's <code>ticket-001</code>.<sup><a href="#source-20">[20]</a></sup> They are independent of the entity work but block any folder forge, so they go first.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Failure</th><th>What is known</th><th>Next move</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Cannot commit</strong><br><span class="small">writes to <code>.git/worktrees/ticket-014</code> refused</span></td>
+              <td>The builder commits inside its sandbox. Forge grants no git path itself: it uses the shared <code>.git</code> only for deny lists and relies on Claude Code's sandbox letting a linked worktree write it.<sup><a href="#source-7">[7]</a></sup> The vendor documents that grant, with <code>hooks/</code> and <code>config</code> excluded,<sup><a href="#source-17">[17]</a></sup> and forge's own earlier probe saw commits succeed.<sup><a href="#source-19">[19]</a></sup> The one difference for a folder forge is that its session starts in the project folder inside the worktree, not at the worktree's root.<sup><a href="#source-1">[1]</a></sup></td>
+              <td><span class="pill warn">probe first</span> Start one folder-forge session at the worktree root and commit. If that works, the cause is where the session starts. Only if it does not, grant paths explicitly (see below).</td>
+            </tr>
+            <tr>
+              <td><strong>No local port</strong><br><span class="small">specs opening <code>127.0.0.1:0</code> fail</span></td>
+              <td><code>sandbox.network.allowLocalBinding</code> is set nowhere in forge and was never probed.<sup><a href="#source-8">[8]</a><a href="#source-1">[1]</a></sup> On macOS it lets sandboxed commands listen and connect on localhost; on Linux it has no effect, each command having a private localhost.<sup><a href="#source-17">[17]</a></sup> Gate sandboxes already allow localhost.<sup><a href="#source-1">[1]</a></sup></td>
+              <td><span class="pill good">set it</span> on macOS, after checking what an agent could then reach on localhost (other Bridges and Overseers listen there).</td>
+            </tr>
+            <tr>
+              <td><strong><code>.git/hooks</code> refused</strong></td>
+              <td>By the vendor's design.<sup><a href="#source-17">[17]</a></sup> Forge already points agents at the tracked hooks folder through git configuration in the environment.<sup><a href="#source-8">[8]</a></sup></td>
+              <td><span class="pill plain">no grant</span> Find the script that writes there (typically an install step) and keep it out of agent sessions.</td>
+            </tr>
+            <tr>
+              <td><strong><code>ps</code> refused</strong></td>
+              <td>A sandbox profile cannot start a setuid program, <code>/bin/ps</code> among them; <code>pgrep</code> runs. The suites were moved to <code>pgrep</code> before the gates went live.<sup><a href="#source-1">[1]</a><a href="#source-2">[2]</a></sup></td>
+              <td><span class="pill plain">check</span> whether the failing run predates that fix or another caller still uses <code>ps</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>If the commit failure needs explicit grants: what a commit writes, and the hazards</summary>
+        <div class="inner">
+          <p>A commit in a linked worktree writes the worktree's admin folder (index, <code>HEAD</code> log, message file), new loose objects in the shared object store, and the branch's ref with its lock file and log.</p>
+          <ul>
+            <li>Write access to the object store includes deleting objects, which no ref check would notice.</li>
+            <li>The ref and its <code>.lock</code> sibling must be named exactly; a pattern such as <code>ticket-014*</code> also matches <code>ticket-0140</code>.</li>
+            <li>On Linux a path that does not exist yet cannot be granted, so a whole folder would have to be, and prevention becomes detection after the fact.</li>
+          </ul>
+          <p>Gate sandboxes receive the admin folder only.<sup><a href="#source-5">[5]</a></sup> This is why the probe comes before any widening.</p>
+        </div>
+      </details>
+      <p>A top-level forge starts its sessions at the worktree's root, where a root tracker commits today, so it does not depend on the outcome of the commit probe.</p>
+    </section>
+
+            <section id="implementation">
+      <h2>Implementation</h2>
+<p>The order is the order to build in. Each step keeps <code>bun run verify</code> green. A forge without entities must stay as it is after every step: every new git call sits behind an early return when the pipeline has no entities, the way <code>changesStayInHomeAndReach</code> returns before git for a root tracker.</p>
+<h3>Step 0. Make today's guard real</h3>
+<p>For folder forges, independent of entities.</p>
+<ul><li><strong>Scope for builders and reviewers.</strong> The Customs subject built in <code>src/services/overseer/JobLaunch.ts</code> carries
+ no <code>projectScope</code>, so <code>changesStayInHomeAndReach</code> (V17) always passes and the stored <code>reach</code> is never read by the
+ Overseer. Pass the tracker's prefix and the pipeline's <code>reach</code>. That also turns on the any-depth forms of V5 and
+ V13 and the project-relative form of V11. Give the prefix to <code>agentConfigTouchedBeforeLaunch</code> too.
+</li><li><strong>Instruction paths.</strong> <code>InstructionFiles.trackedInstructionPathsOf</code> returns project paths where V11 compares git
+ paths. Give it the prefix and map through <code>ProjectPathsUtil.toRepositoryPath</code>.
+</li><li><strong>The merge step.</strong> <code>src/services/lifecycle/MergeRun.ts</code> calls V10, V1 and V2 by name. For a tracker in a folder
+ only, also run V17, V5 and V13 on a conflict resolution. The whole column cannot run there: V14 needs a launch
+ snapshot no Airlock agent has. A single repository's landings stay untouched.
+</li><li><strong>Specs.</strong> A <code>JobLaunch</code> spec for a folder tracker that fails without a scope; <code>InstructionFiles.spec.ts</code>; the
+ Airlock conflict specs for a folder tracker.
+</li><li><strong>More frozen replays first.</strong> <code>cli/overseer/FrozenRootTrackerGitCalls.json</code> covers two clean runs. Before any
+ entity code, freeze a root tracker's git calls for a conflict, a red handoff and a review round as well.
+</li><li><strong>Sandbox,</strong> after a probe with a real session (<a href="#sandbox">section 8</a>).
+</li></ul>
+<h3>Step 1. The entity in the model</h3>
+<p>Internal only. The stored pipeline with entities is still refused until step 3 completes, so no forge can run on a half-built model.</p>
+<ul><li><code>src/lib/tracker-model/@types/Pipeline.ts</code>: <code>PipelineEntity</code>, <code>entities?</code>, <code>PIPELINE_FORMAT_VERSION</code> 4.
+ <code>PipelineUtil.formatVersionOf</code> writes 4 only when <code>entities</code> is present. The top-level <code>prepare</code>, <code>gates</code> and
+ <code>phases</code> stay required and are empty beside <code>entities</code>.
+</li><li><code>PipelineUtil.pipelineOfEntity(pipeline, key)</code>: one resolver that returns an ordinary single pipeline for an
+ entity. Every reader of gates, prepare steps, agents and the constitution goes through it, so readers keep one
+ shape.
+</li><li><code>src/adapters/pipeline/PipelineFile.ts</code>: read and validate. Refusals: equal homes, an unknown key in <code>whitelist</code>
+ or <code>dependsOn</code>, a whitelisted entity that is not a <code>package</code> or has no <code>review</code>, a circle in <code>dependsOn</code>,
+ non-empty top-level <code>gates</code>, <code>prepare</code>, <code>constitution</code> or <code>reach</code> beside <code>entities</code>.
+</li><li>The refusal of entities in a folder tracker sits where the prefix is known, in the tracker service that stores
+ the pipeline, not in <code>PipelineFile</code>.
+</li><li><code>src/lib/tracker-model/utils/EntityOwnershipUtil.ts</code> (new, pure, DOM-safe): <code>ownerOf</code>, <code>pathsByOwnerOf</code>,
+ <code>dependentsOf</code>, <code>stageOrderOf</code>.
+</li><li>Ticket: <code>entity?</code>, <code>crosses?</code> in <code>@types/Ticket.ts</code>, <code>TicketFields</code>, the ticket file's ingestion and writer, and
+ the filing draft's fields. <code>ticket add --entity</code>, <code>ticket entity</code>, and a control command so the Bridge can assign
+ one. <code>ticket ready</code> refuses <code>ticket-without-entity</code>. Both wording channels of <code>OperationRefusalWordingUtil</code>.
+</li><li>Rules and frozen files: the pipeline row of Deviations and <code>cli/OlderPipelineRefusal.spec.ts</code> name versions 2 and
+ 3; <code>docs/cli.md</code> with <code>resources/templates/Reference.md</code>; <code>cli/CommandTable.ts</code>, <code>cli/HelpText.ts</code>;
+ <code>cli/FrozenInstalledSurface.json</code>; <code>INSTALL_VERSION</code> and the <code>InstallChangeWatch</code> recording; a minor of
+ <code>FORGE_SYSTEM_VERSIONS</code> for the new command.
+</li></ul>
+<h3>Step 2. One job, one entity</h3>
+<ul><li><code>@types/Job.ts</code>: <code>entity?</code>, <code>stage?</code>. The Bouncer's list of fields only the Overseer decides gains both.
+</li><li>Constitution: <code>InstructionFiles.readingFor</code> and the main-line read resolve from the job's entity.
+ <code>ConstitutionCommits.ts</code> refuses a commit of more than one path today and <code>Airlocks.ts</code> names the one fixed path;
+ both take a list, and the rule under "Tickets" in <code>CLAUDE.md</code> changes with them.
+</li><li>Gates: <code>GateRun</code>, the manifest in <code>JobLaunch.ts</code> and the merged-tree gates in <code>DrivePass.ts</code> take the entity's
+ pipeline. The landing's gate set (changed entities, their dependents, every entity for a root change) belongs
+ here. Gate stamps and the row's <code>pipelineHash</code> are per entity. A gate's <code>in</code> resolves from the entity's first
+ home folder; a leading <code>/</code> is the repository root.
+</li><li>Sandbox and edits: <code>WorkerProfiles</code> takes the toolchain from the job's entity and lists <code>.claude</code> in every entity
+ home. <code>ClaudeCodeAdapter</code>'s Edit and Write rules list the stage's folders. Sessions start at the worktree's root.
+</li><li>Customs: the scope check takes a list of writable folders; V5 and V13 take every entity home. The scope check
+ joins <code>RESUMABLE_CUSTOMS_CHECKS</code> in <code>JobLaunch.ts</code>.
+</li><li><code>JobResumption.ts</code> and <code>LaunchSettings.ts</code>: a job resumes only a session of its own entity and stage.
+</li><li>Counters in <code>Playbook.ts</code> and <code>FailedPassUtil</code>: per stage and entity.
+</li></ul>
+<h3>Step 3. Needs, and switching entities on</h3>
+<p>After this step a top-level forge runs with strict isolation: every change in another entity is that entity's own ticket. A non-empty <code>whitelist</code> is still refused.</p>
+<ul><li>A Hatch verb for a build stage's agent, <code>need --entity &lt;key&gt;</code>: <code>ControlCommand.ts</code>, <code>HatchFormatUtil.ts</code>, and the
+ Bouncer, whose worker filing today demands priority <code>low</code> and an empty <code>dependsOn</code>.
+</li><li>Job outcome <code>needs-declared</code> in <code>ReportSchemas.ts</code>, <code>Job.ts</code> and <code>JobStates.ts</code>.
+</li><li>The Playbook launches nothing for a ticket with an unsettled dependency, whatever its status; the need's ticket
+ takes the highest waiting priority.
+</li><li>Decisions for E12 to E15 in <code>DecisionAndIncidentVocabulary.ts</code>; log records in <code>LogRecordSchema.ts</code> and
+ <code>LogUtil</code>'s frozen table.
+</li><li>Switch on: the reader accepts a pipeline with entities. Amend "Trackers in a repository" in <code>CLAUDE.md</code> and the
+ docblock of <code>OverseerBuildJob.spec.ts</code>: the frozen replay holds for a root tracker without entities.
+</li><li>A fixture repository of two apps and a shared package under one root tracker, recorded like <code>TwoTrackerFixture</code>.
+</li></ul>
+<h3>Step 4. Stages</h3>
+<ul><li>Row fields <code>stage</code>, <code>seals</code>, <code>packageReturns</code> and the per-stage counters: <code>@types/Task.ts</code>, the progress file's
+ ingestion and writer, written only once set. A stage move table beside the ticket's legality table.
+</li><li><code>Playbook.ts</code>: the next launch comes from the stage; E71's order.
+</li><li><code>ReviewBars.ts</code>: a bar carries its stage's entity; rounds per stage.
+</li><li>Customs: the stage's scope and the sealed change, both resumable; the Airlock exempt.
+</li><li><code>JobLaunch.ts</code>, <code>DrivePass.ts</code>: launch stage jobs; compute the crossing after stage 1; hash the ticket's own
+ change for the seal and for skipping <code>adapt</code>.
+</li><li><code>Airlocks.ts</code> and <code>MergeRun.ts</code>: conflicts and red gates routed by owner; the two-worker merge of E64; the group
+ rule of E68.
+</li><li>The ticket file: <code>## Handoff</code> in parts per stage; Acceptance evidence owned by the last home build stage.
+</li><li>Prompts in <code>resources/prompts/</code>: <code>PackageBuildPrompt.md</code>, <code>AdaptMessage.md</code>; <code>ReviewPrompt.md</code> gains its scope
+ line. New text in ASD-STE100.
+</li><li>Outcome <code>refused</code>; decisions <code>package-refused</code>, <code>second-return</code>, <code>dependent-broken</code>; log records for a stage
+ started, a seal set, a seal lifted and a return.
+</li><li>Specs: each case of 5.2 to 5.8 as a named claim on the fixture.
+</li></ul>
+<h3>Step 5. Setup and the pipeline builder's data</h3>
+<ul><li><code>PipelineSetupVocabulary.ts</code>: the step <code>entities</code> after <code>research</code>; the finding topic <code>layout</code>.
+</li><li>The setup record keeps its format version 1: <code>PipelineSetupFile</code> accepts only that version, so raising it would
+ make every open record on every forge unreadable. Entities come as optional keys, written once set.
+</li><li>Research per entity after the layout is confirmed; one pipeline-agent session per entity for research,
+ constitution and design, its entity stamped by the Overseer as <code>setupId</code> is today.
+</li><li><code>PipelineDraftField</code> gains an entity scope and the fields of an entity's definition; <code>PipelineSetups.ts</code>,
+ <code>SetupPayloadSchemas.ts</code>, <code>PipelineFactsAssembly.ts</code>.
+</li><li>Gate profiles and the pipeline check keyed by entity.
+</li><li>Apply: every changed constitution in one commit job; refusals for E91 and E94; the list of pending tickets
+ without an entity.
+</li><li>The Bridge's side is <a href="pipeline-builder-monorepo-mode.md">the pipeline builder's monorepo mode</a>.
+</li></ul>
+<h3>Step 6. Intake, board, monitor</h3>
+<ul><li><code>skills/agent-po/SKILL.md</code>: route by entity, then split by mechanism; the product owner's prompt receives the
+ entity map. The skill names <code>--entity</code>, so <code>INSTALL_VERSION</code> rises.
+</li><li>Filing refuses E85.
+</li><li>Bridge: entity filter and swimlanes on the Kanban, the stages of a crossing ticket, a per-entity pipeline view.
+</li><li><code>packages/forge-contracts</code>: entities and stages in the monitor snapshot as added keys. Gaia adopts that version.
+</li><li><code>concurrency</code> per entity; a higher default limit for a top-level forge.
+</li></ul>
+      <div class="callout blue">
+        <strong class="title">For this repository</strong>
+        <p>Step 0 fixes the two folder forges as they are. Whether forge and Gaia then become one top-level forge is a separate choice: it gives the design system's constitution force, shared intake and tickets that wait on each other across apps, and it costs a board reset, since the trackers must be cleared and set up at the root.</p>
+      </div>
+    </section>
+
+        <section id="risks">
+      <h2>Risks and open decisions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Why it matters</th><th>Answer in this strategy</th></tr></thead>
+          <tbody>
+            <tr><td>Building on an unwired guard</td><td>Every scope rule here sits on a check that does not run yet.</td><td>Step 0, before anything else, with a spec that fails when a real builder subject carries no scope.</td></tr>
+            <tr><td>Cost of a crossing</td><td>Four sessions, five with the adapt stage, one after the other, against two for a ticket inside one entity.</td><td>Only crossing tickets pay. Keep borders few through entity size, split well at intake, skip the adapt stage when nothing changed. Count crossings and returns per entity on the board.</td></tr>
+            <tr><td>The package builder rewrites what the app needs away</td><td>It knows the package's rules, not the app's goal.</td><td>It receives the proposal and the app's use of it; the adapt stage catches a mismatch; one way back, then a decision.</td></tr>
+            <tr><td>A popular package becomes a queue</td><td>Several tickets carry changes to the same package and re-review at landing.</td><td>Merge order already prefers clean merges; a package under that pressure is better served by its own tickets, which intake can file.</td></tr>
+            <tr><td>New ticket states</td><td>Stages add states to the Playbook and the board.</td><td>A single-entity ticket is the one-stage case and must replay exactly as today; hold that with a frozen spec like the root tracker's.</td></tr>
+            <tr><td>Weaker protection at the root</td><td>Nested <code>.claude</code> folders become writable in a top-level forge.</td><td>Deny them in every entity home, step 2.</td></tr>
+            <tr><td>Half the throughput</td><td>One board at two agents replaces two boards at two each.</td><td>Raise the board limit and add a cap per entity, step 6.</td></tr>
+            <tr><td>Drifting dependency edges</td><td><code>dependsOn</code> repeats what the workspace manifests say.</td><td>Seed it from the manifests at setup; the check mode reports a mismatch; never skip gates on its word by default.</td></tr>
+            <tr><td>Widening the git sandbox on a guess</td><td>An object-store grant lets an agent delete shared objects.</td><td>Probe the session's starting folder first.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Decisions still the owner's</h3>
+<ul><li>Whether "the proposal landed as written" compares the package's change byte for byte (assumed here) or only what
+ the package exposes.
+</li><li>Whether stage 4 resumes the stage 1 session when it exists (assumed here) or always starts fresh.
+</li><li>The board's default concurrency for a top-level forge. A low-priority crossing ticket can wait long behind
+ higher ones while its branch ages.
+</li><li>Whether this repository moves from two folder forges to one top-level forge.
+</li></ul>
+    </section>
+
+    <section id="sources">
+      <h2>Sources</h2>
+      <ol class="sources">
+        <li id="source-1"><code>docs/monorepo/design.md</code> — the first iteration's design: the five location names, rules 1 to 12, several trackers in one repository, rejected alternatives, rehearsal findings and unprobed items.</li>
+        <li id="source-2"><code>docs/monorepo/migration.md</code> — the migration checklist, including the move of the suites to <code>pgrep</code>.</li>
+        <li id="source-3"><code>apps/forge/docs/cli.md</code> — trackers in folders, <code>init</code>, <code>pipeline setup</code> and its verbs, gates, the shared files in the git common directory.</li>
+        <li id="source-4"><code>apps/forge/src/services/lifecycle/Customs.ts</code> — the checks V1 to V17, <code>changesStayInHomeAndReach</code>, the Customs subject.</li>
+        <li id="source-5"><code>apps/forge/src/services/overseer/JobLaunch.ts</code> and <code>apps/forge/src/services/lifecycle/MergeRun.ts</code> — the builder and reviewer Customs subject, resumable checks, the gate sandbox's admin folder, the checks the merge step calls.</li>
+        <li id="source-6"><code>apps/forge/src/services/overseer/InstructionFiles.ts</code> and <code>ConstitutionCommits.ts</code> — reading instructions from the main line, the single constitution path, tracked instruction paths.</li>
+        <li id="source-7"><code>apps/forge/src/services/overseer/WorkerProfiles.ts</code> — sandbox facts, writable roots, deny lists, the protected <code>.claude</code> folders, the network hook guard.</li>
+        <li id="source-8"><code>apps/forge/src/lib/claude-code/ClaudeCodeAdapter.ts</code> — how agent sessions are launched, their sandbox settings, permission rules and hooks.</li>
+        <li id="source-9"><code>apps/forge/src/lib/tracker-model/@types/Pipeline.ts</code> and <code>apps/forge/src/adapters/pipeline/PipelineFile.ts</code> — the pipeline's shape, roles, reach and format versions.</li>
+        <li id="source-10"><code>apps/forge/src/lib/tracker-model/@types/Ticket.ts</code> — the ticket's fields.</li>
+        <li id="source-11"><code>apps/forge/src/lib/tracker-model/constants/PipelineSetupVocabulary.ts</code> and <code>PipelineDefaults.ts</code> — setup steps, modes, finding topics, default instructions per role.</li>
+        <li id="source-12"><code>apps/forge/skills/agent-po/SKILL.md</code> — how the product owner splits and orders tickets.</li>
+        <li id="source-13"><code>apps/gaia/src/adapters/forge-registry/</code> (<code>RegistryFile.ts</code>, <code>@types/RegisteredForge.ts</code>) and <code>apps/forge/bridge/views/</code> — how Gaia finds forges; the Bridge's views and filters.</li>
+        <li id="source-14"><code>CLAUDE.md</code> at the repository root — the two trackers, their homes and reach, what a person changes.</li>
+        <li id="source-15"><code>apps/forge/src/lib/tracker-model/constants/ConcurrencyLimits.ts</code>, <code>apps/forge/src/services/lifecycle/Landing.ts</code>, <code>apps/forge/src/services/overseer/Airlocks.ts</code>, <code>apps/forge/src/lib/tracker-model/utils/MergeQueueUtil.ts</code>, <code>apps/forge/src/lib/tracker-model/ReviewBars.ts</code> — limits, landing, the merge queue, review bars.</li>
+        <li id="source-16">Claude Code documentation, Hooks: <a href="https://code.claude.com/docs/en/hooks.md">code.claude.com/docs/en/hooks.md</a> — PreToolUse decision control.</li>
+        <li id="source-17">Claude Code documentation, Sandboxing: <a href="https://code.claude.com/docs/en/sandboxing.md">code.claude.com/docs/en/sandboxing.md</a> — default write access, linked worktrees, <code>allowLocalBinding</code>.</li>
+        <li id="source-18">Claude Code documentation, Memory: <a href="https://code.claude.com/docs/en/memory.md">code.claude.com/docs/en/memory.md</a> — loading of subfolder <code>CLAUDE.md</code> files and path-scoped rules.</li>
+        <li id="source-19"><code>apps/forge/docs/development/overseer-claude-probe.md</code> — forge's own probes of Claude Code sessions.</li>
+        <li id="source-20">The owner's report of failing build agents on forge's <code>ticket-014</code> and Gaia's <code>ticket-001</code>, 16 November 2026.</li>
+        <li id="source-21"><code>packages/design-system/CONSTITUTION.md</code>, <code>.claude/rules/design-system.md</code>, <code>apps/gaia/CLAUDE.md</code>, <code>packages/design-system/README.md</code> — the package constitution and the places that point at it.</li>
+        <li id="source-22"><code>apps/forge/resources/prompts/ReviewPrompt.md</code>, <code>RedHandoffMessage.md</code> and <code>ResumeMessage.md</code> — what a reviewer fixes and files, and the messages a resumed session receives.</li>
+      </ol>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const ENTITIES = [
+    { key: 'forge', kind: 'app', home: 'apps/forge, packages/flint, packages/brand, packages/forge-contracts', whitelist: ['design-system', 'system-versions'], dependsOn: ['design-system', 'system-versions'] },
+    { key: 'gaia', kind: 'app', home: 'apps/gaia', whitelist: ['design-system', 'system-versions'], dependsOn: ['design-system', 'system-versions'] },
+    { key: 'design-system', kind: 'package', home: 'packages/design-system', whitelist: [], dependsOn: [] },
+    { key: 'system-versions', kind: 'package', home: 'packages/system-versions', whitelist: [], dependsOn: [] },
+    { key: 'derived-root-files', kind: 'derived', home: 'bun.lock, package.json, turbo.json', whitelist: [], dependsOn: [] },
+    { key: 'root', kind: 'root', home: 'scripts/, docs/monorepo/, .claude/', whitelist: [], dependsOn: [] }
+  ];
+
+  const state = { shape: 'top-level', homeKey: 'gaia', outcome: 'changed', neededKeys: new Set(['design-system']) };
+
+  function entityOf(entityKey) {
+    return ENTITIES.find(function (entity) { return entity.key === entityKey; });
+  }
+
+  function homeCandidatesOf(shape) {
+    return ENTITIES.filter(function (entity) {
+      return shape === 'top-level' ? (entity.kind === 'app' || entity.kind === 'package') : entity.kind === 'app';
+    });
+  }
+
+  function dependentsOf(changedKeys) {
+    return ENTITIES.filter(function (entity) {
+      return !changedKeys.includes(entity.key) &&
+        entity.dependsOn.some(function (dependencyKey) { return changedKeys.includes(dependencyKey); });
+    }).map(function (entity) { return entity.key; });
+  }
+
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"]/g, function (character) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character];
+    });
+  }
+
+  function routeOf(homeEntity, neededEntity) {
+    if (neededEntity.kind === 'derived') {
+      return { route: 'direct', pill: 'good', label: 'By path', text: 'Derived files in the ticket\'s <code>reach</code>: its builder changes them directly, as today.' };
+    }
+    if (neededEntity.kind === 'root') {
+      return { route: 'person', pill: 'bad', label: 'A person', text: 'Owned by the root entity and on nobody\'s whitelist. The builder declares the need and stops; the ticket waits with a decision for the owner.' };
+    }
+    if (homeEntity.whitelist.includes(neededEntity.key)) {
+      return { route: 'staged', pill: 'blue', label: 'In stages', text: 'Whitelisted: the builder writes a proposal, and <code>' + escapeHtml(neededEntity.key) + '</code>\'s own builder and reviewer make it final under their constitution.' };
+    }
+    const elsewhere = state.shape === 'top-level'
+      ? 'Forge files a ticket for <code>' + escapeHtml(neededEntity.key) + '</code> with the intended use and the same priority; this ticket waits on it.'
+      : 'It belongs to another forge. The ticket stops with a decision, and the owner files the request there.';
+    return { route: 'ticket', pill: 'warn', label: 'Own ticket', text: 'Not on the whitelist: the builder declares the need before writing and stops. ' + elsewhere };
+  }
+
+  function stagesOf(homeEntity, stagedEntities) {
+    const stages = [];
+    const proposalNote = stagedEntities.length === 0 ? '' : ' and a proposal in ' + stagedEntities.map(function (entity) { return '<code>' + escapeHtml(entity.key) + '</code>'; }).join(', ');
+    stages.push({ title: 'Build', job: homeEntity.key + '\'s builder', detail: 'Writes ' + escapeHtml(homeEntity.key) + '\'s files' + proposalNote + '.' });
+    stagedEntities.forEach(function (entity) {
+      stages.push({ title: 'Package build', job: entity.key + '\'s builder', detail: 'Makes the proposal final under ' + escapeHtml(entity.key) + '\'s constitution; its files only.' });
+      stages.push({ title: 'Package review', job: entity.key + '\'s reviewer', detail: 'Reviews and fixes under ' + escapeHtml(entity.key) + '\'s constitution, then the package part is sealed.' });
+    });
+    if (stagedEntities.length > 0) {
+      stages.push(state.outcome === 'changed'
+        ? { title: 'Adapt', job: homeEntity.key + '\'s builder', detail: 'Brings ' + escapeHtml(homeEntity.key) + ' in line with the final package; its own files only.' }
+        : { title: 'Adapt', job: 'skipped', skipped: true, detail: 'The sealed package equals the proposal, so only ' + escapeHtml(homeEntity.key) + '\'s gates run.' });
+    }
+    stages.push({ title: stagedEntities.length > 0 ? 'App review' : 'Review', job: homeEntity.key + '\'s reviewer', detail: 'Reviews ' + escapeHtml(homeEntity.key) + '\'s files' + (stagedEntities.length > 0 ? ', last, against the final package.' : '.') });
+    return stages;
+  }
+
+  function renderResult() {
+    const homeEntity = entityOf(state.homeKey);
+    const routed = [...state.neededKeys].map(entityOf).filter(function (entity) { return entity.key !== homeEntity.key; })
+      .map(function (neededEntity) { return { entity: neededEntity, verdict: routeOf(homeEntity, neededEntity) }; });
+    const stagedEntities = routed.filter(function (row) { return row.verdict.route === 'staged'; }).map(function (row) { return row.entity; });
+    const waitingCount = routed.filter(function (row) { return row.verdict.route === 'ticket' || row.verdict.route === 'person'; }).length;
+    const stages = stagesOf(homeEntity, stagedEntities);
+    const sessionCount = stages.filter(function (stage) { return !stage.skipped; }).length;
+    const changedKeys = [homeEntity.key].concat(stagedEntities.map(function (entity) { return entity.key; }));
+    const dependentKeys = dependentsOf(changedKeys);
+
+    const routeRows = routed.map(function (row) {
+      return '<div class="result-row"><div class="head"><span class="pill ' + row.verdict.pill + '">' + row.verdict.label + '</span><code>' +
+        escapeHtml(row.entity.home) + '</code><span class="small">owner: ' + escapeHtml(row.entity.kind === 'derived' ? 'root' : row.entity.key) + '</span></div><p>' + row.verdict.text + '</p></div>';
+    }).join('');
+
+    const stageRows = stages.map(function (stage, stageIndex) {
+      return '<tr><td>' + (stageIndex + 1) + '</td><td><strong>' + stage.title + '</strong></td><td>' +
+        (stage.skipped ? '<span class="pill plain">skipped</span>' : escapeHtml(stage.job)) + '</td><td>' + stage.detail + '</td></tr>';
+    }).join('');
+
+    const listOf = function (keys, emptyText) {
+      return keys.length === 0 ? '<li class="small">' + emptyText + '</li>' : keys.map(function (entityKey) { return '<li><code>' + escapeHtml(entityKey) + '</code></li>'; }).join('');
+    };
+
+    const waitingNote = waitingCount === 0 ? '' :
+      '<div class="callout bad"><p><strong>This ticket cannot finish alone.</strong> ' + waitingCount + ' of its needs ' + (waitingCount === 1 ? 'lies' : 'lie') +
+      ' outside its whitelist. Its builder stops before writing; the stages below run once what it waits on is delivered.</p></div>';
+
+    document.getElementById('explorer-result').innerHTML =
+      (routed.length === 0 ? '<p class="small">The ticket stays inside <code>' + escapeHtml(homeEntity.key) + '</code>: one builder, one reviewer, as today.</p>' : routeRows) +
+      waitingNote +
+      '<div class="table-wrap"><table><thead><tr><th>#</th><th>Stage</th><th>Job</th><th>What happens</th></tr></thead><tbody>' + stageRows + '</tbody></table></div>' +
+      '<div class="result-summary">' +
+        '<div class="box"><h5>Agent sessions</h5><ul><li><strong>' + sessionCount + '</strong>, one after the other</li></ul></div>' +
+        '<div class="box"><h5>Gates at landing: changed</h5><ul>' + listOf(changedKeys, 'none') + '</ul></div>' +
+        '<div class="box"><h5>Gates at landing: dependents</h5><ul>' + listOf(dependentKeys, 'no other entity depends on what changed') + '</ul></div>' +
+      '</div>';
+  }
+
+  function renderHomeChoice() {
+    const candidates = homeCandidatesOf(state.shape);
+    if (!candidates.some(function (entity) { return entity.key === state.homeKey; })) state.homeKey = candidates[0].key;
+    document.getElementById('home-choice').innerHTML = candidates.map(function (entity) {
+      return '<button type="button" data-home="' + entity.key + '" aria-pressed="' + (entity.key === state.homeKey) + '">' + escapeHtml(entity.key) + '</button>';
+    }).join('');
+  }
+
+  function renderNeedChoice() {
+    state.neededKeys.delete(state.homeKey);
+    document.getElementById('touch-choice').innerHTML = ENTITIES.filter(function (entity) { return entity.key !== state.homeKey; }).map(function (entity) {
+      return '<label><input type="checkbox" data-need="' + entity.key + '"' + (state.neededKeys.has(entity.key) ? ' checked' : '') + '><span><code>' + escapeHtml(entity.home) + '</code></span></label>';
+    }).join('');
+  }
+
+  function renderExplorer() {
+    renderHomeChoice();
+    renderNeedChoice();
+    document.querySelectorAll('#outcome-choice button').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.outcome === state.outcome)); });
+    renderResult();
+  }
+
+  document.getElementById('outcome-choice').addEventListener('click', function (event) {
+    const button = event.target.closest('button');
+    if (!button) return;
+    state.outcome = button.dataset.outcome;
+    renderExplorer();
+  });
+  document.getElementById('home-choice').addEventListener('click', function (event) {
+    const button = event.target.closest('button');
+    if (!button) return;
+    state.homeKey = button.dataset.home;
+    renderExplorer();
+  });
+  document.getElementById('touch-choice').addEventListener('change', function (event) {
+    const neededKey = event.target.dataset.need;
+    if (!neededKey) return;
+    if (event.target.checked) state.neededKeys.add(neededKey); else state.neededKeys.delete(neededKey);
+    renderResult();
+  });
+  renderExplorer();
+
+  document.querySelectorAll('.tabs').forEach(function (tabList) {
+    tabList.addEventListener('click', function (event) {
+      const chosenTab = event.target.closest('button[role="tab"]');
+      if (!chosenTab) return;
+      tabList.querySelectorAll('button[role="tab"]').forEach(function (tab) {
+        const selected = tab === chosenTab;
+        tab.setAttribute('aria-selected', String(selected));
+        document.getElementById(tab.dataset.tab).hidden = !selected;
+      });
+    });
+  });
+
+  const todayTable = document.getElementById('today-table');
+  const todayRows = [...todayTable.tBodies[0].rows];
+  const todayCount = document.getElementById('today-count');
+  function filterTodayTable(query) {
+    const needle = query.trim().toLowerCase();
+    let shownCount = 0;
+    todayRows.forEach(function (row) {
+      const shown = needle === '' || row.textContent.toLowerCase().includes(needle);
+      row.hidden = !shown;
+      if (shown) shownCount += 1;
+    });
+    todayCount.textContent = shownCount + ' of ' + todayRows.length + ' rows';
+  }
+  document.getElementById('today-filter').addEventListener('input', function (event) { filterTodayTable(event.target.value); });
+  filterTodayTable('');
+
+  const sortDirectionOfColumn = {};
+  todayTable.tHead.addEventListener('click', function (event) {
+    const header = event.target.closest('th.sortable');
+    if (!header) return;
+    const columnIndex = Number(header.dataset.column);
+    const direction = sortDirectionOfColumn[columnIndex] === 1 ? -1 : 1;
+    sortDirectionOfColumn[columnIndex] = direction;
+    const sortedRows = [...todayTable.tBodies[0].rows].sort(function (a, b) {
+      return direction * a.cells[columnIndex].textContent.trim().localeCompare(b.cells[columnIndex].textContent.trim());
+    });
+    sortedRows.forEach(function (row) { todayTable.tBodies[0].appendChild(row); });
+  });
+
+  const edgeSection = document.getElementById('edge-cases');
+  const edgeRows = [...edgeSection.querySelectorAll('tbody tr')];
+  const edgeCount = document.getElementById('edge-count');
+  function filterEdgeCases(query) {
+    const needle = query.trim().toLowerCase();
+    let shownCount = 0;
+    edgeRows.forEach(function (row) {
+      const shown = needle === '' || row.textContent.toLowerCase().includes(needle);
+      row.hidden = !shown;
+      if (shown) shownCount += 1;
+    });
+    edgeSection.querySelectorAll('.table-wrap').forEach(function (tableWrap) {
+      const groupIsEmpty = tableWrap.querySelectorAll('tbody tr:not([hidden])').length === 0;
+      tableWrap.hidden = groupIsEmpty;
+      if (tableWrap.previousElementSibling && tableWrap.previousElementSibling.tagName === 'H3') tableWrap.previousElementSibling.hidden = groupIsEmpty;
+    });
+    edgeCount.textContent = shownCount + ' of ' + edgeRows.length + ' cases';
+  }
+  document.getElementById('edge-filter').addEventListener('input', function (event) { filterEdgeCases(event.target.value); });
+  filterEdgeCases('');
+
+  const sectionLinks = [...document.querySelectorAll('nav.sidebar a')];
+  if ('IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        sectionLinks.forEach(function (link) { link.classList.toggle('current', link.getAttribute('href') === '#' + entry.target.id); });
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    document.querySelectorAll('main section[id]').forEach(function (section) { sectionObserver.observe(section); });
+  }
+})();
+</script>
+</body>
+</html>

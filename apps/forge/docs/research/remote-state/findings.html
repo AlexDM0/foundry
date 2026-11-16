@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>forge: remote state, login and cloud workers</title>
+<style>
+:root{
+  --bg:#f6f4f1;--card:#ffffff;--ink:#1f2328;--muted:#5d646c;--line:#d5d0c8;--soft:#ece8e2;
+  --accent:#d9600f;--accent-soft:#fbe6d6;--good:#2f7d4f;--good-soft:#dff1e5;--warn:#a86a00;--warn-soft:#fbefd0;
+  --bad:#b3372e;--bad-soft:#f8dedb;--blue:#2c5f9e;--blue-soft:#dde9f7;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17191c;--card:#22262b;--ink:#e8e6e2;--muted:#a3a9b0;--line:#3a4047;--soft:#2a2f35;
+  --accent:#ff8a3d;--accent-soft:#4a2d18;--good:#6cc48d;--good-soft:#1f3a2a;--warn:#e3b04b;--warn-soft:#40331a;
+  --bad:#ef8279;--bad-soft:#47231f;--blue:#85b3ea;--blue-soft:#1f3147;}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent)}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:28px 16px;border-right:1px solid var(--line)}
+nav .brand{font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:4px}
+nav .sub{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+nav a{display:block;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-size:14px;border-left:3px solid transparent}
+nav a:hover{background:var(--soft)}
+nav a.active{border-left-color:var(--accent);background:var(--accent-soft);font-weight:600}
+main{padding:32px 36px 80px;min-width:0}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:23px;margin:56px 0 6px;padding-top:8px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:28px 0 8px}
+.lede{color:var(--muted);max-width:70ch;margin:0 0 18px}
+p,li{max-width:74ch}
+ul{padding-left:20px}
+li{margin:4px 0}
+code{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);padding:1px 5px;border-radius:4px}
+sup a{text-decoration:none;font-size:11px;padding:0 1px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{margin:0;font-size:14.5px;color:var(--muted)}
+.card .q{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:700;margin-bottom:6px}
+.figure{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:18px 0;overflow-x:auto}
+.figure svg{display:block;width:100%;min-width:760px;height:auto}
+.figure figcaption,.cap{font-size:13.5px;color:var(--muted);margin-top:8px}
+figure{margin:0}
+svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;fill:var(--ink);font-size:13px}
+svg .ts{fill:var(--muted);font-size:11.5px}
+svg .th{font-weight:700;font-size:13.5px}
+svg .zone{fill:none;stroke:var(--line);stroke-width:1.5}
+svg .zl{fill:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+svg .b{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+svg .ba{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+svg .bg{fill:var(--good-soft);stroke:var(--good);stroke-width:1.5}
+svg .bb{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.5}
+svg .bw{fill:var(--warn-soft);stroke:var(--warn);stroke-width:1.5}
+svg .sand{fill:none;stroke:var(--bad);stroke-width:1.5;stroke-dasharray:6 4}
+svg .sl{fill:var(--bad);font-size:11.5px;font-weight:700}
+svg .ar{stroke:var(--ink);stroke-width:1.5;fill:none}
+svg .ard{stroke:var(--ink);stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+svg .arx{stroke:var(--bad);stroke-width:2;fill:none}
+svg .life{stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 4}
+svg .dim{opacity:.18}
+svg g{transition:opacity .2s}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:default}
+th.sortable{cursor:pointer}
+tr:last-child td{border-bottom:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.durable{background:var(--good-soft);color:var(--good)}
+.tag.coordination{background:var(--warn-soft);color:var(--warn)}
+.tag.machine{background:var(--blue-soft);color:var(--blue)}
+.tag.stream{background:var(--accent-soft);color:var(--accent)}
+.tag.yes{background:var(--good-soft);color:var(--good)}
+.tag.no{background:var(--bad-soft);color:var(--bad)}
+.tag.part{background:var(--warn-soft);color:var(--warn)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.chip,.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 13px;font-size:13.5px;cursor:pointer;font-family:inherit}
+.chip.on,.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+input[type=search]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 11px;font-size:14px;min-width:220px;font-family:inherit}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:0 16px}
+summary{cursor:pointer;padding:13px 0;font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details[open]{padding-bottom:12px}
+details .rank{background:var(--accent);color:#fff;border-radius:99px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:78ch}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:12px 16px 12px 54px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0;max-width:none}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:99px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.steps b{display:block}
+.sources{font-size:14px;padding-left:22px}
+.sources li{max-width:none;word-break:break-word}
+.muted{color:var(--muted)}
+@media (max-width:860px){.layout{grid-template-columns:1fr}nav{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);padding:14px 16px}nav a{display:inline-block}main{padding:22px 16px 60px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav id="nav">
+  <div class="brand">forge</div>
+  <div class="sub">Remote state research · 15 Nov 2026</div>
+  <a href="#summary">Summary</a>
+  <a href="#today">State today</a>
+  <a href="#remote">Moving state remote</a>
+  <a href="#atlas">MongoDB Atlas</a>
+  <a href="#login">Init and login</a>
+  <a href="#trust">Trust boundary</a>
+  <a href="#workers">Local and cloud workers</a>
+  <a href="#order">Order of work</a>
+  <a href="#open">Open decisions</a>
+  <a href="#sources">Sources</a>
+</nav>
+<main>
+
+<section id="summary">
+<h1>Remote state, login and cloud workers</h1>
+<p class="lede">Findings on three questions: what it takes to move forge's state to a remote database, how <code>init</code> should log a user in and configure a machine, and how one Overseer could run jobs on local workers or cloud Claude Code sessions while staying the only writer of state.</p>
+<div class="cards">
+  <div class="card"><div class="q">Question 1</div><h4>Move the board, not everything</h4><p>Only the durable board records belong remote. Board writes already pass through one function, so a store port is feasible. The Overseer should talk to a small backend of your own, never to the database directly.</p></div>
+  <div class="card"><div class="q">Question 2</div><h4>GitHub login, your VPS as the broker</h4><p>A small service on the VPS checks the GitHub user and repository permission and issues short-lived tokens. Azure and AWS work but fit worse; GitHub alone cannot hand out secrets.</p></div>
+  <div class="card"><div class="q">Question 3</div><h4>Cloud workers are the expensive part</h4><p>Nothing in the Overseer can run a job on another host today. A cloud job must come back as a pushed branch. The cloud CLI offers no event stream or stop for a daemon.</p></div>
+</div>
+<div class="note"><b>The rule that shapes all three.</b> An agent's output is a claim; only the Overseer turns a claim into state. Otherwise a session could record "gates passed" without the gates passing. Every design choice below is tested against that rule.</div>
+</section>
+
+<section id="today">
+<h2>State today</h2>
+<p class="lede">Everything forge persists is a file on one machine. The files fall into four kinds, and only one of them is a candidate for a database.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 430" role="img" aria-label="Today's architecture on one machine">
+  <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+  <rect class="zone" x="12" y="14" width="936" height="404" rx="14"/>
+  <text class="zl" x="28" y="38">Developer machine</text>
+
+  <rect class="b" x="36" y="70" width="170" height="54" rx="8"/><text class="th" x="52" y="93">Bridge</text><text class="ts" x="52" y="110">browser, 127.0.0.1 only</text>
+  <rect class="b" x="36" y="160" width="170" height="54" rx="8"/><text class="th" x="52" y="183">forge CLI</text><text class="ts" x="52" y="200">commands run by User</text>
+  <rect class="bb" x="36" y="330" width="170" height="64" rx="8"/><text class="th" x="52" y="354">~/.forge-monitor/</text><text class="ts" x="52" y="372">slots, usage marker,</text><text class="ts" x="52" y="386">board registry</text>
+
+  <rect class="ba" x="280" y="110" width="190" height="80" rx="8"/><text class="th" x="296" y="138">Overseer</text><text class="ts" x="296" y="156">drives jobs, runs gates,</text><text class="ts" x="296" y="171">lands branches</text>
+
+  <rect class="b" x="530" y="62" width="150" height="70" rx="8"/><text class="th" x="546" y="85">Watcher</text><text class="ts" x="546" y="102">one per job, detached;</text><text class="ts" x="546" y="117">appends the event log</text>
+
+  <rect class="sand" x="712" y="50" width="220" height="150" rx="10"/><text class="sl" x="724" y="68">SANDBOX</text>
+  <rect class="b" x="727" y="80" width="190" height="50" rx="8"/><text class="th" x="741" y="102">Claude Code session</text><text class="ts" x="741" y="118">builder or reviewer</text>
+  <text class="ts" x="727" y="156">writes only: its worktree</text><text class="ts" x="727" y="172">and its own Hatch folder</text>
+
+  <rect class="bg" x="280" y="270" width="190" height="110" rx="8"/><text class="th" x="296" y="294">.forge/</text><text class="ts" x="296" y="312">progress.json, tickets,</text><text class="ts" x="296" y="327">epics, log, pipeline,</text><text class="ts" x="296" y="342">lock, journal, Batons,</text><text class="ts" x="296" y="357">jobs/&lt;J&gt;/ event logs</text>
+  <rect class="bw" x="727" y="280" width="190" height="64" rx="8"/><text class="th" x="741" y="304">Hatch folder</text><text class="ts" x="741" y="322">request and reply files</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M206 97 L280 135"/><text class="ts" x="226" y="100">HTTP</text>
+  <path class="ar" marker-end="url(#ah)" d="M121 214 L121 250 Q121 300 280 310"/><text class="ts" x="134" y="244">writes under the lock</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M375 190 L375 270"/><text class="ts" x="384" y="234">reads and writes</text>
+  <path class="ar" marker-end="url(#ah)" d="M470 135 L530 105"/><text class="ts" x="476" y="106">spawn</text>
+  <path class="ar" marker-end="url(#ah)" d="M680 100 L727 104"/>
+  <path class="ar" marker-end="url(#ah)" d="M822 200 L822 280"/><text class="ts" x="832" y="244">request</text>
+  <path class="ar" marker-end="url(#ah)" d="M727 300 L470 178"/><text class="ts" x="500" y="292">applied by the Overseer</text>
+</svg>
+<figcaption>Today. A session cannot write <code>.forge/</code>: it files a request in its Hatch folder and the Overseer applies it. Commands run by User write the board files directly.</figcaption>
+</figure>
+
+<h3>What is stored, and where it could live</h3>
+<div class="controls">
+  <button class="chip on" data-kind="all">All</button>
+  <button class="chip" data-kind="durable">Durable records</button>
+  <button class="chip" data-kind="stream">Job streams</button>
+  <button class="chip" data-kind="coordination">Local coordination</button>
+  <button class="chip" data-kind="machine">Machine facts</button>
+  <input type="search" id="invSearch" placeholder="Filter by name or content" aria-label="Filter inventory">
+</div>
+<div class="tablewrap"><table id="inventory"><thead><tr><th>Path</th><th>Holds</th><th>Written by</th><th>Kind</th><th>Remote?</th></tr></thead><tbody></tbody></table></div>
+<p class="cap" id="invCount"></p>
+
+<h3>How writes work now</h3>
+<ul>
+  <li><b>One funnel for the board.</b> Every tracker write goes through <code>writeTracker</code>, called from two places in production code: the CLI's write opener and the Overseer's pass. Reads without a lock go through <code>TrackerReader</code>.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>No storage port.</b> The format adapters write file paths directly. Outside the tracker, 99 shipping modules import <code>node:fs</code>, 26 of them in the Overseer.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>A file lock with takeover.</b> The lock is a folder of exclusively created generation records. A holder is taken over when its process is gone or its stamp is older than 30 seconds.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>A journal makes a hold all-or-nothing.</b> A hold that changes a file writes <code>hold-journal.json</code> first; a journal left by a cut-short hold is replayed by the next lock taker.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>Byte-level promises.</b> Unknown keys are kept in order, an unchanged file is left untouched, and ticket and epic bodies are kept byte for byte so they can be edited by hand.<sup><a href="#s2">[2]</a></sup></li>
+  <li><b>Wake-ups come from the filesystem.</b> The Overseer runs a pass on a 150 ms debounced watch of the data folder and the Hatch folders, plus a 30 second sweep.<sup><a href="#s1">[1]</a></sup></li>
+  <li><b>No user identity exists.</b> There is one implicit owner. The Overseer binds to 127.0.0.1, with a bearer token for writes and a cookie from a one-time code for the Bridge.<sup><a href="#s3">[3]</a></sup></li>
+</ul>
+</section>
+
+<section id="remote">
+<h2>Moving state remote</h2>
+<p class="lede">The recommended shape: durable records move behind a store port; the Overseer reaches them through a backend you run; everything about processes and the machine stays where it is.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 470" role="img" aria-label="Target architecture with a backend on the VPS">
+  <rect class="zone" x="12" y="14" width="580" height="444" rx="14"/><text class="zl" x="28" y="38">Developer machine</text>
+  <rect class="zone" x="630" y="14" width="318" height="256" rx="14"/><text class="zl" x="646" y="38">Owner's VPS</text>
+  <rect class="zone" x="630" y="296" width="318" height="162" rx="14"/><text class="zl" x="646" y="320">GitHub</text>
+
+  <rect class="b" x="36" y="70" width="150" height="54" rx="8"/><text class="th" x="50" y="93">forge CLI</text><text class="ts" x="50" y="110">asks the Overseer</text>
+  <rect class="b" x="36" y="170" width="150" height="54" rx="8"/><text class="th" x="50" y="193">Bridge</text><text class="ts" x="50" y="210">127.0.0.1</text>
+
+  <rect class="ba" x="236" y="110" width="180" height="96" rx="8"/><text class="th" x="250" y="136">Overseer</text><text class="ts" x="250" y="154">store port: file adapter</text><text class="ts" x="250" y="169">or remote adapter</text><text class="ts" x="250" y="188">holds the Overseer token</text>
+
+  <rect class="bw" x="236" y="296" width="180" height="128" rx="8"/><text class="th" x="250" y="320">Stays local</text><text class="ts" x="250" y="338">lock, Batons, slots,</text><text class="ts" x="250" y="353">worktrees, sandbox profiles,</text><text class="ts" x="250" y="368">Watcher event logs,</text><text class="ts" x="250" y="383">Hatch files, sockets,</text><text class="ts" x="250" y="398">machine limits</text>
+
+  <rect class="sand" x="446" y="262" width="130" height="170" rx="10"/><text class="sl" x="456" y="280">SANDBOX</text>
+  <rect class="b" x="456" y="292" width="110" height="60" rx="8"/><text class="th" x="466" y="316">Session</text><text class="ts" x="466" y="334">no store access</text>
+  <text class="ts" x="456" y="380">Hatch requests</text><text class="ts" x="456" y="395">only, as today</text>
+
+  <rect class="ba" x="656" y="64" width="266" height="84" rx="8"/><text class="th" x="672" y="90">Backend (BFF)</text><text class="ts" x="672" y="108">checks tokens and scopes,</text><text class="ts" x="672" y="123">versioned writes, change feed</text>
+  <rect class="bg" x="656" y="186" width="266" height="62" rx="8"/><text class="th" x="672" y="212">Database</text><text class="ts" x="672" y="229">board, tickets, epics, log, pipeline</text>
+
+  <rect class="b" x="656" y="340" width="266" height="84" rx="8"/><text class="th" x="672" y="366">GitHub App</text><text class="ts" x="672" y="384">who the user is, and their</text><text class="ts" x="672" y="399">permission on the repository</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M186 97 L236 135"/>
+  <path class="ar" marker-end="url(#ah)" d="M186 197 L236 175"/>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M326 206 L326 296"/>
+  <path class="ar" marker-end="url(#ah)" d="M480 292 L400 206"/>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M416 142 L656 106"/><text class="ts" x="436" y="104">HTTPS, Overseer token</text>
+  <path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M789 148 L789 186"/>
+  <path class="ar" marker-end="url(#ah)" d="M900 148 Q940 250 900 340"/><text class="ts" x="790" y="322">check permission</text>
+</svg>
+<figcaption>Target. The database is reachable only from the backend, which has a fixed address and holds the one database credential. The session's reach does not change.</figcaption>
+</figure>
+
+<h3>What has to change in forge</h3>
+<div class="tablewrap"><table><thead><tr><th>Today</th><th>With a remote store</th><th>Size</th></tr></thead><tbody>
+<tr><td>Adapters write files; <code>writeTracker</code> plans a hold</td><td>A store port at <code>writeTracker</code> and <code>TrackerReader</code>, with a file adapter and a remote adapter</td><td>Medium, well contained</td></tr>
+<tr><td>Lock folder, 30 s takeover, hold journal</td><td>A version check or a transaction on the server; the local lock stays for local coordination</td><td>Medium</td></tr>
+<tr><td>File watch wakes the Overseer</td><td>A change feed from the backend, with the sweep as fallback</td><td>Small</td></tr>
+<tr><td>CLI commands write the board directly</td><td>CLI commands ask the Overseer, which becomes the one client of the backend</td><td>Medium; changes what works with no Overseer running</td></tr>
+<tr><td><code>log.jsonl</code> rewritten whole when a hold logs</td><td>An append to a log collection</td><td>Small</td></tr>
+<tr><td>Tickets edited by hand, kept byte for byte</td><td>Either a body string edited through commands and the Bridge, or files that sync with conflict handling</td><td>A decision, see Open decisions</td></tr>
+<tr><td>No identity</td><td>Users, tokens and repository authorization, all new</td><td>Large</td></tr>
+<tr><td>Rules in <code>CLAUDE.md</code> on stored files and byte-identical writes</td><td>Rewritten for the records that leave the filesystem</td><td>Small, but must be explicit</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="atlas">
+<h2>MongoDB Atlas</h2>
+<p class="lede">Atlas works as the database behind a backend. It is a poor fit when a laptop connects to it directly.</p>
+<div class="cards">
+  <div class="card"><h4>Identity-provider login needs M10</h4><p>Login through an identity provider (Workforce Identity Federation) is supported on dedicated clusters M10 and above with MongoDB 7.0.11 or later. The free and Flex tiers take only passwords, X.509 certificates and AWS IAM.<sup><a href="#s4">[4]</a><a href="#s5">[5]</a><a href="#s6">[6]</a></sup></p></div>
+  <div class="card"><h4>GitHub cannot be the provider</h4><p>GitHub does not implement OpenID Connect in its OAuth flows and issues no ID tokens for users. Its OIDC tokens go to Actions jobs. A broker has to sit in between.<sup><a href="#s7">[7]</a></sup></p></div>
+  <div class="card"><h4>Roaming laptops meet the IP list</h4><p>A project holds up to 200 access-list entries, and temporary entries last at most 7 days. Private endpoints are not available on the free or Flex tiers.<sup><a href="#s8">[8]</a><a href="#s4">[4]</a><a href="#s5">[5]</a></sup></p></div>
+  <div class="card"><h4>Access stops at the collection</h4><p>Roles scope privileges to a database and collection. Separating boards or users inside a collection is code you write.<sup><a href="#s9">[9]</a></sup></p></div>
+  <div class="card"><h4>The hosted client paths are gone</h4><p>The Atlas Device SDKs were deprecated in September 2024 and removed on 30 September 2025. For the Data API, MongoDB points to a driver behind your own framework or cloud function, or a partner product.<sup><a href="#s10">[10]</a><a href="#s11">[11]</a></sup></p></div>
+  <div class="card"><h4>The driver on Bun needs a recent bson</h4><p>bson 7.3.4 (5 November 2026) guards against a throw at import time in Bun, tracked as NODE-7784 and affecting 7.3.0. Pin it and test on all three operating systems.<sup><a href="#s12">[12]</a></sup></p></div>
+</div>
+
+<h3>Tiers</h3>
+<div class="tablewrap"><table><thead><tr><th>Tier</th><th>Price</th><th>Storage</th><th>Identity-provider login</th><th>Private endpoint</th><th>Change streams</th></tr></thead><tbody>
+<tr><td>M0</td><td>Free</td><td>512 MB</td><td><span class="tag no">No</span></td><td><span class="tag no">No</span></td><td><span class="tag yes">Yes</span></td></tr>
+<tr><td>Flex</td><td>$8 to $30 a month</td><td>5 GB</td><td><span class="tag no">No</span></td><td><span class="tag no">No</span></td><td><span class="tag yes">Yes</span></td></tr>
+<tr><td>M10</td><td>from $0.08 an hour (about $58 a month)</td><td>10 GB and up</td><td><span class="tag yes">Yes</span></td><td><span class="tag yes">Yes</span></td><td><span class="tag yes">Yes</span></td></tr>
+</tbody></table></div>
+<p class="cap">Prices and limits from the Atlas pricing and limits pages.<sup><a href="#s13">[13]</a><a href="#s4">[4]</a><a href="#s5">[5]</a></sup> On M0 and Flex a change stream's database filter accepts only strings and regular expressions.</p>
+
+<div class="note"><b>Behind a backend the objections fall away.</b> The backend has one fixed address for the access list, holds the single database credential, and does the per-board access control. A free or Flex cluster is then enough, and the database choice becomes low-stakes.</div>
+
+<h3>Alternatives worth knowing</h3>
+<ul>
+  <li><b>Supabase (Postgres).</b> Row-level security runs inside the database, and GitHub is a built-in login provider (with your own GitHub OAuth app).<sup><a href="#s14">[14]</a></sup> It could replace both the database and part of the backend.</li>
+  <li><b>Turso.</b> An embedded replica keeps a local copy that reads locally and syncs with the cloud database; offline writes are an option.<sup><a href="#s15">[15]</a></sup> Closest to today's local-file feel.</li>
+  <li><b>Cloudflare Durable Objects.</b> Each object is single-threaded and a single point of coordination, so one object per board removes the need for a lock.<sup><a href="#s16">[16]</a></sup></li>
+</ul>
+</section>
+
+<section id="login">
+<h2>Init and login</h2>
+<p class="lede">The user proves who they are to GitHub; your backend decides what that identity may do and hands the Overseer a short-lived token. No connection string is ever copied to a laptop.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 470" role="img" aria-label="Login sequence at init">
+  <g>
+    <rect class="b" x="30" y="20" width="130" height="38" rx="8"/><text class="th" x="60" y="44">Terminal</text>
+    <rect class="ba" x="225" y="20" width="130" height="38" rx="8"/><text class="th" x="258" y="44">Overseer</text>
+    <rect class="b" x="420" y="20" width="130" height="38" rx="8"/><text class="th" x="456" y="44">Browser</text>
+    <rect class="b" x="615" y="20" width="130" height="38" rx="8"/><text class="th" x="654" y="44">GitHub</text>
+    <rect class="ba" x="810" y="20" width="130" height="38" rx="8"/><text class="th" x="842" y="44">Backend</text>
+    <line class="life" x1="95" y1="58" x2="95" y2="455"/><line class="life" x1="290" y1="58" x2="290" y2="455"/><line class="life" x1="485" y1="58" x2="485" y2="455"/><line class="life" x1="680" y1="58" x2="680" y2="455"/><line class="life" x1="875" y1="58" x2="875" y2="455"/>
+  </g>
+  <text class="ts" x="105" y="92">1  forge init</text><path class="ar" marker-end="url(#ah)" d="M95 100 L290 100"/>
+  <text class="ts" x="300" y="138">2  open the login page (PKCE, loopback redirect)</text><path class="ar" marker-end="url(#ah)" d="M290 146 L485 146"/>
+  <text class="ts" x="495" y="184">3  sign in and approve</text><path class="ar" marker-end="url(#ah)" d="M485 192 L680 192"/>
+  <text class="ts" x="300" y="230">4  code returned to 127.0.0.1 on this machine</text><path class="ar" marker-end="url(#ah)" d="M680 238 L290 238"/>
+  <text class="ts" x="300" y="276">5  exchange the code for a user token</text><path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M290 284 L680 284"/>
+  <text class="ts" x="300" y="322">6  present the user token and the repository</text><path class="ar" marker-end="url(#ah)" d="M290 330 L875 330"/>
+  <text class="ts" x="690" y="368">7  check repository permission</text><path class="ar" marker-end="url(#ah)" marker-start="url(#ah)" d="M875 376 L680 376"/>
+  <text class="ts" x="300" y="414">8  Overseer token (short-lived) and a refresh token</text><path class="ar" marker-end="url(#ah)" d="M875 422 L290 422"/>
+</svg>
+<figcaption>Login at <code>init</code>. On a machine with no browser, steps 2 to 4 are replaced by the device flow: the terminal shows a code the user enters on another device.</figcaption>
+</figure>
+
+<h3>Why this flow</h3>
+<ul>
+  <li><b>Loopback with PKCE by default.</b> The standard for native apps requires the server to allow any port on a loopback redirect, and requires public native clients to use PKCE. It ties the login to the machine that started it.<sup><a href="#s17">[17]</a></sup> GitHub supports it: S256 only, and the loopback port need not match the registered callback.<sup><a href="#s18">[18]</a></sup></li>
+  <li><b>Device flow only as a fallback.</b> It works over SSH, but the standard itself names remote phishing as its risk, and Microsoft recommends blocking it wherever possible.<sup><a href="#s19">[19]</a><a href="#s20">[20]</a></sup> On GitHub it must be enabled in the app's settings and needs no client secret.<sup><a href="#s18">[18]</a></sup> The AWS CLI made the same choice: PKCE by default since 2.22.0, device code on request.<sup><a href="#s21">[21]</a></sup></li>
+  <li><b>Only the Overseer refreshes.</b> A GitHub App user token expires after eight hours and its refresh token after six months; each refresh replaces the refresh token and the old one stops working.<sup><a href="#s22">[22]</a></sup> Two processes refreshing at once would strand one, which is another reason for CLI commands to go through the Overseer.</li>
+  <li><b>Authorization from GitHub itself.</b> The collaborators API returns a user's permission and role name on a repository, so the backend can decide per repository without a second user list.<sup><a href="#s23">[23]</a></sup></li>
+  <li><b>Where the refresh token rests.</b> Bun has a secrets API over Keychain, libsecret and Windows Credential Manager, marked new and experimental; <code>keytar</code> is archived.<sup><a href="#s24">[24]</a></sup> The GitHub CLI falls back to a plain text file when no credential store exists, which is the realistic behaviour on a headless Linux host.<sup><a href="#s25">[25]</a></sup></li>
+</ul>
+
+<h3>The four homes you named</h3>
+<div id="providers"></div>
+<div class="note bad"><b>Rejected outright:</b> fetching one shared, long-lived connection string from a secrets manager after login. Revoking one person means rotating it for everyone, there is no per-user audit, and one stolen laptop exposes the whole database.</div>
+</section>
+
+<section id="trust">
+<h2>Trust boundary</h2>
+<p class="lede">Two tokens with different powers, enforced by the backend. What remains is keeping the stronger one away from a session on the same machine.</p>
+
+<figure class="figure">
+<svg viewBox="0 0 960 360" role="img" aria-label="Token scopes and the sandbox boundary">
+  <rect class="sand" x="20" y="40" width="270" height="280" rx="12"/><text class="sl" x="34" y="60">SANDBOX (macOS, Linux)</text>
+  <rect class="b" x="40" y="80" width="230" height="70" rx="8"/><text class="th" x="56" y="106">Agent session</text><text class="ts" x="56" y="124">its output is a claim</text>
+  <rect class="bw" x="40" y="190" width="230" height="100" rx="8"/><text class="th" x="56" y="214">Job token</text><text class="ts" x="56" y="232">may: request, report,</text><text class="ts" x="56" y="247">file a finding</text><text class="ts" x="56" y="266">may not: write a verdict</text>
+
+  <rect class="ba" x="370" y="80" width="230" height="70" rx="8"/><text class="th" x="386" y="106">Overseer</text><text class="ts" x="386" y="124">runs the gates itself</text>
+  <rect class="bg" x="370" y="190" width="230" height="100" rx="8"/><text class="th" x="386" y="214">Overseer token</text><text class="ts" x="386" y="232">may: write board state,</text><text class="ts" x="386" y="247">including gate verdicts</text><text class="ts" x="386" y="266">kept in memory, refreshed</text>
+
+  <rect class="ba" x="700" y="80" width="230" height="210" rx="8"/><text class="th" x="716" y="106">Backend</text><text class="ts" x="716" y="126">checks the scope of every</text><text class="ts" x="716" y="141">call, whoever sends it</text><text class="ts" x="716" y="170">a job token used directly</text><text class="ts" x="716" y="185">still cannot write a verdict</text><text class="ts" x="716" y="214">records who wrote what</text>
+
+  <path class="ar" marker-end="url(#ah)" d="M270 115 L370 115"/><text class="ts" x="302" y="106">request</text>
+  <path class="ar" marker-end="url(#ah)" d="M600 115 L700 115"/><text class="ts" x="612" y="106">verified write</text>
+  <path class="arx" d="M270 240 L370 240"/><path class="arx" d="M306 226 L334 254 M334 226 L306 254"/>
+  <text class="ts" x="330" y="276" text-anchor="middle" style="fill:var(--bad)">cannot read</text>
+</svg>
+<figcaption>The backend limits what a job token can do. The sandbox keeps a session from reading the Overseer token.</figcaption>
+</figure>
+
+<div class="cards">
+  <div class="card"><h4>The sandbox is already the boundary</h4><p>The Hatch carries no token today. A session can write only its own Hatch folder, and the Overseer takes job and role from the job record for that folder, never from the request.<sup><a href="#s26">[26]</a></sup> A remote store inherits this boundary; it does not create a new problem.</p></div>
+  <div class="card"><h4>Windows has no boundary</h4><p>Sessions and gates run unconfined on Windows by design, so the "only its own folder" guarantee does not hold there, for today's files or for a token.<sup><a href="#s26">[26]</a></sup></p></div>
+  <div class="card"><h4>Sessions already carry a credential</h4><p>A session's environment is a five-name allowlist plus the Claude login variables and config folder, git configuration, and an API key under API billing.<sup><a href="#s27">[27]</a></sup> The Overseer token must never join that list.</p></div>
+  <div class="card"><h4>Gates run agent-written code</h4><p>Build gates run confined in the ticket worktree; the merged-tree gate runs in the Airlock's own merge worktree.<sup><a href="#s27">[27]</a></sup> Gate confinement must deny the token just as the session sandbox does.</p></div>
+</div>
+
+<h3>Ways to keep the Overseer token out of reach</h3>
+<div class="tablewrap"><table><thead><tr><th>Measure</th><th>What it gives</th><th>Limit</th></tr></thead><tbody>
+<tr><td>Sandbox denies the token file and the credential store</td><td>The same boundary that protects <code>.forge/</code> today</td><td>Needs a test that the profile really denies keychain access; nothing on Windows</td></tr>
+<tr><td>Access token in Overseer memory only</td><td>Nothing useful on disk except the refresh token</td><td>The refresh token still rests somewhere</td></tr>
+<tr><td>Token bound to a key that cannot be copied</td><td>A stolen token is useless on another machine</td><td>Helps only together with the sandbox</td></tr>
+<tr><td>Separate operating-system user for the Overseer</td><td>A boundary the operating system enforces</td><td>Heavy; conflicts with how worktrees and the login item work</td></tr>
+<tr><td>All agent sessions in the cloud</td><td>The token never shares a machine with an agent</td><td>Gates still run agent-written code locally; gives up local workers</td></tr>
+</tbody></table></div>
+<div class="note warn"><b>A compromised machine can still lie.</b> These measures stop an agent from writing a verdict. They do not prove a verdict is true. If that matters, gates must run on a runner the agent never touched, with the backend trusting only that runner.</div>
+</section>
+
+<section id="workers">
+<h2>Local and cloud workers</h2>
+<p class="lede">The choice can be made per job at launch. Both paths have to end the same way: commits in a worktree on the Overseer's machine, where verification, gates and landing already live.</p>
+
+<div class="controls seg" id="laneToggle">
+  <button class="on" data-lane="both">Both paths</button>
+  <button data-lane="local">Local worker</button>
+  <button data-lane="cloud">Cloud worker</button>
+</div>
+<figure class="figure">
+<svg viewBox="0 0 960 520" role="img" aria-label="Local and cloud worker paths through a worker host seam">
+  <rect class="ba" x="24" y="206" width="150" height="84" rx="8"/><text class="th" x="40" y="234">Overseer</text><text class="ts" x="40" y="252">decides per job</text><text class="ts" x="40" y="267">where it runs</text>
+  <rect class="bw" x="210" y="50" width="54" height="400" rx="8"/><text class="th" transform="translate(242 330) rotate(-90)">Worker host seam (new)</text>
+  <path class="ar" marker-end="url(#ah)" d="M174 248 L210 248"/>
+
+  <g id="laneLocal">
+    <text class="zl" x="300" y="44">Local</text>
+    <rect class="b" x="300" y="58" width="150" height="60" rx="8"/><text class="th" x="314" y="82">Watcher</text><text class="ts" x="314" y="100">process, socket, log</text>
+    <rect class="sand" x="480" y="50" width="200" height="76" rx="10"/>
+    <rect class="b" x="490" y="60" width="180" height="56" rx="8"/><text class="th" x="504" y="84">Session in worktree</text><text class="ts" x="504" y="101">Hatch: request files</text>
+    <rect class="bg" x="720" y="58" width="216" height="60" rx="8"/><text class="th" x="734" y="82">Commits in the worktree</text><text class="ts" x="734" y="100">already on this machine</text>
+    <path class="ar" marker-end="url(#ah)" d="M264 88 L300 88"/><path class="ar" marker-end="url(#ah)" d="M450 88 L480 88"/><path class="ar" marker-end="url(#ah)" d="M680 88 L720 88"/>
+    <path class="ar" marker-end="url(#ah)" d="M828 118 L828 208"/>
+  </g>
+
+  <rect class="ba" x="480" y="210" width="456" height="76" rx="8"/><text class="th" x="496" y="238">Overseer's side, unchanged</text><text class="ts" x="496" y="256">verify the report against git, run the gates, review,</text><text class="ts" x="496" y="271">merged-tree gate and landing in the Airlock</text>
+  <path class="ar" marker-end="url(#ah)" d="M480 248 L270 248"/><text class="ts" x="300" y="240">verdicts are written</text><text class="ts" x="300" y="264">by the Overseer only</text>
+
+  <g id="laneCloud">
+    <text class="zl" x="300" y="372">Cloud</text>
+    <rect class="b" x="300" y="384" width="150" height="60" rx="8"/><text class="th" x="314" y="408">Cloud launcher</text><text class="ts" x="314" y="426">push branch, start job</text>
+    <rect class="bb" x="490" y="384" width="180" height="60" rx="8"/><text class="th" x="504" y="408">Cloud session</text><text class="ts" x="504" y="426">clones from GitHub</text>
+    <rect class="bg" x="720" y="384" width="216" height="60" rx="8"/><text class="th" x="734" y="408">Pushed branch on GitHub</text><text class="ts" x="734" y="426">fetched into a worktree</text>
+    <path class="ar" marker-end="url(#ah)" d="M264 414 L300 414"/><path class="ar" marker-end="url(#ah)" d="M450 414 L490 414"/><path class="ar" marker-end="url(#ah)" d="M670 414 L720 414"/>
+    <path class="ar" marker-end="url(#ah)" d="M828 384 L828 288"/>
+    <path class="ard" marker-end="url(#ah)" d="M580 444 Q580 486 420 486 L120 486 Q98 486 98 464 L98 292"/><text class="ts" x="124" y="478">Hatch over HTTPS with the job token</text><text class="ts" x="124" y="504">final message from a Stop hook</text>
+  </g>
+</svg>
+<figcaption>Both paths meet in a local worktree. In the cloud path the session's only route back is a public endpoint that accepts its job token.</figcaption>
+</figure>
+
+<h3>What assumes a local process today</h3>
+<p>The vendor port (<code>AgentAdapter</code>) only turns a request into a command line and parses events; it launches nothing, and no port exists for running a job on another host.<sup><a href="#s27">[27]</a></sup></p>
+<div class="tablewrap"><table><thead><tr><th>Concern</th><th>Today</th><th>For a cloud job</th></tr></thead><tbody>
+<tr><td>Liveness and stop</td><td>A watcher record plus process identity; signals</td><td>No documented status or stop for a cloud session</td></tr>
+<tr><td>Events and the report</td><td>Read from the local event log; the report is the final result event</td><td>The last assistant message, posted by a Stop hook</td></tr>
+<tr><td>Steering</td><td>A local socket with a secret from an owner-only file</td><td>A follow-up message queued through the CLI</td></tr>
+<tr><td>Resume</td><td><code>--resume</code> with a session id derived from the tracker and job</td><td>A separate cloud session id to store</td></tr>
+<tr><td>Hatch</td><td>Request and reply files; the folder is the authentication</td><td>HTTPS with a per-job token</td></tr>
+<tr><td>Network guard</td><td>A hook run from the Overseer's own Bun and entry-script paths</td><td>forge installed in the cloud environment by its setup script</td></tr>
+<tr><td>Code location</td><td>Worktree on the Overseer's disk; forge never pushes, and <code>push</code> is a denied worker command</td><td>The branch is pushed before the job and fetched after it</td></tr>
+</tbody></table></div>
+<p class="cap">Sources: forge code<sup><a href="#s27">[27]</a><a href="#s26">[26]</a></sup> and the Claude Code documentation.<sup><a href="#s28">[28]</a><a href="#s31">[31]</a></sup></p>
+
+<h3>Ways to run a session in the cloud</h3>
+<div class="tablewrap"><table id="cloudTable"><thead><tr><th class="sortable" data-col="0">Option</th><th class="sortable" data-col="1">Start</th><th class="sortable" data-col="2">Follow events</th><th class="sortable" data-col="3">Stop</th><th class="sortable" data-col="4">Billing</th><th>Main blocker</th></tr></thead><tbody></tbody></table></div>
+<p class="cap">Click a column heading to sort.</p>
+
+<h3>Facts about cloud Claude Code sessions that shape the design</h3>
+<ul>
+  <li><b>Started from the CLI.</b> <code>claude --cloud "task"</code> creates a cloud session; <code>--remote</code> is a deprecated alias. It needs a claude.ai sign-in: API keys and Console logins are refused.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>Follow-ups are fire-and-forget.</b> <code>claude -p "message" --cloud &lt;id&gt;</code> queues the message and exits without waiting for a reply. Stream output is not supported with <code>--cloud &lt;id&gt;</code>.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>The repository comes from GitHub.</b> The session clones the remote at the current branch, not the local checkout. With no remote, or without the Claude GitHub App on the repository, a git bundle under 100 MB is uploaded automatically, without untracked files.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>The repository's configuration applies.</b> <code>CLAUDE.md</code>, <code>.claude/skills</code> and <code>.claude/agents</code> load; hooks in <code>.claude/settings.json</code> and <code>.mcp.json</code> load in a session with one repository. The user's <code>~/.claude</code> does not.<sup><a href="#s29">[29]</a></sup></li>
+  <li><b>Network and secrets are per environment.</b> Access levels are None, Limited and Full, with environment variables, a setup script and network secrets. On Anthropic-hosted sessions a proxy swaps in the GitHub credential, so it never enters the machine.<sup><a href="#s29">[29]</a></sup></li>
+  <li><b>Moving a session works one way.</b> <code>claude --teleport &lt;id&gt;</code> brings a cloud session to the terminal, given a clean git state, the same repository and account, and a pushed branch. The CLI has no path from local to cloud.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>Usage is shared.</b> Cloud sessions count toward the plan's usage limits, with no separate charge for the machine.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>Long-lived tokens do not help.</b> The one-year token from <code>claude setup-token</code> can only make model requests. Starting a cloud session needs an interactive claude.ai sign-in, and those sign-ins expire.<sup><a href="#s30">[30]</a></sup></li>
+  <li><b>Some organizations cannot use them.</b> Organizations with Zero Data Retention or the HIPAA configuration cannot use cloud session features, and those with customer-managed encryption keys cannot start cloud sessions.<sup><a href="#s28">[28]</a></sup></li>
+  <li><b>Automation on a subscription needs care.</b> The Consumer Terms forbid access "through automated or non-human means, whether through a bot, script, or otherwise", with an exception where Anthropic explicitly permits it.<sup><a href="#s41">[41]</a></sup> The documentation does describe sending follow-ups "from a CI script"<sup><a href="#s28">[28]</a></sup>, but an Overseer that starts and steers cloud sessions all day goes further than that example.</li>
+  <li><b>A Stop hook can report back.</b> Its input includes the last assistant message, and a hook can post to an HTTP endpoint.<sup><a href="#s31">[31]</a></sup></li>
+</ul>
+</section>
+
+<section id="order">
+<h2>Order of work</h2>
+<ol class="steps">
+  <li><b>Worker host seam, local only.</b>Put liveness, events, steering, resume and stop behind one interface in the Overseer, with today's Watcher as its only implementation. No behaviour changes; it is the prerequisite for any cloud worker.</li>
+  <li><b>Store port with the file adapter.</b>Route board reads and writes through a port at <code>writeTracker</code> and <code>TrackerReader</code>. Still files, still local.</li>
+  <li><b>Backend and login.</b>The service on the VPS, the GitHub App, the two token kinds, and the remote adapter. CLI commands move behind the Overseer here.</li>
+  <li><b>Cloud worker trial.</b>One build job through <code>claude --cloud</code>: pushed branch in, pushed branch out, Hatch over HTTPS, completion through a Stop hook. Measure what the missing stream and stop cost in practice before committing.</li>
+</ol>
+</section>
+
+<section id="open">
+<h2>Open decisions</h2>
+<p class="lede">Answers to these change the design. None is settled by the research.</p>
+<div id="decisions"></div>
+</section>
+
+<section id="sources">
+<h2>Sources</h2>
+<ol class="sources" id="sourceList"></ol>
+</section>
+
+</main>
+</div>
+
+<script>
+const INVENTORY = [
+  {path:".forge/progress.json", holds:"The board: rows, jobs, decisions, incidents, merge-queue flags, id counters", by:"CLI commands, Overseer", kind:"durable", remote:"Yes"},
+  {path:".forge/tickets/<id>-<slug>.md", holds:"Tickets: frontmatter owned by the CLI, body edited by hand", by:"CLI, Overseer, User by hand", kind:"durable", remote:"Yes, with a decision on hand editing"},
+  {path:".forge/epics/<key>.md", holds:"Epic key, title, colour slot, description", by:"epic commands", kind:"durable", remote:"Yes"},
+  {path:".forge/filing-cabinet/D<n>.json", holds:"Filing drafts", by:"draft commands", kind:"durable", remote:"Yes"},
+  {path:".forge/log.jsonl", holds:"Record of every board change", by:"Any hold that logs", kind:"durable", remote:"Yes, as appends"},
+  {path:".forge/pipeline.json and gate profile files", holds:"Gate pipeline, setup record, constitution sources", by:"pipeline commands, Overseer", kind:"durable", remote:"Yes"},
+  {path:".forge/version.json, session-instructions.md, reference.md, briefs", holds:"Installed templates and the install version", by:"init, update", kind:"machine", remote:"No: describes this checkout's install"},
+  {path:".forge/jobs/<J>/events-<i>.ndjson", holds:"Every line to and from an agent session", by:"Watcher, appended and fsynced", kind:"stream", remote:"Shipped by the Overseer if wanted"},
+  {path:".forge/gate-profile-runs/<P>.ndjson", holds:"Gate run output", by:"Overseer, appended", kind:"stream", remote:"Shipped by the Overseer if wanted"},
+  {path:".forge/overseer.log", holds:"Overseer log lines", by:"Overseer, appended", kind:"stream", remote:"No"},
+  {path:".forge/.lock/generation-<n>", holds:"The tracker lock", by:"Any writer", kind:"coordination", remote:"No: replaced by a server-side version check"},
+  {path:".forge/hold-journal.json", holds:"Write-ahead copy of one hold's files", by:"A hold that changes a file", kind:"coordination", remote:"No"},
+  {path:".forge/overseer/baton-<n>.json", holds:"Which process is the one Overseer", by:"Overseer", kind:"coordination", remote:"No"},
+  {path:".forge/jobs/<J>/watcher-<i>.json, launch-<i>.json, markers", holds:"Watcher claim, launch plan, step markers", by:"Watcher, Overseer", kind:"coordination", remote:"No"},
+  {path:".forge-worktrees/hatch/<J>/requests, replies", holds:"Commands a session hands to the Overseer", by:"Session CLI, Overseer", kind:"coordination", remote:"No: becomes HTTPS for cloud jobs"},
+  {path:".forge-worktrees/ticket-<id>/", holds:"Git worktrees of the builds", by:"Overseer, agents", kind:"machine", remote:"No"},
+  {path:"~/.forge-monitor/projects.json", holds:"Registry of every board on the machine", by:"Mutating commands, Overseer", kind:"machine", remote:"No"},
+  {path:"~/.forge-monitor/usage-limit.json, machine-limits.json", holds:"Usage marker and machine agent limit", by:"Overseer", kind:"machine", remote:"No (the usage marker is per vendor account, kept per machine)"},
+  {path:"~/.forge-monitor/agent-slots, gate-slots", holds:"Held slots with board, job and process", by:"Overseer, gate Watchers", kind:"coordination", remote:"No"},
+  {path:"~/.forge-monitor/watchers/<trackerId>/", holds:"API bearer token, Watcher secrets, sockets", by:"Overseer, Watcher", kind:"machine", remote:"No"},
+  {path:"Overseer memory", holds:"Browser session codes for the Bridge", by:"Overseer", kind:"machine", remote:"No"}
+];
+const KIND_LABEL = {durable:"Durable record", stream:"Job stream", coordination:"Local coordination", machine:"Machine fact"};
+
+const PROVIDERS = [
+  {name:"A small service on your VPS, with GitHub login", verdict:"Best fit", tag:"yes",
+   init:"The user signs in to a GitHub App. The service checks the repository permission and issues tokens.",
+   credential:"The database credential never leaves the VPS. The Overseer gets a short-lived token of your own design.",
+   operate:"Patching, TLS, backups and uptime. The VPS becomes a dependency for login and for access.",
+   risk:"The VPS holds the database credential, so its compromise is total.",
+   why:"The only option that can authorize per repository and enforce who may write a gate verdict. Off-the-shelf parts exist if you prefer them: Dex turns GitHub organizations and teams into group claims, and Vault's Atlas engine creates a database user per lease.", cites:[32,33]},
+  {name:"Azure: Entra ID with Atlas identity federation", verdict:"Only if Entra is already in use", tag:"part",
+   init:"The user signs in to Entra; the database accepts the Entra token.",
+   credential:"Short-lived and per user without a backend. Tokens must be JWTs; authorization code with PKCE and the device flow are both supported.",
+   operate:"Nothing of your own, but a dedicated M10 cluster.",
+   risk:"The token is the user's full database identity. Authorization stops at database roles, with nothing per repository and no place to enforce the gate rule.",
+   why:"MongoDB documents Entra ID and Okta as identity providers for this. The Node driver takes a human callback in which your code obtains the token.", cites:[6,34]},
+  {name:"AWS: Identity Center with Atlas IAM authentication", verdict:"Workable, heavy", tag:"part",
+   init:"The user runs an AWS single sign-on login; the database accepts AWS credentials.",
+   credential:"Atlas verifies the identity through AWS STS and supports IAM users and roles. Available on every tier.",
+   operate:"An AWS account, Identity Center and IAM roles. Secrets Manager costs $0.40 per secret per month.",
+   risk:"A lot of IAM for under ten people, and again nothing per repository.",
+   why:"The only provider login that works on the free and Flex tiers.", cites:[35,36]},
+  {name:"GitHub accounts alone", verdict:"Not viable on its own", tag:"no",
+   init:"The user signs in with GitHub.",
+   credential:"None: GitHub can say who the user is and what they may do on a repository, but it holds no secret a CLI can fetch.",
+   operate:"Nothing.",
+   risk:"Something else must hold the database credential, which makes this the first option.",
+   why:"GitHub is the right identity and authorization source. It is not a secret store or an OpenID Connect provider for users.", cites:[7,23]}
+];
+
+const CLOUD = [
+  ["claude --cloud", "CLI, claude.ai sign-in", "None documented", "None documented", "Plan usage", "A daemon can send follow-ups but cannot follow or stop the session; completion needs a Stop hook calling a public endpoint", 28],
+  ["Managed Agents", "API", "Event stream and webhooks", "Interrupt event", "API tokens plus $0.08 per running session-hour", "A separate product with its own session API, so forge's launch, hooks and resume would be built again for it (our reading, not a documented statement)", 37],
+  ["Self-hosted environments", "CLI, on runners you operate", "Stop-hook recipe", "None documented", "Organization's Claude Code usage", "Team and Enterprise plans only, public beta, and you run the compute", 38],
+  ["Scheduled task fired by API", "HTTP call with a per-task token", "None documented", "None documented", "Plan usage", "Research preview; meant for scheduled work, with a prompt fixed per task", 39],
+  ["Agent SDK on your own machine", "Your own code", "Full control", "Full control", "API key", "You build the hosting; a claude.ai login is not allowed for third-party products", 40]
+];
+
+const DECISIONS = [
+  {q:"Must forge keep working when the backend is unreachable?", a:"Local-first means local files stay the working copy and sync, at the cost of a conflict design. Online-only is simplest, but an outage stops the board. A middle path lets running jobs continue on local buffers while board-writing commands refuse."},
+  {q:"Do tickets stay files that are edited by hand?", a:"Keeping them means the remote mirrors files and needs a rule for a hand edit that meets a remote change. Dropping them removes the byte-for-byte contract and moves editing to commands and the Bridge."},
+  {q:"Who is this for: the owner, a few colleagues, or strangers?", a:"One owner needs almost no authorization model. Colleagues need per-user identity and per-repository permission. A public product needs tenant isolation and limits that this research did not design."},
+  {q:"Do CLI commands go through the Overseer?", a:"It makes the Overseer the one client of the backend and the one process that refreshes tokens. It also means commands that work today with no Overseer running would need one, or a credential of their own."},
+  {q:"Is the Windows gap acceptable?", a:"With no confinement on Windows, a session there can reach whatever the Overseer can. Either Windows runs cloud workers only, or the gap is accepted and documented."},
+  {q:"Where do gates run for a cloud job?", a:"On the Overseer's machine against the fetched branch keeps today's flow and the verdict on your side. A separate trusted runner is the stronger answer if the machine itself is not trusted."},
+  {q:"Will ticket branches go to GitHub?", a:"A cloud session clones from GitHub, so the branch must be pushed first. forge pushes nothing today and denies workers the command, so this reverses a deliberate rule."},
+  {q:"What happens to jobs while the backend is down?", a:"One VPS is a single point of failure. The choices are a local queue of writes that drains later, a read-only mode, or a stop. Running sessions, gates and landing need a stated answer each."},
+  {q:"How do machines on different forge versions share one store?", a:"forge reads only the current stored format and refuses older files, and init and update refuse a newer install. With a shared store, the first machine to upgrade would strand the others unless the backend keeps a compatibility window or forces everyone to upgrade together."},
+  {q:"Who wins when a hand-edited ticket meets a remote change?", a:"Only relevant if tickets stay files. A workable rule is a compare on the content hash with a refusal on mismatch, so nothing is merged silently. It needs to be chosen before any sync is built."},
+  {q:"Where may client data live?", a:"Ticket text, logs and epics describe client repositories and can quote code. Putting them on a VPS or in Atlas raises region, processing-agreement and client-consent questions for a Netherlands consultancy. Cloud sessions also send repository content to the vendor's infrastructure. This research did not assess either."},
+  {q:"Does the Bridge stay local?", a:"It is served by the Overseer on the loopback address today. It can stay that way and read through the Overseer, or become a remote page served by the backend, which would make the board visible without a running Overseer and need its own login."},
+  {q:"Does a cloud session call back, or does the Overseer only fetch?", a:"A callback needs a public endpoint with TLS, token checks, rate limits and abuse handling. Fetching the pushed branch on a timer needs no inbound endpoint, but then a session cannot use the Hatch while it runs and its end is noticed late."},
+  {q:"Is driving cloud sessions from the Overseer within the terms of the plan?", a:"The terms forbid automated access except where explicitly permitted, and the documentation shows only follow-ups from a script. Before building on claude --cloud, get this confirmed for the plan in use, or plan on an API-billed route."},
+  {q:"How do you get back out?", a:"Backups, restore drills and an export to local files were not designed. The local files are also the format agents read, so an export path doubles as the offline fallback."}
+];
+
+const SOURCES = [
+  "forge repository: <code>src/services/tracker/</code> (TrackerPipeline, TrackerReader, TrackerLock, HoldJournal), <code>src/adapters/log/LogFileWriter.ts</code>, <code>src/services/overseer/DataFolderWatch.ts</code>, <code>src/shared/constants/</code>",
+  "forge repository: <code>docs/cli.md</code> (file formats, write order, lock)",
+  "forge repository: <code>docs/reference/overseer-api.md</code>, <code>src/services/overseer/BrowserSessions.ts</code>",
+  ["Atlas free cluster limits","https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/"],
+  ["Atlas Flex cluster limits","https://www.mongodb.com/docs/atlas/reference/flex-limitations/"],
+  ["Atlas Workforce Identity Federation","https://www.mongodb.com/docs/atlas/workforce-oidc/"],
+  ["GitHub: authentication discovery endpoints (no OpenID Connect for users) and Actions OIDC","https://docs.github.com/en/apps/github-authentication-discovery-endpoints"],
+  ["Atlas IP access list","https://www.mongodb.com/docs/atlas/security/ip-access-list/"],
+  ["MongoDB collection-level access control","https://www.mongodb.com/docs/manual/core/collection-level-access-control/"],
+  ["Atlas Device SDKs deprecation","https://www.mongodb.com/docs/atlas/device-sdks/deprecation.md"],
+  ["Atlas Data API deprecation and alternatives","https://www.mongodb.com/docs/data-api-deprecation/"],
+  ["MongoDB Jira NODE-7784 and js-bson releases","https://jira.mongodb.org/browse/NODE-7784"],
+  ["MongoDB Atlas pricing","https://www.mongodb.com/pricing"],
+  ["Supabase: row-level security and GitHub login","https://supabase.com/docs/guides/database/postgres/row-level-security"],
+  ["Turso embedded replicas","https://docs.turso.tech/features/embedded-replicas/introduction"],
+  ["Cloudflare: what are Durable Objects","https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/"],
+  ["RFC 8252, OAuth 2.0 for Native Apps, sections 6 and 7.3","https://www.rfc-editor.org/rfc/rfc8252#section-7.3"],
+  ["GitHub: authorizing OAuth apps (PKCE, loopback, device flow)","https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps"],
+  ["RFC 8628, Device Authorization Grant, section 5.4","https://www.rfc-editor.org/rfc/rfc8628#section-5.4"],
+  ["Microsoft Entra: block authentication flows","https://learn.microsoft.com/en-us/entra/identity/conditional-access/policy-block-authentication-flows"],
+  ["AWS CLI: IAM Identity Center sign-in","https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html"],
+  ["GitHub: refreshing user access tokens","https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/refreshing-user-access-tokens"],
+  ["GitHub REST: repository permission of a user","https://docs.github.com/en/rest/collaborators/collaborators#get-repository-permissions-for-a-user"],
+  ["Bun secrets API; node-keytar archive notice","https://bun.com/docs/runtime/secrets"],
+  ["GitHub CLI: gh auth login","https://cli.github.com/manual/gh_auth_login"],
+  "forge repository: <code>cli/HatchUnderJob.ts</code>, <code>src/adapters/hatch/HatchFolder.ts</code>, <code>src/services/control/Bouncer.ts</code>, <code>src/lib/claude-code/WindowsClaudeHostFacts.ts</code>",
+  "forge repository: <code>src/services/overseer/</code> (DrivePass, WatcherFleet, JobLaunch, WorkerProfiles, GuardCommand), <code>src/lib/claude-code/ClaudeCodeAdapter.ts</code>, <code>src/lib/agent-launch/</code>, <code>src/services/lifecycle/Landing.ts</code>",
+  ["Claude Code on the web (cloud sessions, follow-ups, teleport)","https://code.claude.com/docs/en/claude-code-on-the-web"],
+  ["Claude Code cloud environments","https://code.claude.com/docs/en/cloud-environments"],
+  ["Claude Code authentication","https://code.claude.com/docs/en/authentication"],
+  ["Claude Code hooks","https://code.claude.com/docs/en/hooks"],
+  ["Dex GitHub connector","https://dexidp.io/docs/connectors/github/"],
+  ["Vault MongoDB Atlas database secrets engine","https://developer.hashicorp.com/vault/docs/secrets/databases/mongodbatlas"],
+  ["MongoDB Node driver: OIDC authentication","https://www.mongodb.com/docs/drivers/node/current/security/authentication/oidc/"],
+  ["Atlas AWS IAM authentication","https://www.mongodb.com/docs/atlas/security/aws-iam-authentication/"],
+  ["AWS Secrets Manager pricing","https://aws.amazon.com/secrets-manager/pricing/"],
+  ["Claude Managed Agents: events, streaming and pricing","https://platform.claude.com/docs/en/managed-agents/events-and-streaming"],
+  ["Claude Code self-hosted environments","https://code.claude.com/docs/en/self-hosted-environments"],
+  ["Claude Code scheduled tasks (routines)","https://code.claude.com/docs/en/routines"],
+  ["Claude Agent SDK overview","https://code.claude.com/docs/en/agent-sdk/overview"],
+  ["Anthropic Consumer Terms of Service, section 3","https://www.anthropic.com/legal/consumer-terms"]
+];
+
+function escapeText(value){return String(value).replace(/[&<>]/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[character]));}
+function citation(number){return '<sup><a href="#s'+number+'">['+number+']</a></sup>';}
+
+const inventoryBody = document.querySelector("#inventory tbody");
+let activeKind = "all";
+function renderInventory(){
+  const needle = document.getElementById("invSearch").value.trim().toLowerCase();
+  const rows = INVENTORY.filter(row => (activeKind==="all"||row.kind===activeKind) && (!needle || (row.path+" "+row.holds+" "+row.by+" "+row.remote).toLowerCase().includes(needle)));
+  inventoryBody.innerHTML = rows.map(row => "<tr><td><code>"+escapeText(row.path)+"</code></td><td>"+escapeText(row.holds)+"</td><td>"+escapeText(row.by)+'</td><td><span class="tag '+row.kind+'">'+KIND_LABEL[row.kind]+"</span></td><td>"+escapeText(row.remote)+"</td></tr>").join("");
+  document.getElementById("invCount").textContent = rows.length+" of "+INVENTORY.length+" entries shown.";
+}
+document.querySelectorAll(".chip").forEach(chip => chip.addEventListener("click", () => {
+  activeKind = chip.dataset.kind;
+  document.querySelectorAll(".chip").forEach(other => other.classList.toggle("on", other===chip));
+  renderInventory();
+}));
+document.getElementById("invSearch").addEventListener("input", renderInventory);
+renderInventory();
+
+document.getElementById("providers").innerHTML = PROVIDERS.map((provider, index) =>
+  "<details"+(index===0?" open":"")+'><summary><span class="rank">'+(index+1)+"</span>"+escapeText(provider.name)+' <span class="tag '+provider.tag+'">'+escapeText(provider.verdict)+"</span></summary>"+
+  "<ul><li><b>At init:</b> "+escapeText(provider.init)+"</li><li><b>Database credential:</b> "+escapeText(provider.credential)+"</li><li><b>To operate:</b> "+escapeText(provider.operate)+"</li><li><b>Main risk:</b> "+escapeText(provider.risk)+"</li><li><b>Why this rank:</b> "+escapeText(provider.why)+provider.cites.map(citation).join("")+"</li></ul></details>").join("");
+
+const cloudBody = document.querySelector("#cloudTable tbody");
+let cloudRows = CLOUD.slice();
+function renderCloud(){
+  cloudBody.innerHTML = cloudRows.map(row => "<tr><td><b>"+escapeText(row[0])+"</b>"+citation(row[6])+"</td><td>"+escapeText(row[1])+"</td><td>"+escapeText(row[2])+"</td><td>"+escapeText(row[3])+"</td><td>"+escapeText(row[4])+"</td><td>"+escapeText(row[5])+"</td></tr>").join("");
+}
+let sortState = {column:-1, ascending:true};
+document.querySelectorAll("#cloudTable th.sortable").forEach(heading => heading.addEventListener("click", () => {
+  const column = Number(heading.dataset.col);
+  sortState = {column, ascending: sortState.column===column ? !sortState.ascending : true};
+  cloudRows.sort((a, b) => a[column].localeCompare(b[column]) * (sortState.ascending?1:-1));
+  renderCloud();
+}));
+renderCloud();
+
+document.getElementById("decisions").innerHTML = DECISIONS.map(decision => "<details><summary>"+escapeText(decision.q)+"</summary><p>"+escapeText(decision.a)+"</p></details>").join("");
+
+document.getElementById("sourceList").innerHTML = SOURCES.map((source, index) =>
+  '<li id="s'+(index+1)+'">'+(Array.isArray(source) ? escapeText(source[0])+': <a href="'+source[1]+'" target="_blank" rel="noopener">'+escapeText(source[1])+"</a>" : source)+"</li>").join("");
+
+document.querySelectorAll("#laneToggle button").forEach(button => button.addEventListener("click", () => {
+  document.querySelectorAll("#laneToggle button").forEach(other => other.classList.toggle("on", other===button));
+  const lane = button.dataset.lane;
+  document.getElementById("laneLocal").classList.toggle("dim", lane==="cloud");
+  document.getElementById("laneCloud").classList.toggle("dim", lane==="local");
+}));
+
+const navLinks = Array.from(document.querySelectorAll("nav a"));
+const sections = navLinks.map(link => document.querySelector(link.getAttribute("href")));
+function markActiveSection(){
+  let current = 0;
+  sections.forEach((section, index) => { if (section.getBoundingClientRect().top < 140) current = index; });
+  navLinks.forEach((link, index) => link.classList.toggle("active", index===current));
+}
+window.addEventListener("scroll", markActiveSection, {passive:true});
+markActiveSection();
+</script>
+</body>
+</html>

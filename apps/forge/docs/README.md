@@ -57,6 +57,13 @@ If something is wrong right now, start here.
 | [The design system](../../../packages/design-system/README.md) | How are the Bridge's reusable components composed, themed and styled, and how does the package split off? |
 | [Flint](../../../packages/flint/README.md) | How does the sprite package work, and what does a host page give it? |
 
+### Research
+
+| Document | Its question |
+| --- | --- |
+| [Remote state, login and cloud workers](research/remote-state/findings.md) | What would it take to keep state in a remote database, log a user in at `init`, and run jobs on cloud sessions? ([page with diagrams](research/remote-state/findings.html)) |
+| [Entities: one forge for a monorepo](../../../docs/monorepo/research/monorepo-entities/strategy.md) | How does one forge at the root of a monorepo give every app and package its own constitution, pipeline and agents? ([page](../../../docs/monorepo/research/monorepo-entities/strategy.html), [the pipeline builder's monorepo mode](../../../docs/monorepo/research/monorepo-entities/pipeline-builder-monorepo-mode.md)) |
+
 ## Names
 
 The program is `forge`, and it runs beside the released `agent-progress` under folders and environment
