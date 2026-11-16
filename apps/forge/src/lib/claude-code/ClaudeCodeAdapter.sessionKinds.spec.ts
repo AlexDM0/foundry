@@ -79,3 +79,21 @@ describe('the macOS and Linux settings of every session kind', () => {
     }
   }
 });
+
+describe('a session with no tool', () => {
+  const profile: WorkerProfile = { ...FROZEN.profiles['assistant'] as WorkerProfile, availableTools: 'none' };
+
+  for (const platform of ['darwin', 'linux']) {
+    test(`${platform}: gets an empty tool list and no allow rule, and keeps its sandbox`, () => {
+      const plan = claudeCodeAdapterFor(platform).planOf(requestOf(platform, profile));
+      const toolsIndex = plan.argv.indexOf('--tools');
+      expect(toolsIndex).toBeGreaterThan(0);
+      expect(plan.argv[toolsIndex + 1]).toBe('');
+      expect(renderedSettingsOf(platform, profile)).toMatchObject({ permissions: { allow: [] }, sandbox: { enabled: true, failIfUnavailable: true } });
+    });
+  }
+
+  test('a session with tools gets no tool list', () => {
+    expect(claudeCodeAdapterFor('darwin').planOf(requestOf('darwin', FROZEN.profiles['assistant'] as WorkerProfile)).argv).not.toContain('--tools');
+  });
+});

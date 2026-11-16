@@ -71,6 +71,7 @@ const NUMBERED_PROBES = [
   'p19-scenarios-against-a-stand-in',
   'p20-question-option-fields',
   'p21-stream-json-image-input',
+  'p22-flint-brain-turn',
 ].map((probeName) => `claude-${probeName}`);
 
 function probeScriptNames(): string[] {

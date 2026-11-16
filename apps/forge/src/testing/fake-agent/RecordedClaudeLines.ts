@@ -20,6 +20,7 @@ export const CLAUDE_WIRE_SCENARIOS = [
   'rate-limit-window-rejected',
   'crash',
   'unreadable-input-line',
+  'flint-brain-turn',
 ] as const;
 
 export type ClaudeWireScenario = typeof CLAUDE_WIRE_SCENARIOS[number];

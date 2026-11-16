@@ -1,7 +1,8 @@
 /**
- * The stream fixtures under `testing/fixtures/` are recorded Claude Code 2.1.311 sessions (`docs/development/overseer-claude-probe.md`),
- * kept for the stream mapper, the question delivery and the usage-limit marker that build on them. These claims hold what each fixture was recorded to
- * show, so a re-recorded or hand-trimmed fixture that no longer shows it fails here rather than in the code that relies on it.
+ * The stream fixtures under `testing/fixtures/` are recorded Claude Code sessions (`docs/development/overseer-claude-probe.md`), of 2.1.311
+ * unless a claim names another, kept for the stream mapper, the question delivery and the usage-limit marker that build on them. These
+ * claims hold what each fixture was recorded to show, so a re-recorded or hand-trimmed fixture that no longer shows it fails here rather
+ * than in the code that relies on it.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join }                      from 'node:path';
@@ -158,5 +159,27 @@ describe('mid-turn-line-folded (P8)', () => {
   test('echoes no stdout record for the folded line', () => {
     const userTexts = recordsOfType(stdout, 'user').map((record) => JSON.stringify(record));
     expect(userTexts.some((text) => text.includes('PELICAN-8'))).toBe(false);
+  });
+});
+
+describe('flint-brain-turn (P22, Claude Code 2.1.323)', () => {
+  const stdout = recordsOf('flint-brain-turn.stdout.jsonl');
+  const stdin = recordsOf('flint-brain-turn.stdin.jsonl');
+
+  test('a session launched with no tool knows only the structured output, and calls nothing else', () => {
+    expect(recordsOfType(stdout, 'system').find((record) => record['subtype'] === 'init')?.['tools']).toEqual(['StructuredOutput']);
+    const toolNames = recordsOfType(stdout, 'assistant')
+      .flatMap((record) => objectAt(record, 'message')['content'] as StreamRecord[])
+      .filter((block) => block['type'] === 'tool_use')
+      .map((block) => block['name']);
+    expect(toolNames).toEqual(['StructuredOutput']);
+  });
+
+  test('answers one digest line with one result whose structured output holds an intent and an emote, and counts its usage', () => {
+    expect(recordsOfType(stdin, 'user')).toHaveLength(1);
+    const result = onlyResult(stdout);
+    expect(result['is_error']).toBe(false);
+    expect(Object.keys(objectAt(result, 'structured_output')).sort()).toEqual(['emote', 'intent']);
+    expect(Number(objectAt(result, 'usage')['output_tokens'])).toBeGreaterThan(0);
   });
 });

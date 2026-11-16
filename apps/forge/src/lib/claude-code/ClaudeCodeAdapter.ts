@@ -95,6 +95,7 @@ function fileRulesOf(facts: AgentHostFacts, tools: readonly string[], path: stri
 }
 
 function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDirectory: string): string[] {
+  if (profile.availableTools === 'none') return [];
   const webDomains = Array.isArray(profile.webNetworkDomains) ? profile.webNetworkDomains : [];
   const writeRoot = profile.writeRoot ?? workingDirectory;
   return [
@@ -272,6 +273,8 @@ function argvOf(request: AgentLaunchRequest, pathOf: (fileName: string) => strin
     '--permission-prompt-tool',
     'stdio',
     ...request.profile.skills ? [] : ['--disable-slash-commands'],
+    // An empty list is Claude Code's own spelling of no built-in tool at all.
+    ...request.profile.availableTools === 'none' ? ['--tools', ''] : [],
     ...disallowedTools.length === 0 ? [] : ['--disallowedTools', disallowedTools.join(',')],
     ...budgetArgumentsOf(request),
   ];

@@ -19,7 +19,7 @@ prints `applicable: false`, so no session is spent. With it, the `claude-p*` and
 `os-sandbox-exec-nested` run scripted `claude -p` sessions on model `haiku`, through whatever login the machine has;
 `host-npm-global-resolution` only asks the program its version. There is no interactive session. `claude-p10` and
 `claude-p19` reach only a local stand-in, and `claude-p18` sends no request; these three need no login and spend no
-quota. A whole run takes up to about an hour of sessions.
+quota. `claude-p22` spends one Haiku turn of Flint's brain. A whole run takes up to about an hour of sessions.
 
 | Option | Meaning |
 | --- | --- |

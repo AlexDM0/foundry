@@ -31,6 +31,8 @@ export interface WorkerProfile {
   readonly commitSigning:            CommitSigning;
   /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */
   readonly networkDomainGuard:       NetworkDomainGuard | null;
+  /** `none` gives the session no tool and no allow rule at all, for a session that only answers; absent, the vendor's tools under these rules. */
+  readonly availableTools?:          'none';
 }
 
 /**

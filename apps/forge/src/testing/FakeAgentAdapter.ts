@@ -81,6 +81,35 @@ export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze(
   { kind: 'await-line' },
 ]);
 
+/** The move every fake brain turn answers: on Flint's own lists, as the Bridge's digest names them. */
+export const FAKE_FLINT_BRAIN_ANSWER = Object.freeze({ intent: 'wave', emote: 'happy' });
+
+/** Turns enough for a whole brain run, one ask per interval. */
+const FAKE_FLINT_BRAIN_TURNS = 40;
+
+function fakeFlintBrainTurnStepsOf(turn: number): FakeAgentStep[] {
+  return [
+    { kind: 'await-line' },
+    ...turn === 1 ? [{ kind: 'print', line: startedLineSelectorOf('fake-flint-brain') } as const] : [],
+    { kind: 'print', line: JSON.stringify({ type: 'assistant', parent_tool_use_id: null, message: { id: `msg_fake_flint_brain_${turn}`, content: [] } }) },
+    {
+      kind: 'print',
+      line: JSON.stringify({
+        type: 'result', subtype: 'success', is_error: false, structured_output: FAKE_FLINT_BRAIN_ANSWER, permission_denials: []
+      }),
+    },
+  ];
+}
+
+/**
+ * What a session with no tool plays under the fake-agent switch, as Flint's brain is one: each line it takes is an ask, answered by one
+ * model call and a result naming `FAKE_FLINT_BRAIN_ANSWER`, until its stdin closes.
+ */
+export const FLINT_BRAIN_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([
+  ...Array.from({ length: FAKE_FLINT_BRAIN_TURNS }, (_unused, index) => fakeFlintBrainTurnStepsOf(index + 1)).flat(),
+  { kind: 'await-line' },
+]);
+
 export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS): AgentAdapter {
   return {
     vendor:                 FAKE_AGENT_VENDOR,
@@ -91,10 +120,13 @@ export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_
     programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
+      // Some specs hand a request with no profile, so its absence reads as a session with tools.
+      const profile = request.profile as AgentLaunchRequest['profile'] | undefined;
+      const sessionSteps = profile?.availableTools === 'none' ? FLINT_BRAIN_FAKE_AGENT_STEPS : steps;
       return {
         argv:            [process.execPath, FAKE_AGENT_CHILD_PATH, scenarioPath],
         environment:     request.environment,
-        files:           [{ path: scenarioPath, text: JSON.stringify(steps) }],
+        files:           [{ path: scenarioPath, text: JSON.stringify(sessionSteps) }],
         standingReplies: [],
       };
     },
