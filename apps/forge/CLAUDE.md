@@ -272,6 +272,10 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   of one area, and its `paths` list names the folders where it applies, from the repository root. A rule is in one
   file only. These files hold only rules, boundaries and decisions; a change that invalidates a rule updates it in the
   same change.
+- Changes to the files in the root's `.claude/rules/` are the owner's. The agent of a ticket cannot make them: the
+  folder is outside forge's project folder and its reach, and Customs protects `.claude/` at any depth for a tracker
+  in a folder. When a ticket makes a rule there wrong, its handoff names the rule, and the owner changes the file
+  outside a ticket. `CLAUDE.md` is not protected: a ticket changes it in the same change.
 - forge's instructions are not in these files: they are `.forge/session-instructions.md`, installed from
   `resources/templates/SessionInstructions.md` and printed by the SessionStart hook.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
@@ -283,6 +287,22 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - Write new tickets, new agent prompts and new system md text (`CLAUDE.md`, skills, briefs, templates) in ASD-STE100.
   Do not use this rule for human-facing documentation. Do not rewrite existing text: the rule applies only to new text.
 - A commit is one plain, human-written subject line, with no AI attribution.
+
+### Trackers in a repository
+
+- A change to forge keeps forge's behaviour in every other project, or it is an opt-in feature or a versioned change.
+  A need of this repository alone goes in the root's files, not in forge.
+- A tracker at its repository's root with no branch namespace asks git exactly what it asked before a tracker could
+  sit in a folder. `cli/overseer/OverseerBuildJob.spec.ts` holds this against
+  `cli/overseer/FrozenRootTrackerGitCalls.json`.
+- `src/services/tracker/ProjectLocation.ts` gives the five names of a tracker's place: `repositoryRoot`,
+  `projectDirectory`, `projectPrefix`, `worktreeRoot` and `projectDirectoryInWorktree`. Use these names in code and
+  docs. `src/shared/utils/ProjectPathsUtil.ts` maps a project path to a repository path, which starts with `/`.
+- Git runs at a toplevel only: `repositoryRoot` for the main line, `worktreeRoot` for a job. A session, a gate and a
+  prepare step start in the project folder of their checkout. `src/GitRunsAtAToplevel.spec.ts` holds this.
+- A tracker in a folder has a branch namespace. It changes only its own folder and the paths of its `reach`, and it
+  watches only its own refs; Customs holds both. The trackers of a repository meet in `<git common dir>/forge/`, and
+  each file there carries a `version`. `docs/cli.md`, "Trackers in a repository", has the rule.
 
 ### Deviations
 
@@ -326,6 +346,10 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - This checkout's tracker is live, the board this repository's work runs on. Exercise the CLI under development only
   in a scratch repository: nobody runs the checkout's source here, and only the owner runs `init`, `update` or
   `clear`.
+- The network guard (`hook bash-domains`) starts only from a program outside the tracked folder.
+  `src/services/overseer/GuardCommand.ts` refuses a runtime or an entry script inside it, and the job's `Bash`,
+  `PowerShell` and `WebFetch` calls are then denied. The owner keeps this guard as it is. Thus the installed forge
+  that runs this repository's trackers is a second clone outside this repository, updated by pulling.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
   (`cli/Main.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
