@@ -1,23 +1,181 @@
-# The forge monorepo
+<p align="center">
+  <img src="apps/forge/docs/images/icon.png" width="112" height="112" alt="forge icon: a graphite hexagon with an orange electron at its upper right corner, on a light rounded square">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/images/gaia-icon.png" width="112" height="112" alt="Gaia icon: an orange hexagon ring broken by three orbiting nodes around a slate hexagon core, on a light rounded square">
+</p>
 
-A Bun workspace: each app in `apps/` (`apps/forge/`, `apps/gaia/`), each shared package in `packages/`. Each app's `README.md` says how
-to run it and its `CLAUDE.md` holds its rules; this root's `CLAUDE.md` says whose rules each package follows.
-`docs/monorepo/` holds the monorepo's design and the migration checklist. `scripts/` holds the root's own scripts, a workspace member
-so turbo typechecks, lints and tests them like any other. Each app is run by its own forge tracker, in `apps/forge/` and
-`apps/gaia/`; the root `CLAUDE.md` names their reach and gates.
+<h1 align="center">foundry</h1>
 
-## Set up
+<p align="center">
+  <b>forge and Gaia: a factory floor for Claude Code agents, and the window over it.</b><br>
+  forge runs agents through a ticket board in one repository and lands their work on main once code has checked it.
+  Gaia shows every forge on your Mac in one window: what waits on you, every agent at work, every forge's controls.
+</p>
 
-```bash
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><sub>APPS</sub><br><b>2</b><br><sub>forge · Gaia</sub></td>
+    <td align="center"><sub>SHARED PACKAGES</sub><br><b>5</b><br><sub>Flint among them</sub></td>
+    <td align="center"><sub>RUNTIME</sub><br><b>Bun 1.4.2</b><br><sub>+ TypeScript, React 19</sub></td>
+    <td align="center"><sub>BUILD</sub><br><b>Turborepo</b><br><sub>one cache</sub></td>
+    <td align="center"><sub>BUILT BY</sub><br><b>forge</b><br><sub>one board per app</sub></td>
+  </tr>
+</table>
+</div>
+
+<br>
+
+<p align="center">
+  <img src="docs/images/suite-hero.png" width="100%" alt="Your agents' factory floor: Gaia's Attention view, what waits on you across four running forges, behind the Bridge of the Example Storefront forge on its Kanban view, with three builders and a reviewer at work">
+</p>
+
+## Apps
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="apps/forge/docs/images/icon.png" width="64" height="64" align="left" alt="forge icon">
+      <b><a href="apps/forge/">forge</a></b><br>
+      <sub>Developer tools · CLI and live Bridge</sub><br>
+      Agents report and code decides. A ticket is done when the Airlock has merged it, not when an agent says so.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/gaia-icon.png" width="64" height="64" align="left" alt="Gaia icon">
+      <b><a href="apps/gaia/">Gaia</a></b><br>
+      <sub>Developer tools · macOS app</sub><br>
+      One window over every forge on the machine. It runs no agent, and a forge works the same without it.
+    </td>
+  </tr>
+</table>
+
+## forge
+
+<p align="center">
+  <img src="docs/images/forge-kanban.png" width="100%" alt="Agents build. Code decides. The Bridge's Kanban view of the Example Storefront board: Ready with two draft tickets, three Building, three In review, one in the Merge queue and one Done, under the live header and the activity strip of three builders and a reviewer">
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/forge-questions.png" width="100%" alt="Only what code can't answer: the Questions view, a builder's question on #008 about how long a password reset link stays valid, its options as cards with what each touches and trades off">
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/forge-progress.png" width="100%" alt="Done means merged: the Progress view, a Gantt row per ticket grouped by epic, each with its state and a red now line">
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/images/forge-dark.png" width="100%" alt="Light or dark: the same Kanban view in the dark theme">
+</p>
+
+**Agents report and code decides.** A report is a claim until Customs and the board's gates have checked it on the final commit.
+A fresh reviewer follows when the board's pipeline sets one.
+
+**Done means merged.** The Airlock lands tickets on main one at a time, from the merge queue. A red result goes back to the same builder.
+
+**An Overseer can die or be updated while agents keep running.** Each agent session lives under a detached Watcher, not under the
+Overseer, and on macOS every gate and session runs confined.
+
+**You answer only what code cannot.** A builder's question, a proposed gate or an escalated incident reaches the Questions view as a
+decision, with what each option touches. Everything else, the Overseer drives.
+
+[forge's README](apps/forge/README.md) shows every view, what `forge init` adds to a repository, and the quickstart.
+
+## Gaia
+
+<p align="center">
+  <img src="docs/images/gaia-attention.png" width="100%" alt="Every forge. One window. Gaia's Attention view: five decisions waiting on you across Invoice Service, Example Storefront and Research Wiki, oldest first with an escalation on top; Example Mobile App holding its launches until it is updated and Design System dormant; on the right the running forges with their agents, and what just happened">
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/gaia-agents.png" width="100%" alt="Every agent on this Mac: Gaia's Agents view in the dark theme, ten agents of twelve across four forges, each job with its ticket, last tool, state, calls and tokens, and job J4 selected with what its forge reports">
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/gaia-activity.png" width="100%" alt="What just happened, everywhere: Gaia's Activity view, the newest entries of every forge with their kind, beside what landed today and the tokens of each forge">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/gaia-forges.png" width="100%" alt="Start, stop, update: Gaia's Forges view, every forge on the machine with its Overseer state, agents, waiting count and code, its Pause, Stop and Open controls, and the machine's agent limit">
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/flint.png" width="100%" alt="Meet Flint: six still frames of the orange diamond, drafting a ticket, running the gates, clearing Customs, asking you, entering the Airlock and landing on main">
+    </td>
+  </tr>
+</table>
+
+**What waits on you, across every board.** Questions, escalations and tickets to accept from every forge, oldest first and escalations on
+top, each one click from its own forge's Bridge, opened at that entry.
+
+**Each forge in place.** A forge's own Bridge opens under Gaia's bar, so its views are one click from the fleet.
+
+**Shows, never drives.** Gaia reads what each forge reports and sends its commands through that forge. Flint's brain is each forge's own;
+Gaia shows it and makes no model call.
+
+[Gaia's README](apps/gaia/README.md) says how to run it from this checkout and install `Gaia.app`.
+
+## In the box
+
+| Folder | What it is |
+| --- | --- |
+| [`apps/forge/`](apps/forge/) | forge: the tracker, the Overseer, the Bridge and the CLI |
+| [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine |
+| [`packages/design-system/`](packages/design-system/) | React components with their own light and dark theme, for both apps |
+| [`packages/flint/`](packages/flint/) | Flint, the orange diamond that acts out what the agents do, drawn over its host page |
+| [`packages/brand/`](packages/brand/) | forge's mark as a React component, with its colour tokens |
+| [`packages/forge-contracts/`](packages/forge-contracts/) | what a forge serves and reads, as TypeScript types, with its system versions |
+| [`packages/system-versions/`](packages/system-versions/) | the version model a server and its clients share, and its compatibility logic |
+| [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and the migration checklist |
+| [`scripts/`](scripts/) | the root's own scripts (`gate:<app>`, `cache:audit`), a workspace member so turbo checks them |
+
+Each app is built on its own forge board, one tracker in `apps/forge/` and one in `apps/gaia/`. Each app's `CLAUDE.md` holds its rules,
+and the root [`CLAUDE.md`](CLAUDE.md) names each tracker's reach and gate and whose rules each package follows.
+
+## Get started
+
+### Install forge
+
+```sh
+git clone https://github.com/AlexDM0/foundry.git && cd foundry
+apps/forge/setup.sh
+```
+
+Then, in the repository to adopt:
+
+```sh
+forge init --project "Example Storefront"
+forge oversee --detach
+forge oversee resume
+forge open
+```
+
+A new board starts paused; `oversee resume` lets it build. [Getting started](apps/forge/docs/operations/getting-started.md) runs a first
+board end to end.
+
+### Open Gaia
+
+```sh
+cd apps/gaia
+bun src/Main.ts install-app
+```
+
+installs `Gaia.app` into `~/Applications`, which opens Gaia's window from the Finder, Launchpad or Spotlight.
+`bun src/Main.ts launch` opens the same window without installing it.
+
+## Develop
+
+```sh
 bun install --frozen-lockfile
 ```
 
 installs every workspace into one hoisted `node_modules` at this root. Every package is a workspace member that its consumers declare
 at `workspace:^`; nothing is linked by hand.
 
-## Verify
-
-```bash
+```sh
 bun run verify
 ```
 
@@ -31,3 +189,50 @@ workspace's test preload applies only in its own folder.
 | `lint:fix` | every workspace's `lint:fix`: eslint with its fixes applied, never cached; the pre-commit hook names it when `lint` fails |
 | `gate:forge`, `gate:gaia` | a tracker's gate: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then that app's `check` alone; where forge hands a path in `FORGE_GATE_REPORT`, it writes the gate's cache report there: `hit` when turbo replayed every task with a script, `partial` some, `miss` none |
 | `cache:audit [<target reference>]` | the merge gate's audit: re-runs past the cache the tasks of what changed since the target, `main` when none is named (forge hands a gate none), and removes a failing task's entry; it writes a `miss` report, as it runs past the cache |
+
+## Privacy
+
+<table>
+  <tr>
+    <td width="33%" valign="top"><b>On your machine</b><br><sub>forge keeps its state in plain files in the repository and serves its Bridge on <code>127.0.0.1</code>. Gaia reads the forges on this machine.</sub></td>
+    <td width="33%" valign="top"><b>No telemetry</b><br><sub>Neither app reports anywhere, and every root script runs Turborepo with its telemetry off.</sub></td>
+    <td width="33%" valign="top"><b>Your own agents</b><br><sub>The agents are your own Claude Code sessions. What leaves the machine is what they send to Anthropic and the network domains a ticket or gate allows.</sub></td>
+  </tr>
+</table>
+
+## Information
+
+<table>
+  <tr>
+    <td width="190"><b>Requires</b></td>
+    <td>Bun 1.4.2, git, a logged-in Claude Code (<code>claude</code>); Google Chrome or Microsoft Edge for Gaia's window</td>
+  </tr>
+  <tr>
+    <td width="190"><b>Runs on</b></td>
+    <td>macOS on Apple silicon, where both apps have run. forge has Linux and Windows adapters proved only over fakes;
+      <a href="apps/forge/docs/development/platform-status.md">the platform status</a> lists what never ran</td>
+  </tr>
+  <tr>
+    <td width="190"><b>Confinement</b></td>
+    <td>on macOS, forge's gates run under Seatbelt and its sessions in Claude Code's sandbox</td>
+  </tr>
+  <tr>
+    <td width="190"><b>Languages</b></td>
+    <td>TypeScript on Bun; React 19 for the Bridge, Gaia's page and the shared packages</td>
+  </tr>
+  <tr>
+    <td width="190"><b>Versions</b></td>
+    <td>forge and Gaia are released apart and meet only through system versions, which forge serves and Gaia checks</td>
+  </tr>
+  <tr>
+    <td width="190"><b>Source</b></td>
+    <td><a href="https://github.com/AlexDM0/foundry">github.com/AlexDM0/foundry</a></td>
+  </tr>
+</table>
+
+## Further reading
+
+- **[forge's documentation index](apps/forge/docs/README.md)**: the overview, getting started, the glossary and the CLI reference.
+- **[Gaia's architecture](apps/gaia/docs/architecture.md)** and **[contracts](apps/gaia/docs/contracts.md)**: how the launcher, the
+  server, the page and the forges fit together, and every versioned contract between them.
+- **[The monorepo's design](docs/monorepo/design.md)**: the two trackers, their gates and the one turbo cache.
