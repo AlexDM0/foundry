@@ -82,9 +82,15 @@ pushed. Each phase ends with a gate in the integration worktree: a clean `bun in
       `system-versions` and `brand`.
 - [ ] P4A: V-server (`/api/versions`, `/api/v<n>/` paths), V-frame (frame hosts), V-bridge (the embed channel and forge's mark from
       `brand`). Both `?embedded=gaia` and `?embedded=dashboard`, and the dashboard's frame record, are dropped.
-- [ ] P4B: a guard that forge's sources and docs name no client; forge 1.0 (`/api/versions` answers `1.0`), its commit recorded here;
-      Gaia's recordings retaken from forge at `db64ed0a` and at 1.0, the `versions-ahead` and `versions-newer` situations through a
-      test-only override of forge's `/api/versions` answer.
+- [x] P4B (`p4-close`): `apps/forge/src/ClientNames.spec.ts` holds that no shipped source or doc of forge names Gaia, its word
+      `fleet`, agent-dashboard or `?embedded=dashboard`; the docs speak of a monitor or a host. Gaia's `overseer-fetch-versions` is recorded
+      from real forges under scratch homes: `versions-older` from this tree's forge as itself, `versions-ahead` and `versions-newer`
+      through its test setting `FORGE_VERSIONS_ANSWER` (`1.3/1.0`, `2.1/2.0`), `versions-absent` from forge at `db64ed0a` in a detached
+      worktree, since removed. `overseer-fetch-supported-forge` stays authored and awaits only G1 to G3.
+- [x] **Forge 1.0 is `9ec2b85a`** (no tag, nothing pushed): `GET /api/versions` answers `1.0` with minimum `0.0`; it serves identity 1,
+      summary 1, monitor 3 (with `flintBrain: null`), control 1 and embed 1, each registry endpoint at `/api/v<n>/` beside its unversioned
+      path, the monitor stream's handshake and `systemVersion`, the frame-host records and `?embedded=frame` only.
+- [ ] Re-record `overseer-fetch-versions` from forge 1.1 in P8: its ahead forge is forge 1.0 answering 1.3, so it serves control 1.
 - [ ] Gate P4: `bun run versions:raise-minimum 1.0` dry runs in `packages/forge-contracts` and `apps/gaia`.
 
 ### P5. Part B: several trackers in one repository (Claude) — not started
