@@ -16,6 +16,7 @@ storybook-static/
 .claude/.evidence/
 **/.claude/skills/forge-po/
 **/.claude/skills/forge-orchestrate/
+**/.claude/settings.local.json
 
 # build output, packed packages, coverage, logs and local environment files
 out/
