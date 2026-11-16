@@ -1,4 +1,5 @@
-/* A state's dot in its shape: a solid dot, a ring, a dashed ring or a diamond; 8px, small 7px, tiny 6px. It keeps its size in a line of text too. */
+/* A state's dot in its shape: a solid dot, a ring, a dashed ring or a diamond; 8px, small 7px, tiny 6px. It keeps its size in a line of text too,
+   fades to a new tone's fill and, pulsing, breathes while its work is under way; under reduced motion it stands still. */
 .design-system-state-dot {
   display: inline-block;
   flex: none;
@@ -8,6 +9,7 @@
   height: 8px;
   border-radius: var(--r-pill);
   background: var(--line-strong);
+  transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
 
 .design-system-state-dot[data-size="small"] { width: 7px; height: 7px; }
@@ -19,4 +21,9 @@
 /* A diamond is the ring's square turned 45 degrees and drawn at 85%, so its corners reach about as far as a round dot's edge. */
 .design-system-state-dot[data-shape="diamond"] {
   background: transparent; border: 1.5px solid var(--s-fill); border-radius: 0; transform: rotate(45deg) scale(0.85);
+}
+.design-system-state-dot[data-pulsing] { animation: design-system-pulse var(--pulse-status) var(--ease-in-out) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .design-system-state-dot[data-pulsing] { animation: none; }
 }

@@ -32,6 +32,7 @@ export const DiamondAtEachSize: Story = {
     </View>
   ),
 };
+export const Pulsing: Story = { args: { pulsing: true } };
 export const Small: Story = { args: { small: true } };
 export const Tiny: Story = { args: { tiny: true } };
 
