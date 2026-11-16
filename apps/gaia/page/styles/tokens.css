@@ -104,9 +104,6 @@
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;
 
-  /* The fill of a paused forge, a waiting job and a forge entry; the package keeps this grey only on its neutral state tone. */
-  --neutral-fill: #8f8f8f;
-
   /* The tile under Gaia's mark: its gradient and rim. */
   --mark-from:      #ffffff;
   --mark-to:        #d6d6d6;
@@ -122,8 +119,6 @@
 }
 
 :root[data-theme="dark"] {
-  --neutral-fill: #7f8590;
-
   --mark-from:      #343434;
   --mark-to:        #121212;
   --mark-rim:       rgba(255, 255, 255, 0.12);
