@@ -117,7 +117,7 @@ async function applyPipelineChange(commandArguments: ArgumentParser, context: Co
   const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
   if (!('pipeline' in changed)) return;
   const { logged, pipeline } = changed;
-  OutputUtil.printEntity(commandArguments, context, { pipeline, ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));
+  OutputUtil.printEntity(commandArguments, context, { pipeline: PipelineFile.storedDocumentOf(pipeline), ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));
 }
 
 export async function prepareStep(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -227,7 +227,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
   const entity = {
     pipelineIsSet: pipeline !== null,
     ...(pipeline === null ? { contentHash: null, phaseHashes: null } : hashesOf(pipeline)),
-    ...(pipeline === null ? {} : { version: pipeline.version }),
+    ...(pipeline === null ? {} : { version: PipelineUtil.formatVersionOf(pipeline) }),
     prepare:       pipeline?.prepare ?? [],
     gates:         pipeline?.gates ?? [],
     ...(pipeline === null ? {} : { phases: pipeline.phases }),

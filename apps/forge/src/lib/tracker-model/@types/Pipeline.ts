@@ -2,7 +2,13 @@
 import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
 
+/** The newest `pipeline.json` format, written only for a pipeline that holds a key the earliest format lacks. */
 export const PIPELINE_FORMAT_VERSION = 3;
+
+/** The earliest format this build reads, written for every pipeline that needs nothing newer, so a release that reads only it still can. */
+export const EARLIEST_PIPELINE_FORMAT_VERSION = 2;
+
+export type PipelineFormatVersion = typeof EARLIEST_PIPELINE_FORMAT_VERSION | typeof PIPELINE_FORMAT_VERSION;
 
 export interface PipelineStep {
   name: string;
@@ -94,6 +100,7 @@ export type PipelineBilling =
   | { mode: 'api'; maxBudgetUsd?: number };
 
 export interface Pipeline {
+  /** The model's format; the file holds `PipelineUtil.formatVersionOf`'s, the earliest that holds the pipeline. */
   version:       typeof PIPELINE_FORMAT_VERSION;
   prepare:       PipelineStep[];
   /** Every gate, defined once; an empty list is no gates on purpose, which counts as set. */

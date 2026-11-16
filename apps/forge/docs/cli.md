@@ -850,7 +850,7 @@ before the first listing is out of reach, as it is on POSIX.
 Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json`
 atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
 `pipeline.json` at exit 1 rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal
-pipeline, version 3 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
+pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
 (`pipelineHash`) at its next gate run, as the run read the pipeline at its start. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.
 
@@ -1503,7 +1503,7 @@ must pass. A builder ends by reporting; it never edits its ticket file.
 | on Linux, the worktree's `.claude/` folder cannot be made before a gate, prepare, install or worker launch | incident `sandbox-unavailable`; the job ends `stopped`; the launch never starts | `gate retry`, `ticket park` |
 | no `pipeline.json` is stored | the `checks-not-set` decision; nothing launches, no pipeline agent either | `pipeline setup`, `gate add`, `gate none`, `advise` |
 | `pipeline.json` is malformed | the `checks-not-set` decision; nothing launches | repair or delete `<data>/pipeline.json`: every `gate` write refuses it until then |
-| `pipeline.json` is older, written by an earlier release with no `version` | the `checks-not-set` decision; nothing launches | set the pipeline up again: every `gate` write refuses it (`older-pipeline`) until it is deleted |
+| `pipeline.json` is older, written by an earlier release with no `version` or one below 2 | the `checks-not-set` decision; nothing launches | set the pipeline up again: every `gate` write refuses it (`older-pipeline`) until it is deleted |
 | a running build or review's event log stands still for `QUIET_JOB_SWEEPS` (6) sweeps | incident `quiet-job` | `job message`, `job fresh` |
 | a pipeline agent's turn end finds its snapshot changed (Customs V16, V4, V5, V13 or V14) | `pipeline-snapshot-touched` and incident `setup-snapshot-touched`, facts `setupId`, `check`, `reason`, `paths`; Apply refuses `setup-snapshot-touched` | `job message`, `incident note`; `pipeline resume` once main moved, or `pipeline start-over` |
 
@@ -2064,7 +2064,9 @@ lives in [`pipeline.json`](#datapipelinejson).
 ### `<data>/pipeline.json`
 
 The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
-[Apply](#apply) write it through the lock. This is format version 3.
+[Apply](#apply) write it through the lock, in format version 2 unless it holds a prepare step's `in`, a gate `in` that
+starts with `/` or a `reach`, which only version 3 has: a release that reads only version 2 then refuses the file
+rather than misread it. This build reads both.
 
 ```json
 {
@@ -2089,9 +2091,9 @@ The board's pipeline, beside `progress.json`, never tracked and never inside a b
 
 | key | required | value |
 |---|---|---|
-| `version` | yes | `3`, written first |
-| `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in`, the folder it runs in as a gate's `in` names one |
-| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root; it holds no `..`, drive or backslash |
+| `version` | yes | `2`, or `3` for a pipeline that holds a prepare step's `in`, a gate `in` that starts with `/` or a `reach`; written first |
+| `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in` (version 3), the folder it runs in as a gate's `in` names one |
+| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root (version 3); it holds no `..`, drive or backslash. A version 2 file keeps any `in` that version 2 wrote |
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
 | `airlock` | no | the merge train: `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after a conflict merge is on: see [The Airlocks](#the-airlocks) |
@@ -2099,9 +2101,9 @@ The board's pipeline, beside `progress.json`, never tracked and never inside a b
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
-| `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
+| `reach` | no | version 3: the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 
-A file with no `version`, or a version below 3, is older: an earlier release wrote it, and no release converts it. The
+A file with no `version`, or a version below 2, is older: an earlier release wrote it, and no release converts it. The
 board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1 (`older-pipeline`); set the
 pipeline up again. A higher version, an unknown key at any level, a missing required key, a step or gate without `name`
 or `run`, a name given twice or shared by a prepare step and a gate, a phase naming an unknown gate, a gate in no

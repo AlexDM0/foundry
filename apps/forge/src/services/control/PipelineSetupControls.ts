@@ -306,7 +306,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
  * board cannot read.
  */
 export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
-  const reading = PipelineFile.documentReadingOf(JSON.parse(JSON.stringify(draft)));
+  const reading = PipelineFile.documentReadingOf(PipelineFile.storedDocumentOf(draft));
   if (reading.verdict === 'readable') return;
   const reason = reading.verdict === 'malformed' ? reading.reason : reading.verdict;
   throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, reason });

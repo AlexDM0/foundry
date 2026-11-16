@@ -791,9 +791,9 @@ One turn of the Overseer's loop, `runOnePass` in `src/services/overseer/DrivePas
 
 ### pipeline
 
-The board's `<data>/pipeline.json`, format version 2: prepare steps, [gates](#gate) and their
-[gate phases](#gate-phase), and optional review, merge train, constitution, agent, approval and billing settings
-(`Pipeline`). Fields: [CLI reference](cli.md).
+The board's `<data>/pipeline.json`, format version 2, or 3 once it holds a folder of a prepare step, a gate folder from
+the repository's root or a reach: prepare steps, [gates](#gate) and their [gate phases](#gate-phase), and optional
+review, merge train, constitution, agent, approval and billing settings (`Pipeline`). Fields: [CLI reference](cli.md).
 
 ### pipeline agent
 

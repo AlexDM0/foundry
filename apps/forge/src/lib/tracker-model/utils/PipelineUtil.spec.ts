@@ -2,9 +2,10 @@
  * The hashes of a pipeline, the gates of each phase and the instructions a role reads. What matters: a stored pipeline's hashes never
  * change, since a changed hash makes recorded greens stale; a phase hash moves only with the prepare steps and that phase's gates, so an
  * edit of agent settings, instructions, the constitution, re-review, approvals, billing or reach never regates a ticket; the content hash
- * moves with every key but `billing`. The phase hashes were taken from the implementation that first computed them, the content hashes from
- * pipeline version 3's, since the content hash covers the version; retake them only in a change that means to invalidate every recorded
- * row, by printing each hash for each pipeline below.
+ * moves with every key but `billing`, and a pipeline with no key version 3 added hashes as version 2 did. The phase hashes were taken from the
+ * implementation that first computed them, a version 2 pipeline's content hash from version 2's (`db64ed0a`) and a version 3 one's from
+ * version 3's, since the content hash covers the version; retake them only in a change that means to invalidate every recorded row, by
+ * printing each hash for each pipeline below. The format version names the earliest that holds a pipeline.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -20,7 +21,7 @@ const ONE_STEP_ONE_GATE: Pipeline = {
   phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },
 };
 
-const FULL_PIPELINE: Pipeline = {
+const FULL_VERSION_TWO_PIPELINE: Pipeline = {
   version: 3,
   prepare: [{ name: 'install', run: 'bun install' }],
   gates:   [
@@ -37,14 +38,18 @@ const FULL_PIPELINE: Pipeline = {
   agents:       { builder: { model: 'opus', effort: 'high' }, reviewer: { instructions: [] } },
   approvals:    { tickets: true, merge: true },
   billing:      { mode: 'api', maxBudgetUsd: 5 },
-  reach:        ['/packages/shared', '/bun.lock'],
 };
+
+const FULL_PIPELINE: Pipeline = { ...FULL_VERSION_TWO_PIPELINE, reach: ['/packages/shared', '/bun.lock'] };
+
+const FULL_PHASE_HASHES: Record<GatePhase, string> = { build: '0496db2e5271e410', review: '3a8acba95f67264e', merge: '056057fab8c449a0' };
 
 const FROZEN_PHASE_AND_CONTENT_HASHES: readonly [string, Pipeline, Record<GatePhase, string>, string][] = [
   ['the minimal pipeline', {
     version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
-  }, { build: '146c3b4ca0984372', review: '146c3b4ca0984372', merge: '146c3b4ca0984372' }, 'c9a00e22bed43f91'],
-  ['a pipeline with every key', FULL_PIPELINE, { build: '0496db2e5271e410', review: '3a8acba95f67264e', merge: '056057fab8c449a0' }, '7a065b9d0f0f4fff'],
+  }, { build: '146c3b4ca0984372', review: '146c3b4ca0984372', merge: '146c3b4ca0984372' }, '80e97fa2e7bddedf'],
+  ['a pipeline with every key version 2 has', FULL_VERSION_TWO_PIPELINE, FULL_PHASE_HASHES, '818a3f6ee909b924'],
+  ['a pipeline with every key', FULL_PIPELINE, FULL_PHASE_HASHES, '7a065b9d0f0f4fff'],
 ];
 
 const EDITS_OUTSIDE_THE_GATES: readonly [string, Pipeline][] = [
@@ -123,6 +128,20 @@ describe('the phase hash', () => {
     for (const phase of GATE_PHASES) {
       expect(PipelineUtil.gateRunStampOf(FULL_PIPELINE, phase)).toEqual({ phase, phaseHash: PipelineUtil.phaseHashOf(FULL_PIPELINE, phase) });
     }
+  });
+});
+
+describe('the format version', () => {
+  test('is 2 for a pipeline holding no key version 3 added, a gate folder of the project included', () => {
+    expect(PipelineUtil.formatVersionOf(PipelineUtil.minimalPipelineOf())).toBe(2);
+    expect(PipelineUtil.formatVersionOf(FULL_VERSION_TWO_PIPELINE)).toBe(2);
+  });
+
+  test('is 3 for a reach, a prepare step\'s folder or a gate folder from the repository\'s root', () => {
+    expect(PipelineUtil.formatVersionOf(FULL_PIPELINE)).toBe(3);
+    expect(PipelineUtil.formatVersionOf({ ...ONE_STEP_ONE_GATE, reach: [] })).toBe(3);
+    expect(PipelineUtil.formatVersionOf({ ...ONE_STEP_ONE_GATE, prepare: [{ name: 'install', run: 'bun install', in: 'packages/example' }] })).toBe(3);
+    expect(PipelineUtil.formatVersionOf({ ...ONE_STEP_ONE_GATE, gates: [{ name: 'verify', run: 'bun run verify', in: '/' }] })).toBe(3);
   });
 });
 

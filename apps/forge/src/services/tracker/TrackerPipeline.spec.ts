@@ -391,7 +391,7 @@ describe('the setup record a hold reads and writes', () => {
       workspace.progressFilePath, workspace.pipelineFilePath, workspace.constitutionSourcesFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath
     ]);
     expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
-    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ version: 3, constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ version: 2, constitution: { path: 'CONSTITUTION.md' } });
     expect(JSON.parse(readFileSync(workspace.constitutionSourcesFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
     expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ overseerState: 'running' });
   });

@@ -286,7 +286,7 @@ repository of two sibling trackers and a shared package, `src/testing/TwoTracker
 | Customs accepts home and reach, rejects the sibling's files and nested agent configuration | `src/services/lifecycle/Customs.projectScope.spec.ts` |
 | a sibling's journaled landing requeues silently, the lock serialises only the landing, a held main line clears on its own paths | `src/services/overseer/Airlocks.siblingTrackers.spec.ts` |
 | `init` refuses above and below and a held namespace | `cli/adoption/init/InitPlacement.spec.ts` |
-| the pipeline's `in`, `/` paths and `reach` (version 3; an older one refused `older-pipeline`, nothing migrates) | `src/adapters/pipeline/PipelineFile.spec.ts`, `cli/OlderPipelineRefusal.spec.ts` |
+| the pipeline's `in`, `/` paths and `reach` (version 3, written only when one is used; a pipeline without them stays version 2, which an earlier release reads; one below 2 refused `older-pipeline`, nothing migrates) | `src/adapters/pipeline/PipelineFile.spec.ts`, `src/adapters/pipeline/PipelineFile.versionTwo.spec.ts`, `cli/OlderPipelineRefusal.spec.ts` |
 | a tracker at the root with no namespace asks git exactly what it asked before (the golden replay) | `cli/overseer/OverseerBuildJob.spec.ts` against `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge at `7210f3c1` |
 
 Two Overseers landing in one real repository is not a spec: with real git it could only be a `src/lib/git` boundary spec, which may not

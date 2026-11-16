@@ -1,8 +1,11 @@
 /**
- * `pipeline.json` version 3 both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version` first and
- * an optional key only once set; the minimal pipeline is readable; an empty gate list stays written, since it is "no gates on purpose",
- * not "none set"; a file an earlier release wrote, with no `version` or a lower one, is `older`, never mapped; a file nobody could trust
- * whole is `malformed` with a reason naming the offending part, one distinct reason per rule, never a throw; and no file is `absent`.
+ * `pipeline.json` version 2 and 3 both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version`
+ * first and an optional key only once set; it is written as version 2 unless it holds a step folder, a gate folder from the repository's
+ * root or a reach, so a release that reads only version 2 reads every pipeline that needs nothing newer and refuses the rest; version 2 is
+ * read with its own keys; the minimal pipeline is readable; an empty gate list stays written, since it is "no gates on purpose", not "none
+ * set"; a file with no `version` or one below 2 is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason
+ * naming the offending part, one distinct reason per rule, never a throw; and no file is `absent`. A file version 2 wrote is
+ * `PipelineFile.versionTwo.spec.ts`'s.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -97,15 +100,17 @@ describe('a readable pipeline', () => {
     const contents = PipelineFile.contentsOf(EXAMPLE_PIPELINE);
     const reading  = readingOfText(contents);
 
+    expect(JSON.parse(contents)).toMatchObject({ version: 3 });
     expect(reading).toEqual({ verdict: 'readable', pipeline: EXAMPLE_PIPELINE });
     expect(reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : '').toBe(contents);
     expect(readFileSync(pipelineFilePath(), 'utf8')).toBe(contents);
   });
 
-  test('the minimal pipeline is readable, written with version first and only the required keys', () => {
+  test('the minimal pipeline is readable, written as version 2 with version first and only the required keys', () => {
     const contents = PipelineFile.contentsOf(MINIMAL_PIPELINE);
 
     expect(Object.keys(JSON.parse(contents) as object)).toEqual(['version', 'prepare', 'gates', 'phases']);
+    expect(JSON.parse(contents)).toMatchObject({ version: 2 });
     expect(readingOfText(contents)).toEqual({ verdict: 'readable', pipeline: MINIMAL_PIPELINE });
   });
 
@@ -130,9 +135,9 @@ describe('a file an earlier release wrote', () => {
     expect(readingOf({})).toEqual({ verdict: 'older' });
   });
 
-  test('with a version below 3 is older, version 2 included, which held no prepare folder and no reach', () => {
+  test('with a version below 2 is older', () => {
     expect(readingOf(minimalWith({ version: 1 }))).toEqual({ verdict: 'older' });
-    expect(readingOf(minimalWith({ version: 2 }))).toEqual({ verdict: 'older' });
+    expect(readingOf(minimalWith({ version: 0 }))).toEqual({ verdict: 'older' });
   });
 
   test('with a version above 3 is malformed as a newer format', () => {
@@ -264,6 +269,45 @@ describe('a malformed file', () => {
     expect(reasonOf(minimalWith({ billing: { mode: 'subscription', maxBudgetUsd: 5 } }))).toBe('billing.maxBudgetUsd is present with mode subscription');
     expect(reasonOf(minimalWith({ billing: 'api' }))).toBe('billing is not an object');
     expect(readingOf(minimalWith({ billing: { mode: 'subscription' } }))).toMatchObject({ verdict: 'readable', pipeline: { billing: { mode: 'subscription' } } });
+  });
+});
+
+describe('the version a pipeline is written in', () => {
+  test('is 2 while no step has a folder, no gate folder starts at the repository\'s root and no reach is set, a version 3 file included', () => {
+    const projectFolderGate = withTestGateAnd({ gates: [{ ...TEST_GATE, in: 'packages/example' }] });
+    const reading = readingOf({ ...projectFolderGate, version: 3 });
+
+    expect(reading).toMatchObject({ verdict: 'readable' });
+    expect(reading.verdict === 'readable' ? JSON.parse(PipelineFile.contentsOf(reading.pipeline)) : null).toEqual({ ...projectFolderGate, version: 2 });
+  });
+
+  test('is 3 for a step folder, a gate folder from the repository\'s root or a reach, each alone', () => {
+    for (const fields of [
+      { prepare: [{ name: 'install', run: 'bun install', in: 'packages/example' }] },
+      { gates: [{ ...TEST_GATE, in: '/apps/example' }] },
+      { reach: ['/bun.lock'] },
+    ]) {
+      const reading = readingOf(withTestGateAnd(fields));
+      expect(reading.verdict === 'readable' ? JSON.parse(PipelineFile.contentsOf(reading.pipeline)) : reading).toMatchObject({ version: 3, ...fields });
+    }
+  });
+});
+
+describe('a version 2 file', () => {
+  const versionTwoWith = (fields: Record<string, unknown>): Record<string, unknown> => withTestGateAnd({ version: 2, ...fields });
+
+  test('holding a step folder or a reach is malformed, since version 2 has neither key', () => {
+    expect(reasonOf(versionTwoWith({ prepare: [{ name: 'install', run: 'bun install', in: '/' }] })))
+      .toBe('prepare[0]."in" is not a pipeline key; the keys are name, run');
+    expect(reasonOf(versionTwoWith({ reach: ['/bun.lock'] })))
+      .toBe('"reach" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing');
+  });
+
+  test('reads any non-blank gate folder, as version 2 did, and refuses a blank one', () => {
+    for (const folder of ['packages/example', '../sibling']) {
+      expect(readingOf(versionTwoWith({ gates: [{ ...TEST_GATE, in: folder }] }))).toMatchObject({ verdict: 'readable', pipeline: { gates: [{ in: folder }] } });
+    }
+    expect(reasonOf(versionTwoWith({ gates: [{ ...TEST_GATE, in: ' ' }] }))).toBe('gates[0].in is present and is not a non-blank text');
   });
 });
 

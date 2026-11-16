@@ -9,12 +9,13 @@ import type {
   InstructionEntry,
   Pipeline,
   PipelineAgentRole,
+  PipelineFormatVersion,
   PipelineGate,
   PipelineStep
 } from '../@types/Pipeline.ts';
-import { PIPELINE_FORMAT_VERSION }      from '../@types/Pipeline.ts';
-import { DEFAULT_INSTRUCTIONS_OF_ROLE } from '../constants/PipelineDefaults.ts';
-import { TicketBodyHashUtil }           from './TicketBodyHashUtil.ts';
+import { EARLIEST_PIPELINE_FORMAT_VERSION, PIPELINE_FORMAT_VERSION } from '../@types/Pipeline.ts';
+import { DEFAULT_INSTRUCTIONS_OF_ROLE }                              from '../constants/PipelineDefaults.ts';
+import { TicketBodyHashUtil }                                        from './TicketBodyHashUtil.ts';
 
 /** A gate defined once, with the phases that run it, in the phases' order. */
 export interface CataloguedGate {
@@ -54,8 +55,22 @@ function canonicalAgentSettingsOf(settings: Readonly<AgentStepSettings>): object
   };
 }
 
-/** Every key but the version, the approvals and the billing, in a fixed order, `agents` sorted by role. */
-function canonicalShapeOf(pipeline: Readonly<Pipeline>): object {
+/**
+ * A gate folder from the repository's root, a prepare step's folder or a reach: the keys version 2 lacks. A pipeline holding none is
+ * stored as version 2, so a release that reads only version 2 still reads it, and one holding any as version 3, which that release refuses.
+ */
+function formatVersionOf(pipeline: Readonly<Pipeline>): PipelineFormatVersion {
+  const holdsANewerKey = pipeline.reach !== undefined
+    || pipeline.prepare.some((step) => step.in !== undefined)
+    || pipeline.gates.some((gate) => gate.in?.startsWith('/') === true);
+  return holdsANewerKey ? PIPELINE_FORMAT_VERSION : EARLIEST_PIPELINE_FORMAT_VERSION;
+}
+
+/**
+ * Every key but the version, the approvals and the billing, in a fixed order, `agents` sorted by role; `reach` only in version 3, so a
+ * version 2 pipeline hashes as it did before version 3 existed.
+ */
+function canonicalShapeOf(pipeline: Readonly<Pipeline>, formatVersion: PipelineFormatVersion): object {
   return {
     prepare:      pipeline.prepare.map(canonicalStepOf),
     gates:        pipeline.gates.map(canonicalGateOf),
@@ -65,7 +80,7 @@ function canonicalShapeOf(pipeline: Readonly<Pipeline>): object {
     constitution: pipeline.constitution?.path ?? null,
     agents:       Object.entries(pipeline.agents ?? {}).sort(([a], [b]) => a.localeCompare(b))
       .map(([role, settings]) => [role, canonicalAgentSettingsOf(settings)]),
-    reach: pipeline.reach ?? [],
+    ...(formatVersion === EARLIEST_PIPELINE_FORMAT_VERSION ? {} : { reach: pipeline.reach ?? [] }),
   };
 }
 
@@ -98,9 +113,10 @@ function gateRunStampOf(pipeline: Readonly<Pipeline>, phase: GatePhase): GateRun
 
 /** Every key but `billing`, in a fixed order: what tells Apply that someone changed the stored pipeline under it. */
 function contentHashOf(pipeline: Readonly<Pipeline>): string {
+  const formatVersion = formatVersionOf(pipeline);
   const canonical = {
-    version:   pipeline.version,
-    shape:     canonicalShapeOf(pipeline),
+    version:   formatVersion,
+    shape:     canonicalShapeOf(pipeline, formatVersion),
     approvals: { tickets: pipeline.approvals?.tickets ?? null, merge: pipeline.approvals?.merge ?? null },
   };
   return TicketBodyHashUtil.bodyHashOf(JSON.stringify(canonical));
@@ -124,6 +140,7 @@ function writablePathsOf(pipeline: Readonly<Pipeline>): string[] {
 
 export const PipelineUtil = Object.freeze({
   contentHashOf,
+  formatVersionOf,
   gateCatalogueOf,
   gateRunStampOf,
   gatesOfPhase,
