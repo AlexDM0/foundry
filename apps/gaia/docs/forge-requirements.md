@@ -4,9 +4,14 @@ What Gaia needs from forge for the version model of 2026-11-15, written as ticke
 forge never knows about it: each requirement below speaks of a client or a host, and none asks forge to name one. Forge owns
 `packages/forge-contracts`, where most of what these tickets describe is already prepared, and decides every version in it.
 
-Checked against forge `main` at `317e5de1` (2026-11-15), whose Overseer serves every route at its unversioned path only, publishes no system
-version, answers any unknown `/api/` path 404 with `{ "refusal": "not-found" }` (`src/services/overseer/OverseerServer.ts`), and has
-monitor 2 and 3 and control 2 on their branches (G1 to G3).
+## Status
+
+Forge 1.0 meets V1 to V6, V8 and V9: it answers `/api/versions` with current 1.0 and minimum 0.0, serves identity 1, summary 1, monitor 3
+(with `flintBrain` always `null`), control 1 and embed 1 at their `/api/v<n>/` paths beside the unversioned ones, carries the system
+version in the monitor stream and the embed channel, enters its embed mode on `?embedded=frame` only, reads every record in its
+`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. V7 comes with Flint's brain
+(G1 to G3) as forge 1.1, built by forge's own tracker after the monorepo lands; until then Gaia supports forge 1.0. G4 waits on the
+owner's answer to Q11.
 
 ## 1. Rules that hold for every requirement
 
@@ -26,7 +31,7 @@ monitor 2 and 3 and control 2 on their branches (G1 to G3).
 ### V1. Serve `GET /api/versions`, unversioned, and never remove it (Must)
 
 **Statement.** The Overseer answers `GET /api/versions` at that path, open like the identity, with `forge-contracts/ForgeSystemVersions`:
-`{ "current": { "major": 1, "minor": 1 }, "minimumSupported": { "major": 0, "minor": 0 } }`, forge's own system version and its minimum
+`{ "current": { "major": 1, "minor": 0 }, "minimumSupported": { "major": 0, "minor": 0 } }`, forge's own system version and its minimum
 supported, both in forge's own version space. Version 0.0 stands for every forge released before system versions. It answers the path at
 every moment it answers anything, starting included, and never moves or versions it.
 
@@ -78,7 +83,7 @@ it is made, and the guard keeps the code and the registry in step after it.
 
 ### V5. Carry the system version in the monitor stream and the embed channel (Must)
 
-**Statement.** `GET /api/v2/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 1, "minor": 1 } }`, before the
+**Statement.** `GET /api/v2/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 1, "minor": 0 } }`, before the
 first `monitor` event, and every `monitor` event carries the same `systemVersion` beside the snapshot's own keys. Every message the Bridge
 posts to its framing page, its `ready` first, carries `systemVersion` beside `channel` and `channelVersion`. The Bridge reads a framing
 page's message at `channelVersion: 1` and passes over its `systemVersion`, which is the host's own, and any other key it does not know.
@@ -93,8 +98,7 @@ another `channelVersion` is ignored, as today.
 ### V6. Enter the embed mode by a host-neutral query (Must)
 
 **Statement.** The Bridge enters its embed mode, leaving its own chrome to the host and speaking the embed channel, when it is opened with
-`forge-contracts/EmbedMode`'s query, `?embedded=frame`. The value names no host. The older value released hosts send keeps working while
-its registry entry stands.
+`forge-contracts/EmbedMode`'s query, `?embedded=frame`. The value names no host, and no other value enters the embed mode.
 
 **Reason.** Rule 1: an embed mode named for one host makes forge know that host, and any other host would have to pretend to be it.
 
@@ -114,7 +118,7 @@ reads as a forge to update.
 ### V8. Read the framing host's origin from a host-neutral record (Should)
 
 **Statement.** The Overseer lets a host's origin frame the Bridge from a record any host may write, at a path that names no host, rather
-than from the record of one named host it reads today (`cli/overseer/routes/FrameOrigins.ts`). The record carries its own format version.
+than from the record of one named host (`apps/forge/cli/overseer/routes/FrameOrigins.ts`). The record carries its own format version.
 
 **Reason.** Rule 1: the path is part of what forge reads, so it may not name a client.
 
@@ -134,25 +138,24 @@ clients release apart.
 **Acceptance.** Forge's typecheck builds its routes against the package's types; the package is publishable and its README states the
 version rule.
 
-## 3. What Gaia does while a requirement is missing
+## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.0) and keeps nothing for an older forge: a forge that
-serves no V1 to V3 reads as older, and Gaia offers Update forge. Until a forge serves Flint's brain (G1 to G3) as forge 1.1, every forge
-Gaia supports reports no brain, so Gaia shows none of the brain's parts.
+serves no V1 to V3, as every forge from before system versions, reads as older, and Gaia offers Update forge. Until a forge serves
+Flint's brain (G1 to G3) as forge 1.1, every forge Gaia supports reports no brain, so Gaia shows none of the brain's parts.
 
 | Missing | Gaia shows |
 | --- | --- |
-| V1 | The forge as older than Gaia can talk to: it serves no `/api/versions`, as every released forge today. Gaia offers Update forge. |
+| V1 | The forge as older than Gaia can talk to: it serves no `/api/versions`. Gaia offers Update forge. |
 | V2 | An addition under a major bump makes Gaia show the forge as newer than it can talk to until Gaia is updated. |
 | V3 | A forge that publishes V1 but serves no versioned paths answers Gaia's calls 404 and reads as unreachable: V1 and V3 land together. |
 | V4 | Nothing at runtime: the registry is a build-time definition, and Gaia's endpoint versions are derived from it as prepared. |
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
-| V6 | The framed Bridge shows its own chrome and speaks no embed channel, since only the older value enters its embed mode today. |
+| V6 | The framed Bridge shows its own chrome and speaks no embed channel. |
 | V7 | A forge that reports a client's name as `startedBy` is older than Flint's brain needs; Gaia reads only `bridge` and `api`. |
-| V8 | Nothing yet: Gaia still writes the record forge reads today. |
+| V8 | The Bridge refuses Gaia's frame: Gaia writes only the host-neutral record. |
 | V9 | Nothing at runtime. |
 
 ## 4. Order for the forge's board
 
-V1 to V4 together, as forge 1.0, with V6; V5 with them or in the next minor; V7 with Flint's brain (G1 to G3) as forge 1.1, a minor, since
-it only adds; V8 when convenient; V9 at the merge, after the package lands in the monorepo.
+V1 to V6, V8 and V9 shipped together as forge 1.0. V7 ships with Flint's brain (G1 to G3) as forge 1.1, a minor, since it only adds.

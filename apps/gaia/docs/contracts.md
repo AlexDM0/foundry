@@ -62,7 +62,7 @@ internal model (`ForgeReading.versions`) and the page contract (`FleetDocumentFo
 | `current` | The forge's `current` is `SUPPORTED_FORGE_VERSION` | Reads it in full at the versioned paths. |
 | `ahead` | The forge's `minimumSupported` is at or below `SUPPORTED_FORGE_VERSION`, and its `current` above it | Reads it in full at the versioned paths, with what this Gaia knows; full use of the forge needs a newer Gaia. Quiet: explains only. |
 | `newer` | `SUPPORTED_FORGE_VERSION` is below the forge's `minimumSupported`: they cannot talk | Asks nothing more; reads the forge at fidelity `newer-contract`. Gaia needs an update: it explains only, offers no update of itself and names no command, and offers Open in new tab where the Bridge can be reached. |
-| `older` | The forge's `current` is below `SUPPORTED_FORGE_VERSION`, or the forge serves no `/api/versions` (it refuses the path as any unknown one): every released forge today | Asks nothing more; reads the forge at fidelity `older-contract`. The forge needs an update: Update forge, which Gaia runs through the forge program, with its pending, done and refused states. |
+| `older` | The forge's `current` is below `SUPPORTED_FORGE_VERSION`, or the forge serves no `/api/versions` (it refuses the path as any unknown one): every forge from before system versions | Asks nothing more; reads the forge at fidelity `older-contract`. The forge needs an update: Update forge, which Gaia runs through the forge program, with its pending, done and refused states. |
 
 A `/api/versions` answer that is no versions document, as another program on the port gives, is a failed try, as no answer is.
 
@@ -110,7 +110,8 @@ version, major.minor.
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1.0 | `recordingVersion`, `recordingMinor` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
-The forge's requirements F1 to F9, G1 to G4 and V1 to V9 (`docs/forge-requirements.md`) are the owner's to run on the forge's own board. Every fixture of a forge
+The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9; V7 and G1 to G3 come as forge 1.1,
+built by forge's own tracker after the monorepo lands; G4 waits on the owner. Every fixture of a forge
 contract is recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped
 `authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on. `overseer-fetch-supported-forge`,
 forge 1.0 in each situation, is recorded from this repository's forge. `overseer-fetch-flint-brain`, a forge in each state of Flint's

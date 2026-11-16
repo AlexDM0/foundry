@@ -11,10 +11,11 @@ the root's.
 
 ## Gaia's own rules
 
-1. **Change Gaia and, under their own rules, the shared packages.** Claude and agents working on Gaia change `apps/gaia/` and, under
-   each package's `README.md` and constitution, `packages/*` (`packages/design-system` under its `CONSTITUTION.md` and
-   `.claude/rules/design-system.md`), and the root's `package.json`, `bun.lock` and `turbo.json` only for Gaia's own dependencies and
-   tasks. `apps/forge/` is forge's; agent-dashboard and books-explorer are read-only references outside this repository. They never run a
+1. **Change Gaia and, under their own rules, the packages Gaia's tracker reaches.** Claude and agents working on Gaia change
+   `apps/gaia/`, `packages/design-system` under its `CONSTITUTION.md` and `.claude/rules/design-system.md`, `packages/system-versions`
+   under its `README.md`, and the root's `package.json`, `bun.lock` and `turbo.json` only for Gaia's own dependencies and tasks.
+   `apps/forge/`, `packages/brand` and `packages/forge-contracts` are forge's: what Gaia needs there is a forge requirement
+   (`docs/forge-requirements.md`). Agent-dashboard and books-explorer are read-only references outside this repository. They never run a
    forge verb in this repository or talk to a running forge, but for the recordings' scratch forge: `apps/forge/agent-progress.ts` run
    through `src/testing/ScratchForge.ts` with `FORGE_ROOT` pinned to a scratch repository.
 2. **Never touch the real home.** No spec reads or writes `~/.forge-monitor` or `~/.gaia` or talks to a running forge. The test preload
@@ -38,7 +39,7 @@ the root's.
    The forge endpoint versions it calls are derived from forge's registry at that version, never listed by Gaia; verify warns while it is
    behind forge's current version in `forge-contracts`. Gaia asks every forge's `/api/versions` first and decides one verdict per forge
    (`src/shared/utils/ForgeVersionsUtil.ts`): `current` and `ahead` it reads; `newer` (Gaia needs an update) and `older` (the forge needs
-   one, as does a forge that serves no `/api/versions`, every released forge today) it cannot talk to. A document's integer key
+   one, as does a forge from before system versions, which serves no `/api/versions`) it cannot talk to. A document's integer key
    (`monitorVersion`, `fleetVersion`) and a stored file's format version (`version` and an optional `minor`) stay: `CONTRACT_VERSIONS`
    (`src/shared/constants/ContractVersions.ts`) holds the one version Gaia knows of each, and `src/shared/utils/ContractVersionUtil.ts` is
    the one reading rule: the known version reads with its unknown keys passed over; an older or a newer one never reaches a mapper.
@@ -53,8 +54,9 @@ the root's.
 9. **Verify** with `bun run verify` at the repository root, which runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and
    `check` through Turborepo and replays a task whose inputs have not changed; `bun run verify:gaia` there runs Gaia's and the packages
    it depends on. Gaia's tasks are the typecheck of `src/` and `page/`, lint, specs, and `check`: the recording-stamp check and the
-   supported-forge check, which warns while `SUPPORTED_FORGE_VERSION` is behind forge's current version in `forge-contracts`. Never verify
-   with ad-hoc compiler flags.
+   supported-forge check, which warns while `SUPPORTED_FORGE_VERSION` is behind forge's current version in `forge-contracts`. Gaia's
+   tracker's gate runs `bun run gate:gaia`: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then Gaia's `check` alone, so
+   another app's stale recording never turns Gaia's gate red. Never verify with ad-hoc compiler flags.
 10. **Colour lives only in tokens:** the design-system package's `tokens.css`, the brand package's for Forge's mark, and, for Gaia's own
     parts only (its mark, a fill the package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
     package token but `--press-scale`, which the package leaves to its host (set to 1: a press changes no size).
@@ -89,8 +91,13 @@ the root's.
 
 ## Map
 
+Gaia's folders under `apps/gaia/`. Beside them Gaia depends on four workspace packages at `workspace:^`: `design-system` (rule 11),
+`brand` for Forge's mark, `forge-contracts` for forge's documents, system versions and compatibility registry, and `system-versions` for
+the version model both systems share (rule 3). Gaia's tracker lives in `apps/gaia/.forge`, beside forge's in `apps/forge/.forge`.
+
 ```
-docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS by a spec), the backlog, the spikes' findings
+docs/              the architecture, the contracts reference (held to CONTRACT_VERSIONS by a spec), what Gaia asks of forge, the backlog,
+                   the spikes' findings
 resources/         the app bundle templates and the splash page
 src/Main.ts        the one entry point: reads the verb, runs it, maps the app-level error to an exit code
 src/features/      fleet, forge-control, page-server, launcher, app-install
