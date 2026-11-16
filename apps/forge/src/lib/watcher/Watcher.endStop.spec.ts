@@ -58,6 +58,8 @@ function supervisionOfABackgroundServer(stopTreeCalls: StopTreeCall[]): ProcessS
   let listingsLeft = LISTINGS_UNTIL_KILLED;
   return {
     ...processSupervisionFor(process.platform),
+    // Every process reads as one of this example boot, so no identity is read through a program a sandbox may refuse.
+    identityOf:    (processId) => ({ ...CHILD_LEADER, processId }),
     treeMembersOf: () => {
       if (listingsLeft === 0) return [];
       listingsLeft -= 1;

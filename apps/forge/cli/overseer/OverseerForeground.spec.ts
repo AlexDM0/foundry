@@ -2,7 +2,8 @@
  * An Overseer run in this process, so its monitor registry can be one that registers the scratch tracker: a spawned binary sees the scratch
  * root as a temp folder and registers nothing. An Overseer whose data folder watch fails to start registers no URL with the monitor: a move of
  * the registry write before the watch start makes it fail. The page stub and the output of that start are held by
- * `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * `cli/overseer/OverseerCommand.integration.spec.ts`. Its confinement is a planted answer and its own identity the recorded process
+ * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program.
  */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -15,10 +16,12 @@ import {
 
 import { MONITOR_REGISTRY_FILES }                                from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
 import { PRODUCT_NAMES }                                         from '../../src/shared/constants/ProductNames.ts';
+import { fakeGateConfinement }                                   from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                   from '../../src/testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../src/testing/RecordedGit.ts';
+import { useRecordedProcessTable }                               from '../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                                from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                             from '../../src/testing/ToolGuard.ts';
+import { describeWhenRecorded }                                  from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                        from '../Main.ts';
 import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
@@ -29,6 +32,7 @@ const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const ORIGIN_ASKED_WITH_NONE_SET: RecordedGitStep = { gitArguments: ['remote', 'get-url', 'origin'], answeredAs: GIT_CALL_SHAPES.ORIGIN_URL_UNSET };
 
 const recordedGit = useRecordedGit();
+const processTable = useRecordedProcessTable(nativePlatformPorts());
 
 function registryEntriesIn(monitorFolder: string): Record<string, unknown>[] {
   const registry = JSON.parse(readFileSync(join(monitorFolder, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME), 'utf8')) as Record<string, Record<string, Record<string, unknown>>>;
@@ -45,14 +49,15 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-describeWhenGitIsRecorded('the start of an Overseer', () => {
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of an Overseer', () => {
   test('an Overseer whose data folder watch fails to start registers no URL with the monitor', async () => {
     const worktreesFolder = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
     rmSync(worktreesFolder, { recursive: true, force: true });
     // A file where the watch creates its Hatch root makes the watch start throw, after the bind and the logged URL.
     writeFileSync(worktreesFolder, 'not a folder\n');
     recordedGit.answerFrom([...idleOverseerAnswersIn(repositoryDirectory), ORIGIN_ASKED_WITH_NONE_SET]);
-    const platformPorts = nativePlatformPorts();
+    processTable.callerProcess();
+    const platformPorts = { ...processTable.ports, gateConfinement: fakeGateConfinement('confined') };
     // Inside the repository, so the isolation check asks git nothing for it.
     const homeDirectory = join(repositoryDirectory, 'overseer-home');
     const context = createCapturedCommandContext({

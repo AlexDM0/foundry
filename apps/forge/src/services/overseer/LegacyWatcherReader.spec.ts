@@ -2,21 +2,25 @@
  * An Overseer update must never strand a running agent, so every event-log format and watcher-record version a Watcher still running may have
  * written is read by the current code: one fixture per supported version under `testing/fixtures/`, each read back whole, and a format
  * with no reader is reported rather than misread. What matters about a legacy Watcher: only a protocol below the supported window makes it
- * one, and its stop is a signal to its recorded group, never to a process that merely reuses the pid.
+ * one, and its stop is a signal to its recorded group, never to a process that merely reuses the pid, held over the frozen world of a reused
+ * pid, replayed through the macOS adapter on any OS.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import { processSupervisionFor }                                       from '../../lib/process-identity/ProcessSupervisionFor.ts';
 import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision }             from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
+import { FROZEN_STOP_SCENARIOS, replayProcessWorld }                   from '../../testing/ProcessWorldReplay.ts';
 import { LegacyWatcherReader }                                         from './LegacyWatcherReader.ts';
 
 const ports = nativePlatformPorts();
-const { identityOf } = ports.processSupervision;
+
+const REUSED_PROCESS_ID_SCENARIO_NAME = 'a reused pid started later';
 
 const LEGACY_CHILD_PROCESS_ID = 5001;
 
@@ -70,11 +74,15 @@ describe('which Watchers are legacy', () => {
   });
 
   test('a legacy Watcher whose recorded child is now another process is never signalled', () => {
-    const ownIdentity = identityOf(process.pid);
-    if (ownIdentity === null) throw new Error('the spec process has no readable identity');
-    const reusedPid = { ...ownIdentity, startStamp: '1' };
-    expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: reusedPid })).toBe(false);
-    expect(LegacyWatcherReader.stopLegacyWatcher(ports, { ...watcherRecordFixture(1), childProcess: null })).toBe(false);
+    const reusedProcessId = FROZEN_STOP_SCENARIOS.find(({ name }) => name === REUSED_PROCESS_ID_SCENARIO_NAME);
+    if (reusedProcessId === undefined) throw new Error(`no frozen scenario is named ${REUSED_PROCESS_ID_SCENARIO_NAME}`);
+    const macOsPorts = { ...ports, processSupervision: processSupervisionFor('darwin') };
+    const replay = replayProcessWorld(reusedProcessId.world, () => [
+      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(1), childProcess: reusedProcessId.leader }),
+      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(1), childProcess: null }),
+    ]);
+    expect(replay.answer).toEqual([false, false]);
+    expect(replay.signalsSent).toEqual([]);
   });
 
   test('where nothing can ask from outside, a legacy Watcher\'s child gets the forced stop, the only stage it will ever be sent', () => {

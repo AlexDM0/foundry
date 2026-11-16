@@ -438,8 +438,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
 
   function plantOwnBaton(platformPorts: PlatformPorts): { overseerDirectory: string; generation: number } {
     const { overseerDirectory } = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
-    const ownIdentity = platformPorts.processSupervision.identityOf(process.pid);
-    if (ownIdentity === null) throw new Error('This process has no readable identity.');
+    const ownIdentity = processTable.callerProcess();
     const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
       processId:              ownIdentity.processId,
       processStartStamp:      ownIdentity.startStamp,
@@ -456,7 +455,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
   }
 
   test('a drive pass that never becomes idle no longer holds back the stop record and the Baton release', async () => {
-    const platformPorts = nativePlatformPorts();
+    const platformPorts = processTable.ports;
     const { overseerDirectory, generation } = plantOwnBaton(platformPorts);
     const request = stopRequestIn(platformPorts);
     const logLines: string[] = [];

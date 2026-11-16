@@ -2,13 +2,13 @@
  * The Baton's generations in one process: what matters is that a live newest generation refuses, a dead one is followed by the next, the
  * holder removes only the generations below its own, a newer generation makes the holder's effect-batch check refuse `baton-taken`
  * as unrepaired, and a release never unlinks a generation the releaser does not hold. Two starters racing are
- * `cli/overseer/OverseerCommand.integration.spec.ts`'s. Where hard links fail, both claims are refused in words and leave no Baton.
+ * `cli/overseer/OverseerCommand.integration.spec.ts`'s. Where hard links fail, both claims are refused in words and leave no Baton. This
+ * process's identity is the recorded process table's, so no spec reads it through a program a sandbox may refuse.
  */
 import { writeFileSync } from 'node:fs';
 import {
   afterEach,
   beforeEach,
-  describe,
   expect,
   test
 } from 'bun:test';
@@ -17,17 +17,18 @@ import type { FileReplace }                               from '../../lib/atomic
 import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { useRecordedProcessTable }                        from '../../testing/RecordedProcessTable.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { describeWhenRecorded }                           from '../../testing/ToolGuard.ts';
 import { Baton, type BatonRecord }                        from './Baton.ts';
 
-const ports = nativePlatformPorts();
-const { identityOf } = ports.processSupervision;
+const processTable = useRecordedProcessTable(nativePlatformPorts());
+const { ports } = processTable;
 
 let overseerDirectory = '';
 
 function recordOf(startStamp: string): BatonRecord {
-  const ownIdentity = identityOf(process.pid);
-  if (ownIdentity === null) throw new Error('this process has no readable identity');
+  const ownIdentity = processTable.callerProcess();
   return {
     processId:              process.pid,
     processStartStamp:      startStamp,
@@ -42,7 +43,7 @@ function recordOf(startStamp: string): BatonRecord {
 }
 
 function liveRecord(): BatonRecord {
-  return recordOf(identityOf(process.pid)?.startStamp ?? '0');
+  return recordOf(processTable.callerProcess().startStamp);
 }
 
 /** This process's pid under a start it never had: dead, whatever pids the machine has free. */
@@ -70,24 +71,26 @@ const fileReplaceWithoutLinks: FileReplace = {
   },
 };
 
-test.each([
-  ['acquire', () => Baton.acquire(ports, overseerDirectory, liveRecord(), fileReplaceWithoutLinks)],
-  ['acquireAbove', () => Baton.acquireAbove(overseerDirectory, liveRecord(), 0, fileReplaceWithoutLinks)],
-])('Baton.%s creates its record whole, so where hard links fail it is refused in words and no Baton exists', (_claim, claim) => {
-  let refusal: unknown = null;
-  try {
-    claim();
-  } catch (thrown) {
-    refusal = thrown;
-  }
-  expect(refusal instanceof OperationRefusal ? refusal.status : null).toBe('refused');
-  const batonFilePath = Baton.batonFilePathFor(overseerDirectory, 1);
-  const detail = { kind: 'baton-not-created-whole', batonFilePath, reason: 'Error: EPERM: example link refusal' } as const;
-  expect(refusal instanceof OperationRefusal ? refusal.detail : null).toEqual(detail);
-  expect(Baton.batonGenerationsIn(overseerDirectory)).toEqual([]);
+describeWhenRecorded(['process-table-recording'], 'a claim where hard links fail', () => {
+  test.each([
+    ['acquire', () => Baton.acquire(ports, overseerDirectory, liveRecord(), fileReplaceWithoutLinks)],
+    ['acquireAbove', () => Baton.acquireAbove(overseerDirectory, liveRecord(), 0, fileReplaceWithoutLinks)],
+  ])('Baton.%s creates its record whole, so where hard links fail it is refused in words and no Baton exists', (_claim, claim) => {
+    let refusal: unknown = null;
+    try {
+      claim();
+    } catch (thrown) {
+      refusal = thrown;
+    }
+    expect(refusal instanceof OperationRefusal ? refusal.status : null).toBe('refused');
+    const batonFilePath = Baton.batonFilePathFor(overseerDirectory, 1);
+    const detail = { kind: 'baton-not-created-whole', batonFilePath, reason: 'Error: EPERM: example link refusal' } as const;
+    expect(refusal instanceof OperationRefusal ? refusal.detail : null).toEqual(detail);
+    expect(Baton.batonGenerationsIn(overseerDirectory)).toEqual([]);
+  });
 });
 
-describe('Baton.acquire', () => {
+describeWhenRecorded(['process-table-recording'], 'Baton.acquire', () => {
   test('an empty folder gives generation 1, and a live newest generation then refuses already-running with its record', () => {
     expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'acquired', generation: 1 });
     expect(Baton.acquire(ports, overseerDirectory, liveRecord())).toEqual({ verdict: 'already-running', generation: 1, record: liveRecord() });
@@ -103,7 +106,7 @@ describe('Baton.acquire', () => {
   });
 });
 
-describe('the holder', () => {
+describeWhenRecorded(['process-table-recording'], 'the holder', () => {
   test('passes its effect-batch check while newest, and is refused baton-taken, unrepaired, once a newer generation exists', () => {
     Baton.acquire(ports, overseerDirectory, liveRecord());
     expect(() => Baton.requireNewestGeneration(overseerDirectory, 1)).not.toThrow();

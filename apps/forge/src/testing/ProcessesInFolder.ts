@@ -17,10 +17,21 @@ const SIGTERM_GRACE_POLLS  = 20;
 const SIGKILL_SETTLE_POLLS = 200;
 const POLL_INTERVAL_MILLISECONDS = 50;
 
+/** The program and arguments that print every process as `<pid> <command line>`; `null` where neither exists. */
+function processListingArgv(): string[] | null {
+  if (existsSync(join(PROCESS_TABLE_FOLDER, 'self'))) {
+    const processLister = Bun.which('ps') ?? (existsSync('/bin/ps') ? '/bin/ps' : null);
+    return processLister === null ? null : [processLister, '-axo', 'pid=,command='];
+  }
+  // macOS's `/bin/ps` is setuid, which a gate's sandbox refuses to start; `-a` keeps this run's own ancestors in the list, as `ps` does.
+  const processMatcher = Bun.which('pgrep') ?? (existsSync('/usr/bin/pgrep') ? '/usr/bin/pgrep' : null);
+  return processMatcher === null ? null : [processMatcher, '-a', '-l', '-f', '.'];
+}
+
 function processTable(): FolderProcess[] {
-  const processLister = Bun.which('ps') ?? (existsSync('/bin/ps') ? '/bin/ps' : null);
-  if (processLister === null) return [];
-  const listed = Bun.spawnSync([processLister, '-axo', 'pid=,command='], { stdout: 'pipe', stderr: 'ignore' });
+  const listingArgv = processListingArgv();
+  if (listingArgv === null) return [];
+  const listed = Bun.spawnSync(listingArgv, { stdout: 'pipe', stderr: 'ignore' });
   return listed.stdout.toString().split('\n').flatMap((line) => {
     const match = /^\s*(\d+)\s+(.*)$/.exec(line);
     return match === null ? [] : [{ processId: Number(match[1]), command: match[2] ?? '' }];
