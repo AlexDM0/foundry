@@ -6,6 +6,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
 
+import { branchNamesOf }   from '../shared/BranchNames.ts';
 import { WorktreesFolder } from '../shared/WorktreesFolder.ts';
 import { PRODUCT_NAMES }   from '../shared/constants/ProductNames.ts';
 
@@ -31,7 +32,7 @@ export const TWO_TRACKER_PROJECT_SOURCE_FILE = 'src/Example.ts';
 export const TWO_TRACKER_SHARED_PACKAGE_SOURCE_FILE = `${TWO_TRACKER_SHARED_PACKAGE_FOLDER}/src/Example.ts`;
 
 export function ticketBranchOfProject(project: TwoTrackerProject): string {
-  return `${project.namespace}/${WorktreesFolder.ticketBranchOf(TWO_TRACKER_TICKET_ID)}`;
+  return `${project.namespace}/${branchNamesOf(null).ticketBranchOf(TWO_TRACKER_TICKET_ID)}`;
 }
 
 /** The ticket's worktree, a checkout of the whole repository inside its project's worktrees folder. */
