@@ -155,14 +155,19 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
       folders; then the worktree `graphite-orange-handoff-ebd9dc` goes (Claude).
 - [ ] Whether to carry the Claude Code memory of Gaia's project into forge's (owner).
 
-### P8. Forge 1.1 and the last recordings — built on `p8/integration` (Claude), B15 open
+### P8. Forge 1.1 and the last recordings — gated green on `p8/integration` (Claude), B15 open
 
 - [x] Flint's brain (G1 to G4, V7) as forge 1.1; the identity's `contracts.control` stays 1, as clients built for 1.0 compare it for
       equality, and system version 1.1 announces the brain's two commands.
 - [x] Gaia re-records `overseer-fetch-supported-forge` and drops what `forge-contracts` holds only for older forges (the package at
       1.0.0).
 - [x] Gaia re-records `overseer-fetch-versions` from forge 1.1.
-- [ ] B15 as forge 1.2.
+- [x] Gate P8: the common gate with three forced verifies in a row; Gaia's check lists no forge recording authored and its
+      supported-forge step reads 1.1 without a warning; `bun run versions:raise-minimum 1.0` dry runs in `packages/forge-contracts` and
+      `apps/gaia`; the root tracker's frozen git calls unchanged and no client named in forge; a scratch forge from this tree and Gaia's
+      server under one scratch `HOME` with `GAIA_PORT=0`: the forge answers `/api/versions` 1.1, Gaia reads it `current`, the monitor
+      carries the brain, and Gaia's relayed start and stop run and end it on the fake agent, `startedBy` `api`.
+- [ ] B15 as forge 1.2, waiting for the owner's monorepo design.
 
 ## Backlog
 
@@ -199,6 +204,6 @@ Still open:
 ## Forge requirements, apart from the merge
 
 `apps/gaia/docs/forge-requirements.md` asks forge for the version model, naming no client. Forge 1.0 (`9ec2b85a`, on
-`monorepo/integration`) meets V1 to V6, V8 and V9, and Gaia supports it (`SUPPORTED_FORGE_VERSION` 1.0). V7 and G1 to G3 come with
-Flint's brain as forge 1.1 in P8. Forge `main` at `db64ed0a` serves no `/api/versions`, so this tree's Gaia reads a forge of that
-code as older and offers Update forge until P7 lands it.
+`monorepo/integration`) meets V1 to V6, V8 and V9. Forge 1.1, Flint's brain, meets V7 and G1 to G4 on `p8/integration`, gated in P8,
+where Gaia supports 1.1 (`SUPPORTED_FORGE_VERSION`). Forge `main` at `db64ed0a` serves no `/api/versions`, so this tree's Gaia reads a
+forge of that code as older and offers Update forge until P7 lands it.
