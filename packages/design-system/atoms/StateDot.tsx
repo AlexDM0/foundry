@@ -1,6 +1,6 @@
 /**
- * A state's round dot, filled from its tone's row in `tokens.css` and drawn in its shape: 8px, `small` 7px beside a line of text, `tiny` 6px
- * beside a small one. It is decoration.
+ * A state's dot, filled from its tone's row in `tokens.css` and drawn in its shape, round or a diamond: 8px, `small` 7px beside a line of
+ * text, `tiny` 6px beside a small one. It is decoration.
  */
 import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
 

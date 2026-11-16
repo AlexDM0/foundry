@@ -40,6 +40,7 @@ export const QuietPalette: Story = {
     palette: 'quiet', tone: 'info-outline', label: 'Waiting', pulsing: false, dashed: true, dotShape: 'ring'
   }
 };
+export const DiamondDot: Story = { args: { tone: 'accent', label: 'Thinking', dotShape: 'diamond' } };
 export const WithTitle: Story = { args: { title: 'Example badge title' } };
 
 export const EveryTone: Story = {

@@ -6,7 +6,7 @@ import { Text }                          from './Text.tsx';
 import { View }                          from './View.tsx';
 
 const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
-const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring'];
+const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring', 'diamond'];
 
 const meta = {
   title:     'Atoms/StateDot',
@@ -22,6 +22,16 @@ export const Accent: Story = {};
 export const ErrorTone: Story = { args: { tone: 'error' } };
 export const Ring: Story = { args: { tone: 'muted', shape: 'ring' } };
 export const DashedRing: Story = { args: { tone: 'neutral', shape: 'dashed-ring' } };
+export const Diamond: Story = { args: { tone: 'accent', shape: 'diamond' } };
+export const DiamondAtEachSize: Story = {
+  render: () => (
+    <View row centerY gap="eight">
+      <StateDot tone="accent" shape="diamond" />
+      <StateDot tone="accent" shape="diamond" small />
+      <StateDot tone="accent" shape="diamond" tiny />
+    </View>
+  ),
+};
 export const Small: Story = { args: { small: true } };
 export const Tiny: Story = { args: { tiny: true } };
 

@@ -29,9 +29,15 @@ describe('the state dot', () => {
     expect(container.querySelector('.design-system-state-dot')?.getAttribute('data-state-tone')).toBe('error');
   });
 
-  test('a ring and a dashed ring set data-shape', () => {
-    const { container } = render(<><StateDot tone="muted" shape="ring" /><StateDot tone="neutral" shape="dashed-ring" /></>);
-    expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => dot.getAttribute('data-shape'))).toEqual(['ring', 'dashed-ring']);
+  test('a ring, a dashed ring and a diamond set data-shape', () => {
+    const { container } = render(<><StateDot tone="muted" shape="ring" /><StateDot tone="neutral" shape="dashed-ring" /><StateDot tone="accent" shape="diamond" /></>);
+    expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => dot.getAttribute('data-shape'))).toEqual(['ring', 'dashed-ring', 'diamond']);
+  });
+
+  test('a diamond keeps its size flag at each size', () => {
+    const { container } = render(<><StateDot tone="accent" shape="diamond" /><StateDot tone="accent" shape="diamond" small /><StateDot tone="accent" shape="diamond" tiny /></>);
+    expect([...container.querySelectorAll('.design-system-state-dot')].map((dot) => [dot.getAttribute('data-shape'), dot.getAttribute('data-size')]))
+      .toEqual([['diamond', null], ['diamond', 'small'], ['diamond', 'tiny']]);
   });
 
   test('small and tiny set data-size, and the standard size sets nothing', () => {

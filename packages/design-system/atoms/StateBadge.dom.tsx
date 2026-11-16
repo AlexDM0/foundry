@@ -44,6 +44,10 @@ describe('the state badge', () => {
     expect(SHAPE_ATTRIBUTES.map((attribute) => badge.getAttribute(attribute))).toEqual(['dashed-ring', '', '', '']);
   });
 
+  test('a diamond dot sets data-dot-shape', () => {
+    expect(renderedBadge(<StateBadge tone="accent" label="Thinking" dotShape="diamond" />).getAttribute('data-dot-shape')).toBe('diamond');
+  });
+
   test('compact sets data-size, and the standard size sets none', () => {
     expect(renderedBadge(<StateBadge tone="neutral" label="To do" size="compact" />).getAttribute('data-size')).toBe('compact');
     cleanup();

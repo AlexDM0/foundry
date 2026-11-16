@@ -21,6 +21,9 @@
 .design-system-state-badge-dot { flex: none; box-sizing: border-box; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--s-fill, var(--line-strong)); }
 .design-system-state-badge[data-dot-shape="dashed-ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px dashed var(--s-fill); }
 .design-system-state-badge[data-dot-shape="ring"] .design-system-state-badge-dot { background: transparent; border: 1.5px solid var(--s-fill); }
+.design-system-state-badge[data-dot-shape="diamond"] .design-system-state-badge-dot {
+  background: transparent; border: 1.5px solid var(--s-fill); border-radius: 0; transform: rotate(45deg) scale(0.85);
+}
 .design-system-state-badge[data-pulsing] .design-system-state-badge-dot { animation: design-system-pulse var(--pulse-status) ease-in-out infinite; }
 .design-system-state-badge-label { overflow: hidden; text-overflow: ellipsis; }
 .design-system-state-badge[data-struck] .design-system-state-badge-label { text-decoration: line-through; }

@@ -16,5 +16,5 @@ export type StateTone =
   | 'ink'
   | 'muted';
 
-/** How a state dot is drawn: filled, a ring, or a dashed ring. */
-export type StateDotShape = 'solid' | 'ring' | 'dashed-ring';
+/** How a state dot is drawn: filled, a ring, a dashed ring, or a diamond, a square outline turned 45 degrees. */
+export type StateDotShape = 'solid' | 'ring' | 'dashed-ring' | 'diamond';
