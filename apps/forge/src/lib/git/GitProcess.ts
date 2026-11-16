@@ -1,7 +1,8 @@
 /**
  * The git building block: `GitProcess.run` is the one place git is spawned, with paths printed unquoted and hooks off unless asked for,
  * and the modules beside it answer repository questions on it as verdicts. It depends on `src/lib/atomic-file`, through GitIgnore and Worktrees,
- * and on `src/lib/executable-resolver`, whose host resolver finds git, since this one static spawn has no context to take a port from.
+ * on `src/lib/executable-resolver`, whose host resolver finds git, since this one static spawn has no context to take a port from, and on
+ * `src/lib/json-record` and `src/lib/versioned-registry`, through RepositoryLandings.
  */
 import { existsSync, statSync } from 'node:fs';
 import { join }                 from 'node:path';
