@@ -1,5 +1,5 @@
 /**
- * Verification by code of what a session left (design section 5.1, V1 to V15): nothing it says is taken as true, so each check reads git,
+ * Verification by code of what a session left (design section 5.1, V1 to V17): nothing it says is taken as true, so each check reads git,
  * the ticket body and the report itself, and answers a wordless verdict. A role runs only the checks its column of the table names.
  */
 import { createHash } from 'node:crypto';
@@ -19,13 +19,16 @@ import { TicketAcceptanceUtil }                                                 
 import { type GitPathStyle, GitPaths }                                                from '../../lib/git/GitPaths.ts';
 import { type GitHookPolicy, type GitRun, GitProcess }                                from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                                               from '../../lib/git/GitWorktrees.ts';
+import type { RepositoryLanding }                                                     from '../../lib/git/RepositoryLandings.ts';
 import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                           from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                                                           from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { JobOutcome }                                                            from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                             from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import { TicketBodyHashUtil }                                                         from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                                              from '../../shared/constants/ProductNames.ts';
+import { ProjectPathsUtil }                                                           from '../../shared/utils/ProjectPathsUtil.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
 /**
@@ -37,7 +40,8 @@ export type VerifiedRole = 'builder' | 'reviewer' | 'airlock-agent' | 'pipeline-
 /** The roles that end with a report: the pipeline agent is a session, verified at each turn end with no report. */
 export type ReportingRole = Exclude<VerifiedRole, 'pipeline-agent'>;
 
-export type VerificationCheck = 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16';
+export type VerificationCheck =
+  | 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10' | 'V11' | 'V12' | 'V13' | 'V14' | 'V15' | 'V16' | 'V17';
 
 export type VerificationRefusalReason =
   | 'report-invalid'
@@ -52,6 +56,7 @@ export type VerificationRefusalReason =
   | 'fixed-finding-outside-range'
   | 'merge-unresolved'
   | 'checks-definition-changed'
+  | 'changed-outside-home-and-reach'
   | 'instruction-file-changed'
   | 'finding-not-filed-by-job'
   | 'branch-touches-agent-config'
@@ -90,6 +95,40 @@ export interface RefMovesAllowed {
    * by the Overseer alone.
    */
   airlockWorktreeHeads: readonly string[];
+  /** Absent: every ref is watched, as for a tracker whose branches keep their bare names. */
+  watchedRefs?:         WatchedRefs;
+}
+
+/**
+ * The refs a tracker that names its branches in a namespace owns. Every other branch, tag, stash, remote and detached HEAD belongs to a
+ * sibling tracker or a person working beside it, and moves without failing the job.
+ */
+export interface WatchedRefs {
+  mainLine:        string;
+  /** `BranchNames.namespacePrefix`: the tracker's ticket and group branches all start with it. */
+  namespacePrefix: string;
+  /** A detached HEAD below it is one of the tracker's own worktrees'. */
+  worktreesRoot:   string;
+}
+
+/** What a tracker sharing its repository adds to V14: every tracker's journaled landings, and the refs it watches. */
+export interface SharedRepositoryRefs {
+  /** The landing journal's entries: the branch each landing moved, as its tracker names it, and the commit it moved it to. */
+  journaledLandings: readonly Pick<RepositoryLanding, 'target' | 'commit'>[];
+  watchedRefs:       WatchedRefs | null;
+}
+
+const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], watchedRefs: null };
+
+/**
+ * Where the tracker's project lies in its repository, and what a branch may change besides it. With the prefix `''` the whole repository
+ * is the project, and every check judges it as it always has.
+ */
+export interface ProjectScope {
+  /** `ProjectLocation.projectPrefix`: the project's folder from the repository root, `/`-separated, `''` at the root. */
+  projectPrefix: string;
+  /** The pipeline's `reach`: the repository paths besides the project a branch may change, each leading with `/`. */
+  reach:         readonly string[];
 }
 
 /** How the Overseer names the refs around its landings, which the log records only by ticket and target. */
@@ -127,8 +166,8 @@ export interface CustomsSubject {
    */
   gates?:            readonly Readonly<PipelineGate>[];
   /**
-   * V11 also: the tracked files each role's resolved instruction list names, the constitution's path among them, which a branch changes only
-   * where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
+   * V11 also: the tracked files, as repository paths, each role's resolved instruction list names, the constitution's path among them,
+   * which a branch changes only where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
    */
   instructionFiles?: readonly string[];
   /**
@@ -144,6 +183,8 @@ export interface CustomsSubject {
   refMovesAllowed?:  RefMovesAllowed;
   /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
   pathStyle?:        GitPathStyle;
+  /** V5, V11, V13 and V17; absent for a tracker at its repository's root. `worktreePath` is the worktree's root either way. */
+  projectScope?:     ProjectScope;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -160,6 +201,14 @@ const HOST_PATH_STYLE: GitPathStyle = { pathModule: path, foldsCase: false };
 /** A protected name matches in any case on every host: a branch merged on Linux is later checked out where case folds. */
 function protectedFormOf(gitPath: string): string {
   return gitPath.toLowerCase();
+}
+
+const REPOSITORY_ROOT_MARKER = '/';
+
+const GIT_SEPARATOR = '/';
+
+function projectPrefixOf(subject: Pick<CustomsSubject, 'projectScope'>): string {
+  return subject.projectScope?.projectPrefix ?? '';
 }
 
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
@@ -285,11 +334,22 @@ function worktreeIsClean(subject: CustomsSubject): CheckVerdict {
   return paths.length === 0 ? PASSED : refused('worktree-dirty', paths);
 }
 
+/**
+ * The git paths among `gitPaths` in a data folder: at the root for a tracker at the root, as always; at any depth for a project tracker,
+ * whose own data folder and every sibling's lie below the root.
+ */
+export function dataFolderPathsAmong(gitPaths: readonly string[], projectPrefix: string): string[] {
+  const dataFolder = protectedFormOf(PRODUCT_NAMES.DATA_FOLDER);
+  return gitPaths.filter((gitPath) => {
+    const segments = protectedFormOf(gitPath).split(GIT_SEPARATOR);
+    return projectPrefix === '' ? segments[0] === dataFolder : segments.includes(dataFolder);
+  });
+}
+
 function dataFolderUntouched(subject: CustomsSubject): CheckVerdict {
   const paths = pathsChangedInRange(subject);
   if (paths === null) return refused('git-failed', [rangeOf(subject)]);
-  const dataFolder = protectedFormOf(PRODUCT_NAMES.DATA_FOLDER);
-  const touched = paths.filter((gitPath) => protectedFormOf(gitPath) === dataFolder || protectedFormOf(gitPath).startsWith(`${dataFolder}/`));
+  const touched = dataFolderPathsAmong(paths, projectPrefixOf(subject));
   return touched.length === 0 ? PASSED : refused('data-folder-touched', touched);
 }
 
@@ -382,6 +442,20 @@ export function definitionFilePatternExpressionOf(pattern: string): RegExp {
 }
 
 /**
+ * Whether a repository path is one a board's pattern names. A pattern leading with `/` is read from the repository root and any other from
+ * the project's folder, so `src/**` and a bare `eslint.config.js` never name a sibling project's file; with the prefix `''` both read
+ * from the root, as a pattern always has.
+ */
+export function definitionFileMatcherOf(pattern: string, projectPrefix: string): (repositoryPath: string) => boolean {
+  const expression = definitionFilePatternExpressionOf(pattern);
+  if (pattern.startsWith(REPOSITORY_ROOT_MARKER)) return (repositoryPath) => expression.test(repositoryPath);
+  return (repositoryPath) => {
+    const projectPath = ProjectPathsUtil.toProjectPath(projectPrefix, repositoryPath);
+    return !projectPath.startsWith(REPOSITORY_ROOT_MARKER) && expression.test(projectPath);
+  };
+}
+
+/**
  * The paths the branch changed itself: those of its own commits, which `target` does not hold, and what HEAD changes against the newest
  * commit of `target` that the branch holds. A merge commit names no paths of its own here, so only what its tree changes against `target`
  * counts.
@@ -405,14 +479,16 @@ function instructionFilesChangedByTheBranch(subject: CustomsSubject, changed: re
 }
 
 /** With no gate naming a `definedBy` the board names no definition files, so nothing refuses. */
+/** A ticket names a file as the project's paths do, so `src/x.ts` names the project's file and `/bun.lock` the root's. */
 function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
-  const patterns = (subject.gates ?? []).flatMap((gate) => gate.definedBy ?? []).map(definitionFilePatternExpressionOf);
+  const projectPrefix = projectPrefixOf(subject);
+  const matchers = (subject.gates ?? []).flatMap((gate) => gate.definedBy ?? []).map((pattern) => definitionFileMatcherOf(pattern, projectPrefix));
   const instructionFiles = subject.instructionFiles ?? [];
-  if (patterns.length === 0 && instructionFiles.length === 0) return PASSED;
+  if (matchers.length === 0 && instructionFiles.length === 0) return PASSED;
   const paths = pathsChangedInRange(subject);
   if (paths === null) return refused('git-failed', [rangeOf(subject)]);
-  const unnamed = paths.filter((path) => !subject.ticketBody.includes(path));
-  const changedDefinitions = unnamed.filter((path) => patterns.some((pattern) => pattern.test(path)));
+  const unnamed = paths.filter((path) => !subject.ticketBody.includes(ProjectPathsUtil.toProjectPath(projectPrefix, path)));
+  const changedDefinitions = unnamed.filter((path) => matchers.some((matches) => matches(path)));
   if (changedDefinitions.length > 0) return refused('checks-definition-changed', changedDefinitions);
   const protectedInstructionFiles = instructionFiles.map(protectedFormOf);
   const changedInstructions = instructionFilesChangedByTheBranch(
@@ -421,6 +497,31 @@ function checksDefinitionUnchanged(subject: CustomsSubject): CheckVerdict {
   );
   if (changedInstructions === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
   return changedInstructions.length === 0 ? PASSED : refused('instruction-file-changed', changedInstructions);
+}
+
+function reachEntryOf(reachPath: string): string {
+  return reachPath.replace(/^\/+/, '').replace(/\/+$/, '');
+}
+
+/** The git paths among `gitPaths` outside the project's folder and every reach entry, a file or a folder; none for a tracker at the root. */
+export function pathsOutsideHomeAndReachOf(gitPaths: readonly string[], projectScope: ProjectScope): string[] {
+  const { projectPrefix, reach } = projectScope;
+  if (projectPrefix === '') return [];
+  const allowedPaths = [projectPrefix, ...reach.map(reachEntryOf)];
+  return gitPaths.filter((gitPath) => !allowedPaths.some((allowed) => gitPath === allowed || gitPath.startsWith(`${allowed}${GIT_SEPARATOR}`)));
+}
+
+/**
+ * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
+ * tracker at the root asks git nothing here.
+ */
+function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
+  const { projectScope } = subject;
+  if (projectScope === undefined || projectScope.projectPrefix === '') return PASSED;
+  const paths = subject.target === undefined ? pathsChangedInRange(subject) : pathsTheBranchChangedPast(subject, subject.target);
+  if (paths === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
+  const outside = pathsOutsideHomeAndReachOf(paths, projectScope);
+  return outside.length === 0 ? PASSED : refused('changed-outside-home-and-reach', outside);
 }
 
 /** Every gate but an `overseerOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */
@@ -472,7 +573,10 @@ function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict 
 }
 
 /** Matched against a protected form, so lower case only. */
-const AGENT_CONFIG_PATTERNS: readonly RegExp[] = [/^\.claude\//, /^\.mcp\.json$/];
+const AGENT_CONFIG_PATTERNS_AT_THE_ROOT: readonly RegExp[] = [/^\.claude\//, /^\.mcp\.json$/];
+
+/** A project tracker's sessions start below the root, where Claude Code also reads the project's own configuration. */
+const AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH: readonly RegExp[] = [/(^|\/)\.claude\//, /(^|\/)\.mcp\.json$/];
 
 const DEFAULT_HOOKS_FOLDER = 'hooks';
 
@@ -525,28 +629,36 @@ function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
   }
 }
 
-/** The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case matches. */
-export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null): string[] {
+/**
+ * The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case
+ * matches. The first two are protected at the root for a tracker at the root, as always, and at any depth for a project tracker.
+ */
+export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null, projectPrefix = ''): string[] {
   const hooksFolder = hooksFolderGitPath === null ? null : protectedFormOf(hooksFolderGitPath);
+  const patterns = projectPrefix === '' ? AGENT_CONFIG_PATTERNS_AT_THE_ROOT : AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH;
   return gitPaths.filter((gitPath) => {
     const protectedForm = protectedFormOf(gitPath);
-    if (AGENT_CONFIG_PATTERNS.some((pattern) => pattern.test(protectedForm))) return true;
+    if (patterns.some((pattern) => pattern.test(protectedForm))) return true;
     return hooksFolder !== null && (protectedForm === hooksFolder || protectedForm.startsWith(`${hooksFolder}/`));
   });
 }
 
 /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree hooks folder. */
-function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, sinceCommit: string, merge?: MergeUnderVerification): string[] | null {
-  const paths = pathsChangedInRange({ worktreePath, startCommit: sinceCommit, ...(merge === undefined ? {} : { merge }) });
+function agentConfigPathsTouched(
+  style: GitPathStyle,
+  worktreePath: string,
+  since: { commit: string; projectPrefix: string; merge?: MergeUnderVerification | undefined }
+): string[] | null {
+  const paths = pathsChangedInRange({ worktreePath, startCommit: since.commit, ...(since.merge === undefined ? {} : { merge: since.merge }) });
   const status = gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
   if (paths === null || status === null) return null;
   const worktreePaths = status.map((entry) => entry.slice('XY '.length));
-  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath)).sort();
+  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath), since.projectPrefix).sort();
 }
 
 function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
   const style = subject.pathStyle ?? HOST_PATH_STYLE;
-  const touched = agentConfigPathsTouched(style, subject.worktreePath, subject.startCommit, subject.merge);
+  const touched = agentConfigPathsTouched(style, subject.worktreePath, { commit: subject.startCommit, projectPrefix: projectPrefixOf(subject), merge: subject.merge });
   if (touched === null) return refused('git-failed', [rangeOf(subject)]);
   const hooksFolderReading = subject.launchSnapshot === undefined || hooksFolderInsideWorktree(style, subject.worktreePath) !== null
     ? null
@@ -587,6 +699,8 @@ export function launchSnapshotOf(worktreePath: string): LaunchSnapshot | null {
 
 const WORKTREE_HEAD_PREFIX = 'HEAD:';
 
+const BRANCH_REF_PREFIX = 'refs/heads/';
+
 /** A `HEAD:<path>` key in canonical form, so git's listed spelling and a joined path meet; a stored snapshot keeps git's spelling. */
 function comparableRefOf(style: GitPathStyle, ref: string): string {
   return ref.startsWith(WORKTREE_HEAD_PREFIX) ? `${WORKTREE_HEAD_PREFIX}${GitPaths.canonicalOf(style, ref.slice(WORKTREE_HEAD_PREFIX.length))}` : ref;
@@ -594,6 +708,14 @@ function comparableRefOf(style: GitPathStyle, ref: string): string {
 
 function comparableRefsOf(style: GitPathStyle, refs: Readonly<Record<string, string>>): Map<string, { ref: string; commit: string }> {
   return new Map(Object.entries(refs).map(([ref, commit]) => [comparableRefOf(style, ref), { ref, commit }]));
+}
+
+/** Every ref for a tracker with bare branch names; for a namespaced one, its own branches, the main line and its own worktrees' HEADs. */
+function refIsWatched(style: GitPathStyle, ref: string, watchedRefs: WatchedRefs | undefined): boolean {
+  if (watchedRefs === undefined) return true;
+  if (ref.startsWith(WORKTREE_HEAD_PREFIX)) return GitPaths.relativeInsideOf(style, watchedRefs.worktreesRoot, ref.slice(WORKTREE_HEAD_PREFIX.length)) !== null;
+  const branch = ref.startsWith(BRANCH_REF_PREFIX) ? ref.slice(BRANCH_REF_PREFIX.length) : null;
+  return branch !== null && (branch === watchedRefs.mainLine || branch.startsWith(watchedRefs.namespacePrefix));
 }
 
 /** The refs that moved from `launchRefs` to `nowRefs` past every exemption, named as git spelled them. */
@@ -612,6 +734,7 @@ export function foreignRefsMovedOf(
   const loggedJobRefs = new Set(refMovesAllowed.loggedJobBranches.map((branch) => `refs/heads/${branch}`));
   const moved = [...new Set([...launchRefs.keys(), ...nowRefs.keys()])].filter((ref) => {
     if (exempt.has(ref)) return false;
+    if (!refIsWatched(style, nowRefs.get(ref)?.ref ?? launchRefs.get(ref)?.ref ?? ref, refMovesAllowed.watchedRefs)) return false;
     const after = nowRefs.get(ref)?.commit;
     if (launchRefs.get(ref)?.commit === after) return false;
     if (after === undefined && removedAfterLandings.has(ref)) return false;
@@ -630,11 +753,21 @@ function onlyOwnRefsMoved(subject: CustomsSubject): CheckVerdict {
   return moved.length === 0 ? PASSED : refused('foreign-ref-moved', moved);
 }
 
+/** `null` for a tracker whose branches keep their bare names: it watches every ref, as it always has. */
+export function watchedRefsOf(branchNames: BranchNames, mainLine: string, worktreesRoot: string): WatchedRefs | null {
+  return branchNames.namespacePrefix === '' ? null : { mainLine, namespacePrefix: branchNames.namespacePrefix, worktreesRoot };
+}
+
 /**
  * V14's exemptions from the log: each landing on its job's target at its commit, what a main-line landing deletes, every refresh's and
- * constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch.
+ * constitution commit's worktree, and the ticket branches of the jobs ending after the verified job's launch. A tracker sharing its
+ * repository adds each journaled landing, a sibling's among them, and the refs it watches.
  */
-export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: OverseerRefNaming): RefMovesAllowed {
+export function refMovesAllowedOf(
+  logRecords: readonly LogRecord[],
+  naming: OverseerRefNaming,
+  sharedRepository: SharedRepositoryRefs = ALONE_IN_ITS_REPOSITORY
+): RefMovesAllowed {
   const launchById = new Map<string, { target: string | null; ticketIds: readonly string[] }>();
   const recordedLandings: { ref: string; commit: string }[] = [];
   const removedAfterLandings: string[] = [];
@@ -654,7 +787,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
     if (record.kind !== 'job-ended' || !LANDING_OUTCOMES.includes(record.fields.outcome) || record.fields.commit === undefined) continue;
     const launch = launchById.get(record.jobId);
     if (launch === undefined || launch.target === null) continue;
-    recordedLandings.push({ ref: `refs/heads/${launch.target}`, commit: record.fields.commit });
+    recordedLandings.push({ ref: `${BRANCH_REF_PREFIX}${launch.target}`, commit: record.fields.commit });
     if (record.fields.outcome !== 'landed') continue;
     for (const ticketId of launch.ticketIds) {
       removedAfterLandings.push(`refs/heads/${naming.ticketBranchOf(ticketId)}`);
@@ -662,6 +795,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
       if (groupBranch !== null) removedAfterLandings.push(`refs/heads/${groupBranch}`);
     }
   }
+  for (const landing of sharedRepository.journaledLandings) recordedLandings.push({ ref: `${BRANCH_REF_PREFIX}${landing.target}`, commit: landing.commit });
   return {
     ownBranch:         naming.ownBranch,
     otherJobBranches:  naming.otherJobBranches,
@@ -669,6 +803,7 @@ export function refMovesAllowedOf(logRecords: readonly LogRecord[], naming: Over
     recordedLandings,
     removedAfterLandings,
     airlockWorktreeHeads,
+    ...(sharedRepository.watchedRefs === null ? {} : { watchedRefs: sharedRepository.watchedRefs }),
   };
 }
 
@@ -696,21 +831,22 @@ export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationChec
   V14: onlyOwnRefsMoved,
   V15: everyAgentGateClaimedOnHead,
   V16: headUnmoved,
+  V17: changesStayInHomeAndReach,
 };
 
 /** The design's table, column by column, in check order. */
 export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly VerificationCheck[]>> = {
-  'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V13', 'V14', 'V15'],
-  'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V12', 'V13', 'V14'],
-  'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V13', 'V14'],
+  'builder':        ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V11', 'V17', 'V13', 'V14', 'V15'],
+  'reviewer':       ['V1', 'V2', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V11', 'V17', 'V12', 'V13', 'V14'],
+  'airlock-agent':  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V10', 'V11', 'V17', 'V13', 'V14'],
   'pipeline-agent': ['V16', 'V4', 'V5', 'V13', 'V14'],
 };
 
 /** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */
-export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE): CheckVerdict {
+export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE, projectPrefix = ''): CheckVerdict {
   const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
   if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
-  const touched = agentConfigPathsTouched(style, worktreePath, base.standardOutput.trim());
+  const touched = agentConfigPathsTouched(style, worktreePath, { commit: base.standardOutput.trim(), projectPrefix });
   if (touched === null) return refused('git-failed', [target]);
   return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
 }
