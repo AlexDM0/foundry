@@ -295,7 +295,7 @@ function ReadingsNoteLine({ note }: { readonly note: ReadingsNote | null }) {
 function ReadingsPanel({ readings, note }: { readonly readings: readonly ForgeReadingLine[]; readonly note: ReadingsNote | null }) {
   return (
     <section className="gaia-attention-section" aria-label={READINGS_HEAD}>
-      <SectionHead title={READINGS_HEAD} compact />
+      <SectionHead title={READINGS_HEAD} />
       <ul className="gaia-attention-readings">
         {readings.map((reading) => (
           <li key={reading.trackerId} className="gaia-attention-reading" data-totals-cannot-vouch={reading.totalsCannotVouchForIt ? '' : undefined}>
@@ -396,7 +396,7 @@ function WaitingCard({ content }: { readonly content: AttentionContent }) {
 function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
   return (
     <section className="gaia-attention-section" aria-label={RECENT_HEAD}>
-      <SectionHead title={RECENT_HEAD} compact>
+      <SectionHead title={RECENT_HEAD}>
         <span className="gaia-attention-recent-all"><TextButton label="All activity" href={ACTIVITY_HREF} /></span>
       </SectionHead>
       {recent.length === 0 ? <EmptyState text={ACTIVITY_SENTENCES.noActivity} compact /> : (
@@ -443,7 +443,7 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
           {content.readings === null ? null : <ReadingsPanel readings={content.readings} note={content.readingsNote} />}
           {content.running.length === 0 && content.runningNote === null ? null : (
             <section className="gaia-attention-section" aria-label={content.runningHead}>
-              <SectionHead title={content.runningHead} compact />
+              <SectionHead title={content.runningHead} />
               {content.running.map((card) => <RunningCardLink key={card.trackerId} card={card} form={content.runningForm} />)}
               {content.runningNote === null ? null : <p className="gaia-attention-note">{content.runningNote}</p>}
             </section>

@@ -229,7 +229,7 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
       )}
       {stop === null ? null : (
         <span className="gaia-forge-frame-stop" ref={stopAnchorRef}>
-          <Button label="Stop" trailing={<ButtonGlyph name="caret-down" />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
+          <Button label="Stop" trailing={<ButtonGlyph name="chevron-down" />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
           {stopIsOpen && controlsMayAct ? (
             <Popover label={stop.label} role="dialog" isOpen onDismiss={onCancelStop} anchorRef={stopAnchorRef} placement="below-end" width="wide">
               <StopQuestionStrip question={stop} {...props} />

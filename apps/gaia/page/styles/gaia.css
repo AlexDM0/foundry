@@ -98,9 +98,9 @@
 .gaia-brain-chip-refusal-sentence { overflow: hidden; min-width: 0; text-overflow: ellipsis; }
 .gaia-brain-chip-refusal-code { flex: none; font-family: var(--font-mono); font-weight: var(--weight-strong); }
 
-/* Callout: the package's banner or dashed card around a title line, a sentence and a mono line */
+/* Callout: the package's callout around a title line, a sentence and a mono line, each line the body's height */
 .gaia-callout { display: block; }
-.gaia-callout-body { display: flex; flex: 1; flex-direction: column; gap: var(--sp-half); min-width: 0; color: var(--ink); font-size: var(--fs-body); }
+.gaia-callout-body { display: flex; flex: 1; flex-direction: column; gap: var(--sp-half); min-width: 0; color: var(--ink); font-size: var(--fs-body); line-height: var(--line-height-body); }
 .gaia-callout-title { display: flex; align-items: center; gap: var(--sp-2); }
 .gaia-callout-name { font-weight: var(--weight-strong); }
 .gaia-callout-word { font-weight: var(--weight-strong); color: var(--ink-muted); transition: color var(--motion-base) var(--ease-out); }
@@ -984,7 +984,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
 .gaia-attention-section { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 /* The package's section head stands 26 px for parts this head lacks; its 5 px above and below its 16 px line are taken back, as A1 and B3 draw it. */
-.gaia-attention-looks { display: flex; flex-direction: column; gap: var(--space-5); }
+.gaia-attention-looks { display: flex; flex-direction: column; gap: var(--space-12); }
 .gaia-attention-look-list { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 .gaia-attention-note { display: flex; align-items: flex-start; gap: var(--sp-3); margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-attention-note-sentence { flex: 1; margin: 0; }
