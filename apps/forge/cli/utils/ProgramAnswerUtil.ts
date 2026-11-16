@@ -1,7 +1,7 @@
 /**
- * The versioned JSON answers of the verbs a program outside the board runs, such as Gaia: each one document on standard output carrying
- * `answerVersion`, and a refusal under `--json` as `{answerVersion, refusal, text}`, the refusal's code and its API sentence, which names no
- * command line, since that program shows it to User as it is.
+ * The versioned JSON answers of the verbs a program outside the board runs, such as one that monitors several boards: each one document on
+ * standard output carrying `answerVersion`, and a refusal under `--json` as `{answerVersion, refusal, text}`, the refusal's code and its API
+ * sentence, which names no command line, since that program shows it to User as it is.
  */
 import { OperationRefusalWordingUtil }         from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { reasonCodeOf, type OperationRefusal } from '../../src/shared/OperationRefusal.ts';

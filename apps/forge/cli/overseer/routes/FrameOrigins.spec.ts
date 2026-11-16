@@ -1,7 +1,7 @@
 /**
- * Which origins may frame the Bridge. What matters: Gaia's record adds its `origin` only at version 1, so a record of another version, an
- * unreadable one or none adds nothing and the Bridge stays unframeable; agent-dashboard's record keeps adding its two origins; and an
- * origin both name is listed once.
+ * Which origins may frame the Bridge. What matters: each frame-ancestor record of the known major adds its `origin`, whatever its minor and
+ * the host's own keys; a record of another major, an unreadable one, one that is no `.json` file, or one whose origin is no URL or opaque
+ * adds nothing, so with none the Bridge stays unframeable; and an origin two records name is listed once.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -15,8 +15,8 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
 import { FrameOrigins }                                   from './FrameOrigins.ts';
 
-const GAIA_ORIGIN = 'http://127.0.0.1:5180';
-const DASHBOARD_ORIGIN = 'http://127.0.0.1:4800';
+const FIRST_HOST_ORIGIN = 'http://127.0.0.1:5180';
+const SECOND_HOST_ORIGIN = 'http://127.0.0.1:4800';
 
 const scratchDirectories: string[] = [];
 
@@ -24,57 +24,60 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-function homeWith(records: { gaia?: string; dashboard?: string }): { homeDirectory: string; monitorFolder: string } {
-  const homeDirectory = createScratchDirectory('frame-origins');
-  scratchDirectories.push(homeDirectory);
-  const monitorFolder = join(homeDirectory, '.example-monitor');
-  if (records.gaia !== undefined) {
-    mkdirSync(join(monitorFolder, 'gaia'), { recursive: true });
-    writeFileSync(join(monitorFolder, 'gaia', 'server.json'), records.gaia);
-  }
-  if (records.dashboard !== undefined) {
-    mkdirSync(join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard'), { recursive: true });
-    writeFileSync(join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard', 'server.json'), records.dashboard);
-  }
-  return { homeDirectory, monitorFolder };
+function monitorFolderWith(recordsByFileName: Readonly<Record<string, string>>): string {
+  const monitorFolder = join(createScratchDirectory('frame-origins'), '.example-monitor');
+  scratchDirectories.push(join(monitorFolder, '..'));
+  const frameAncestorsFolder = join(monitorFolder, 'frame-ancestors');
+  mkdirSync(frameAncestorsFolder, { recursive: true });
+  for (const [fileName, recordText] of Object.entries(recordsByFileName)) writeFileSync(join(frameAncestorsFolder, fileName), recordText);
+  return monitorFolder;
 }
 
-function gaiaRecord(fields: Record<string, unknown>): string {
+function frameAncestorRecord(fields: Record<string, unknown>): string {
   return JSON.stringify({
-    version: 1, url: `${GAIA_ORIGIN}/`, origin: GAIA_ORIGIN, processId: 4242, startedAt: '2026-11-12T09:00:00+01:00', ...fields
+    version: 1, minor: 0, origin: FIRST_HOST_ORIGIN, ...fields
   });
 }
 
 describe('FrameOrigins.frameOriginsOf', () => {
-  test('with no record no origin may frame the Bridge', () => {
-    const { homeDirectory, monitorFolder } = homeWith({});
-    expect(FrameOrigins.frameOriginsOf(homeDirectory, monitorFolder)).toEqual([]);
+  test('with no frame-ancestors folder, or an empty one, no origin may frame the Bridge', () => {
+    const scratchHome = createScratchDirectory('frame-origins');
+    scratchDirectories.push(scratchHome);
+    expect(FrameOrigins.frameOriginsOf(join(scratchHome, '.example-monitor'))).toEqual([]);
+    expect(FrameOrigins.frameOriginsOf(monitorFolderWith({}))).toEqual([]);
   });
 
-  test('a version 1 Gaia record adds its origin, normalised', () => {
-    const { homeDirectory, monitorFolder } = homeWith({ gaia: gaiaRecord({ origin: `${GAIA_ORIGIN}/` }) });
-    expect(FrameOrigins.frameOriginsOf(homeDirectory, monitorFolder)).toEqual([GAIA_ORIGIN]);
+  test('a record of the known major adds its origin, normalised, at a newer minor and with keys of the host\'s own', () => {
+    const monitorFolder = monitorFolderWith({ 'example-host.json': frameAncestorRecord({ origin: `${FIRST_HOST_ORIGIN}/`, minor: 3, exampleHostKey: 4242 }) });
+    expect(FrameOrigins.frameOriginsOf(monitorFolder)).toEqual([FIRST_HOST_ORIGIN]);
   });
 
-  test('a Gaia record of another version, an unreadable one, or one whose origin is no URL adds nothing', () => {
+  test('a record of another major, an unreadable one, or one whose origin is no URL or opaque adds nothing', () => {
     const records = [
-      gaiaRecord({ version: 2 }),
-      gaiaRecord({ version: '1' }),
+      frameAncestorRecord({ version: 2 }),
+      frameAncestorRecord({ version: '1' }),
       '{"version": 1, "origin"',
-      gaiaRecord({ origin: 'not a url' }),
-      gaiaRecord({ origin: 'file:///example' }),
+      '[]',
+      frameAncestorRecord({ origin: 'not a url' }),
+      frameAncestorRecord({ origin: 'file:///example' }),
     ];
     for (const record of records) {
-      const { homeDirectory, monitorFolder } = homeWith({ gaia: record });
-      expect(FrameOrigins.frameOriginsOf(homeDirectory, monitorFolder), record).toEqual([]);
+      expect(FrameOrigins.frameOriginsOf(monitorFolderWith({ 'example-host.json': record })), record).toEqual([]);
     }
   });
 
-  test('agent-dashboard\'s origins and Gaia\'s are listed together, each once', () => {
-    const { homeDirectory, monitorFolder } = homeWith({
-      gaia:      gaiaRecord({}),
-      dashboard: JSON.stringify({ url: `${DASHBOARD_ORIGIN}/`, boardOrigin: GAIA_ORIGIN }),
+  test('a file that is no JSON record, and a folder, in the frame-ancestors folder add nothing', () => {
+    const monitorFolder = monitorFolderWith({ 'example-host.json.temporary': frameAncestorRecord({}) });
+    mkdirSync(join(monitorFolder, 'frame-ancestors', 'example-folder.json'));
+    expect(FrameOrigins.frameOriginsOf(monitorFolder)).toEqual([]);
+  });
+
+  test('every host\'s origin is listed, each once', () => {
+    const monitorFolder = monitorFolderWith({
+      'first-host.json':  frameAncestorRecord({}),
+      'second-host.json': frameAncestorRecord({ origin: SECOND_HOST_ORIGIN }),
+      'third-host.json':  frameAncestorRecord({ origin: `${FIRST_HOST_ORIGIN}/example` }),
     });
-    expect(FrameOrigins.frameOriginsOf(homeDirectory, monitorFolder)).toEqual([DASHBOARD_ORIGIN, GAIA_ORIGIN]);
+    expect(FrameOrigins.frameOriginsOf(monitorFolder)).toEqual([FIRST_HOST_ORIGIN, SECOND_HOST_ORIGIN]);
   });
 });

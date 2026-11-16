@@ -1,17 +1,11 @@
 /**
- * The origins that may frame the Bridge, read again for every response from the server records of the two programs that frame it:
- * agent-dashboard's and Gaia's. A record that is absent, unreadable or of another version adds no origin.
+ * The origins that may frame the Bridge, read again for every response from the frame-ancestor records in the monitor folder, one file per
+ * host. A record that is unreadable, of another major or whose origin is no URL or opaque adds no origin; with none the Bridge is unframeable.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join }                      from 'node:path';
 
-/** agent-dashboard's own server record: its path is the dashboard's, never the product's naming constant. */
-const DASHBOARD_SERVER_RECORD = ['.agent-progress-monitor', 'agent-dashboard', 'server.json'] as const;
-
-/** Gaia writes its server record in the product's monitor folder: `{version, url, origin, processId, startedAt}`. */
-const GAIA_SERVER_RECORD = ['gaia', 'server.json'] as const;
-
-const GAIA_SERVER_RECORD_VERSION = 1;
+import { FRAME_ANCESTOR_RECORD_FORMAT } from 'forge-contracts/FrameAncestorRecord';
 
 /** A page at an opaque origin, such as a `file:` URL, has the origin `null`, which no `frame-ancestors` source may name. */
 const OPAQUE_ORIGIN = 'null';
@@ -35,22 +29,21 @@ function storedRecordOf(recordFilePath: string): Record<string, unknown> | null 
   }
 }
 
-/** With no readable record agent-dashboard may not frame the Bridge. */
-function dashboardFrameOriginsOf(homeDirectory: string): string[] {
-  const record = storedRecordOf(join(homeDirectory, ...DASHBOARD_SERVER_RECORD));
-  if (record === null) return [];
-  return [...new Set([...originOf(record['url']), ...originOf(record['boardOrigin'])])];
+function recordFileNamesIn(frameAncestorsFolder: string): string[] {
+  try {
+    return readdirSync(frameAncestorsFolder).filter((fileName) => fileName.endsWith(FRAME_ANCESTOR_RECORD_FORMAT.extension)).sort();
+  } catch {
+    return [];
+  }
 }
 
-/** Only `origin` is read, and only from a record of the one version this Overseer knows. */
-function gaiaFrameOriginsOf(monitorFolder: string): string[] {
-  const record = storedRecordOf(join(monitorFolder, ...GAIA_SERVER_RECORD));
-  if (record?.['version'] !== GAIA_SERVER_RECORD_VERSION) return [];
-  return originOf(record['origin']);
+/** Only `origin` is read, and only from a record of the one major this Overseer knows; a newer minor only adds keys. */
+function frameOriginsOf(monitorFolder: string): string[] {
+  const frameAncestorsFolder = join(monitorFolder, FRAME_ANCESTOR_RECORD_FORMAT.folderName);
+  return [...new Set(recordFileNamesIn(frameAncestorsFolder).flatMap((fileName) => {
+    const record = storedRecordOf(join(frameAncestorsFolder, fileName));
+    return record?.['version'] === FRAME_ANCESTOR_RECORD_FORMAT.major ? originOf(record['origin']) : [];
+  }))];
 }
 
-function frameOriginsOf(homeDirectory: string, monitorFolder: string): string[] {
-  return [...new Set([...dashboardFrameOriginsOf(homeDirectory), ...gaiaFrameOriginsOf(monitorFolder)])];
-}
-
-export const FrameOrigins = Object.freeze({ frameOriginsOf, dashboardFrameOriginsOf, gaiaFrameOriginsOf });
+export const FrameOrigins = Object.freeze({ frameOriginsOf });

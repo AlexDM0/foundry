@@ -160,7 +160,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       ? { verdict: 'too-large', bytes: upload.bytes }
       : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
     picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
-    frameOrigins: () => FrameOrigins.frameOriginsOf(context.homeDirectory, context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
+    frameOrigins: () => FrameOrigins.frameOriginsOf(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
     page:         bridgePage,
   };
 }

@@ -298,10 +298,11 @@ describe('the Overseer API on a scratch board', () => {
     expect((await fetch(new URL(stylesheetPath, url))).status).toBe(200);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('GET / carries the page CSP, framed only by the origins agent-dashboard\'s server record names', async () => {
-    const dashboardRecordDirectory = join(homeDirectory, '.agent-progress-monitor', 'agent-dashboard');
-    mkdirSync(dashboardRecordDirectory, { recursive: true });
-    writeFileSync(join(dashboardRecordDirectory, 'server.json'), JSON.stringify({ url: 'http://127.0.0.1:4411/', boardOrigin: 'http://localhost:4412' }));
+  test('GET / carries the page CSP, framed only by the origins the frame-ancestor records name', async () => {
+    const frameAncestorsDirectory = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, 'frame-ancestors');
+    mkdirSync(frameAncestorsDirectory, { recursive: true });
+    writeFileSync(join(frameAncestorsDirectory, 'first-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://127.0.0.1:4411' }));
+    writeFileSync(join(frameAncestorsDirectory, 'second-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://localhost:4412' }));
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const page = await fetch(url);

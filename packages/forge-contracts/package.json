@@ -1,7 +1,7 @@
 {
   "name": "forge-contracts",
-  "version": "0.3.0",
-  "description": "What a forge serves and reads, as types: its documents, its commands, its embed channel, its system versions and its compatibility registry",
+  "version": "0.4.0",
+  "description": "What a forge serves and reads, as types: its documents, its commands, its embed channel, the record a framing page writes, its system versions and its compatibility registry",
   "type": "module",
   "engines": { "bun": "1.4.2" },
   "files": ["@types", "constants/*.ts", "!constants/*.spec.ts", "scripts", "README.md"],
@@ -12,6 +12,7 @@
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
     "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
     "./EmbedMode": "./constants/EmbedMode.ts",
+    "./FrameAncestorRecord": "./@types/FrameAncestorRecord.ts",
     "./OverseerContractVersions": "./constants/OverseerContractVersions.ts",
     "./ForgeSystemVersions": "./constants/ForgeSystemVersions.ts",
     "./ForgeCompatibilityRegistry": "./constants/ForgeCompatibilityRegistry.ts"
