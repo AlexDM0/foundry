@@ -688,8 +688,8 @@ versions.
 A change of shape in a contract raises its number in the same change, and the system version with it: a key added,
 removed or renamed, a value that changes type or meaning, or a union that gains or loses a value. The numbers are
 `OVERSEER_CONTRACT_VERSIONS` in `packages/forge-contracts`, served through `SERVED_CONTRACT_VERSIONS` in
-`src/shared/constants/OverseerApiContracts.ts`; `control` is frozen at 1 there, although the package names 2, since forge
-1.1 added Flint's brain's commands under the system version. Each document forge sends extends the package's type of it. A client reads a contract only at a number
+`src/shared/constants/OverseerApiContracts.ts`; `control` stays at 1, since forge 1.1 added Flint's brain's commands under
+the system version. Each document forge sends extends the package's type of it. A client reads a contract only at a number
 it knows; a forge with no `contracts` key serves `summary` 1 alone.
 
 ## The monitor contract

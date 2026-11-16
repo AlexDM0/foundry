@@ -42,9 +42,9 @@ const OVERSEER_SHAPE = {
 const CONCURRENCY_SHAPE = {
   limit:                        'whole-number',
   agentsInFlight:               'whole-number',
-  machineLimit:                 { optional: NULLABLE_WHOLE_NUMBER },
-  machineAgentsInFlight:        { optional: NULLABLE_WHOLE_NUMBER },
-  ticketsWaitingForMachineSlot: { optional: NULLABLE_WHOLE_NUMBER },
+  machineLimit:                 NULLABLE_WHOLE_NUMBER,
+  machineAgentsInFlight:        NULLABLE_WHOLE_NUMBER,
+  ticketsWaitingForMachineSlot: NULLABLE_WHOLE_NUMBER,
 } as const satisfies ShapeOf<MonitorConcurrencyDocument>;
 
 const ATTENTION_ENTRY_SHAPE = {

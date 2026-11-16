@@ -1,7 +1,7 @@
 /**
  * The ingestion of an Overseer's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
  * `ForgeIdentity`, and decide from its `contracts` whether Gaia reads the forge (PLAN 7.1): only a forge that serves the monitor contract
- * Gaia knows is read. An identity without `identityVersion` or without `contracts` is a forge's from before F1, older than Gaia reads.
+ * Gaia knows is read. An identity without `identityVersion` is a forge's from before F1, older than Gaia reads.
  */
 import type { IdentityContractsDocument, IdentityDocument } from 'forge-contracts/IdentityDocument';
 
@@ -39,14 +39,14 @@ const CONTRACTS_SHAPE = {
 } as const satisfies ShapeOf<IdentityContractsDocument>;
 
 const IDENTITY_SHAPE = {
-  identityVersion: OPTIONAL_WHOLE_NUMBER,
+  identityVersion: 'whole-number',
   application:     { oneOf: ['forge'] },
   trackerId:       'text',
   project:         'text',
   codeVersion:     'text',
   installVersion:  'whole-number',
   processId:       'whole-number',
-  contracts:       { optional: { object: CONTRACTS_SHAPE } },
+  contracts:       { object: CONTRACTS_SHAPE },
 } as const satisfies ShapeOf<IdentityDocument>;
 
 export class IdentityIngestion {

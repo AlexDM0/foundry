@@ -1,6 +1,6 @@
 /**
  * The reading mapper against its own contract, on documents its ingestions have checked: the Overseer's state and pause to a condition,
- * a held launch outranking a pause; an identity's absent contracts to `null`; the contract just read at the number its document carries;
+ * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
  * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a
  * brain only from a snapshot, absent for a forge without Flint; an ended brain's activity entry keeping its kind and tokens; a summary's
  * usage with no current window; and a newer contract's reading with no fact of any document. The whole mappings are held by the
@@ -73,7 +73,13 @@ function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapsho
       startedAt:   '2026-11-12T08:00:00.000Z',
       codeVersion: '3f9a2c1',
     },
-    concurrency:    { limit: 2, agentsInFlight: 0 },
+    concurrency: {
+      limit:                        2,
+      agentsInFlight:               0,
+      machineLimit:                 null,
+      machineAgentsInFlight:        null,
+      ticketsWaitingForMachineSlot: null,
+    },
     readyTicketIds: [],
     openIncidents:  0,
     attention:      [],
@@ -171,14 +177,15 @@ describe('the usage of a forge read through its summary', () => {
 });
 
 describe('identityOf', () => {
-  test('reads a contract the identity leaves out as null, and an identity without contracts as naming none', () => {
+  test('reads a contract the identity leaves out as null', () => {
     const document = {
-      application:    'forge',
-      trackerId:      REGISTRY_FACTS.trackerId,
-      project:        'Example Agency',
-      codeVersion:    '3f9a2c1',
-      installVersion: 27,
-      processId:      4242,
+      identityVersion: 1,
+      application:     'forge',
+      trackerId:       REGISTRY_FACTS.trackerId,
+      project:         'Example Agency',
+      codeVersion:     '3f9a2c1',
+      installVersion:  27,
+      processId:       4242,
     } as const;
     expect(ForgeReadingMapUtil.identityOf({ ...document, contracts: { summary: 1, monitor: 1 } }).contracts).toEqual({
       summary: 1,
@@ -186,7 +193,6 @@ describe('identityOf', () => {
       control: null,
       embed:   null,
     });
-    expect(ForgeReadingMapUtil.identityOf(document).contracts).toBeNull();
   });
 });
 

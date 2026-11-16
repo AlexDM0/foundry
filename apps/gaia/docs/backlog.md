@@ -4,9 +4,6 @@ What is agreed and not started, with the reason it waits.
 
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
-- **Drop what `forge-contracts` keeps only for older forges.** Gaia supports forge 1.1 and reads no older forge, so the package's types
-  and versions kept for older forges (`ForgeControlCommandOfVersionOne` among them) and Gaia's derivation of `forgeControl` from
-  `FLINT_BRAIN_CONTRACT_VERSIONS` can go. It waits for forge's change to the package, which goes first, so that both sides move together.
 - **Stop reading forge's integer contract keys.** Forge's compatibility registry keeps `identityVersion`, `contracts`, `summaryVersion`,
   `monitorVersion`, `controlVersion` and the embed channel's `channelVersion` only for clients from before system versions, yet Gaia's
   forge ingestions, its control and frame-session guards, the page's `ForgeContractUtil` and the embed channel still decide on them,

@@ -358,16 +358,12 @@ describe('the snapshot of Example Storefront at work', () => {
     expect(reading.verdict === 'readable' ? reading.reading.lastReportedAt : null).toBe('2026-11-12T14:00:00.000Z');
   });
 
-  test('reads the machine-wide keys a forge without F6 leaves out as null', async () => {
+  test('names the machine-wide keys a snapshot leaves out as malformed', async () => {
     const snapshot = await storefrontSnapshot();
     snapshot['concurrency'] = { limit: 5, agentsInFlight: 4 };
-    const reading = ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP);
-    expect(reading.verdict === 'readable' ? reading.reading.concurrency : null).toEqual({
-      limit:                        5,
-      agentsInFlight:               4,
-      machineLimit:                 null,
-      machineAgentsInFlight:        null,
-      ticketsWaitingForMachineSlot: null,
+    expect(ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP)).toEqual({
+      verdict:     'malformed',
+      invalidKeys: ['concurrency.machineLimit', 'concurrency.machineAgentsInFlight', 'concurrency.ticketsWaitingForMachineSlot'],
     });
   });
 });

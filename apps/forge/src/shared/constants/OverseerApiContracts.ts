@@ -9,16 +9,10 @@ import { OVERSEER_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVers
 
 export const IDENTITY_VERSION = OVERSEER_CONTRACT_VERSIONS.identity;
 
-/**
- * Frozen at 1 although 1.1 adds Flint's brain's two kinds: a client built for 1.0 compares `contracts.control` for equality, so a 2 would cut
- * it off every control under a minor. System version 1.1 announces the two kinds; the integer only keeps released clients reading.
- */
-const CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS = 1;
-
 export const SERVED_CONTRACT_VERSIONS = {
   summary: OVERSEER_CONTRACT_VERSIONS.summary,
   monitor: OVERSEER_CONTRACT_VERSIONS.monitor,
-  control: CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS,
+  control: OVERSEER_CONTRACT_VERSIONS.control,
   embed:   OVERSEER_CONTRACT_VERSIONS.embed,
 } as const satisfies Readonly<Record<ServedContractName, number>>;
 

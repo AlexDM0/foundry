@@ -41,7 +41,7 @@ function identityOf(document: IdentityDocument): ForgeIdentity {
     codeVersion:    document.codeVersion,
     installVersion: document.installVersion,
     processId:      document.processId,
-    contracts:      contracts === undefined ? null : {
+    contracts:      {
       summary: contracts.summary ?? null,
       monitor: contracts.monitor ?? null,
       control: contracts.control ?? null,
@@ -205,9 +205,9 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
     concurrency:       {
       limit:                        concurrency.limit,
       agentsInFlight:               concurrency.agentsInFlight,
-      machineLimit:                 concurrency.machineLimit ?? null,
-      machineAgentsInFlight:        concurrency.machineAgentsInFlight ?? null,
-      ticketsWaitingForMachineSlot: concurrency.ticketsWaitingForMachineSlot ?? null,
+      machineLimit:                 concurrency.machineLimit,
+      machineAgentsInFlight:        concurrency.machineAgentsInFlight,
+      ticketsWaitingForMachineSlot: concurrency.ticketsWaitingForMachineSlot,
     },
     readyTicketCount: snapshot.readyTicketIds.length,
     openIncidents:    snapshot.openIncidents,

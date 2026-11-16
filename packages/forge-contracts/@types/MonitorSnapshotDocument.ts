@@ -1,6 +1,6 @@
 /**
- * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 3`,
- * and the keys of `monitorVersion: 2` and `1` that differ; and the stream's handshake and event, which carry the forge's system version.
+ * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 3`;
+ * and the stream's handshake and event, which carry the forge's system version.
  * Keys no reader checks, such as `ticketCountByStatus` and the Overseer's `generation`, are left out. Every string union is the wire's own
  * spelling.
  */
@@ -35,13 +35,12 @@ export interface MonitorOverseerDocument {
   readonly codeVersion: string;
 }
 
-/** The machine-wide keys come with F6; a forge that does not enforce a machine limit yet leaves them out. */
 export interface MonitorConcurrencyDocument {
-  readonly limit:                         number;
-  readonly agentsInFlight:                number;
-  readonly machineLimit?:                 number | null;
-  readonly machineAgentsInFlight?:        number | null;
-  readonly ticketsWaitingForMachineSlot?: number | null;
+  readonly limit:                        number;
+  readonly agentsInFlight:               number;
+  readonly machineLimit:                 number | null;
+  readonly machineAgentsInFlight:        number | null;
+  readonly ticketsWaitingForMachineSlot: number | null;
 }
 
 export interface MonitorAttentionEntryDocument {
@@ -86,13 +85,13 @@ export interface MonitorJobDocument {
   readonly route:               string;
 }
 
-/** A notice or, from monitor contract 2, a warning: the forge's kind and its own sentence. */
+/** A notice or a warning: the forge's kind and its own sentence. */
 export interface MonitorNoticeDocument {
   readonly kind: string;
   readonly text: string;
 }
 
-/** Monitor contract 3 adds `kind` and `tokens` to the entry an ended brain leaves (G2); every other entry leaves them out. */
+/** `kind` and `tokens` come only on the entry an ended brain leaves (G2); every other entry leaves them out. */
 export interface MonitorActivityEntryDocument {
   readonly logPosition: number;
   readonly at:          string;
@@ -108,13 +107,13 @@ export interface MonitorTodayDocument {
   readonly tokens:           number;
 }
 
-/** The usage limit hit, both `null` when no limit was hit: the board summary's usage and monitor contract 1's. */
+/** The usage limit hit, both `null` when no limit was hit: the board summary's usage, and the monitor's under its current window. */
 export interface UsageLimitDocument {
   readonly resetsAt: string | null;
   readonly window:   string | null;
 }
 
-/** Monitor contract 2 adds the newest usage window a session of the board reported, under the limit or not; both `null` when none did. */
+/** The newest usage window a session of the board reported, under the limit or not, beside the limit hit; both `null` when none did. */
 export interface MonitorUsageDocument extends UsageLimitDocument {
   readonly currentWindow:         string | null;
   readonly currentWindowResetsAt: string | null;
@@ -161,7 +160,7 @@ export interface MonitorSnapshotDocument {
   readonly attention:      readonly MonitorAttentionEntryDocument[];
   readonly jobs:           readonly MonitorJobDocument[];
   readonly notices:        readonly MonitorNoticeDocument[];
-  /** The header's warnings: `baton-pass-failed` and `assistant-down` in monitor contract 2. */
+  /** The header's warnings: `baton-pass-failed` and `assistant-down`. */
   readonly warnings:       readonly MonitorNoticeDocument[];
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
@@ -178,13 +177,4 @@ export interface MonitorStreamHandshake {
 /** Each `monitor` event of `GET /api/v2/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
 export interface MonitorEventDocument extends MonitorSnapshotDocument {
   readonly systemVersion: SystemVersion;
-}
-
-/** Monitor contract 2 knows no Flint. */
-export type MonitorSnapshotDocumentOfVersionTwo = Omit<MonitorSnapshotDocument, 'flintBrain'>;
-
-/** Monitor contract 1 sends each header warning as the forge's sentence alone, and a usage without the current window. */
-export interface MonitorSnapshotDocumentOfVersionOne extends Omit<MonitorSnapshotDocumentOfVersionTwo, 'warnings' | 'usage'> {
-  readonly warnings: readonly string[];
-  readonly usage:    UsageLimitDocument;
 }

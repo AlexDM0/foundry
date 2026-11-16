@@ -1,8 +1,9 @@
 /**
  * The identity ingestion over the identities recorded from forges at the version Gaia supports, read through the forge client. What
  * matters: PLAN 7.1's choice of whether a forge is read, a monitor at the known number (read) against an older one, none or an identity
- * from before F1 (older, nothing read) and a newer number (nothing, at fidelity newer-contract, which equals B3's fixture); an identity of
- * another forge at the registry's address; and an identity at a newer `identityVersion` mapped to nothing.
+ * from before F1 (older, nothing read) and a newer number (nothing, at fidelity newer-contract, which equals B3's fixture); an identity
+ * that names no contracts (malformed); an identity of another forge at the registry's address; and an identity at a newer
+ * `identityVersion` mapped to nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -78,11 +79,11 @@ describe('the identity of a forge at the version Gaia supports', () => {
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: null });
   });
 
-  test('reads an identity from before F1, which names no version and no contracts, as older, with nothing read', async () => {
+  test('reads an identity from before F1, which names no version, as older, with nothing read, and one that names no contracts as malformed', async () => {
     const { identityVersion, contracts, ...beforeF1 } = await storefrontIdentity();
     expect([identityVersion, contracts]).toEqual([1, CURRENT_CONTRACTS]);
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(beforeF1)).toEqual({ verdict: 'older-contract', contract: 'identity', version: null });
-    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...beforeF1, identityVersion: 1 })).toEqual({ verdict: 'older-contract', contract: 'monitor', version: null });
+    expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...beforeF1, identityVersion: 1 })).toEqual({ verdict: 'malformed', invalidKeys: ['contracts'] });
   });
 
   test('maps a forge whose monitor contract is newer to the reading B3\'s fixture shows for it, nothing read', async () => {

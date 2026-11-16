@@ -155,12 +155,13 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
       folders; then the worktree `graphite-orange-handoff-ebd9dc` goes (Claude).
 - [ ] Whether to carry the Claude Code memory of Gaia's project into forge's (owner).
 
-### P8. Forge 1.1 and the last recordings (forge's tracker, after landing) — not started
+### P8. Forge 1.1 and the last recordings — built on `p8/integration` (Claude), B15 open
 
-- [ ] Flint's brain (G1 to G3, V7, control 2) as forge 1.1, built by forge's own tracker on the new layout.
-- [ ] Gaia re-records `overseer-fetch-supported-forge` and drops what `forge-contracts` holds only for older forges.
-- [ ] Gaia re-records `overseer-fetch-versions` from forge 1.1: its ahead forge today is forge 1.0 answering 1.3, so it serves
-      control 1.
+- [x] Flint's brain (G1 to G4, V7) as forge 1.1; the identity's `contracts.control` stays 1, as clients built for 1.0 compare it for
+      equality, and system version 1.1 announces the brain's two commands.
+- [x] Gaia re-records `overseer-fetch-supported-forge` and drops what `forge-contracts` holds only for older forges (the package at
+      1.0.0).
+- [x] Gaia re-records `overseer-fetch-versions` from forge 1.1.
 - [ ] B15 as forge 1.2.
 
 ## Backlog
