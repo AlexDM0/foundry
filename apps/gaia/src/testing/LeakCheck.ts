@@ -23,8 +23,8 @@ const GUARDED_REAL_HOME_PATHS = [
 ];
 const DIRECTORY_SIGNATURE = 'directory';
 const UNREADABLE_DIRECTORY_SIGNATURE = 'unreadable directory';
-const PROCESS_LISTING_LINE = /^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/;
-const ZOMBIE_STATE_PREFIX = 'Z';
+const PROCESS_LISTING_LINE = /^\s*(\d+)\s*(.*)$/;
+const PGREP_NO_PROCESS_MATCHED_EXIT_CODE = 1;
 
 export interface RunningChildProcess {
   readonly processId: number;
@@ -63,18 +63,20 @@ export function spawnedGitStatusLines(): readonly string[] | null {
   return gitStatusLinesBelow(join(import.meta.dir, '..', '..'));
 }
 
-/** The children of this process that have not ended, leaving out the listing's own `ps` and a child that ended and waits to be reaped. */
+/**
+ * The children of this process that have not ended. `pgrep` leaves out itself and a child that ended and waits to be reaped; the setuid
+ * `ps` is not used, since a forge gate's Seatbelt refuses to start a setuid program.
+ */
 export function spawnedChildProcesses(): readonly RunningChildProcess[] | null {
-  if (Bun.which('ps') === null) return null;
-  const finished = Bun.spawnSync(['ps', '-A', '-o', 'pid=,ppid=,stat=,command='], { stdout: 'pipe', stderr: 'ignore' });
+  if (Bun.which('pgrep') === null) return null;
+  const finished = Bun.spawnSync(['pgrep', '-l', '-f', '-P', String(process.pid)], { stdout: 'pipe', stderr: 'ignore' });
+  if (finished.exitCode === PGREP_NO_PROCESS_MATCHED_EXIT_CODE) return [];
   if (finished.exitCode !== 0) return null;
   return finished.stdout.toString().split('\n').flatMap((line) => {
     const match = PROCESS_LISTING_LINE.exec(line);
     if (match === null) return [];
-    const [, processIdText = '', parentProcessIdText = '', state = '', command = ''] = match;
-    const processId = Number(processIdText);
-    const isOwnRunningChild = Number(parentProcessIdText) === process.pid && processId !== finished.pid && !state.startsWith(ZOMBIE_STATE_PREFIX);
-    return isOwnRunningChild ? [{ processId, command }] : [];
+    const [, processIdText = '', command = ''] = match;
+    return [{ processId: Number(processIdText), command }];
   });
 }
 

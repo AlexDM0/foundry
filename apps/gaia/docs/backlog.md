@@ -39,10 +39,6 @@ What is agreed and not started, with the reason it waits.
   identity's 503 for `starting`, as it was authored from that recording.
 - **Record the forge program before F8 again.** `forge-program` holds a forge that answers no F8 JSON (install version 27, code
   3a6e9e6043da). Its recording spec asserts that older shape, so it records again only from a checkout of that forge.
-- **Run Gaia's specs inside a forge gate.** A gate's Seatbelt cannot run the setuid `ps`, so `src/testing/LeakCheck.ts` cannot list the
-  run's processes and Gaia's `test` and `test:dom` fail in Gaia's tracker's gate. List the processes another way, or skip the process
-  check through the shared tool guard with a counted reason. It must land before Gaia's tracker's gate runs `test` and `test:dom`
-  (`docs/monorepo/migration.md`, P5).
 - **Notifications (W5.6).** SCREENS C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
