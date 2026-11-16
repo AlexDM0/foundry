@@ -21,7 +21,23 @@ afterEach(() => {
 
 describe('the icon', () => {
   test('every name draws one svg on the 16 by 16 grid, with its name and at least one path', () => {
-    expect(EVERY_ICON_NAME).toEqual(['hammer', 'magnifier', 'inbox', 'lifebuoy', 'flow', 'merge', 'cycle', 'document', 'dot', 'paper-plane', 'narrowing-lines']);
+    expect(EVERY_ICON_NAME).toEqual([
+      'hammer',
+      'magnifier',
+      'inbox',
+      'lifebuoy',
+      'flow',
+      'merge',
+      'cycle',
+      'document',
+      'dot',
+      'paper-plane',
+      'narrowing-lines',
+      'arrow-out-of-square',
+      'caret-down',
+      'chevron-down',
+      'chevron-up',
+    ]);
     for (const name of EVERY_ICON_NAME) {
       const { container } = render(<Icon name={name} label={null} />);
       const drawings = container.querySelectorAll('svg');

@@ -15,4 +15,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Glyph: Story = {};
+export const Disabled: Story = { args: { disabled: true } };
 export const Drawing: Story = { render: () => <IconButton drawing={<Icon name="dot" label={null} />} accessibleName="Example drawing" title="Example drawing" onPress={fn()} />, };

@@ -5,7 +5,23 @@ import { Icon, type IconName } from './Icon.tsx';
 import { Text }                from './Text.tsx';
 import { View }                from './View.tsx';
 
-const ICON_NAMES: readonly IconName[] = ['hammer', 'magnifier', 'inbox', 'lifebuoy', 'flow', 'merge', 'cycle', 'document', 'dot', 'paper-plane', 'narrowing-lines'];
+const ICON_NAMES: readonly IconName[] = [
+  'hammer',
+  'magnifier',
+  'inbox',
+  'lifebuoy',
+  'flow',
+  'merge',
+  'cycle',
+  'document',
+  'dot',
+  'paper-plane',
+  'narrowing-lines',
+  'arrow-out-of-square',
+  'caret-down',
+  'chevron-down',
+  'chevron-up',
+];
 
 /** An icon fills its holder, so each story holds it in a box of a size a host gives it. */
 function IconHolder({ children }: { readonly children: ReactNode }) {

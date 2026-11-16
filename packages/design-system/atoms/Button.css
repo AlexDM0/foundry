@@ -12,12 +12,13 @@
   transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
 }
 .design-system-button:not(:disabled):hover { filter: brightness(0.94); }
-.design-system-button:not(:disabled):active { transform: scale(0.98); }
+.design-system-button:not(:disabled):active { transform: scale(var(--press-scale)); }
 .design-system-button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-button[data-compact] { height: 30px; padding: 0 var(--space-11); font-size: var(--fs-tab); }
 .design-system-button[data-dense] { height: 26px; padding: 0 var(--space-9); font-size: var(--fs-tab); }
-/* The leading glyph sits in a 16px box, which sizes a drawing that fills its holder and centres a smaller one. */
-.design-system-button-leading { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; }
+/* A leading or trailing glyph sits in a 16px box, which sizes a drawing that fills its holder and centres a smaller one. */
+.design-system-button-leading,
+.design-system-button-trailing { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 16px; height: 16px; }
 
 /* A filled orange shape is always a primary button; danger is the one filled shape in the failure colour. */
 .design-system-button[data-primary] { font-weight: 600; color: var(--accent-ink-on); background: var(--button); border-color: var(--button); }

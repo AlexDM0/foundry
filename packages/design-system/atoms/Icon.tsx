@@ -4,7 +4,8 @@
  * beside it.
  */
 export type IconName =
-  | 'hammer' | 'magnifier' | 'inbox' | 'lifebuoy' | 'flow' | 'merge' | 'cycle' | 'document' | 'dot' | 'paper-plane' | 'narrowing-lines';
+  | 'hammer' | 'magnifier' | 'inbox' | 'lifebuoy' | 'flow' | 'merge' | 'cycle' | 'document' | 'dot' | 'paper-plane' | 'narrowing-lines'
+  | 'arrow-out-of-square' | 'caret-down' | 'chevron-down' | 'chevron-up';
 
 /** The path data of each drawing, one `path` per entry. */
 export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = Object.freeze({
@@ -29,11 +30,17 @@ export const ICON_PATHS: Readonly<Record<IconName, readonly string[]>> = Object.
     'M13.5 8A5.5 5.5 0 0 1 3.25 10.75',
     'M2.6 13.15L3.25 10.75L5.65 11.4',
   ],
-  document:          ['M3.5 1.5h6l3 3v10h-9Z', 'M9.5 1.5v3h3', 'M5.5 8.5h5 M5.5 11h5'],
-  dot:               ['M10.5 8a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z'],
-  'paper-plane':     ['M13.8 2.2L2.2 7.1L7.1 8.9L8.9 13.8Z', 'M13.8 2.2L7.1 8.9'],
+  document:              ['M3.5 1.5h6l3 3v10h-9Z', 'M9.5 1.5v3h3', 'M5.5 8.5h5 M5.5 11h5'],
+  dot:                   ['M10.5 8a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z'],
+  'paper-plane':         ['M13.8 2.2L2.2 7.1L7.1 8.9L8.9 13.8Z', 'M13.8 2.2L7.1 8.9'],
   /** Three lines, each shorter than the one above. */
-  'narrowing-lines': ['M2 4h12M4 8h8M6 12h4'],
+  'narrowing-lines':     ['M2 4h12M4 8h8M6 12h4'],
+  /** An open square with an arrow leaving it through its top right corner. */
+  'arrow-out-of-square': ['M7 2.5H2.5v11h11V9', 'M9.5 2.5h4v4', 'M13.5 2.5L7.5 8.5'],
+  /** A small filled triangle pointing down. */
+  'caret-down':          ['M4.5 6.5h7L8 10.5Z'],
+  'chevron-down':        ['M4 6l4 4l4-4'],
+  'chevron-up':          ['M4 10l4-4l4 4'],
 });
 
 export interface IconProps {

@@ -1,6 +1,6 @@
 /**
  * The icon button, in a happy-dom document. What matters: it shows its glyph or the caller's drawing, hidden from the accessibility tree,
- * under its accessible name, carries its title, and calls `onPress`.
+ * under its accessible name, carries its title, and calls `onPress`, unless it is disabled; a `Tooltip` around it describes it.
  */
 import {
   cleanup,
@@ -16,6 +16,7 @@ import {
 } from 'bun:test';
 
 import { IconButton } from './IconButton.tsx';
+import { Tooltip }    from './Tooltip.tsx';
 
 afterEach(() => {
   cleanup();
@@ -40,5 +41,19 @@ describe('the icon button', () => {
     const button = screen.getByRole('button', { name: 'Example theme' });
     expect([button.getAttribute('title'), button.firstElementChild?.getAttribute('aria-hidden'), button.querySelector('[data-example-drawing]') !== null])
       .toEqual(['Example theme', 'true', true]);
+  });
+
+  test('a disabled icon button is disabled and does not call onPress', () => {
+    const presses: string[] = [];
+    render(<IconButton glyph="close" accessibleName="Close the example panel" disabled onPress={() => presses.push('pressed')} />);
+    const button = screen.getByRole('button', { name: 'Close the example panel' });
+    fireEvent.click(button);
+    expect([button.hasAttribute('disabled'), presses]).toEqual([true, []]);
+  });
+
+  test('a tooltip around it describes it', () => {
+    render(<Tooltip text="Closes the example panel" placement="below"><IconButton glyph="close" accessibleName="Close the example panel" onPress={() => undefined} /></Tooltip>);
+    const tooltipId = screen.getByRole('tooltip').id;
+    expect([tooltipId === '', screen.getByRole('button', { name: 'Close the example panel' }).getAttribute('aria-describedby')]).toEqual([false, tooltipId]);
   });
 });

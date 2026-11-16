@@ -1,8 +1,8 @@
 /**
  * The button, in a happy-dom document. What matters: a quiet button calls `onPress` and a disabled one does not; each emphasis, the
  * attention ring, the link tint and the compact and dense heights is a `data-*` attribute on the one class; with an `href` the button is a
- * link and no button; a toggle and a disclosure carry their aria state; the leading glyph comes before the label, in its box; and a label is text,
- * never markup.
+ * link and no button; a toggle and a disclosure carry their aria state; the leading glyph comes before the label and the trailing glyph
+ * after it, each in its box, on a button and on a link; a `Tooltip` around either describes it; and a label is text, never markup.
  */
 import {
   cleanup,
@@ -17,7 +17,8 @@ import {
   test
 } from 'bun:test';
 
-import { Button } from './Button.tsx';
+import { Button }  from './Button.tsx';
+import { Tooltip } from './Tooltip.tsx';
 
 afterEach(() => {
   cleanup();
@@ -107,6 +108,32 @@ describe('the button', () => {
     render(<Button label="New chat" leading={<span data-leading="">+</span>} accessibleName="Start a new example chat" />);
     const button = screen.getByRole('button', { name: 'Start a new example chat' });
     expect([button.firstElementChild?.firstElementChild?.hasAttribute('data-leading'), button.textContent]).toEqual([true, '+New chat']);
+  });
+
+  test('the trailing glyph shows in its box after the label, on a button and on a link drawn as one', () => {
+    render(
+      <>
+        <Button label="Stop" leading={<span data-leading="">+</span>} trailing={<span data-trailing="">v</span>} />
+        <Button label="Open the example" href="#example" trailing={<span data-trailing="">^</span>} />
+      </>,
+    );
+    const button = screen.getByRole('button');
+    const link = screen.getByRole('link');
+    expect([button.lastElementChild?.className, button.lastElementChild?.firstElementChild?.hasAttribute('data-trailing'), button.textContent])
+      .toEqual(['design-system-button-trailing', true, '+Stopv']);
+    expect([link.lastElementChild?.firstElementChild?.hasAttribute('data-trailing'), link.textContent]).toEqual([true, 'Open the example^']);
+  });
+
+  test('a tooltip around a button or a link drawn as one describes it', () => {
+    render(
+      <>
+        <Tooltip text="Stops the example run" placement="below"><Button label="Stop" /></Tooltip>
+        <Tooltip text="Opens the example in a new tab" placement="below"><Button label="Open the example" href="#example" /></Tooltip>
+      </>,
+    );
+    const tooltipIds = screen.getAllByRole('tooltip').map((tooltip) => tooltip.id);
+    expect(tooltipIds.every((tooltipId) => tooltipId !== '')).toBe(true);
+    expect([screen.getByRole('button').getAttribute('aria-describedby'), screen.getByRole('link').getAttribute('aria-describedby')]).toEqual(tooltipIds);
   });
 
   test('a label is text, never markup', () => {

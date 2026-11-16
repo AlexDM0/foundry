@@ -15,32 +15,36 @@ export type ButtonTint = 'link';
 type ButtonSizeFlags = { readonly compact?: boolean; readonly dense?: never } | { readonly dense?: boolean; readonly compact?: never };
 
 export type ButtonProps = ButtonSizeFlags & {
-  readonly label:           string;
+  readonly label:               string;
   /** A glyph or inline SVG before the label. */
-  readonly leading?:        ReactNode;
-  readonly emphasis?:       ButtonEmphasis;
+  readonly leading?:            ReactNode;
+  /** A glyph or inline SVG after the label, such as an arrow out of the view or the caret of a menu. */
+  readonly trailing?:           ReactNode;
+  readonly emphasis?:           ButtonEmphasis;
   /** Rings a primary button now and then, the next step a view waits on. */
-  readonly attention?:      boolean;
-  readonly tint?:           ButtonTint;
+  readonly attention?:          boolean;
+  readonly tint?:               ButtonTint;
   /** A link drawn as a button; with it, `onPress` is not used. */
-  readonly href?:           string;
-  readonly onPress?:        () => void;
-  readonly disabled?:       boolean;
+  readonly href?:               string;
+  readonly onPress?:            () => void;
+  readonly disabled?:           boolean;
   /** A toggle: sets `aria-pressed`. */
-  readonly pressed?:        boolean;
+  readonly pressed?:            boolean;
   /** A disclosure or popover trigger: sets `aria-expanded`, with `controls` naming what it opens. */
-  readonly expanded?:       boolean;
-  readonly controls?:       string;
-  readonly accessibleName?: string;
-  readonly buttonRef?:      Ref<HTMLButtonElement>;
+  readonly expanded?:           boolean;
+  readonly controls?:           string;
+  readonly accessibleName?:     string;
+  /** The element that describes this one, such as the tooltip a `Tooltip` around it hands it. */
+  readonly 'aria-describedby'?: string;
+  readonly buttonRef?:          Ref<HTMLButtonElement>;
 };
 
 const flagAttribute = (isSet: boolean | undefined) => (isSet === true ? '' : undefined);
 
 export function Button(props: ButtonProps) {
   const {
-    label, leading, emphasis = 'quiet', attention = false, tint, href, onPress, disabled = false, pressed, expanded, controls, accessibleName,
-    buttonRef
+    label, leading, trailing, emphasis = 'quiet', attention = false, tint, href, onPress, disabled = false, pressed, expanded, controls,
+    accessibleName, 'aria-describedby': describingElementId, buttonRef
   } = props;
   const emphasisAttributes = {
     'data-primary':   flagAttribute(emphasis === 'primary'),
@@ -52,11 +56,13 @@ export function Button(props: ButtonProps) {
     'data-dense':     flagAttribute(props.dense),
   };
   const leadingGlyph = leading === undefined ? null : <span className="design-system-button-leading">{leading}</span>;
+  const trailingGlyph = trailing === undefined ? null : <span className="design-system-button-trailing">{trailing}</span>;
   if (href !== undefined) {
     return (
-      <a className="design-system-button" href={href} aria-label={accessibleName} {...emphasisAttributes}>
+      <a className="design-system-button" href={href} aria-label={accessibleName} aria-describedby={describingElementId} {...emphasisAttributes}>
         {leadingGlyph}
         {label}
+        {trailingGlyph}
       </a>
     );
   }
@@ -66,6 +72,7 @@ export function Button(props: ButtonProps) {
       type="button"
       className="design-system-button"
       aria-label={accessibleName}
+      aria-describedby={describingElementId}
       aria-pressed={pressed}
       aria-expanded={expanded}
       aria-controls={controls}
@@ -75,6 +82,7 @@ export function Button(props: ButtonProps) {
     >
       {leadingGlyph}
       {label}
+      {trailingGlyph}
     </button>
   );
 }

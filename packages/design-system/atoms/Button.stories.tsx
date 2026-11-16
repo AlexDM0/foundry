@@ -25,4 +25,5 @@ export const Dense: Story = { args: { dense: true } };
 export const Disabled: Story = { args: { disabled: true } };
 export const Pressed: Story = { args: { pressed: true } };
 export const Leading: Story = { args: { leading: <Icon name="hammer" label={null} /> } };
+export const Trailing: Story = { args: { trailing: <Icon name="arrow-out-of-square" label={null} /> } };
 export const AsLink: Story = { args: { href: '#example' } };
