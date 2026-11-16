@@ -1,5 +1,5 @@
 /**
- * The header against a fake command client. What matters: the title row carries the wordmark and the project as the one `h1`, and the
+ * The header against a fake command client. What matters: the title row carries Forge's mark, the wordmark and the project as the one `h1`, and the
  * state pill reads Running with its dot only while live; Pause, Resume and Restart post the ControlCommands they name, Restart only with
  * new code on disk; Stop Overseer posts `overseer-stop` only after its confirmation, and Cancel posts nothing; a Baton pass reads Handing
  * over and withdraws the controls; the header offers no concurrency field, which lives on the Agents tab; the one theme button ends the
@@ -164,13 +164,13 @@ afterEach(() => {
 });
 
 describe('the title row', () => {
-  test('the wordmark, then the project as the page\'s one heading, then the state pill', () => {
+  test('Forge\'s mark and the wordmark, then the project as the page\'s one heading, then the state pill', () => {
     renderedHeader(boardStateFixture());
     const titleRow = document.querySelector('.bridge-head-title-row');
     expect(titleRow?.querySelector('.bridge-wordmark')?.textContent).toBe('forge');
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Example Agency');
     expect(document.querySelectorAll('h1').length).toBe(1);
-    expect(titleRow?.querySelector('.bridge-forge-mark')?.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByRole('img', { name: 'Forge' }).closest('.bridge-head-title-row')).toBe(titleRow);
   });
 
   test('the pill reads Running with its dot while live, and a quiet word without a dot otherwise', () => {

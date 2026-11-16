@@ -35,15 +35,6 @@
   --epic-5-fill: #5b7a93; --epic-5-tint: #ebf0f4; --epic-5-ink: #415d74;
   --epic-6-fill: #8a6a4c; --epic-6-tint: #f3ede7; --epic-6-ink: #6b4f36;
 
-  /* The Forge mark: its gradient ground, hexagon frame, core and rim per theme; the ring and the spark are the same in both. */
-  --forge-mark-ground-start: #ffffff;
-  --forge-mark-ground-end:   #d6d6d6;
-  --forge-mark-frame:        #3d3d3d;
-  --forge-mark-core:         rgba(250, 95, 1, 0.5);
-  --forge-mark-ring:         #ee5600;
-  --forge-mark-spark:        #ff8d42;
-  --forge-mark-rim:          rgba(0, 0, 0, 0.14);
-
   /* Flint (`flint/`), the sprite of the agents: the Bridge's values for its colour properties. The dark theme keeps the same values, so
      the dark block sets none. */
   --flint-body:                 #fa5f01;
@@ -107,12 +98,6 @@
   --epic-4-fill: #d6b245; --epic-4-tint: #352c12; --epic-4-ink: #ecd892;
   --epic-5-fill: #8eabc2; --epic-5-tint: #222b34; --epic-5-ink: #c6d6e3;
   --epic-6-fill: #bf9c7d; --epic-6-tint: #33291f; --epic-6-ink: #e2cdb9;
-
-  --forge-mark-ground-start: #343434;
-  --forge-mark-ground-end:   #121212;
-  --forge-mark-frame:        #dcdcdc;
-  --forge-mark-core:         rgba(255, 148, 80, 0.85);
-  --forge-mark-rim:          rgba(255, 255, 255, 0.12);
 }
 
 /* [data-epic-slot] picks one of the six epic colours; an epic's mark is a rounded square, never a status's round dot. */

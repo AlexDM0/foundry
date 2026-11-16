@@ -133,11 +133,6 @@ const THEMED_COLOUR_TOKENS = [
   '--badge-success-ink',
   '--badge-success-edge',
   ...[1, 2, 3, 4, 5, 6].flatMap((slot) => [`--epic-${slot}-fill`, `--epic-${slot}-tint`, `--epic-${slot}-ink`]),
-  '--forge-mark-ground-start',
-  '--forge-mark-ground-end',
-  '--forge-mark-frame',
-  '--forge-mark-core',
-  '--forge-mark-rim',
 ] as const;
 
 /** The colours the same in both themes, set once in the light block. */
@@ -147,8 +142,6 @@ const SAME_IN_BOTH_THEMES_TOKENS = [
   '--switch-knob',
   '--flint-eye',
   '--now-soft',
-  '--forge-mark-ring',
-  '--forge-mark-spark',
 ] as const;
 
 /** The tokens that name a colour another token holds: one `var()` line in the alias block, never a literal in a theme block. */

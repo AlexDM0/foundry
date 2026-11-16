@@ -12,7 +12,7 @@
  *                           lane count or the state pill once its value changed since it mounted (bridge/shell/ChangedSinceMount.ts)
  *   #bridge-root            the React root
  *   .bridge-shell           the page frame, edge to edge, each row keeping the --page-gutter: the banners, the header, the panel
- *   .bridge-header          the rows: .bridge-head-title-row (the .bridge-brand of the .bridge-forge-mark and the .bridge-wordmark, a
+ *   .bridge-header          the rows: .bridge-head-title-row (the .bridge-brand of the brand package's mark and the .bridge-wordmark, a
  *                           .bridge-head-divider, the .bridge-title, the .bridge-status-pill[data-running?][data-status] with its
  *                           .bridge-status-dot, the .bridge-status-details with the .bridge-status-notice, then the .bridge-head-end:
  *                           .bridge-summary of inline .bridge-stat figures closed by .bridge-attention, the
@@ -318,16 +318,6 @@ body {
 .bridge-head-divider { flex: none; width: 1px; height: 18px; background: var(--line-strong); }
 .bridge-title { min-width: 0; margin: 0; font: 500 var(--fs-body)/var(--line-height-body) var(--font-ui); color: var(--ink); overflow-wrap: anywhere; }
 .bridge-head-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; min-width: 0; margin-left: auto; }
-
-/* The Forge mark draws in the theme's mark colours, so the light and the dark mark are one drawing. */
-.bridge-forge-mark { display: block; flex: none; }
-.bridge-forge-mark-ground-start { stop-color: var(--forge-mark-ground-start); }
-.bridge-forge-mark-ground-end { stop-color: var(--forge-mark-ground-end); }
-.bridge-forge-mark-frame { fill: none; stroke: var(--forge-mark-frame); stroke-width: 5; }
-.bridge-forge-mark-core { fill: var(--forge-mark-core); }
-.bridge-forge-mark-ring { fill: none; stroke: var(--forge-mark-ring); stroke-width: 2.6; }
-.bridge-forge-mark-spark { fill: var(--forge-mark-spark); }
-.bridge-forge-mark-rim { fill: none; stroke: var(--forge-mark-rim); }
 
 /* The state pill: orange with the signal dot while running, quiet on the wash in every other state and in setup. */
 .bridge-status-pill {

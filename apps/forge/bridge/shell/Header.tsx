@@ -7,6 +7,7 @@
  * controls, no activity strip and no tabs.
  */
 
+import { ForgeMark }                          from 'brand/ForgeMark';
 import { Button }                             from 'design-system/Button';
 import { ConfirmStrip }                       from 'design-system/ConfirmStrip';
 import { CountBadge, type CountBadgeColours } from 'design-system/CountBadge';
@@ -21,7 +22,6 @@ import { ActivityStrip }                                       from './ActivityS
 import type { BridgeClock }                                    from './BridgeClock.ts';
 import { useChangedSinceMount }                                from './ChangedSinceMount.ts';
 import { CommandButton }                                       from './CommandButton.tsx';
-import { ForgeMark }                                           from './ForgeMark.tsx';
 import { HashRouter, type BridgeTab }                          from './HashRouter.ts';
 import type { HeaderFigureLane, HeaderModel, HeaderStatistic } from './HeaderModel.ts';
 import { SetupStepBar }                                        from './SetupStepBar.tsx';
@@ -81,6 +81,8 @@ const COUNT_BADGE_OF_TONE: Readonly<Record<TabCountTone, CountBadgeColours & { r
 
 const PRODUCT_WORDMARK = 'forge';
 
+const FORGE_MARK_SIDE_PIXELS = 28;
+
 function StopOverseer() {
   const [confirming, setConfirming] = useState(false);
   if (!confirming) {
@@ -99,11 +101,11 @@ function StopOverseer() {
   );
 }
 
-/** The Forge mark and the lowercase wordmark, the same on every screen. */
+/** Forge's mark from the brand package and the lowercase wordmark, the same on every screen. */
 function ProductBrand() {
   return (
     <span className="bridge-brand">
-      <ForgeMark />
+      <ForgeMark sizePixels={FORGE_MARK_SIDE_PIXELS} />
       <span className="bridge-wordmark">{PRODUCT_WORDMARK}</span>
     </span>
   );
