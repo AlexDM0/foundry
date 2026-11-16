@@ -1,7 +1,8 @@
 /**
  * Where one tracker's files are. `findWorkspace` walks up first — the nearest tracker above wins —
  * and asks `src/lib/git/RepositoryRoot.ts` only when the walk finds nothing, which is what makes a
- * sibling worktree, with nothing above it holding the tracker, resolve to the main checkout.
+ * sibling worktree, with nothing above it holding the tracker, resolve to the main checkout: the
+ * start's place in its own checkout is applied to the main checkout, and the walk goes on up from there.
  */
 import { existsSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join, resolve }             from 'node:path';
@@ -9,6 +10,7 @@ import { dirname, join, resolve }             from 'node:path';
 import { discoverRepositoryRoot }    from '../../lib/git/RepositoryRoot.ts';
 import { agentProgressRootOverride } from '../../shared/Environment.ts';
 import { OperationRefusal }          from '../../shared/OperationRefusal.ts';
+import { projectLocationOf }         from './ProjectLocation.ts';
 import { TRACKER_FILES }             from './constants/TrackerFiles.ts';
 
 /** Every path one tracker owns, all absolute: a relative one would resolve against a subagent's working directory. */
@@ -78,6 +80,7 @@ export function findWorkspace(startDirectory: string): Workspace | null {
     // A start directory that no longer exists cannot hold a tracker, and the walk still reaches its real ancestors.
   }
 
+  const realStartDirectory = candidate;
   for (;;) {
     if (directoryHoldsATracker(candidate)) return workspacePathsFor(candidate);
     const parentDirectory = dirname(candidate);
@@ -87,7 +90,18 @@ export function findWorkspace(startDirectory: string): Workspace | null {
 
   const discovery = discoverRepositoryRoot(startDirectory);
   if (discovery.source !== 'git') return null;
-  return directoryHoldsATracker(discovery.rootDirectory) ? workspacePathsFor(discovery.rootDirectory) : null;
+  return nearestTrackerInTheMainCheckout(discovery.rootDirectory, projectLocationOf(realStartDirectory).projectPrefix);
+}
+
+/** From the start's place in the main checkout up to its root and no further: with the prefix `''` only the root itself is asked. */
+function nearestTrackerInTheMainCheckout(repositoryRoot: string, startPrefix: string): Workspace | null {
+  let candidate = startPrefix === '' ? repositoryRoot : join(repositoryRoot, startPrefix);
+  for (;;) {
+    if (directoryHoldsATracker(candidate)) return workspacePathsFor(candidate);
+    const parentDirectory = dirname(candidate);
+    if (candidate === repositoryRoot || parentDirectory === candidate) return null;
+    candidate = parentDirectory;
+  }
 }
 
 /**
