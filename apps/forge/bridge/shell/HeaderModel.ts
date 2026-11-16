@@ -39,19 +39,6 @@ export interface HeaderStatistic {
   readonly explanation: string | null;
 }
 
-/** One figure of the embedded summary line, after a dot of its state's colour unless `state` is `null`. */
-export interface SummaryLineFigure {
-  readonly figure: string;
-  readonly label:  string;
-  readonly state:  'in-progress' | 'reviewing' | 'pending' | 'paused' | 'delivered' | null;
-}
-
-/** The embedded page's one line of board figures: the states, then today's figures at its far end. */
-export interface SummaryLine {
-  readonly states: readonly SummaryLineFigure[];
-  readonly today:  readonly SummaryLineFigure[];
-}
-
 export interface HeaderModel {
   readonly statusToken:    StatusToken;
   /** The state pill's word: the status token's, or Setting up while the board is in setup. */
@@ -68,10 +55,8 @@ export interface HeaderModel {
   readonly stopOffered:    boolean;
   readonly newCodeNotice:  string | null;
   readonly statistics:     readonly HeaderStatistic[];
-  /** The strip's chips and counts, the same facts the summary line's building and reviewing figures read. */
+  /** The strip's chips and counts. */
   readonly activity:       ActivityStripFacts;
-  /** `null` before the first board. */
-  readonly summaryLine:    SummaryLine | null;
   readonly notices:        readonly string[];
   readonly warnings:       readonly string[];
 }
@@ -140,22 +125,18 @@ function setupStepsOfBoard(state: BoardStateDocument | null): StepperStep[] | nu
 
 interface BoardFigures {
   readonly workerCount:         number;
-  readonly buildingCount:       number;
-  readonly reviewingCount:      number;
   readonly pausedCount:         number;
   readonly deliveredTodayCount: number;
   readonly tokensToday:         number;
   readonly waitingInQueueCount: number;
 }
 
-/** Today is the viewer's local date; the building and reviewing counts are the strip's, so the line, the figure and the strip agree. */
+/** Today is the viewer's local date; the agents figure counts the strip's chips, so the figure and the strip agree. */
 function boardFiguresOf(state: BoardStateDocument, activity: ActivityStripFacts, todayCalendarDate: string): BoardFigures {
   const tickets = state.page?.tickets ?? [];
   const today = todayFiguresOf(state, todayCalendarDate);
   return {
     workerCount:         activity.chips.length,
-    buildingCount:       activity.buildingCount,
-    reviewingCount:      activity.reviewingCount,
     pausedCount:         (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length,
     deliveredTodayCount: today.deliveredTickets,
     tokensToday:         today.tokens,
@@ -189,21 +170,6 @@ function agentsExplanationOf(limit: number | null): string {
   return `${counted}; the Assistant and product-owner jobs do not count`;
 }
 
-function summaryLineOf(figures: BoardFigures): SummaryLine {
-  return {
-    states: [
-      { figure: String(figures.buildingCount), label: 'building', state: 'in-progress' },
-      { figure: String(figures.reviewingCount), label: 'reviewing', state: 'reviewing' },
-      { figure: String(figures.waitingInQueueCount), label: 'waiting in queue', state: 'pending' },
-      { figure: String(figures.pausedCount), label: 'paused', state: 'paused' },
-    ],
-    today: [
-      { figure: String(figures.deliveredTodayCount), label: 'done today', state: 'delivered' },
-      { figure: TokenCountUtil.formatTokenCount(figures.tokensToday), label: 'tokens today', state: null },
-    ],
-  };
-}
-
 function statusTokenOf(overseer: OverseerFactsDocument | null, connection: ConnectionState): StatusToken {
   if (connection === 'down' || connection === 'no-session') return 'down';
   if (overseer === null || connection === 'connecting') return 'connecting';
@@ -233,7 +199,6 @@ export function headerModelOf(state: BoardStateDocument | null, now: Date, conne
     newCodeNotice:  newCodeOnDisk ? NoticeWordingUtil.noticeTextOf({ kind: NEW_CODE }) : null,
     statistics:     state === null || figures === null ? [] : statisticsOf(state, figures),
     activity,
-    summaryLine:    figures === null ? null : summaryLineOf(figures),
     notices:        notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(NoticeWordingUtil.noticeTextOf),
     warnings:       NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null).map((warning) => warning.text),
   };

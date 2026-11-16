@@ -8,7 +8,7 @@
  * arrow keys, Home and End move along the tabs and open them; the activity strip shows one chip per job holding a launch slot and none
  * for a session job, the counts and the slots in use in its head over the chips, and one flag for tickets in progress with no job, holds
  * Flint's slot only on the Kanban tab with no side panel open, cued by the first running chip, and ticks from the injected clock
- * only while it is live; the summary line counts the states and today's figures; the stale notice shows only while the stream is down; the
+ * only while it is live; the
  * Waiting on User pill names the total and the escalated, opens its inbox in the model's order, closes on Esc (handing the focus back), a
  * pointer outside or a followed link, and its ages tick only while live; and the tabs count what waits on User in their tones, with no
  * badge at zero. In setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice,
@@ -54,7 +54,7 @@ import type { NotificationAllowance, QuestionNotifier } from '../views/questions
 import type { BridgeClock }                             from './BridgeClock.ts';
 import { ControlSurroundingsContext }                   from './ControlAvailability.ts';
 import { HashRouter, type BridgeTab }                   from './HashRouter.ts';
-import { Header, STALE_NOTICE_TEXT }                    from './Header.tsx';
+import { Header }                                       from './Header.tsx';
 import { headerModelOf, type HeaderFigureLane }         from './HeaderModel.ts';
 import type { ThemeChoice }                             from './ThemeBootstrap.ts';
 import { WaitingOnUserModel }                           from './WaitingOnUserModel.ts';
@@ -417,32 +417,6 @@ describe('the activity strip', () => {
   });
 });
 
-describe('the summary line and the stale notice', () => {
-  test('the summary line counts the states, then today\'s figures', () => {
-    renderedHeader(boardStateFixture());
-    const items = [...document.querySelectorAll('.bridge-summary-line-item')].map((item) => [
-      item.querySelector('.bridge-summary-line-dot')?.getAttribute('data-state') ?? null,
-      item.querySelector('.bridge-summary-line-label')?.textContent,
-    ]);
-    expect(items).toEqual([
-      ['in-progress', 'building'],
-      ['reviewing', 'reviewing'],
-      ['pending', 'waiting in queue'],
-      ['paused', 'paused'],
-      ['delivered', 'done today'],
-      [null, 'tokens today'],
-    ]);
-  });
-
-  test('the stale notice shows only while the stream is down', () => {
-    renderedHeader(boardStateFixture());
-    expect(screen.queryByText(STALE_NOTICE_TEXT)).toBeNull();
-    cleanup();
-    renderedHeader(boardStateFixture(), { connection: 'down' });
-    expect(screen.getByText(STALE_NOTICE_TEXT)).toBeTruthy();
-  });
-});
-
 describe('waiting on User', () => {
   function pill(): HTMLElement {
     return screen.getByRole('button', { name: /^Waiting on User/u });
@@ -627,7 +601,6 @@ describe('the header in setup', () => {
     expect(screen.queryByLabelText('Statistics')).toBeNull();
     expect(document.querySelector('.bridge-attention')).toBeNull();
     expect(document.querySelector('.bridge-activity')).toBeNull();
-    expect(document.querySelector('.bridge-summary-line')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Overseer controls' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Theme: auto. Click for light.' })).toBeDefined();
     const pill = document.querySelector('.bridge-status-pill');

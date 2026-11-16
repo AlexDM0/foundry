@@ -1,39 +1,32 @@
 /**
  * The header's rows: the title row (the Forge mark and wordmark, the project title, the state pill and its quiet details, then at its
  * right end the figures closed by the Waiting on User pill, the Overseer's compact controls and the theme button), the "Agents at work"
- * strip, and the tab bar, its tabs counting what waits on User, with whatever the shell puts at its right end. Embedded, `board.css` keeps
- * the summary line and the tab bar, and shows the stale notice while the event stream is down. In setup, while the board has no readable
- * pipeline, the header is the title row (the mark, the title, the Setting up pill, the new-code notice, the theme button) over the setup
- * step bar: no figures, no Waiting on User pill, no Overseer controls, no activity strip, no summary line and no tabs.
+ * strip, and the tab bar, its tabs counting what waits on User, with whatever the shell puts at its right end. In a frame, `board.css`
+ * keeps the tab bar alone. In setup, while the board has no readable pipeline, the header is the title row (the mark, the title, the
+ * Setting up pill, the new-code notice, the theme button) over the setup step bar: no figures, no Waiting on User pill, no Overseer
+ * controls, no activity strip and no tabs.
  */
 
-import { Banner }                             from 'design-system/Banner';
 import { Button }                             from 'design-system/Button';
 import { ConfirmStrip }                       from 'design-system/ConfirmStrip';
 import { CountBadge, type CountBadgeColours } from 'design-system/CountBadge';
 import { Tabs, type LinkTabItem }             from 'design-system/Tabs';
 import { Text }                               from 'design-system/Text';
-import { Fragment, useState, type ReactNode } from 'react';
+import { useState, type ReactNode }           from 'react';
 
-import { StateToneUtil }              from '../utils/StateToneUtil.ts';
-import type { TimestampSlices }       from '../utils/TimeUtil.ts';
-import type { QuestionNotifier }      from '../views/questions/QuestionAlerts.ts';
-import { ActivityStrip }              from './ActivityStrip.tsx';
-import type { BridgeClock }           from './BridgeClock.ts';
-import { useChangedSinceMount }       from './ChangedSinceMount.ts';
-import { CommandButton }              from './CommandButton.tsx';
-import { ForgeMark }                  from './ForgeMark.tsx';
-import { HashRouter, type BridgeTab } from './HashRouter.ts';
-import type {
-  HeaderFigureLane,
-  HeaderModel,
-  HeaderStatistic,
-  SummaryLine,
-  SummaryLineFigure
-} from './HeaderModel.ts';
-import { SetupStepBar }     from './SetupStepBar.tsx';
-import type { ThemeChoice } from './ThemeBootstrap.ts';
-import { ThemeButton }      from './ThemeButton.tsx';
+import { StateToneUtil }                                       from '../utils/StateToneUtil.ts';
+import type { TimestampSlices }                                from '../utils/TimeUtil.ts';
+import type { QuestionNotifier }                               from '../views/questions/QuestionAlerts.ts';
+import { ActivityStrip }                                       from './ActivityStrip.tsx';
+import type { BridgeClock }                                    from './BridgeClock.ts';
+import { useChangedSinceMount }                                from './ChangedSinceMount.ts';
+import { CommandButton }                                       from './CommandButton.tsx';
+import { ForgeMark }                                           from './ForgeMark.tsx';
+import { HashRouter, type BridgeTab }                          from './HashRouter.ts';
+import type { HeaderFigureLane, HeaderModel, HeaderStatistic } from './HeaderModel.ts';
+import { SetupStepBar }                                        from './SetupStepBar.tsx';
+import type { ThemeChoice }                                    from './ThemeBootstrap.ts';
+import { ThemeButton }                                         from './ThemeButton.tsx';
 import type {
   TabCount,
   TabCounts,
@@ -85,9 +78,6 @@ const COUNT_BADGE_OF_TONE: Readonly<Record<TabCountTone, CountBadgeColours & { r
   escalated: { tone: 'error', marked: true },
   neutral:   { tone: 'neutral' },
 };
-
-/** The embedded page's word for a stream that went down, centred over the board. */
-export const STALE_NOTICE_TEXT = 'Not updated while the Overseer is unreachable';
 
 const PRODUCT_WORDMARK = 'forge';
 
@@ -175,35 +165,6 @@ function Statistic({ statistic, onShowLane }: { readonly statistic: HeaderStatis
   );
 }
 
-function SummaryLineItem({ figure }: { readonly figure: SummaryLineFigure }) {
-  const hasChanged = useChangedSinceMount(figure.figure);
-  return (
-    <span className="bridge-summary-line-item">
-      {figure.state === null
-        ? null
-        : <span className="bridge-summary-line-dot" data-state={figure.state} data-state-tone={StateToneUtil.toneOf(figure.state)} aria-hidden="true" />}
-      <span key={figure.figure} className="bridge-summary-line-figure" data-value-changed={hasChanged ? '' : undefined}>{figure.figure}</span>
-      <span className="bridge-summary-line-label">{figure.label}</span>
-    </span>
-  );
-}
-
-/** The states, a spacer, then today's figures with a divider between them. */
-function SummaryLineView({ summaryLine }: { readonly summaryLine: SummaryLine }) {
-  return (
-    <div className="bridge-summary-line">
-      {summaryLine.states.map((figure) => <SummaryLineItem key={figure.label} figure={figure} />)}
-      <span className="bridge-summary-line-spacer" />
-      {summaryLine.today.map((figure, index) => (
-        <Fragment key={figure.label}>
-          {index === 0 ? null : <span className="bridge-summary-line-divider" aria-hidden="true" />}
-          <SummaryLineItem figure={figure} />
-        </Fragment>
-      ))}
-    </div>
-  );
-}
-
 function tabItemOf(tab: BridgeTab, tabCount: TabCount | undefined): LinkTabItem<BridgeTab> {
   const item = { key: tab, label: TAB_LABELS[tab], href: HashRouter.fragmentOf({ tab, item: null }) };
   if (tabCount === undefined) return item;
@@ -224,15 +185,6 @@ function OverseerControls({ model }: { readonly model: HeaderModel }) {
       )}
       {model.restartOffered ? <CommandButton label="Restart" command={{ kind: 'overseer-restart', now: false }} answeredWhileInstallHeld compact /> : null}
       {model.stopOffered ? <StopOverseer /> : null}
-    </div>
-  );
-}
-
-/** The snapshot banner; `board.css` shows it only embedded, where the unreachable banner is not shown; it waits for an open side panel to close. */
-function StaleNotice() {
-  return (
-    <div className="bridge-stale-notice">
-      <Banner tone="quiet" role="status" text={STALE_NOTICE_TEXT} />
     </div>
   );
 }
@@ -260,7 +212,6 @@ function SetupHeader({
           <ThemeButton themeChoice={themeChoice} onThemeChoice={onThemeChoice} />
         </div>
       </div>
-      {model.statusToken === 'down' ? <StaleNotice /> : null}
       <SetupStepBar steps={setupSteps} />
     </header>
   );
@@ -302,8 +253,6 @@ export function Header({
         </div>
       </div>
       <ActivityStrip facts={model.activity} isLive={activityIsLive} clock={clock} showsFlintSlot={selectedTab === 'kanban' && !sidePanelIsOpen} />
-      {model.statusToken === 'down' && !sidePanelIsOpen ? <StaleNotice /> : null}
-      {model.summaryLine === null ? null : <SummaryLineView summaryLine={model.summaryLine} />}
       <div className="bridge-tab-bar">
         <div className="bridge-tab-bar-tabs">
           <Tabs

@@ -26,11 +26,10 @@
  *                           with no job, over the .bridge-activity-jobs of one .bridge-activity-job[data-state] link per job holding a
  *                           launch slot), and .bridge-tab-bar (.bridge-tab-bar-tabs holding Tabs, each tab with an optional
  *                           CountBadge of what waits on User, then
- *                           .bridge-filter: .bridge-filter-line opening a Popover); embedded ([data-embedded="dashboard"]) the .bridge-summary-line and the tab bar
- *                           show, and the .bridge-stale-notice banner while the stream is down; in setup, while the board has no
+ *                           .bridge-filter: .bridge-filter-line opening a Popover); in setup, while the board has no
  *                           readable pipeline, the title row is the brand, the title, the Setting up pill and the theme button, over
- *                           the .bridge-setup-step-bar holding the compact Stepper; framed by Gaia
- *                           ([data-embedded="gaia"]) only the tab bar shows
+ *                           the .bridge-setup-step-bar holding the compact Stepper; in a frame ([data-embedded="frame"]) only the
+ *                           tab bar shows
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-pipeline[data-screen] the Pipeline view (bridge/views/pipeline/): its .bridge-pipeline-title over the screen that the
  *                           facts and the route pick
@@ -543,43 +542,11 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--link); outline-offset: 2p
 .bridge-epic-strip-meter { display: block; width: 96px; }
 .bridge-kanban-order-hint { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
 
-/* ------------------------------------------------------------ summary line -- */
-/* The embedded page's one line of board figures: the states at the left, today's figures at the right after a spacer. */
-.bridge-summary-line { display: none; }
-.bridge-summary-line-item { display: inline-flex; align-items: center; gap: 6px; }
-.bridge-summary-line-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--s-fill); }
-.bridge-summary-line-figure { font: 600 13px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
-.bridge-summary-line-label { white-space: nowrap; }
-.bridge-summary-line-spacer { flex: 1 1 auto; }
-.bridge-summary-line-divider { flex: none; width: 1px; height: 14px; background: var(--line); }
-@media (prefers-reduced-motion: no-preference) {
-  :root[data-freshness="live"] .bridge-summary-line-dot:is([data-state="in-progress"], [data-state="reviewing"]) {
-    box-shadow: 0 0 8px var(--s-fill); animation: bridge-pulse var(--pulse-activity) ease-in-out infinite;
-  }
-}
-
 /* --------------------------------------------------------- embedded mode -- */
-/* Framed by agent-dashboard, which shows the status, the title, the agents working and a theme switch of its own, so the title row and
-   the strip hide; the live Kanban cards stand in for the strip, and the summary line tops the tab row. The page gutter is the frame's. */
-html[data-embedded="dashboard"] body { padding: 18px 20px 24px; }
-html[data-embedded="dashboard"] .bridge-head-title-row { display: none; }
-html[data-embedded="dashboard"] .bridge-activity { display: none; }
-html[data-embedded="dashboard"] .bridge-summary-line {
-  display: flex; align-items: center; gap: 18px; height: 30px; margin-bottom: 6px; padding: 0 12px; overflow: hidden;
-  border: 1px solid var(--line); border-radius: var(--r-3); background: var(--surface);
-  font: 400 var(--fs-small)/1 var(--font-ui); color: var(--ink-muted); white-space: nowrap;
-}
-/* A stale embedded board says so in the snapshot banner, on an opaque ground, centred over the board and never in the way of a click. */
-.bridge-stale-notice { display: none; }
-html[data-embedded="dashboard"] .bridge-stale-notice {
-  display: block; position: fixed; top: 50%; left: 50%; z-index: 30;
-  width: max-content; max-width: calc(100vw - 40px); transform: translate(-50%, -50%); pointer-events: none;
-  background: var(--surface); border-radius: var(--r-2); box-shadow: 0 10px 28px var(--shadow-popover);
-}
-/* Framed by Gaia, which draws the board's name, state, controls and theme above the frame, so the tab bar is the first row. */
-html[data-embedded="gaia"] body { padding: 18px 20px 24px; }
-html[data-embedded="gaia"] .bridge-head-title-row { display: none; }
-html[data-embedded="gaia"] .bridge-activity { display: none; }
+/* In a frame, whose page draws the board's name, state, controls and theme above it, the tab bar is the first row. */
+html[data-embedded="frame"] body { padding: 18px 20px 24px; }
+html[data-embedded="frame"] .bridge-head-title-row { display: none; }
+html[data-embedded="frame"] .bridge-activity { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 a.bridge-stat, a.bridge-activity-job, .bridge-kanban-size { transition: var(--feedback-transition); }
@@ -639,17 +606,15 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 }
 
 /* Once the header's state changed its pill pops in, and once a figure changed it ticks up into its place: the header's statistics, the
-   embedded summary line, the strip's counts and a Kanban lane's count, each keyed by its value (`bridge/shell/ChangedSinceMount.ts`). */
+   strip's counts and a Kanban lane's count, each keyed by its value (`bridge/shell/ChangedSinceMount.ts`). */
 .bridge-status-pill[data-value-changed] { animation: bridge-word-swap var(--motion-tick) var(--ease-out) both; }
 .bridge-stat-figure[data-value-changed],
-.bridge-summary-line-figure[data-value-changed],
 .bridge-activity-count-figure[data-value-changed],
 .bridge-lane-count[data-value-changed] { animation: bridge-figure-tick var(--motion-tick) var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) {
   .bridge-status-pill[data-value-changed],
   .bridge-stat-figure[data-value-changed],
-  .bridge-summary-line-figure[data-value-changed],
-  .bridge-activity-count-figure[data-value-changed],
+    .bridge-activity-count-figure[data-value-changed],
   .bridge-lane-count[data-value-changed] { animation: none; }
 }
 

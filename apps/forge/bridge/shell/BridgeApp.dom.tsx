@@ -9,9 +9,9 @@
  * defaults seen hands the focus to the panel, the question panel shows over every tab, hides behind a routed detail and closes on Esc only
  * after it, holds the page's one Flint slot over the Assistant, whose chat head gets its own back once it folds, renders no slot while it
  * hides behind a detail, also for a decision that arrives then, and the page draws one Flint, the live sprite, in no slot,
- * `#questions/<id>` points it at that question, an embedded page's Esc leaves the board on any route no panel takes it on, Gaia's frame
- * hears `ready`, each route, `leave` and `session-lost` in the versioned channel's shape and is followed on `navigate`, a message of
- * another channel version is answered by nothing, a board control in Gaia's frame shows the Overseer's refusal verbatim and posts
+ * `#questions/<id>` points it at that question, a framed page's Esc leaves the board on any route no panel takes it on, the framing page
+ * hears `ready`, each route, `leave` and `session-lost` in the embed channel's envelope with forge's system version and is followed on
+ * `navigate`, a message of another channel version is answered by nothing, a board control in a frame shows the Overseer's refusal verbatim and posts
  * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's no-
  * pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even
  * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
@@ -33,6 +33,7 @@ import {
 
 import type { FlintHandle }                                        from 'flint';
 import { FLINT_OVERLAY_ATTRIBUTE }                                 from 'flint/SpriteHabitat';
+import { FORGE_SYSTEM_VERSIONS }                                   from 'forge-contracts/ForgeSystemVersions';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { BoardStateDocument, OverseerIdentity }               from '../@types/BoardStateDocument.ts';
 import type { ConversationBoardDocument }                          from '../@types/ConversationDocuments.ts';
@@ -99,7 +100,7 @@ function fakeBridge(): FakeBridge {
         setItem:    (key, value) => storage.set(key, value),
         removeItem: (key) => storage.delete(key),
       }),
-      embeddingHost:        null,
+      embedMode:            null,
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:00Z'),
       followTranscript:     () => ({ close: () => undefined }),
@@ -756,77 +757,44 @@ describe('the question panel', () => {
   });
 });
 
-describe('the embedded page\'s Esc', () => {
-  function embeddedBridge(): { bridge: FakeBridge; leaveMessages: unknown[] } {
-    const bridge = fakeBridge();
-    const leaveMessages: unknown[] = [];
-    const parent = { postMessage: (message: unknown) => leaveMessages.push(message) };
-    return {
-      bridge: {
-        ...bridge,
-        services: { ...bridge.services, embeddingHost: 'dashboard', embeddedSurroundings: () => ({ window, parent, parentOrigin: 'https://dashboard.example' }) },
-      },
-      leaveMessages,
-    };
-  }
-
-  test('an item route of a tab with no panel, a session, New chat or a question, leaves the board on Esc', async () => {
-    for (const fragment of ['#intake/J5', '#intake/new', '#questions/E3']) {
-      window.location.hash = fragment;
-      const { bridge, leaveMessages } = embeddedBridge();
-      await renderedLive(bridge);
-      act(() => {
-        fireEvent.keyDown(document, { key: 'Escape' });
-      });
-      expect([fragment, leaveMessages]).toEqual([fragment, [{ kind: 'leave-board' }]]);
-      cleanup();
-    }
-  });
-
-  test('an open detail panel takes the Esc, and the board is not left', async () => {
-    window.location.hash = '#kanban/ticket/002';
-    const { bridge, leaveMessages } = embeddedBridge();
-    await renderedLive(bridge, { ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
-    act(() => {
-      fireEvent.keyDown(document, { key: 'Escape' });
-    });
-    expect(leaveMessages).toEqual([]);
-  });
-});
-
-describe('the Gaia embed channel', () => {
-  const GAIA_ORIGIN = 'http://127.0.0.1:5180';
+describe('the embed channel in a frame', () => {
+  const PARENT_ORIGIN = 'http://127.0.0.1:5180';
 
   interface PostedMessage {
     readonly message:      unknown;
     readonly targetOrigin: string;
   }
 
-  function gaiaBridge(): { bridge: FakeBridge; posted: PostedMessage[]; parent: Window } {
+  function framedBridge(): { bridge: FakeBridge; posted: PostedMessage[]; parent: Window } {
     const bridge = fakeBridge();
     const posted: PostedMessage[] = [];
     const parent = { postMessage: (message: unknown, targetOrigin: string) => posted.push({ message, targetOrigin }) } as unknown as Window;
     return {
-      bridge: { ...bridge, services: { ...bridge.services, embeddingHost: 'gaia', embeddedSurroundings: () => ({ window, parent, parentOrigin: GAIA_ORIGIN }) } },
+      bridge: { ...bridge, services: { ...bridge.services, embedMode: 'frame', embeddedSurroundings: () => ({ window, parent, parentOrigin: PARENT_ORIGIN }) } },
       posted,
       parent,
     };
   }
 
   function envelope(message: object): PostedMessage {
-    return { message: { channel: 'forge-embed', channelVersion: 1, ...message }, targetOrigin: GAIA_ORIGIN };
+    return {
+      message: {
+        channel: 'forge-embed', channelVersion: 1, systemVersion: FORGE_SYSTEM_VERSIONS.current, ...message
+      },
+      targetOrigin: PARENT_ORIGIN
+    };
   }
 
   async function parentSends(parent: Window, data: unknown): Promise<void> {
     await act(async () => {
-      window.dispatchEvent(new MessageEvent('message', { data, origin: GAIA_ORIGIN, source: parent }));
+      window.dispatchEvent(new MessageEvent('message', { data, origin: PARENT_ORIGIN, source: parent }));
       window.dispatchEvent(new HashChangeEvent('hashchange'));
       await Promise.resolve();
     });
   }
 
   /** The identity arrives after the first board; it is awaited too, so no state update lands outside `act`. */
-  async function renderedInGaia(bridge: FakeBridge, board: unknown = BOARD): Promise<void> {
+  async function renderedInFrame(bridge: FakeBridge, board: unknown = BOARD): Promise<void> {
     await renderedLive(bridge, board);
     await act(async () => {
       await Promise.resolve();
@@ -840,17 +808,17 @@ describe('the Gaia embed channel', () => {
     questionHistory: [],
   });
 
-  test('ready goes out once when the shell has painted, then the shown route, both to Gaia\'s origin only', async () => {
+  test('ready goes out once when the shell has painted, then the shown route, both to the parent\'s origin only', async () => {
     window.location.hash = '#agents';
-    const { bridge, posted } = gaiaBridge();
-    await renderedInGaia(bridge);
+    const { bridge, posted } = framedBridge();
+    await renderedInFrame(bridge);
     expect(posted).toEqual([envelope({ kind: 'ready' }), envelope({ kind: 'route', fragment: '#agents' })]);
   });
 
   test('navigate to #questions/E8 points the question panel at E8 and is answered with route', async () => {
     window.location.hash = '#kanban';
-    const { bridge, posted, parent } = gaiaBridge();
-    await renderedInGaia(bridge, twoQuestionBoard());
+    const { bridge, posted, parent } = framedBridge();
+    await renderedInFrame(bridge, twoQuestionBoard());
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#questions/E8'
@@ -861,8 +829,8 @@ describe('the Gaia embed channel', () => {
 
   test('navigate to the route already shown is answered with route at once', async () => {
     window.location.hash = '#agents';
-    const { bridge, posted, parent } = gaiaBridge();
-    await renderedInGaia(bridge);
+    const { bridge, posted, parent } = framedBridge();
+    await renderedInFrame(bridge);
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents'
@@ -872,8 +840,8 @@ describe('the Gaia embed channel', () => {
 
   test('navigate that moves the address bar but leaves the route shown is answered with the route shown', async () => {
     window.location.hash = '#agents';
-    const { bridge, posted, parent } = gaiaBridge();
-    await renderedInGaia(bridge);
+    const { bridge, posted, parent } = framedBridge();
+    await renderedInFrame(bridge);
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 1, kind: 'navigate', fragment: '#agents/'
@@ -882,10 +850,10 @@ describe('the Gaia embed channel', () => {
     expect(posted).toEqual([envelope({ kind: 'route', fragment: '#agents' })]);
   });
 
-  test('a message of another channel version, another channel or agent-dashboard\'s shape is ignored and answered by nothing', async () => {
+  test('a message of another channel version, another channel or no envelope is ignored and answered by nothing', async () => {
     window.location.hash = '#agents';
-    const { bridge, posted, parent } = gaiaBridge();
-    await renderedInGaia(bridge);
+    const { bridge, posted, parent } = framedBridge();
+    await renderedInFrame(bridge);
     posted.length = 0;
     await parentSends(parent, {
       channel: 'forge-embed', channelVersion: 2, kind: 'navigate', fragment: '#questions'
@@ -900,14 +868,39 @@ describe('the Gaia embed channel', () => {
 
   test('Esc that no panel takes posts leave, and a lost session posts session-lost', async () => {
     window.location.hash = '#agents';
-    const { bridge, posted } = gaiaBridge();
-    await renderedInGaia(bridge);
+    const { bridge, posted } = framedBridge();
+    await renderedInFrame(bridge);
     posted.length = 0;
     act(() => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
     act(() => bridge.stream().onConnection('no-session'));
     expect(posted).toEqual([envelope({ kind: 'leave' }), envelope({ kind: 'session-lost' })]);
+  });
+
+  test('an item route of a tab with no panel, a session, New chat or a question, leaves the board on Esc', async () => {
+    for (const fragment of ['#intake/J5', '#intake/new', '#questions/E3']) {
+      window.location.hash = fragment;
+      const { bridge, posted } = framedBridge();
+      await renderedInFrame(bridge);
+      posted.length = 0;
+      act(() => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect([fragment, posted]).toEqual([fragment, [envelope({ kind: 'leave' })]]);
+      cleanup();
+    }
+  });
+
+  test('an open detail panel takes the Esc, and the board is not left', async () => {
+    window.location.hash = '#kanban/ticket/002';
+    const { bridge, posted } = framedBridge();
+    await renderedInFrame(bridge, BOARD_WITH_TICKET_002());
+    posted.length = 0;
+    act(() => {
+      fireEvent.keyDown(document, { key: 'Escape' });
+    });
+    expect(posted).toEqual([]);
   });
 
   const BOARD_WITH_TICKET_002 = (): unknown => ({ ...BOARD, ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }) });
@@ -921,10 +914,10 @@ describe('the Gaia embed channel', () => {
     }
   }
 
-  test('a by-hand delivery the Overseer refuses shows its sentence verbatim in the frame, and posts nothing to Gaia', async () => {
+  test('a by-hand delivery the Overseer refuses shows its sentence verbatim in the frame, and posts nothing to the parent', async () => {
     window.location.hash = '#kanban/ticket/002';
-    const { bridge, posted } = gaiaBridge();
-    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    const { bridge, posted } = framedBridge();
+    await renderedInFrame(bridge, BOARD_WITH_TICKET_002());
     posted.length = 0;
     const refusal = 'Ticket #002 has job J4 live (running), so it cannot be recorded delivered by hand. Nothing was written.';
     bridge.answerWith({ verdict: 'refused', refusal });
@@ -933,10 +926,10 @@ describe('the Gaia embed channel', () => {
     expect(posted).toEqual([]);
   });
 
-  test('a by-hand delivery whose session token answers 401 posts session-lost to Gaia', async () => {
+  test('a by-hand delivery whose session token answers 401 posts session-lost to the parent', async () => {
     window.location.hash = '#kanban/ticket/002';
-    const { bridge, posted } = gaiaBridge();
-    await renderedInGaia(bridge, BOARD_WITH_TICKET_002());
+    const { bridge, posted } = framedBridge();
+    await renderedInFrame(bridge, BOARD_WITH_TICKET_002());
     posted.length = 0;
     bridge.answerWith({ verdict: 'no-session' });
     await recordDeliveredByHand();

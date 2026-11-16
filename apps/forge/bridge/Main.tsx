@@ -1,6 +1,6 @@
 /**
- * The Bridge's entry point: registers the design system's fonts, sets the theme and the embedded mark before the first paint and follows
- * an embedding parent's theme from then on, exchanges the session code `open` put in the fragment, then mounts the one React root inside
+ * The Bridge's entry point: registers the design system's fonts, sets the theme and the embed mode before the first paint and follows
+ * a framing page's theme from then on, exchanges the session code `open` put in the fragment, then mounts the one React root inside
  * the error boundary, over the browser's own fetch, EventSource, storage and location.
  */
 import { loadDesignSystemFonts } from 'design-system/FontLoader';
@@ -26,7 +26,7 @@ const ROOT_ELEMENT_ID = 'bridge-root';
 
 loadDesignSystemFonts();
 
-const { embeddingHost } = FirstPaint.prepare(sharedPreferenceStoreOf());
+const { embedMode } = FirstPaint.prepare(sharedPreferenceStoreOf());
 
 // One token source, so a token the command client rotated is the one the picture upload carries; each client then fetches through it.
 const sessionTokenSource = SessionTokenSource.create();
@@ -38,7 +38,7 @@ const services: BridgeServices = {
   fetchIdentity:        () => IdentityClient.fetchIdentity(),
   reload:               () => window.location.reload(),
   storage:              BROWSER_STORAGE_AREAS.local,
-  embeddingHost,
+  embedMode,
   embeddedSurroundings: EmbeddedChannel.browserSurroundings,
   now:                  () => new Date(),
   followTranscript:     (jobId, handlers) => TranscriptStreamClient.follow(jobId, handlers),

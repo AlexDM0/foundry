@@ -7,7 +7,7 @@
  */
 :root {
   --row-h: 30px;
-  /* The page's side gutter: every shell row keeps it, 16px at phone width and the frame's own when embedded. */
+  /* The page's side gutter: every shell row keeps it, 16px at phone width. */
   --page-gutter: 28px;
   --col-name: 432px;
   --col-name-wide: 780px;
@@ -88,8 +88,6 @@
 @media (max-width: 720px) {
   :root { --page-gutter: 16px; }
 }
-
-html[data-embedded="dashboard"] { --page-gutter: 0px; }
 
 /* The Bridge's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
 @media (prefers-reduced-motion: reduce) {

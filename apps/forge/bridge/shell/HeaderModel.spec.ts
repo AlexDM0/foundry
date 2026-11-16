@@ -4,8 +4,8 @@
  * withdraws Pause and Stop; the new-code notice points at `update`; a failed Baton pass with its step and error and an Assistant that
  * cannot come up are warnings, kept apart from the other notices, and an incident default is neither (the incident line holds it); the
  * statistics read concurrency and today's work, and say which tab and which Kanban lane they open; the agents figure counts the jobs
- * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover; the embedded summary line counts building
- * and reviewing from the same slot jobs as the activity strip, so the line, the figure and the strip agree. The status details are the
+ * holding a launch slot, never the rows in progress nor the Assistant, and says so on hover, from the same slot jobs as the activity
+ * strip, so the figure and the strip agree. The status details are the
  * usage windows the facts carry and never a placeholder or the confinement, a limit hit naming its reset on the viewer's clock, since the
  * stored stamp is UTC; while the board has no readable pipeline the header is in
  * setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps linking to their route) and no usage,
@@ -223,23 +223,6 @@ describe('concurrency, usage and the statistics', () => {
     const { concurrency: _omitted, ...withoutConcurrency } = boardWithSlotJobsAndMoreRows();
     const agents = headerModelOf(withoutConcurrency, FIXTURE_NOW, 'live').statistics[0];
     expect([agents?.figure, agents?.explanation]).toEqual(['3', 'Build and review jobs; the Assistant and product-owner jobs do not count']);
-  });
-
-  test('the summary line counts the slot jobs apart by building and reviewing, then the queue, the paused, and today\'s figures', () => {
-    const model = headerModelOf(boardWithSlotJobsAndMoreRows(), FIXTURE_NOW, 'live');
-    expect(model.summaryLine).toEqual({
-      states: [
-        { figure: '2', label: 'building', state: 'in-progress' },
-        { figure: '1', label: 'reviewing', state: 'reviewing' },
-        { figure: '1', label: 'waiting in queue', state: 'pending' },
-        { figure: '0', label: 'paused', state: 'paused' },
-      ],
-      today: [
-        { figure: '1', label: 'done today', state: 'delivered' },
-        { figure: '4.5k', label: 'tokens today', state: null },
-      ],
-    });
-    expect(headerModelOf(null, FIXTURE_NOW, 'connecting').summaryLine).toBeNull();
   });
 
   test('a paused ticket adds the paused figure after the agents, in the paused state', () => {

@@ -63,7 +63,7 @@ import { QuestionPanelShownContext }                                            
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
 import { DetailRoute }                                                                   from './DetailRoute.ts';
 import { DetailRoutingContext, detailRoutingOf }                                         from './DetailRouting.ts';
-import { EmbeddedChannel, type EmbeddedSurroundings }                                    from './EmbeddedChannel.ts';
+import type { EmbeddedSurroundings }                                                     from './EmbeddedChannel.ts';
 import { FinishedWorkFilter, useFinishedWorkChoice, type FinishedWorkCount }             from './FinishedWorkFilter.tsx';
 import { FinishedWorkWindowContext, type FinishedWorkWindow }                            from './FinishedWorkWindow.ts';
 import {
@@ -73,15 +73,15 @@ import {
   type BridgeRoute,
   type BridgeTab
 } from './HashRouter.ts';
-import { Header }                                               from './Header.tsx';
-import { headerModelOf, type HeaderFigureLane }                 from './HeaderModel.ts';
-import { IncidentNotice }                                       from './IncidentNotice.tsx';
-import { IncidentNoticeModelUtil }                              from './IncidentNoticeModel.ts';
-import { QuestionPanelOpenerContext }                           from './QuestionPanelOpener.ts';
-import type { SessionLoss }                                     from './SessionBannerOf.ts';
-import { ThemeBootstrap, type EmbeddingHost, type ThemeChoice } from './ThemeBootstrap.ts';
-import { VersionedEmbedChannel }                                from './VersionedEmbedChannel.ts';
-import { WaitingOnUserModel }                                   from './WaitingOnUserModel.ts';
+import { Header }                                           from './Header.tsx';
+import { headerModelOf, type HeaderFigureLane }             from './HeaderModel.ts';
+import { IncidentNotice }                                   from './IncidentNotice.tsx';
+import { IncidentNoticeModelUtil }                          from './IncidentNoticeModel.ts';
+import { QuestionPanelOpenerContext }                       from './QuestionPanelOpener.ts';
+import type { SessionLoss }                                 from './SessionBannerOf.ts';
+import { ThemeBootstrap, type EmbedMode, type ThemeChoice } from './ThemeBootstrap.ts';
+import { VersionedEmbedChannel }                            from './VersionedEmbedChannel.ts';
+import { WaitingOnUserModel }                               from './WaitingOnUserModel.ts';
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
@@ -91,8 +91,8 @@ export interface BridgeServices {
   readonly fetchIdentity:        () => Promise<OverseerIdentity | null>;
   readonly reload:               () => void;
   readonly storage:              () => PreferenceStorage;
-  /** The program framing the page, `null` when it is not embedded. */
-  readonly embeddingHost:        EmbeddingHost | null;
+  /** The embed mode a framing page opened the page in, `null` when it is not embedded. */
+  readonly embedMode:            EmbedMode | null;
   readonly embeddedSurroundings: () => EmbeddedSurroundings;
   readonly now:                  () => Date;
   readonly followTranscript:     TranscriptFollower;
@@ -250,16 +250,13 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
   }, [panelIsOpen]);
 
   useEffect(() => {
-    if (services.embeddingHost === null) return undefined;
-    const surroundings = services.embeddedSurroundings();
-    const escapeForwarder = services.embeddingHost === 'gaia'
-      ? VersionedEmbedChannel.forwardEscape(surroundings, () => panelIsOpenNow.current)
-      : EmbeddedChannel.forwardEscape(surroundings, () => panelIsOpenNow.current);
+    if (services.embedMode === null) return undefined;
+    const escapeForwarder = VersionedEmbedChannel.forwardEscape(services.embeddedSurroundings(), () => panelIsOpenNow.current);
     return () => escapeForwarder.close();
   }, [services]);
 
   const routeFragment = HashRouter.fragmentOf({ tab: routeTab, item: routeItem });
-  useGaiaEmbedChannel(services, addressedRoute, routeFragment, sessionLoss !== null);
+  useFrameEmbedChannel(services, addressedRoute, routeFragment, sessionLoss !== null);
 
   // `#questions/<id>` opens that open question's panel, when the route arrives and when the question does.
   const routedQuestionId = routeTab === 'questions' ? routeItem : null;
@@ -554,23 +551,23 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 }
 
 /**
- * Gaia's side of the versioned embed channel: `ready` once per load after the shell painted and listens, `route` whenever the shown route
+ * The Bridge's side of the embed channel in a frame: `ready` once per load after the shell painted and listens, `route` whenever the shown route
  * changes, `session-lost` when the session goes, and a parent's `navigate` followed and always answered with the route shown: at once when
  * the address bar does not move, else once the route it moved to is shown, also when that is the route shown before.
  */
-function useGaiaEmbedChannel(services: BridgeServices, addressedRoute: BridgeRoute, routeFragment: string, sessionIsLost: boolean): void {
+function useFrameEmbedChannel(services: BridgeServices, addressedRoute: BridgeRoute, routeFragment: string, sessionIsLost: boolean): void {
   const readyWasPosted = useRef(false);
   const postedRouteFragment = useRef<string | null>(null);
   const shownRouteFragment = useRef(routeFragment);
   const navigationAwaitsAnswer = useRef(false);
-  const isGaia = services.embeddingHost === 'gaia';
+  const isFramed = services.embedMode === 'frame';
 
   useEffect(() => {
     shownRouteFragment.current = routeFragment;
   }, [routeFragment]);
 
   useEffect(() => {
-    if (!isGaia) return undefined;
+    if (!isFramed) return undefined;
     const surroundings = services.embeddedSurroundings();
     const follower = VersionedEmbedChannel.followParent(surroundings, {
       onNavigate: (fragment) => {
@@ -585,19 +582,19 @@ function useGaiaEmbedChannel(services: BridgeServices, addressedRoute: BridgeRou
       VersionedEmbedChannel.post(surroundings, { kind: 'ready' });
     }
     return () => follower.close();
-  }, [services, isGaia]);
+  }, [services, isFramed]);
 
   // A moved address bar always gives a new addressed route, so a navigation is answered even where the route shown stays the same.
   useEffect(() => {
-    if (!isGaia || (postedRouteFragment.current === routeFragment && !navigationAwaitsAnswer.current)) return;
+    if (!isFramed || (postedRouteFragment.current === routeFragment && !navigationAwaitsAnswer.current)) return;
     navigationAwaitsAnswer.current = false;
     postedRouteFragment.current = routeFragment;
     VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'route', fragment: routeFragment });
-  }, [services, isGaia, routeFragment, addressedRoute]);
+  }, [services, isFramed, routeFragment, addressedRoute]);
 
   useEffect(() => {
-    if (isGaia && sessionIsLost) VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'session-lost' });
-  }, [services, isGaia, sessionIsLost]);
+    if (isFramed && sessionIsLost) VersionedEmbedChannel.post(services.embeddedSurroundings(), { kind: 'session-lost' });
+  }, [services, isFramed, sessionIsLost]);
 }
 
 function BoardCounts({ boardState, tab }: { readonly boardState: BoardStateDocument; readonly tab: string }) {

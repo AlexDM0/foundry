@@ -1,14 +1,18 @@
 /**
- * The versioned embed channel that Gaia frames the Bridge by (`?embedded=gaia`): every `postMessage` in either direction is
+ * The embed channel a framing page opens the Bridge with (`?embedded=frame`): every `postMessage` in either direction is
  * `{channel: 'forge-embed', channelVersion, kind, …}`, accepted only from the framing parent at its own origin and posted only to that
- * origin. A message of another channel or another `channelVersion` is dropped and answered by nothing.
+ * origin, and each message the Bridge posts names forge's system version. A message of another channel or another `channelVersion` is
+ * dropped and answered by nothing; a key the Bridge does not know, the framing page's system version among them, is passed over.
  */
+import type { EmbedChannelEnvelope } from 'forge-contracts/EmbedChannelMessage';
+import { FORGE_SYSTEM_VERSIONS }     from 'forge-contracts/ForgeSystemVersions';
+
 import { SERVED_CONTRACT_VERSIONS }                   from '../../src/shared/constants/OverseerApiContracts.ts';
 import { EmbeddedChannel, type EmbeddedSurroundings } from './EmbeddedChannel.ts';
 import type { ThemeChoice }                           from './ThemeBootstrap.ts';
 
-/** The contract's own name, fixed with Gaia, so it stays this literal whatever the program is called. */
-export const EMBED_CHANNEL_NAME = 'forge-embed';
+/** The contract's own name, fixed with every framing page, so it stays this literal whatever the program is called. */
+export const EMBED_CHANNEL_NAME: EmbedChannelEnvelope['channel'] = 'forge-embed';
 
 export const EMBED_CHANNEL_VERSION = SERVED_CONTRACT_VERSIONS.embed;
 
@@ -41,8 +45,10 @@ function parentMessageOf(data: unknown): ParentToBridgeMessage | null {
   return null;
 }
 
-function envelopeOf(message: BridgeToParentMessage): object {
-  return { channel: EMBED_CHANNEL_NAME, channelVersion: EMBED_CHANNEL_VERSION, ...message };
+function envelopeOf(message: BridgeToParentMessage): EmbedChannelEnvelope & BridgeToParentMessage {
+  return {
+    channel: EMBED_CHANNEL_NAME, channelVersion: EMBED_CHANNEL_VERSION, systemVersion: FORGE_SYSTEM_VERSIONS.current, ...message
+  };
 }
 
 function followParent(surroundings: EmbeddedSurroundings, handlers: ParentMessageHandlers): EmbeddedChannel {

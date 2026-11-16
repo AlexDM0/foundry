@@ -422,7 +422,7 @@ describe('a row\'s live facts', () => {
       fetchIdentity:        () => Promise.resolve(identity),
       reload:               () => undefined,
       storage:              () => ({ getItem: () => null, setItem: () => undefined, removeItem: () => undefined }),
-      embeddingHost:        null,
+      embedMode:            null,
       embeddedSurroundings: () => ({ window, parent: null, parentOrigin: null }),
       now:                  () => new Date('2026-10-29T20:00:05Z'),
       followTranscript:     () => ({ close: () => undefined }),

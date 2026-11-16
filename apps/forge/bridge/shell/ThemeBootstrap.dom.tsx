@@ -1,5 +1,5 @@
 /**
- * The theme an embedding parent sends, in a happy-dom document. What matters: each of agent-dashboard's choices lands on the root,
+ * The theme a framing page sends, in a happy-dom document. What matters: each of its choices lands on the root,
  * `auto` resolving through the system's scheme as a viewer's own `auto` does. It takes no store, so it cannot store the choice. While the
  * choice on the root is `auto`, a change of the system's scheme applies the theme again, so the Bridge follows the system into the night.
  */

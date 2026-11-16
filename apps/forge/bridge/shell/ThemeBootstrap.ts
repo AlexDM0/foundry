@@ -1,18 +1,19 @@
 /**
- * What the Bridge sets on the document before React's first paint: the theme from the stored choice or the system's, and the embedded
- * mark naming the program that frames it, agent-dashboard or Gaia. `board.css` keeps the body hidden until `data-theme` is set, so no wrong theme flashes.
+ * What the Bridge sets on the document before React's first paint: the theme from the stored choice or the system's, and the embed mode
+ * when a framing page opened it so. `board.css` keeps the body hidden until `data-theme` is set, so no wrong theme flashes.
  */
+import { EMBED_MODE_QUERY } from 'forge-contracts/EmbedMode';
+
 import type { PreferenceStore } from '../preferences/PreferenceStore.ts';
 
 export type ThemeChoice = 'auto' | 'light' | 'dark';
 export type Theme = 'light' | 'dark';
 
-/** The program framing the Bridge, as the literal `?embedded=` value names it. */
-export type EmbeddingHost = 'dashboard' | 'gaia';
+/** The one embed mode, which names no framing page. */
+export type EmbedMode = typeof EMBED_MODE_QUERY.value;
 
 export const THEME_CHOICE_NAME = 'theme';
 export const DEFAULT_THEME_CHOICE: ThemeChoice = 'auto';
-const EMBEDDING_HOSTS: readonly EmbeddingHost[] = ['dashboard', 'gaia'];
 const DARK_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 const THEME_CHOICE_ATTRIBUTE = 'data-theme-choice';
 
@@ -38,10 +39,9 @@ function applyTheme(root: HTMLElement, theme: Theme, choice: ThemeChoice): void 
   root.setAttribute(THEME_CHOICE_ATTRIBUTE, choice);
 }
 
-/** Only the literal `?embedded=dashboard` or `?embedded=gaia` marks the document embedded; `null` when it is not. */
-function embeddingHostOf(search: string): EmbeddingHost | null {
-  const named = new URLSearchParams(search).get('embedded');
-  return EMBEDDING_HOSTS.find((host) => host === named) ?? null;
+/** Only the literal `?embedded=frame` marks the document embedded; `null` when it is not. */
+function embedModeOf(search: string): EmbedMode | null {
+  return new URLSearchParams(search).get(EMBED_MODE_QUERY.parameter) === EMBED_MODE_QUERY.value ? EMBED_MODE_QUERY.value : null;
 }
 
 function browserSurroundings(): DocumentSurroundings {
@@ -57,12 +57,12 @@ function browserSurroundings(): DocumentSurroundings {
   };
 }
 
-function applyBeforeFirstPaint(store: PreferenceStore, surroundings: DocumentSurroundings = browserSurroundings()): { embeddingHost: EmbeddingHost | null } {
+function applyBeforeFirstPaint(store: PreferenceStore, surroundings: DocumentSurroundings = browserSurroundings()): { embedMode: EmbedMode | null } {
   const choice = themeChoiceOf(store.readChoice(THEME_CHOICE_NAME));
   applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
-  const embeddingHost = embeddingHostOf(surroundings.search);
-  if (embeddingHost !== null) surroundings.root.setAttribute('data-embedded', embeddingHost);
-  return { embeddingHost };
+  const embedMode = embedModeOf(surroundings.search);
+  if (embedMode !== null) surroundings.root.setAttribute('data-embedded', embedMode);
+  return { embedMode };
 }
 
 /** A viewer's choice, stored and applied at once. */
@@ -71,7 +71,7 @@ function chooseTheme(store: PreferenceStore, choice: ThemeChoice, surroundings: 
   applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
 }
 
-/** A theme choice the embedding parent sends: applied, never stored, since it is the framing program's choice and not this viewer's. */
+/** A theme choice the framing page sends: applied, never stored, since it is the framing page's choice and not this viewer's. */
 function applyParentTheme(choice: ThemeChoice, surroundings: DocumentSurroundings = browserSurroundings()): void {
   applyTheme(surroundings.root, themeOf(choice, surroundings.systemPrefersDark), choice);
 }

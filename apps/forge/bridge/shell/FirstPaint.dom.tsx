@@ -1,12 +1,12 @@
 /**
- * The entry's step before the first paint, in a happy-dom document. What matters: embedded, a theme the parent sends before the
- * session exchange and before React mounts is applied and outranks the viewer's stored choice, in agent-dashboard's shape for
- * `?embedded=dashboard` and only in the versioned channel's for `?embedded=gaia`; not embedded, nothing listens.
+ * The entry's step before the first paint, in a happy-dom document. What matters: at `?embedded=frame` the root carries the embed mode and
+ * a theme the parent sends before the session exchange and before React mounts is applied, only in the embed channel's envelope, and
+ * outranks the viewer's stored choice; not embedded, and at any other `embedded` value, retired ones included, nothing is marked and
+ * nothing listens.
  */
 import { afterEach, expect, test } from 'bun:test';
 
 import type { PreferenceStore } from '../preferences/PreferenceStore.ts';
-import { THEME_MESSAGE_KIND }   from './EmbeddedChannel.ts';
 import { FirstPaint }           from './FirstPaint.ts';
 
 const PARENT_ORIGIN = 'http://127.0.0.1:5101';
@@ -34,43 +34,45 @@ function preparedWithSearch(search: string) {
   return outcome;
 }
 
-function parentSendsDark(): void {
-  window.dispatchEvent(new MessageEvent('message', { data: { kind: THEME_MESSAGE_KIND, themeChoice: 'dark' }, origin: PARENT_ORIGIN, source: parent }));
-}
-
-test('embedded, the parent\'s first theme lands before anything mounts and outranks the stored choice', () => {
-  const { embeddingHost } = preparedWithSearch('?embedded=dashboard');
-  expect(embeddingHost).toBe('dashboard');
-  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-  parentSendsDark();
-  expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-});
-
-test('not embedded, the stored choice stays and no parent theme is followed', () => {
-  const { embeddingHost } = preparedWithSearch('');
-  expect(embeddingHost).toBeNull();
-  parentSendsDark();
-  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-});
-
-test('framed by Gaia, the root names Gaia and only the versioned channel\'s theme is followed', () => {
-  const { embeddingHost } = preparedWithSearch('?embedded=gaia');
-  expect(embeddingHost).toBe('gaia');
-  expect(document.documentElement.getAttribute('data-embedded')).toBe('gaia');
-  parentSendsDark();
-  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+function parentSendsDarkInEnvelope(): void {
   window.dispatchEvent(new MessageEvent('message', {
     data: {
-      channel: 'forge-embed', channelVersion: 1, kind: THEME_MESSAGE_KIND, themeChoice: 'dark'
+      channel: 'forge-embed', channelVersion: 1, kind: 'theme', themeChoice: 'dark'
     },
     origin: PARENT_ORIGIN,
     source: parent
   }));
+}
+
+function parentSendsDarkWithoutEnvelope(): void {
+  window.dispatchEvent(new MessageEvent('message', { data: { kind: 'theme', themeChoice: 'dark' }, origin: PARENT_ORIGIN, source: parent }));
+}
+
+test('in the frame, the root carries the mode and only the channel\'s first theme lands, before anything mounts, over the stored choice', () => {
+  const { embedMode } = preparedWithSearch('?embedded=frame');
+  expect(embedMode).toBe('frame');
+  expect(document.documentElement.getAttribute('data-embedded')).toBe('frame');
+  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  parentSendsDarkWithoutEnvelope();
+  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  parentSendsDarkInEnvelope();
   expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 });
 
-test('another embedded value marks nothing', () => {
-  const { embeddingHost } = preparedWithSearch('?embedded=gaia2');
-  expect(embeddingHost).toBeNull();
-  expect(document.documentElement.getAttribute('data-embedded')).toBeNull();
+test('not embedded, the stored choice stays and no parent theme is followed', () => {
+  const { embedMode } = preparedWithSearch('');
+  expect(embedMode).toBeNull();
+  parentSendsDarkInEnvelope();
+  expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+});
+
+test('any other embedded value, the retired dashboard and gaia among them, marks nothing and follows no theme', () => {
+  for (const search of ['?embedded=dashboard', '?embedded=gaia', '?embedded=frame2']) {
+    const { embedMode } = preparedWithSearch(search);
+    expect(embedMode).toBeNull();
+    expect(document.documentElement.getAttribute('data-embedded')).toBeNull();
+    parentSendsDarkInEnvelope();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    stopFollowing();
+  }
 });

@@ -1,7 +1,8 @@
 /**
  * The versioned embed channel in a happy-dom window. What matters: a parent message counts only in the envelope of this channel and
- * version, from the framing parent at its origin; another version, another channel, an unknown kind or a malformed field is dropped; and
- * every message the Bridge posts carries the envelope and goes to the parent's origin only, never where that origin is unknown.
+ * version, from the framing parent at its origin, whatever system version the parent names; another version, another channel, an unknown
+ * kind or a malformed field is dropped; and every message the Bridge posts carries the envelope with forge's system version and goes to the
+ * parent's origin only, never where that origin is unknown.
  */
 import {
   afterEach,
@@ -9,6 +10,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
 import type { ThemeChoice }                                                 from './ThemeBootstrap.ts';
 import { EMBED_CHANNEL_NAME, EMBED_CHANNEL_VERSION, VersionedEmbedChannel } from './VersionedEmbedChannel.ts';
@@ -46,6 +48,10 @@ function inEnvelope(message: object): object {
   return { channel: EMBED_CHANNEL_NAME, channelVersion: EMBED_CHANNEL_VERSION, ...message };
 }
 
+function postedByTheBridge(message: object): object {
+  return inEnvelope({ systemVersion: FORGE_SYSTEM_VERSIONS.current, ...message });
+}
+
 describe('parent to Bridge', () => {
   test('theme and navigate in the envelope, from the parent at its origin, are followed', () => {
     const { themes, fragments, deliver } = openedChannel();
@@ -55,13 +61,19 @@ describe('parent to Bridge', () => {
     expect(fragments).toEqual(['#questions/E2']);
   });
 
+  test('a parent that names its own system version is followed alike', () => {
+    const { themes, deliver } = openedChannel();
+    deliver(inEnvelope({ systemVersion: { major: 4, minor: 2 }, kind: 'theme', themeChoice: 'light' }));
+    expect(themes).toEqual(['light']);
+  });
+
   test('another channel version, another channel, an unknown kind or a malformed field is dropped', () => {
     const { themes, fragments, deliver } = openedChannel();
     deliver({
       channel: EMBED_CHANNEL_NAME, channelVersion: 2, kind: 'theme', themeChoice: 'dark'
     });
     deliver({
-      channel: 'agent-dashboard', channelVersion: 1, kind: 'theme', themeChoice: 'dark'
+      channel: 'another-channel', channelVersion: 1, kind: 'theme', themeChoice: 'dark'
     });
     deliver({ kind: 'theme', themeChoice: 'dark' });
     deliver(inEnvelope({ kind: 'reload' }));
@@ -80,10 +92,10 @@ describe('parent to Bridge', () => {
 });
 
 describe('Bridge to parent', () => {
-  test('a posted message carries the envelope and goes to the parent\'s origin only', () => {
+  test('a posted message carries the envelope and forge\'s system version, and goes to the parent\'s origin only', () => {
     const { posted, surroundings } = openedChannel();
     VersionedEmbedChannel.post(surroundings, { kind: 'route', fragment: '#agents/J12' });
-    expect(posted).toEqual([{ message: inEnvelope({ kind: 'route', fragment: '#agents/J12' }), targetOrigin: PARENT_ORIGIN }]);
+    expect(posted).toEqual([{ message: postedByTheBridge({ kind: 'route', fragment: '#agents/J12' }), targetOrigin: PARENT_ORIGIN }]);
   });
 
   test('with the parent\'s origin unknown nothing is posted', () => {
@@ -100,6 +112,6 @@ describe('Bridge to parent', () => {
     } finally {
       forwarder.close();
     }
-    expect(posted).toEqual([{ message: inEnvelope({ kind: 'leave' }), targetOrigin: PARENT_ORIGIN }]);
+    expect(posted).toEqual([{ message: postedByTheBridge({ kind: 'leave' }), targetOrigin: PARENT_ORIGIN }]);
   });
 });

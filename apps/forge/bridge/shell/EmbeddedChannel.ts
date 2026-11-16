@@ -1,13 +1,8 @@
 /**
- * agent-dashboard frames the Bridge across origins, so theme in and Esc out travel by `postMessage`, in agent-dashboard's own message
- * shapes: `{kind: 'theme', themeChoice}` in and `{kind: 'leave-board'}` out. A message is accepted only from the framing parent at its own
- * origin: `frame-ancestors` lets only agent-dashboard's origins frame the Bridge, so that origin is one of them. The Bridge posts only to
- * that origin, never to `*`.
+ * The window ends of the Bridge in a frame: the framing parent and its origin, and Esc forwarded to it as the leave message. A framing
+ * page frames the Bridge across origins, and `frame-ancestors` lets only the origins forge knows frame it, so the parent's origin is one
+ * of them. The Bridge posts only to that origin, never to `*`; the messages themselves are the embed channel's (`VersionedEmbedChannel.ts`).
  */
-import type { ThemeChoice } from './ThemeBootstrap.ts';
-
-export const THEME_MESSAGE_KIND = 'theme';
-export const LEAVE_BOARD_MESSAGE_KIND = 'leave-board';
 
 export interface EmbeddedSurroundings {
   readonly window:       Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -20,30 +15,8 @@ export interface EmbeddedChannel {
   readonly close: () => void;
 }
 
-function themeChoiceCarriedBy(data: unknown): ThemeChoice | null {
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
-  const { kind, themeChoice } = data as { kind?: unknown; themeChoice?: unknown };
-  if (kind !== THEME_MESSAGE_KIND) return null;
-  return themeChoice === 'auto' || themeChoice === 'light' || themeChoice === 'dark' ? themeChoice : null;
-}
-
-/** Opened before the first paint, so a theme the parent sends while the session exchange runs is never lost. */
-function followParentTheme(surroundings: EmbeddedSurroundings, onTheme: (choice: ThemeChoice) => void): EmbeddedChannel {
-  const { parent, parentOrigin } = surroundings;
-  const onMessage = (event: MessageEvent): void => {
-    if (parentOrigin === null || event.origin !== parentOrigin || event.source !== parent) return;
-    const themeChoice = themeChoiceCarriedBy(event.data);
-    if (themeChoice !== null) onTheme(themeChoice);
-  };
-  surroundings.window.addEventListener('message', onMessage as EventListener);
-  return { close: () => surroundings.window.removeEventListener('message', onMessage as EventListener) };
-}
-
-/**
- * `panelIsOpen` says whether a panel is open, which Esc closes first instead of leaving the frame. `leaveMessage` is agent-dashboard's
- * shape unless the framing program speaks another.
- */
-function forwardEscape(surroundings: EmbeddedSurroundings, panelIsOpen: () => boolean, leaveMessage: object = { kind: LEAVE_BOARD_MESSAGE_KIND }): EmbeddedChannel {
+/** `panelIsOpen` says whether a panel is open, which Esc closes first instead of leaving the frame. */
+function forwardEscape(surroundings: EmbeddedSurroundings, panelIsOpen: () => boolean, leaveMessage: object): EmbeddedChannel {
   const { parent, parentOrigin } = surroundings;
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape' || event.defaultPrevented || panelIsOpen() || parent === null || parentOrigin === null) return;
@@ -69,4 +42,4 @@ function browserSurroundings(): EmbeddedSurroundings {
   return { window, parent: framed ? window.parent : null, parentOrigin: framed ? parentOriginOf(window.location, document.referrer) : null };
 }
 
-export const EmbeddedChannel = Object.freeze({ followParentTheme, forwardEscape, browserSurroundings });
+export const EmbeddedChannel = Object.freeze({ forwardEscape, browserSurroundings });
