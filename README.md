@@ -3,7 +3,8 @@
 A Bun workspace: each app in `apps/` (`apps/forge/`, `apps/gaia/`), each shared package in `packages/`. Each app's `README.md` says how
 to run it and its `CLAUDE.md` holds its rules; this root's `CLAUDE.md` says whose rules each package follows.
 `docs/monorepo/` holds the monorepo's design and the migration checklist. `scripts/` holds the root's own scripts, a workspace member
-so turbo typechecks, lints and tests them like any other.
+so turbo typechecks, lints and tests them like any other. Each app is run by its own forge tracker, in `apps/forge/` and
+`apps/gaia/`; the root `CLAUDE.md` names their reach and gates.
 
 ## Set up
 

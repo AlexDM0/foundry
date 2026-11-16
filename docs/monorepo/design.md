@@ -1,8 +1,8 @@
 # Forge and Gaia in one monorepo, and forge in a part of a repository
 
 Status: design of 2026-11-13, revised on 2026-11-15 against forge `db64ed0a` and Gaia `1418f76` and to the owner's decisions of that
-day. Part A is being built; Part B is designed and not built. The steps, their owners and their status are the migration checklist,
-`docs/monorepo/migration.md`; where the two differ, the checklist holds.
+day. Parts A and B are built on `monorepo/integration` and land in the migration's P7. The steps, their owners and their status are
+the migration checklist, `docs/monorepo/migration.md`; where the two differ, the checklist holds.
 
 Decisions taken by the owner on 2026-11-13:
 
@@ -130,16 +130,19 @@ Not shared: `ProductNames`, `Limits`, `AtomicFile`, the recording harness. Small
     a client of an older major.
   - A server answers its current system version and its minimum supported, which it alone decides, at `GET /api/versions`, unversioned
     and never removed. REST endpoints are versioned by path, `/api/v<n>/<endpoint>`, side by side, with no per-endpoint version in their
-    answers. A message protocol carries the system version in its handshake and every message. Stored files keep their own format
-    version.
+    answers. A message protocol (the fleet stream, the monitor stream, the embed channel) carries the system version in its handshake
+    and every message. Stored files keep their own format version.
   - A server's compatibility registry names everything it keeps for clients of older versions, each with the version that introduced it
     and the last that still needs it; a raise-the-minimum dry run (`bun run versions:raise-minimum <major.minor>`, in its own folder)
     lists what becomes removable, and a guard spec fails after a raise until it is removed. Forge's is
     `forge-contracts/ForgeCompatibilityRegistry`; Gaia's own, toward its page and launcher, is
     `apps/gaia/src/shared/constants/GaiaCompatibilityRegistry.ts`.
-  - Gaia supports exactly one forge version, `SUPPORTED_FORGE_VERSION`, and keeps no backward compatibility for any other. In the
-    monorepo it strives for the latest: its `check` warns while it is behind forge's current version. Per forge, from its
-    `/api/versions`: current, ahead (Gaia still talks), newer (Gaia needs an update) or older (the forge needs one: Update forge).
+  - Gaia supports exactly one forge version, `SUPPORTED_FORGE_VERSION`, and keeps no backward compatibility for any other: no
+    migration of an older forge document, no unversioned forge path, no recording of an older forge read. It calls each forge endpoint
+    at the version forge's registry serves its supported version. In the monorepo it strives for the latest: its `check` warns, and
+    does not fail, while it is behind forge's current version. Per forge, from its `/api/versions`: current, ahead (Gaia knows less and
+    still talks), newer (Gaia cannot talk to it and needs an update; it names no command) or older (Gaia cannot talk to it and the forge
+    needs an update: Update forge).
 - A forge system minor bump is a package minor bump of `forge-contracts`; a system major bump, or a removed or changed type, a package
   major bump.
 - Gaia tests what it does with a forge's answers against recordings of forges at the versions it meets, each stamped with the forge's

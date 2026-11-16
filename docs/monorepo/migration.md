@@ -4,7 +4,7 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-16, on branch `monorepo/integration`: P3 and P4 gated green together, P5 gated green. Merge bases: forge
+Status as of 2026-11-16, on branch `monorepo/integration`: P0 to P5 gated green, P6 under way. Merge bases: forge
 `main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
 `monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
 after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
@@ -92,7 +92,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] **Forge 1.0 is `9ec2b85a`** (no tag, nothing pushed): `GET /api/versions` answers `1.0` with minimum `0.0`; it serves identity 1,
       summary 1, monitor 3 (with `flintBrain: null`), control 1 and embed 1, each registry endpoint at `/api/v<n>/` beside its unversioned
       path, the monitor stream's handshake and `systemVersion`, the frame-host records and `?embedded=frame` only.
-- [ ] Re-record `overseer-fetch-versions` from forge 1.1 in P8: its ahead forge is forge 1.0 answering 1.3, so it serves control 1.
+- [x] Re-recording `overseer-fetch-versions` from forge 1.1 moved to P8.
 - [x] Gate P4: `bun run versions:raise-minimum 1.0` dry runs in `packages/forge-contracts` and `apps/gaia`; a scratch forge from
       this tree and Gaia's server under one scratch `HOME` with `GAIA_PORT=0`: the forge answers `/api/versions` 1.0 and
       `/api/v2/monitor` at monitor 3, and Gaia, built for 1.1, reads it `older` (`current` when the forge's test setting answers 1.1);
@@ -105,17 +105,21 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] P5B: Airlocks, Customs, the launch, the instruction files, `init` and the prompts' wording.
 - [x] `p5-gate-cache-report`: the opt-in cached indicator for gate runs in the Bridge's pipeline view.
 - [x] P5C: integration specs and a rehearsal of P7 in a scratch clone (never a copy of a linked worktree).
-- [ ] B15 (`repositoryRoot` and `projectPrefix` in the registry and the monitor snapshot) waits for P8.
+- [x] B15 (`repositoryRoot` and `projectPrefix` in the registry and the monitor snapshot) moved to P8.
 - [x] Gate P5: the common gate, three forced verifies, the root tracker's golden replay and the rehearsal's notes.
-- [ ] Before P7's gates run `test` and `test:dom`: a Seatbelt-confined gate cannot run the setuid `ps`, so Gaia's leak check and
-      forge's process helpers fail in a gate (rehearsal finding 1). One ticket per app: list processes another way, or skip through the
-      tool guard with a counted reason.
-- [ ] The pipeline agent's turn-end check (`PipelineAgentSessions` `refMovesAllowedFor`) still watches every ref, not only a namespaced
-      tracker's own and the journaled landings (rehearsal finding 2).
+- [x] The rehearsal's two open findings, processes listed with `ps` in a gate and the pipeline agent's turn-end check, moved to the
+      backlog below.
 
 ### P6. Docs close-out and the owner's review (Claude, then the owner) — not started
 
-- [ ] DOC-root, DOC-forge, DOC-gaia: the root docs, both apps' `CLAUDE.md` and docs for what P3 to P5 changed.
+- [x] DOC-root: the root `CLAUDE.md` names each app's rules, each package's README and the one constitution, the two trackers with
+      their homes, namespaces, reach and gates, turbo as how everything verifies, and where worktrees and evidence live; the root
+      `README.md`; this checklist and the design brought to the P5 gate, with the release rules kept. No `.claude/rules/gaia.md`: a
+      session started in `apps/gaia` loads `apps/gaia/CLAUDE.md` itself (probe P20), and whether a path-scoped rule loads in a
+      subfolder session is still unprobed.
+- [ ] DOC-forge: `apps/forge/CLAUDE.md` and forge's docs for what P3 to P5 changed.
+- [ ] DOC-gaia: `apps/gaia/CLAUDE.md`, `docs/contracts.md`, `docs/backlog.md` and `docs/forge-requirements.md` for what P3 to P5
+      changed.
 - [ ] The owner reviews `git log --oneline main..monorepo/integration` and the gate records, and gives the go for P7.
 
 ### P7. Land and operate (the owner's go) — not started
@@ -128,6 +132,7 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
 - [ ] The installed forge: a second clone outside the monorepo, its `setup.sh`, updated by pulling (owner).
 - [ ] Forge's tracker to `apps/forge/.forge`, namespace `forge`, `forge update`; remove what the root tracker installed at the root
       (owner).
+- [ ] Before the gates below run `test` and `test:dom`: the backlog's item 1 (Claude).
 - [ ] Gates for forge's tracker, each with `--in /`: prepare `bun install --frozen-lockfile`; `gate add verify --in / --writes
       <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by /bun.lock -- bun run gate:forge`; the
       Overseer-only merge gate `cache:audit`; reach `/packages/*` that forge owns, `/package.json`, `/bun.lock`, `/turbo.json` (owner).
@@ -145,7 +150,22 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
 
 - [ ] Flint's brain (G1 to G3, V7, control 2) as forge 1.1, built by forge's own tracker on the new layout.
 - [ ] Gaia re-records `overseer-fetch-supported-forge` and drops what `forge-contracts` holds only for older forges.
+- [ ] Gaia re-records `overseer-fetch-versions` from forge 1.1: its ahead forge today is forge 1.0 answering 1.3, so it serves
+      control 1.
 - [ ] B15 as forge 1.2.
+
+## Backlog
+
+What a phase left undone, with the reason it waits:
+
+1. **No test suite of either app runs under a gate's Seatbelt** (rehearsal finding 1): the profile cannot start the setuid `/bin/ps`,
+   and Gaia's leak check and forge's spec helpers that look for processes list them with it. One ticket per app: list processes
+   another way (`pgrep` runs under the profile), or skip through the tool guard with a counted reason. It waits for each app's own
+   rules and tracker, and it blocks P7's gates from running `test` and `test:dom`.
+2. **The pipeline agent's turn-end check** (`PipelineAgentSessions` `refMovesAllowedFor`) still watches every ref, not only a
+   namespaced tracker's own and the journaled landings (rehearsal finding 2), so a sibling tracker's landing can end a pipeline
+   agent's turn. A forge change for forge's tracker; it waits because the pipeline agent runs only on `pipeline setup`, `pipeline
+   update` and `advise`, which the owner starts.
 
 ## Decisions
 
@@ -173,6 +193,7 @@ Still open:
 
 ## Forge requirements, apart from the merge
 
-`apps/gaia/docs/forge-requirements.md` asks forge for the version model, naming no client. None is on forge `main` at `db64ed0a`: it
-serves no `/api/versions`, and its Bridge still enters the embed mode on `?embedded=gaia`. Until P4 lands V1 to V3, Gaia reads every
-forge as older and offers Update forge.
+`apps/gaia/docs/forge-requirements.md` asks forge for the version model, naming no client. Forge 1.0 (`9ec2b85a`, on
+`monorepo/integration`) meets V1 to V6, V8 and V9, and Gaia supports it (`SUPPORTED_FORGE_VERSION` 1.0). V7 and G1 to G3 come with
+Flint's brain as forge 1.1 in P8. Forge `main` at `db64ed0a` serves no `/api/versions`, so this tree's Gaia reads a forge of that
+code as older and offers Update forge until P7 lands it.
