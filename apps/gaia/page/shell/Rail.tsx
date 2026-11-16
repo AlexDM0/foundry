@@ -35,7 +35,7 @@ function RailMachineLink({ machine }: { readonly machine: MachineLoad }) {
         <span className="gaia-rail-machine-figure">{machine.agentsText}</span>
         <span className="gaia-rail-machine-unit">agents</span>
       </span>
-      <SlotMeter label={machine.meter.label} filled={machine.meter.filled} limit={machine.meter.slots} tone="accent" />
+      <SlotMeter label={machine.meter.label} filled={machine.meter.filled} limit={machine.meter.slots} tone="accent" wrap />
       {machine.atTheLimitLine === null ? null : <span className="gaia-rail-machine-at-the-limit">{machine.atTheLimitLine}</span>}
       <span className="gaia-rail-machine-line">{machine.limitLine}</span>
     </a>

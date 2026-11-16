@@ -67,7 +67,7 @@ export function AgentCallsMeter({ calls }: { readonly calls: AgentCalls }) {
     <span className="gaia-agents-calls">
       {meter === null ? null : (
         <span className="gaia-agents-calls-meter">
-          <FillMeter label={meter.label} used={meter.used} limit={meter.whole} near={meter.used >= meter.whole} tone={METER_STATE_TONES[meter.tone]} />
+          <FillMeter label={meter.label} used={meter.used} limit={meter.whole} near={meter.used >= meter.whole} tone={METER_STATE_TONES[meter.tone]} borderless />
         </span>
       )}
       <span className="gaia-agents-calls-text">{text}</span>

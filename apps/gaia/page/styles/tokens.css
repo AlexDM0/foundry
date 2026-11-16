@@ -17,9 +17,6 @@
   --wordmark-tracking: -0.035em;
   --weight-strong: 600;
 
-  --menu-item-height:    24px;
-  --segment-padding-vertical: 6px;
-  --segment-padding-horizontal: 10px;
   --condition-dot-size:  8px;
   --dot-ring-width:      1.5px;
   --versions-mark-size:  10px;
@@ -28,7 +25,6 @@
   --versions-pair-name-width: 146px;
   --brain-chip-height:   24px;
   --brain-chip-refusal-width: 232px;
-  --glyph-stroke-width:  1.5;
   --selected-edge-width: 3px;
   --banner-edge-width:   4px;
   --brand-bar-height:    52px;
@@ -55,7 +51,6 @@
   --agents-row-height:   56px;
   /* The column heads, one forge's head and one row: the least of the table that stays in sight before the view scrolls. */
   --agents-table-least-height: 119px;
-  --agents-calls-meter-width: 60px;
   --agents-panel-width:  404px;
   --agents-machine-width: 320px;
   --agents-ticket-chip-height: 24px;

@@ -8,18 +8,15 @@ import { Card }                                 from 'design-system/Card';
 import { DataTable, type DataTableColumn }      from 'design-system/DataTable';
 import { EmptyState }                           from 'design-system/EmptyState';
 import { FillMeter }                            from 'design-system/FillMeter';
+import { Icon }                                 from 'design-system/Icon';
+import { Menu, MenuItem }                       from 'design-system/Menu';
 import { SectionHead }                          from 'design-system/SectionHead';
 import { type SegmentOption, SegmentedControl } from 'design-system/SegmentedControl';
 import { Stamp }                                from 'design-system/Stamp';
 import { StateDot }                             from 'design-system/StateDot';
 import type { StateTone }                       from 'design-system/StateTone';
 import { Text }                                 from 'design-system/Text';
-import {
-  type FocusEvent,
-  type KeyboardEvent,
-  useMemo,
-  useState
-} from 'react';
+import { useMemo, useState }                    from 'react';
 
 import { LIMITS }             from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
@@ -69,7 +66,6 @@ function kindOptionsOf(kindCounts: ActivityContent['kindCounts']): SegmentOption
 /** A tracker id is never empty, so the empty value stands for every forge. */
 const EVERY_FORGE_VALUE = '';
 
-const FORGE_MENU_ID = 'gaia-activity-forge-menu';
 const KIND_LABEL_ID = 'gaia-activity-kind-label';
 const FORGE_LABEL_ID = 'gaia-activity-forge-label';
 
@@ -80,14 +76,13 @@ const NOTHING_REPORTED_SENTENCE = 'No forge reports it.';
 const USAGE_SOURCE_SENTENCE = 'As the forges report it.';
 
 export interface ActivityLayoutProps {
-  readonly content:       ActivityContent;
-  readonly kindFilter:    ActivityKindFilter;
-  readonly menuIsOpen:    boolean;
-  readonly onKindFilter:  (kind: ActivityKindFilter) => void;
+  readonly content:          ActivityContent;
+  readonly kindFilter:       ActivityKindFilter;
+  readonly menuIsOpen:       boolean;
+  readonly onKindFilter:     (kind: ActivityKindFilter) => void;
   /** `null` for every forge. */
-  readonly onForgeChoice: (trackerId: string | null) => void;
-  readonly onMenuToggle:  () => void;
-  readonly onMenuClose:   () => void;
+  readonly onForgeChoice:    (trackerId: string | null) => void;
+  readonly onMenuOpenChange: (isOpen: boolean) => void;
 }
 
 function KindCell({ row }: { readonly row: ActivityRow }) {
@@ -110,7 +105,7 @@ function tableRowsOf(rows: readonly ActivityRow[]) {
     key:         row.key,
     interactive: row.href !== null,
     cells:       {
-      at:    <time className="gaia-activity-at" dateTime={row.at}>{row.clockTime}</time>,
+      at:    <span className="gaia-activity-at"><Stamp element="time" dateTime={row.at} shortText={row.clockTime} /></span>,
       forge: <span className="gaia-activity-forge">{row.project}</span>,
       kind:  <KindCell row={row} />,
       text:  <TextCell row={row} />,
@@ -119,54 +114,42 @@ function tableRowsOf(rows: readonly ActivityRow[]) {
 }
 
 interface ForgeMenuProps {
-  readonly choices:       ForgeChoices;
-  readonly menuIsOpen:    boolean;
-  readonly onForgeChoice: (trackerId: string) => void;
-  readonly onMenuToggle:  () => void;
-  readonly onMenuClose:   () => void;
+  readonly choices:          ForgeChoices;
+  readonly menuIsOpen:       boolean;
+  readonly onForgeChoice:    (trackerId: string) => void;
+  readonly onMenuOpenChange: (isOpen: boolean) => void;
 }
 
-/** The forges past the first three, behind one more segment that names the chosen one when it is among them. */
+/** The forges past the first three, behind the tray's last segment, which names the chosen one when it is among them. */
 function ForgeMenu({
-  choices, menuIsOpen, onForgeChoice, onMenuToggle, onMenuClose
+  choices, menuIsOpen, onForgeChoice, onMenuOpenChange
 }: ForgeMenuProps) {
-  if (choices.inMenu.length === 0) return null;
   const chosenInMenu = choices.inMenu.find((choice) => choice.trackerId === choices.chosen) ?? null;
-  const closeOnEscape = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') onMenuClose();
-  };
-  const closeWhenFocusLeaves = (event: FocusEvent<HTMLElement>) => {
-    if (event.relatedTarget === null || !event.currentTarget.contains(event.relatedTarget)) onMenuClose();
-  };
   return (
-    <span className="gaia-activity-more-forges" onKeyDown={closeOnEscape} onBlur={closeWhenFocusLeaves}>
-      <button
-        type="button"
-        className="gaia-activity-more-forges-button"
-        aria-pressed={chosenInMenu !== null}
-        aria-expanded={menuIsOpen}
-        aria-controls={menuIsOpen ? FORGE_MENU_ID : undefined}
-        onClick={onMenuToggle}
-      >
-        {chosenInMenu === null ? `${choices.inMenu.length} more` : chosenInMenu.project}
-        <svg className="gaia-activity-menu-mark" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 4 L5 6.5 L7.5 4" /></svg>
-      </button>
-      {menuIsOpen ? (
-        <span className="gaia-activity-forge-menu" id={FORGE_MENU_ID} role="group" aria-label="More forges">
-          {choices.inMenu.map((choice) => (
-            <button
-              key={choice.trackerId}
-              type="button"
-              className="gaia-activity-forge-menu-item"
-              aria-pressed={choice.trackerId === choices.chosen}
-              onClick={() => onForgeChoice(choice.trackerId)}
-            >
-              {choice.project}
-            </button>
-          ))}
-        </span>
-      ) : null}
-    </span>
+    <Menu
+      label="More forges"
+      trigger="segment"
+      triggerContent={(
+        <>
+          {chosenInMenu === null ? `${choices.inMenu.length} more` : chosenInMenu.project}
+          <Icon name="chevron-down" label={null} />
+        </>
+      )}
+      align="end"
+      pressed={chosenInMenu !== null}
+      isOpen={menuIsOpen}
+      onOpenChange={onMenuOpenChange}
+    >
+      {choices.inMenu.map((choice) => (
+        <MenuItem
+          key={choice.trackerId}
+          label={choice.project}
+          pressed={choice.trackerId === choices.chosen}
+          closing="return-focus"
+          onChoose={() => onForgeChoice(choice.trackerId)}
+        />
+      ))}
+    </Menu>
   );
 }
 
@@ -261,28 +244,27 @@ function UsageSection({ lines, linesAtTheLimit }: UsageSectionProps) {
 }
 
 export function ActivityLayout({
-  content, kindFilter, menuIsOpen, onKindFilter, onForgeChoice, onMenuToggle, onMenuClose
+  content, kindFilter, menuIsOpen, onKindFilter, onForgeChoice, onMenuOpenChange
 }: ActivityLayoutProps) {
   const { forgeChoices } = content;
   const forgeOptions = [
     { value: EVERY_FORGE_VALUE, label: 'All forges' },
     ...forgeChoices.segments.map((choice) => ({ value: choice.trackerId, label: choice.project })),
   ];
+  const forgeMenu = <ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuOpenChange={onMenuOpenChange} />;
   return (
     <div className="gaia-activity">
       <div className="gaia-activity-filters">
         <span className="gaia-visually-hidden" id={KIND_LABEL_ID}>Kind</span>
         <SegmentedControl<ActivityKindFilter> labelledBy={KIND_LABEL_ID} options={kindOptionsOf(content.kindCounts)} selected={kindFilter} onSelect={onKindFilter} />
-        <span className="gaia-activity-forge-filter">
-          <span className="gaia-visually-hidden" id={FORGE_LABEL_ID}>Forge</span>
-          <SegmentedControl
-            labelledBy={FORGE_LABEL_ID}
-            options={forgeOptions}
-            selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
-            onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
-          />
-          <ForgeMenu choices={forgeChoices} menuIsOpen={menuIsOpen} onForgeChoice={onForgeChoice} onMenuToggle={onMenuToggle} onMenuClose={onMenuClose} />
-        </span>
+        <span className="gaia-visually-hidden" id={FORGE_LABEL_ID}>Forge</span>
+        <SegmentedControl
+          labelledBy={FORGE_LABEL_ID}
+          options={forgeOptions}
+          selected={forgeChoices.chosen ?? EVERY_FORGE_VALUE}
+          onSelect={(value) => onForgeChoice(value === EVERY_FORGE_VALUE ? null : value)}
+          {...(forgeChoices.inMenu.length === 0 ? {} : { trailing: forgeMenu })}
+        />
       </div>
       <div className="gaia-activity-columns">
         <section className="gaia-activity-entries" aria-label="Entries">
@@ -321,8 +303,7 @@ export function ActivityView({ fleetDocument, clock }: ActivityViewProps) {
         setFilters((current) => ({ ...current, trackerId }));
         setMenuIsOpen(false);
       }}
-      onMenuToggle={() => setMenuIsOpen((isOpen) => !isOpen)}
-      onMenuClose={() => setMenuIsOpen(false)}
+      onMenuOpenChange={setMenuIsOpen}
     />
   );
 }

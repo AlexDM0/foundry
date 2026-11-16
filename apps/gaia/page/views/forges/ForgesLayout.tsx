@@ -14,6 +14,7 @@ import { DataTable, type DataTableColumn, type DataTableRow } from 'design-syste
 import { EmptyState }                                         from 'design-system/EmptyState';
 import { Icon }                                               from 'design-system/Icon';
 import { IconButton }                                         from 'design-system/IconButton';
+import { MonoId }                                             from 'design-system/MonoId';
 import { NumberStepper }                                      from 'design-system/NumberStepper';
 import { PendingStep }                                        from 'design-system/PendingStep';
 import { SectionHead }                                        from 'design-system/SectionHead';
@@ -392,7 +393,7 @@ function tableRowOf(row: ForgeRow, handlers: ForgesHandlers): DataTableRow<Forge
       ),
       agents:   <AgentsCell project={row.project} agents={row.agents} handlers={handlers} />,
       waiting:  waitingCellOf(row),
-      code:     row.codeText === null ? null : <span className="gaia-forges-code">{row.codeText}</span>,
+      code:     row.codeText === null ? null : <MonoId text={row.codeText} size="pill" />,
       controls: (
         <span className="gaia-forges-controls">
           {row.buttons.map((button) => <ForgeButtonView key={buttonKeyOf(button)} button={button} trackerId={row.trackerId} handlers={handlers} />)}

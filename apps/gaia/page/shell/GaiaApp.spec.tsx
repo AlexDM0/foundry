@@ -240,7 +240,7 @@ describe('the rail with no forge registered (B4)', () => {
     expect(railForgeProjectsIn(markup)).toEqual([]);
     const meter = RailModel.railContentOf(FLEET_EMPTY, DEFAULT_ROUTE).machine?.meter;
     expect([meter?.filled, meter?.slots]).toEqual([0, 12]);
-    expect(markup).toContain(renderToStaticMarkup(<SlotMeter label={meter?.label ?? ''} filled={0} limit={12} tone="accent" />));
+    expect(markup).toContain(renderToStaticMarkup(<SlotMeter label={meter?.label ?? ''} filled={0} limit={12} tone="accent" wrap />));
     expect(markup).toContain(renderToStaticMarkup(<StateBadge tone="neutral" label="No forge registered" dotShape="ring" />));
   });
 });

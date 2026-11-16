@@ -368,6 +368,7 @@ describe('each screen shows the state its artboard draws', () => {
       filled: 0,
       limit:  12,
       tone:   'accent',
+      wrap:   true,
     });
     expect(slotMeter.source).toBe(MarkupTree.drawnMarkupOf(everySlotFree));
   });

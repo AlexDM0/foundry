@@ -225,10 +225,11 @@ describe('the table', () => {
     expect(segmentNamed(view, 'Condition', 'Needs a look').isSelected).toBe(true);
   });
 
-  test('the Calls cell holds a meter beside a budget, and none at all when the forge reports no budget', () => {
+  test('the Calls cell holds a borderless meter beside a budget, and none at all when the forge reports no budget', () => {
     const withBudget = jobRowNamed(unfoldedView(FLEET_FIVE_FORGES), 'Invoice Service, J12');
     const callsWithBudget = cellsOf(withBudget)[3] as HostElement;
-    expect(tree.onlyOfComponent([callsWithBudget], FillMeter).props['label']).toBe('58 of 120 calls');
+    const meter = tree.onlyOfComponent([callsWithBudget], FillMeter);
+    expect([meter.props['label'], meter.props['borderless']]).toEqual(['58 of 120 calls', true]);
     const withoutBudgets = { ...FLEET_FIVE_FORGES, agents: FLEET_FIVE_FORGES.agents.map((row) => ({ ...row, callBudget: null })) };
     const callsWithoutBudget = cellsOf(jobRowNamed(unfoldedView(withoutBudgets), 'Invoice Service, J12'))[3] as HostElement;
     expect(tree.hostElementsIn([callsWithoutBudget], tree.withComponent(FillMeter))).toEqual([]);

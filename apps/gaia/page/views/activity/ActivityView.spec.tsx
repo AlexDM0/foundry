@@ -1,12 +1,12 @@
 /**
  * The Activity view (SCREENS A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the artboard's eighteen rows,
- * interleaved across forges newest first, each with its clock time, forge, category and the forge's own text (acceptance 1); the side lists
- * hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from a menu that
- * names the chosen one and closes on Escape and when focus leaves it; a row links into its forge only when it has a route; every empty
- * place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts, the side lists are cards with
- * a mono total, the usage dot says under or at the limit beside the words with its reset time in mono, and the page title carries the
- * view's figures. Flint's brain (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens' bars a note names its part per
- * forge in mono, absent when no brain ran today.
+ * interleaved across forges newest first, each with its clock time, forge, category and the forge's own text (acceptance 1); the side
+ * lists hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from the
+ * package's menu as the tray's last segment, which names the chosen one and hands its closing on; a row links into its forge only when it
+ * has a route; every empty place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts,
+ * the side lists are cards with a mono total, the usage dot says under or at the limit beside the words with its reset time in mono, and
+ * the page title carries the view's figures. Flint's brain (R4.6): its rows carry the diamond and "Flint's brain", and under the tokens'
+ * bars a note names its part per forge in mono, absent when no brain ran today.
  *
  * `ActivityLayout` takes no hooks and unfolds, its package parts folded; `ActivityView`, which keeps the filters, is rendered with React's
  * own server renderer, which runs its hooks without a document, and is held to the layout it opens on.
@@ -15,6 +15,7 @@ import { describe, expect, test } from 'bun:test';
 import { Card }                   from 'design-system/Card';
 import { EmptyState }             from 'design-system/EmptyState';
 import { FillMeter }              from 'design-system/FillMeter';
+import { Menu, MenuItem }         from 'design-system/Menu';
 import { SegmentedControl }       from 'design-system/SegmentedControl';
 import { Stamp }                  from 'design-system/Stamp';
 import { StateDot }               from 'design-system/StateDot';
@@ -46,28 +47,24 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const ARTBOARD_CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 interface Handled {
-  readonly kinds:       ActivityKindFilter[];
-  readonly forges:      (string | null)[];
-  readonly menuToggles: number[];
-  readonly menuCloses:  number[];
+  readonly kinds:           ActivityKindFilter[];
+  readonly forges:          (string | null)[];
+  readonly menuOpenChanges: boolean[];
 }
 
 function layoutPropsOf(fleetDocument: FleetDocument, filters: ActivityFilters, menuIsOpen = false, handled?: Handled): ActivityLayoutProps {
   return {
-    content:       ActivityModel.activityContentOf(fleetDocument, filters, ARTBOARD_CLOCK),
-    kindFilter:    filters.kind,
+    content:          ActivityModel.activityContentOf(fleetDocument, filters, ARTBOARD_CLOCK),
+    kindFilter:       filters.kind,
     menuIsOpen,
-    onKindFilter:  (kind) => handled?.kinds.push(kind),
-    onForgeChoice: (trackerId) => handled?.forges.push(trackerId),
-    onMenuToggle:  () => handled?.menuToggles.push(1),
-    onMenuClose:   () => handled?.menuCloses.push(1),
+    onKindFilter:     (kind) => handled?.kinds.push(kind),
+    onForgeChoice:    (trackerId) => handled?.forges.push(trackerId),
+    onMenuOpenChange: (isOpen) => handled?.menuOpenChanges.push(isOpen),
   };
 }
 
 function layoutOf(fleetDocument: FleetDocument, filters: ActivityFilters = EVERY_ENTRY, menuIsOpen = false) {
-  const handled: Handled = {
-    kinds: [], forges: [], menuToggles: [], menuCloses: [],
-  };
+  const handled: Handled = { kinds: [], forges: [], menuOpenChanges: [] };
   return { unfolded: tree.unfolded(<ActivityLayout {...layoutPropsOf(fleetDocument, filters, menuIsOpen, handled)} />), handled };
 }
 
@@ -88,11 +85,16 @@ function segmentsOf(group: HostElement): (readonly [string, number | null, boole
   return (group.props['options'] as readonly HandedSegment[]).map((option) => [option.label, option.count ?? null, option.value === group.props['selected']]);
 }
 
-/** The forge filter: its segments, then the menu's own button for the forges past the first three, each by its words and whether it is pressed. */
+/** The package menu that trails the forge filter's tray, holding the forges past the first three; none with three forges or fewer. */
+function forgeMenusOf(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
+  return tree.hostElementsIn(tree.unfoldedProp(groupNamed(unfolded, 'Forge'), 'trailing'), tree.withComponent(Menu));
+}
+
+/** The forge filter: its segments, then the menu's segment for the forges past the first three, each by its words and whether it is pressed. */
 function forgeFilterOf(unfolded: ReturnType<typeof tree.unfolded>): (readonly [string, unknown])[] {
   const segments = segmentsOf(groupNamed(unfolded, 'Forge')).map(([label, , selected]) => [label, selected] as const);
-  const menuButton = tree.hostElementsIn([tree.onlyWithClass(unfolded, 'gaia-activity-forge-filter')], tree.withTag('button'));
-  return [...segments, ...menuButton.map((button) => [tree.textOf([button]), button.props['aria-pressed']] as const)];
+  const menuSegments = forgeMenusOf(unfolded).map((menu) => [tree.textOf(tree.unfoldedProp(menu, 'triggerContent')), menu.props['pressed']] as const);
+  return [...segments, ...menuSegments];
 }
 
 /** Picks a segment as a press of it would, handing its value on. */
@@ -106,10 +108,12 @@ function bodyRowsIn(unfolded: ReturnType<typeof tree.unfolded>): HostElement[] {
   return DataTableRows.rowsIn(unfolded);
 }
 
-const { cellTextsOf } = DataTableRows;
-
-function buttonsIn(group: HostElement): HostElement[] {
-  return tree.hostElementsIn([group], tree.withTag('button'));
+/** The text a reader sees in each cell of a row, the time column's by the short text Gaia hands its stamp, which stays folded. */
+function cellTextsOf(row: HostElement): string[] {
+  return DataTableRows.cellsOf(row).map((cell) => {
+    const stamps = tree.hostElementsIn([cell], tree.withComponent(Stamp));
+    return stamps.length === 0 ? tree.textOf([cell]) : stamps.map((stamp) => String(stamp.props['shortText'])).join('');
+  });
 }
 
 describe('the table', () => {
@@ -124,8 +128,8 @@ describe('the table', () => {
       ['13:05', 'Example Storefront', 'Landed', '#010 Wishlist sharing landed on main'],
       ['13:02', 'Invoice Service', 'Agent', 'J14 reviewer started on #032 VAT rounding rules'],
     ]);
-    const times = tree.hostElementsIn(rows, tree.withTag('time')).map((time) => time.props['dateTime']);
-    expect(times).toEqual(FLEET_FIVE_FORGES.activity.map((entry) => entry.at));
+    const times = tree.hostElementsIn(rows, tree.withComponent(Stamp)).map((stamp) => [stamp.props['element'], stamp.props['dateTime']]);
+    expect(times).toEqual(FLEET_FIVE_FORGES.activity.map((entry) => ['time', entry.at]));
   });
 
   test('a row with a route is a link into its forge, a row without one is plain text, and the forge\'s text is shown whole as its title', () => {
@@ -183,22 +187,26 @@ describe('the filters', () => {
     expect(handled.forges).toEqual([TRACKER_IDS.exampleStorefront, null]);
   });
 
-  test('the menu opens from its segment and hands the chosen forge on', () => {
+  test('the menu is the tray\'s last segment, open as the view keeps it, and hands the chosen forge on', () => {
     const closed = layoutOf(FLEET_FIVE_FORGES);
-    const toggle = tree.onlyWithClass(closed.unfolded, 'gaia-activity-more-forges-button');
-    expect(toggle.props['aria-expanded']).toBe(false);
-    expect(tree.hostElementsIn(closed.unfolded, tree.withClass('gaia-activity-forge-menu'))).toEqual([]);
-    tree.dispatch(toggle, 'onClick');
-    expect(closed.handled.menuToggles).toHaveLength(1);
+    const [closedMenu] = forgeMenusOf(closed.unfolded);
+    if (closedMenu === undefined) throw new Error('The forge menu is missing.');
+    expect(['label', 'trigger', 'isOpen'].map((propName) => closedMenu.props[propName])).toEqual(['More forges', 'segment', false]);
+    tree.dispatch(closedMenu, 'onOpenChange', true);
+    expect(closed.handled.menuOpenChanges).toEqual([true]);
 
     const open = layoutOf(FLEET_FIVE_FORGES, EVERY_ENTRY, true);
-    const menu = tree.onlyWithClass(open.unfolded, 'gaia-activity-forge-menu');
-    expect(menu.props['aria-label']).toBe('More forges');
-    const items = buttonsIn(menu);
-    expect(items.map((item) => tree.textOf([item]))).toEqual(['Example Mobile App', 'Design System']);
+    const [menu] = forgeMenusOf(open.unfolded);
+    if (menu === undefined) throw new Error('The forge menu is missing.');
+    expect(menu.props['isOpen']).toBe(true);
+    const items = tree.hostElementsIn([menu], tree.withComponent(MenuItem));
+    expect(items.map((item) => [item.props['label'], item.props['pressed'], item.props['closing']])).toEqual([
+      ['Example Mobile App', false, 'return-focus'],
+      ['Design System', false, 'return-focus'],
+    ]);
     const [, designSystem] = items;
     if (designSystem === undefined) throw new Error('The Design System item is missing.');
-    tree.dispatch(designSystem, 'onClick');
+    tree.dispatch(designSystem, 'onChoose');
     expect(open.handled.forges).toEqual([TRACKER_IDS.designSystem]);
   });
 
@@ -210,16 +218,12 @@ describe('the filters', () => {
     expect(bodyRowsIn(unfolded).map(cellTextsOf)).toEqual([['12:20', 'Design System', 'Forge', 'Overseer stopped']]);
   });
 
-  test('the menu closes on Escape and when focus leaves it, and stays open while focus moves inside it', () => {
+  test('the menu\'s own close, on Escape or a press outside it, is handed on to the view', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, EVERY_ENTRY, true);
-    const holder = tree.onlyWithClass(unfolded, 'gaia-activity-more-forges');
-    tree.dispatch(holder, 'onKeyDown', { key: 'ArrowDown' });
-    tree.dispatch(holder, 'onKeyDown', { key: 'Escape' });
-    const inside = { contains: (target: unknown) => target === 'an item of the menu' };
-    tree.dispatch(holder, 'onBlur', { currentTarget: inside, relatedTarget: 'an item of the menu' });
-    tree.dispatch(holder, 'onBlur', { currentTarget: inside, relatedTarget: 'the table' });
-    tree.dispatch(holder, 'onBlur', { currentTarget: inside, relatedTarget: null });
-    expect(handled.menuCloses).toHaveLength(3);
+    const [menu] = forgeMenusOf(unfolded);
+    if (menu === undefined) throw new Error('The forge menu is missing.');
+    tree.dispatch(menu, 'onOpenChange', false);
+    expect(handled.menuOpenChanges).toEqual([false]);
   });
 
   test('with three forges or fewer there is no menu', () => {
@@ -227,7 +231,7 @@ describe('the filters', () => {
     const threeForges = { ...FLEET_FIVE_FORGES, activity: FLEET_FIVE_FORGES.activity.filter((entry) => !menuForges.has(entry.trackerId)) };
     const { unfolded } = layoutOf(threeForges);
     expect(forgeFilterOf(unfolded).map(([words]) => words)).toEqual(['All forges', 'Example Storefront', 'Invoice Service', 'Research Wiki']);
-    expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-activity-more-forges'))).toEqual([]);
+    expect(groupNamed(unfolded, 'Forge').props['trailing']).toBeUndefined();
   });
 });
 
@@ -341,8 +345,7 @@ describe('the view with its filters', () => {
   test('it opens on every entry of every forge, with the menu closed', () => {
     const markup = renderToStaticMarkup(<ActivityView fleetDocument={FLEET_FIVE_FORGES} clock={ARTBOARD_CLOCK} />);
     expect(markup).toBe(renderToStaticMarkup(<ActivityLayout {...layoutPropsOf(FLEET_FIVE_FORGES, EVERY_ENTRY)} />));
-    expect(markup.match(/<time class="gaia-activity-at"/g)).toHaveLength(18);
-    expect(markup).toContain('<button type="button" class="gaia-activity-more-forges-button" aria-pressed="false" aria-expanded="false">');
-    expect(markup).not.toContain('class="gaia-activity-forge-menu"');
+    expect(markup.match(/<span class="gaia-activity-at"><time class="design-system-stamp" dateTime="/g)).toHaveLength(18);
+    expect(markup).toContain('aria-pressed="false" aria-haspopup="dialog" aria-expanded="false"');
   });
 });

@@ -357,7 +357,7 @@ body {
 .gaia-activity-columns { display: flex; gap: var(--space-28); }
 .gaia-activity-entries { display: flex; flex: 1; flex-direction: column; gap: var(--space-14); min-width: 0; }
 
-.gaia-activity-at { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+.gaia-activity-at { font-size: var(--fs-small); color: var(--ink-4); }
 .gaia-activity-forge {
   display: block;
   overflow: hidden;
@@ -379,76 +379,6 @@ body {
 a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-activity-footnote { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
 
-/* The forges past the first three: one more segment, in a tray of its own beside the package's, and a menu that floats under it, one of the
-   two places a shadow is drawn */
-.gaia-activity-forge-filter { display: inline-flex; align-items: flex-start; gap: var(--sp-1); }
-.gaia-activity-more-forges {
-  position: relative;
-  display: inline-flex;
-  padding: var(--space-2);
-  border: var(--hairline) solid var(--line);
-  border-radius: var(--r-3);
-  background: var(--wash);
-}
-.gaia-activity-more-forges-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-6);
-  padding: calc(var(--segment-padding-vertical) + var(--hairline)) calc(var(--segment-padding-horizontal) + var(--hairline));
-  border: 0;
-  border-radius: var(--r-2);
-  background: none;
-  color: var(--ink-muted);
-  font: var(--weight-label) var(--fs-small)/1 var(--font-ui);
-  cursor: pointer;
-}
-.gaia-activity-more-forges-button:hover { color: var(--ink); }
-.gaia-activity-more-forges-button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 var(--hairline) var(--line-strong); }
-.gaia-activity-menu-mark {
-  flex: none;
-  width: var(--space-10);
-  height: var(--space-10);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--glyph-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.gaia-activity-forge-menu {
-  position: absolute;
-  top: calc(100% + var(--sp-1));
-  right: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-half);
-  min-width: 100%;
-  padding: var(--sp-1);
-  border: var(--hairline) solid var(--line);
-  border-radius: var(--r-2);
-  background: var(--surface);
-  box-shadow: var(--shadow-menu);
-  transition: opacity var(--motion-fast) var(--ease-out);
-}
-@starting-style {
-  .gaia-activity-forge-menu { opacity: 0; }
-}
-.gaia-activity-forge-menu-item {
-  height: var(--menu-item-height);
-  padding: 0 var(--sp-2);
-  border: 0;
-  border-radius: var(--r-1);
-  background: none;
-  color: var(--ink-muted);
-  font: var(--weight-strong) var(--fs-small) var(--font-ui);
-  text-align: start;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: var(--feedback-transition);
-}
-.gaia-activity-forge-menu-item:hover:not(:disabled) { background: var(--wash); color: var(--ink); }
-.gaia-activity-forge-menu-item[aria-pressed="true"] { color: var(--ink); }
-.gaia-activity-forge-menu-item:disabled { cursor: default; }
 
 /* Today's cards: per forge its name and value over a 6 px bar, then the brain's note; then the usage line, its dot beside its words */
 .gaia-activity-side { display: flex; flex: none; flex-direction: column; gap: var(--space-22); width: var(--view-side-width); }
@@ -484,9 +414,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 /* The forge words its usage as a clause; here it leads its line. */
 .gaia-activity-usage-line::first-letter { text-transform: uppercase; }
 
-.gaia-activity-text:focus-visible,
-.gaia-activity-more-forges-button:focus-visible,
-.gaia-activity-forge-menu-item:focus-visible {
+.gaia-activity-text:focus-visible {
   outline: var(--focus-ring-width) solid var(--link);
   outline-offset: var(--focus-ring-width);
 }
@@ -633,7 +561,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-agents-last-tool-call { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gaia-agents-state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-half); }
 .gaia-agents-calls { display: inline-flex; align-items: center; gap: var(--sp-2); }
-.gaia-agents-calls-meter { display: flex; flex: none; width: var(--agents-calls-meter-width); }
+.gaia-agents-calls-meter { display: flex; flex: none; }
 .gaia-agents-calls-text { font-family: var(--font-mono); font-size: var(--fs-small); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gaia-agents-tokens { font-family: var(--font-mono); font-size: var(--fs-tab); font-variant-numeric: tabular-nums; }
 
@@ -820,11 +748,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-condition-word { font-weight: var(--weight-strong); transition: color var(--motion-base) var(--ease-out); }
 .gaia-forges-condition-word[data-tone="warn"] { color: var(--link); }
 .gaia-forges-condition-word[data-tone="muted"] { color: var(--ink-muted); }
-.gaia-forges-agents,
-.gaia-forges-code { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.gaia-forges-agents { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .gaia-forges-agents { font-size: var(--fs-tab); }
 .gaia-forges-waiting { display: inline-flex; }
-.gaia-forges-code { font-size: var(--fs-pill); color: var(--ink-4); }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
 .gaia-forges-button-title { display: inline-flex; }
 /* A forge Gaia cannot talk to: its agents and what waits in it are not read */

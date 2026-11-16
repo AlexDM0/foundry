@@ -20,6 +20,7 @@ import { DataTable }               from 'design-system/DataTable';
 import { FillMeter }               from 'design-system/FillMeter';
 import { Icon }                    from 'design-system/Icon';
 import { IconButton }              from 'design-system/IconButton';
+import { MonoId }                  from 'design-system/MonoId';
 import type { NumberStepperProps } from 'design-system/NumberStepper';
 import { PendingStep }             from 'design-system/PendingStep';
 import { SlotMeter }               from 'design-system/SlotMeter';
@@ -147,6 +148,14 @@ function press(control: HostElement): void {
 }
 
 describe('the table (A4)', () => {
+  test('sets each row\'s code as a mono id in the pill size', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    const codes = rowsIn(unfolded).map((row) => DataTableRows.cellsOf(row)[4]).map((cell) => (cell === undefined ? null : tree.onlyOfComponent([cell], MonoId).props));
+    expect(codes.map((code) => [code?.['text'], code?.['size']])).toEqual([
+      ['3f9a2c1', 'pill'], ['3f9a2c1', 'pill'], ['3f9a2c1', 'pill'], ['b81e07d', 'pill'], ['3f9a2c1', 'pill'],
+    ]);
+  });
+
   test('heads its columns and holds one row per forge whose repository is there, each with its name and root', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
     const columns = tree.onlyOfComponent(unfolded, DataTable).props['columns'] as readonly { readonly label: string }[];
