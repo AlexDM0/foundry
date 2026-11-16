@@ -1,8 +1,8 @@
 /**
  * The card, in a happy-dom document. What matters: the ground flags and the combinable flags are data attributes on the frame; the
  * caller's padding and margin override the stylesheet's defaults inline on the frame, while the layout props reach the View inside; a
- * title is drawn in the title role in the element asked for, spaced by the card's gap, and with no title nothing is drawn; and two ground
- * flags do not compile together.
+ * title is drawn in the title role in the element asked for, spaced by the card's gap, carrying its id when given, so a region can be
+ * named by it, and with no title nothing is drawn; and two ground flags, or a title id without a title, do not compile.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -77,14 +77,27 @@ describe('the card', () => {
     expect(screen.getByRole('heading', { level: 3 }).textContent).toBe('Agents at work');
   });
 
+  test('a title id is the id of the title, so a region can be named by it, and a title without one has none', () => {
+    const { container } = render(
+      <>
+        <section aria-labelledby="example-gates-title"><Card title="Gates" titleId="example-gates-title"><span>None</span></Card></section>
+        <Card title="Agents"><span>Idle</span></Card>
+      </>,
+    );
+    const titles = [...container.querySelectorAll('.design-system-card > .design-system-text')];
+    expect([titles.map((title) => title.getAttribute('id')), screen.getByRole('region', { name: 'Gates' }).tagName]).toEqual([['example-gates-title', null], 'SECTION']);
+  });
+
   test('with no title nothing is drawn above the children', () => {
     const { container } = render(<Card><span>Own title</span></Card>);
     expect([...container.querySelectorAll('.design-system-card > *')].map((part) => part.className)).toEqual(['design-system-view']);
   });
 
-  test('two ground flags do not compile together', () => {
+  test('two ground flags do not compile together, nor a title id without a title', () => {
     // @ts-expect-error a card has one ground
     const twoGrounds = <Card quiet decision />;
-    expect(twoGrounds).toBeDefined();
+    // @ts-expect-error a title id names the title, so it needs one
+    const titleIdWithoutTitle = <Card titleId="example-title" />;
+    expect([twoGrounds, titleIdWithoutTitle]).toHaveLength(2);
   });
 });

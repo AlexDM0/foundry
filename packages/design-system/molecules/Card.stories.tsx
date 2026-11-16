@@ -33,6 +33,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Plain: Story = {};
 export const WithTitle: Story = { args: { title: 'Example agents', titleElement: 'h3' } };
+export const WithTitleId: Story = {
+  render: (args) => (
+    <section aria-labelledby="example-agents-title">
+      <Card {...args} title="Example agents" titleId="example-agents-title" />
+    </section>
+  ),
+};
 export const OwnTitle: Story = {
   args: {
     children: (
