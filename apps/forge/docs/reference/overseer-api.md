@@ -761,8 +761,8 @@ absent, unreadable, or of a `version` other than 1 adds no origin. An `origin` t
 
 **Embedded mode.** Only the parameter of `EMBED_MODE_QUERY` (`packages/forge-contracts`), `?embedded=frame`, marks the
 document embedded. The root then has `data-embedded="frame"`. The Bridge hides its title row (project name, status
-line, Overseer controls, Waiting on User pill), its activity strip and its theme switch, so the tab bar is the first
-row. The banners and the incident line stay above the tab bar when they show. Any other value is not embedded.
+line, Overseer controls, Waiting on User pill, theme switch) and keeps its Agents-at-work strip, with Flint's slot, above
+the tab bar. The banners and the incident line stay above the tab bar when they show. Any other value is not embedded.
 
 **The embed channel, version 1.** Every `postMessage` in each direction is
 `{channel: 'forge-embed', channelVersion: 1, kind, ...}`, and the Bridge's carry its `systemVersion`, the `current` of

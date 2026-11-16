@@ -28,8 +28,8 @@
  *                           CountBadge of what waits on User, then
  *                           .bridge-filter: .bridge-filter-line opening a Popover); in setup, while the board has no
  *                           readable pipeline, the title row is the brand, the title, the Setting up pill and the theme button, over
- *                           the .bridge-setup-step-bar holding the compact Stepper; in a frame ([data-embedded="frame"]) only the
- *                           tab bar shows
+ *                           the .bridge-setup-step-bar holding the compact Stepper; in a frame ([data-embedded="frame"]) the title row
+ *                           hides and the activity card and the tab bar show
  *   .bridge-panel[data-tab][data-entering?] the selected view, rising in after a tab change
  *   .bridge-pipeline[data-screen] the Pipeline view (bridge/views/pipeline/): its .bridge-pipeline-title over the screen that the
  *                           facts and the route pick
@@ -533,10 +533,9 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--link); outline-offset: 2p
 .bridge-kanban-order-hint { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
 
 /* --------------------------------------------------------- embedded mode -- */
-/* In a frame, whose page draws the board's name, state, controls and theme above it, the tab bar is the first row. */
+/* In a frame, whose page draws the board's name, state, controls and theme above it, the Agents-at-work strip is the first row. */
 html[data-embedded="frame"] body { padding: 18px 20px 24px; }
 html[data-embedded="frame"] .bridge-head-title-row { display: none; }
-html[data-embedded="frame"] .bridge-activity { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 a.bridge-stat, a.bridge-activity-job, .bridge-kanban-size { transition: var(--feedback-transition); }

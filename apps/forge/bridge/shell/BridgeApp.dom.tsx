@@ -9,9 +9,10 @@
  * defaults seen hands the focus to the panel, the question panel shows over every tab, hides behind a routed detail and closes on Esc only
  * after it, holds the page's one Flint slot over the Assistant, whose chat head gets its own back once it folds, renders no slot while it
  * hides behind a detail, also for a decision that arrives then, and the page draws one Flint, the live sprite, in no slot,
- * `#questions/<id>` points it at that question, a framed page's Esc leaves the board on any route no panel takes it on, the framing page
- * hears `ready`, each route, `leave` and `session-lost` in the embed channel's envelope with forge's system version and is followed on
- * `navigate`, a message of another channel version is answered by nothing, a board control in a frame shows the Overseer's refusal verbatim and posts
+ * `#questions/<id>` points it at that question, a framed Kanban keeps its Agents-at-work strip with Flint's slot under a hidden title
+ * row, a framed page's Esc leaves the board on any route no panel takes it on, the framing page hears `ready`, each route, `leave`
+ * and `session-lost` in the embed channel's envelope with forge's system version and is followed on `navigate`, a message of another
+ * channel version is answered by nothing, a board control in a frame shows the Overseer's refusal verbatim and posts
  * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's no-
  * pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even
  * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
@@ -43,6 +44,7 @@ import { exampleAgentJob }                                         from '../test
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
 import { createManualFlintFrames }                                 from '../testing/ManualFlintFrames.ts';
+import { pageStylesheets }                                         from '../testing/PageStylesheets.ts';
 import { pipelineBoardStateOf }                                    from '../testing/PipelineFixture.ts';
 import { DARK_MODE_QUESTION }                                      from '../testing/QuestionPanelFixture.ts';
 import { exampleTicketsBoard, exampleTicketsTicket }               from '../testing/TicketsBoardFixture.ts';
@@ -806,6 +808,29 @@ describe('the embed channel in a frame', () => {
     ...exampleDetailBoard({ tickets: [exampleDetailTicket('002')], withoutEpics: true }),
     decisions:       [{ ...DARK_MODE_QUESTION, ticketIds: ['002'] }, { ...DARK_MODE_QUESTION, id: 'E8', ticketIds: ['002'] }],
     questionHistory: [],
+  });
+
+  test('the framed Kanban keeps its Agents-at-work strip, holding the page\'s one Flint slot, and hides the title row', async () => {
+    window.location.hash = '#kanban';
+    const pageStyle = document.createElement('style');
+    pageStyle.textContent = pageStylesheets().map((stylesheet) => stylesheet.text).join('\n');
+    document.head.append(pageStyle);
+    document.documentElement.setAttribute('data-embedded', 'frame');
+    try {
+      const { bridge } = framedBridge();
+      await renderedInFrame(bridge);
+      const activityStrip = document.querySelector<HTMLElement>('.bridge-activity');
+      const titleRow = document.querySelector<HTMLElement>('.bridge-head-title-row');
+      expect(activityStrip).not.toBeNull();
+      expect(titleRow).not.toBeNull();
+      expect(window.getComputedStyle(activityStrip as HTMLElement).display).not.toBe('none');
+      expect(window.getComputedStyle(titleRow as HTMLElement).display).toBe('none');
+      expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
+      expect(activityStrip?.querySelector('.design-system-flint-slot')).not.toBeNull();
+    } finally {
+      document.documentElement.removeAttribute('data-embedded');
+      pageStyle.remove();
+    }
   });
 
   test('ready goes out once when the shell has painted, then the shown route, both to the parent\'s origin only', async () => {
