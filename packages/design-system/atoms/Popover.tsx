@@ -10,8 +10,11 @@ import { usePresence }                        from '../utils/Presence.ts';
 
 export type PopoverPlacement = 'below-end' | 'below-start';
 
-/** `standard` a padded card, `menu` an unpadded one of sections, `inbox` the wider unpadded list. */
-export type PopoverWidth = 'standard' | 'menu' | 'inbox';
+/**
+ * `standard` a padded card, `wide` a wider padded one, such as for a question with its choices side by side, `menu` an unpadded one of
+ * sections, `inbox` the wider unpadded list.
+ */
+export type PopoverWidth = 'standard' | 'wide' | 'menu' | 'inbox';
 
 export interface PopoverProps {
   readonly label:     string;

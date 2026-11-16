@@ -73,6 +73,11 @@ describe('the popover', () => {
     expect(reasons).toEqual(['escape', 'outside']);
   });
 
+  test('the wide width sets its attribute', () => {
+    render(<AnchoredPopover isOpen reasons={[]} width="wide" />);
+    expect(screen.getByRole('dialog', { name: 'Example filters' }).getAttribute('data-width')).toBe('wide');
+  });
+
   test('its width and placement set their attributes', () => {
     render(<AnchoredPopover isOpen reasons={[]} placement="below-start" width="inbox" />);
     const popover = screen.getByRole('dialog');

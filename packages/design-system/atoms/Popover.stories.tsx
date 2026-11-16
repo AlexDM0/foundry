@@ -48,4 +48,5 @@ type Story = StoryObj<typeof meta>;
 export const BelowStart: Story = {};
 export const BelowEnd: Story = { args: { placement: 'below-end' } };
 export const MenuWidth: Story = { args: { width: 'menu' } };
+export const WideWidth: Story = { args: { width: 'wide' } };
 export const InboxWidth: Story = { args: { width: 'inbox' } };
