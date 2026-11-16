@@ -26,7 +26,7 @@
       "callShape": "branch -d <branch>, the branch merged",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Deleted branch <branch> (was e38aa17).\n",
+        "standardOutput": "Deleted branch <branch> (was ba8f14a).\n",
         "standardError": ""
       }
     },
@@ -2314,7 +2314,7 @@
       "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 9bc0580 Change CLAUDE.md\n",
+        "standardOutput": "HEAD is now at eed838f Change CLAUDE.md\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -3087,6 +3087,2398 @@
       }
     },
     {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git diff --name-only --no-renames -z HEAD <ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git merge-tree --write-tree --name-only --no-messages -z --end-of-options master forge/example/ticket-001",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "b4b68538ff69e4269836291dacd30364627382d6\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/example/.gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <ticket tip>\nrefs/heads/master <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD ^master --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git log -1 --format=%B <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build the example\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge --no-ff --no-edit --quiet <moved main tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "Auto-merging apps/example/roles.ts\nCONFLICT (add/add): Merge conflict in apps/example/roles.ts\nAutomatic merge failed; fix conflicts and then commit the result.\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge-base --is-ancestor <main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge-base --is-ancestor <moved main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge-base --is-ancestor <moved main tip> HEAD",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <moved main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet <ticket tip>^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch conflicting with main\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <ticket tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder branch merged\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git diff --name-only --no-renames -z HEAD <merged tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git merge --ff-only --quiet <merged tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/example/.gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git -c core.whitespace=cr-at-eol diff --check <ticket tip> HEAD -- apps/example/roles.ts",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git config --get core.whitespace",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git diff --name-only --no-renames -z <automatic merge tree> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <merged tip>\nrefs/heads/master <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD ^master --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git log --name-only --no-renames -z --format= <ticket tip>..HEAD ^<moved main tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git log -1 --format=%B <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build the example\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git merge-base --is-ancestor <main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git merge-tree --write-tree --no-messages <ticket tip> <moved main tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "<automatic merge tree>\n100644 d54a61ce183b7b0dfd4b37eb675bc11412d5d43f 2\tapps/example/roles.ts\n100644 3a5cc4871c14defef452e2d201d78e6a244584ed 3\tapps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-list --merges --reverse <ticket tip>..HEAD ^<moved main tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-list --merges <ticket tip>..HEAD ^<moved main tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-list --parents -n 1 <merged tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip> <ticket tip> <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n<ticket tip>\n<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <moved main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet <ticket tip>^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder conflict resolved\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <fixed tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <fixed tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder fixed branch landed\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git merge-tree --write-tree --name-only --no-messages -z --end-of-options master forge/example/ticket-001",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "b4b68538ff69e4269836291dacd30364627382d6\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git diff --name-only --diff-filter=U -z",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/apps/example/roles.ts b/apps/example/roles.ts\nindex d54a61c..c7e4c0c 100644\n--- a/apps/example/roles.ts\n+++ b/apps/example/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <ticket tip>\nrefs/heads/master <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD ^master --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git log -1 --format=%B <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build the example\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "100644 d54a61ce183b7b0dfd4b37eb675bc11412d5d43f 2\tapps/example/roles.ts\n100644 3a5cc4871c14defef452e2d201d78e6a244584ed 3\tapps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git merge-base --is-ancestor <main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git merge-base --is-ancestor <moved main tip> HEAD",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <moved main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet <ticket tip>^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "AA apps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "AA apps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "AA apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git diff --name-only --no-renames -z HEAD <fixed tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/fixed.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git merge --ff-only --quiet <fixed tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/example/.gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <fixed tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git diff --name-only --no-renames -z <automatic merge tree> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/fixed.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000apps/example/fixed.txt\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\napps/example/fixed.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <fixed tip>\nrefs/heads/master <moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD ^master --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/fixed.txt\napps/example/built.txt\napps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/fixed.txt\u0000apps/example/built.txt\u0000apps/example/roles.ts\u0000apps/example/roles.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git log --name-only --no-renames -z --format= <ticket tip>..HEAD ^<moved main tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/fixed.txt\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git log -1 --format=%B <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build the example\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git merge-base --is-ancestor <main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git merge-tree --write-tree --no-messages <ticket tip> <moved main tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "<automatic merge tree>\n100644 d54a61ce183b7b0dfd4b37eb675bc11412d5d43f 2\tapps/example/roles.ts\n100644 3a5cc4871c14defef452e2d201d78e6a244584ed 3\tapps/example/roles.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-list --merges <ticket tip>..HEAD ^<moved main tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n<merged tip>\n<ticket tip>\n<moved main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --verify --quiet <ticket tip>^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<fixed tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder merged tree fixed\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <moved main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <fixed tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <merged tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <merged tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder resolved branch landed\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<merged tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at 6412789 Add the project\n",
+        "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at 43f3c1b Add the project\n",
+        "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "HEAD is now at 915ed1c Add the project\n",
+        "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git check-ignore -q .claude/skills/forge-orchestrate/",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git check-ignore -q .claude/skills/forge-po/",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git check-ignore -q .forge-worktrees/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git check-ignore -q .forge/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project folder: git version",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "git version 2.55.0\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tracker ready\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git diff --name-only --no-renames -z HEAD <ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git merge --ff-only --quiet <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git merge-tree --write-tree --name-only --no-messages -z --end-of-options master forge/example/ticket-001",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " M apps/example/.gitignore\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "master\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git diff --name-only --no-renames <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <ticket tip>\nrefs/heads/master <main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git log --name-only --no-renames --format= <main tip>..HEAD ^master --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/built.txt\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git log -1 --format=%B <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Build the example\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git merge-base --is-ancestor <main tip> <ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git merge-base --is-ancestor <main tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-list <main tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options <main tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options MERGE_HEAD^{commit}",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --verify --quiet <ticket tip>^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git rev-parse --verify --quiet HEAD^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<ticket tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder tree changed\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <ticket tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git config --bool commit.gpgsign",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "false\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "forge/example/ticket-001\nmaster\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/forge/example/ticket-001^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git rev-parse --verify --quiet refs/heads/forge/example/ticket-001^{tree}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tree>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git show master:apps/example/CLAUDE.md",
+      "answer": {
+        "exitCode": 128,
+        "standardOutput": "",
+        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the main checkout: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git diff --name-only --no-renames -z <main tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/forge/example/ticket-001 <main tip>\nrefs/heads/master <main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git log --name-only --no-renames -z --format= <main tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git merge-base master HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git rev-parse --absolute-git-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git/worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git rev-parse --path-format=absolute --show-toplevel --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/apps/example/.forge-worktrees/ticket-001\n<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "flow stage \"folder worktree made\", in the project ticket worktree: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\nworktree <repository>/apps/example/.forge-worktrees/ticket-001\nHEAD <main tip>\nbranch refs/heads/forge/example/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git config --bool commit.gpgsign",
       "answer": {
         "exitCode": 0,
@@ -3250,7 +5642,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 7012c52 Change .gitattributes\n",
+        "standardOutput": "HEAD is now at 6624e01 Change .gitattributes\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -4522,7 +6914,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git diff --no-ext-diff HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..4345163 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..3e9b810 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
         "standardError": ""
       }
     },
@@ -6426,7 +8818,7 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8bcfa74 Initial commit\n",
+        "standardOutput": "HEAD is now at 1bd6415 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -8855,18 +11247,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z 27bde8a953653eb805d5370914b2873bcbeb87e1 HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z 203f5062c6e836d5565c558cc94c92b23133e7ac HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "package.json\u0000target.ts\u0000",
+        "standardOutput": "target.ts\u0000",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z eaddc6edeaf73ee89391b0a84c6ff0707f009594 HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z 27bde8a953653eb805d5370914b2873bcbeb87e1 HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "target.ts\u0000",
+        "standardOutput": "package.json\u0000target.ts\u0000",
         "standardError": ""
       }
     },
@@ -8935,7 +11327,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 4055faece8a014b43071eac0f17288f275a9cf5b",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 06bbadd25f5003012fc8845ab413749877f08344",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -8943,7 +11335,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 684e51a82637fce191b0be55e10eba2479873ed4",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 0b697dd885fcf86047606314f78515a64a440190",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9002,7 +11394,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "eaddc6edeaf73ee89391b0a84c6ff0707f009594\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "203f5062c6e836d5565c558cc94c92b23133e7ac\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -9050,7 +11442,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\n684e51a82637fce191b0be55e10eba2479873ed4\n",
+        "standardOutput": "<head>\n<target tip>\n0b697dd885fcf86047606314f78515a64a440190\n",
         "standardError": ""
       }
     },
@@ -9074,7 +11466,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n4055faece8a014b43071eac0f17288f275a9cf5b\n684e51a82637fce191b0be55e10eba2479873ed4\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n06bbadd25f5003012fc8845ab413749877f08344\n0b697dd885fcf86047606314f78515a64a440190\n",
         "standardError": ""
       }
     },
@@ -9159,7 +11551,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git diff --name-only --no-renames -z c5ad7488b3662126c60c5554b01c7af13815e1f1 HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git diff --name-only --no-renames -z 789df4e6a1392b135415dbcaf51705c15672a8eb HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "apps/example/.claude/settings.json\u0000target.ts\u0000",
@@ -9202,7 +11594,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log --name-only --no-renames -z --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "target.ts\u0000target.ts\u0000feature.ts\u0000package.json\u0000",
+        "standardOutput": "target.ts\u0000target.ts\u0000package.json\u0000feature.ts\u0000",
         "standardError": ""
       }
     },
@@ -9231,7 +11623,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B 4ce45e95d488170a1e0593747ac39dc13850f9b8",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B 06bbadd25f5003012fc8845ab413749877f08344",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -9239,7 +11631,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B e288413ea4f648d91bdefe527780a2c91187a10f",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B 6fab46237badeaf50264d1ff197e2c4c8c928431",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -9298,7 +11690,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "c5ad7488b3662126c60c5554b01c7af13815e1f1\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "789df4e6a1392b135415dbcaf51705c15672a8eb\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -9346,7 +11738,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\ne288413ea4f648d91bdefe527780a2c91187a10f\n",
+        "standardOutput": "<head>\n<target tip>\n6fab46237badeaf50264d1ff197e2c4c8c928431\n",
         "standardError": ""
       }
     },
@@ -9370,7 +11762,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n4ce45e95d488170a1e0593747ac39dc13850f9b8\ne288413ea4f648d91bdefe527780a2c91187a10f\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n6fab46237badeaf50264d1ff197e2c4c8c928431\n06bbadd25f5003012fc8845ab413749877f08344\n",
         "standardError": ""
       }
     },
@@ -9807,7 +12199,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 2ff5c2a4067e52843defb3ef0a6cebb77f437f9e",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 0d6509e13cecf6bf01fa3b29d1d22bd545f32516",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change .claude/settings.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 75398f7f844d0163257fc5296af5b1daf4df92f6",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -9815,18 +12215,10 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B ab1b4b20205576227eb326428733c8aa35a7d432",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 8af9c93569329e6ad002228f0ee433ed27684351",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B afd8f9e8028980a2763cb7e1e7d6464b8dd9ccce",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change .claude/settings.json\n\n",
         "standardError": ""
       }
     },
@@ -9930,7 +12322,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\nafd8f9e8028980a2763cb7e1e7d6464b8dd9ccce\n2ff5c2a4067e52843defb3ef0a6cebb77f437f9e\nab1b4b20205576227eb326428733c8aa35a7d432\n",
+        "standardOutput": "<head>\n<target tip>\n0d6509e13cecf6bf01fa3b29d1d22bd545f32516\n75398f7f844d0163257fc5296af5b1daf4df92f6\n8af9c93569329e6ad002228f0ee433ed27684351\n",
         "standardError": ""
       }
     },
@@ -9954,7 +12346,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\nafd8f9e8028980a2763cb7e1e7d6464b8dd9ccce\n2ff5c2a4067e52843defb3ef0a6cebb77f437f9e\nab1b4b20205576227eb326428733c8aa35a7d432\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n0d6509e13cecf6bf01fa3b29d1d22bd545f32516\n75398f7f844d0163257fc5296af5b1daf4df92f6\n8af9c93569329e6ad002228f0ee433ed27684351\n",
         "standardError": ""
       }
     },
@@ -10082,7 +12474,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log --name-only --no-renames -z --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "package.json\u0000feature.ts\u0000attributed.ts\u0000.claude/settings.json\u0000.forge/progress.json\u0000package.json\u0000",
+        "standardOutput": "package.json\u0000attributed.ts\u0000feature.ts\u0000.claude/settings.json\u0000.forge/progress.json\u0000package.json\u0000",
         "standardError": ""
       }
     },
@@ -10111,15 +12503,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 1a8cf0c47a4a0ab84644c3fc3352cbcad04a6904",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 262f81ee238f601c610029dd8562b5eadc5e9a5b",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 136ab681ea362055123920fdf2e25a5bed90d1fa",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -10127,18 +12511,26 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 54f48beca19b89e59cd928377695901d8e86f2d9",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 91c26820db15a1141fb014138ca6cddf912827c8",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Merge the example target\n\n",
+        "standardOutput": "Change .claude/settings.json\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B d597c5e8fa3ae6be62a33bf9b1649348b45fe37b",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 9477486380319c286503f5e44e374af01e1bd104",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .claude/settings.json\n\n",
+        "standardOutput": "Change package.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B a9ad4d7588698515c73960ee534b9a6f0bed0d30",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
         "standardError": ""
       }
     },
@@ -10202,7 +12594,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "54f48beca19b89e59cd928377695901d8e86f2d9\n",
+        "standardOutput": "a9ad4d7588698515c73960ee534b9a6f0bed0d30\n",
         "standardError": ""
       }
     },
@@ -10210,7 +12602,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "54f48beca19b89e59cd928377695901d8e86f2d9\n",
+        "standardOutput": "a9ad4d7588698515c73960ee534b9a6f0bed0d30\n",
         "standardError": ""
       }
     },
@@ -10218,7 +12610,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "54f48beca19b89e59cd928377695901d8e86f2d9\n",
+        "standardOutput": "a9ad4d7588698515c73960ee534b9a6f0bed0d30\n",
         "standardError": ""
       }
     },
@@ -10226,15 +12618,15 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "54f48beca19b89e59cd928377695901d8e86f2d9\n",
+        "standardOutput": "a9ad4d7588698515c73960ee534b9a6f0bed0d30\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 54f48beca19b89e59cd928377695901d8e86f2d9",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 a9ad4d7588698515c73960ee534b9a6f0bed0d30",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "54f48beca19b89e59cd928377695901d8e86f2d9 <branch tip> <target tip>\n",
+        "standardOutput": "a9ad4d7588698515c73960ee534b9a6f0bed0d30 <branch tip> <target tip>\n",
         "standardError": ""
       }
     },
@@ -10242,7 +12634,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n54f48beca19b89e59cd928377695901d8e86f2d9\n<target tip>\nd597c5e8fa3ae6be62a33bf9b1649348b45fe37b\n262f81ee238f601c610029dd8562b5eadc5e9a5b\n1a8cf0c47a4a0ab84644c3fc3352cbcad04a6904\n",
+        "standardOutput": "<head>\na9ad4d7588698515c73960ee534b9a6f0bed0d30\n<target tip>\n91c26820db15a1141fb014138ca6cddf912827c8\n136ab681ea362055123920fdf2e25a5bed90d1fa\n9477486380319c286503f5e44e374af01e1bd104\n",
         "standardError": ""
       }
     },
@@ -10250,7 +12642,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n54f48beca19b89e59cd928377695901d8e86f2d9\n",
+        "standardOutput": "<head>\na9ad4d7588698515c73960ee534b9a6f0bed0d30\n",
         "standardError": ""
       }
     },
@@ -10266,7 +12658,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n54f48beca19b89e59cd928377695901d8e86f2d9\n<branch tip>\n<target tip>\nd597c5e8fa3ae6be62a33bf9b1649348b45fe37b\n262f81ee238f601c610029dd8562b5eadc5e9a5b\n1a8cf0c47a4a0ab84644c3fc3352cbcad04a6904\n",
+        "standardOutput": "<head>\na9ad4d7588698515c73960ee534b9a6f0bed0d30\n<target tip>\n<branch tip>\n91c26820db15a1141fb014138ca6cddf912827c8\n136ab681ea362055123920fdf2e25a5bed90d1fa\n9477486380319c286503f5e44e374af01e1bd104\n",
         "standardError": ""
       }
     },
@@ -10399,7 +12791,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B c1bb8290cd5c5a493ab2b1d615c46bd8c880ca37",
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B d4c2c0ca31b72309250115ab7131d1c583cc9876",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -10450,7 +12842,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nc1bb8290cd5c5a493ab2b1d615c46bd8c880ca37\n",
+        "standardOutput": "<head>\nd4c2c0ca31b72309250115ab7131d1c583cc9876\n",
         "standardError": ""
       }
     },
@@ -10466,7 +12858,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nc1bb8290cd5c5a493ab2b1d615c46bd8c880ca37\n<feature>\n",
+        "standardOutput": "<head>\nd4c2c0ca31b72309250115ab7131d1c583cc9876\n<feature>\n",
         "standardError": ""
       }
     },
@@ -11023,7 +13415,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 2710b53e02745bc2967ef94e2dd3eac480a14bbd",
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B f62ddbc30b3a1688b4f3af0e929f9bf0840cfb96",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11074,7 +13466,7 @@
       "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n2710b53e02745bc2967ef94e2dd3eac480a14bbd\n",
+        "standardOutput": "<head>\nf62ddbc30b3a1688b4f3af0e929f9bf0840cfb96\n",
         "standardError": ""
       }
     },
@@ -11183,7 +13575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git log -1 --format=%B 85fe1fb19601ad6e5b2ee67ddbb890d2571003ae",
+      "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git log -1 --format=%B efb36f5844f442b3cb12a50e9e0f7d4dde9c62dd",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11234,7 +13626,7 @@
       "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n85fe1fb19601ad6e5b2ee67ddbb890d2571003ae\n",
+        "standardOutput": "<head>\nefb36f5844f442b3cb12a50e9e0f7d4dde9c62dd\n",
         "standardError": ""
       }
     },
@@ -11343,7 +13735,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 85fe1fb19601ad6e5b2ee67ddbb890d2571003ae",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B f01b8a50ad45c366118a7d9ed4267d6403db5245",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11394,7 +13786,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n85fe1fb19601ad6e5b2ee67ddbb890d2571003ae\n",
+        "standardOutput": "<head>\nf01b8a50ad45c366118a7d9ed4267d6403db5245\n",
         "standardError": ""
       }
     },
@@ -11527,7 +13919,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B d86f78aec52ed976dc872a3bd40b0559caca3b04",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B f01b8a50ad45c366118a7d9ed4267d6403db5245",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11594,7 +13986,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<honest start>\nd86f78aec52ed976dc872a3bd40b0559caca3b04\n",
+        "standardOutput": "<head>\n<honest start>\nf01b8a50ad45c366118a7d9ed4267d6403db5245\n",
         "standardError": ""
       }
     },
@@ -11703,7 +14095,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 26b5622808ee109563f8635598b0b0b2737ab7cf",
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 6f1129211cd1411b4652df0d023b8f26cae1616b",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11754,7 +14146,7 @@
       "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n26b5622808ee109563f8635598b0b0b2737ab7cf\n",
+        "standardOutput": "<head>\n6f1129211cd1411b4652df0d023b8f26cae1616b\n",
         "standardError": ""
       }
     },
@@ -11863,7 +14255,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 26b5622808ee109563f8635598b0b0b2737ab7cf",
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B e9699d3d28d974d7aa290142e9b3289cb86cef27",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11914,7 +14306,7 @@
       "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n26b5622808ee109563f8635598b0b0b2737ab7cf\n",
+        "standardOutput": "<head>\ne9699d3d28d974d7aa290142e9b3289cb86cef27\n",
         "standardError": ""
       }
     },
@@ -12023,7 +14415,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B 64e2021a562d64c9b1296e079a9b0c62e3cfc83d",
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B b6b3c6cd4f0f06a311becff5b8ffcfb2936b9a3b",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -12074,7 +14466,7 @@
       "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n64e2021a562d64c9b1296e079a9b0c62e3cfc83d\n",
+        "standardOutput": "<head>\nb6b3c6cd4f0f06a311becff5b8ffcfb2936b9a3b\n",
         "standardError": ""
       }
     },
@@ -12183,7 +14575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 04a1319928b17718bf0dac16a4796548f3ca6cdb",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 2f6d8db126b64df32f8533cb1ddb7ce251b1e5d6",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -12191,7 +14583,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 4593e1b2138c8dc362a41876298e85df642c58e2",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B c33caff1f65b6a6423c5c20e158ddf5a64c28bc2",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -12199,7 +14591,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B d86f78aec52ed976dc872a3bd40b0559caca3b04",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B f01b8a50ad45c366118a7d9ed4267d6403db5245",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -12250,7 +14642,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n04a1319928b17718bf0dac16a4796548f3ca6cdb\n4593e1b2138c8dc362a41876298e85df642c58e2\nd86f78aec52ed976dc872a3bd40b0559caca3b04\n",
+        "standardOutput": "<head>\n2f6d8db126b64df32f8533cb1ddb7ce251b1e5d6\nc33caff1f65b6a6423c5c20e158ddf5a64c28bc2\nf01b8a50ad45c366118a7d9ed4267d6403db5245\n",
         "standardError": ""
       }
     },
@@ -12359,7 +14751,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B 39258195ce3a315a1a1990708a60e593599fbc15",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B ef3bb0540776f2278b41a632e61e272685f14268",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -12410,7 +14802,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n39258195ce3a315a1a1990708a60e593599fbc15\n",
+        "standardOutput": "<head>\nef3bb0540776f2278b41a632e61e272685f14268\n",
         "standardError": ""
       }
     },
@@ -12519,7 +14911,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B 85fe1fb19601ad6e5b2ee67ddbb890d2571003ae",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B efb36f5844f442b3cb12a50e9e0f7d4dde9c62dd",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -12570,7 +14962,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n85fe1fb19601ad6e5b2ee67ddbb890d2571003ae\n",
+        "standardOutput": "<head>\nefb36f5844f442b3cb12a50e9e0f7d4dde9c62dd\n",
         "standardError": ""
       }
     },
@@ -15639,7 +18031,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 171bda437e7bbb857f54a1ba28c92b5f208a813d",
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B cb2928cdab45837fcbeee999c4c587290c477c3d",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -15690,7 +18082,7 @@
       "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n171bda437e7bbb857f54a1ba28c92b5f208a813d\n",
+        "standardOutput": "<head>\ncb2928cdab45837fcbeee999c4c587290c477c3d\n",
         "standardError": ""
       }
     },
@@ -15951,7 +18343,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 306a0d8f69d3510584c30f5603338831a219b2ce",
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B 72712a39d48ddcc69dd53f912a328870aef7ec25",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change other-hooks/pre-commit\n\n",
@@ -16002,7 +18394,7 @@
       "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n306a0d8f69d3510584c30f5603338831a219b2ce\n",
+        "standardOutput": "<head>\n72712a39d48ddcc69dd53f912a328870aef7ec25\n",
         "standardError": ""
       }
     },
@@ -16415,7 +18807,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B f467a2eddf5d936a7c78e2645c0ca95280b2809a",
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B b77cdb34f5f8dd434ef120581f36063d772defe2",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change Src/Example.ts\n\n",
@@ -16466,7 +18858,7 @@
       "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf467a2eddf5d936a7c78e2645c0ca95280b2809a\n",
+        "standardOutput": "<head>\nb77cdb34f5f8dd434ef120581f36063d772defe2\n",
         "standardError": ""
       }
     },
@@ -16903,7 +19295,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git log -1 --format=%B 7c4760195a5fe3712c0e323e82a7130f69a569a6",
+      "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git log -1 --format=%B cf006c024df6e5af8241c862d63d128098097442",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -16954,7 +19346,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7c4760195a5fe3712c0e323e82a7130f69a569a6\n<main tip>\n",
+        "standardOutput": "<head>\ncf006c024df6e5af8241c862d63d128098097442\n<main tip>\n",
         "standardError": ""
       }
     },
@@ -17087,7 +19479,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git log -1 --format=%B e6c63e0f0bb1c3be8274030e09f9f399b53df505",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git log -1 --format=%B 0580f13e375b4941140baf6905de5057ca27b042",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -17138,7 +19530,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\ne6c63e0f0bb1c3be8274030e09f9f399b53df505\n<main tip>\n",
+        "standardOutput": "<head>\n0580f13e375b4941140baf6905de5057ca27b042\n<main tip>\n",
         "standardError": ""
       }
     },
@@ -17271,18 +19663,18 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B 7c4760195a5fe3712c0e323e82a7130f69a569a6",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B a385fab6e66b00a81207626ffc0884c1d393c599",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change feature.ts\n\n",
+        "standardOutput": "Merge the main line\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B f6b3b030aad4144262ea28a7559d871720901c46",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B cf006c024df6e5af8241c862d63d128098097442",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Merge the main line\n\n",
+        "standardOutput": "Change feature.ts\n\n",
         "standardError": ""
       }
     },
@@ -17330,7 +19722,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf6b3b030aad4144262ea28a7559d871720901c46\n7c4760195a5fe3712c0e323e82a7130f69a569a6\n<main tip>\n",
+        "standardOutput": "<head>\na385fab6e66b00a81207626ffc0884c1d393c599\ncf006c024df6e5af8241c862d63d128098097442\n<main tip>\n",
         "standardError": ""
       }
     },
@@ -19111,7 +21503,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 7dd0a200db346070860ee00fe9d18d79c4e32649",
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 4cf5f48b1f9f935614d90965e80933a17bb6ac46",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change built.ts\n\n",
@@ -19162,7 +21554,7 @@
       "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<landed>\n7dd0a200db346070860ee00fe9d18d79c4e32649\n",
+        "standardOutput": "<landed>\n4cf5f48b1f9f935614d90965e80933a17bb6ac46\n",
         "standardError": ""
       }
     },
@@ -21458,7 +23850,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8bcfa74 Initial commit\n",
+        "standardOutput": "HEAD is now at 1bd6415 Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

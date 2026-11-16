@@ -6,6 +6,7 @@
  */
 import { join } from 'node:path';
 
+import { branchNamesOf }                     from '../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                     from '../shared/constants/ProductNames.ts';
 import { SCRATCH_COMMIT_IDENTITY_ARGUMENTS } from './ScratchWorkspace.ts';
 
@@ -15,17 +16,22 @@ export const RECORDED_FLOW_TICKET_BRANCH = 'ticket-001';
 export const RECORDED_FLOW_IGNORE_FILE_TEXT = `${PRODUCT_NAMES.DATA_FOLDER}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`;
 
 export const RECORDED_FLOW_PLACEHOLDERS = {
-  REPOSITORY:      '<repository>',
-  MAIN_TIP:        '<main tip>',
-  MAIN_TREE:       '<main tree>',
-  TICKET_TIP:      '<ticket tip>',
-  TICKET_TREE:     '<ticket tree>',
+  REPOSITORY:           '<repository>',
+  MAIN_TIP:             '<main tip>',
+  MAIN_TREE:            '<main tree>',
+  TICKET_TIP:           '<ticket tip>',
+  TICKET_TREE:          '<ticket tree>',
   /** The main line's tip once it moved past the ticket branch's fork point, and its tree. */
-  MOVED_MAIN_TIP:  '<moved main tip>',
-  MOVED_MAIN_TREE: '<moved main tree>',
+  MOVED_MAIN_TIP:       '<moved main tip>',
+  MOVED_MAIN_TREE:      '<moved main tree>',
   /** The commit that merges the moved main line into the ticket branch, and its tree. */
-  MERGED_TIP:      '<merged tip>',
-  MERGED_TREE:     '<merged tree>',
+  MERGED_TIP:           '<merged tip>',
+  MERGED_TREE:          '<merged tree>',
+  /** The tree git's own merge of the ticket branch and the moved main line writes, conflict markers and all. */
+  AUTOMATIC_MERGE_TREE: '<automatic merge tree>',
+  /** The commit an Airlock agent's fix of a red merged tree adds on the merge commit, and its tree. */
+  FIXED_TIP:            '<fixed tip>',
+  FIXED_TREE:           '<fixed tree>',
 } as const;
 
 type FlowPlaceholder = typeof RECORDED_FLOW_PLACEHOLDERS[keyof typeof RECORDED_FLOW_PLACEHOLDERS];
@@ -33,14 +39,17 @@ type ObjectPlaceholder = Exclude<FlowPlaceholder, typeof RECORDED_FLOW_PLACEHOLD
 
 /** The ids a replay gives each recorded commit and tree; any 40 hexadecimal digits read as an object id. */
 export const REPLAYED_OBJECT_IDS: Readonly<Record<ObjectPlaceholder, string>> = {
-  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP]:        '1'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE]:       '2'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP]:      '3'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE]:     '4'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP]:  '5'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE]: '6'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TIP]:      '7'.repeat(40),
-  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE]:     '8'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP]:             '1'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE]:            '2'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP]:           '3'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE]:          '4'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP]:       '5'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE]:      '6'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TIP]:           '7'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE]:          '8'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.AUTOMATIC_MERGE_TREE]: '9'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.FIXED_TIP]:            'a'.repeat(40),
+  [RECORDED_FLOW_PLACEHOLDERS.FIXED_TREE]:           'b'.repeat(40),
 };
 
 export const RECORDED_FLOW_PLACES = {
@@ -48,6 +57,9 @@ export const RECORDED_FLOW_PLACES = {
   SESSION_FOLDER:          'session folder',
   TICKET_WORKTREE:         'ticket worktree',
   PIPELINE_AGENT_WORKTREE: 'pipeline agent worktree',
+  PROJECT_FOLDER:          'project folder',
+  PROJECT_TICKET_WORKTREE: 'project ticket worktree',
+  PROJECT_SESSION_FOLDER:  'project session folder',
 } as const;
 
 export type RecordedFlowPlace = typeof RECORDED_FLOW_PLACES[keyof typeof RECORDED_FLOW_PLACES];
@@ -57,8 +69,19 @@ const TICKET_WORKTREE_FOLDER = join(WORKTREES, RECORDED_FLOW_TICKET_BRANCH);
 /** Setup S1's snapshot, which its pipeline agent reads. */
 const PIPELINE_AGENT_WORKTREE_FOLDER = join(WORKTREES, 'pipeline-agent', 'S1');
 
+/** The tracker of the folder flow: its project folder below the repository and its branch namespace. */
+export const RECORDED_FOLDER_FLOW_PROJECT = { prefix: 'apps/example', namespace: 'example' } as const;
+export const RECORDED_FOLDER_FLOW_TICKET_BRANCH = branchNamesOf(RECORDED_FOLDER_FLOW_PROJECT.namespace).ticketBranchOf('001');
+
+const PROJECT_FOLDER = join(RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, RECORDED_FOLDER_FLOW_PROJECT.prefix);
+const PROJECT_WORKTREES = join(PROJECT_FOLDER, PRODUCT_NAMES.WORKTREES_FOLDER);
+const PROJECT_TICKET_WORKTREE_FOLDER = join(PROJECT_WORKTREES, branchNamesOf(null).ticketBranchOf('001'));
+
 /** Each place's folder below the repository, longest first, so a folder is the place of the deepest one it lies in. */
 export const RECORDED_FLOW_PLACE_FOLDERS: readonly (readonly [RecordedFlowPlace, string])[] = [
+  [RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, PROJECT_TICKET_WORKTREE_FOLDER],
+  [RECORDED_FLOW_PLACES.PROJECT_SESSION_FOLDER, join(PROJECT_WORKTREES, 'sessions')],
+  [RECORDED_FLOW_PLACES.PROJECT_FOLDER, PROJECT_FOLDER],
   [RECORDED_FLOW_PLACES.TICKET_WORKTREE, TICKET_WORKTREE_FOLDER],
   [RECORDED_FLOW_PLACES.PIPELINE_AGENT_WORKTREE, PIPELINE_AGENT_WORKTREE_FOLDER],
   [RECORDED_FLOW_PLACES.SESSION_FOLDER, join(WORKTREES, 'sessions')],
@@ -88,7 +111,24 @@ export type RecordedFlowStageName =
   | 'branch conflicting with main'
   | 'merge conflicted'
   | 'conflict resolved'
-  | 'resolved branch landed';
+  | 'resolved branch landed'
+  | RecordedFolderFlowStageName;
+
+/**
+ * The stages of the folder flow: a tracker in `apps/example` with the branch namespace `example`, from its `init` to a landing, a resolved
+ * conflict, a red merged tree an Airlock agent fixes or a red handoff.
+ */
+export type RecordedFolderFlowStageName =
+  | 'folder tracker ready'
+  | 'folder worktree made'
+  | 'folder tree changed'
+  | 'folder branch merged'
+  | 'folder branch conflicting with main'
+  | 'folder merge conflicted'
+  | 'folder conflict resolved'
+  | 'folder resolved branch landed'
+  | 'folder merged tree fixed'
+  | 'folder fixed branch landed';
 
 /** The file the main line gains past the ticket branch's fork point in the stage "main moved". */
 export const RECORDED_FLOW_MOVED_MAIN_FILE = { path: 'moved-main.txt', text: 'so the merged tree is one no build gate judged\n' } as const;
@@ -383,6 +423,179 @@ const RESOLUTION_READS = callsIn(RECORDED_FLOW_PLACES.TICKET_WORKTREE, [
 
 const RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], nextStage: 'resolved branch landed' }]);
 
+
+/** The file the folder flow's builder commits in the project folder, and the message of its commit. */
+export const RECORDED_FOLDER_FLOW_COMMIT = { path: `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/built.txt`, text: 'built\n', message: 'Build the example' } as const;
+/** The file the folder flow's ticket branch and moved main line both change, each its own way, in the project folder. */
+export const RECORDED_FOLDER_FLOW_CONFLICT_PATH = `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/${RECORDED_FLOW_CONFLICT.path}`;
+/** The file an Airlock agent's fix of the red merged tree commits in the project folder, and the message of its commit. */
+export const RECORDED_FOLDER_FLOW_MERGED_TREE_FIX = { path: `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/fixed.txt`, text: 'fixed\n', message: 'Fix the merged tree' } as const;
+/** The `.gitignore` lines `init` adds to the project folder's own for the skills it installs, which are not ignored yet. */
+export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\n`;
+
+const { MOVED_MAIN_TIP: FOLDER_MOVED_MAIN_TIP, MERGED_TIP: FOLDER_MERGED_TIP, AUTOMATIC_MERGE_TREE } = RECORDED_FLOW_PLACEHOLDERS;
+const FOLDER_INSTRUCTION_FILE = `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FOLDER_FLOW_PROJECT.prefix}/CLAUDE.md`;
+
+/** `init` in the project folder: the repository it lies in, the branches its namespace must leave room for, and the ignored folders. */
+const FOLDER_INIT_READS = [
+  ...callsIn(RECORDED_FLOW_PLACES.PROJECT_FOLDER, [
+    ['rev-parse', '--git-common-dir'],
+    ['version'],
+    ['check-ignore', '-q', `${PRODUCT_NAMES.DATA_FOLDER}/`],
+    ['check-ignore', '-q', `${PRODUCT_NAMES.WORKTREES_FOLDER}/`],
+    { gitArguments: ['check-ignore', '-q', `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/`], exitCode: NEGATIVE },
+    { gitArguments: ['check-ignore', '-q', `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/`], exitCode: NEGATIVE },
+  ]),
+  ...callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['for-each-ref', '--format=%(refname:short)', 'refs/heads']]),
+];
+
+/** What a folder tracker reads of its main checkout in every stage: the repository, the main line, the project's instruction file. */
+const FOLDER_MAIN_CHECKOUT_READS = [
+  ...callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+    ['rev-parse', '--git-common-dir'],
+    ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+    ['rev-parse', '--absolute-git-dir'],
+    ['config', '--bool', 'commit.gpgsign'],
+    ['for-each-ref', '--format=%(refname:short)', 'refs/heads/'],
+    ['worktree', 'list', '--porcelain'],
+    resolved('HEAD'),
+    resolved(RECORDED_FLOW_MAIN_LINE),
+    { gitArguments: ['show', FOLDER_INSTRUCTION_FILE], exitCode: FATAL },
+  ]),
+  ...callsIn(RECORDED_FLOW_PLACES.PROJECT_SESSION_FOLDER, [resolved('HEAD')]),
+];
+
+const FOLDER_TICKET_BRANCH_MISSING = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  { gitArguments: resolved(`refs/heads/${RECORDED_FOLDER_FLOW_TICKET_BRANCH}`), exitCode: NEGATIVE },
+]);
+const FOLDER_TICKET_BRANCH_PRESENT = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  resolved(`refs/heads/${RECORDED_FOLDER_FLOW_TICKET_BRANCH}`),
+  ['rev-parse', '--verify', '--quiet', `refs/heads/${RECORDED_FOLDER_FLOW_TICKET_BRANCH}^{tree}`],
+]);
+
+const FOLDER_TICKET_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+  ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+  ['rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
+  ['rev-parse', '--absolute-git-dir'],
+  { gitArguments: ['config', '--get', 'core.hooksPath'], exitCode: NEGATIVE, hookPolicy: 'repository-hooks' },
+  ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'],
+  ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'],
+  ['merge-base', RECORDED_FLOW_MAIN_LINE, 'HEAD'],
+  ['log', '--name-only', '--no-renames', '-z', '--format=', `${MAIN_TIP}..HEAD`, '--'],
+  ['diff', '--name-only', '--no-renames', '-z', MAIN_TIP, 'HEAD', '--'],
+  resolved('HEAD'),
+  ['for-each-ref', '--format=%(refname) %(objectname)'],
+  ['worktree', 'list', '--porcelain'],
+]);
+
+/** What the worktree is asked once the builder committed: the work since the fork point, the commit's message and tree, Customs' checks. */
+const FOLDER_TICKET_COMMIT_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+  ['status', '--porcelain=v1', '--untracked-files=all'],
+  ['diff', '--no-ext-diff', 'HEAD', '--'],
+  ['merge-base', '--is-ancestor', MAIN_TIP, 'HEAD'],
+  ['rev-list', `${MAIN_TIP}..HEAD`],
+  ['log', '--name-only', '--no-renames', '--format=', `${MAIN_TIP}..HEAD`, `^${RECORDED_FLOW_MAIN_LINE}`, '--'],
+  ['diff', '--name-only', '--no-renames', MAIN_TIP, 'HEAD', '--'],
+  ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'],
+  ['log', '-1', '--format=%B', TICKET_TIP],
+  resolved(MAIN_TIP),
+  { gitArguments: resolved('MERGE_HEAD'), exitCode: NEGATIVE },
+  ['merge-base', '--is-ancestor', MAIN_TIP, TICKET_TIP],
+  ['rev-parse', '--verify', '--quiet', `${TICKET_TIP}^{tree}`],
+]);
+
+const FOLDER_COMMITTED_STAGE_CALLS = [...FOLDER_MAIN_CHECKOUT_READS, ...FOLDER_TICKET_BRANCH_PRESENT, ...FOLDER_TICKET_WORKTREE_READS, ...FOLDER_TICKET_COMMIT_READS];
+
+/** The main line as the landing asks it: the paths a fast-forward to `tip` changes, the checkout's state and the branch. */
+function folderLandingReadsOf(tip: string): RecordedFlowCall[] {
+  return callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+    resolved(`refs/heads/${RECORDED_FLOW_MAIN_LINE}`),
+    ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+    ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+    ['diff', '--name-only', '--no-renames', '-z', 'HEAD', tip, '--'],
+  ]);
+}
+
+function folderMergePredictionOf(exitCode: number): RecordedFlowCall[] {
+  return callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+    gitArguments: ['merge-tree', '--write-tree', '--name-only', '--no-messages', '-z', '--end-of-options', RECORDED_FLOW_MAIN_LINE, RECORDED_FOLDER_FLOW_TICKET_BRANCH],
+    exitCode,
+  }]);
+}
+
+const FOLDER_TICKET_WORKTREE_ADD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
+  gitArguments: ['worktree', 'add', '-b', RECORDED_FOLDER_FLOW_TICKET_BRANCH, PROJECT_TICKET_WORKTREE_FOLDER, RECORDED_FLOW_MAIN_LINE],
+  nextStage:    'folder worktree made',
+  leavesFolder: PROJECT_TICKET_WORKTREE_FOLDER,
+}]);
+
+const FOLDER_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{ gitArguments: ['merge', '--ff-only', '--quiet', TICKET_TIP], nextStage: 'folder branch merged' }]);
+
+const FOLDER_CONFLICTED_MERGE_IN = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+  resolved(FOLDER_MOVED_MAIN_TIP),
+  { gitArguments: ['merge-base', '--is-ancestor', FOLDER_MOVED_MAIN_TIP, TICKET_TIP], exitCode: NEGATIVE },
+  { gitArguments: ['merge-base', '--is-ancestor', FOLDER_MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
+  { gitArguments: ['merge', '--no-ff', '--no-edit', '--quiet', FOLDER_MOVED_MAIN_TIP], exitCode: NEGATIVE, nextStage: 'folder merge conflicted' },
+]);
+
+/** What the worktree answers while the merge-in stands stopped on the conflict: the merge in progress and the unmerged file. */
+const FOLDER_CONFLICTED_WORKTREE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+  resolved('MERGE_HEAD'),
+  resolved(FOLDER_MOVED_MAIN_TIP),
+  ['diff', '--name-only', '--diff-filter=U', '-z'],
+  ['ls-files', '-u'],
+  { gitArguments: ['merge-base', '--is-ancestor', FOLDER_MOVED_MAIN_TIP, 'HEAD'], exitCode: NEGATIVE },
+]);
+
+/** For a tracker in a folder, V5, V17 and V13 on what the commits since the branch tip changed against git's own merge of the two tips. */
+const FOLDER_SCOPE_READS = callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+  ['rev-list', '--merges', `${TICKET_TIP}..HEAD`, `^${FOLDER_MOVED_MAIN_TIP}`],
+  { gitArguments: ['merge-tree', '--write-tree', '--no-messages', TICKET_TIP, FOLDER_MOVED_MAIN_TIP], exitCode: NEGATIVE },
+  ['log', '--name-only', '--no-renames', '-z', '--format=', `${TICKET_TIP}..HEAD`, `^${FOLDER_MOVED_MAIN_TIP}`, '--'],
+  ['diff', '--name-only', '--no-renames', '-z', AUTOMATIC_MERGE_TREE, 'HEAD', '--'],
+]);
+
+/** What the Airlock checks of the committed resolution before the landing: V10, then the scope reads. */
+const FOLDER_RESOLUTION_READS = [
+  ...callsIn(RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE, [
+    resolved(FOLDER_MOVED_MAIN_TIP),
+    ['ls-files', '-u'],
+    ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${FOLDER_MOVED_MAIN_TIP}`],
+    { gitArguments: ['config', '--get', 'core.whitespace'], exitCode: NEGATIVE },
+    ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', RECORDED_FOLDER_FLOW_CONFLICT_PATH],
+    ['rev-list', '--parents', '-n', '1', FOLDER_MERGED_TIP],
+  ]),
+  ...FOLDER_SCOPE_READS,
+];
+
+const FOLDER_RESOLVED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  { gitArguments: ['merge', '--ff-only', '--quiet', FOLDER_MERGED_TIP], nextStage: 'folder resolved branch landed' },
+]);
+
+const { FIXED_TIP } = RECORDED_FLOW_PLACEHOLDERS;
+
+const FOLDER_FIXED_FAST_FORWARD = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
+  { gitArguments: ['merge', '--ff-only', '--quiet', FIXED_TIP], nextStage: 'folder fixed branch landed' },
+]);
+
+const FOLDER_FLOW_STAGES: Readonly<Record<RecordedFolderFlowStageName, readonly RecordedFlowCall[]>> = {
+  'folder tracker ready':                [...FOLDER_INIT_READS, ...FOLDER_MAIN_CHECKOUT_READS, ...FOLDER_TICKET_BRANCH_MISSING, ...FOLDER_TICKET_WORKTREE_ADD],
+  'folder worktree made':                [...FOLDER_MAIN_CHECKOUT_READS, ...FOLDER_TICKET_BRANCH_PRESENT, ...FOLDER_TICKET_WORKTREE_READS],
+  'folder tree changed':                 [...FOLDER_COMMITTED_STAGE_CALLS, ...folderMergePredictionOf(0), ...folderLandingReadsOf(TICKET_TIP), ...FOLDER_FAST_FORWARD],
+  'folder branch merged':                FOLDER_MAIN_CHECKOUT_READS,
+  'folder branch conflicting with main': [
+    ...FOLDER_COMMITTED_STAGE_CALLS, ...folderMergePredictionOf(NEGATIVE), ...folderLandingReadsOf(TICKET_TIP), ...FOLDER_CONFLICTED_MERGE_IN,
+  ],
+  'folder merge conflicted':  [...withCallsReplaced(FOLDER_COMMITTED_STAGE_CALLS, FOLDER_CONFLICTED_WORKTREE_READS), ...folderMergePredictionOf(NEGATIVE)],
+  'folder conflict resolved': [
+    ...FOLDER_COMMITTED_STAGE_CALLS, ...FOLDER_RESOLUTION_READS, ...folderLandingReadsOf(FOLDER_MERGED_TIP), ...FOLDER_RESOLVED_FAST_FORWARD,
+  ],
+  'folder resolved branch landed': FOLDER_MAIN_CHECKOUT_READS,
+  // The fix is not a resolution, so V10 asks nothing of it; the scope reads judge it before its merged tree is gated again.
+  'folder merged tree fixed':      [...FOLDER_COMMITTED_STAGE_CALLS, ...FOLDER_SCOPE_READS, ...folderLandingReadsOf(FIXED_TIP), ...FOLDER_FIXED_FAST_FORWARD],
+  'folder fixed branch landed':    FOLDER_MAIN_CHECKOUT_READS,
+};
+
 export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readonly RecordedFlowCall[]>> = {
   'tracker ready': [
     ...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING, ...MAIN_CONSTITUTION_READ, ...PIPELINE_AGENT_WORKTREE_ADD, ...TICKET_WORKTREE_ADD,
@@ -411,6 +624,7 @@ export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readon
   'line endings normalised':             [...MAIN_LINE_STANDING, ...ticketWorktreeAddTo('unnormalised worktree made')],
   'unnormalised worktree made':          WORKTREE_STANDING,
   'ticket branch checked out elsewhere': [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...WORKTREE_ADD_REFUSED],
+  ...FOLDER_FLOW_STAGES,
 };
 
 export type RecordedFlowCommitStageName = CommitStageName;

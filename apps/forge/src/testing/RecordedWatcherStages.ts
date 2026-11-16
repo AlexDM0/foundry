@@ -473,11 +473,21 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
     processStarts: {
       spawnWatcher,
       runGatePipeline: (request) => {
-        const lines = [...request.prepare, ...request.gates].map((step) => step.run);
-        linesRun.push(...lines);
-        const failing = lines.filter((line) => (lineEnds.get(line)?.exitCode ?? 0) !== 0);
-        if (failing.length > 0) throw new Error(`a failing merge gate is a real-system case: ${failing.join(', ')}`);
-        const gatesRun = request.gates.map((gate) => gate.name);
+        const lineFails = (line: string): boolean => (lineEnds.get(line)?.exitCode ?? 0) !== 0;
+        const failingPrepareLines = request.prepare.map((step) => step.run).filter(lineFails);
+        if (failingPrepareLines.length > 0) throw new Error(`a failing merge prepare step is a real-system case: ${failingPrepareLines.join(', ')}`);
+        linesRun.push(...request.prepare.map((step) => step.run));
+        const gatesRun: string[] = [];
+        for (const gate of request.gates) {
+          linesRun.push(gate.run);
+          gatesRun.push(gate.name);
+          if (!lineFails(gate.run)) continue;
+          // A red gate ends the pipeline at it with its own output, as `GateRun.runPipeline` does for a gate that exits non-zero.
+          const cacheReports = gatesRun.map((gateName) => ({ gateName, cacheReport: null }));
+          return Promise.resolve({
+            outcome: 'failed', gate: gate.name, output: lineEnds.get(gate.run)?.output ?? '', gatesRun, cacheReports
+          });
+        }
         return Promise.resolve({ outcome: 'passed', gatesRun, cacheReports: gatesRun.map((gateName) => ({ gateName, cacheReport: null })) });
       },
       runGateLines:     () => Promise.reject(new Error('a gate profile is a real-system case')),

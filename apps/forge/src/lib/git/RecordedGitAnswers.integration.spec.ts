@@ -40,6 +40,11 @@ import {
   RECORDED_FLOW_SESSION_COMMIT,
   RECORDED_FLOW_SESSION_FILE,
   RECORDED_FLOW_STAGES,
+  RECORDED_FOLDER_FLOW_COMMIT,
+  RECORDED_FOLDER_FLOW_CONFLICT_PATH,
+  RECORDED_FOLDER_FLOW_MERGED_TREE_FIX,
+  RECORDED_FOLDER_FLOW_PROJECT,
+  RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT,
   recordedFlowCallShapeOf,
   type RecordedFlowCall,
   type RecordedFlowCommitStageName,
@@ -182,6 +187,43 @@ function commitOnTheMainLine(flow: FlowRepository, path: string, text: string): 
   gitOutputIn(flow.directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', `Change ${path}`]);
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP, gitOutputIn(flow.directory, ['rev-parse', 'HEAD']));
   flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE, gitOutputIn(flow.directory, ['rev-parse', 'HEAD^{tree}']));
+}
+
+/** A repository whose project folder `init` is about to track: the folder's `.gitignore` committed on `master`, nothing else. */
+function folderFlowRepository(): FlowRepository {
+  const directory = realpathSync(scratchRepository());
+  gitOutputIn(directory, ['branch', '-m', RECORDED_FLOW_MAIN_LINE]);
+  gitOutputIn(directory, ['config', 'commit.gpgsign', 'false']);
+  // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+  for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(directory, ['config', key ?? '', value ?? '']);
+  const ignoreFile = join(RECORDED_FOLDER_FLOW_PROJECT.prefix, '.gitignore');
+  mkdirSync(join(directory, RECORDED_FOLDER_FLOW_PROJECT.prefix), { recursive: true });
+  writeFileSync(join(directory, ignoreFile), RECORDED_FLOW_IGNORE_FILE_TEXT);
+  gitOutputIn(directory, ['add', ignoreFile]);
+  gitOutputIn(directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', 'Add the project']);
+  const values = new Map<string, string>([
+    [RECORDED_FLOW_PLACEHOLDERS.REPOSITORY, directory],
+    [RECORDED_FLOW_PLACEHOLDERS.MAIN_TIP, gitOutputIn(directory, ['rev-parse', 'HEAD'])],
+    [RECORDED_FLOW_PLACEHOLDERS.MAIN_TREE, gitOutputIn(directory, ['rev-parse', 'HEAD^{tree}'])],
+  ]);
+  return { directory, values };
+}
+
+/** `init` ran: its `.gitignore` lines for the skills, left uncommitted, and the ticket worktree added on the namespaced branch. */
+function folderFlowWorktreeMade(flow: FlowRepository): string {
+  writeFileSync(join(flow.directory, RECORDED_FOLDER_FLOW_PROJECT.prefix, '.gitignore'), `${RECORDED_FLOW_IGNORE_FILE_TEXT}${RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT}`);
+  recordFlowCall('folder tracker ready', flow, requireTransitionTo('folder tracker ready', 'folder worktree made'));
+  return placeFolderOf(flow, RECORDED_FLOW_PLACES.PROJECT_TICKET_WORKTREE);
+}
+
+function commitFilesIn(flow: FlowRepository, directory: string, texts: Readonly<Record<string, string>>, tip: string, tree: string): void {
+  for (const [path, text] of Object.entries(texts)) {
+    writeFileSync(join(directory, path), text);
+    gitOutputIn(directory, ['add', path]);
+  }
+  gitOutputIn(directory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', RECORDED_FOLDER_FLOW_COMMIT.message]);
+  flow.values.set(tip, gitOutputIn(directory, ['rev-parse', 'HEAD']));
+  flow.values.set(tree, gitOutputIn(directory, ['rev-parse', 'HEAD^{tree}']));
 }
 
 interface ConflictedMerge {
@@ -668,6 +710,70 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     recordFlowStage('conflict resolved', flow);
     recordFlowCall('conflict resolved', flow, requireTransitionTo('conflict resolved', 'resolved branch landed'));
     recordFlowStage('resolved branch landed', flow);
+  });
+
+  test('a folder tracker\'s flow, stage by stage: its init, the ticket worktree on its namespaced branch, the builder\'s commit, the landing', () => {
+    const flow = folderFlowRepository();
+    recordFlowStage('folder tracker ready', flow);
+    const worktree = folderFlowWorktreeMade(flow);
+    recordFlowStage('folder worktree made', flow);
+    const { TICKET_TIP, TICKET_TREE } = RECORDED_FLOW_PLACEHOLDERS;
+    commitFilesIn(flow, worktree, { [RECORDED_FOLDER_FLOW_COMMIT.path]: RECORDED_FOLDER_FLOW_COMMIT.text }, TICKET_TIP, TICKET_TREE);
+    recordFlowStage('folder tree changed', flow);
+    recordFlowCall('folder tree changed', flow, requireTransitionTo('folder tree changed', 'folder branch merged'));
+    recordFlowStage('folder branch merged', flow);
+  });
+
+  test('a folder tracker\'s ticket branch conflicting with the moved main line: the merge-in stopped, the resolution in scope and the landing', () => {
+    const flow = folderFlowRepository();
+    const worktree = folderFlowWorktreeMade(flow);
+    const placeholders = RECORDED_FLOW_PLACEHOLDERS;
+    const branchTexts = { [RECORDED_FOLDER_FLOW_COMMIT.path]: RECORDED_FOLDER_FLOW_COMMIT.text, [RECORDED_FOLDER_FLOW_CONFLICT_PATH]: RECORDED_FLOW_CONFLICT.branchText };
+    commitFilesIn(flow, worktree, branchTexts, placeholders.TICKET_TIP, placeholders.TICKET_TREE);
+    const mainLineTexts = { [RECORDED_FOLDER_FLOW_CONFLICT_PATH]: RECORDED_FLOW_CONFLICT.mainLineText };
+    commitFilesIn(flow, flow.directory, mainLineTexts, placeholders.MOVED_MAIN_TIP, placeholders.MOVED_MAIN_TREE);
+    recordFlowStage('folder branch conflicting with main', flow);
+    recordFlowCall('folder branch conflicting with main', flow, requireTransitionTo('folder branch conflicting with main', 'folder merge conflicted'));
+    recordFlowStage('folder merge conflicted', flow);
+    writeFileSync(join(worktree, RECORDED_FOLDER_FLOW_CONFLICT_PATH), RECORDED_FLOW_CONFLICT.resolvedText);
+    gitOutputIn(worktree, ['add', RECORDED_FOLDER_FLOW_CONFLICT_PATH]);
+    gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);
+    flow.values.set(placeholders.MERGED_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+    flow.values.set(placeholders.MERGED_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+    const automaticMerge = GitProcess.run(worktree, fillIn(flow, ['merge-tree', '--write-tree', '--no-messages', placeholders.TICKET_TIP, placeholders.MOVED_MAIN_TIP]));
+    const [automaticMergeTree = ''] = (automaticMerge?.standardOutput ?? '').split('\n');
+    flow.values.set(placeholders.AUTOMATIC_MERGE_TREE, automaticMergeTree);
+    recordFlowStage('folder conflict resolved', flow);
+    recordFlowCall('folder conflict resolved', flow, requireTransitionTo('folder conflict resolved', 'folder resolved branch landed'));
+    recordFlowStage('folder resolved branch landed', flow);
+  });
+
+  test('a folder tracker\'s red merged tree: the Airlock agent\'s fix on the resolution, in scope, and the landing', () => {
+    const flow = folderFlowRepository();
+    const worktree = folderFlowWorktreeMade(flow);
+    const placeholders = RECORDED_FLOW_PLACEHOLDERS;
+    const branchTexts = { [RECORDED_FOLDER_FLOW_COMMIT.path]: RECORDED_FOLDER_FLOW_COMMIT.text, [RECORDED_FOLDER_FLOW_CONFLICT_PATH]: RECORDED_FLOW_CONFLICT.branchText };
+    commitFilesIn(flow, worktree, branchTexts, placeholders.TICKET_TIP, placeholders.TICKET_TREE);
+    const mainLineTexts = { [RECORDED_FOLDER_FLOW_CONFLICT_PATH]: RECORDED_FLOW_CONFLICT.mainLineText };
+    commitFilesIn(flow, flow.directory, mainLineTexts, placeholders.MOVED_MAIN_TIP, placeholders.MOVED_MAIN_TREE);
+    recordFlowCall('folder branch conflicting with main', flow, requireTransitionTo('folder branch conflicting with main', 'folder merge conflicted'));
+    writeFileSync(join(worktree, RECORDED_FOLDER_FLOW_CONFLICT_PATH), RECORDED_FLOW_CONFLICT.resolvedText);
+    gitOutputIn(worktree, ['add', RECORDED_FOLDER_FLOW_CONFLICT_PATH]);
+    gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '--no-edit']);
+    flow.values.set(placeholders.MERGED_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+    flow.values.set(placeholders.MERGED_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+    const automaticMerge = GitProcess.run(worktree, fillIn(flow, ['merge-tree', '--write-tree', '--no-messages', placeholders.TICKET_TIP, placeholders.MOVED_MAIN_TIP]));
+    const [automaticMergeTree = ''] = (automaticMerge?.standardOutput ?? '').split('\n');
+    flow.values.set(placeholders.AUTOMATIC_MERGE_TREE, automaticMergeTree);
+    const fix = RECORDED_FOLDER_FLOW_MERGED_TREE_FIX;
+    writeFileSync(join(worktree, fix.path), fix.text);
+    gitOutputIn(worktree, ['add', fix.path]);
+    gitOutputIn(worktree, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'commit', '-q', '-m', fix.message]);
+    flow.values.set(placeholders.FIXED_TIP, gitOutputIn(worktree, ['rev-parse', 'HEAD']));
+    flow.values.set(placeholders.FIXED_TREE, gitOutputIn(worktree, ['rev-parse', 'HEAD^{tree}']));
+    recordFlowStage('folder merged tree fixed', flow);
+    recordFlowCall('folder merged tree fixed', flow, requireTransitionTo('folder merged tree fixed', 'folder fixed branch landed'));
+    recordFlowStage('folder fixed branch landed', flow);
   });
 
   test('a ticket branch checked out in another worktree already, so adding the ticket worktree on it is refused', () => {
