@@ -11,7 +11,7 @@
 }
 .design-system-busy[data-shape="bar"]::after {
   content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; background: var(--signal); border-radius: var(--r-pill);
-  animation: design-system-indeterminate 1.3s ease-in-out infinite;
+  animation: design-system-indeterminate 1.3s var(--ease-in-out) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

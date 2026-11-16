@@ -4,7 +4,7 @@
   display: flex; flex-direction: column; gap: var(--sp-3); min-inline-size: 0; margin: 0; padding: var(--sp-4) var(--space-18);
   color: var(--decision-ink); background: var(--decision-fill); border: 1px solid var(--decision-edge); border-radius: var(--r-3);
 }
-.design-system-question-card[data-state="asking"] { animation: design-system-glow var(--glow-period) ease-in-out infinite; }
+.design-system-question-card[data-state="asking"] { animation: design-system-glow var(--glow-period) var(--ease-in-out) infinite; }
 .design-system-question-card-legend { float: left; display: flex; flex-direction: column; gap: var(--sp-3); width: 100%; padding: 0; }
 .design-system-question-card-eyebrow { display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; color: var(--decision-ink); }
 .design-system-question-card-eyebrow::before {
