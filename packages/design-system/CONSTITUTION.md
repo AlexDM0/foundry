@@ -219,8 +219,8 @@ design-system/
   The loader imports the woff2 files from TypeScript and adds them with the FontFace API. No stylesheet names a font
   file: a bundler inlines a small file that a stylesheet `url()` names as a `data:` address, and a content security
   policy that allows only the page's own origin blocks it. An imported file is emitted as a file of its own.
-- **Newsreader is only for the `display`, `phase`, `page` and `section` roles.** Inter is for everything else; the system mono
-  stack only for machine text.
+- **Newsreader is only for the `display`, `phase`, `page` and `section` roles.** Inter is for everything else; the
+  system mono stack only for machine text.
 
 ## 10. Words, actions and links
 
