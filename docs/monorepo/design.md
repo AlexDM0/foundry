@@ -63,12 +63,13 @@ TypeScript source directly.
   forge's entries valid and the reverse: the isolation per project is in the hashes, not in folders. Strict environment mode hashes
   `BUN_RUNTIME_VERSION`; files a task reads outside its package are declared as `$TURBO_ROOT$` inputs.
 - **The cache is monorepo infrastructure only; it changes no forge or Gaia code.** Each tracker's gate is configuration with forge's
-  existing flags: `gate add verify --writes <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by
-  /bun.lock -- bun run gate:<app>`. `gate:<app>` runs every workspace's `typecheck lint test test:dom`, then `check` for that app only,
+  existing flags: `gate add verify --in / --writes <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json
+  --defined-by /bun.lock -- bun run gate:<app>`. Every gate and prepare line of a project tracker takes `--in /`: by default it runs in
+  the project's folder, where the root script is not found. `gate:<app>` runs every workspace's `typecheck lint test test:dom`, then `check` for that app only,
   so one app's stale recording stamp never turns the other tracker's gate red. Forge copies a gate's `--writes` into its agents'
   sandboxes, which is the intended shared read-write cache.
 - **Trust:** agents can write the cache, so a planted pass is possible. An Overseer-only merge gate audits it:
-  `gate add cache-audit --overseer-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
+  `gate add cache-audit --in / --overseer-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
   past the cache, the tasks of every package changed since the target and of their dependents; on red it removes those tasks' entries
   and exits non-zero, so forge refuses the landing.
 - A cached indicator for gate runs is a forge feature, stack-neutral and opt-in: forge hands every gate run a report path, a gate may

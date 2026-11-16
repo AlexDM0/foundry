@@ -4,7 +4,7 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-16, on branch `monorepo/integration`: P3 and P4 gated green together, P5 not started. Merge bases: forge
+Status as of 2026-11-16, on branch `monorepo/integration`: P3 and P4 gated green together, P5 gated green. Merge bases: forge
 `main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
 `monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
 after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
@@ -98,14 +98,20 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
       `/api/v2/monitor` at monitor 3, and Gaia, built for 1.1, reads it `older` (`current` when the forge's test setting answers 1.1);
       Gaia's server record lands in the scratch home's `frame-ancestors/`; no shipped file of forge or its packages names a client.
 
-### P5. Part B: several trackers in one repository (Claude) — not started
+### P5. Part B: several trackers in one repository (Claude) — gated green
 
-- [ ] P5A: the project location (the five names), the pipeline format with the namespace (one serial lane), the landing journal, the
+- [x] P5A: the project location (the five names), the pipeline format with the namespace (one serial lane), the landing journal, the
       two-tracker fixture, loopback in gate sandboxes.
-- [ ] P5B: Airlocks, Customs, the launch, the instruction files, `init` and the prompts' wording.
-- [ ] `p5-gate-cache-report`: the opt-in cached indicator for gate runs in the Bridge's pipeline view.
-- [ ] P5C: integration specs and a rehearsal of P7 in a scratch clone (never a copy of a linked worktree).
+- [x] P5B: Airlocks, Customs, the launch, the instruction files, `init` and the prompts' wording.
+- [x] `p5-gate-cache-report`: the opt-in cached indicator for gate runs in the Bridge's pipeline view.
+- [x] P5C: integration specs and a rehearsal of P7 in a scratch clone (never a copy of a linked worktree).
 - [ ] B15 (`repositoryRoot` and `projectPrefix` in the registry and the monitor snapshot) waits for P8.
+- [x] Gate P5: the common gate, three forced verifies, the root tracker's golden replay and the rehearsal's notes.
+- [ ] Before P7's gates run `test` and `test:dom`: a Seatbelt-confined gate cannot run the setuid `ps`, so Gaia's leak check and
+      forge's process helpers fail in a gate (rehearsal finding 1). One ticket per app: list processes another way, or skip through the
+      tool guard with a counted reason.
+- [ ] The pipeline agent's turn-end check (`PipelineAgentSessions` `refMovesAllowedFor`) still watches every ref, not only a namespaced
+      tracker's own and the journaled landings (rehearsal finding 2).
 
 ### P6. Docs close-out and the owner's review (Claude, then the owner) — not started
 
@@ -122,9 +128,9 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
 - [ ] The installed forge: a second clone outside the monorepo, its `setup.sh`, updated by pulling (owner).
 - [ ] Forge's tracker to `apps/forge/.forge`, namespace `forge`, `forge update`; remove what the root tracker installed at the root
       (owner).
-- [ ] Gates for forge's tracker: prepare `bun install --frozen-lockfile` at `in: /`; `gate add verify --writes <repository>/.turbo/cache
-      --defined-by /turbo.json --defined-by /package.json --defined-by /bun.lock -- bun run gate:forge`; the Overseer-only merge gate
-      `cache:audit`; reach `/packages/*` that forge owns, `/package.json`, `/bun.lock`, `/turbo.json` (owner).
+- [ ] Gates for forge's tracker, each with `--in /`: prepare `bun install --frozen-lockfile`; `gate add verify --in / --writes
+      <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by /bun.lock -- bun run gate:forge`; the
+      Overseer-only merge gate `cache:audit`; reach `/packages/*` that forge owns, `/package.json`, `/bun.lock`, `/turbo.json` (owner).
 - [ ] Gaia's tracker: `forge init` in `apps/gaia`, namespace `gaia`, reach `/packages/design-system`, `/packages/system-versions` and
       the root workspace files; the same gates with `gate:gaia` (owner).
 - [ ] Login items for both trackers, from the installed clone (owner).
