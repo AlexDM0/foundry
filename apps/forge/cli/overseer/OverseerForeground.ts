@@ -78,6 +78,7 @@ import type { ArgumentParser }                               from '../arguments/
 import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
 import { OutputUtil }                                        from '../utils/OutputUtil.ts';
+import { type OverseerFlintBrain, createOverseerFlintBrain } from './OverseerFlintBrain.ts';
 import { type OverseerPollSchedule, overseerPollScheduleOf } from './OverseerPollSchedule.ts';
 import { OverseerWording }                                   from './OverseerWording.ts';
 import { createMergeForecastCache, readBoardState }          from './routes/BoardStateReader.ts';
@@ -104,6 +105,8 @@ interface Serving {
   drivePass:  DrivePass;
   watcher:    { stop: () => void };
   lifetime:   ReturnType<typeof overseerLifetime>;
+  /** Lives and ends with the serving period: a Baton pass or a stop ends a running brain. */
+  flintBrain: OverseerFlintBrain;
 }
 
 const TOKEN_BYTES            = 32;
@@ -398,6 +401,20 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     enterStep: (step: BatonPassStep) => void,
   ): Promise<Serving> {
     const bundlePath = await pinWatcherBundle();
+    // Set once the Baton is taken; a brain change before then has no stream to reach.
+    let publishFlintBrainChange: () => void = () => undefined;
+    const overseerFlintBrain = createOverseerFlintBrain({
+      commandArguments:  request.commandArguments,
+      context,
+      workspace,
+      trackerId:         progress.trackerId,
+      repositoryRoot,
+      watcherBundlePath: bundlePath,
+      codeVersion,
+      publish:           () => publishFlintBrainChange(),
+      log,
+    });
+    const flintBrainReading = () => overseerFlintBrain.brain.reading();
     let lifetime: ReturnType<typeof overseerLifetime> | null = null;
     let drivePass: DrivePass | null = null;
     enterStep('bind-port');
@@ -455,6 +472,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         broker:           () => broker,
         monitorStream:    () => monitorStream,
         monitorFacts:     monitorFactsNow,
+        flintBrain:       overseerFlintBrain.brain,
+        flintBrainReading,
         wake:             () => drivePass?.wake(),
         launchesHeld:     () => overseerState()?.runtimeState === 'held-by-install-change',
         notices:          () => overseerState()?.notices ?? [],
@@ -496,10 +515,12 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       acquisition = acquireBaton(record);
     } catch (refusal) {
       await server.stop();
+      await overseerFlintBrain.close();
       throw refusal;
     }
     if (acquisition.verdict !== 'acquired') {
       await server.stop();
+      await overseerFlintBrain.close();
       throw batonRefusalOf(acquisition, files);
     }
     const { generation } = acquisition;
@@ -516,6 +537,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
           mainLine,
           mergeForecastCache,
           mainLineReads,
+          flintBrainReading,
         });
         ownBroker.publishState(read.state);
         const monitorFacts = monitorFactsNow();
@@ -526,6 +548,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     };
     broker           = ownBroker;
     monitorStream    = ownMonitorStream;
+    publishFlintBrainChange = publishState;
     servedUrl        = server.url;
     servedGeneration = generation;
     startedAt        = LocalTimeUtil.formatLocalIso(context.now());
@@ -594,7 +617,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         },
       });
       const serving: Serving = {
-        generation, server, drivePass, watcher, lifetime
+        generation, server, drivePass, watcher, lifetime, flintBrain: overseerFlintBrain
       };
       current = serving;
       publishState();
@@ -614,6 +637,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       watcher?.stop();
       lifetime?.stopWatching();
       lifetime?.stopListening();
+      await overseerFlintBrain.close();
       await drivePass?.stop();
       await server.stop();
       Baton.release(files.overseerDirectory, generation);
@@ -626,6 +650,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     handingOver = true;
     serving.lifetime.stopWatching();
     serving.watcher.stop();
+    await serving.flintBrain.close();
     await serving.drivePass.stop();
     await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
     await serving.server.stop();
@@ -749,6 +774,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     serving.watcher.stop();
     const stoppingServing = serving;
     const stopWaits: StopWait[] = [
+      // First, so the run it ends is logged while the board is still this Overseer's.
+      { name: 'the stop of Flint\'s brain', run: () => stoppingServing.flintBrain.close() },
       { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
       ...(end.kind === 'stopped' && end.now ? [{
         name: 'the stop of the live process Watchers',

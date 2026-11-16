@@ -8,6 +8,7 @@ import type { IncidentDefaultCause } from '../../lib/tracker-model/@types/Incide
 import type { JobStopMode }          from '../../lib/tracker-model/@types/Job.ts';
 import type {
   AgentUsage,
+  FlintBrainEndedReason,
   LogRecord,
   LogRecordContent,
   LogRecordFieldsOf,
@@ -270,6 +271,8 @@ function sentenceOf(record: LogRecordContent): string {
       return 'Tracker cleared';
     case 'agent-stopped':
       return agentStoppedTextOf(record.fields);
+    case 'flint-brain-ended':
+      return flintBrainEndedTextOf(record.fields);
     case 'overseer-started':
       return `Overseer started on code ${record.fields.codeVersion}, install version ${record.fields.installVersion}`;
     case 'overseer-stopped':
@@ -336,6 +339,19 @@ const INCIDENT_DEFAULT_CAUSE_TEXT: Readonly<Record<IncidentDefaultCause, string>
   'turn-budget':  'when its delivery turn reached its call budget',
   'no-assistant': 'while no Assistant could come up',
 };
+
+const FLINT_BRAIN_ENDING_PHRASES: Readonly<Record<FlintBrainEndedReason, string>> = {
+  'time':        'stopped after its whole time',
+  'stopped':     'was stopped',
+  'usage-limit': 'stopped at the usage limit',
+  'failed':      'failed',
+};
+
+/** Names no client: who started the run is the record's fact, not the sentence's. */
+function flintBrainEndedTextOf(run: LogRecordFieldsOf<'flint-brain-ended'>): string {
+  const calls = `${run.calls} model call${run.calls === 1 ? '' : 's'}`;
+  return `Flint's brain ${FLINT_BRAIN_ENDING_PHRASES[run.endedReason]}, after ${calls} and ${TokenCountUtil.formatTokenCount(run.tokens)} tokens`;
+}
 
 function ticketsSuffixOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? '' : ` for ${TicketPhraseUtil.ticketReferencesText(ticketIds)}`;

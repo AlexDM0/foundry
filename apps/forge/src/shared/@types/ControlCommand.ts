@@ -228,3 +228,14 @@ export type ControlCommand =
 export type ControlCommandKind = ControlCommand['kind'];
 
 export type ControlCommandOf<Kind extends ControlCommandKind> = Extract<ControlCommand, { kind: Kind }>;
+
+/**
+ * Flint's brain, started and stopped through `POST /api/commands` alone: it runs in the live Overseer's memory, so no board applies it, no
+ * verb names it and no job relays it.
+ */
+export type FlintBrainCommand = { kind: 'flint-brain-start' } | { kind: 'flint-brain-stop' };
+
+/** What `POST /api/commands` takes: every control command, and Flint's brain's. */
+export type OverseerApiCommand = ControlCommand | FlintBrainCommand;
+
+export type OverseerApiCommandOf<Kind extends OverseerApiCommand['kind']> = Extract<OverseerApiCommand, { kind: Kind }>;

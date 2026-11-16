@@ -51,21 +51,21 @@ describe('the picture upload body', () => {
   test('a declared length over the limit is refused with that length, and nothing of the body is read', async () => {
     const { body, pulledChunks } = countingBodyOf([[1, 2, 3, 4, 5, 6, 7, 8, 9]]);
     const request = new Request(EXAMPLE_UPLOAD_URL, { method: 'POST', headers: { 'content-length': '9' }, body });
-    expect(await OverseerServer.pictureUploadOf(request, SIZE_LIMIT_BYTES)).toEqual({ verdict: 'over-limit', bytes: 9 });
+    expect(await OverseerServer.boundedBodyOf(request, SIZE_LIMIT_BYTES)).toEqual({ verdict: 'over-limit', bytes: 9 });
     expect(pulledChunks()).toBe(0);
   });
 
   test('a body with no declared length stops being read at the chunk that runs past the limit', async () => {
     const { body, pulledChunks } = countingBodyOf([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]]);
     const request = new Request(EXAMPLE_UPLOAD_URL, { method: 'POST', body });
-    expect(await OverseerServer.pictureUploadOf(request, SIZE_LIMIT_BYTES)).toEqual({ verdict: 'over-limit', bytes: 10 });
+    expect(await OverseerServer.boundedBodyOf(request, SIZE_LIMIT_BYTES)).toEqual({ verdict: 'over-limit', bytes: 10 });
     expect(pulledChunks()).toBe(2);
   });
 
   test('a body within the limit is read whole, its chunks in order', async () => {
     const { body } = countingBodyOf([[1, 2, 3], [4, 5, 6, 7, 8]]);
     const request = new Request(EXAMPLE_UPLOAD_URL, { method: 'POST', body });
-    const upload = await OverseerServer.pictureUploadOf(request, SIZE_LIMIT_BYTES);
+    const upload = await OverseerServer.boundedBodyOf(request, SIZE_LIMIT_BYTES);
     expect(upload.verdict).toBe('read');
     expect(upload.verdict === 'read' ? [...upload.bytes] : []).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
@@ -107,6 +107,7 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     token:         () => null,
     started:       () => true,
     command:       neverCalled,
+    askFlintBrain: neverCalled,
     onNudge:       neverCalled,
     state:         neverCalled,
     summary:       neverCalled,

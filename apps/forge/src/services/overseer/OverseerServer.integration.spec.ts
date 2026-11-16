@@ -89,6 +89,7 @@ function startExampleServer(
       commands.push(body);
       return { status: 200, body: { outcome: 'done', result: null } };
     },
+    askFlintBrain:   async () => await Promise.resolve({ status: 200, body: { kind: 'not-asked', reason: 'not-running' } }),
     onNudge:         () => nudges.push('nudge'),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     summary:         () => ({ summaryVersion: 1 }),

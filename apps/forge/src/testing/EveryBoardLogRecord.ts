@@ -247,6 +247,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.openIncident({ ...incidentOpening, facts: { requestId: 'request-4' } }, at);
   board.escalateIncident('I3', { askedBy: 'builder', questions: [question], context: 'Example cart' }, at);
   board.recordOverseerStopped('stopped', at);
+  board.recordFlintBrainEnded({
+    startedBy: 'bridge', startedAt: '2026-09-26T08:13:00.000Z', endedAt: '2026-09-26T08:15:00.000Z', endedReason: 'time', tokens: 4_200, calls: 3
+  }, at);
   board.recordBatonPassFailed({ successorCodeVersion: 'd4e5f6a', step: 'build-bundles', error: 'Example bundle error' }, at);
   board.recordHatchApplied('J1', {
     requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done', ticketIds: ['001']

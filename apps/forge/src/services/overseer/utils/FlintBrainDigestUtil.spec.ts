@@ -1,7 +1,8 @@
 /**
  * The digest as the brain reads it. What matters: the excerpt the brain reads is capped and keeps its newest end; the hash moves with the
  * content, the cues and the moves offered, and not with the time, the last move or sleep, which would earn a call on every ask; and an answer
- * is taken only when it names a move and an emote the digest offers.
+ * is taken only when it names a move and an emote the digest offers. An ask's body becomes a digest only when every field has its type, so
+ * nothing else reaches a session.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -82,5 +83,29 @@ describe('the answer', () => {
     for (const report of [{ intent: 'run-a-command', emote: null }, { intent: 'wave', emote: 'furious' }, { intent: 3 }, 'wave', null, ['wave']]) {
       expect(FlintBrainDigestUtil.answerOf(report, DIGEST)).toBeNull();
     }
+  });
+});
+
+describe('a digest from an ask\'s body', () => {
+  test('reads back as the digest the Bridge sent, with or without its excerpt and content', () => {
+    expect(FlintBrainDigestUtil.digestOf(JSON.parse(JSON.stringify(DIGEST)))).toEqual(DIGEST);
+    expect(FlintBrainDigestUtil.digestOf({ ...DIGEST, content: null })).toEqual({ ...DIGEST, content: null });
+    expect(FlintBrainDigestUtil.digestOf({ ...DIGEST, content: { facts: {} } })).toEqual({ ...DIGEST, content: { facts: {} } });
+  });
+
+  test('is none for any field of the wrong type, and for a body that is no object', () => {
+    const malformed: unknown[] = [
+      null,
+      ['wander'],
+      { ...DIGEST, intents: 'wander' },
+      { ...DIGEST, newCues: [1] },
+      { ...DIGEST, isAsleep: 'no' },
+      { ...DIGEST, quietMilliseconds: -1 },
+      { ...DIGEST, habitatKind: 3 },
+      { ...DIGEST, suggestions: [{ when: 'idle' }] },
+      { ...DIGEST, content: { facts: { agentsRunning: true } } },
+      { ...DIGEST, content: { facts: {}, excerpt: 7 } },
+    ];
+    expect(malformed.map((body) => FlintBrainDigestUtil.digestOf(body))).toEqual(malformed.map(() => null));
   });
 });

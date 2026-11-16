@@ -73,7 +73,9 @@ export type LogFieldShape =
   | 'setup-steps'
   | 'setup-item-ids'
   | 'draft-fields'
-  | 'gate-profile-ending';
+  | 'gate-profile-ending'
+  | 'flint-brain-starter'
+  | 'flint-brain-ended-reason';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -274,6 +276,13 @@ export const LOG_RECORD_SCHEMA = {
   'tracker-cleared':   { subject: 'board', fields: NO_FIELDS },
   'overseer-started':  { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
   'overseer-stopped':  { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
+  // One run of Flint's brain that ended, with its tokens and model calls in total; the brain is no job, so its record names none.
+  'flint-brain-ended': {
+    subject: 'board',
+    fields:  {
+      startedBy: 'flint-brain-starter', startedAt: 'text', endedAt: 'text', endedReason: 'flint-brain-ended-reason', tokens: 'count', calls: 'count'
+    },
+  },
   // The old Overseer keeps driving, or took the board back; `step` names where the successor failed, `error` what it said.
   'baton-pass-failed': { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
   // A job's state lives in progress.json; only its launch, its interruptions, its resumes and its end are logged.

@@ -1,4 +1,6 @@
 /** The fields of the Overseer's `BoardState` (`GET /api/state`, the `board` event) the shell reads; each view adds the fields it uses. */
+import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+
 import type { DraftState } from '../../src/lib/tracker-model/@types/Draft.ts';
 import type { LogRecord }  from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
@@ -9,8 +11,9 @@ import type {
   PipelineFlowFacts,
   PipelineSetupFacts
 } from '../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { AgentPair }       from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { TimestampSlices } from '../utils/TimeUtil.ts';
+import type { AgentPair }          from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type { TodayFlintBrainRun } from '../../src/shared/monitor/TodayFigures.ts';
+import type { TimestampSlices }    from '../utils/TimeUtil.ts';
 
 export interface IdentifiedRecord {
   readonly id: string;
@@ -182,6 +185,14 @@ export interface BoardStateDocument {
   readonly pipelineChoices?:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them. */
   readonly pipelineAgentDefaults?: AgentPair;
+  /** Optional, so a board document built without Flint's brain, as a spec's, still reads. */
+  readonly flintBrain?:            FlintBrainBoardFactsDocument;
+}
+
+/** Flint's brain: the Overseer's reading, `null` where it cannot run confined, and every run, for today's tokens. */
+export interface FlintBrainBoardFactsDocument {
+  readonly reading: MonitorFlintBrainDocument | null;
+  readonly runs:    readonly TodayFlintBrainRun[];
 }
 
 /** `GET /api/identity`: what the Bridge needs to key its preferences and to notice new code behind the same port. */

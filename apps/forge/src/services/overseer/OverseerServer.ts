@@ -3,7 +3,8 @@
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
  * origin's page. `GET /api/versions` answers at every moment, and each endpoint the compatibility registry serves also answers at its
  * `/api/v<n>/<endpoint>`, through its unversioned route. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the
- * bearer token; the data routes the token or the session cookie a one-time code buys at `POST /api/session`; and every answer carries the
+ * bearer token; the data routes and the Bridge's own `POST /api/flint-brain/ask` the token or the session cookie a one-time code buys at
+ * `POST /api/session`; and every answer carries the
  * Bridge's CSP, a served file a sandbox of its own. A 401, a 403, a read route's 500 and a page build's 500 answer `{refusal, text}`. What a
  * command does, and how a refusal is worded, is the command surface's.
  */
@@ -21,6 +22,7 @@ import { WATCHER_PROTOCOL_VERSION }                   from '../../lib/watcher/co
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
 import { IDENTITY_VERSION, SERVED_CONTRACT_VERSIONS } from '../../shared/constants/OverseerApiContracts.ts';
 import {
+  FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES,
   PICTURE_SIZE_LIMIT_BYTES,
   PROFILE_OUTPUT_FOLLOW_MILLISECONDS,
   SERVED_JOB_FILE_NAMES,
@@ -58,10 +60,19 @@ export interface RouteAnswer {
   body:   unknown;
 }
 
-/** A `POST /api/pictures` body, read no further than past the size limit: past it, only how many bytes were declared or read by then. */
-export type PictureUpload =
+/** A request body read no further than past its size limit: past it, only how many bytes were declared or read by then. */
+export type BoundedBody =
   | { verdict: 'read'; bytes: Uint8Array }
   | { verdict: 'over-limit'; bytes: number };
+
+/** A `POST /api/pictures` body, bounded by the picture size limit. */
+export type PictureUpload = BoundedBody;
+
+/** What a `POST /api/commands` request itself proves of who sent it, beside the token every command needs. */
+export interface CommandCaller {
+  /** The request carries a Bridge session cookie this server holds. */
+  carriesBridgeSession: boolean;
+}
 
 /** A job's transcript after a cursor, re-read on each call. */
 export type TranscriptFollower = () => TranscriptEntry[];
@@ -72,7 +83,9 @@ export interface OverseerRoutes {
   /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
   started:         () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
-  command:         (body: unknown) => Promise<RouteAnswer>;
+  command:         (body: unknown, caller: CommandCaller) => Promise<RouteAnswer>;
+  /** The Bridge's parsed digest for Flint's brain behind a reader's session or token: the brain's move, or why the rule director moves. */
+  askFlintBrain:   (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
   onNudge:         () => void;
   state:           () => unknown;
@@ -145,6 +158,7 @@ const HTTP_STATUS = {
   UNAUTHORIZED: 401,
   FORBIDDEN:    403,
   NOT_FOUND:    404,
+  TOO_LARGE:    413,
   SERVER_ERROR: 500,
   UNAVAILABLE:  503,
 } as const;
@@ -164,6 +178,8 @@ const VERSIONED_PATH      = /^\/api\/v([1-9]\d*)\/(.+)$/;
 const EVENTS_PATH         = '/api/events';
 const MONITOR_PATH        = '/api/monitor';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
+// The Bridge's own, unversioned and in no registry entry: only the page this Overseer serves calls it.
+const FLINT_BRAIN_ASK_PATH = '/api/flint-brain/ask';
 
 function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
   const frameAncestors = frameOrigins.length === 0 ? '\'none\'' : frameOrigins.join(' ');
@@ -219,7 +235,8 @@ function bearerTokenMatches(request: Request, expectedToken: string | null): boo
   return offered.length === expected.length && timingSafeEqual(offered, expected);
 }
 
-async function answerCommand(request: Request, routes: OverseerRoutes): Promise<Response> {
+async function answerCommand(request: Request, access: RouteAccess): Promise<Response> {
+  const { routes } = access;
   if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   let body: unknown;
   try {
@@ -230,11 +247,11 @@ async function answerCommand(request: Request, routes: OverseerRoutes): Promise<
       body:   { controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal: 'malformed-body', text: routes.refusalTextOf('malformed-body') },
     });
   }
-  return jsonResponse(await routes.command(body));
+  return jsonResponse(await routes.command(body, { carriesBridgeSession: sessionIsHeld(request, access) }));
 }
 
 /** A declared length over the limit is not read at all, and a body that runs past it stops being read there, so no memory goes to it. */
-async function pictureUploadOf(request: Request, sizeLimitBytes: number): Promise<PictureUpload> {
+async function boundedBodyOf(request: Request, sizeLimitBytes: number): Promise<BoundedBody> {
   const declaredLength = request.headers.get('content-length');
   if (declaredLength !== null && Number(declaredLength) > sizeLimitBytes) return { verdict: 'over-limit', bytes: Number(declaredLength) };
   if (request.body === null) return { verdict: 'read', bytes: new Uint8Array() };
@@ -261,7 +278,7 @@ async function pictureUploadOf(request: Request, sizeLimitBytes: number): Promis
 /** The raw body is the picture; what it is and whether it fits is the route's, read from its bytes. */
 async function answerPictureUpload(request: Request, routes: OverseerRoutes): Promise<Response> {
   if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
-  const upload = await pictureUploadOf(request, PICTURE_SIZE_LIMIT_BYTES);
+  const upload = await boundedBodyOf(request, PICTURE_SIZE_LIMIT_BYTES);
   if (upload.verdict === 'read' && upload.bytes.length === 0) return jsonResponse({ status: HTTP_STATUS.BAD_REQUEST, body: { refusal: 'malformed-body' } });
   return jsonResponse(routes.storePicture(upload));
 }
@@ -290,10 +307,29 @@ function sessionSecretIn(request: Request, cookieName: string): string | null {
   return null;
 }
 
+function sessionIsHeld(request: Request, access: RouteAccess): boolean {
+  const sessionSecret = sessionSecretIn(request, access.sessionCookieName);
+  return sessionSecret !== null && access.sessions.holdsSession(sessionSecret);
+}
+
 /** The Bridge's session cookie, or the bearer token a CLI reader holds. Request headers a browser alone would send prove nothing. */
 function readerIsAuthorized(request: Request, access: RouteAccess): boolean {
-  const sessionSecret = sessionSecretIn(request, access.sessionCookieName);
-  return (sessionSecret !== null && access.sessions.holdsSession(sessionSecret)) || bearerTokenMatches(request, access.routes.token());
+  return sessionIsHeld(request, access) || bearerTokenMatches(request, access.routes.token());
+}
+
+/** The digest is read no further than its size limit; past it, or as no JSON, nothing reaches the brain. */
+async function answerFlintBrainAsk(request: Request, access: RouteAccess): Promise<Response> {
+  const { routes } = access;
+  if (!readerIsAuthorized(request, access)) return unauthorizedResponse(routes);
+  const body = await boundedBodyOf(request, FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES);
+  if (body.verdict === 'over-limit') return jsonResponse({ status: HTTP_STATUS.TOO_LARGE, body: { refusal: 'too-large' } });
+  let digest: unknown;
+  try {
+    digest = JSON.parse(new TextDecoder().decode(body.bytes));
+  } catch {
+    return refusalResponse(routes, 'malformed-body');
+  }
+  return jsonResponse(await routes.askFlintBrain(digest));
 }
 
 function sessionTokenResponse(routes: OverseerRoutes): Response {
@@ -537,7 +573,8 @@ function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments
   if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
   if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
   if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);
-  if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
+  if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, access);
+  if (method === 'POST' && pathname === FLINT_BRAIN_ASK_PATH) return answerFlintBrainAsk(request, access);
   if (method === 'POST' && pathname === '/api/pictures') return answerPictureUpload(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();
@@ -642,5 +679,5 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
 }
 
 export const OverseerServer = Object.freeze({
-  start, requestHandlerOf, pictureUploadOf, dataRouteOf, eventStreamsOf, pathIsStream
+  start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
 });

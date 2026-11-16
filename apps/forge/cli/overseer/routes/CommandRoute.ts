@@ -2,19 +2,27 @@
  * `POST /api/commands` behind the token, control contract 1: a `ControlCommand` applied in a hold of its own, answered 200 `{controlVersion,
  * outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an install change, each
  * `{controlVersion, refusal, text}`: the refusal's code and its API sentence, which names no command line. `overseer-stop` and
- * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no hold.
+ * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no
+ * hold; `flint-brain-start` and `flint-brain-stop` go to the Overseer's brain, held or not, a start naming the Bridge as its starter when the
+ * request carries a Bridge session and the API otherwise, never from the body.
  */
-import { OperationRefusalWordingUtil }                              from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CONTROL_COMMAND_KINDS, ControlService }                    from '../../../src/services/control/ControlService.ts';
-import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
-import type { RouteAnswer }                                         from '../../../src/services/overseer/OverseerServer.ts';
-import type { ControlCommand, ControlCommandOf, TrackerClearScope } from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal, reasonCodeOf }                           from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
-import type { CommandContext }                                      from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                  from '../../CommandControlContext.ts';
-import { openTrackerForWriting }                                    from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
+import { OperationRefusalWordingUtil }                                      from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CONTROL_COMMAND_KINDS, ControlService, FLINT_BRAIN_COMMAND_KINDS } from '../../../src/services/control/ControlService.ts';
+import type { FlintBrain }                                                  from '../../../src/services/overseer/FlintBrain.ts';
+import { MachineAgentLimit }                                                from '../../../src/services/overseer/MachineAgentLimit.ts';
+import type { CommandCaller, RouteAnswer }                                  from '../../../src/services/overseer/OverseerServer.ts';
+import type {
+  ControlCommand,
+  ControlCommandOf,
+  FlintBrainCommand,
+  TrackerClearScope
+} from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal, reasonCodeOf } from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }       from '../../../src/shared/constants/OverseerApiContracts.ts';
+import type { CommandContext }            from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }        from '../../CommandControlContext.ts';
+import { openTrackerForWriting }          from '../../OpenTrackerForWriting.ts';
+import type { ArgumentParser }            from '../../arguments/ArgumentParser.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -30,6 +38,8 @@ export interface CommandRouteRequest {
   wake:                 () => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
   machineAgentCeiling?: number;
+  /** The live Overseer's brain, which the route starts and stops. */
+  flintBrain:           Pick<FlintBrain, 'start' | 'stop'>;
 }
 
 const HTTP_STATUS = {
@@ -40,6 +50,9 @@ const HTTP_STATUS = {
 } as const;
 
 const RUNTIME_COMMAND_KINDS: readonly string[] = ['overseer-stop', 'overseer-restart'];
+
+/** Every kind the route takes: the control service's and Flint's brain's. */
+export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze([...CONTROL_COMMAND_KINDS, ...FLINT_BRAIN_COMMAND_KINDS]);
 
 const CONTROL_VERSION = SERVED_CONTRACT_VERSIONS.control;
 
@@ -110,9 +123,25 @@ function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: Comma
   }
 }
 
-export async function answerControlCommand(body: unknown, request: CommandRouteRequest): Promise<RouteAnswer> {
-  if (!isRecord(body) || typeof body['kind'] !== 'string' || !(CONTROL_COMMAND_KINDS as readonly string[]).includes(body['kind'])) return MALFORMED;
+async function flintBrainAnswerOf(kind: FlintBrainCommand['kind'], request: CommandRouteRequest, caller: CommandCaller): Promise<RouteAnswer> {
+  const verdict = kind === 'flint-brain-start'
+    ? await request.flintBrain.start(caller.carriesBridgeSession ? 'bridge' : 'api')
+    : await request.flintBrain.stop();
+  if (verdict.verdict === 'refused') {
+    return { status: HTTP_STATUS.CONFLICT, body: { controlVersion: CONTROL_VERSION, refusal: verdict.refusal.code, text: verdict.sentence } };
+  }
+  return appliedAnswerOf({ outcome: 'done', result: { kind } });
+}
+
+function isFlintBrainKind(kind: string): kind is FlintBrainCommand['kind'] {
+  return (FLINT_BRAIN_COMMAND_KINDS as readonly string[]).includes(kind);
+}
+
+/** `caller` is what the request itself proves, never what its body says. */
+export async function answerControlCommand(body: unknown, request: CommandRouteRequest, caller: CommandCaller): Promise<RouteAnswer> {
+  if (!isRecord(body) || typeof body['kind'] !== 'string' || !COMMAND_ROUTE_KINDS.includes(body['kind'])) return MALFORMED;
   const { kind } = body;
+  if (isFlintBrainKind(kind)) return await flintBrainAnswerOf(kind, request, caller);
   if (RUNTIME_COMMAND_KINDS.includes(kind)) {
     const { now } = body;
     if (now !== undefined && typeof now !== 'boolean') return MALFORMED;

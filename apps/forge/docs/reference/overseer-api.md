@@ -50,6 +50,7 @@ A bare verb such as `oversee status` is `forge oversee status`.
 | `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
+| `POST /api/flint-brain/ask` | session cookie or bearer token; a JSON body of at most `FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES` (32 KiB) | `{kind: 'answered', intent, emote}`, or `{kind: 'not-asked', reason}` when the rule director moves, see [Flint's brain](#flint-brain) | 400 `{refusal: 'malformed-body', text}` for no JSON or a digest of the wrong shape; 401 `unauthorized`; 413 `{refusal: 'too-large'}`, refused unread on a `Content-Length` over the limit | Bridge only; unversioned and in no registry entry |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
 | `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
@@ -163,8 +164,9 @@ server.
 
 ## Commands
 
-`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`. `CONTROL_COMMAND_KINDS` holds 75 kinds. Three of
-them are the Bridge's controls for verbs that once needed a terminal: `chart-range-set` (`range`), `tracker-clear`
+`POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`, or one of Flint's brain's two kinds
+([Flint's brain](#flint-brain)). `CONTROL_COMMAND_KINDS` holds 75 kinds. Three of them are the Bridge's controls for
+verbs that once needed a terminal: `chart-range-set` (`range`), `tracker-clear`
 (`clear`) and `ticket-deliver-by-hand` (`ticket deliver --by-hand`). They are in no versioned control contract.
 
 The pipeline kinds each name the CLI verb that sends the same command, and the [CLI reference](../cli.md) says what
@@ -192,7 +194,7 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 | 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is the API sentence of `OperationRefusalWordingUtil` (`apiMessageOf`), and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop` and `overseer-restart` is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
+| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
@@ -217,15 +219,52 @@ limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and write
 
 ### Control contract 1
 
-`contracts.control` on the identity is the version of what a monitor may send and what it gets back. Control contract 1
-names seven kinds, `CONTROL_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`,
-`overseer-resume`, `overseer-stop {now}`, `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}` and
-`machine-agent-limit-set {limit}`. Each answer carries `controlVersion`, the same number. A 200 answers
-`outcome` `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a
-400, a 409 and a 423 answer `refusal`, a code, and `text`, its sentence; a 401 answers `unauthorized`. A
-`concurrency-set` `limit` outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
+The control contract is what a monitor may send and what it gets back. It names nine kinds, `CONTROL_CONTRACT_KINDS` in
+`src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`, `overseer-resume`, `overseer-stop {now}`,
+`overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, and, from
+forge 1.1, `flint-brain-start` and `flint-brain-stop`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
+`done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
+and a 423 answer `refusal`, a code, and `text`, its sentence; a 401 answers `unauthorized`. A `concurrency-set` `limit`
+outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
 `cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A change to one of them
-raises `contracts.control` in the same change; the other kinds may change and keep it.
+raises the system version in the same change, its minor when the change only adds; the other kinds may change and keep it.
+
+`contracts.control` on the identity and `controlVersion` stay 1 in forge 1.1, although 1.1 adds the brain's two kinds:
+a client built for 1.0 compares the number for equality, so a 2 would cut it off every control under a minor. System
+version 1.1 is what announces the two kinds; a client sends them only to a forge of 1.1 or newer.
+
+### Flint's brain
+
+Flint's brain is a second director for the sprite, run by the Overseer as one confined session per run
+(`src/services/overseer/FlintBrain.ts`): no tool, its own deny-all profile, the brain's model and effort, and a maximum
+run time. It is no job: it is never in `jobs[]`, never holds a launch slot and counts against no limit. Its state lives
+in the Overseer's memory, so a stop or a Baton pass ends a running brain `stopped`.
+
+`flint-brain-start` and `flint-brain-stop` carry no field. They go to the brain, held or not, and answer 200
+`{controlVersion: 1, outcome: 'done', result: {kind}}` once the brain took them: a start has launched its session. A
+start names who started it, `startedBy` in the monitor: `bridge` when the request carries a Bridge session cookie the
+Overseer holds, beside the token every command needs, and `api` for the token alone. No key of the body names a caller.
+
+| Refusal (409) | Of | When |
+| --- | --- | --- |
+| `brain-already-running` | start | A run is starting or running. |
+| `overseer-paused` | start | The board's Overseer is paused. |
+| `usage-limit-holds` | start | The [usage marker](../glossary.md#usage-marker) holds launches; the sentence names its reset. |
+| `brain-failed-to-start` | start | The session's program or its Watcher could not launch, or the session ended before it ran; the Overseer's log names why. |
+| `no-flint` | start | This forge cannot run the brain confined, and its monitor's `flintBrain` is `null`. The test setting `FORGE_WITHOUT_FLINT_BRAIN` answers so ([the CLI reference](../cli.md)). |
+| `brain-not-running` | stop | No run is starting or running. |
+
+A run ends `time` at its maximum, `stopped` on a stop or the Overseer's stop, `usage-limit` when the usage limit holds,
+and `failed` when its session fails. Every change of the brain publishes the board state and the monitor snapshot at
+once, so the monitor stream sends a `monitor` event for each. Each run that ended is logged as a `flint-brain-ended`
+record, `{startedBy, startedAt, endedAt, endedReason, tokens, calls}`, which the monitor's `activity[]` and `today` read,
+so both survive an Overseer restart.
+
+`POST /api/flint-brain/ask` is the Bridge's own route: the Bridge posts Flint's perception digest while the brain runs,
+and the Overseer asks the session for a move at most once in `FLINT_BRAIN_ASK_INTERVAL_MILLISECONDS` and only when the
+digest's content or cues changed. The answer names a move the digest itself offers, or says why the rule director moves
+this time: `not-running`, `asleep`, `busy`, `too-soon`, `unchanged`, `not-taken`, `off-list-answer`, `no-answer` or
+`ended`. The route is unversioned and in no registry entry, since only the page the same Overseer serves calls it.
 
 `CommandClient` in `bridge/api/` is the reference client. Its `SessionTokenSource` posts once, on a 401 clears its
 token, fetches another and posts once more, because an Overseer start rotates the token. `PictureUploadClient` posts a
@@ -592,8 +631,9 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.0` and `0.0`: version 0.0 stands for
-every forge released before system versions.
+moment the server answers, while the Overseer starts too. This forge answers `1.1` and `0.0`: 1.1 adds
+[Flint's brain](#flint-brain) to the monitor and the commands, which only adds, and version 0.0 stands for every forge
+released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -642,14 +682,14 @@ versions.
 | --- | --- | --- |
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the summary contract](#the-summary-contract), which carries the same number as `summaryVersion` |
 | `monitor` | 3 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
-| `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
+| `control` | 1 | `POST /api/commands` for the nine kinds of [the control contract](#control-contract-1), each answer carrying the same number as `controlVersion`; frozen at 1, see there |
 | `embed` | 1 | [The embed contract](#the-embed-contract): the embed mode and the embed channel, whose messages carry the same number as `channelVersion` |
 
 A change of shape in a contract raises its number in the same change, and the system version with it: a key added,
 removed or renamed, a value that changes type or meaning, or a union that gains or loses a value. The numbers are
 `OVERSEER_CONTRACT_VERSIONS` in `packages/forge-contracts`, served through `SERVED_CONTRACT_VERSIONS` in
-`src/shared/constants/OverseerApiContracts.ts`; `control` stays 1 there until forge runs Flint's brain, whose commands
-control 2 adds. Each document forge sends extends the package's type of it. A client reads a contract only at a number
+`src/shared/constants/OverseerApiContracts.ts`; `control` is frozen at 1 there, although the package names 2, since forge
+1.1 added Flint's brain's commands under the system version. Each document forge sends extends the package's type of it. A client reads a contract only at a number
 it knows; a forge with no `contracts` key serves `summary` 1 alone.
 
 ## The monitor contract
@@ -662,7 +702,8 @@ request, from the same reading as `BoardState`.
 
 Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
 those of version 1. Version 3 gives each warning its kind, adds the current usage window to `usage`, and adds `flintBrain`. `src/services/overseer/testing/fixtures/monitor-v1.json`,
-`monitor-v2.json` and `monitor-v3.json` hold each version, frozen.
+`monitor-v2.json` and `monitor-v3.json` hold each version, frozen; `monitor-v3-flint-brain.json` holds version 3 with a
+running brain and an ended run, which forge 1.1 fills.
 
 <details>
 <summary><code>MonitorSnapshot</code> keys</summary>
@@ -680,10 +721,10 @@ those of version 1. Version 3 gives each warning its kind, adds the current usag
 | `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, route}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `route` is `#agents/<J>`. |
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
 | `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the Bridge shows for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
-| `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
+| `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it, Flint's brain's running run and its runs that ended on it among them |
 | `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit. The newest is the one whose `reportedAt` names the latest instant; a report with no stamp or an unreadable one counts as the oldest. Both are `null` when no job on the board reported one, so the window of a job that left the board is no longer shown. The reset is passed on as reported, also once it is past. |
-| `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |
-| `flintBrain` | Flint's brain; `null`, since this forge runs none |
+| `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. The entry a brain's ended run leaves, category `agent`, adds `kind: 'flint-brain'` and its `tokens`; no other entry has either key. |
+| `flintBrain` | [Flint's brain](#flint-brain): `{state, startedAt, endsAt, startedBy, model, effort, tokens, calls, recentMoves, endedAt, endedReason, sentence, refusal}`. `state` is `off`, `starting`, `running`, `ended` or `refused`; `ended` and `refused` stay for 60 seconds or until the next start; `recentMoves` holds at most five, newest first, each `{at, intent, emote}`; `refusal` is `{code, sentence}` while `refused`. `null` where this forge cannot run the brain confined. |
 
 </details>
 

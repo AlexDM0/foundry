@@ -10,6 +10,7 @@ import type {
   MonitorAttentionEntryDocument,
   MonitorAttentionKind,
   MonitorAttentionStampWord,
+  MonitorFlintBrainDocument,
   MonitorJobDocument,
   MonitorJobTurn as MonitorJobTurnDocument,
   MonitorNoticeDocument,
@@ -95,6 +96,9 @@ export interface MonitorActivityEntry extends MonitorActivityEntryDocument {
   readonly category:    ActivityCategory;
   readonly text:        string;
   readonly route:       string | null;
+  /** `flint-brain` on the entry an ended brain leaves, with its tokens; every other entry has neither. */
+  readonly kind?:       'flint-brain';
+  readonly tokens?:     number;
 }
 
 export interface MonitorNotice extends MonitorNoticeDocument {
@@ -152,6 +156,6 @@ export interface MonitorSnapshot extends MonitorSnapshotDocument {
   readonly today:               { readonly deliveredTickets: number; readonly tokens: number };
   readonly usage:               MonitorUsage;
   readonly activity:            readonly MonitorActivityEntry[];
-  /** Flint's brain, `null` while this forge runs none. */
-  readonly flintBrain:          null;
+  /** Flint's brain, `null` where this forge cannot run it confined. */
+  readonly flintBrain:          MonitorFlintBrainDocument | null;
 }

@@ -10,8 +10,8 @@ Four items are open: four internal moves around `src/services/tracker/TicketStor
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
 [Board](glossary.md#board), which wait for the next change that touches them; two steps of an
 [incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own; a
-pipeline gap the setup work left open, which waits for the next change to the `gate` writes; and two parts of Flint,
-the sprite of the agents, that wait for the owner's design.
+pipeline gap the setup work left open, which waits for the next change to the `gate` writes; and one part of Flint,
+the sprite of the agents, that waits for the owner's design.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -49,12 +49,12 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 
 ## Flint parts not built
 
-The build of Flint (`packages/flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff. Two
-parts of the handoff are agreed and not built.
+The build of Flint (`packages/flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff, and
+forge 1.1 the brain of step 9 on the Overseer's side ([Flint's brain](reference/overseer-api.md#flint-brain)). One part
+of the handoff is agreed and not built.
 
 | Part | Why it waits | Waits for |
 | --- | --- | --- |
-| The brain (handoff step 9): a second director on the Overseer side that answers through the event stream, its limits, and the double-click on the logo that starts it for two minutes. The package keeps `Director`, `startBrain` and `stopBrain` for it. | The owner scoped the build to steps 1 to 8. | The owner's go, the Overseer channel and a logo |
 | Look at the composer: the chat habitat's answer to "the user types", and the look after the doubt of "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint. | No intent of the fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. | A look in the playground, and a `look` intent with the element the habitat names |
 
 ## Out of the code-owned lifecycle epic

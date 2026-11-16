@@ -3,28 +3,31 @@
  * `SERVED_CONTRACT_VERSIONS` as `contracts`; a contract this program does not serve has no entry. A change of shape in a contract raises
  * its number in the package in the same change. It imports only the packages, so the Bridge's project compiles it.
  */
-import type { ForgeControlCommandOfVersionOne } from 'forge-contracts/ForgeControlCommand';
-import type { ServedContractName }              from 'forge-contracts/IdentityDocument';
-import { OVERSEER_CONTRACT_VERSIONS }           from 'forge-contracts/OverseerContractVersions';
+import type { ForgeControlCommand }   from 'forge-contracts/ForgeControlCommand';
+import type { ServedContractName }    from 'forge-contracts/IdentityDocument';
+import { OVERSEER_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
 
 export const IDENTITY_VERSION = OVERSEER_CONTRACT_VERSIONS.identity;
 
-/** The control version before Flint's brain: control 2 adds the brain's two commands, which this forge does not run. */
-const CONTROL_VERSION_WITHOUT_FLINT_BRAIN = 1;
+/**
+ * Frozen at 1 although 1.1 adds Flint's brain's two kinds: a client built for 1.0 compares `contracts.control` for equality, so a 2 would cut
+ * it off every control under a minor. System version 1.1 announces the two kinds; the integer only keeps released clients reading.
+ */
+const CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS = 1;
 
 export const SERVED_CONTRACT_VERSIONS = {
   summary: OVERSEER_CONTRACT_VERSIONS.summary,
   monitor: OVERSEER_CONTRACT_VERSIONS.monitor,
-  control: CONTROL_VERSION_WITHOUT_FLINT_BRAIN,
+  control: CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS,
   embed:   OVERSEER_CONTRACT_VERSIONS.embed,
 } as const satisfies Readonly<Record<ServedContractName, number>>;
 
 export type ServedContract = keyof typeof SERVED_CONTRACT_VERSIONS;
 
 /**
- * The kinds control contract 1 names: what a monitor may send to `POST /api/commands`, each body and answer pinned by
- * `cli/overseer/routes/CommandRoute.controlContract.spec.ts` against the package's `ForgeControlCommandOfVersionOne`. Every other kind may
- * change without raising `contracts.control`.
+ * The kinds of the control contract: what a monitor may send to `POST /api/commands`, each body and answer pinned by
+ * `cli/overseer/routes/CommandRoute.controlContract.spec.ts` against the package's `ForgeControlCommand`. Every other kind may change
+ * without raising the system version.
  */
 export const CONTROL_CONTRACT_KINDS = [
   'overseer-pause',
@@ -34,4 +37,6 @@ export const CONTROL_CONTRACT_KINDS = [
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',
-] as const satisfies readonly ForgeControlCommandOfVersionOne['kind'][];
+  'flint-brain-start',
+  'flint-brain-stop',
+] as const satisfies readonly ForgeControlCommand['kind'][];

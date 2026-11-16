@@ -124,6 +124,66 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isText(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isTextOrNull(value: unknown): value is string | null {
+  return value === null || typeof value === 'string';
+}
+
+function isTextList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isText);
+}
+
+function suggestionOf(value: unknown): FlintBrainSuggestion | null {
+  if (!isRecord(value) || !isText(value['when']) || !isText(value['respond'])) return null;
+  const { note } = value;
+  if (note === undefined) return { when: value['when'], respond: value['respond'] };
+  return isText(note) ? { when: value['when'], respond: value['respond'], note } : null;
+}
+
+function contentOf(value: unknown): FlintBrainContent | null | 'malformed' {
+  if (value === null) return null;
+  if (!isRecord(value) || !isRecord(value['facts'])) return 'malformed';
+  const facts = Object.entries(value['facts']);
+  if (!facts.every(([, fact]) => isText(fact) || typeof fact === 'number')) return 'malformed';
+  const factsByName = Object.fromEntries(facts) as Record<string, string | number>;
+  const { excerpt } = value;
+  if (excerpt === undefined) return { facts: factsByName };
+  return isText(excerpt) ? { facts: factsByName, excerpt } : 'malformed';
+}
+
+/** The Bridge's digest as its ask's body carries it, every field checked; `null` for any other shape, which reaches no session. */
+function digestOf(value: unknown): FlintBrainDigest | null {
+  if (!isRecord(value)) return null;
+  const suggestions = Array.isArray(value['suggestions']) ? value['suggestions'].map(suggestionOf) : null;
+  const content = contentOf(value['content']);
+  const {
+    habitatKind, description, recentCues, newCues, lastIntent, isAsleep, visitTargetKind, copyIsOffered, quietMilliseconds, intents, emotes
+  } = value;
+  if (suggestions === null || suggestions.some((suggestion) => suggestion === null) || content === 'malformed') return null;
+  if (!isTextOrNull(habitatKind) || !isTextOrNull(description) || !isTextOrNull(lastIntent) || !isTextOrNull(visitTargetKind)) return null;
+  if (!isTextList(recentCues) || !isTextList(newCues) || !isTextList(intents) || !isTextList(emotes)) return null;
+  if (typeof isAsleep !== 'boolean' || typeof copyIsOffered !== 'boolean') return null;
+  if (typeof quietMilliseconds !== 'number' || !Number.isFinite(quietMilliseconds) || quietMilliseconds < 0) return null;
+  return {
+    habitatKind,
+    description,
+    suggestions: suggestions as FlintBrainSuggestion[],
+    recentCues,
+    newCues,
+    content,
+    lastIntent,
+    isAsleep,
+    visitTargetKind,
+    copyIsOffered,
+    quietMilliseconds,
+    intents,
+    emotes,
+  };
+}
+
 /** `null` for an answer off the digest's moves, or of another shape: the rule director answers that time. */
 function answerOf(structuredReport: unknown, digest: FlintBrainDigest): FlintBrainAnswer | null {
   if (!isRecord(structuredReport)) return null;
@@ -134,6 +194,7 @@ function answerOf(structuredReport: unknown, digest: FlintBrainDigest): FlintBra
 }
 
 export const FlintBrainDigestUtil = Object.freeze({
+  digestOf,
   excerptOf,
   promptOf,
   contentHashOf,

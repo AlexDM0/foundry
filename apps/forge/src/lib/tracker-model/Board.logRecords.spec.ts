@@ -129,6 +129,8 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-opened","decisionId":"E3","fields":{"kind":"agent-question","ticketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"incident-escalated","incidentId":"I3","fields":{"decisionId":"E3"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-stopped","fields":{"reason":"stopped"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"flint-brain-ended","fields":{"startedBy":"bridge","startedAt":"2026-09-26T08:13:00.000Z",'
+    + '"endedAt":"2026-09-26T08:15:00.000Z","endedReason":"time","tokens":4200,"calls":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"baton-pass-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"build-bundles",'
     + '"error":"Example bundle error"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hatch-applied","jobId":"J1","fields":{"requestId":"request-5","commandKind":"ticket-add","outcome":"done","ticketIds":["001"]}}',

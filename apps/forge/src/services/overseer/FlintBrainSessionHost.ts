@@ -149,3 +149,24 @@ export function createWatcherFlintBrainSessionHost(facts: FlintBrainHostFacts): 
     },
   });
 }
+
+/** How many looks an Overseer's stop gives a stopped brain session to end, inside the stop's own bound, before it leaves the run behind. */
+const STOP_LOOKS = 10;
+
+/**
+ * The Overseer's stop: once no run's session is live, each ended run's Watcher is acknowledged, so none outlives its Overseer waiting for
+ * the acknowledgement only the next launch would give.
+ */
+async function reapRunsAtStop(ports: PlatformPorts, trackerDirectory: string, lookIntervalMilliseconds: number): Promise<void> {
+  const brainFolder = brainFolderOf(trackerDirectory);
+  const runs = claimedRunsIn(brainFolder);
+  const anyRunIsLive = (): boolean => runs.some((run) => WatcherFleet.livenessOf(ports, brainFolder, run).verdict === 'live');
+  for (let look = 0; look < STOP_LOOKS && anyRunIsLive(); look += 1) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, lookIntervalMilliseconds);
+    });
+  }
+  await WatcherFleet.reapEndedHostsIn(ports, brainFolder);
+}
+
+export const FlintBrainSessionHosts = Object.freeze({ reapRunsAtStop });

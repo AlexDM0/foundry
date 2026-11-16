@@ -2,8 +2,8 @@
  * Forge's compatibility registry against forge's versions. What matters: the guard holds today, with nothing kept below the minimum and no
  * entry contradicting itself; raising the minimum to 1.0 makes exactly what forge keeps for clients built before system versions
  * removable and keeps every current endpoint; once that raise is made, the guard fails, naming each of those entries, until it is removed;
- * a client built for the current forge calls each endpoint at the version the registry serves it; and every entry is shipped, since forge
- * serves each one.
+ * a client built for the current forge calls each endpoint at the version the registry serves it, the same endpoints since 1.0, as 1.1 only
+ * adds Flint's brain to the monitor and the commands; and every entry is shipped, since forge serves each one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -49,13 +49,13 @@ describe('forge\'s compatibility registry', () => {
     expect(CompatibilityRegistryUtil.inconsistenciesOf(cleared, raised)).toEqual([]);
   });
 
-  test('a client built for the current forge calls each endpoint at the version the registry serves it', () => {
+  test('a client built for the current forge calls each endpoint at the version a 1.0 client calls it, since 1.1 only adds', () => {
     const endpoints = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes'];
     expect(endpoints.map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current)))
       .toEqual([1, 1, 2, 2, 1, 1]);
   });
 
-  test('marks every endpoint and every compatibility path shipped, since forge 1.0 serves each versioned path beside its unversioned one', () => {
+  test('marks every endpoint and every compatibility path shipped, since every forge from 1.0 serves each versioned path beside its unversioned one', () => {
     expect(FORGE_COMPATIBILITY_REGISTRY.filter((entry) => entry.source !== 'shipped')).toEqual([]);
   });
 });

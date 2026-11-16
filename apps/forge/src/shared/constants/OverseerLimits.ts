@@ -165,3 +165,6 @@ export const FLINT_BRAIN_ANSWER_TIMEOUT_MILLISECONDS = 15_000;
 
 /** How often the Overseer reads a brain run's event log for the session's lines and its Watcher's end; a schedule only, never a decision. */
 export const FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS = 250;
+
+/** The largest digest the Bridge's ask may send; the brain reads a capped excerpt of it, so a longer body is refused unread. */
+export const FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES = 32_768;

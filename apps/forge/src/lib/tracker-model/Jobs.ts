@@ -310,6 +310,13 @@ export class Jobs {
     return { logged: [this.records.logger.log({ kind: 'overseer-stopped', fields: { reason } }, at)] };
   }
 
+  recordFlintBrainEnded(run: LogRecordFieldsOf<'flint-brain-ended'>, at: string): Logged {
+    const fields = {
+      startedBy: run.startedBy, startedAt: run.startedAt, endedAt: run.endedAt, endedReason: run.endedReason, tokens: run.tokens, calls: run.calls
+    };
+    return { logged: [this.records.logger.log({ kind: 'flint-brain-ended', fields }, at)] };
+  }
+
   recordBatonPassFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
     const fields = { successorCodeVersion: failure.successorCodeVersion, step: failure.step, error: failure.error };
     return { logged: [this.records.logger.log({ kind: 'baton-pass-failed', fields }, at)] };

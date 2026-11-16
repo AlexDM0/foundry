@@ -1,8 +1,11 @@
 /**
  * The `MonitorSnapshot` of `GET /api/monitor` and of each `monitor` event, from the same reading as the Overseer's `BoardState`: the
  * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, the newest usage
- * window a session reported, and the newest log entries a person cares about, worded as the Bridge words a log entry.
+ * window a session reported, the newest log entries a person cares about, worded as the Bridge words a log entry, and Flint's brain, which
+ * is no job and so never in `jobs`.
  */
+import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+
 import { LogUtil }                       from '../../adapters/utils/LogUtil.ts';
 import { LocalTimeUtil }                 from '../../lib/local-time/LocalTimeUtil.ts';
 import type { Decision }                 from '../../lib/tracker-model/@types/Decision.ts';
@@ -20,7 +23,7 @@ import type {
   MonitorUsage
 } from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import { attentionEntriesOf }                                              from '../../shared/monitor/AttentionEntries.ts';
-import { todayFiguresOf }                                                  from '../../shared/monitor/TodayFigures.ts';
+import { flintBrainRunsOf, todayFiguresOf }                                from '../../shared/monitor/TodayFigures.ts';
 import { BridgeFragmentUtil }                                              from '../../shared/monitor/utils/BridgeFragmentUtil.ts';
 import { NoticeWordingUtil, type BatonPassWarningFacts, type NoticeFacts } from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                                               from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
@@ -56,6 +59,8 @@ export interface MonitorSnapshotSource {
   board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus'>;
   logRecords: readonly LogRecord[];
   overseer:   MonitorOverseerFacts;
+  /** The Overseer's reading of Flint's brain; `null` where it cannot run confined. */
+  flintBrain: MonitorFlintBrainDocument | null;
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
   now:        Date;
 }
@@ -150,6 +155,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'tracker-cleared':                 'forge',
   'overseer-started':                'forge',
   'overseer-stopped':                'forge',
+  'flint-brain-ended':               'agent',
   'baton-pass-failed':               'forge',
   'job-launched':                    'agent',
   'job-interrupted':                 'agent',
@@ -188,6 +194,8 @@ const RUNNING_SUBAGENT_STATE = 'running';
 
 const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
+const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
+
 /** The Bridge route a record's subject opens: its question, its ticket or draft on the Kanban, its job or the Assistant; `null` for the board's own. */
 function activityRouteOf(record: LogRecord): string | null {
   if ('decisionId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.QUESTIONS, record.decisionId);
@@ -205,9 +213,10 @@ function activityOf(logRecords: readonly LogRecord[]): MonitorActivityEntry[] {
     const record = logRecords[logPosition];
     const category = record === undefined ? null : ACTIVITY_CATEGORY_OF_KIND[record.kind];
     if (record === undefined || category === null) continue;
-    entries.push({
+    const entry = {
       logPosition, at: record.at, category, text: LogUtil.sentenceOf(record), route: activityRouteOf(record)
-    });
+    };
+    entries.push(record.kind === 'flint-brain-ended' ? { ...entry, kind: FLINT_BRAIN_ACTIVITY_KIND, tokens: record.fields.tokens } : entry);
   }
   return entries.reverse();
 }
@@ -306,10 +315,10 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
     warnings:            NoticeWordingUtil.warningsOf(notices, batonPassWarningIn(state.overseer.batonPassWarning)),
-    today:               todayFiguresOf(state, todayCalendarDate),
+    today:               todayFiguresOf(state, todayCalendarDate, flintBrainRunsOf(source.logRecords, source.flintBrain)),
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),
-    flintBrain:          null,
+    flintBrain:          source.flintBrain,
   };
 }
 

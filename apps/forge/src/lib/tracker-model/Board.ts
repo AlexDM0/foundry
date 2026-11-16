@@ -449,6 +449,11 @@ export class Board {
     return this.jobRules.recordOverseerStopped(reason, at);
   }
 
+  /** Flint's brain is no job, but its Overseer logs each run that ended beside its own start and stop. */
+  recordFlintBrainEnded(run: LogRecordFieldsOf<'flint-brain-ended'>, at: string): Logged {
+    return this.jobRules.recordFlintBrainEnded(run, at);
+  }
+
   recordBatonPassFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
     return this.jobRules.recordBatonPassFailed(failure, at);
   }

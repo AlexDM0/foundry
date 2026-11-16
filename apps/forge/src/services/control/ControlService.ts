@@ -2,22 +2,27 @@
  * Applies one control command to the Board a `writeTracker` hold carries: the one path a CLI verb, a relayed request and an API command
  * share. It records only, never spawning, signalling or reconciling; a refusal leaves as an `OperationRefusal` with a wordless detail.
  */
-import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import type { ControlContext }                                       from '../../shared/@types/ControlContext.ts';
-import type { TrackerChange }                                        from '../tracker/TrackerPipeline.ts';
-import { AIRLOCK_CONTROLS }                                          from './AirlockControls.ts';
-import { BOARD_LIFETIME_CONTROLS }                                   from './BoardLifetimeControls.ts';
-import { DECISION_CONTROLS }                                         from './DecisionControls.ts';
-import { FILING_CONTROLS }                                           from './FilingControls.ts';
-import { GATE_PROFILE_CONTROLS }                                     from './GateProfileControls.ts';
-import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
-import { JOB_CONTROLS }                                              from './JobControls.ts';
-import { OVERSEER_CONTROLS }                                         from './OverseerControls.ts';
-import { PIPELINE_AGENT_CONTROLS }                                   from './PipelineAgentControls.ts';
-import { PIPELINE_SETUP_CONTROLS }                                   from './PipelineSetupControls.ts';
-import { REPAIR_CONTROLS }                                           from './RepairControls.ts';
-import { SETTING_CONTROLS }                                          from './SettingControls.ts';
-import { TICKET_CONTROLS }                                           from './TicketControls.ts';
+import type {
+  ControlCommand,
+  ControlCommandKind,
+  ControlCommandOf,
+  FlintBrainCommand
+} from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }     from '../../shared/@types/ControlContext.ts';
+import type { TrackerChange }      from '../tracker/TrackerPipeline.ts';
+import { AIRLOCK_CONTROLS }        from './AirlockControls.ts';
+import { BOARD_LIFETIME_CONTROLS } from './BoardLifetimeControls.ts';
+import { DECISION_CONTROLS }       from './DecisionControls.ts';
+import { FILING_CONTROLS }         from './FilingControls.ts';
+import { GATE_PROFILE_CONTROLS }   from './GateProfileControls.ts';
+import { INCIDENT_CONTROLS }       from './IncidentControls.ts';
+import { JOB_CONTROLS }            from './JobControls.ts';
+import { OVERSEER_CONTROLS }       from './OverseerControls.ts';
+import { PIPELINE_AGENT_CONTROLS } from './PipelineAgentControls.ts';
+import { PIPELINE_SETUP_CONTROLS } from './PipelineSetupControls.ts';
+import { REPAIR_CONTROLS }         from './RepairControls.ts';
+import { SETTING_CONTROLS }        from './SettingControls.ts';
+import { TICKET_CONTROLS }         from './TicketControls.ts';
 
 const CONTROL_APPLIERS = {
   ...TICKET_CONTROLS,
@@ -49,6 +54,9 @@ export interface ControlApplied<Result> {
 
 /** Every kind the service applies, in the order of the contract's groups. */
 export const CONTROL_COMMAND_KINDS = Object.freeze(Object.keys(CONTROL_APPLIERS)) as readonly ControlCommandKind[];
+
+/** The kinds no board applies and only the live Overseer's API takes, since Flint's brain runs in its memory. */
+export const FLINT_BRAIN_COMMAND_KINDS: readonly FlintBrainCommand['kind'][] = Object.freeze(['flint-brain-start', 'flint-brain-stop']);
 
 function outcomeOf(result: unknown): ControlApplied<unknown>['outcome'] {
   const reportsNoChange = typeof result === 'object' && result !== null && 'changed' in result && result.changed === false;
