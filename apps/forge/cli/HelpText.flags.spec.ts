@@ -19,6 +19,7 @@ import { createScratchDirectory, removeScratchDirectory } from '../src/testing/S
 import { COMMAND_NAMES, commandLoaderFor }                from './CommandTable.ts';
 import { helpText }                                       from './HelpText.ts';
 import { createArgumentParser, type ArgumentParser }      from './arguments/ArgumentParser.ts';
+import { OPTION_NAMES_WITH_VALUES }                       from './arguments/constants/OptionNamesWithValues.ts';
 import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
 
 const HELP_TEXT      = helpText('posix-shell');
@@ -120,6 +121,15 @@ function documentedOptionNamesOf(signatures: readonly string[]): OptionNamesByEn
     if (documented.has(entryKey)) documented.set(entryKey, new Set([...documented.get(entryKey) ?? [], ...documented.get(documentedAs) ?? []]));
   }
   return documented;
+}
+
+/** The options a signature shows taking a value, as `--name <value>`, which the parser must not count as a positional. */
+function valueOptionNamesOf(signatures: readonly string[]): Set<string> {
+  return new Set(signatures.flatMap((signature) => [...signature.matchAll(/--([a-z][a-z-]*) </g)].map((match) => match[1] ?? '')));
+}
+
+function optionsMissingTheirValueIn(signatures: readonly string[]): string[] {
+  return [...valueOptionNamesOf(signatures)].filter((name) => !OPTION_NAMES_WITH_VALUES.has(name)).map((name) => `--${name}`);
 }
 
 /** The commands a text says refuse `--json`, read from its "accepted by every command but …" sentence. */
@@ -246,5 +256,18 @@ describe('the options each command accepts', () => {
     const referenceWith = documentedOptionNamesOf(referenceSignaturesOf(REFERENCE_TEXT.replace('`clear [--all] [--yes]`', '`clear [--all] [--yes] [--force]`')));
     expect(optionMismatchesBetween(accepted, helpWith, 'help')).toEqual(['help: `clear` names --force, which it refuses']);
     expect(optionMismatchesBetween(accepted, referenceWith, 'docs/cli.md')).toEqual(['docs/cli.md: `clear` names --force, which it refuses']);
+  });
+});
+
+describe('an option a text shows with a value', () => {
+  test('takes the next argument as its value, so the value is never read as an extra positional', () => {
+    expect(valueOptionNamesOf(helpSignaturesOf(HELP_TEXT)).size).toBeGreaterThan(0);
+    expect(optionsMissingTheirValueIn(helpSignaturesOf(HELP_TEXT))).toEqual([]);
+    expect(optionsMissingTheirValueIn(referenceSignaturesOf(REFERENCE_TEXT))).toEqual([]);
+  });
+
+  test('one the parser does not take a value for is caught', () => {
+    const planted = REFERENCE_TEXT.replace('`clear [--all] [--yes]`', '`clear [--all] [--yes] [--example-value <name>]`');
+    expect(optionsMissingTheirValueIn(referenceSignaturesOf(planted))).toEqual(['--example-value']);
   });
 });

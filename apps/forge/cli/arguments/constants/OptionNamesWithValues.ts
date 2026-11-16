@@ -11,6 +11,7 @@ export const OPTION_NAMES_WITH_VALUES = new Set<string>([
   'writes',
   'phases',
   'root',
+  'namespace',
   'owner',
   'note',
   'name',
@@ -72,4 +73,5 @@ export const OPTION_NAMES_WITH_VALUES = new Set<string>([
   'revision',
   'file',
   'sources',
+  'allow',
 ]);
