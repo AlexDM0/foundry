@@ -1,12 +1,15 @@
 /**
  * The real-child half of the `GateConfinement` contract: for each mapped rule a child runs under Seatbelt where `sandbox-exec` applies, and
  * the lines it prints show what it could reach. The bubblewrap half is the rendered-argv table in `GateConfinement.contract.spec.ts`, since
- * this machine has no bwrap. The network cases use a TEST-NET address, so only the Seatbelt refusal decides the result.
+ * this machine has no bwrap. The network cases use a TEST-NET address, so only the Seatbelt refusal decides the result, and the loopback case
+ * listeners on 127.0.0.1 and ::1 of this process, which accept a connection while the spec waits on the child.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect
@@ -99,5 +102,42 @@ describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
     };
     const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(plan, ['/bin/sh', '-c', 'exit 0']);
     expect(Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).exitCode).toBe(0);
+  });
+});
+
+describe('a child under DarwinSeatbelt with the network off', () => {
+  let scratch = '';
+  const listeners: ReturnType<typeof Bun.serve>[] = [];
+
+  beforeAll(() => {
+    scratch = realpathSync(createScratchDirectory('confinement-loopback'));
+    for (const hostname of ['127.0.0.1', '::1']) listeners.push(Bun.serve({ hostname, port: 0, fetch: () => new Response('example') }));
+  });
+
+  afterAll(() => {
+    for (const listener of listeners) void listener.stop(true);
+    removeScratchDirectory(scratch);
+  });
+
+  testWhenSandboxExecApplies('reaches a listener on 127.0.0.1 and on ::1, while a remote connection stays refused', () => {
+    const [ipv4Listener, ipv6Listener] = listeners;
+    const plan: ConfinementPlan = {
+      worktree:            join(scratch, 'worktree'),
+      worktreeAdminFolder: null,
+      temporaryDirectory:  null,
+      writableCachePaths:  [],
+      deniedWritableRoots: [],
+      deniedReadableRoots: [],
+      network:             false,
+      confinementFilePath: join(scratch, 'profile.sb'),
+    };
+    const script = [
+      `/usr/bin/nc -z -G 1 127.0.0.1 ${ipv4Listener?.port ?? 0} && echo ipv4-loopback`,
+      `/usr/bin/nc -z -G 1 ::1 ${ipv6Listener?.port ?? 0} && echo ipv6-loopback`,
+      REMOTE_CONNECTION_PROBE,
+    ].join('; ');
+    const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(plan, ['/bin/sh', '-c', script]);
+    const output = Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).stdout.toString().split('\n');
+    expect(output.filter((line) => line !== '')).toEqual(['ipv4-loopback', 'ipv6-loopback', 'network-refused']);
   });
 });

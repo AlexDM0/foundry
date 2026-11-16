@@ -196,8 +196,8 @@ pipeline and `git log --oneline -1` on your main line shows the commit.
 
 **Set gates yourself.** The `gate` commands store a pipeline at once, with no agent and no constitution. A gate is any
 shell line: its exit code is the verdict, so the program needs no knowledge of your stack. A gate runs confined: no
-network unless `--network` names a domain, and writes only to its worktree, its git admin folder and temp, plus
-`--writes` folders. A prepare step sets a fresh worktree up before
+network beyond loopback unless `--network` names a domain, and writes only to its worktree, its git admin folder and
+temp, plus `--writes` folders. A prepare step sets a fresh worktree up before
 the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run before fixing by hand; the
 Overseer never runs it. A gate runs in every phase unless `--phases` names some. For Example Storefront, with its own
 scripts:

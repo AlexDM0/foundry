@@ -856,9 +856,10 @@ only where the branch changed it itself ([instruction file](glossary.md#instruct
 - A trailing `/` takes a folder's whole content.
 
 `--network` turns a gate's network on or off: on when the gate names a domain, off when it names none. The domains do
-not limit where an on network reaches. Off means a different thing on each OS:
+not limit where an on network reaches. Off still leaves loopback (`127.0.0.1`, `::1`), so a test may serve and fetch on
+it, and means a different thing on each OS:
 
-- On macOS (Seatbelt) the gate cannot connect to any address, loopback included.
+- On macOS (Seatbelt) the gate can connect to loopback only, which includes any service of the machine listening there.
 - On Linux (bubblewrap) the gate gets its own network namespace: it can reach its own loopback, but no host service and
   nothing outside. A Linux gate also runs read-only outside its writable folders, in its own pid namespace with a fresh
   `/proc`, and from bubblewrap 0.8.0 it cannot make a user namespace of its own, so a test that needs nested

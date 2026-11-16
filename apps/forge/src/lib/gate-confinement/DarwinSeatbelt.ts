@@ -1,7 +1,8 @@
 /**
  * Confinement on macOS, design section 5.2: the child writes only the worktree, temp and the plan's cache paths, never the `bin` beside a cache
- * path's ancestors or a denied root, reads no denied root, and reaches the network only when asked. Where `sandbox-exec` cannot apply a
- * profile the child runs unconfined.
+ * path's ancestors or a denied root, reads no denied root, and reaches the network only when asked. With the network off it still reaches
+ * loopback, as a Linux gate reaches its own, so a spec may serve and fetch on 127.0.0.1. Where `sandbox-exec` cannot apply a profile the
+ * child runs unconfined.
  */
 import { ancestorBinFoldersOf }                  from './AncestorBinFolders.ts';
 import type { ConfinementPlan, GateConfinement } from './GateConfinement.ts';
@@ -20,6 +21,7 @@ const PROBED_EXECUTABLE = '/usr/bin/true';
 const SYSTEM_TEMPORARY_FOLDERS = ['/private/tmp', '/private/var/folders'] as const;
 const REGEX_SPECIAL_CHARACTERS = /[.*+?^${}()|[\]\\]/g;
 const GLOB_STAR = '*';
+const NETWORK_OFF_RULES = ['(deny network-outbound (remote ip))', '(allow network-outbound (remote ip "localhost:*"))'] as const;
 
 function quoted(text: string): string {
   return `"${text.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
@@ -68,7 +70,7 @@ export function seatbeltProfileTextOf(plan: ConfinementPlan): string {
     // Last, so they win over the writable folders a denied one sits inside, such as a data folder under temp.
     ...denyRulesOf('file-write*', [...plan.deniedWritableRoots.map(filterOf), ...plan.writableCachePaths.flatMap(ancestorBinFolderFiltersOf)]),
     ...denyRulesOf('file-read*', plan.deniedReadableRoots.map(filterOf)),
-    ...plan.network ? [] : ['(deny network-outbound (remote ip))'],
+    ...plan.network ? [] : NETWORK_OFF_RULES,
     '',
   ].join('\n');
 }

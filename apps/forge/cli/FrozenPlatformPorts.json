@@ -1,5 +1,5 @@
 {
-  "retake": "Taken at a77968a0 from the extraction-free ProcessWatcherSandbox.ts, GateRun.ts, LaunchEnvironment.ts and ClaudeCodeAdapter.ts, over the inputs stored here. The secret of a launch file is masked. Never retaken from the ports themselves.",
+  "retake": "Taken at a77968a0 from the extraction-free ProcessWatcherSandbox.ts, GateRun.ts, LaunchEnvironment.ts and ClaudeCodeAdapter.ts, over the inputs stored here. The secret of a launch file is masked. Never retaken from the ports themselves; the network-off profile's loopback allow rule was added after it by hand, as a deliberate change.",
   "seatbeltProfiles": [
     {
       "request": {
@@ -48,7 +48,7 @@
         ],
         "network": false
       },
-      "text": "(version 1)\n(allow default)\n(deny file-write*)\n(allow file-write* (subpath \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\") (subpath \"/Users/alex-example/example-repository/.git/worktrees/ticket-7\") (subpath \"/private/tmp/example-temporary\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\") (subpath \"/Users/alex-example/.bun/install/cache\") (subpath \"/Users/alex-example/.cache/example-tool\") (regex #\"^/dev/\"))\n(deny file-write* (subpath \"/Users/alex-example/example-repository/.example-data\") (subpath \"/Users/alex-example/.agent-progress-monitor\") (subpath \"/Users/alex-example/.bun/install/bin\") (subpath \"/Users/alex-example/.bun/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\") (subpath \"/Users/alex-example/.cache/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\"))\n(deny file-read* (regex #\"^/Users/alex-example/example-repository/\\.example-data/jobs/[^/]*/launch-[^/]*\\.json$\") (subpath \"/Users/alex-example/.ssh\") (subpath \"/Users/alex-example/quote\\\"d/back\\\\slash\"))\n(deny network-outbound (remote ip))\n"
+      "text": "(version 1)\n(allow default)\n(deny file-write*)\n(allow file-write* (subpath \"/Users/alex-example/example-repository/.example-worktrees/ticket-7\") (subpath \"/Users/alex-example/example-repository/.git/worktrees/ticket-7\") (subpath \"/private/tmp/example-temporary\") (subpath \"/private/tmp\") (subpath \"/private/var/folders\") (subpath \"/Users/alex-example/.bun/install/cache\") (subpath \"/Users/alex-example/.cache/example-tool\") (regex #\"^/dev/\"))\n(deny file-write* (subpath \"/Users/alex-example/example-repository/.example-data\") (subpath \"/Users/alex-example/.agent-progress-monitor\") (subpath \"/Users/alex-example/.bun/install/bin\") (subpath \"/Users/alex-example/.bun/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\") (subpath \"/Users/alex-example/.cache/bin\") (subpath \"/Users/alex-example/bin\") (subpath \"/Users/bin\") (subpath \"/bin\"))\n(deny file-read* (regex #\"^/Users/alex-example/example-repository/\\.example-data/jobs/[^/]*/launch-[^/]*\\.json$\") (subpath \"/Users/alex-example/.ssh\") (subpath \"/Users/alex-example/quote\\\"d/back\\\\slash\"))\n(deny network-outbound (remote ip))\n(allow network-outbound (remote ip \"localhost:*\"))\n"
     }
   ],
   "shellLines": [

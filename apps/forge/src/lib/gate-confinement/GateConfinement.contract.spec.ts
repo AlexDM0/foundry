@@ -150,6 +150,12 @@ test('a plan with no denied roots renders no deny rule for them, since a rule wi
   expect(profile.split('\n').filter((line) => line.startsWith('(deny file-write*'))).toEqual(['(deny file-write*)']);
 });
 
+test('with the network off the profile denies every remote address and then allows loopback; with it on, it renders neither', () => {
+  const networkRules = (profile: string): string[] => profile.split('\n').filter((line) => line.includes('network-outbound'));
+  expect(networkRules(seatbeltProfileTextOf(PLAN))).toEqual(['(deny network-outbound (remote ip))', '(allow network-outbound (remote ip "localhost:*"))']);
+  expect(networkRules(seatbeltProfileTextOf({ ...PLAN, network: true }))).toEqual([]);
+});
+
 test('sandbox-exec is probed once, and a missing one is never run', () => {
   let probes = 0;
   const seatbelt = createDarwinSeatbelt({
@@ -279,7 +285,7 @@ const RENDERED_ARGV_CASES: readonly RenderedArgvCase[] = [
     plant: (argv) => withoutSequence(argv, ['--ro-bind', '/dev/null', '/tmp/example-data/jobs/J1/launch-1.json']),
   },
   {
-    rule:  'unshares the network when it is off',
+    rule:  'unshares the network when it is off, which leaves the child its own loopback',
     plan:  BUBBLEWRAP_PLAN,
     holds: (argv) => argv.includes('--unshare-net'),
     plant: (argv) => withoutSequence(argv, ['--unshare-net']),
