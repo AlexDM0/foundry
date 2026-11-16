@@ -149,10 +149,10 @@ describe('a row of the table (A4)', () => {
     const content = contentOf(FLEET_FIVE_FORGES);
     const cellsOf = (row: ForgeRow) => [row.rootText, row.conditionWord, row.conditionTone, row.detailText ?? row.versions?.subline?.text, row.waitingCount, row.codeText];
     expect(content.rows.map(cellsOf)).toEqual([
-      ['~/development/example-storefront', 'Live', null, 'forge 1.0', 2, '3f9a2c1'],
-      ['~/development/invoice-service', 'Live', null, 'forge 1.0', 2, '3f9a2c1'],
-      ['~/development/research-wiki', 'Live', null, 'forge 1.0', 1, '3f9a2c1'],
-      ['~/development/example-mobile-app', 'Launches held', 'warn', 'forge 1.0', null, 'b81e07d'],
+      ['~/development/example-storefront', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
+      ['~/development/invoice-service', 'Live', null, 'forge 1.1', 2, '3f9a2c1'],
+      ['~/development/research-wiki', 'Live', null, 'forge 1.1', 1, '3f9a2c1'],
+      ['~/development/example-mobile-app', 'Launches held', 'warn', 'forge 1.1', null, 'b81e07d'],
       ['~/development/design-system', 'Dormant', 'muted', 'stopped 12:20', null, '3f9a2c1'],
     ]);
     const agentsCellOf = ({ agents }: ForgeRow) => {

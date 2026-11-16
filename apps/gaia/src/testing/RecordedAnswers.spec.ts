@@ -4,11 +4,10 @@
  * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
  * open is counted until it is closed or read to its end, as the real connection stays open. Every forge situation is a forge at a system
  * version: at the one Gaia supports, which answers its versions first and every endpoint at its versioned path, at the monitor and control
- * contracts Gaia reads and sends; a forge that runs Flint's brain, each state a whole answer set; and forges ahead of the one Gaia supports,
- * newer, older, or serving none.
+ * contracts Gaia reads and sends; the same forge in each state of Flint's brain, each a whole answer set; and forges ahead of the one Gaia
+ * supports, newer, older, or serving none.
  */
-import { describe, expect, test }        from 'bun:test';
-import { FLINT_BRAIN_CONTRACT_VERSIONS } from 'forge-contracts/OverseerContractVersions';
+import { describe, expect, test } from 'bun:test';
 
 import type { OverseerRequest, OverseerStreamRequest } from '../lib/forge-client/OverseerFetch.ts';
 
@@ -29,7 +28,6 @@ import {
   VERSIONS_SITUATIONS,
   type FlintBrainSituation,
   type RecordedOverseerAnswer,
-  type VersionsSituation,
 } from './RecordedAnswers.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
@@ -112,9 +110,9 @@ function documentsAnsweredIn(answers: readonly RecordedOverseerAnswer[]): readon
 
 describe('the recorded forge contracts', () => {
   const programsThatAreNoForge = ['port-held-by-another-program', 'snapshot-unreadable', 'stream-cut-inside-event'] as const;
-  const everyDocument = (situationsLeftOut: readonly (VersionsSituation | FlintBrainSituation)[] = []): readonly Record<string, unknown>[] => documentsAnsweredIn(
+  const everyDocument = (): readonly Record<string, unknown>[] => documentsAnsweredIn(
     [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()]
-      .filter(({ callShape }) => ![...programsThatAreNoForge, ...situationsLeftOut].some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))),
+      .filter(({ callShape }) => !programsThatAreNoForge.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))),
   );
 
   test('hold every forge snapshot at the one monitor number Gaia reads', () => {
@@ -123,8 +121,8 @@ describe('the recorded forge contracts', () => {
   });
 
   test('hold every forge identity naming, and every command answered at, the one control number Gaia sends', () => {
-    // Flint's brain's states are authored from forge 1.1, whose control contract carries the brain's commands.
-    const documents = everyDocument(FLINT_BRAIN_SITUATIONS);
+    // Forge 1.1 carries Flint's brain's commands under the control number it froze for clients built for 1.0.
+    const documents = everyDocument();
     const controlOf = (document: Record<string, unknown>): unknown => (document['contracts'] as { control?: unknown }).control;
     const identityControlVersions = new Set(documents.flatMap((document) => (Object.hasOwn(document, 'contracts') ? [controlOf(document)] : [])));
     const answerControlVersions = new Set(documents.flatMap((document) => (Object.hasOwn(document, 'controlVersion') ? [document['controlVersion']] : [])));
@@ -145,7 +143,7 @@ describe('the recorded states of Flint\'s brain', () => {
     }
   });
 
-  test('serve the brain running, ended, refused with usage-limit-holds, and absent as null, each at monitor 3 beside the brain\'s control', () => {
+  test('serve the brain running with a move, ended, refused with overseer-paused, and absent as null, each at monitor 3 and the control Gaia sends', () => {
     const brainOf = (situation: FlintBrainSituation): unknown => {
       const answers = recordedFlintBrainAnswersOf(situation);
       const answersOfCall = (callShape: string): readonly RecordedOverseerAnswer[] => answers.filter((answer) => answer.callShape === callShape);
@@ -153,8 +151,8 @@ describe('the recorded states of Flint\'s brain', () => {
       const [command] = documentsAnsweredIn(answersOfCall('POST /api/v1/commands with bearer'));
       expect([situation, identity?.['contracts'], command?.['controlVersion']]).toEqual([
         situation,
-        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: FLINT_BRAIN_CONTRACT_VERSIONS.control }),
-        FLINT_BRAIN_CONTRACT_VERSIONS.control,
+        expect.objectContaining({ monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl }),
+        CONTRACT_VERSIONS.forgeControl,
       ]);
       const [monitorSnapshot] = documentsAnsweredIn(answersOfCall('GET /api/v2/monitor with bearer'));
       // A stream read from a forge may carry earlier states before the one the brain was brought into; its last event holds that one.
@@ -162,10 +160,13 @@ describe('the recorded states of Flint\'s brain', () => {
       for (const snapshot of [monitorSnapshot, lastStreamSnapshot]) expect(snapshot?.['monitorVersion']).toBe(CONTRACT_VERSIONS.forgeMonitor);
       return [monitorSnapshot?.['flintBrain'], lastStreamSnapshot?.['flintBrain']];
     };
-    expect(brainOf('brain-running')).toEqual([expect.objectContaining({ state: 'running', startedBy: 'api' }), expect.objectContaining({ state: 'running' })]);
+    expect(brainOf('brain-running')).toEqual([
+      expect.objectContaining({ state: 'running', startedBy: 'api', recentMoves: [expect.objectContaining({ intent: expect.any(String) })] }),
+      expect.objectContaining({ state: 'running' }),
+    ]);
     expect(brainOf('brain-ended')).toEqual([expect.objectContaining({ state: 'ended', endedReason: 'stopped' }), expect.objectContaining({ state: 'ended' })]);
     expect(brainOf('brain-refused')).toEqual([
-      expect.objectContaining({ state: 'refused', refusal: expect.objectContaining({ code: 'usage-limit-holds' }) }),
+      expect.objectContaining({ state: 'refused', refusal: expect.objectContaining({ code: 'overseer-paused' }) }),
       expect.objectContaining({ state: 'refused' }),
     ]);
     expect(brainOf('no-flint')).toEqual([null, null]);

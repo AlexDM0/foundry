@@ -154,7 +154,7 @@ describe('the panel', () => {
     const newer = { ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, settingsFile: 'newer-version' as const } };
     const { unfolded } = panelOf(newer);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-facts')])).toBe(
-      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonThis Gaiaversion1.0built for forge1.0address127.0.0.1:4790',
+      'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonThis Gaiaversion1.0built for forge1.1address127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
     expect(tree.hostElementsIn(unfolded, tree.withComponent(Switch)).map((setting) => setting.props['disabled'])).toEqual([true, true]);
@@ -166,9 +166,9 @@ describe('the panel', () => {
     expect(values.map((value) => [tree.textOf([value]), tree.hostElementsIn([value], tree.withTag('wbr')).length])).toEqual([
       ['~/.bun/bin/forge', 3],
       ['~/.forge-monitor/projects.json', 2],
-      ['version1.0built for forge1.0address127.0.0.1:4790', 0],
+      ['version1.0built for forge1.1address127.0.0.1:4790', 0],
       ['1.0', 0],
-      ['1.0', 0],
+      ['1.1', 0],
       ['127.0.0.1:4790', 0],
     ]);
   });
@@ -185,7 +185,7 @@ describe('the panel', () => {
     const thisGaia = tree.onlyWithClass(unfolded, 'gaia-forges-gaia-this-gaia');
     expect(tree.hostElementsIn([thisGaia], tree.withClass('gaia-forges-gaia-this-gaia-fact')).map((fact) => tree.textOf([fact]))).toEqual([
       'version1.0',
-      'built for forge1.0',
+      'built for forge1.1',
       'address127.0.0.1:4790',
     ]);
   });

@@ -108,7 +108,7 @@ describe('a summary at the known version', () => {
           jobId:               'J1',
           kind:                'assistant',
           role:                'assistant',
-          state:               'launching',
+          state:               'running',
           ticketIds:           [],
           tokens:              0,
           ticketTitle:         null,

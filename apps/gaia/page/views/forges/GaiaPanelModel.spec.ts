@@ -108,7 +108,7 @@ describe('the facts', () => {
     ]);
     expect(panel.thisGaiaFacts).toEqual([
       { label: 'version', value: '1.0' },
-      { label: 'built for forge', value: '1.0' },
+      { label: 'built for forge', value: '1.1' },
       { label: 'address', value: '127.0.0.1:4790' },
     ]);
   });

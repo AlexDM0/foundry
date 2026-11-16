@@ -2,8 +2,8 @@
  * The assembly of one `FleetSnapshot` from every forge's reading. What matters: the readings behind each artboard's fixture assemble to
  * exactly that fixture's model; the attention order of A1 holds whatever order the forges come in; a hidden forge is absent from everything
  * but the settings that hide it; agents and activity keep the orders PLAN 7.4 states; a forge's activity is cut at its newest 50; and
- * Flint's brain (PLAN 7.5), read from the authored answers of the forge Gaia supports: running, it adds one agent row of role `brain` that counts in no
- * figure or limit; ended, it leaves one activity entry with its tokens.
+ * Flint's brain (PLAN 7.5), read from the recorded answers of the forge Gaia supports: running, it adds one agent row of role `brain` that
+ * counts in no figure or limit; ended, it leaves one activity entry with its tokens.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -139,12 +139,12 @@ describe('agents', () => {
 
 const STOREFRONT = READINGS.exampleStorefront;
 
-/** The identity of the forge the brain's answers were authored for: Example Storefront at monitor 3 and control 2. */
+/** The identity of the forge the brain's answers were recorded from: Example Storefront at monitor 3 and control 1. */
 const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   trackerId:      STOREFRONT.trackerId,
   project:        STOREFRONT.project,
-  codeVersion:    '3f9a2c1',
-  installVersion: 28,
+  codeVersion:    '96b82ecaccdf',
+  installVersion: 29,
   processId:      48_107,
   contracts:      {
     summary: 1,
@@ -154,7 +154,7 @@ const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   },
 };
 
-/** Example Storefront as the authored snapshot of one state of its brain reads, through the ingestion. */
+/** Example Storefront as the recorded snapshot of one state of its brain reads, through the ingestion. */
 async function recordedBrainReadingOf(situation: FlintBrainSituation): Promise<ForgeReading> {
   const facts = registryFactsOf(STOREFRONT);
   const snapshot = await recordedFlintBrainDocumentOf(situation, 'monitor', facts.overseerUrl);
@@ -174,15 +174,14 @@ describe('Flint\'s brain', () => {
     const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [await recordedBrainReadingOf('brain-running')]));
     expect(snapshot.agents.map((row) => [row.jobId, row.role, row.countsAgainstLimit])).toEqual([
       ['J1', 'assistant', true],
-      ['J2', 'onboarder', true],
       [FLINT_BRAIN_ROW_ID, FLINT_BRAIN_ROLE, false],
     ]);
     expect(snapshot.agents.at(-1)).toMatchObject({
       trackerId: STOREFRONT.trackerId,
       state:     'running',
-      tokens:    1840,
-      calls:     3,
-      startedAt: '2026-11-13T09:58:02+01:00',
+      tokens:    11,
+      calls:     1,
+      startedAt: '2026-11-16T11:10:45.054Z',
       ticketIds: [],
       route:     null,
     });
@@ -219,16 +218,16 @@ describe('Flint\'s brain', () => {
     const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [await recordedBrainReadingOf('brain-ended')]));
     expect(snapshot.activity.filter((entry) => entry.kind === 'flint-brain')).toEqual([{
       trackerId:   STOREFRONT.trackerId,
-      logPosition: 6,
-      at:          '2026-11-13T09:59:20+01:00',
+      logPosition: 5,
+      at:          '2026-11-16T12:10:45+01:00',
       category:    'agent',
-      text:        'Flint\'s brain stopped after 1:18',
+      text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       route:       null,
       kind:        'flint-brain',
-      tokens:      2960,
+      tokens:      11,
     }]);
-    expect(snapshot.agents.map((row) => row.jobId)).toEqual(['J1', 'J2']);
-    expect(snapshot.figures.tokensToday).toBe(2960);
+    expect(snapshot.agents.map((row) => row.jobId)).toEqual(['J1']);
+    expect(snapshot.figures.tokensToday).toBe(11);
   });
 });
 

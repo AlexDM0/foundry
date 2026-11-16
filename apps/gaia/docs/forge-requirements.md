@@ -9,9 +9,10 @@ forge never knows about it: each requirement below speaks of a client or a host,
 Forge 1.0 meets V1 to V6, V8 and V9: it answers `/api/versions` with current 1.0 and minimum 0.0, serves identity 1, summary 1, monitor 3
 (with `flintBrain` always `null`), control 1 and embed 1 at their `/api/v<n>/` paths beside the unversioned ones, carries the system
 version in the monitor stream and the embed channel, enters its embed mode on `?embedded=frame` only, reads every record in its
-`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. V7 comes with Flint's brain
-(G1 to G3) as forge 1.1, built by forge's own tracker after the monorepo lands; until then Gaia supports forge 1.0. G4 waits on the
-owner's answer to Q11.
+`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. Forge 1.1 meets V7 with
+Flint's brain (G1 to G3), only adding: the brain in the monitor snapshot, its ended runs in the activity and the day's tokens, and its two
+commands under control 1, which it keeps for clients built for 1.0; its framed Bridge keeps the Agents-at-work strip (G4). Gaia supports
+forge 1.1.
 
 ## 1. Rules that hold for every requirement
 
@@ -113,7 +114,8 @@ client either. A client words `api` as it sees fit.
 **Reason.** Rule 1. A forge that still sends a client's name there is older than the version that brings Flint's brain, which a client
 reads as a forge to update.
 
-**Acceptance.** Specs: a brain started by the control command reports `startedBy: "api"`; one started from the Bridge, `bridge`.
+**Acceptance.** Specs: a brain started by the control command reports `startedBy: "api"`; one started from the Bridge, `bridge`. Met
+by forge 1.1, and Gaia's `overseer-fetch-flint-brain` recording holds a brain started through the control command as `api`.
 
 ### V8. Read the framing host's origin from a host-neutral record (Should)
 
@@ -140,9 +142,9 @@ version rule.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.0) and keeps nothing for an older forge: a forge that
-serves no V1 to V3, as every forge from before system versions, reads as older, and Gaia offers Update forge. Until a forge serves
-Flint's brain (G1 to G3) as forge 1.1, every forge Gaia supports reports no brain, so Gaia shows none of the brain's parts.
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.1) and keeps nothing for an older forge: forge 1.0,
+and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge. A forge 1.1
+that cannot run Flint's brain reports none, and Gaia shows none of the brain's parts for it.
 
 | Missing | Gaia shows |
 | --- | --- |
@@ -158,4 +160,5 @@ Flint's brain (G1 to G3) as forge 1.1, every forge Gaia supports reports no brai
 
 ## 4. Order for the forge's board
 
-V1 to V6, V8 and V9 shipped together as forge 1.0. V7 ships with Flint's brain (G1 to G3) as forge 1.1, a minor, since it only adds.
+V1 to V6, V8 and V9 shipped together as forge 1.0. V7 shipped with Flint's brain (G1 to G3) and G4 as forge 1.1, a minor, since it only
+adds.

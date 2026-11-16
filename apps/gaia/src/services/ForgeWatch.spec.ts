@@ -613,7 +613,7 @@ describe('a forge\'s system version', () => {
   test('of a forge at the version this Gaia supports is current, and it is read in full at the versioned paths', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(answersOf('serving-every-contract'));
     expect([reading.fidelity, reading.condition, reading.versions])
-      .toEqual(['full', 'live', { verdict: 'current', current: { major: 1, minor: 0 }, minimumSupported: { major: 0, minor: 0 } }]);
+      .toEqual(['full', 'live', { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 0, minor: 0 } }]);
     expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
   });
 
@@ -633,7 +633,7 @@ describe('a forge\'s system version', () => {
   test('of a forge below the version this Gaia supports is older: nothing more is asked, and the forge needs an update', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(recordedVersionsAnswersOf('versions-older'));
     expect([reading.fidelity, reading.condition, reading.url, reading.versions])
-      .toEqual(['older-contract', 'unreadable', 'http://127.0.0.1:4951/', { verdict: 'older', current: { major: 0, minor: 9 }, minimumSupported: { major: 0, minor: 0 } }]);
+      .toEqual(['older-contract', 'unreadable', 'http://127.0.0.1:4951/', { verdict: 'older', current: { major: 1, minor: 0 }, minimumSupported: { major: 0, minor: 0 } }]);
     expect(callShapes()).toEqual(['GET /api/versions']);
   });
 

@@ -1,6 +1,6 @@
 /**
  * The monitor snapshot ingestion over the snapshots a forge at the version Gaia supports answered as Example Storefront, at monitor
- * contract 3 (authored from the forge requirements until a forge serves them), read through the forge client. What matters: each brain
+ * contract 3, read through the forge client. What matters: each brain
  * state reads as the forge reports it, an ended brain's run as one activity entry with its tokens, and a forge without Flint as reporting
  * no brain; the snapshot of the Storefront at work maps to its frozen reading below; a warning keeps its kind, `assistant-down` becoming a
  * notice; the current usage window is read; a job's turn and a lost launch stamp read as the forge sends them; a snapshot at a newer
@@ -27,8 +27,8 @@ import {
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
 /** The code version and stamp of the Storefront at work; retake them after `bun run record overseer-fetch-supported-forge`. */
-const RECORDED_CODE_VERSION = '077a92978254';
-const RECORDED_STAMP = '2026-11-16T02:32:05+01:00';
+const RECORDED_CODE_VERSION = '96b82ecaccdf';
+const RECORDED_STAMP = '2026-11-16T12:10:24+01:00';
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
@@ -38,7 +38,7 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     trackerId:      STOREFRONT.trackerId,
     project:        STOREFRONT.project,
     codeVersion,
-    installVersion: 28,
+    installVersion: 29,
     processId:      48_107,
     contracts:      {
       summary: 1,
@@ -57,7 +57,10 @@ async function storefrontSnapshot(): Promise<Record<string, unknown>> {
   return await recordedDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
 }
 
-/** What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened and its Assistant launching. */
+/**
+ * What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened, its Assistant
+ * at work and its brain off.
+ */
 const RECORDED_READING: ForgeReading = {
   trackerId: STOREFRONT.trackerId,
   project:   'Example Storefront',
@@ -74,7 +77,7 @@ const RECORDED_READING: ForgeReading = {
   },
   codeVersion:       RECORDED_CODE_VERSION,
   lastReportedAt:    EXAMPLE_READ_STAMP,
-  overseerStartedAt: '2026-11-16T02:32:05+01:00',
+  overseerStartedAt: '2026-11-16T12:10:24+01:00',
   lastCommand:       STOREFRONT.lastCommand,
   lastChangedAt:     STOREFRONT.lastChangedAt,
   concurrency:       {
@@ -88,22 +91,6 @@ const RECORDED_READING: ForgeReading = {
   openIncidents:    0,
   attention:        [
     {
-      key:                     'decision:E1',
-      kind:                    'question',
-      idText:                  'E1',
-      ticketIds:               [],
-      subject:                 'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
-      jobId:                   null,
-      askedBy:                 'overseer',
-      decisionKind:            'checks-not-set',
-      escalatedFromIncidentId: null,
-      metaText:                null,
-      stamp:                   '2026-11-16T02:32:05+01:00',
-      stampWord:               'opened',
-      actionLabel:             'Answer',
-      route:                   '#questions/E1',
-    },
-    {
       key:                     'ticket:001',
       kind:                    'draft-ticket',
       idText:                  '#001',
@@ -114,10 +101,26 @@ const RECORDED_READING: ForgeReading = {
       decisionKind:            null,
       escalatedFromIncidentId: null,
       metaText:                'draft ticket, no row yet',
-      stamp:                   '2026-11-16T02:32:05+01:00',
+      stamp:                   '2026-11-16T12:10:23+01:00',
       stampWord:               'filed',
       actionLabel:             'Ready',
       route:                   '#kanban/ticket/001',
+    },
+    {
+      key:                     'decision:E1',
+      kind:                    'question',
+      idText:                  'E1',
+      ticketIds:               [],
+      subject:                 'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
+      jobId:                   null,
+      askedBy:                 'overseer',
+      decisionKind:            'checks-not-set',
+      escalatedFromIncidentId: null,
+      metaText:                null,
+      stamp:                   '2026-11-16T12:10:24+01:00',
+      stampWord:               'opened',
+      actionLabel:             'Answer',
+      route:                   '#questions/E1',
     },
   ],
   attentionCount: null,
@@ -126,12 +129,12 @@ const RECORDED_READING: ForgeReading = {
       jobId:               'J1',
       kind:                'assistant',
       role:                'assistant',
-      state:               'launching',
+      state:               'running',
       ticketIds:           [],
       tokens:              0,
       ticketTitle:         null,
       attempt:             1,
-      startedAt:           '2026-11-16T02:32:05+01:00',
+      startedAt:           '2026-11-16T12:10:24+01:00',
       calls:               0,
       callBudget:          null,
       toolCalls:           0,
@@ -139,24 +142,19 @@ const RECORDED_READING: ForgeReading = {
       runningSubagents:    0,
       silentSweeps:        0,
       quiet:               false,
-      turn:                null,
+      turn:                'mid-turn',
       messagesWaiting:     0,
       lastLine:            null,
       waitingOnDecisionId: null,
       route:               '#agents/J1',
     },
   ],
-  notices: [
-    {
-      kind: 'watcher-endpoint-does-not-fit',
-      text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/815730a0735c01d6.sock',
-    },
-  ],
+  notices:  [],
   warnings: [],
   activity: [
     {
       logPosition: 0,
-      at:          '2026-11-16T02:32:05+01:00',
+      at:          '2026-11-16T12:10:23+01:00',
       category:    'needs-user',
       text:        'Ticket #001 filed: Search suggestions',
       route:       '#kanban/ticket/001',
@@ -165,16 +163,16 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 1,
-      at:          '2026-11-16T02:32:05+01:00',
+      at:          '2026-11-16T12:10:24+01:00',
       category:    'forge',
-      text:        'Overseer started on code 077a92978254, install version 28',
+      text:        'Overseer started on code 96b82ecaccdf, install version 29',
       route:       null,
       kind:        null,
       tokens:      null,
     },
     {
       logPosition: 2,
-      at:          '2026-11-16T02:32:05+01:00',
+      at:          '2026-11-16T12:10:24+01:00',
       category:    'needs-user',
       text:        'Decision E1 opened: checks-not-set',
       route:       '#questions/E1',
@@ -183,7 +181,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 3,
-      at:          '2026-11-16T02:32:05+01:00',
+      at:          '2026-11-16T12:10:24+01:00',
       category:    'agent',
       text:        'Job J1 launched: assistant (assistant), attempt 1',
       route:       '#agents/J1',
@@ -192,7 +190,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 4,
-      at:          '2026-11-16T02:32:06+01:00',
+      at:          '2026-11-16T12:10:24+01:00',
       category:    'forge',
       text:        'Overseer set to running',
       route:       null,
@@ -207,18 +205,30 @@ const RECORDED_READING: ForgeReading = {
     currentWindow:         null,
     currentWindowResetsAt: null,
   },
-  brain:    'not-reported',
+  brain: {
+    state:       'off',
+    startedAt:   null,
+    endsAt:      null,
+    startedBy:   null,
+    model:       null,
+    effort:      null,
+    tokens:      null,
+    calls:       null,
+    recentMoves: [],
+    endedAt:     null,
+    endedReason: null,
+    sentence:    null,
+    refusal:     null,
+  },
   versions: null,
 };
 
 
 const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
-/** The code version the brain's answers were authored with; retake it after `bun run record overseer-fetch-flint-brain`. */
-const BRAIN_CODE_VERSION = '3f9a2c1';
-
+/** The brain's states are recorded from the same forge as the Storefront at work, and taken again with it. */
 function brainIngestion(): MonitorSnapshotIngestion {
-  return new MonitorSnapshotIngestion(STOREFRONT_FACTS, storefrontIdentityOf(BRAIN_CODE_VERSION));
+  return ingestion();
 }
 
 async function brainSnapshot(situation: FlintBrainSituation): Promise<Record<string, unknown>> {
@@ -237,47 +247,43 @@ describe('a snapshot at monitor version 3', () => {
     expect(reading.contracts.monitor).toBe(3);
     expect(reading.brain).toEqual({
       state:       'running',
-      startedAt:   '2026-11-13T09:58:02+01:00',
-      endsAt:      '2026-11-13T10:00:02+01:00',
+      startedAt:   '2026-11-16T11:10:45.054Z',
+      endsAt:      '2026-11-16T11:12:45.054Z',
       startedBy:   'api',
       model:       'haiku',
       effort:      'low',
-      tokens:      1840,
-      calls:       3,
-      recentMoves: [
-        { at: '2026-11-13T09:58:31+01:00', intent: 'watch-agent', emote: null },
-        { at: '2026-11-13T09:58:17+01:00', intent: 'walk-to-column', emote: 'wave' },
-        { at: '2026-11-13T09:58:05+01:00', intent: 'look-around', emote: null },
-      ],
+      tokens:      11,
+      calls:       1,
+      recentMoves: [{ at: '2026-11-16T11:10:45.593Z', intent: 'wave', emote: 'happy' }],
       endedAt:     null,
       endedReason: null,
-      sentence:    'Flint\'s brain is running until 10:00',
+      sentence:    'Flint\'s brain chooses Flint\'s moves.',
       refusal:     null,
     });
-    expect([reading.agents.map((row) => row.jobId), reading.concurrency?.agentsInFlight]).toEqual([['J1', 'J2'], 0]);
+    expect([reading.agents.map((row) => row.jobId), reading.concurrency?.agentsInFlight]).toEqual([['J1'], 0]);
   });
 
   test('reads an ended brain with its end, and its run as the one activity entry of its kind, with its tokens, which the day\'s include', async () => {
     const reading = await brainReadingOf('brain-ended');
     expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.endedReason, reading.brain.endedAt, reading.brain.tokens])
-      .toEqual(['ended', 'stopped', '2026-11-13T09:59:20+01:00', 2960]);
+      .toEqual(['ended', 'stopped', '2026-11-16T11:10:45.627Z', 11]);
     expect(reading.activity.filter((entry) => entry.kind !== null)).toEqual([{
-      logPosition: 6,
-      at:          '2026-11-13T09:59:20+01:00',
+      logPosition: 5,
+      at:          '2026-11-16T12:10:45+01:00',
       category:    'agent',
-      text:        'Flint\'s brain stopped after 1:18',
+      text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       route:       null,
       kind:        'flint-brain',
-      tokens:      2960,
+      tokens:      11,
     }]);
-    expect(reading.today?.tokens).toBe(2960);
+    expect(reading.today?.tokens).toBe(11);
   });
 
   test('reads a refused start with the forge\'s code and sentence, and no run', async () => {
     const reading = await brainReadingOf('brain-refused');
-    const sentence = 'Flint\'s brain cannot start while the usage limit holds. It resets at 14:00.';
+    const sentence = 'The Overseer is paused, so Flint\'s brain does not start.';
     expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.startedAt, reading.brain.refusal])
-      .toEqual(['refused', null, { code: 'usage-limit-holds', sentence }]);
+      .toEqual(['refused', null, { code: 'overseer-paused', sentence }]);
   });
 
   test('reads a forge without Flint as one that reports no brain', async () => {
@@ -295,7 +301,7 @@ describe('a snapshot at monitor version 3', () => {
 });
 
 describe('the snapshot of Example Storefront at work', () => {
-  test('maps to its reading, which reports no brain', async () => {
+  test('maps to its reading, which reports its brain off', async () => {
     expect(ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: RECORDED_READING });
   });
 

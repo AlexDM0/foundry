@@ -4,19 +4,9 @@ What is agreed and not started, with the reason it waits.
 
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
-- **Support forge 1.1 and record Flint's brain from a real forge (R5.1).** It waits for the forge to ship G1 to G3 (Flint's brain) and
-  V7 as forge 1.1, which forge's own tracker builds after the monorepo lands. Gaia supports forge 1.0, at control 1, which carries no
-  brain command, and every forge it supports reports no brain; `src/testing/recordings/darwin/overseer-fetch-flint-brain.json` is
-  authored from those requirements, and the specs read and drive Gaia's brain from it. Once a forge serves them, raise
-  `SUPPORTED_FORGE_VERSION` to 1.1 and `CONTRACT_VERSIONS.forgeControl` to the brain's control, record `overseer-fetch-supported-forge`
-  and `overseer-fetch-versions` again, and `bun run record overseer-fetch-flint-brain` takes the brain, after which
-  `forgeRequirementsAwaited` leaves its entry in `RECORDED_BOUNDARIES`. Its recording spec reaches a running and an ended brain through
-  the brain's own commands, but the requirements name no way to hold a scratch forge's usage limit or to run one without Flint, so the
-  spec refuses `brain-refused` and `no-flint` until the forge names one. G2 names the ended brain's activity entry by its kind, sentence
-  and tokens but not its category: the authored entry is category `agent` with `kind: 'flint-brain'` and `tokens`, the two keys only
-  that entry carries, and the recording from a real forge settles both. `overseer-fetch-versions` is recorded again from forge 1.1
-  because its ahead forge is forge 1.0 answering 1.3, which serves control 1. Once Gaia reads 1.1, forge may drop what `forge-contracts`
-  keeps only for older forges (`ForgeControlCommandOfVersionOne` among them).
+- **Drop what `forge-contracts` keeps only for older forges.** Gaia supports forge 1.1 and reads no older forge, so the package's types
+  and versions kept for older forges (`ForgeControlCommandOfVersionOne` among them) and Gaia's derivation of `forgeControl` from
+  `FLINT_BRAIN_CONTRACT_VERSIONS` can go. It waits for forge's change to the package, which goes first, so that both sides move together.
 - **Stop reading forge's integer contract keys.** Forge's compatibility registry keeps `identityVersion`, `contracts`, `summaryVersion`,
   `monitorVersion`, `controlVersion` and the embed channel's `channelVersion` only for clients from before system versions, yet Gaia's
   forge ingestions, its control and frame-session guards, the page's `ForgeContractUtil` and the embed channel still decide on them,
@@ -24,9 +14,6 @@ What is agreed and not started, with the reason it waits.
   serves. It waits because it changes the fleet document, so the fleet and events routes' versions and Gaia's own registry, and it
   changes nothing while forge's minimum is 0.0, when every forge Gaia talks to still serves the keys; it must land before that minimum
   is raised past 0.0.
-- **Flint's box in the framed Bridge (G4).** B1 frames the Bridge with its "Agents at work" strip, where Flint has its Kanban box; the
-  Bridge decides under `embedded=frame` whether it shows, so the forge's G4 makes it hold. Gaia changes nothing for it; it waits on the
-  forge and on the owner's answer to Q11.
 - **The embed channel's messages are recorded from a real Bridge.** `page/testing/AuthoredBridge.ts` holds the Bridge's messages as
   authored from FORGE_REQUIREMENTS F5 and V5; they matched the forge's `bridge/shell/VersionedEmbedChannel.ts` at 55beb9cd, before V5.
   Forge 1.0 serves both (`apps/forge/bridge/shell/VersionedEmbedChannel.ts`), but a recording needs a recording boundary of its own:

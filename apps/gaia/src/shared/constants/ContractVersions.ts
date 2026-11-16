@@ -10,15 +10,18 @@ import { FLINT_BRAIN_CONTRACT_VERSIONS, OVERSEER_CONTRACT_VERSIONS } from 'forge
 
 import type { FormatVersion } from '../utils/ContractVersionUtil.ts';
 
-/** Forge 1.0, the version Gaia supports, serves the control contract before Flint's brain's: its two commands come with forge 1.1. */
-const CONTROL_VERSION_BEFORE_FLINT_BRAIN = FLINT_BRAIN_CONTRACT_VERSIONS.control - 1;
+/**
+ * Forge 1.1, the version Gaia supports, carries Flint's brain's two commands and still names control 1, frozen for clients built for 1.0,
+ * which compare it for equality: the system version, not this integer, says the brain's commands are served.
+ */
+const CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS = FLINT_BRAIN_CONTRACT_VERSIONS.control - 1;
 
 export const CONTRACT_VERSIONS = {
   forgeRegistry:            { major: 1, minor: 0 },
   forgeIdentity:            OVERSEER_CONTRACT_VERSIONS.identity,
   forgeBoardSummary:        OVERSEER_CONTRACT_VERSIONS.summary,
   forgeMonitor:             OVERSEER_CONTRACT_VERSIONS.monitor,
-  forgeControl:             CONTROL_VERSION_BEFORE_FLINT_BRAIN,
+  forgeControl:             CONTROL_VERSION_FROZEN_FOR_RELEASED_CLIENTS,
   forgeEmbedChannel:        OVERSEER_CONTRACT_VERSIONS.embed,
   forgeProgramAnswer:       1,
   forgeMachineLimits:       { major: 1, minor: 0 },

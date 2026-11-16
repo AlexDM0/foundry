@@ -133,20 +133,19 @@ forge; a program that is no forge on an Overseer's port is recorded from a local
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
-for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
-answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
-recording stays authored beside its spec. The other awaits forge requirements, since no forge serves Flint's brain before forge 1.1:
-`overseer-fetch-flint-brain`, a forge in each state of the brain (G1 to G3). Its entry in `RECORDED_BOUNDARIES` names the forge
-requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored, and verify fails while a recorded
-one still names them. `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` (1.0) in each situation, is recorded from
-this repository's forge, and `overseer-fetch-versions` from it too, older, ahead and newer through forge's test setting
-`FORGE_VERSIONS_ANSWER`, and from a forge from
-before system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a detached worktree's `agent-progress.ts`). macOS's programs are stamped
-with the Darwin release. The forge's version is read only by running it:
+for the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person can answer.
+`bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
+recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
+(1.1): `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of Flint's
+brain (`brain-refused` while its Overseer is paused, `no-flint` through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`); and
+`overseer-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
+system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are
+stamped with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's
-`apps/forge/agent-progress.ts` or a detached worktree's for an older forge, through
-`src/testing/ScratchForge.ts`, under a scratch home in scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a
-tracker never reaches a board above the scratch root (an Overseer it starts launches the forge's fake agent). It records the paths, tracker
+`apps/forge/agent-progress.ts` or a scratch clone's for an older forge, through `src/testing/ScratchForge.ts`, under a scratch home in
+scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a tracker never reaches a board above the scratch root.
+The forge is handed that home through a short link under `/tmp`, since each Watcher's socket path below it must fit, and every agent it
+launches, Flint's brain's session included, is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
 ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and
 verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.

@@ -49,7 +49,10 @@ export const OVERSEER_SITUATIONS = [
 
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];
 
-/** The states of Flint's brain on a forge that runs it, each with the command answer that brought it there. */
+/**
+ * The states of Flint's brain on a forge that runs it, each with the command answer that brought it there: `brain-refused` a start while
+ * the Overseer is paused, and `no-flint` a forge that runs no brain, through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`.
+ */
 export const FLINT_BRAIN_SITUATIONS = [
   'brain-running',
   'brain-ended',
@@ -104,8 +107,8 @@ export interface RecordedOverseerFetch extends OverseerFetch {
 export const OVERSEER_RECORDING_NAMES = ['overseer-fetch-supported-forge', 'overseer-fetch-flint-brain', 'overseer-fetch-other-programs'] as const;
 
 /**
- * The recording of forges at another system version than the one Gaia supports: forge 1.0 as itself, and ahead or newer through its test
- * setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions.
+ * The recording of forges at another system version than the one Gaia supports: the supported forge answering older, ahead or newer through
+ * its test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions.
  */
 export const VERSIONS_OVERSEER_RECORDING_NAME = 'overseer-fetch-versions';
 

@@ -47,7 +47,7 @@ const SUCCESS_STATUS = 200;
 const NOT_FOUND_STATUS = 404;
 /** Forge's test setting, `<current>/<minimum supported>`; empty reads as unset, so no setting of the recording's own shell reaches a forge. */
 const VERSIONS_ANSWER_VARIABLE = 'FORGE_VERSIONS_ANSWER';
-const OLDER_VERSIONS_ANSWER = '0.9/0.0';
+const OLDER_VERSIONS_ANSWER = '1.0/0.0';
 const AHEAD_VERSIONS_ANSWER = '1.3/1.0';
 const NEWER_VERSIONS_ANSWER = '2.1/2.0';
 const VERSIONS_ANSWER_UNSET = '';

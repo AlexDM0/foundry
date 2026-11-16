@@ -1,10 +1,9 @@
 /**
  * The stamp check fails only on a stale recording: one stamped with another version than the installed one, one stamped for another
- * boundary, OS or system, one that cannot be read, one that records no listed boundary, a forge recording authored by hand whose boundary
- * awaits no forge requirement, and a recorded one whose boundary still names requirements it awaits. A boundary with no recording for the
- * OS is listed as not finished, an authored recording of another system or of awaited forge requirements as a warning, and a recording of
- * a system whose installed version only a run reads as unchecked; none of those fails the check. Each stale and unchecked line names the
- * command to record again.
+ * boundary, OS or system, one that cannot be read, one that records no listed boundary, and a forge recording authored by hand. A boundary
+ * with no recording for the OS is listed as not finished, an authored recording of another system as a warning, and a recording of a system
+ * whose installed version only a run reads as unchecked; none of those fails the check. Each stale and unchecked line names the command to
+ * record again.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -118,37 +117,6 @@ describe('the recording-stamp check', () => {
       authoredLines:   [],
       uncheckedLines:  [],
     });
-  });
-
-  test('lists an authored forge recording whose boundary awaits forge requirements as a warning naming them, and fails nothing', () => {
-    const awaitingBoundary: RecordedBoundary = { ...EXAMPLE_BOUNDARY, system: 'forge', forgeRequirementsAwaited: ['G1', 'G3'] };
-    const authoredStamp: RecordingStamp = {
-      recordingName: 'example-boundary', operatingSystem: 'darwin', system: 'forge', source: 'authored'
-    };
-    expect(recordingStampReportOf({
-      recordedBoundaries: [awaitingBoundary],
-      operatingSystem:    'darwin',
-      recordingTexts:     new Map([['example-boundary.json', recordingText(authoredStamp)]]),
-      installedVersionOf: () => null,
-    })).toEqual({
-      staleLines:      [],
-      unfinishedLines: [],
-      authoredLines:   ['src/testing/recordings/darwin/example-boundary.json is authored from the forge requirements G1, G3 and waits for a forge that serves them.'],
-      uncheckedLines:  [],
-    });
-  });
-
-  test('names a recorded forge recording whose boundary still awaits forge requirements as stale, so the mark is left out once recorded', () => {
-    const awaitingBoundary: RecordedBoundary = { ...EXAMPLE_BOUNDARY, system: 'forge', forgeRequirementsAwaited: ['G1'] };
-    expect(recordingStampReportOf({
-      recordedBoundaries: [awaitingBoundary],
-      operatingSystem:    'darwin',
-      recordingTexts:     new Map([['example-boundary.json', recordingText(recordedStamp({ system: 'forge', systemVersion: 'install version 28' }))]]),
-      installedVersionOf: () => null,
-    }).staleLines).toEqual([
-      'src/testing/recordings/darwin/example-boundary.json is recorded, and its boundary still awaits the forge requirements G1: '
-        + 'leave forgeRequirementsAwaited out of example-boundary in RECORDED_BOUNDARIES.',
-    ]);
   });
 
   test('lists a recording of a system whose installed version only a run reads as unchecked, and fails nothing', () => {

@@ -94,7 +94,7 @@ describe('the command answer of a command of Flint\'s brain', () => {
     const refusals = (['brain-refused', 'no-flint'] as const).flatMap((situation) => recordedFlintBrainAnswersOf(situation))
       .filter(({ callShape }) => callShape === 'POST /api/v1/commands with bearer')
       .flatMap(({ answer }) => (answer.verdict === 'answered' ? [JSON.parse(answer.bodyText) as { refusal: string; text: string }] : []));
-    expect(refusals.map(({ refusal }) => refusal)).toEqual(['usage-limit-holds', 'no-flint']);
+    expect(refusals.map(({ refusal }) => refusal)).toEqual(['overseer-paused', 'no-flint']);
     for (const { refusal, text } of refusals) {
       expect(PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,

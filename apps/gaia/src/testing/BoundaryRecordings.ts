@@ -24,16 +24,11 @@ import { scratchRoot } from './ScratchRoot.ts';
 export type RecordedSystem = 'bun' | 'forge' | 'macos' | 'browser';
 
 export interface RecordedBoundary {
-  readonly recordingName:             string;
-  readonly boundaryModule:            string;
+  readonly recordingName:  string;
+  readonly boundaryModule: string;
   /** Run only by `bun run record`: `bunfig.toml` keeps every `*.recording.spec.ts` out of a plain `bun test`. */
-  readonly recordingSpec:             string;
-  readonly system:                    RecordedSystem;
-  /**
-   * The forge's requirements (such as `G1`) a forge must serve before this forge recording can be taken: until then it is authored from
-   * them, and verify lists it as authored instead of stale. Left out once the recording is taken.
-   */
-  readonly forgeRequirementsAwaited?: readonly string[];
+  readonly recordingSpec:  string;
+  readonly system:         RecordedSystem;
 }
 
 export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
@@ -104,11 +99,10 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'forge',
   },
   {
-    recordingName:            'overseer-fetch-flint-brain',
-    boundaryModule:           'src/lib/forge-client/OverseerFetch.ts',
-    recordingSpec:            'src/lib/forge-client/OverseerFetch.flintBrain.recording.spec.ts',
-    system:                   'forge',
-    forgeRequirementsAwaited: ['G1', 'G2', 'G3'],
+    recordingName:  'overseer-fetch-flint-brain',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.flintBrain.recording.spec.ts',
+    system:         'forge',
   },
   {
     recordingName:  'overseer-fetch-versions',
@@ -122,7 +116,7 @@ export const RECORDING_SPEC_SUFFIX = '.recording.spec.ts';
 
 /**
  * `recorded`: taken from the real system at `systemVersion`. `authored`: written by hand until a person answers its recording spec, as
- * `path-chooser` waits for one at a Mac's screen, or until the forge serves the requirements its boundary names as awaited.
+ * `path-chooser` waits for one at a Mac's screen.
  */
 export type RecordingStamp =
   | {

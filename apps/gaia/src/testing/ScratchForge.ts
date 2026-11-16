@@ -5,8 +5,15 @@
  * keeps passes through `exampleTextOf`, which replaces the scratch paths and the values each run draws afresh with fixed example values.
  * Test-only.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { delimiter, join }          from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
+import { delimiter, join } from 'node:path';
 
 import {
   realProcessRun,
@@ -41,7 +48,7 @@ export interface ScratchForge {
   readonly exampleValueFor:      (exampleValue: ExampleValue) => void;
   /** `text` with every value drawn by this run replaced by its example, the longest first so no path is replaced inside another. */
   readonly exampleTextOf:        (text: string) => string;
-  /** Stops each Overseer still live in the scratch repositories and removes them, then the scratch home once every one is gone. */
+  /** Stops each Overseer still live in the scratch repositories, ends what still runs from them, and removes them, then the scratch home. */
   readonly remove:               () => Promise<void>;
 }
 
@@ -58,7 +65,16 @@ const FORGE_ROOT_VARIABLE = 'FORGE_ROOT';
 const FORGE_FAKE_AGENT_VARIABLE = 'FORGE_FAKE_AGENT';
 const FORGE_RUN_TIMEOUT_MILLISECONDS = 120_000;
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
+const PROCESS_LIST_TIMEOUT_MILLISECONDS = 10_000;
+/** `pgrep`'s exit code when no process matches. */
+const NO_PROCESS_MATCHED_EXIT_CODE = 1;
 const MONITOR_FOLDER_NAME = '.forge-monitor';
+/**
+ * The forge binds each Watcher's Unix socket below its home, and a socket path has a length limit no folder below the scratch root keeps
+ * in a worktree: the forge is handed its home through a short link here, while the home itself stays below the scratch root.
+ */
+const SHORT_HOME_LINK_ROOT = '/tmp/gaia-scratch-forges';
+const SHORT_HOME_LINK_NAME = 'home';
 const REGISTRY_FILE_NAME = 'projects.json';
 
 export function forgeProgramToRun(recordingName: string): string {
@@ -95,6 +111,10 @@ export async function removeEachRepository(repositories: string[], stopAndRemove
 export function createScratchForge(recordingName: string, options: ScratchForgeOptions = {}): ScratchForge {
   const program   = options.program ?? forgeProgramToRun(recordingName);
   const forgeHome = createScratchDirectory('forge-home');
+  mkdirSync(SHORT_HOME_LINK_ROOT, { recursive: true });
+  const shortHomeLinkFolder = mkdtempSync(join(SHORT_HOME_LINK_ROOT, 'forge-'));
+  const shortForgeHome = join(shortHomeLinkFolder, SHORT_HOME_LINK_NAME);
+  symlinkSync(forgeHome, shortForgeHome);
   const repositories: string[]   = [];
   const exampleValues: ExampleValue[] = [{ drawn: program, example: '/Users/example/.bun/bin/forge' }];
 
@@ -105,7 +125,7 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
       ...environment,
       ...options.forgeVariables,
       PATH:                        searchPath,
-      HOME:                        forgeHome,
+      HOME:                        shortForgeHome,
       [FORGE_ROOT_VARIABLE]:       workingDirectory,
       [FORGE_FAKE_AGENT_VARIABLE]: '1',
     };
@@ -163,18 +183,32 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   }
 
   function exampleTextOf(text: string): string {
-    const longestFirst = [...exampleValues, { drawn: forgeHome, example: '/Users/example' }].sort((a, b) => b.drawn.length - a.drawn.length);
+    const homeExamples = [{ drawn: forgeHome, example: '/Users/example' }, { drawn: shortForgeHome, example: '/Users/example' }];
+    const longestFirst = [...exampleValues, ...homeExamples].sort((a, b) => b.drawn.length - a.drawn.length);
     return longestFirst.reduce((exampleText, { drawn, example }) => exampleText.replaceAll(drawn, example), text);
+  }
+
+  /** The processes still running from the repository's own files, such as a Watcher and its agent, which outlive an Overseer's stop. */
+  async function processIdsRunningFrom(repository: string): Promise<number[]> {
+    const listed = await realProcessRun(environmentCopy).run({
+      program: 'pgrep', programArguments: ['-f', repository], workingDirectory: repository, timeoutMilliseconds: PROCESS_LIST_TIMEOUT_MILLISECONDS,
+    });
+    if (listed.verdict !== 'finished' || (listed.exitCode !== 0 && listed.exitCode !== NO_PROCESS_MATCHED_EXIT_CODE)) {
+      throw new Error(`pgrep answered ${JSON.stringify(listed)}`);
+    }
+    return listed.standardOutput.split('\n').filter((line) => line.trim() !== '').map(Number);
   }
 
   async function stopAndRemoveRepository(repository: string): Promise<void> {
     if (existsSync(join(repository, '.forge'))) await run(repository, ['stop', '--now', '--json']);
+    for (const processId of await processIdsRunningFrom(repository)) process.kill(processId, 'SIGKILL');
     removeScratchPath(repository);
   }
 
   async function remove(): Promise<void> {
     await removeEachRepository(repositories, stopAndRemoveRepository);
     removeScratchPath(forgeHome);
+    rmSync(shortHomeLinkFolder, { recursive: true, force: true });
   }
 
   return {

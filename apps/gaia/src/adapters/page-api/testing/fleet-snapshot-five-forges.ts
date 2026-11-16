@@ -24,7 +24,7 @@ const EVERY_CURRENT_CONTRACT = {
 };
 
 /** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
-export const CURRENT_FORGE_VERSIONS: ForgeVersions = { verdict: 'current', current: { major: 1, minor: 0 }, minimumSupported: { major: 1, minor: 0 } };
+export const CURRENT_FORGE_VERSIONS: ForgeVersions = { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 1, minor: 0 } };
 
 /** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
 const USAGE_UNDER_THE_LIMIT: ForgeUsage = {
@@ -915,7 +915,7 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },
-      supportedForgeVersion: { major: 1, minor: 0 },
+      supportedForgeVersion: { major: 1, minor: 1 },
     },
   },
 };

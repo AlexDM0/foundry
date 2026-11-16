@@ -230,7 +230,7 @@ function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch 
   return recordedOverseerFetch(recordedOverseerAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
 }
 
-/** The forge answering a command as it was authored for one state of Flint's brain. */
+/** The forge answering a command as it was recorded for one state of Flint's brain. */
 function overseerAnsweringTheBrain(situation: FlintBrainSituation): RecordedOverseerFetch {
   return recordedOverseerFetch(recordedFlintBrainAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
 }
@@ -464,12 +464,12 @@ describe('forge-brain-start and forge-brain-stop, carried by the API of a forge 
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-stop' }]);
   });
 
-  test('passes the forge\'s refusals usage-limit-holds and no-flint on with their code and sentence unchanged', async () => {
+  test('passes the forge\'s refusals overseer-paused and no-flint on with their code and sentence unchanged', async () => {
     for (const situation of ['brain-refused', 'no-flint'] as const) {
       const verdict = await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch: overseerAnsweringTheBrain(situation) }).carry(BRAIN_START);
       expect([situation, verdict]).toEqual([situation, { verdict: 'refused', refusedBy: 'forge', ...recordedBrainRefusal(situation) }]);
     }
-    expect([recordedBrainRefusal('brain-refused').refusal, recordedBrainRefusal('no-flint').refusal]).toEqual(['usage-limit-holds', 'no-flint']);
+    expect([recordedBrainRefusal('brain-refused').refusal, recordedBrainRefusal('no-flint').refusal]).toEqual(['overseer-paused', 'no-flint']);
   });
 
   test('sends nothing to a forge whose control contract Gaia does not know, the brain\'s or newer, and answers unreachable for a dormant one', async () => {

@@ -395,7 +395,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const olderSandbox = {
       ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
       fidelity: 'older-contract',
-      versions: { verdict: 'older', current: { major: 0, minor: 9 }, minimumSupported: { major: 0, minor: 5 } },
+      versions: { verdict: 'older', current: { major: 1, minor: 0 }, minimumSupported: { major: 0, minor: 0 } },
     } as FleetDocument['forges'][number];
     const olderDocument: FleetDocument = {
       ...FLEET_DEGRADED,
@@ -403,7 +403,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       needsALook: FLEET_DEGRADED.needsALook.map((look) => (look.trackerId === ANALYTICS_SANDBOX_TRACKER_ID ? { ...look, kind: 'older-contract' as const } : look)),
     };
     const older = lookOf(fleetContentOf(olderDocument), ANALYTICS_SANDBOX_TRACKER_ID);
-    expect([older.tone, older.condition, older.word, lineOf(older)]).toEqual(['warn', 'outdated', 'Older than this Gaia', 'forge 0.9 · this Gaia is built for forge 1.0']);
+    expect([older.tone, older.condition, older.word, lineOf(older)]).toEqual(['warn', 'outdated', 'Older than this Gaia', 'forge 1.0 · this Gaia is built for forge 1.1']);
     expect(older.sentence).toBe('This forge is older than the forge this Gaia is built for. Gaia shows nothing of its work and sends it no command until '
       + 'the forge is updated. Its agents keep running.');
     expect(actionsOf(older)).toEqual([
@@ -427,7 +427,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     };
     const older = lookOf(fleetContentOf(unversionedDocument), ANALYTICS_SANDBOX_TRACKER_ID);
     expect([older.tone, older.word, lineOf(older), actionsOf(older)[0]?.[0]])
-      .toEqual(['warn', 'Older than this Gaia', 'forge states no version · this Gaia is built for forge 1.0', 'Update forge']);
+      .toEqual(['warn', 'Older than this Gaia', 'forge states no version · this Gaia is built for forge 1.1', 'Update forge']);
   });
 
   test('an older forge read without its versions is named in the side panel as its callout names it, a forge that states no version', () => {
@@ -450,10 +450,10 @@ describe('forges Gaia cannot fully read (B3)', () => {
   test('the side panel names a forge read in full by its version, any other by its contract, and marks the forges figures.incompleteFor names', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, rightTextOf(reading), reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
-      ['Example Storefront', 'forge 1.0', 'Everything, live.', false],
+      ['Example Storefront', 'forge 1.1', 'Everything, live.', false],
       ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows show as last reported.', true],
       ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions or reviews by name.', true],
-      ['Example Mobile App', 'forge 1.0', 'Everything, live.', false],
+      ['Example Mobile App', 'forge 1.1', 'Everything, live.', false],
       ['Analytics Sandbox', 'monitor 4', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
     const marked = readings?.filter((reading) => reading.totalsCannotVouchForIt).map((reading) => reading.trackerId);
