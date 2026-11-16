@@ -1,7 +1,8 @@
 /**
- * The server record under a scratch home: it is written at version 1 with the origin taken from the url, a second write replaces it, and
- * it goes away by `remove()` and by nothing else, which a scan of the source holds: no other module names the record's file or its path.
- * `remove()` takes it away only while it names the process that asks, so an older Gaia's slow stop leaves a newer Gaia's record standing.
+ * The server record under a scratch home, written as the forge's frame-ancestor record at version 1.0 with the origin taken from the url: a
+ * second write replaces it, and it goes away by `remove()` and by nothing else, which a scan of the source holds: no other module names
+ * the record's file or its path. `remove()` takes it away only while it names the process that asks, so an older Gaia's slow stop leaves
+ * a newer Gaia's record standing.
  */
 import {
   existsSync,
@@ -68,8 +69,8 @@ function modulesNaming(folder: string, namings: readonly string[]): string[] {
 }
 
 describe('the server record', () => {
-  test('lives in the forge\'s monitor folder at gaia/server.json', () => {
-    expect(serverRecordPathIn('/Users/alex-example')).toBe('/Users/alex-example/.forge-monitor/gaia/server.json');
+  test('lives in the forge\'s monitor folder as the frame-ancestor record frame-ancestors/gaia.json', () => {
+    expect(serverRecordPathIn('/Users/alex-example')).toBe('/Users/alex-example/.forge-monitor/frame-ancestors/gaia.json');
   });
 
   test('is written at version 1.0 with the url, its origin, the process and the start', async () => {

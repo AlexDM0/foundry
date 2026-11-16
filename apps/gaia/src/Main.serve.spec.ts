@@ -80,7 +80,7 @@ async function answerOf(address: URL, path: string, requestOptions: RequestInit 
 }
 
 function serverRecordIn(home: string): unknown {
-  return JSON.parse(readFileSync(join(home, '.forge-monitor', 'gaia', 'server.json'), 'utf8'));
+  return JSON.parse(readFileSync(join(home, '.forge-monitor', 'frame-ancestors', 'gaia.json'), 'utf8'));
 }
 
 describe('gaia serve', () => {
@@ -129,7 +129,7 @@ describe('gaia serve', () => {
 
     servingProgram.kill('SIGTERM');
     expect(await servingProgram.exited).toBe(0);
-    expect(existsSync(join(home, '.forge-monitor', 'gaia', 'server.json'))).toBe(false);
+    expect(existsSync(join(home, '.forge-monitor', 'frame-ancestors', 'gaia.json'))).toBe(false);
   });
 
   test('refuses to start where Gaia already answers, and writes no token', async () => {

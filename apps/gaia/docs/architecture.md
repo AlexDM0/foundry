@@ -9,7 +9,7 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
                        │                        ├─ reads    each Overseer: identity, monitor stream or summary
                        └─opens─► browser app    ├─ sends    each Overseer: control commands, session codes
                                  window         ├─ runs     the forge program, for what no Overseer API can do
-                                    │           └─ writes   ~/.gaia/settings.json, ~/.gaia/token, ~/.forge-monitor/gaia/server.json
+                                    │           └─ writes   ~/.gaia/settings.json, ~/.gaia/token, ~/.forge-monitor/frame-ancestors/gaia.json
                                     ▼                │
                                  the page ◄──SSE─────┘
                                     └─frames──► one forge's Bridge, at the forge's own origin
@@ -65,7 +65,7 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 The page asks `POST /api/forges/<trackerId>/frame-session`. Gaia asks that forge's Overseer for a one-time session code with the forge's
 token and answers the Bridge's address with the code in its fragment, which the page sets as the frame's `src`. The token never reaches
 the page. The Bridge and the page talk only over the embed channel (`page/views/forge-frame/EmbedChannel.ts`). A forge lets Gaia's
-origin frame it because Gaia writes `~/.forge-monitor/gaia/server.json` while it serves.
+origin frame it because Gaia writes its frame-ancestor record, `~/.forge-monitor/frame-ancestors/gaia.json`, while it serves.
 
 ## Flint's brain
 

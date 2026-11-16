@@ -1,9 +1,11 @@
 /**
- * Writes and removes `<monitor>/gaia/server.json`, the record a forge reads to let Gaia's origin frame its Bridge (FORGE_REQUIREMENTS F5).
+ * Writes and removes Gaia's frame-ancestor record, `<monitor>/frame-ancestors/gaia.json`, which every forge reads to let Gaia's origin frame its Bridge.
  * Only `remove()` removes it, and only while it names the process that asks: a record left by a crash names a dead process and is
  * overwritten by the next start, and a newer Gaia's record outlives an older Gaia's slow stop.
  */
 import { join } from 'node:path';
+
+import { FRAME_ANCESTOR_RECORD_FORMAT, type FrameAncestorRecord } from 'forge-contracts/FrameAncestorRecord';
 
 import { AtomicFile, type AtomicWriteVerdict } from '../../lib/atomic-file/AtomicFile.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
@@ -11,9 +13,8 @@ import { FORGE_PLACES }                        from '../../shared/constants/Forg
 import { ContractVersionUtil }                 from '../../shared/utils/ContractVersionUtil.ts';
 import { GaiaFile, type FileRemoveVerdict }    from './GaiaFile.ts';
 
-/** The record's place is part of the forge's contract (F5), so no name follows Gaia's own product names. */
-const GAIA_FOLDER_IN_FORGE_MONITOR = 'gaia';
-const SERVER_RECORD_FILE_NAME = 'server.json';
+/** The folder is the forge's; the file's name is Gaia's own, so it follows none of Gaia's product names either. */
+const SERVER_RECORD_FILE_NAME = `gaia${FRAME_ANCESTOR_RECORD_FORMAT.extension}`;
 
 export interface ServerRecord {
   readonly url:       URL;
@@ -24,11 +25,9 @@ export interface ServerRecord {
 
 const SERVER_RECORD_VERSION_KEYS = { majorKey: 'version', minorKey: 'minor' } as const;
 
-interface StoredServerRecordVersion1 {
-  readonly version:   1;
-  readonly minor:     number;
+/** The forge's frame-ancestor record, with the keys Gaia adds for itself, which a forge passes over. */
+interface StoredServerRecord extends FrameAncestorRecord {
   readonly url:       string;
-  readonly origin:    string;
   readonly processId: number;
   readonly startedAt: string;
 }
@@ -42,13 +41,13 @@ export interface ServerRecordWriter {
 }
 
 export function serverRecordPathIn(homeDirectory: string): string {
-  return join(homeDirectory, FORGE_PLACES.monitorFolderName, GAIA_FOLDER_IN_FORGE_MONITOR, SERVER_RECORD_FILE_NAME);
+  return join(homeDirectory, FORGE_PLACES.monitorFolderName, FRAME_ANCESTOR_RECORD_FORMAT.folderName, SERVER_RECORD_FILE_NAME);
 }
 
-function storedFormOf(record: ServerRecord): StoredServerRecordVersion1 {
+function storedFormOf(record: ServerRecord): StoredServerRecord {
   return {
-    version:   CONTRACT_VERSIONS.gaiaServerRecord.major,
-    minor:     CONTRACT_VERSIONS.gaiaServerRecord.minor,
+    version:   CONTRACT_VERSIONS.forgeFrameAncestorRecord.major,
+    minor:     CONTRACT_VERSIONS.forgeFrameAncestorRecord.minor,
     url:       record.url.href,
     origin:    record.url.origin,
     processId: record.processId,
@@ -65,7 +64,8 @@ function storedRecordNamesProcess(contents: string, processId: number): boolean 
   }
   if (typeof stored !== 'object' || stored === null) return false;
   const storedFields = stored as Readonly<Record<string, unknown>>;
-  return ContractVersionUtil.readMajorOf(storedFields, SERVER_RECORD_VERSION_KEYS, CONTRACT_VERSIONS.gaiaServerRecord.major) !== null && storedFields['processId'] === processId;
+  const storedMajor = ContractVersionUtil.readMajorOf(storedFields, SERVER_RECORD_VERSION_KEYS, CONTRACT_VERSIONS.forgeFrameAncestorRecord.major);
+  return storedMajor !== null && storedFields['processId'] === processId;
 }
 
 export function createServerRecordWriter(homeDirectory: string): ServerRecordWriter {
