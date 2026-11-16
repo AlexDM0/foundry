@@ -12,6 +12,7 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 1 },
+  // 1.0 until forge runs Flint's brain: answering 1.1 would promise a brain this forge lacks.
+  current:          { major: 1, minor: 0 },
   minimumSupported: { major: 0, minor: 0 },
 };
