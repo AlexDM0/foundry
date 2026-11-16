@@ -28,5 +28,5 @@ workspace's test preload applies only in its own folder.
 | Script | Runs |
 | --- | --- |
 | `lint:fix` | every workspace's `lint:fix`: eslint with its fixes applied, never cached; the pre-commit hook names it when `lint` fails |
-| `gate:forge`, `gate:gaia` | a tracker's gate: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then that app's `check` alone |
-| `cache:audit [<target reference>]` | the merge gate's audit: re-runs past the cache the tasks of what changed since the target, `main` when none is named (forge hands a gate none), and removes a failing task's entry |
+| `gate:forge`, `gate:gaia` | a tracker's gate: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then that app's `check` alone; where forge hands a path in `FORGE_GATE_REPORT`, it writes the gate's cache report there: `hit` when turbo replayed every task with a script, `partial` some, `miss` none |
+| `cache:audit [<target reference>]` | the merge gate's audit: re-runs past the cache the tasks of what changed since the target, `main` when none is named (forge hands a gate none), and removes a failing task's entry; it writes a `miss` report, as it runs past the cache |

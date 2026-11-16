@@ -2,12 +2,15 @@
  * The cache audit. What matters: the target reference is `main` unless one is named, and anything else is refused with the usage; a red
  * task, or one that never ran, is selected and a task with no script is not; a hash selects its own cache files and no other's; and, end
  * to end in a scratch repository with a planted red spec, the audit removes the cache entry planted under the red task's hash, keeps every
- * other entry and exits 1, while a named target with nothing changed since it audits nothing and exits 0.
+ * other entry, reports a cache miss where forge asked for a report and exits 1, while a named target with nothing changed since it audits
+ * nothing, reports nothing and exits 0.
  */
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync
 } from 'node:fs';
@@ -25,9 +28,10 @@ import {
   cacheAuditRequestOf,
   cacheEntryFileNamesOf,
   redTasksOf,
-  removeCacheEntriesOf,
-  type SummarizedTask
+  removeCacheEntriesOf
 } from './CacheAudit.ts';
+import { GATE_REPORT_VARIABLE } from './GateCacheReport.ts';
+import type { SummarizedTask }  from './TurboRunSummary.ts';
 
 const SCRATCH_ROOT = join(import.meta.dir, '.scratch');
 const WORKSPACE_TOOLS_FOLDER = join(import.meta.dir, '..', 'node_modules', '.bin');
@@ -107,10 +111,10 @@ describe('the purge', () => {
     };
   }
 
-  function runIn(folder: string, command: readonly string[]): { exitCode: number; standardOutput: string; output: string } {
+  function runIn(folder: string, command: readonly string[], extraEnvironment: Record<string, string> = {}): { exitCode: number; standardOutput: string; output: string } {
     const finished = Bun.spawnSync([...command], {
       cwd:    folder,
-      env:    scratchEnvironment(),
+      env:    { ...scratchEnvironment(), ...extraEnvironment },
       stdout: 'pipe',
       stderr: 'pipe',
     });
@@ -175,17 +179,20 @@ describe('the purge', () => {
     const repositoryFolder = scratchRepositoryWithPlantedRedSpec();
     const redHash = plantedTaskHash(repositoryFolder);
     const cacheFolder = plantCacheEntries(repositoryFolder, [redHash, OTHER_HASH]);
-    const audit = runIn(repositoryFolder, [process.execPath, CACHE_AUDIT_SCRIPT]);
+    const reportPath = join(scratchFolder, 'temporary', 'audit-report.json');
+    const audit = runIn(repositoryFolder, [process.execPath, CACHE_AUDIT_SCRIPT], { [GATE_REPORT_VARIABLE]: reportPath });
     expect([audit.exitCode, audit.output.includes(`example#test is red; removed 2 cache files of ${redHash}.`)]).toEqual([1, true]);
     expect(readdirSync(cacheFolder).sort()).toEqual([`${OTHER_HASH}-meta.json`, `${OTHER_HASH}.tar.zst`]);
+    expect(JSON.parse(readFileSync(reportPath, 'utf8'))).toEqual({ version: 1, cache: 'miss' });
   }, END_TO_END_CASE_TIMEOUT_MILLISECONDS);
 
   test('end to end, a named target with nothing changed since it audits no task, keeps every entry and exits 0', () => {
     const repositoryFolder = scratchRepositoryWithPlantedRedSpec();
     const redHash = plantedTaskHash(repositoryFolder);
     const cacheFolder = plantCacheEntries(repositoryFolder, [redHash]);
-    const audit = runIn(repositoryFolder, [process.execPath, CACHE_AUDIT_SCRIPT, 'change']);
-    expect(audit.exitCode).toBe(0);
+    const reportPath = join(scratchFolder, 'temporary', 'unaudited-report.json');
+    const audit = runIn(repositoryFolder, [process.execPath, CACHE_AUDIT_SCRIPT, 'change'], { [GATE_REPORT_VARIABLE]: reportPath });
+    expect([audit.exitCode, existsSync(reportPath)]).toEqual([0, false]);
     expect(readdirSync(cacheFolder).sort()).toEqual([`${redHash}-meta.json`, `${redHash}.tar.zst`]);
   }, END_TO_END_CASE_TIMEOUT_MILLISECONDS);
 

@@ -1,18 +1,16 @@
 /**
  * The merge gate's audit of the one shared turbo cache: re-runs, past the cache, every cached task of the packages that changed since
- * the target and of their dependents, and removes the cache entry of each task that fails, so no planted pass outlives a landing.
+ * the target and of their dependents, and removes the cache entry of each task that fails, so no planted pass outlives a landing. Its run
+ * is the gate's cache report, a miss whenever it audited a task.
  */
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  rmSync
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { dirname, join }                   from 'node:path';
+
+import { GATE_REPORT_VARIABLE, writeGateReport }                             from './GateCacheReport.ts';
+import { type SummarizedTask, summarizedRunOf, TASK_WITHOUT_SCRIPT_COMMAND } from './TurboRunSummary.ts';
 
 const AUDITED_TASKS = ['typecheck', 'lint', 'test', 'test:dom'];
 const DEFAULT_TARGET_REFERENCE = 'main';
-const TASK_WITHOUT_SCRIPT_COMMAND = '<NONEXISTENT>';
 const HELP_ARGUMENTS: readonly string[] = ['--help', '-h'];
 
 export const CACHE_AUDIT_USAGE = [
@@ -20,13 +18,6 @@ export const CACHE_AUDIT_USAGE = [
   `Audits what changed since <target reference>, \`${DEFAULT_TARGET_REFERENCE}\` when none is named, since forge hands a gate no target.`,
   'Exits 1 on any red task, after removing its cache entry.',
 ].join('\n');
-
-export interface SummarizedTask {
-  readonly taskId:     string;
-  readonly hash:       string;
-  readonly command:    string;
-  readonly execution?: { readonly exitCode: number };
-}
 
 export type CacheAuditRequest =
   | { readonly kind: 'audit'; readonly targetReference: string }
@@ -67,37 +58,11 @@ function gitAnswer(workingFolder: string, gitArguments: readonly string[]): stri
   return finished.exitCode === 0 ? finished.stdout.toString().trim() : undefined;
 }
 
-function runSummaryNames(runSummariesFolder: string): Set<string> {
-  return new Set(existsSync(runSummariesFolder) ? readdirSync(runSummariesFolder) : []);
-}
-
-function auditedRunSummary(repositoryFolder: string, targetReference: string): { turboExitCode: number; tasks: SummarizedTask[] | undefined } {
-  const runSummariesFolder = join(repositoryFolder, '.turbo', 'runs');
-  const summaryNamesBefore = runSummaryNames(runSummariesFolder);
-  const turboRun = Bun.spawnSync([
-    'turbo',
-    'run',
-    ...AUDITED_TASKS,
-    '--force',
-    '--continue',
-    `--filter=...[${targetReference}]`,
-    '--summarize',
-    '--output-logs=errors-only',
-    '--log-order=grouped',
-  ], { cwd: repositoryFolder, stdout: 'inherit', stderr: 'inherit' });
-  const newSummaryNames = [...runSummaryNames(runSummariesFolder)].filter((summaryName) => !summaryNamesBefore.has(summaryName));
-  const [summaryName] = newSummaryNames;
-  if (newSummaryNames.length !== 1 || summaryName === undefined) {
-    return { turboExitCode: turboRun.exitCode, tasks: undefined };
-  }
-  const summaryPath = join(runSummariesFolder, summaryName);
-  const summary = JSON.parse(readFileSync(summaryPath, 'utf8')) as { tasks?: SummarizedTask[] };
-  rmSync(summaryPath, { force: true });
-  return { turboExitCode: turboRun.exitCode, tasks: summary.tasks };
-}
-
-/** Audits the repository `workingFolder` is in with the `turbo` on the search path, which `bun run` puts the workspace's first on. */
-export function cacheAuditExitCode(commandLineArguments: readonly string[], workingFolder: string): number {
+/**
+ * Audits the repository `workingFolder` is in with the `turbo` on the search path, which `bun run` puts the workspace's first on, and
+ * writes the cache report at `reportPath` when forge handed one.
+ */
+export function cacheAuditExitCode(commandLineArguments: readonly string[], workingFolder: string, reportPath?: string): number {
   const request = cacheAuditRequestOf(commandLineArguments);
   if (request.kind === 'help') {
     console.log(CACHE_AUDIT_USAGE);
@@ -117,7 +82,16 @@ export function cacheAuditExitCode(commandLineArguments: readonly string[], work
     console.error(`cache:audit: ${request.targetReference} names no commit.\n${CACHE_AUDIT_USAGE}`);
     return 1;
   }
-  const { turboExitCode, tasks } = auditedRunSummary(repositoryFolder, request.targetReference);
+  const { turboExitCode, tasks } = summarizedRunOf(repositoryFolder, [
+    'run',
+    ...AUDITED_TASKS,
+    '--force',
+    '--continue',
+    `--filter=...[${request.targetReference}]`,
+    '--output-logs=errors-only',
+    '--log-order=grouped',
+  ]);
+  writeGateReport(reportPath, tasks);
   if (tasks === undefined) {
     console.error('cache:audit: turbo wrote no run summary, so no task could be audited.');
     return 1;
@@ -129,5 +103,5 @@ export function cacheAuditExitCode(commandLineArguments: readonly string[], work
 }
 
 if (import.meta.main) {
-  process.exit(cacheAuditExitCode(process.argv.slice(2), process.cwd()));
+  process.exit(cacheAuditExitCode(process.argv.slice(2), process.cwd(), process.env[GATE_REPORT_VARIABLE]));
 }
