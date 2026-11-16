@@ -4,7 +4,7 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-16, on branch `monorepo/integration`: P2 gated green, P3's lanes done and Gate P3 not run. Merge bases: forge
+Status as of 2026-11-16, on branch `monorepo/integration`: P3 and P4 gated green together, P5 not started. Merge bases: forge
 `main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
 `monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
 after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
@@ -66,7 +66,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
       isolation smoke (an `apps/gaia` edit changes only Gaia's hashes, a `packages/design-system` edit forge's and Gaia's, a
       `packages/forge-contracts` edit only Gaia's); `bun run versions:raise-minimum` still works from `apps/gaia`.
 
-### P3. The design-system merge (Claude) — lanes done, gate not run
+### P3. The design-system merge (Claude) — done, gate green
 
 - [x] P3A: DS-A moves the contributions' parts into `packages/design-system`; DS-B tokens and state dots.
 - [x] P3B: DS-C button, DS-D callout and confirm, DS-E1 counts and heads, DS-E2 meters and tags. Each patch is implemented in the
@@ -74,13 +74,15 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] P3C: DS-F the package's README, constitution and exports (publishable at `0.2.0`); DS-G Gaia's call sites switch to
       `design-system/<Export>`.
 - [x] P3D: the contributions package, `migration/` and `migration/*` in the root workspaces deleted.
-- [ ] Gate P3: Storybook builds; the visual pass; no reference to the contributions package left outside git history.
+- [x] Gate P3, run with Gate P4: three cold `bun run verify -- --force` runs in a row green; Storybook builds (363 entries); DS-G's
+      visual pass is recorded, 68 shots in light and dark, with one difference open in the package (the confirm strip's small muted
+      type reaches its choices); `grep -rn design-system-contributions` finds nothing in the tree.
 
-### P4. Forge 1.0: contracts, brand, V1 to V6, V8, V9 (Claude) — not started; may run beside P3
+### P4. Forge 1.0: contracts, brand, V1 to V6, V8, V9 (Claude) — done, gate green
 
-- [ ] P4.0: monitor 3 (with `flintBrain: null`) from `claude/project-thread-dw1bcu`; forge depends on `forge-contracts`,
+- [x] P4.0: monitor 3 (with `flintBrain: null`) from `claude/project-thread-dw1bcu`; forge depends on `forge-contracts`,
       `system-versions` and `brand`.
-- [ ] P4A: V-server (`/api/versions`, `/api/v<n>/` paths), V-frame (frame hosts), V-bridge (the embed channel and forge's mark from
+- [x] P4A: V-server (`/api/versions`, `/api/v<n>/` paths), V-frame (frame hosts), V-bridge (the embed channel and forge's mark from
       `brand`). Both `?embedded=gaia` and `?embedded=dashboard`, and the dashboard's frame record, are dropped.
 - [x] P4B (`p4-close`): `apps/forge/src/ClientNames.spec.ts` holds that no shipped source or doc of forge names Gaia, its word
       `fleet`, agent-dashboard or `?embedded=dashboard`; the docs speak of a monitor or a host. Gaia's `overseer-fetch-versions` is recorded
@@ -91,7 +93,10 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
       summary 1, monitor 3 (with `flintBrain: null`), control 1 and embed 1, each registry endpoint at `/api/v<n>/` beside its unversioned
       path, the monitor stream's handshake and `systemVersion`, the frame-host records and `?embedded=frame` only.
 - [ ] Re-record `overseer-fetch-versions` from forge 1.1 in P8: its ahead forge is forge 1.0 answering 1.3, so it serves control 1.
-- [ ] Gate P4: `bun run versions:raise-minimum 1.0` dry runs in `packages/forge-contracts` and `apps/gaia`.
+- [x] Gate P4: `bun run versions:raise-minimum 1.0` dry runs in `packages/forge-contracts` and `apps/gaia`; a scratch forge from
+      this tree and Gaia's server under one scratch `HOME` with `GAIA_PORT=0`: the forge answers `/api/versions` 1.0 and
+      `/api/v2/monitor` at monitor 3, and Gaia, built for 1.1, reads it `older` (`current` when the forge's test setting answers 1.1);
+      Gaia's server record lands in the scratch home's `frame-ancestors/`; no shipped file of forge or its packages names a client.
 
 ### P5. Part B: several trackers in one repository (Claude) — not started
 
