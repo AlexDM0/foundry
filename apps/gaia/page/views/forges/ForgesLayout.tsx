@@ -221,24 +221,26 @@ interface LimitStepperProps {
   /** Both sides are off while a limit is on its way, or where the forge cannot take it. */
   readonly isOff:          boolean;
   readonly onCommand:      (command: CommandBody) => void;
+  /** The agents in flight before a forge's limit, "4 /", drawn as the compact stepper of a row; absent, the standard one. */
+  readonly leadingText?:   string;
 }
 
-/** A limit as the package's number stepper: a side that may not step is clamped shut, so each side is disabled on its own. */
+/** A limit as the package's number stepper: a side at the lowest limit or the ceiling is clamped shut, and both sides are off together. */
 function LimitStepper({
-  accessibleName, limit, lowerLabel, raiseLabel, lowerCommand, raiseCommand, isOff, onCommand
+  accessibleName, limit, lowerLabel, raiseLabel, lowerCommand, raiseCommand, isOff, onCommand, leadingText
 }: LimitStepperProps) {
-  const canLower = !isOff && lowerCommand !== null;
-  const canRaise = !isOff && raiseCommand !== null;
   return (
     <NumberStepper
       accessibleName={accessibleName}
       value={limit}
       step={1}
-      minimum={canLower ? limit - 1 : limit}
-      maximum={canRaise ? limit + 1 : limit}
+      minimum={lowerCommand === null ? limit : limit - 1}
+      maximum={raiseCommand === null ? limit : limit + 1}
       unitText="agents"
       lowerLabel={lowerLabel}
       raiseLabel={raiseLabel}
+      disabled={isOff}
+      {...(leadingText === undefined ? {} : { compact: true, leadingText })}
       onChange={(value) => {
         const command = value < limit ? lowerCommand : raiseCommand;
         if (command !== null) onCommand(command);
@@ -252,19 +254,17 @@ function AgentsCell({ project, agents, handlers }: { readonly project: string; r
   if (agents.kind === 'not-read') return <span className="gaia-forges-not-read">{NOT_READ}</span>;
   if (agents.kind === 'text') return <span className="gaia-forges-agents">{agents.text}</span>;
   return (
-    <span className="gaia-forges-agents-stepper">
-      <span className="gaia-forges-agents">{`${agents.inFlight} /`}</span>
-      <LimitStepper
-        accessibleName={`${project}'s agent limit`}
-        limit={agents.limit}
-        lowerLabel={agents.lowerLabel}
-        raiseLabel={agents.raiseLabel}
-        lowerCommand={agents.lowerCommand}
-        raiseCommand={agents.raiseCommand}
-        isOff={agents.disabled}
-        onCommand={handlers.onCommand}
-      />
-    </span>
+    <LimitStepper
+      accessibleName={`${project}'s agent limit`}
+      limit={agents.limit}
+      lowerLabel={agents.lowerLabel}
+      raiseLabel={agents.raiseLabel}
+      lowerCommand={agents.lowerCommand}
+      raiseCommand={agents.raiseCommand}
+      isOff={agents.disabled}
+      onCommand={handlers.onCommand}
+      leadingText={`${agents.inFlight} /`}
+    />
   );
 }
 

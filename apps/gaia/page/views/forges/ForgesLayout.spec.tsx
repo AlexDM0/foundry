@@ -213,6 +213,14 @@ describe('a row\'s controls', () => {
     expect(controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open').props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}`);
   });
 
+  test('a row\'s limit is the compact stepper led by the agents in flight, "3 /", and the machine\'s the standard one', () => {
+    const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
+    const row = stepperNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Invoice Service\'s agent limit');
+    const machine = stepperNamed([tree.onlyWithClass(unfolded, 'gaia-forges-machine')], 'The machine\'s agent limit');
+    expect([row.compact, row.leadingText, row.disabled, row.value]).toEqual([true, '3 /', false, 5]);
+    expect([machine.compact, machine.leadingText]).toEqual([undefined, undefined]);
+  });
+
   test('the stepper sends the forge\'s limit one step down or up', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const stepper = stepperNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Invoice Service\'s agent limit');

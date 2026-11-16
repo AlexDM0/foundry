@@ -104,7 +104,7 @@ function RunningAgentPanel({ content }: { readonly content: RunningAgent }) {
       {content.facts.length === 0 ? null : (
         <div className="gaia-agents-panel-section" data-section="facts">
           <MicroCapsLabel text="What the forge reports" element="div" />
-          <FactList facts={content.facts.map(shownFactOf)} layout="table" />
+          <FactList facts={content.facts.map(shownFactOf)} layout="table" fittedLabels />
         </div>
       )}
       <div className="gaia-agents-panel-section" data-section="last-line">

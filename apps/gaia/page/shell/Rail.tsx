@@ -13,20 +13,18 @@ import type { RailContent, RailCount, RailCountMark } from './RailModel.ts';
 const MACHINE_HREF = '#forges';
 const FORGES_HEAD_ID = 'gaia-rail-forges-head';
 
-/** What a count's mark says, as its tooltip: the package's badge holds a number only, so the mark follows it. */
+/** What a count's mark says, as its holder's tooltip, since the mark itself is only the badge's qualifier. */
 const MARK_TITLES: Readonly<Record<Exclude<RailCountMark, ''>, string>> = {
   '+': 'more possible',
   '?': 'as last reported',
 };
 
+/** What waits on User is in the warn colours; every other count is plain on the rail's wash, as the boards draw it. */
 function RailCountBadge({ count }: { readonly count: RailCount | null }) {
   if (count === null) return null;
-  return (
-    <span className="gaia-rail-count">
-      <CountBadge count={count.count} tone={count.tone === 'attention' ? 'warn' : 'neutral'} />
-      {count.mark === '' ? null : <span className="gaia-rail-count-mark" title={MARK_TITLES[count.mark]}>{count.mark}</span>}
-    </span>
-  );
+  const tone = count.tone === 'attention' ? 'warn' : 'plain';
+  if (count.mark === '') return <span className="gaia-rail-count"><CountBadge count={count.count} tone={tone} /></span>;
+  return <span className="gaia-rail-count" title={MARK_TITLES[count.mark]}><CountBadge count={count.count} qualifier={count.mark} tone={tone} /></span>;
 }
 
 function RailMachineLink({ machine }: { readonly machine: MachineLoad }) {

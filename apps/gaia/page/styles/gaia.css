@@ -272,7 +272,6 @@ body {
 }
 .gaia-rail-row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gaia-rail-count { display: inline-flex; flex: none; align-items: center; }
-.gaia-rail-count-mark { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--ink-muted); }
 .gaia-rail-no-forge { margin: 0; padding: var(--sp-half) var(--rail-inset); font-size: var(--fs-tab); color: var(--ink-4); }
 .gaia-rail-spacer { flex: 1; }
 .gaia-rail-machine {
@@ -827,7 +826,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-waiting { display: inline-flex; }
 .gaia-forges-code { font-size: var(--fs-pill); color: var(--ink-4); }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
-.gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .gaia-forges-button-title { display: inline-flex; }
 /* A forge Gaia cannot talk to: its agents and what waits in it are not read */
 .gaia-forges-not-read { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-4); white-space: nowrap; }
@@ -1060,7 +1058,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-attention-aside { display: flex; flex: none; flex-direction: column; gap: var(--sp-5); width: var(--attention-aside-width); }
 .gaia-attention-section { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 /* The package's section head stands 26 px for parts this head lacks; its 5 px above and below its 16 px line are taken back, as A1 and B3 draw it. */
-.gaia-attention-looks { display: flex; flex-direction: column; gap: var(--space-5); margin-top: calc(-1 * var(--space-5)); }
+.gaia-attention-looks { display: flex; flex-direction: column; gap: var(--space-5); }
 .gaia-attention-look-list { display: flex; flex-direction: column; gap: var(--attention-head-gap); }
 .gaia-attention-note { display: flex; align-items: flex-start; gap: var(--sp-3); margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
 .gaia-attention-note-sentence { flex: 1; margin: 0; }

@@ -91,7 +91,7 @@ function railForgeProjectsIn(markup: string): string[] {
 /** Whether the rail's Forges row holds the package's count badge as Gaia hands it this count. */
 function railForgesRowHoldsCount(markup: string, count: number): boolean {
   const forgesRow = /<a class="gaia-rail-row" href="#forges"[^>]*>.*?<\/a>/.exec(markup)?.[0] ?? '';
-  return forgesRow.includes(renderToStaticMarkup(<CountBadge count={count} tone="neutral" />));
+  return forgesRow.includes(renderToStaticMarkup(<CountBadge count={count} tone="plain" />));
 }
 
 const { pageTitleAreaIn } = ShellMarkup;

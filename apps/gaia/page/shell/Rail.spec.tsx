@@ -1,9 +1,10 @@
 /**
- * The rail as markup (SCREENS "The shell"). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand bar holds it);
- * each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits on User and plain otherwise,
- * its mark after it; the current row, and only it, carries `aria-current`; a forge row leads with its condition dot, which the package or Gaia hides
- * from the accessibility tree, and carries the model's title; with no forge registered the forges' group says "No forge is registered" and the slot
- * meter is handed every slot free; and this machine is one link to the Forges view, with its slot meter and its lines.
+ * The rail as markup (SCREENS "The shell"). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand
+ * bar holds it); each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits
+ * on User and plain otherwise, its mark as the badge's qualifier, which its holder's title words; the current row, and only it, carries
+ * `aria-current`; a forge row leads with its condition dot, which the package hides from the accessibility tree, and carries the model's
+ * title; with no forge registered the forges' group says "No forge is registered" and the slot meter is handed every slot free; and this
+ * machine is one link to the Forges view, with its slot meter and its lines.
  */
 import { describe, expect, test } from 'bun:test';
 import { CountBadge }             from 'design-system/CountBadge';
@@ -65,29 +66,23 @@ describe('the rail', () => {
     const counts = tree.hostElementsIn(unfolded, tree.withComponent(CountBadge));
     expect(counts.map((count) => [count.props['count'], count.props['tone']])).toEqual([
       [5, 'warn'],
-      [10, 'neutral'],
-      [6, 'neutral'],
+      [10, 'plain'],
+      [6, 'plain'],
       [2, 'warn'],
       [2, 'warn'],
       [1, 'warn'],
     ]);
   });
 
-  test('a count Gaia cannot vouch for carries its mark after the badge: 4+ on Attention, 2? on an unreachable forge, plain', () => {
+  test('a count Gaia cannot vouch for carries its mark as the badge\'s qualifier, its holder titled: 4+ on Attention, 2? on an unreachable forge, plain', () => {
     const unfolded = unfoldedRail(FLEET_DEGRADED, DEFAULT_ROUTE);
-    const isMarked = (count: HostElement) => tree.hostElementsIn([count], tree.withClass('gaia-rail-count-mark')).length > 0;
-    const marked = tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-count')).filter(isMarked);
+    const marked = tree.hostElementsIn(unfolded, tree.withClass('gaia-rail-count')).filter((count) => count.props['title'] !== undefined);
     expect(marked.map((count) => {
-      const [badge, ...others] = count.children;
-      return [
-        others.length,
-        typeof badge === 'object' ? [badge.tag, badge.props['count'], badge.props['tone']] : null,
-        tree.textOf([count]),
-        tree.onlyWithClass([count], 'gaia-rail-count-mark').props['title'],
-      ];
+      const badge = tree.onlyOfComponent([count], CountBadge);
+      return [[badge.props['count'], badge.props['qualifier'], badge.props['tone']], count.props['title']];
     })).toEqual([
-      [1, ['CountBadge', 4, 'warn'], '+', 'more possible'],
-      [1, ['CountBadge', 2, 'neutral'], '?', 'as last reported'],
+      [[4, '+', 'warn'], 'more possible'],
+      [[2, '?', 'plain'], 'as last reported'],
     ]);
   });
 
