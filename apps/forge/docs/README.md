@@ -54,8 +54,8 @@ If something is wrong right now, start here.
 | [Guards and testing](development/guards-and-testing.md) | Which spec holds which rule, and how is this codebase tested without ever touching live data? |
 | [The Claude Code contract](development/overseer-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? |
 | [Platform status](development/platform-status.md) | Which behaviour has never run on which OS, per port? |
-| [The design system](../design-system/README.md) | How are the Bridge's reusable components composed, themed and styled, and how does the package split off? |
-| [Flint](../flint/README.md) | How does the sprite package work, and what does a host page give it? |
+| [The design system](../../../packages/design-system/README.md) | How are the Bridge's reusable components composed, themed and styled, and how does the package split off? |
+| [Flint](../../../packages/flint/README.md) | How does the sprite package work, and what does a host page give it? |
 
 ## Names
 
