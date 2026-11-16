@@ -29,6 +29,7 @@ import { BoardRefusal }                                                         
 import { CachingChecks, type CachingSuggestion, type RecordedGateTime }                   from '../lifecycle/CachingChecks.ts';
 import { type GateLineRun, type GateLineRefusal, type GateLinesRun }                      from '../lifecycle/GateLineRun.ts';
 import type { GateLineConfiner }                                                          from '../lifecycle/GateRun.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
 import { GateRunSlots }                                                                   from './GateRunSlots.ts';
 
@@ -154,9 +155,11 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
   const worktreesFolder = join(worktreesRoot, GATE_PROFILE_WORKTREES_FOLDER);
   const outputFolder = join(workspace.trackerDirectory, GATE_PROFILE_RUNS_FOLDER);
   const removalPrimitives = context.removalPrimitives ?? REAL_WORKTREE_REMOVAL_PRIMITIVES;
+  // Git runs at the repository's root, and the lines in the project's folder of each checkout.
+  const { repositoryRoot, projectPrefix } = projectLocationOf(workspace.rootDirectory);
 
   function removeWorktree(worktreePath: string): void {
-    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: workspace.rootDirectory, worktreePath, force: 'force' }, removalPrimitives);
+    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
     if (removal.verdict === 'left') context.log(`The gate profile worktree ${worktreePath} is a leftover: ${removal.reason}`);
   }
 
@@ -181,7 +184,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
       if (marked.changed === false) return;
       mkdirSync(worktreesFolder, { recursive: true });
       mkdirSync(outputFolder, { recursive: true });
-      const added = GitProcess.run(workspace.rootDirectory, ['worktree', 'add', '--quiet', '--detach', worktreePath, context.mainLine]);
+      const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, context.mainLine]);
       const lines = GitProcess.succeeded(added)
         ? await context.runGateLines({
           shellLine:       platformPorts.shellLine,
@@ -191,6 +194,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
           prepare:         run.prepare,
           gates:           [{ ...run.gate }],
           directory:       worktreePath,
+          projectPrefix,
           millisecondsNow: context.millisecondsNow,
           grantsWrites:    false,
           onSpawned:       (processId) => {
@@ -207,7 +211,7 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
         // A run this Overseer ended as it stopped has no result, as one User stopped has none.
         if (running.stopping) board.stopGateProfile(run.profileRunId, at);
         const ended = board.endGateProfile(run.profileRunId, ending, elapsedMilliseconds, at);
-        if (ended.run.state !== 'stopped') recordCachingFindings(board, workspace.rootDirectory, ended.run, at);
+        if (ended.run.state !== 'stopped') recordCachingFindings(board, repositoryRoot, ended.run, at);
       });
     } catch (failure) {
       context.log(`Gate profile ${run.profileRunId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);

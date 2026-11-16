@@ -29,8 +29,10 @@ export interface GateLineRequest {
 export interface GateLineRunRequest extends GateLineRequest {
   prepare:         readonly PipelineStep[];
   gates:           readonly PipelineGate[];
-  /** The checkout the lines run in, which a gate may never leave changed. */
+  /** The checkout the lines judge, which a gate may never leave changed; a line runs in the project's folder of it. */
   directory:       string;
+  /** The tracker's project folder below the checkout's root, `/`-separated; absent for a tracker at its repository's root. */
+  projectPrefix?:  string;
   /** A clock exception: a duration is only recorded and shown, never deciding a pass. */
   millisecondsNow: () => number;
   /** False keeps every line to its checkout and the temporary folder: the gates' `writes` folders are not granted. */
@@ -88,7 +90,8 @@ async function runLine(request: GateLineRequest, storedLine: string, directory: 
 async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | GateLineRefusal> {
   const prepareConfinement = GateRun.prepareConfinementOf(request.gates);
   for (const step of request.prepare) {
-    const run = await runLine(request, step.run, GateRun.gateDirectoryOf(request.directory, step), request.grantsWrites ? prepareConfinement : withoutWrites(prepareConfinement));
+    const stepDirectory = GateRun.gateDirectoryOf(request.directory, step, request.projectPrefix);
+    const run = await runLine(request, step.run, stepDirectory, request.grantsWrites ? prepareConfinement : withoutWrites(prepareConfinement));
     if ('verdict' in run) return run;
     const failureOutput = GateRun.prepareFailureOutputOf(request.shellLine, run, request.directory);
     if (failureOutput === null) continue;
@@ -99,7 +102,8 @@ async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | Gate
   for (const gate of request.gates) {
     const confinement = GateRun.gateConfinementOf(gate);
     const startedAt = request.millisecondsNow();
-    const run = await runLine(request, gate.run, GateRun.gateDirectoryOf(request.directory, gate), request.grantsWrites ? confinement : withoutWrites(confinement));
+    const gateDirectory = GateRun.gateDirectoryOf(request.directory, gate, request.projectPrefix);
+    const run = await runLine(request, gate.run, gateDirectory, request.grantsWrites ? confinement : withoutWrites(confinement));
     if ('verdict' in run) return run;
     const milliseconds = request.millisecondsNow() - startedAt;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);

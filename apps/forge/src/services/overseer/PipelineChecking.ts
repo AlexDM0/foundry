@@ -19,6 +19,7 @@ import type { SetupMessage }                                                    
 import { messagedToTheSetupAgent }                                                        from '../control/PipelineSetupControls.ts';
 import type { GateLineConfiner }                                                          from '../lifecycle/GateRun.ts';
 import type { ProposalRunRecord, ProposalTwiceRun }                                       from '../lifecycle/ProposalTwiceRun.ts';
+import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
 import { GateRunSlots }                                                                   from './GateRunSlots.ts';
 
@@ -97,9 +98,11 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
   const { workspace, platformPorts } = context;
   const worktreesFolder = join(context.worktreesRoot, PIPELINE_CHECK_WORKTREES_FOLDER);
   const removalPrimitives = context.removalPrimitives ?? REAL_WORKTREE_REMOVAL_PRIMITIVES;
+  // Git runs at the repository's root, and the lines in the project's folder of each checkout.
+  const { repositoryRoot, projectPrefix } = projectLocationOf(workspace.rootDirectory);
 
   function removeWorktree(worktreePath: string): void {
-    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: workspace.rootDirectory, worktreePath, force: 'force' }, removalPrimitives);
+    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath, force: 'force' }, removalPrimitives);
     if (removal.verdict === 'left') context.log(`The pipeline check worktree ${worktreePath} is a leftover: ${removal.reason}`);
   }
 
@@ -121,9 +124,9 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
   }
 
   async function endingOf(setupId: string, started: PipelineCheckStart, worktreePath: string, running: CheckInThisProcess): Promise<PipelineCheckEnding> {
-    const snapshotCommit = GitProcess.resolvedCommitOf(workspace.rootDirectory, context.mainLine);
+    const snapshotCommit = GitProcess.resolvedCommitOf(repositoryRoot, context.mainLine);
     if (snapshotCommit === null) return { state: 'cannot-run', reason: MAIN_LINE_UNRESOLVED_REASON };
-    const added = GitProcess.run(workspace.rootDirectory, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
+    const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
     if (!GitProcess.succeeded(added)) return { state: 'cannot-run', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) };
     const record = await context.runProposalTwice({
       shellLine:       platformPorts.shellLine,
@@ -133,6 +136,7 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
       prepare:         started.prepare,
       gates:           started.gates,
       directory:       worktreePath,
+      projectPrefix,
       snapshotCommit,
       millisecondsNow: context.millisecondsNow,
       grantsWrites:    false,

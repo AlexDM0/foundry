@@ -8,6 +8,7 @@ import type { Incident }                 from '../../lib/tracker-model/@types/In
 import { BoardRefusal }                  from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }         from '../../shared/@types/ControlCommand.ts';
 import { WorktreesFolder }               from '../../shared/WorktreesFolder.ts';
+import { projectLocationOf }             from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }            from '../tracker/TrackerPipeline.ts';
 import { ticketIdOfReference }           from './ControlTicketLookup.ts';
 import { handledUnder, incidentForMove } from './IncidentControls.ts';
@@ -35,7 +36,7 @@ function repairWorktree(command: ControlCommandOf<'worktree-repair'>, change: Tr
   const worktreePath = WorktreesFolder.ticketWorktreeOf(rootDirectory, ticketId);
   const jobId = jobIdForPatchOf(change, ticketId, incident);
   const repaired = WorktreeRepair.repair({
-    repositoryRoot: rootDirectory, worktreePath, step: command.step, jobFolder: jobId === null ? null : join(trackerDirectory, 'jobs', jobId),
+    repositoryRoot: projectLocationOf(rootDirectory).repositoryRoot, worktreePath, step: command.step, jobFolder: jobId === null ? null : join(trackerDirectory, 'jobs', jobId),
   });
   if (repaired.verdict === 'uncommitted-work-not-saved') throw new BoardRefusal({ reason: 'worktree-has-uncommitted-work', ticketId, worktreePath });
   if (repaired.verdict === 'git-failed') throw new BoardRefusal({

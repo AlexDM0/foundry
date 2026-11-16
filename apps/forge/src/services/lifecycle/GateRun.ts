@@ -17,6 +17,7 @@ import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shel
 import type { GateOutcome }                                 from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate, PipelineStep }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }        from '../../shared/Environment.ts';
+import { ProjectPathsUtil }                                 from '../../shared/utils/ProjectPathsUtil.ts';
 
 export interface GateRequest {
   argv:               readonly string[];
@@ -61,8 +62,10 @@ export interface PipelineRunRequest {
   prepare:          readonly PipelineStep[];
   /** The gates of the phase being run, in its run order; with none, no prepare step runs either. */
   gates:            readonly PipelineGate[];
-  /** The checkout of the tree the pipeline judges; a gate's `in` is relative to it. */
+  /** The checkout of the tree the pipeline judges, where git runs; a step runs in the project's folder of it. */
   directory:        string;
+  /** The tracker's project folder below the checkout's root, `/`-separated; absent for a tracker at its repository's root. */
+  projectPrefix?:   string;
   environment:      Readonly<Record<string, string>>;
   spawnOptions:     SupervisedSpawnOptions;
   confinedLineOf:   GateLineConfiner;
@@ -208,9 +211,13 @@ function gateErrorOutputOf(shellLine: ShellLine, run: GateProcessRun, trackedCha
   return shellLine.exitMeaningOf(run) === 'passed' && trackedChanges !== '' ? trackedChanges : run.output;
 }
 
-/** A prepare step's folder reads as a gate's does. */
-function gateDirectoryOf(directory: string, step: Readonly<Pick<PipelineGate, 'in'>>): string {
-  return step.in === undefined ? directory : join(directory, step.in);
+/**
+ * The folder a step runs in: the project's folder of the checkout, or its `in` folder, relative to the project or, leading with `/`, to the
+ * checkout's root. A prepare step's folder reads as a gate's does.
+ */
+function gateDirectoryOf(checkoutDirectory: string, step: Readonly<Pick<PipelineGate, 'in'>>, projectPrefix = ''): string {
+  if (step.in === undefined && projectPrefix === '') return checkoutDirectory;
+  return join(checkoutDirectory, ProjectPathsUtil.toRepositoryPath(projectPrefix, step.in ?? ''));
 }
 
 function gateConfinementOf(gate: Readonly<PipelineGate>): GateConfinement {
@@ -236,7 +243,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   const listeners = { ...(onSpawned === undefined ? {} : { onSpawned }), ...(onOutput === undefined ? {} : { onOutput }) };
   for (const step of request.prepare) {
     const statusFile = lineStatusFileOf();
-    const stepDirectory = gateDirectoryOf(request.directory, step);
+    const stepDirectory = gateDirectoryOf(request.directory, step, request.projectPrefix);
     const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
     if (line.verdict === 'refused') return {
       outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
@@ -252,7 +259,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   const gatesRun: string[] = [];
   for (const gate of request.gates) {
     const statusFile = lineStatusFileOf();
-    const directory = gateDirectoryOf(request.directory, gate);
+    const directory = gateDirectoryOf(request.directory, gate, request.projectPrefix);
     const line = runnableLineOf(request, gate.run, { directory, statusFile }, gateConfinementOf(gate));
     if (line.verdict === 'refused') return {
       outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun

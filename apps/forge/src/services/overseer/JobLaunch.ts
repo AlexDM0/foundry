@@ -60,6 +60,7 @@ import {
   type TargetMergeSettlement
 } from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                                               from '../lifecycle/ReviewOutcome.ts';
+import { type ProjectLocation, projectLocationOf }                     from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
 import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
@@ -361,6 +362,11 @@ function ticketIdOf(job: Readonly<Job>): string {
 
 function worktreeOf(workspace: Workspace, job: Readonly<Job>): string {
   return WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketIdOf(job));
+}
+
+/** Read from disk at each use, never kept: git runs at its `repositoryRoot`, never in the tracker's own folder below it. */
+function projectLocationOfContext(context: Pick<JobLaunchContext, 'workspace'>): ProjectLocation {
+  return projectLocationOf(context.workspace.rootDirectory);
 }
 
 function branchOf(context: Pick<JobLaunchContext, 'branchNames'>, job: Readonly<Job>): string {
@@ -674,7 +680,7 @@ function readJsonFile<Content>(path: string): Content | null {
 function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): TargetCatchUp {
   const worktree  = worktreeOf(context.workspace, job);
   const target    = job.target ?? context.mainLine;
-  const targetTip = GitProcess.resolvedCommitOf(context.workspace.rootDirectory, `refs/heads/${target}`);
+  const targetTip = GitProcess.resolvedCommitOf(projectLocationOfContext(context).repositoryRoot, `refs/heads/${target}`);
   const branchTip = MergeRun.headOf(worktree);
   if (targetTip === null || branchTip === null) return { verdict: 'merge-failed', reason: `The tip of ${targetTip === null ? target : branchOf(context, job)} cannot be read.` };
   const holds = MergeRun.headHoldsCommit(worktree, targetTip);
@@ -1530,8 +1536,10 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
 /** `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. */
 function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree: string = worktreeOf(context.workspace, job)): SandboxFacts {
   const { workspace } = context;
+  const { repositoryRoot, projectPrefix } = projectLocationOfContext(context);
   return WorkerProfiles.sandboxFactsOf({
-    repositoryRoot:   workspace.rootDirectory,
+    repositoryRoot,
+    projectPrefix,
     dataFolder:       workspace.trackerDirectory,
     monitorFolder:    context.monitorFolder,
     homeDirectory:    context.homeDirectory,
@@ -1592,7 +1600,7 @@ function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, c
   };
 }
 
-/** What a process Watcher runs: its stored line, its confinement, and a gate's `in` folder, relative to the worktree. */
+/** What a process Watcher runs: its stored line, its confinement, and its `in` folder, as `GateRun.gateDirectoryOf` reads it. */
 interface ProcessWatcherStep {
   line:        string;
   confinement: GateConfinement;
@@ -1612,7 +1620,8 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
 
 /** Makes the denied roots a launch in the job's worktree needs; when one cannot be made, records the refusal and answers true, so `step` never starts. */
 function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string): boolean {
-  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape });
+  const { projectPrefix } = projectLocationOfContext(context);
+  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape, projectPrefix });
   if (reason === null) return false;
   recordSandboxRefusal(context, job, { step, reason });
   return true;
@@ -1632,7 +1641,7 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
   const watcherFolder = join(jobFolder, folderName);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
-  const workingDirectory = subfolder === null ? worktree : join(worktree, subfolder);
+  const workingDirectory = GateRun.gateDirectoryOf(worktree, subfolder === null ? {} : { in: subfolder }, projectLocationOfContext(context).projectPrefix);
   const { gateConfinement, shellLine } = context.platformPorts;
   const runRefusal = shellLine.runRefusalOf(workingDirectory);
   if (runRefusal !== null) {
@@ -1711,7 +1720,7 @@ function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: 
   const watcherFolder = join(jobFolderOf(context.workspace, job), files.watcherFolder);
   if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return;
   const worktree = worktreeOf(context.workspace, job);
-  const git = context.platformPorts.executableResolver.absolutePathOf('git', [context.workspace.rootDirectory]);
+  const git = context.platformPorts.executableResolver.absolutePathOf('git', [projectLocationOfContext(context).repositoryRoot]);
   if (git.verdict === 'refused') {
     writeMergeSettlement(context, job, files, { verdict: 'failed', reason: 'git cannot be found on the Overseer\'s PATH.' });
     return;
@@ -1784,6 +1793,7 @@ function recordAnUnnormalisedCheckout(context: JobLaunchContext, job: Readonly<J
 /** A group ticket's branch forks off the group's tip, so the group's worktree is created from the main line's tip at its first launch. */
 function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const { rootDirectory } = context.workspace;
+  const { repositoryRoot } = projectLocationOfContext(context);
   const worktree = worktreeOf(context.workspace, job);
   const target = job.target ?? context.mainLine;
   const { groupTargetPrefix } = context.branchNames;
@@ -1794,10 +1804,10 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
     return;
   }
   const group = groupName !== null
-    ? GroupWorktrees.prepareGroupWorktree(rootDirectory, WorktreesFolder.worktreesRootOf(rootDirectory), target, context.mainLine)
+    ? GroupWorktrees.prepareGroupWorktree(repositoryRoot, WorktreesFolder.worktreesRootOf(rootDirectory), target, context.mainLine)
     : null;
-  const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(context, job)}`) !== null;
-  const run = group?.verdict === 'git-failed' ? null : GitProcess.run(rootDirectory, branchExists
+  const branchExists = GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${branchOf(context, job)}`) !== null;
+  const run = group?.verdict === 'git-failed' ? null : GitProcess.run(repositoryRoot, branchExists
     ? ['worktree', 'add', worktree, branchOf(context, job)]
     : ['worktree', 'add', '-b', branchOf(context, job), worktree, target]);
   if (GitProcess.succeeded(run)) {
@@ -1817,10 +1827,11 @@ function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, er
 function prepareWorktree(context: JobLaunchContext, job: Readonly<Job>, jobFolder: string): boolean {
   const worktree = worktreeOf(context.workspace, job);
   if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return false;
-  const state = GitWorktrees.worktreeStateOf(context.workspace.rootDirectory, worktree);
+  const { repositoryRoot } = projectLocationOfContext(context);
+  const state = GitWorktrees.worktreeStateOf(repositoryRoot, worktree);
   if (state === 'leftover') recordWorktreeFailure(context, job, `The leftover folder ${worktree} is not a checkout of the repository.`);
   if (state === 'absent') createWorktree(context, job);
-  return GitWorktrees.worktreeIsCheckoutOf(context.workspace.rootDirectory, worktree);
+  return GitWorktrees.worktreeIsCheckoutOf(repositoryRoot, worktree);
 }
 
 /** What a build job's frames are worded and filed with. */
@@ -1877,7 +1888,7 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
     const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
     if (liveness.verdict === 'unclaimed') {
-      spawnProcessWatcher(context, trackerId, job, folderName, { line: step.run, confinement, subfolder: null });
+      spawnProcessWatcher(context, trackerId, job, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
       return;
     }
     if (liveness.verdict !== 'ended' || !stepPassed(context, liveness.end, jobFolder, folderName)) return;

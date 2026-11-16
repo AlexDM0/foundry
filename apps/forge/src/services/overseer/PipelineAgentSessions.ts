@@ -31,6 +31,7 @@ import {
   type LaunchSnapshot,
   type RefMovesAllowed
 } from '../lifecycle/Customs.ts';
+import { projectLocationOf }         from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
 import type { Workspace }            from '../tracker/Workspace.ts';
 import { ConstitutionCommits }       from './ConstitutionCommits.ts';
@@ -95,7 +96,7 @@ function launchBillingOf(board: Board, job: Readonly<Job>): PipelineBilling | un
 function pinSnapshotCommit(change: TrackerChange, mainLine: string): void {
   const setup = change.board.pipelineSetup();
   if (setup === null || setup.agentJobId === null || setup.snapshotCommit !== null || setup.applyRequest !== null) return;
-  const mainTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, mainLine);
+  const mainTip = GitProcess.resolvedCommitOf(projectLocationOf(change.workspace.rootDirectory).repositoryRoot, mainLine);
   if (mainTip !== null) change.board.attachSetupAgent(setup.setupId, setup.agentJobId, mainTip);
 }
 
@@ -113,7 +114,8 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
     }
   } else {
     mkdirSync(join(context.worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER), { recursive: true });
-    GitProcess.run(context.workspace.rootDirectory, ['worktree', 'add', '--quiet', '--detach', snapshot, snapshotCommit ?? context.mainLine]);
+    const { repositoryRoot } = projectLocationOf(context.workspace.rootDirectory);
+    GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', snapshot, snapshotCommit ?? context.mainLine]);
   }
   const startCommit = GitProcess.resolvedCommitOf(snapshot, 'HEAD', GitWorktrees.ceilingOf(snapshot));
   const launchSnapshot = launchSnapshotOf(snapshot);
@@ -259,11 +261,12 @@ function removeUnheldSnapshots(
   const snapshotsFolder = join(context.worktreesRoot, PIPELINE_AGENT_SNAPSHOT_FOLDER);
   if (!existsSync(snapshotsFolder) || board.jobs().some(isPipelineAgentJob)) return;
   const openSetupId = board.pipelineSetup()?.setupId;
+  const { repositoryRoot } = projectLocationOf(context.workspace.rootDirectory);
   for (const name of readdirSync(snapshotsFolder)) {
     const snapshot = join(snapshotsFolder, name);
     if (name === openSetupId || triedSnapshots.has(snapshot)) continue;
     triedSnapshots.add(snapshot);
-    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: context.workspace.rootDirectory, worktreePath: snapshot, force: 'force' }, removalPrimitives);
+    const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: snapshot, force: 'force' }, removalPrimitives);
     if (removal.verdict === 'left') log(`The pipeline agent snapshot ${snapshot} is a leftover: ${removal.reason}`);
   }
 }

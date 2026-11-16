@@ -3,7 +3,12 @@
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
  */
 import { existsSync, mkdirSync } from 'node:fs';
-import { join }                  from 'node:path';
+import {
+  dirname,
+  isAbsolute,
+  join,
+  relative
+} from 'node:path';
 
 import type {
   CommitSigning,
@@ -38,6 +43,8 @@ export interface SandboxFacts {
   otherWorktreeAdminFolders: readonly string[];
   hatchDirectory:            string;
   repositoryRoot:            string;
+  /** The tracker's project folder below the repository root, `/`-separated; absent for a tracker at its repository's root. */
+  projectPrefix?:            string;
   gitHooksDirectory:         string;
   commitSigning:             CommitSigning;
   /** The agent vendor's per-OS list of the user's credential files and folders, which every role is denied reading. */
@@ -135,16 +142,25 @@ const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
   },
 });
 
+/** The `.claude` folders of the worktree no job may write: its root's and, for a tracker below the repository root, its project's. */
+function claudeFoldersOf(facts: Pick<SandboxFacts, 'worktree' | 'projectPrefix'>): string[] {
+  const rootFolder = join(facts.worktree, '.claude');
+  const projectPrefix = facts.projectPrefix ?? '';
+  return projectPrefix === '' ? [rootFolder] : [rootFolder, join(facts.worktree, projectPrefix, '.claude')];
+}
+
 /**
  * The denied writable roots inside the worktree's writable bind. Under `mount-points` a denied path absent at launch gets no mount, so a
  * child could make it; the Overseer makes each of these before every launch instead, and they are denied whether or not they existed.
  */
-function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>): string[] {
-  return facts.sandboxDenyShape === 'mount-points' ? [join(facts.worktree, '.claude')] : [];
+function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix'>): string[] {
+  return facts.sandboxDenyShape === 'mount-points' ? claudeFoldersOf(facts) : [];
 }
 
 /** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
-function unmadeDeniedRootRefusalOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER): string | null {
+function unmadeDeniedRootRefusalOf(
+  facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER
+): string | null {
   const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
   return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
 }
@@ -155,7 +171,7 @@ function fixedDeniedWritableRootsOf(facts: SandboxFacts): string[] {
   return [
     facts.dataFolder,
     facts.monitorFolder,
-    join(facts.worktree, '.claude'),
+    ...claudeFoldersOf(facts),
     join(facts.commonGitDirectory, 'packed-refs'),
     ...facts.targetBranches.map((branch) => join(headsFolder, branch)),
   ];
@@ -243,11 +259,35 @@ function writableRootsOf(facts: SandboxFacts, writes: readonly string[]): string
   return GateCachePaths.writableCachePathsOf(writes, facts.homeDirectory, facts.executableSearchPath, facts.cacheFolderStyle);
 }
 
+/**
+ * The main checkout's folders from just above a checkout nested in it up to the repository root. None for a tracker at its repository's
+ * root, or for a checkout outside the repository: what such a session reads stays as it always was.
+ */
+function nestedCheckoutAncestorsOf(repositoryRoot: string, checkout: string, projectPrefix: string): string[] {
+  const placeInRepository = relative(repositoryRoot, checkout);
+  if (projectPrefix === '' || placeInRepository === '' || placeInRepository.startsWith('..') || isAbsolute(placeInRepository)) return [];
+  const folders: string[] = [];
+  for (let folder = dirname(checkout); folder !== repositoryRoot; folder = dirname(folder)) folders.push(folder);
+  return [...folders, repositoryRoot];
+}
+
+/**
+ * A session started in the project folder of a checkout nested in the main checkout writes the whole checkout, as one at the checkout's
+ * root does by its sandbox's default, and reads the checkout's instruction files, never the main checkout's copies above it.
+ */
+function nestedCheckoutProfileOf(facts: Pick<SandboxFacts, 'repositoryRoot' | 'worktree' | 'projectPrefix'>): Pick<WorkerProfile, 'writeRoot' | 'nestedCheckoutAncestors'> {
+  const projectPrefix = facts.projectPrefix ?? '';
+  if (projectPrefix === '') return {};
+  return { writeRoot: facts.worktree, nestedCheckoutAncestors: nestedCheckoutAncestorsOf(facts.repositoryRoot, facts.worktree, projectPrefix) };
+}
+
 function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain, hostPaths: HostPathCheck = REAL_HOST_PATHS): WorkerProfile {
   const isWorker = role === 'builder' || role === 'reviewer';
   const { networkDomains } = toolchain;
+  const nestedCheckout = nestedCheckoutProfileOf(facts);
+  const checkoutRoots = nestedCheckout.writeRoot === undefined ? [] : [nestedCheckout.writeRoot];
   return {
-    writableRoots:          isWorker ? writableRootsOf(facts, toolchain.writes) : [],
+    writableRoots:          [...checkoutRoots, ...isWorker ? writableRootsOf(facts, toolchain.writes) : []],
     deniedWritableRoots:    deniedWritableRootsOf(facts, hostPaths),
     deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
     bashNetworkDomains:     isWorker ? [...networkDomains] : [],
@@ -260,6 +300,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     subagents:              [],
     attribution:            'none',
     instructionsRoot:       facts.repositoryRoot,
+    ...nestedCheckout,
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
     networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardCommand) : null,
@@ -295,6 +336,8 @@ function adminFolderOf(worktree: string): string | null {
 
 export interface SandboxFactsRequest {
   repositoryRoot:       string;
+  /** The tracker's project folder below the repository root; absent or `''` for a tracker at its repository's root. */
+  projectPrefix?:       string;
   dataFolder:           string;
   monitorFolder:        string;
   homeDirectory:        string;
@@ -363,6 +406,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     otherWorktreeAdminFolders: adminFolders,
     hatchDirectory:            request.hatchDirectory,
     repositoryRoot:            request.repositoryRoot,
+    ...(request.projectPrefix === undefined || request.projectPrefix === '' ? {} : { projectPrefix: request.projectPrefix }),
     gitHooksDirectory:         join(request.repositoryRoot, '.githooks'),
     commitSigning:             commitSigningOf(gpgDirectories),
     credentialPaths:           request.credentialPaths,
@@ -399,6 +443,8 @@ export const WorkerProfiles = Object.freeze({
   deniedWritableRootsOf,
   deniedRootsMadeBeforeLaunchOf,
   unmadeDeniedRootRefusalOf,
+  nestedCheckoutAncestorsOf,
+  nestedCheckoutProfileOf,
   deniedReadableRootsOf,
   sessionDeniedReadableRootsOf,
   liveBranchesOf,

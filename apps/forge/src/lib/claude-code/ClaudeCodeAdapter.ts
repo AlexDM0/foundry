@@ -62,6 +62,8 @@ export const CLAUDE_AUTHENTICATION_VARIABLES = [
 const QUESTION_TOOL_NAME = 'AskUserQuestion';
 const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
 const INSTRUCTION_FILE_PATHS = [[USER_INSTRUCTION_FILE_NAME], ['CLAUDE.local.md'], ['.claude', USER_INSTRUCTION_FILE_NAME]] as const;
+/** Claude Code excludes a rules folder by a glob of its files, never by the folder's own path. */
+const RULE_FILES_PATH = ['.claude', 'rules', '**'] as const;
 const UUID_HEXADECIMAL_DIGITS = 32;
 const UUID_GROUPS = /^(.{8})(.{4})(.{4})(.{4})(.{12})$/;
 const UUID_VERSION_DIGIT_INDEX = 12;
@@ -94,11 +96,12 @@ function fileRulesOf(facts: AgentHostFacts, tools: readonly string[], path: stri
 
 function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDirectory: string): string[] {
   const webDomains = Array.isArray(profile.webNetworkDomains) ? profile.webNetworkDomains : [];
+  const writeRoot = profile.writeRoot ?? workingDirectory;
   return [
     'Read',
     'Agent',
-    `Edit(${facts.rulePathOf(workingDirectory)}/**)`,
-    `Write(${facts.rulePathOf(workingDirectory)}/**)`,
+    `Edit(${facts.rulePathOf(writeRoot)}/**)`,
+    `Write(${facts.rulePathOf(writeRoot)}/**)`,
     ...profile.allowedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...webDomains.map((domain) => `WebFetch(domain:${domain})`),
   ];
@@ -117,14 +120,20 @@ function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   ];
 }
 
-/** Every instruction file in the folders above the repository, the home folder's own `.claude/CLAUDE.md` included, so none reaches a session. */
-function instructionFileExclusionsOf(facts: AgentHostFacts, instructionsRoot: string, configFolder: string): string[] {
+/**
+ * Every instruction file in the folders above the repository, the home folder's own `.claude/CLAUDE.md` included, so none reaches a session;
+ * for a checkout nested in the main checkout, also the main checkout's files and rules above it, which the checkout holds its own copies of.
+ */
+function instructionFileExclusionsOf(facts: AgentHostFacts, profile: WorkerProfile, configFolder: string): string[] {
   const { dirname, join } = facts.pathModule;
   const ancestors: string[] = [];
-  for (let folder = dirname(instructionsRoot); !ancestors.includes(folder); folder = dirname(folder)) ancestors.push(folder);
+  for (let folder = dirname(profile.instructionsRoot); !ancestors.includes(folder); folder = dirname(folder)) ancestors.push(folder);
   const exclusions = ancestors.flatMap((folder) => INSTRUCTION_FILE_PATHS.map((filePath) => facts.excludePathOf(join(folder, ...filePath))));
+  const nestedExclusions = (profile.nestedCheckoutAncestors ?? [])
+    .flatMap((folder) => [...INSTRUCTION_FILE_PATHS, RULE_FILES_PATH].map((filePath) => facts.excludePathOf(join(folder, ...filePath))));
   const userInstructions = facts.excludePathOf(join(configFolder, USER_INSTRUCTION_FILE_NAME));
-  return exclusions.includes(userInstructions) ? exclusions : [...exclusions, userInstructions];
+  const allExclusions = [...nestedExclusions, ...exclusions];
+  return allExclusions.includes(userInstructions) ? allExclusions : [...allExclusions, userInstructions];
 }
 
 function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string, unknown> {
@@ -169,7 +178,7 @@ function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentL
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
     autoMemoryEnabled:   false,
-    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile.instructionsRoot, configFolder),
+    claudeMdExcludes:    instructionFileExclusionsOf(facts, profile, configFolder),
     ...sandboxSettingsOf(facts, request),
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
     ...hooks,

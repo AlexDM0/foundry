@@ -3,9 +3,9 @@
  * liveness, events past each job's stored cursor, then Hatch folders, target tips and ended Watchers), applies relayed commands, then Watcher
  * events with their cursors, then the Playbook in one `writeTracker` hold, and runs its effects after the Baton check.
  */
-import { createHash }                          from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { basename, join }                      from 'node:path';
+import { createHash }              from 'node:crypto';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { basename, join }          from 'node:path';
 
 import { PipelineFile }                                                               from '../../adapters/pipeline/PipelineFile.ts';
 import { BUILDER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
@@ -44,9 +44,11 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
+import { ProjectPathsUtil }                                                    from '../../shared/utils/ProjectPathsUtil.ts';
 import { type GateConfinement, type PipelineRunRequest, type PipelineVerdict } from '../lifecycle/GateRun.ts';
 import { MergeRun }                                                            from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                                                       from '../lifecycle/ReviewOutcome.ts';
+import { type ProjectLocation, projectLocationOf }                             from '../tracker/ProjectLocation.ts';
 import { writeTracker, type TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                                      from '../tracker/Workspace.ts';
@@ -94,6 +96,7 @@ import { QuestionRouting }                                            from './Qu
 import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
+import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
@@ -382,8 +385,9 @@ function targetTipOf(repositoryRoot: string, target: string): string | null {
   return GitProcess.resolvedCommitOf(repositoryRoot, target);
 }
 
-function targetHoldsManagedBlock(repositoryRoot: string, target: string, marker: string): boolean {
-  const shown = GitProcess.run(repositoryRoot, ['show', `${target}:CLAUDE.md`]);
+/** The project's own `CLAUDE.md`, the one the managed block is installed in, as git names it from the repository root. */
+function targetHoldsManagedBlock(location: ProjectLocation, target: string, marker: string): boolean {
+  const shown = GitProcess.run(location.repositoryRoot, ['show', `${target}:${ProjectPathsUtil.toRepositoryPath(location.projectPrefix, 'CLAUDE.md')}`]);
   return GitProcess.succeeded(shown) && shown.standardOutput.includes(marker);
 }
 
@@ -441,9 +445,10 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
   const assistantReadings = AssistantSession.readingsOf(workspace.trackerDirectory, request.agentAdapter, { jobs: () => jobs });
   const pendingRequests = HatchInbox.pendingRequestsOf(workspace.rootDirectory, jobs);
+  const location        = projectLocationOf(workspace.rootDirectory);
   const targets         = [...new Set([request.mainLine, ...jobs.flatMap((job) => (job.target === null ? [] : [job.target]))])].sort();
-  const targetTips      = Object.fromEntries(targets.map((target) => [target, targetTipOf(workspace.rootDirectory, target)]));
-  const targetsHoldingManagedBlock = targets.filter((target) => targetHoldsManagedBlock(workspace.rootDirectory, target, request.managedBlockMarker));
+  const targetTips      = Object.fromEntries(targets.map((target) => [target, targetTipOf(location.repositoryRoot, target)]));
+  const targetsHoldingManagedBlock = targets.filter((target) => targetHoldsManagedBlock(location, target, request.managedBlockMarker));
   const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
@@ -618,20 +623,12 @@ function actOnWaiverAnswers(
   return waiverAnswerSteps.length > 0;
 }
 
-function workingDirectoryOf(workspace: Workspace, job: Readonly<Job>): string {
-  const [ticketId] = job.ticketIds;
-  const ticketWorktree = ticketId === undefined ? null : WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketId);
-  if (ticketWorktree !== null && existsSync(ticketWorktree)) return ticketWorktree;
-  // Preparing a ticket's worktree is a later step of the chain; until it exists the session works in a folder of its own.
-  const sessionFolder = join(WorktreesFolder.worktreesRootOf(workspace.rootDirectory), 'sessions', job.id);
-  mkdirSync(sessionFolder, { recursive: true });
-  return sessionFolder;
-}
-
-function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
+function profileOf(context: JobLaunchContext, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {
   const {
     workspace, monitorFolder, agentAdapter, homeDirectory
   } = context;
+  const location = projectLocationOf(workspace.rootDirectory);
+  const nestedCheckoutFacts = { repositoryRoot: location.repositoryRoot, worktree: place.checkout, projectPrefix: location.projectPrefix };
   const sessionDenyFacts = {
     dataFolder:       workspace.trackerDirectory,
     monitorFolder,
@@ -640,7 +637,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
     sandboxDenyShape: agentAdapter.sandboxDenyShape,
   };
   return {
-    writableRoots:          [workingDirectory],
+    writableRoots:          [place.checkout],
     deniedWritableRoots:    [workspace.trackerDirectory],
     deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(sessionDenyFacts),
     bashNetworkDomains:     [],
@@ -652,8 +649,9 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, workingDirecto
     skills:                 false,
     subagents:              [],
     attribution:            'none',
-    instructionsRoot:       workspace.rootDirectory,
-    gitHooksDirectory:      join(workspace.rootDirectory, '.githooks'),
+    instructionsRoot:       location.repositoryRoot,
+    ...place.holdsRepository ? WorkerProfiles.nestedCheckoutProfileOf(nestedCheckoutFacts) : {},
+    gitHooksDirectory:      join(location.repositoryRoot, '.githooks'),
     commitSigning:          { kind: 'unsigned' },
     networkDomainGuard:     null,
   };
@@ -674,23 +672,23 @@ function repositorySignsCommits(repositoryRoot: string): boolean {
  * A builder or reviewer runs confined by the per-job profile of design section 4.4, in the Airlock's worktree too when it is resumed there;
  * a product owner and a pipeline agent get their own profile, and every other role the session profile.
  */
-function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, workingDirectory: string, hatchDirectory: string): WorkerProfile {
-  if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory));
+function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: Readonly<Job>, place: SessionPlace, hatchDirectory: string): WorkerProfile {
+  if (IntakeSessions.isIntakeJob(job)) return IntakeSessions.productOwnerProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory));
   if (PipelineAgentSessions.isPipelineAgentJob(job)) {
-    return PipelineAgentSessions.pipelineAgentProfileOf(profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory), hatchDirectory);
+    return PipelineAgentSessions.pipelineAgentProfileOf(profileOf(jobLaunchContext, job, place, hatchDirectory), hatchDirectory);
   }
   const isAirlockAgent = job.kind === 'merge-agent';
-  if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, workingDirectory, hatchDirectory);
+  if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
   const toolchain = WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine);
-  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? workingDirectory : undefined);
+  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? place.checkout : undefined);
   const profile = WorkerProfiles.profileOf(WorkerProfiles.workerRoleOf(job.role), sandboxFacts, toolchain);
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
 }
 
 /** `null` for a job that is no Airlock agent; `conflicts-unknown` when neither the kept facts nor git tell which files conflict. */
-function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, workingDirectory: string): AirlockFacts | null | 'conflicts-unknown' {
+function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, checkout: string): AirlockFacts | null | 'conflicts-unknown' {
   if (job.kind !== 'merge-agent' || job.parentJobId === null) return null;
   const mergeJob       = board.jobs().find((candidate) => candidate.id === job.parentJobId);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
@@ -698,7 +696,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
     const conflict = JobLaunch.mainMergeConflictOf(trackerDirectory, mergeJob);
     return {
       mergePlacement:  'before-human-code-review',
-      worktree:        workingDirectory,
+      worktree:        checkout,
       branchTip:       conflict?.branchTip ?? '',
       targetTip:       conflict?.targetTip ?? '',
       phase:           're-reviewing',
@@ -709,11 +707,11 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   }
   const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
   const phase          = airlockAgentPhaseOf(board, job);
-  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, workingDirectory);
+  const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
   return {
     mergePlacement:  'airlock',
-    worktree:        workingDirectory,
+    worktree:        checkout,
     branchTip:       mergeJob?.airlock?.branchTip ?? '',
     targetTip:       mergeJob?.airlock?.targetTip ?? '',
     phase,
@@ -787,7 +785,9 @@ function launchWatcher(
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
   const instructions = InstructionFiles.readingFor(workspace.rootDirectory, request.mainLine, board.pipeline(), job);
   if (instructions.verdict === 'instructions-missing') return { kind: 'instructions-missing', jobId: job.id, path: instructions.path };
-  const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [workspace.rootDirectory]);
+  const location = projectLocationOf(workspace.rootDirectory);
+  // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
+  const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [location.repositoryRoot]);
   if (program.verdict === 'refused') return {
     kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
   };
@@ -799,14 +799,16 @@ function launchWatcher(
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
-  const workingDirectory = PipelineAgentSessions.isPipelineAgentJob(job)
-    ? PipelineAgentSessions.prepareSnapshot({ workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine }, board, job)
-    : workingDirectoryOf(workspace, job);
+  const snapshotContext = { workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine };
+  const place = PipelineAgentSessions.isPipelineAgentJob(job)
+    ? SessionPlaces.sessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job), true)
+    : SessionPlaces.ticketSessionPlaceOf(workspace, location, job);
+  const { workingDirectory } = place;
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
     const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
       job.id,
-      { worktree: workingDirectory, sandboxDenyShape: agentAdapter.sandboxDenyShape },
+      { worktree: place.checkout, sandboxDenyShape: agentAdapter.sandboxDenyShape, projectPrefix: location.projectPrefix },
       request.folderMaker,
     );
     if (unmadeRoot !== null) {
@@ -814,7 +816,7 @@ function launchWatcher(
       return unmadeRoot;
     }
   }
-  const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, workingDirectory);
+  const airlock = airlockFactsOf(board, workspace.trackerDirectory, job, place.checkout);
   if (airlock === 'conflicts-unknown') {
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
@@ -851,14 +853,14 @@ function launchWatcher(
       { [JOB_ID_VARIABLE]: job.id, [HATCH_DIRECTORY_VARIABLE]: hatchDirectory },
       agentAdapter.inheritedVariableNames
     ),
-    profile:           launchProfileOf(jobLaunchContext, board, job, workingDirectory, hatchDirectory),
+    profile:           launchProfileOf(jobLaunchContext, board, job, place, hatchDirectory),
     confinement:       launchFacts.confinement,
     jobFilesDirectory: jobFolder,
     reportSchema:      reportSchemaOf(board, job),
     ...(billing === undefined ? {} : { billing }),
   };
   if (JobLaunch.isWorktreeJob(job) || job.kind === 'merge-agent') {
-    const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(workspace.rootDirectory), job.id);
+    const notice = WorkerProfiles.unsignedCommitNoticeOf(launchRequest.profile, repositorySignsCommits(location.repositoryRoot), job.id);
     if (notice !== null) request.log(notice);
   }
   if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
@@ -971,6 +973,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
   const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
+  // Read once for the Overseer's life: a project moved in its repository moves only while no Overseer runs.
+  const projectLocation = projectLocationOf(request.workspace.rootDirectory);
   const { platformPorts } = request;
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = GateRunSlots.createGateRunSlots({
@@ -1018,7 +1022,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   /** A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`. */
   function overseerGateLineOf(worktreePath: string, profilePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
     const facts = WorkerProfiles.sandboxFactsOf({
-      repositoryRoot:   request.workspace.rootDirectory,
+      repositoryRoot:   projectLocation.repositoryRoot,
+      projectPrefix:    projectLocation.projectPrefix,
       dataFolder:       request.workspace.trackerDirectory,
       monitorFolder:    request.monitorFolder,
       homeDirectory:    request.homeDirectory,
@@ -1144,7 +1149,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   const airlocks = createAirlocks({
-    repositoryRoot: request.workspace.rootDirectory,
+    repositoryRoot: projectLocation.repositoryRoot,
     mainLine:       request.mainLine,
     branchNames:    request.branchNames,
     worktreesRoot,
@@ -1167,6 +1172,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         prepare:         pipeline?.prepare ?? [],
         gates:           pipeline === null ? [] : PipelineUtil.gatesOfPhase(pipeline, phase),
         directory:       worktreePath,
+        projectPrefix:   projectLocation.projectPrefix,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
         confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, commandArguments, confinement),
@@ -1198,13 +1204,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },
     mainConstitutionOf:     () => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine),
-    repositorySignsCommits: () => repositorySignsCommits(request.workspace.rootDirectory),
+    repositorySignsCommits: () => repositorySignsCommits(projectLocation.repositoryRoot),
   });
 
   /** Rechecked every pass: a notice goes once what git declined to remove is gone. */
   function stillDeclinedCleanups(): DeclinedCleanup[] {
     declinedCleanups = declinedCleanups.filter((declined) => (
-      GroupWorktrees.cleanupIsStillDeclined(request.workspace.rootDirectory, worktreesRoot, declined.groupBranch, declined.cleanup)
+      GroupWorktrees.cleanupIsStillDeclined(projectLocation.repositoryRoot, worktreesRoot, declined.groupBranch, declined.cleanup)
     ));
     return declinedCleanups;
   }

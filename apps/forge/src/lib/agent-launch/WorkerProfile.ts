@@ -1,26 +1,36 @@
 /** A role's permissions as neutral data, every path absolute; each adapter renders its own settings and flags from it. */
 export interface WorkerProfile {
-  readonly writableRoots:          readonly string[];
-  readonly deniedWritableRoots:    readonly string[];
-  readonly deniedReadableRoots:    readonly string[];
-  readonly bashNetworkDomains:     readonly string[];
-  readonly webNetworkDomains:      readonly string[] | 'any' | 'none';
+  readonly writableRoots:            readonly string[];
+  readonly deniedWritableRoots:      readonly string[];
+  readonly deniedReadableRoots:      readonly string[];
+  readonly bashNetworkDomains:       readonly string[];
+  readonly webNetworkDomains:        readonly string[] | 'any' | 'none';
   /** The one folder outside the working directory the session may write. */
-  readonly extraWritableDirectory: string;
+  readonly extraWritableDirectory:   string;
   /** Argv prefixes, such as `['git', 'commit']`. */
-  readonly allowedCommandPrefixes: readonly (readonly string[])[];
-  readonly deniedCommandPrefixes:  readonly (readonly string[])[];
-  readonly askUser:                boolean;
-  readonly skills:                 boolean;
-  readonly subagents:              readonly AgentDefinition[];
-  readonly attribution:            'none';
+  readonly allowedCommandPrefixes:   readonly (readonly string[])[];
+  readonly deniedCommandPrefixes:    readonly (readonly string[])[];
+  readonly askUser:                  boolean;
+  readonly skills:                   boolean;
+  readonly subagents:                readonly AgentDefinition[];
+  readonly attribution:              'none';
   /** The repository folder: instruction files in the folders above it never reach the session. */
-  readonly instructionsRoot:       string;
+  readonly instructionsRoot:         string;
+  /**
+   * The checkout a session started in a project folder below its root works on: Edit and Write reach all of it, as its sandbox does.
+   * Absent, they reach the working directory.
+   */
+  readonly writeRoot?:               string;
+  /**
+   * The main checkout's folders above a checkout nested in it, whose instruction files and rules would reach the session beside the
+   * checkout's own copies; absent when the session reads them as a session at its repository's root always has.
+   */
+  readonly nestedCheckoutAncestors?: readonly string[];
   /** The `core.hooksPath` the session's git runs with, whose `commit-msg` refuses an attribution trailer. */
-  readonly gitHooksDirectory:      string;
-  readonly commitSigning:          CommitSigning;
+  readonly gitHooksDirectory:        string;
+  readonly commitSigning:            CommitSigning;
   /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */
-  readonly networkDomainGuard:     NetworkDomainGuard | null;
+  readonly networkDomainGuard:       NetworkDomainGuard | null;
 }
 
 /**

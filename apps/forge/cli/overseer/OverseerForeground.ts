@@ -51,6 +51,7 @@ import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../
 import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
 import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
 import { PictureStore }                                             from '../../src/services/tracker/PictureStore.ts';
+import { projectLocationOf }                                        from '../../src/services/tracker/ProjectLocation.ts';
 import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
 import { branchNamesOf }                                            from '../../src/shared/BranchNames.ts';
@@ -351,7 +352,9 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
   const log         = overseerLoggerOf(context, files);
-  const mainLine    = mainLineOf(workspace.rootDirectory);
+  // Git runs at the repository's root, never in a tracker's folder below it.
+  const { repositoryRoot } = projectLocationOf(workspace.rootDirectory);
+  const mainLine    = mainLineOf(repositoryRoot);
   const branchNames = branchNamesOf(progress.branchNamespace ?? null);
   const mergeForecastCache = createMergeForecastCache();
   const mainLineReads = new MainLineReads(workspace.rootDirectory);
@@ -365,7 +368,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       return versions;
     },
     manifestMatches: () => manifestMatchesIn(workspace.rootDirectory),
-    landingMark:     () => tipOf(workspace.rootDirectory, mainLine),
+    landingMark:     () => tipOf(repositoryRoot, mainLine),
     // Forced: an answer moves no fingerprint the pass compares.
     onLearned:       () => current?.drivePass.wake(true),
   });
