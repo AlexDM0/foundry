@@ -48,7 +48,7 @@ export class GateProfiles {
       phase:               request.phase,
       gate:                structuredClone(request.gate),
       gateHash:            gateHashOf(request.gate),
-      prepare:             request.prepare.map((step) => ({ name: step.name, run: step.run })),
+      prepare:             request.prepare.map((step) => ({ name: step.name, run: step.run, ...(step.in === undefined ? {} : { in: step.in }) })),
       state:               'queued',
       stopRequested:       false,
       elapsedMilliseconds: null,

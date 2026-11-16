@@ -1,9 +1,10 @@
 /**
  * The gate profile moves on a Board. What matters: a press queues one gate in one phase, and a second press while that gate and phase have
- * a run queued or running refuses `gate-profile-running`; only the newest run of a gate and phase is kept, and run ids are never reused; a
- * run ends with its duration and what its gate reported of its cache, except one User asked to stop, which ends `stopped` with neither; a
- * Stop ends a queued run at once and only marks a running one; an Overseer start stops a run left running and leaves a queued one queued;
- * and a malformed file refuses every move and is never written over.
+ * a run queued or running refuses `gate-profile-running`; a run keeps each prepare step's folder, so it prepares where the pipeline does;
+ * only the newest run of a gate and phase is kept, and run ids are never reused; a run ends with its duration and what its gate reported
+ * of its cache, except one User asked to stop, which ends `stopped` with neither; a Stop ends a queued run at once and only marks a running
+ * one; an Overseer start stops a run left running and leaves a queued one queued; and a malformed file refuses every move and is never
+ * written over.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -41,6 +42,14 @@ describe('a press', () => {
     });
     expect(records.map((record) => record.kind)).toEqual(['gate-profile-requested']);
     expect(board.gateProfilesWrite()).toMatchObject({ write: 'profiles', profiles: { nextRunNumber: 2 } });
+  });
+
+  test('keeps each prepare step\'s folder, and leaves a step with none without one', () => {
+    const { board } = boardFixture();
+
+    const { run } = board.queueGateProfile(request({ prepare: [{ name: 'install', run: 'bun install', in: '/' }, { name: 'build', run: 'bun run build' }] }), AT);
+
+    expect(run.prepare).toEqual([{ name: 'install', run: 'bun install', in: '/' }, { name: 'build', run: 'bun run build' }]);
   });
 
   test('refuses gate-profile-running while that gate and phase have a run queued or running, and takes another phase', () => {
