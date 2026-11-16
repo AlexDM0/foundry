@@ -106,7 +106,9 @@ purpose is that the owner sees the cost and the order before accepting a whiteli
 - All new or changed constitutions land in one commit job; the pending state names how many.
 - Apply is refused, with the reason in the owner's words, when it would remove or rename an entity a ticket names,
   or turn a single pipeline into entities while a ticket is in progress or in review.
-- After a first Apply in monorepo mode, pending tickets without an entity are listed for the owner to assign.
+- After a first Apply in monorepo mode, the product owner gives every pending ticket without an entity one, from the
+  ticket and the files it names. The builder shows its progress and each ticket's entity with the reason, read-only:
+  the owner assigns nothing. Where the product owner cannot tell, it asks the owner, as intake does (E81).
 
 ### 4.7 The live view
 
@@ -126,7 +128,7 @@ invent others.
 | `PipelineSetup` with one `findings`, one `constitution` draft, one `draft`, one `check` | The layout finding; findings, a constitution draft and a check per entity; one draft that holds every entity. |
 | Setup steps `billing`, `research`, `constitution`, `design`, `apply` | The step `entities` after `research`. The setup record keeps its format version; entities are optional keys in it. |
 | An instruction entry `{kind:'constitution'}` with no target; `InstructionsEditor` shows one fixed constitution | The entry means the constitution of the entity whose agent is edited. |
-| No ticket control in the pipeline view | A control command that assigns an entity to a ticket, for the list of 4.6. |
+| No ticket control in the pipeline view | Still none. A product-owner job assigns the entities of 4.6, with its progress per ticket. |
 | Route `#pipeline/edit/constitution` | A route per entity. |
 | Gate profiles and cache marks keyed by gate name and phase | Keyed by entity, gate name and phase. |
 | One pipeline agent, one meter | One pipeline-agent session per entity during research, constitution and design; the meter shows each. |

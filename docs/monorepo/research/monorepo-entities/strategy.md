@@ -96,8 +96,9 @@ Forge-level keys stay at the top of `pipeline.json`: `airlock`, `approvals`, `bi
 
 ### 3.3 Ticket
 
-- `entity`: required to ready a ticket in a top-level forge. The owner assigns it in the Bridge; the CLI verb is
-  `ticket entity`.
+- `entity`: required to ready a ticket in a top-level forge. The product owner assigns it, at intake and, after a
+  first Apply in monorepo mode, to every pending ticket without one; it asks the owner when it cannot tell (E81).
+  The owner assigns none. The CLI verb, which the product owner runs, is `ticket entity`.
 - `crosses`: optional list of whitelisted packages intake expects the ticket to cross into. A forecast for the
   board; what the branch really changed decides the stages.
 
@@ -337,8 +338,9 @@ half-built model.
 - `src/lib/tracker-model/utils/EntityOwnershipUtil.ts` (new, pure, DOM-safe): `ownerOf`, `pathsByOwnerOf`,
   `dependentsOf`, `stageOrderOf`.
 - Ticket: `entity?`, `crosses?` in `@types/Ticket.ts`, `TicketFields`, the ticket file's ingestion and writer, and
-  the filing draft's fields. `ticket add --entity`, `ticket entity`, and a control command so the Bridge can assign
-  one. `ticket ready` refuses `ticket-without-entity`. Both wording channels of `OperationRefusalWordingUtil`.
+  the filing draft's fields. `ticket add --entity` and `ticket entity`, which the product owner runs; no Bridge
+  control assigns one. `ticket ready` refuses `ticket-without-entity`. Both wording channels of
+  `OperationRefusalWordingUtil`.
 - Rules and frozen files: the pipeline row of Deviations and `cli/OlderPipelineRefusal.spec.ts` name versions 2 and
   3; `docs/cli.md` with `resources/templates/Reference.md`; `cli/CommandTable.ts`, `cli/HelpText.ts`;
   `cli/FrozenInstalledSurface.json`; `INSTALL_VERSION` and the `InstallChangeWatch` recording; a minor of
@@ -405,8 +407,8 @@ ticket. A non-empty `whitelist` is still refused.
 - `PipelineDraftField` gains an entity scope and the fields of an entity's definition; `PipelineSetups.ts`,
   `SetupPayloadSchemas.ts`, `PipelineFactsAssembly.ts`.
 - Gate profiles and the pipeline check keyed by entity.
-- Apply: every changed constitution in one commit job; refusals for E91 and E94; the list of pending tickets
-  without an entity.
+- Apply: every changed constitution in one commit job; refusals for E91 and E94; a product-owner job that gives
+  every pending ticket without an entity one.
 - The Bridge's side is [the pipeline builder's monorepo mode](pipeline-builder-monorepo-mode.md).
 
 ### Step 6. Intake, board, monitor
