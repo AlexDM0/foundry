@@ -22,7 +22,7 @@ import type { Job }                                                             
 import type { Pipeline, PipelineBilling }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup, PipelineSetupMode }                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
-import { WorktreesFolder }                                                                from '../../shared/WorktreesFolder.ts';
+import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
 import {
   clearCustoms,
   launchSnapshotOf,
@@ -60,12 +60,12 @@ export interface SnapshotContext {
 }
 
 export interface TurnEndContext {
-  workspace:         Workspace;
-  worktreesRoot:     string;
-  /** A group ticket's work goes to this prefix followed by its group's name: a landing that releases a group deletes that branch. */
-  groupTargetPrefix: string;
+  workspace:     Workspace;
+  worktreesRoot: string;
+  /** A group ticket's work goes to its group's branch: a landing that releases a group deletes that branch. */
+  branchNames:   BranchNames;
   /** How a path compares with git's spelling, from the `DataFolders` port. */
-  pathStyle:         GitPathStyle;
+  pathStyle:     GitPathStyle;
 }
 
 function isPipelineAgentJob(job: Readonly<Job>): boolean {
@@ -182,14 +182,15 @@ function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: s
 /** The refs other jobs and the Overseer's own landings and refreshes move while the session runs, which V14 lets pass. */
 function refMovesAllowedFor(context: TurnEndContext, board: Board, job: Readonly<Job>): RefMovesAllowed {
   const tickets = board.tickets();
+  const { ticketBranchOf } = context.branchNames;
   return refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
     ownBranch:             '',
-    otherJobBranches:      board.jobs().flatMap((other) => (other.id === job.id || other.ticketIds[0] === undefined ? [] : [WorktreesFolder.ticketBranchOf(other.ticketIds[0])])),
-    ticketBranchOf:        WorktreesFolder.ticketBranchOf,
+    otherJobBranches:      board.jobs().flatMap((other) => (other.id === job.id || other.ticketIds[0] === undefined ? [] : [ticketBranchOf(other.ticketIds[0])])),
+    ticketBranchOf,
     releasedGroupBranchOf: (ticketId) => {
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
-      return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
+      return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.branchNames.groupTargetPrefix}${frontmatter.group}` : null;
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(context.worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, jobId),

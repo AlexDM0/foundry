@@ -2,7 +2,7 @@
  * The build prompt's gates section. What matters: each gate the builder runs is listed by name with its exact command and its fix, in the
  * pipeline's order, under the rule to pass every gate on the final commit; a gate with a fix says to run it before fixing by hand; an
  * `overseerOnly` gate is named as the Overseer's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
- * the message says the repository has no gates.
+ * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -26,10 +26,12 @@ const GATES: readonly PipelineGate[] = [
   { name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix' },
 ];
 
-function buildMessageOf(gates: readonly PipelineGate[] | null, confinement: JobLaunchFacts['confinement'] = 'confined'): string {
+function buildMessageOf(gates: readonly PipelineGate[] | null, confinement: JobLaunchFacts['confinement'] = 'confined', branch = 'ticket-012'): string {
   const facts: JobLaunchFacts = {
     confinement,
-    tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+    tickets: [{
+      id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch
+    }],
     checksLine:             'bun test',
     gates,
     earlierSessionReplaced: false,
@@ -97,7 +99,9 @@ describe('the build prompt\'s branch rule', () => {
     const reviewJob = { ...BUILD_JOB, kind: 'review', role: 'reviewer' } as unknown as Readonly<Job>;
     const reviewMessageOf = (confinement: JobLaunchFacts['confinement']): string => OverseerWording.launchTextOf(reviewJob, {
       confinement,
-      tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+      tickets: [{
+        id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+      }],
       checksLine:             'bun test',
       gates:                  GATES,
       earlierSessionReplaced: false,
@@ -116,8 +120,10 @@ describe('the build prompt\'s branch rule', () => {
       ...BUILD_JOB, kind: 'review', role: 'reviewer', target: 'group-checkout'
     } as unknown as Readonly<Job>;
     const reviewMessageOf = (mergeApprovalIsOn: boolean): string => OverseerWording.launchTextOf(reviewJob, {
-      confinement:            'confined',
-      tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+      confinement: 'confined',
+      tickets:     [{
+        id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+      }],
       checksLine:             'bun test',
       gates:                  GATES,
       mergeApprovalIsOn,
@@ -136,7 +142,9 @@ describe('the build prompt\'s branch rule', () => {
 // A review that did not hold resumes the builder's session: it is handed the findings, never the whole build prompt again.
 describe('the first line of a builder resumed after its review', () => {
   const facts: JobLaunchFacts = {
-    tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+    tickets: [{
+      id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+    }],
     checksLine:             'bun test',
     gates:                  GATES,
     earlierSessionReplaced: false,
@@ -168,5 +176,15 @@ describe('the first line of a builder resumed after its review', () => {
     expect(conflictMessage).toContain('- src/Basket.ts\n- docs/basket.md');
     expect(conflictMessage).toContain('resume 1 of 2');
     expect(conflictMessage).not.toContain('found a claim that does not hold');
+  });
+});
+
+describe('the build prompt\'s branch', () => {
+  test('is the ticket\'s branch as the board names it, bare or under its namespace', () => {
+    expect(buildMessageOf(GATES)).toContain('worktree on branch `ticket-012`');
+    const namespaced = buildMessageOf(GATES, 'confined', 'forge/web/ticket-012');
+    expect(namespaced).toContain('worktree on branch `forge/web/ticket-012`');
+    expect(namespaced).toContain('Commit on `forge/web/ticket-012`');
+    expect(namespaced).not.toContain('`ticket-012`');
   });
 });

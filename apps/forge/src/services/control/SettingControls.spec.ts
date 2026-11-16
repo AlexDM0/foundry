@@ -20,7 +20,7 @@ const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 const WORKSPACE = workspacePathsFor('/example-agency/storefront');
 
 const STORED_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [],
   gates:   [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
   phases:  { build: ['types', 'test'], review: ['types'], merge: ['types', 'test'] },

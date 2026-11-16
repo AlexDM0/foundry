@@ -2,11 +2,13 @@
 import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
 
-export const PIPELINE_FORMAT_VERSION = 2;
+export const PIPELINE_FORMAT_VERSION = 3;
 
 export interface PipelineStep {
   name: string;
   run:  string;
+  /** The folder the step runs in, as a gate's `in` names one; absent runs it in the project's folder. */
+  in?:  string;
 }
 
 export interface PipelineGate {
@@ -14,7 +16,10 @@ export interface PipelineGate {
   run:           string;
   /** The shell line that repairs what the gate reports, such as a formatter; absent when the gate has none. */
   fix?:          string;
-  /** The folder, relative to the worktree, the gate runs in; absent runs it at the worktree's root. */
+  /**
+   * The folder the gate runs in, relative to the project's folder in the worktree, or to the worktree's root when it leads with `/`;
+   * absent runs it in the project's folder.
+   */
   in?:           string;
   /** The git pathspec-style patterns of the files that define the gate. */
   definedBy?:    string[];
@@ -104,6 +109,8 @@ export interface Pipeline {
   approvals?:    Partial<Record<PipelineApproval, boolean>>;
   /** Absent bills by subscription; not part of the pipeline hash, as `approvals` is not. */
   billing?:      PipelineBilling;
+  /** The repository paths besides the project a ticket may change, each leading with `/`; absent reaches none. */
+  reach?:        string[];
 }
 
 /**

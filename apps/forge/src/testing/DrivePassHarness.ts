@@ -15,6 +15,7 @@ import { createDrivePass, type DrivePass, type DrivePassRequest } from '../servi
 import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
 import { WATCHER_ENTRY_PATH, WatcherBundle }                      from '../services/overseer/WatcherBundle.ts';
 import type { Workspace }                                         from '../services/tracker/Workspace.ts';
+import { branchNamesOf }                                          from '../shared/BranchNames.ts';
 
 export const FAKE_WATCHER_BUNDLE_PATH = '/no-bundle-is-read-by-the-recorded-watcher-stages';
 
@@ -68,6 +69,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     answerMessageOf:       (answer) => `Example answers ${JSON.stringify(answer)}`,
     setupMessageWordingOf: (message) => JSON.stringify(message),
     homeDirectory:         request.monitorFolder,
+    branchNames:           branchNamesOf(null),
     onBatonTakenOver:      () => request.log('taken over'),
   };
   // Property by property, since a spread would read once an accessor a spec hooks a pass with.

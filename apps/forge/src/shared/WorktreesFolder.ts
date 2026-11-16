@@ -1,6 +1,7 @@
-/** The worktrees root beside the repository, and the names it gives a ticket's branch and worktree and the Hatch folders in it. */
+/** The worktrees root beside the tracker, and the names it gives a ticket's worktree and the Hatch folders in it. */
 import { join } from 'node:path';
 
+import { branchNamesOf } from './BranchNames.ts';
 import { PRODUCT_NAMES } from './constants/ProductNames.ts';
 
 /** The jobs' Hatch folders, one per job, sit in this folder of the worktrees root. */
@@ -10,12 +11,9 @@ function worktreesRootOf(repositoryRoot: string): string {
   return join(repositoryRoot, PRODUCT_NAMES.WORKTREES_FOLDER);
 }
 
-function ticketBranchOf(ticketId: string): string {
-  return `ticket-${ticketId}`;
-}
-
+/** Named as a bare-named branch is: the worktrees root is the tracker's own, so no namespace is needed in it. */
 function ticketWorktreeOf(repositoryRoot: string, ticketId: string): string {
-  return join(worktreesRootOf(repositoryRoot), ticketBranchOf(ticketId));
+  return join(worktreesRootOf(repositoryRoot), branchNamesOf(null).ticketBranchOf(ticketId));
 }
 
 function hatchRootOf(repositoryRoot: string): string {
@@ -24,7 +22,6 @@ function hatchRootOf(repositoryRoot: string): string {
 
 export const WorktreesFolder = Object.freeze({
   hatchRootOf,
-  ticketBranchOf,
   ticketWorktreeOf,
   worktreesRootOf,
 });

@@ -17,6 +17,7 @@ import type { ShellLine }                        from '../../lib/shell-line/Shel
 import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { BranchNames }                      from '../../shared/BranchNames.ts';
 import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
 import { GpgDirectories }                        from './GpgDirectories.ts';
 import { overseerFilesIn }                       from './OverseerFiles.ts';
@@ -31,7 +32,7 @@ export interface SandboxFacts {
   commonGitDirectory:        string;
   /** The main line and every live `group-<name>` branch: the refs only an Overseer landing moves. */
   targetBranches:            readonly string[];
-  /** Every `ticket-<id>` branch but the job's own. */
+  /** Every ticket branch of the board but the job's own, and on a namespaced board every branch of another namespace. */
   otherTicketBranches:       readonly string[];
   /** `<common>/worktrees/<name>/` of every linked worktree but the job's own. */
   otherWorktreeAdminFolders: readonly string[];
@@ -300,7 +301,7 @@ export interface SandboxFactsRequest {
   worktree:             string;
   ownBranch:            string;
   mainLine:             string;
-  groupPrefix:          string;
+  branchNames:          BranchNames;
   hatchDirectory:       string;
   executableSearchPath: readonly string[];
   cacheFolderStyle:     CacheFolderStyle;
@@ -328,12 +329,21 @@ function otherWorktreeAdminFoldersOf(style: GitPathStyle, listing: AdminFolderLi
     .map((folder) => pathModule.join(worktreesFolder, pathModule.basename(folder)));
 }
 
+/**
+ * The branches a job's sandbox may not move: the board's other ticket branches and, for a namespaced board, every branch of another
+ * namespace. A bare-named board denies only its ticket branches, as before namespaces.
+ */
+function otherBoardBranchesOf(branches: readonly string[], ownBranch: string, branchNames: BranchNames): string[] {
+  return branches.filter((branch) => branch !== ownBranch && (branch.startsWith(branchNames.ticketBranchPrefix) || branchNames.branchIsInAnotherNamespace(branch)));
+}
+
 /** Read from git at launch: a ref or worktree created later is V14's to catch, never this list's. */
 function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirectories | null = GpgDirectories.read(request.homeDirectory)): SandboxFacts {
   const commonGitDirectory = commonGitDirectoryOf(request.cacheFolderStyle, request.repositoryRoot);
   const branches = gitLinesOf(request.repositoryRoot, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']);
   const worktreeListing = gitLinesOf(request.repositoryRoot, ['worktree', 'list', '--porcelain']);
-  const ticketBranches = branches.filter((branch) => branch.startsWith('ticket-') && branch !== request.ownBranch);
+  const { branchNames } = request;
+  const ticketBranches = otherBoardBranchesOf(branches, request.ownBranch, branchNames);
   const adminFolders = otherWorktreeAdminFoldersOf(request.cacheFolderStyle, {
     commonGitDirectory,
     listedAdminFolders: worktreeListing
@@ -348,7 +358,7 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     homeDirectory:             request.homeDirectory,
     worktree:                  request.worktree,
     commonGitDirectory,
-    targetBranches:            [request.mainLine, ...branches.filter((branch) => branch.startsWith(request.groupPrefix))],
+    targetBranches:            [request.mainLine, ...branches.filter((branch) => branch.startsWith(branchNames.groupTargetPrefix))],
     otherTicketBranches:       request.sandboxDenyShape === 'path-rules' ? ticketBranches : liveBranchesOf(ticketBranches, worktreeListing),
     otherWorktreeAdminFolders: adminFolders,
     hatchDirectory:            request.hatchDirectory,
@@ -383,6 +393,7 @@ export const WorkerProfiles = Object.freeze({
   workerRoleOf,
   workerToolchainOf,
   sandboxFactsOf,
+  otherBoardBranchesOf,
   otherWorktreeAdminFoldersOf,
   fixedDeniedWritableRootsOf,
   deniedWritableRootsOf,

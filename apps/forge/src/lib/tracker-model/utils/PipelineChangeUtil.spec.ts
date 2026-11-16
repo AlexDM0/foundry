@@ -10,11 +10,11 @@ import type { Pipeline }      from '../@types/Pipeline.ts';
 import { PipelineChangeUtil } from './PipelineChangeUtil.ts';
 
 const MINIMAL: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 const BASE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install' }, { name: 'generate', run: 'bun run generate' }],
   gates:   [{ name: 'lint', run: 'bun run lint' }, { name: 'tests', run: 'bun test' }],
   phases:  { build: ['lint', 'tests'], review: ['tests'], merge: ['lint', 'tests'] },
@@ -38,7 +38,7 @@ describe('the change list', () => {
       phases:  { merge: ['lint', 'tests'], review: ['tests'], build: ['lint', 'tests'] },
       gates:   [{ run: 'bun run lint', name: 'lint' }, { run: 'bun test', name: 'tests' }],
       prepare: [{ run: 'bun install', name: 'install' }, { run: 'bun run generate', name: 'generate' }],
-      version: 2,
+      version: 3,
     } as Pipeline;
 
     expect(PipelineChangeUtil.changesBetween(BASE, reordered, false)).toEqual([]);

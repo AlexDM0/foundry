@@ -88,7 +88,7 @@ async function runLine(request: GateLineRequest, storedLine: string, directory: 
 async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | GateLineRefusal> {
   const prepareConfinement = GateRun.prepareConfinementOf(request.gates);
   for (const step of request.prepare) {
-    const run = await runLine(request, step.run, request.directory, request.grantsWrites ? prepareConfinement : withoutWrites(prepareConfinement));
+    const run = await runLine(request, step.run, GateRun.gateDirectoryOf(request.directory, step), request.grantsWrites ? prepareConfinement : withoutWrites(prepareConfinement));
     if ('verdict' in run) return run;
     const failureOutput = GateRun.prepareFailureOutputOf(request.shellLine, run, request.directory);
     if (failureOutput === null) continue;

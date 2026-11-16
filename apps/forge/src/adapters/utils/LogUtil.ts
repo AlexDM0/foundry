@@ -248,6 +248,10 @@ function sentenceOf(record: LogRecordContent): string {
       return `Gates of the ${record.fields.phase} phase ordered: ${record.fields.names.join(', ')}`;
     case 'pipeline-approval-set':
       return `Approval ${record.fields.approval} set ${record.fields.state}`;
+    case 'pipeline-reach-set':
+      return record.fields.paths.length === 0 ? 'Reach cleared' : `Reach set to ${record.fields.paths.join(' ')}`;
+    case 'branch-namespace-set':
+      return `Branch namespace set to ${record.fields.namespace}`;
     case 'check-command-set':
       return record.fields.command === null ? 'Check command cleared' : `Check command set to ${record.fields.command}`;
     case 'install-command-set':

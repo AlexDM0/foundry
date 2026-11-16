@@ -13,7 +13,7 @@ import { InstructionsEditorModel }         from './InstructionsEditorModel.ts';
 const EDIT_HREF = '#pipeline/setup/constitution';
 
 const MINIMAL_DRAFT: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
 };
 
 const REVIEWER_BRIEF: ResolvedInstructionEntry = {

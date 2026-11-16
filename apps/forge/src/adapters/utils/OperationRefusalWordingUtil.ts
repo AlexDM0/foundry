@@ -278,6 +278,10 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `No gate pipeline is stored, so approval ${detail.approval} was not set: set the gates first`
         + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
         + `. ${NOTHING_WAS_WRITTEN}`;
+    case 'reach-without-pipeline':
+      return 'No gate pipeline is stored, so the reach was not set: set the gates first'
+        + adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} gate add\` or \`${PRODUCT_NAMES.PROGRAM} gate none\``, ', or state that there are none')
+        + `. ${NOTHING_WAS_WRITTEN}`;
     case 'gate-profiles-unreadable':
       return `The gate profile runs cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove gate-profiles.json in the data folder.`;
     case 'gate-profile-running':

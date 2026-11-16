@@ -111,9 +111,9 @@ function decisionWordingOf(draft: DecisionDraft): DecisionWording {
 const NO_CHECKS_LINE = '(no checks line is stored)';
 
 /** The review's last step while merge approval is on, so User accepts only a branch that merges cleanly and is green. */
-function mergeApprovalStepOf(target: string, ticketId: string): string {
+function mergeApprovalStepOf(target: string, ticketBranch: string): string {
   return `- Merge approval is on. As the last step of your review, merge the target into the branch: \`git merge --no-edit ${target}\` `
-    + `on \`ticket-${ticketId}\`. Resolve each conflict, commit the merge, and make the checks line green on the result. User accepts the `
+    + `on \`${ticketBranch}\`. Resolve each conflict, commit the merge, and make the checks line green on the result. User accepts the `
     + 'merge only when the branch merges cleanly and is green.';
 }
 
@@ -191,6 +191,7 @@ type LaunchTicket = JobLaunchFacts['tickets'][number];
 function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts): string {
   return filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
+    ticketBranch:   ticket.branch,
     ticketTitle:    ticket.title,
     ticketBody:     ticket.body.trim(),
     jobId:          job.id,
@@ -207,6 +208,7 @@ function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
 function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, mergeApprovalStep: string): string {
   return filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
+    ticketBranch:   ticket.branch,
     ticketTitle:    ticket.title,
     ticketBody:     ticket.body.trim(),
     jobId:          job.id,
@@ -484,7 +486,7 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
     return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock), roleBrief };
   }
   if (job.kind === 'review' && ticket !== undefined) {
-    const mergeApprovalStep = facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.id) : '';
+    const mergeApprovalStep = facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.branch) : '';
     return { firstMessage: reviewerInstructionsOf(job, ticket, facts, mergeApprovalStep), roleBrief };
   }
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };

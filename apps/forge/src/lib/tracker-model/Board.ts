@@ -748,8 +748,16 @@ export class Board {
     return this.trackerChanges.setOverseerState(state, at);
   }
 
+  setBranchNamespace(branchNamespace: string, at: string): Logged {
+    return this.trackerChanges.setBranchNamespace(branchNamespace, at);
+  }
+
   setPrepareStep(step: PipelineStep, at: string): PipelineChanged {
     return this.trackerChanges.setPrepareStep(step, at);
+  }
+
+  setReach(paths: readonly string[], at: string): PipelineChanged {
+    return this.trackerChanges.setReach(paths, at);
   }
 
   addGate(gate: PipelineGate, at: string, phases: readonly GatePhase[] | null = null): PipelineChanged {
@@ -1236,6 +1244,11 @@ export class Board {
 
   overseerState(): OverseerState {
     return this.dispatchQueries.overseerState();
+  }
+
+  /** `null` on a board whose branches have bare names. */
+  branchNamespace(): string | null {
+    return this.records.progress.branchNamespace ?? null;
   }
 
   /** `null` when none is stored, or the stored one could not be read: either way no gate is set. */

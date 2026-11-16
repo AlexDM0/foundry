@@ -110,6 +110,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'pipeline-gates-none':        ['gate', 'none'],
   'pipeline-gate-remove':       ['gate', 'remove', 'test'],
   'pipeline-approval-set':      ['gate', 'approval', 'tickets', 'off'],
+  'pipeline-reach-set':         ['gate', 'reach', '/packages/shared'],
   'merge-accept':               ['merge', 'accept', '1'],
   'merge-update':               ['merge', 'update', '1'],
   'pipeline-setup-start':       ['pipeline', 'setup', '--billing', 'api', '--max-budget-usd', '20'],

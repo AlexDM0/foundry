@@ -18,14 +18,14 @@ import {
   type OverseerFacts,
   type UsageFacts
 } from '../../../src/services/overseer/BoardState.ts';
-import { JobLiveFactsReader }  from '../../../src/services/overseer/JobLiveFactsReader.ts';
-import { MainLineReads }       from '../../../src/services/overseer/MainLineReads.ts';
-import { UsageLimits }         from '../../../src/services/overseer/UsageLimits.ts';
-import { requireTracker }      from '../../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }      from '../../../src/services/tracker/Workspace.ts';
-import { WorktreesFolder }     from '../../../src/shared/WorktreesFolder.ts';
-import type { CommandContext } from '../../CommandContext.ts';
-import { fullDocumentOf }      from '../../StatusDocuments.ts';
+import { JobLiveFactsReader }              from '../../../src/services/overseer/JobLiveFactsReader.ts';
+import { MainLineReads }                   from '../../../src/services/overseer/MainLineReads.ts';
+import { UsageLimits }                     from '../../../src/services/overseer/UsageLimits.ts';
+import { requireTracker }                  from '../../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                  from '../../../src/services/tracker/Workspace.ts';
+import { type BranchNames, branchNamesOf } from '../../../src/shared/BranchNames.ts';
+import type { CommandContext }             from '../../CommandContext.ts';
+import { fullDocumentOf }                  from '../../StatusDocuments.ts';
 
 export interface BoardStateSource {
   context:             CommandContext;
@@ -76,11 +76,13 @@ function tipSetOf(repositoryRoot: string, target: string, ticketIds: readonly st
 export function mergeForecastingIn(
   repositoryRoot: string,
   mainLine: string,
+  branchNames: BranchNames,
   cache: MergeForecastCache | null,
   predict: typeof predictMerges = predictMerges,
 ): MergeForecasting {
+  const { ticketBranchOf } = branchNames;
   const forecastsOf = (target: string, ticketIds: readonly string[]): MergeForecasts => {
-    const predictions = predict(repositoryRoot, ticketIds.map((ticketId) => ({ target, branch: WorktreesFolder.ticketBranchOf(ticketId) })));
+    const predictions = predict(repositoryRoot, ticketIds.map((ticketId) => ({ target, branch: ticketBranchOf(ticketId) })));
     const againstTarget = Object.fromEntries(ticketIds.map((ticketId, index) => {
       const prediction = predictions[index] ?? { verdict: 'prediction-failed', reason: '' };
       const conflictedFiles = prediction.verdict === 'clean' ? [] : prediction.verdict === 'conflicting' ? prediction.conflictedFiles : null;
@@ -90,18 +92,17 @@ export function mergeForecastingIn(
     const pairs = ticketIds.flatMap((ticketId) => cleanTicketIds
       .filter((cleanTicketId) => cleanTicketId !== ticketId && !(cleanTicketIds.includes(ticketId) && cleanTicketId < ticketId))
       .map((cleanTicketId) => [ticketId, cleanTicketId] as const));
-    const { ticketBranchOf } = WorktreesFolder;
     const pairPredictions = predict(repositoryRoot, pairs.map(([first, second]) => ({ target: ticketBranchOf(second), branch: ticketBranchOf(first) })));
     return { againstTarget, pairwiseConflicts: pairs.filter((_pair, index) => pairPredictions[index]?.verdict !== 'clean') };
   };
   return {
-    targetOf:     mergeTargetRuleOf(mainLine),
+    targetOf:     mergeTargetRuleOf(mainLine, branchNames.groupTargetPrefix),
     branchTreeOf: (ticketId) => {
-      const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}^{tree}`]);
+      const treeRun = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${ticketBranchOf(ticketId)}^{tree}`]);
       return GitProcess.succeeded(treeRun) ? treeRun.standardOutput.trim() : null;
     },
     forecastsOf: (target, ticketIds) => {
-      const tipSet = cache === null ? null : tipSetOf(repositoryRoot, target, ticketIds, WorktreesFolder.ticketBranchOf);
+      const tipSet = cache === null ? null : tipSetOf(repositoryRoot, target, ticketIds, ticketBranchOf);
       if (cache === null || tipSet === null) return forecastsOf(target, ticketIds);
       return cache.forecastsOf(target, tipSet, () => forecastsOf(target, ticketIds));
     },
@@ -155,10 +156,15 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
       }),
       silentSweeps: source.silentSweepsOf?.(job.id) ?? 0,
     }),
-    notices:            source.notices(),
-    overseer:           { ...source.overseer(), paused: board.overseerState() === 'paused' },
-    usage:              usageOf(context, pipeline?.billing?.mode === 'api'),
-    mergeForecasting:   source.mainLine === undefined ? null : mergeForecastingIn(workspace.rootDirectory, source.mainLine, source.mergeForecastCache ?? null),
+    notices:          source.notices(),
+    overseer:         { ...source.overseer(), paused: board.overseerState() === 'paused' },
+    usage:            usageOf(context, pipeline?.billing?.mode === 'api'),
+    mergeForecasting: source.mainLine === undefined ? null : mergeForecastingIn(
+      workspace.rootDirectory,
+      source.mainLine,
+      branchNamesOf(board.branchNamespace()),
+      source.mergeForecastCache ?? null,
+    ),
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
     pipelineSources:    {
       pipelineReading,

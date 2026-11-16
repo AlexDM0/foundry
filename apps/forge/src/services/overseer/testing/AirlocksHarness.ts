@@ -12,6 +12,7 @@ import type { PipelineAirlock }               from '../../../lib/tracker-model/@
 import type { MainConstitutionReading }       from '../../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
+import { branchNamesOf }                      from '../../../shared/BranchNames.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
@@ -119,7 +120,7 @@ export function createRecordedAirlocksHarness(
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
     pipeline: {
-      version: 2,
+      version: 3,
       prepare: [],
       gates:   [],
       phases:  { build: [], review: [], merge: [] },
@@ -159,12 +160,12 @@ export function createRecordedAirlocksHarness(
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
-    repositoryRoot:    repository,
-    mainLine:          'main',
-    groupTargetPrefix: 'group-',
+    repositoryRoot: repository,
+    mainLine:       'main',
+    branchNames:    branchNamesOf(null),
     worktreesRoot,
     worktreeOf,
-    limits:            { ...AIRLOCK_LIMITS, ...limits },
+    limits:         { ...AIRLOCK_LIMITS, ...limits },
     get refDeniesHold() {
       return settings.refDeniesHold;
     },

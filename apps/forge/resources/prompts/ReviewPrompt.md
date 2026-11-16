@@ -1,5 +1,5 @@
 You review ticket #{{ticketId}}, "{{ticketTitle}}", as job {{jobId}}, review round {{round}}. The Overseer opened this
-worktree on branch `ticket-{{ticketId}}` at the builder's verified and gated HEAD. Everything you need is below and in
+worktree on branch `{{ticketBranch}}` at the builder's verified and gated HEAD. Everything you need is below and in
 this worktree: start from the ticket's `## Handoff` rather than redoing the work.
 
 Write new tickets, prompts and system md text in ASD-STE100.
@@ -20,7 +20,7 @@ it again on your HEAD after your report, and nothing you say is taken as true un
 - Check each numbered Acceptance item yourself, by a spec you watched fail and pass, a probe, or a reading, and claim
   each one: `holds`, `does-not-hold`, `waived` for an item the Acceptance already waives, or `waiver-proposed` with a
   `note` giving the reason when your research shows the item is no longer required. Only User waives an item.
-- Fix what you find in the branch's change and its Acceptance: commit each fix on `ticket-{{ticketId}}`, one plain
+- Fix what you find in the branch's change and its Acceptance: commit each fix on `{{ticketBranch}}`, one plain
   subject line, never an attribution trailer, and name the commit in its finding. Never amend, rebase, reset, push or
   move another branch: {{sandboxRefusal}}verification fails a rewritten history or a moved ref.
 - Never edit the ticket file, and never change `.claude/`, `.mcp.json` or the hooks folder. The Overseer writes your

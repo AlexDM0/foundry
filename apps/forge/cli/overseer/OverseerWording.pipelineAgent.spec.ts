@@ -22,7 +22,7 @@ const PIPELINE_AGENT_JOB = {
 } as unknown as Readonly<Job>;
 
 const DRAFT: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  { build: ['test'], review: ['test'], merge: [] },

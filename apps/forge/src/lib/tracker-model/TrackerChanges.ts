@@ -40,6 +40,12 @@ export class TrackerChanges {
     return { logged, previousLimit, concurrency: this.dispatchQueries.concurrency() };
   }
 
+  /** Whether the board may take it now is its command's to judge: only git knows the branches the old names left. */
+  setBranchNamespace(branchNamespace: string, at: string): Logged {
+    this.records.progress.branchNamespace = branchNamespace;
+    return { logged: [this.records.logger.log({ kind: 'branch-namespace-set', fields: { namespace: branchNamespace } }, at)] };
+  }
+
   setOverseerState(state: OverseerState, at: string): OverseerStateSet {
     const { progress }   = this.records;
     const previousState  = this.dispatchQueries.overseerState();
@@ -163,6 +169,17 @@ export class TrackerChanges {
     const logged = [this.records.logger.log({ kind: 'pipeline-approval-set', fields: { approval, state: on ? 'on' : 'off' } }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.approvals = { ...pipeline.approvals, [approval]: on };
+    }, logged);
+  }
+
+  /** Refused with no stored pipeline, as an approval is: a file holding only the reach would read as no gates on purpose. */
+  setReach(paths: readonly string[], at: string): PipelineChanged {
+    this.refusePendingApply();
+    if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'reach-without-pipeline' });
+    const logged = [this.records.logger.log({ kind: 'pipeline-reach-set', fields: { paths: [...paths] } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      if (paths.length === 0) delete pipeline.reach;
+      else pipeline.reach = [...paths];
     }, logged);
   }
 

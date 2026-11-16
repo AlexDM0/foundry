@@ -33,6 +33,7 @@ import { LaunchSlotUtil }                                                       
 import { PipelineUtil }                                                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { EventLogEntry }                                                         from '../../lib/watcher/EventLog.ts';
 import type { SetupMessage }                                                          from '../../shared/@types/ControlContext.ts';
+import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }                                  from '../../shared/Environment.ts';
 import { WorktreesFolder }                                                            from '../../shared/WorktreesFolder.ts';
 import { AIRLOCK_LIMITS }                                                             from '../../shared/constants/AirlockLimits.ts';
@@ -45,7 +46,6 @@ import {
 } from '../../shared/constants/OverseerLimits.ts';
 import { type GateConfinement, type PipelineRunRequest, type PipelineVerdict } from '../lifecycle/GateRun.ts';
 import { MergeRun }                                                            from '../lifecycle/MergeRun.ts';
-import { GROUP_TARGET_PREFIX }                                                 from '../lifecycle/MergeTargets.ts';
 import { ReviewOutcome }                                                       from '../lifecycle/ReviewOutcome.ts';
 import { writeTracker, type TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                                 from '../tracker/TrackerReader.ts';
@@ -107,7 +107,7 @@ export interface JobLaunchText {
 
 /** What the launch text is filled from: the job's tickets as stored, and the checks line its work is gated by. */
 export interface JobLaunchFacts {
-  tickets:                readonly { id: string; title: string; body: string }[];
+  tickets:                readonly { id: string; title: string; body: string; branch: string }[];
   /** The stored gates as the shell line's display render, which an agent reads and nothing spawns; `null` with no pipeline stored. */
   checksLine:             string | null;
   /** The stored gates in run order, which a builder is briefed on; `null` with no pipeline stored. */
@@ -191,6 +191,8 @@ export interface DrivePassRequest {
   /** Narrowed to the launch allowlist before any session sees it. */
   inheritedEnvironment:              Readonly<Record<string, string | undefined>>;
   mainLine:                          string;
+  /** Read from the board when the Overseer starts; the namespace changes only while no Overseer runs. */
+  branchNames:                       BranchNames;
   /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */
   managedBlockMarker:                string;
   installVersionChanged:             () => boolean;
@@ -738,7 +740,7 @@ function checksLineOf(board: Board, shellLine: Pick<ShellLine, 'displayLineOf'>)
   return pipeline === null ? null : shellLine.displayLineOf(pipeline.gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
 }
 
-type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts'>;
+type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames'>;
 
 /** An `unavailable` answer still asks for the sandbox, so the session refuses to start rather than run unconfined. */
 function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts']): AgentConfinement {
@@ -753,7 +755,9 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
     airlock,
     tickets:     board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
-      .map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body })),
+      .map((ticket) => ({
+        id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body, branch: request.branchNames.ticketBranchOf(ticket.frontmatter.id)
+      })),
     checksLine:             checksLineOf(board, request.platformPorts.shellLine),
     gates:                  board.pipeline()?.gates ?? null,
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
@@ -995,7 +999,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     homeDirectory:        request.homeDirectory,
     inheritedEnvironment: request.inheritedEnvironment,
     mainLine:             request.mainLine,
-    groupTargetPrefix:    GROUP_TARGET_PREFIX,
+    branchNames:          request.branchNames,
     watcherBundlePath:    request.watcherBundlePath,
     programCommand:       request.programCommand,
     codeVersion:          request.codeVersion,
@@ -1021,7 +1025,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       worktree:         worktreePath,
       ownBranch:        '',
       mainLine:         request.mainLine,
-      groupPrefix:      GROUP_TARGET_PREFIX,
+      branchNames:      request.branchNames,
       hatchDirectory:   '',
       sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
       credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
@@ -1140,12 +1144,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   const airlocks = createAirlocks({
-    repositoryRoot:    request.workspace.rootDirectory,
-    mainLine:          request.mainLine,
-    groupTargetPrefix: GROUP_TARGET_PREFIX,
+    repositoryRoot: request.workspace.rootDirectory,
+    mainLine:       request.mainLine,
+    branchNames:    request.branchNames,
     worktreesRoot,
-    worktreeOf:        (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
-    limits:            AIRLOCK_LIMITS,
+    worktreeOf:     (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
+    limits:         AIRLOCK_LIMITS,
     get refDeniesHold() {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
@@ -1259,10 +1263,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
         PipelineAgentSessions.verifyTurnEnds(change, {
-          workspace:         request.workspace,
-          worktreesRoot:     WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
-          groupTargetPrefix: GROUP_TARGET_PREFIX,
-          pathStyle:         platformPorts.dataFolders,
+          workspace:     request.workspace,
+          worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory),
+          branchNames:   request.branchNames,
+          pathStyle:     platformPorts.dataFolders,
         }, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
         request.afterHoldPhase?.('watcher-events', change.board);
@@ -1276,7 +1280,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const agentConfigHold = JobLaunch.holdAgentConfigHits(change, jobLaunchContext, observation.ticketIdsTouchingAgentConfig);
         const observations = {
           mainLine:                     request.mainLine,
-          groupTargetPrefix:            GROUP_TARGET_PREFIX,
+          groupTargetPrefix:            request.branchNames.groupTargetPrefix,
           installVersionChanged,
           targetsHoldingManagedBlock:   observation.targetsHoldingManagedBlock,
           ticketIdsTouchingAgentConfig: agentConfigHold.held,

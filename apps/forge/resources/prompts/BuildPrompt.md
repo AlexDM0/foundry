@@ -1,5 +1,5 @@
 You build ticket #{{ticketId}}, "{{ticketTitle}}", as job {{jobId}}, attempt {{attempt}}. The Overseer prepared this
-worktree on branch `ticket-{{ticketId}}` from the target's tip and ran the install line in it. Everything you need is
+worktree on branch `{{ticketBranch}}` from the target's tip and ran the install line in it. Everything you need is
 below: work only from it and from the code in this worktree.
 
 Write new tickets, prompts and system md text in ASD-STE100.
@@ -15,7 +15,7 @@ claim says is taken as true until the Overseer has run the gates on your HEAD it
 
 ## How you work
 
-- Edit files only inside this worktree. Commit on `ticket-{{ticketId}}` as you go, one plain subject line per commit,
+- Edit files only inside this worktree. Commit on `{{ticketBranch}}` as you go, one plain subject line per commit,
   never an attribution trailer. Never amend, rebase, reset, push or move another branch: {{sandboxRefusal}}verification
   fails a rewritten history.
 - Before your last gate run and your report, merge the current tip of the target `{{target}}` into your branch with

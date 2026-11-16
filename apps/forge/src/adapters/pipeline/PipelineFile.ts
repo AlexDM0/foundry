@@ -36,11 +36,11 @@ export type PipelineReading =
 /** A stored file the board cannot use, which nothing writes over. */
 export type UnreadablePipelineReading = Extract<PipelineReading, { verdict: 'older' | 'malformed' }>;
 
-const PIPELINE_KEYS = ['version', 'prepare', 'gates', 'phases', 'review', 'airlock', 'constitution', 'agents', 'approvals', 'billing'] as const;
+const PIPELINE_KEYS = ['version', 'prepare', 'gates', 'phases', 'review', 'airlock', 'constitution', 'agents', 'approvals', 'billing', 'reach'] as const;
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
-const STEP_KEYS            = ['name', 'run'] as const;
+const STEP_KEYS            = ['name', 'run', 'in'] as const;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
 const PHASE_KEYS           = ['build', 'review', 'merge'] as const satisfies readonly GatePhase[];
 const REVIEW_KEYS          = ['name', 'reReview'] as const;
@@ -112,12 +112,32 @@ function pathInsideRepositoryOf(value: unknown, path: string): Mapped<string> {
   return { value };
 }
 
+/** Relative to the project's folder, or to the repository's root when it leads with `/`: no drive, backslash or `..` segment. */
+function optionalFolderInRepositoryOf(value: unknown, path: string): Mapped<string | undefined> {
+  const folder = optionalTextOf(value, path);
+  if ('problem' in folder || folder.value === undefined) return folder;
+  return PathNestingUtil.projectWirePathStaysInside(folder.value) ? folder : problemOf(`${path} is not a folder inside the repository`);
+}
+
+/** Each a repository path leading with `/`, named once. */
+function reachOf(value: unknown): Mapped<string[] | undefined> {
+  const paths = textListOf(value, 'reach');
+  if ('problem' in paths || paths.value === undefined) return paths;
+  const reachPaths = paths.value;
+  const outsideRepository = reachPaths.find((reachPath) => !PathNestingUtil.repositoryWirePathStaysInside(reachPath));
+  if (outsideRepository !== undefined) return problemOf(`reach names ${JSON.stringify(outsideRepository)}, which is not a repository path leading with /`);
+  const repeated = reachPaths.find((reachPath, index) => reachPaths.indexOf(reachPath) !== index);
+  return repeated === undefined ? paths : problemOf(`reach names ${JSON.stringify(repeated)} twice`);
+}
+
 function stepOf(value: unknown, path: string): Mapped<PipelineStep> {
   const record = namedRecordOf(value, path, STEP_KEYS);
   if ('problem' in record) return record;
   const { name, run } = record.value;
   if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
-  return { value: { name: String(name), run } };
+  const folder = optionalFolderInRepositoryOf(record.value['in'], `${path}.in`);
+  if ('problem' in folder) return folder;
+  return { value: { name: String(name), run, ...(folder.value === undefined ? {} : { in: folder.value }) } };
 }
 
 function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
@@ -128,11 +148,12 @@ function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
   if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
   if (overseerOnly !== undefined && overseerOnly !== true) return problemOf(`${path}.overseerOnly is present and is not true`);
   const gate: PipelineGate = { name: String(name), run };
-  for (const key of ['fix', 'in'] as const) {
-    const text = optionalTextOf(fields[key], `${path}.${key}`);
-    if ('problem' in text) return text;
-    if (text.value !== undefined) gate[key] = text.value;
-  }
+  const fix = optionalTextOf(fields['fix'], `${path}.fix`);
+  if ('problem' in fix) return fix;
+  if (fix.value !== undefined) gate.fix = fix.value;
+  const folder = optionalFolderInRepositoryOf(fields['in'], `${path}.in`);
+  if ('problem' in folder) return folder;
+  if (folder.value !== undefined) gate.in = folder.value;
   for (const key of ['definedBy', 'network', 'writes'] as const) {
     const texts = textListOf(fields[key], `${path}.${key}`);
     if ('problem' in texts) return texts;
@@ -339,6 +360,7 @@ function pipelineOf(document: Record<string, unknown>): Mapped<Pipeline> {
   const agents       = agentsOf(document['agents']);
   const approvals    = approvalsOf(document['approvals']);
   const billing      = billingOf(document['billing']);
+  const reach        = reachOf(document['reach']);
   if ('problem' in phases) return phases;
   if ('problem' in review) return review;
   if ('problem' in airlock) return airlock;
@@ -346,6 +368,7 @@ function pipelineOf(document: Record<string, unknown>): Mapped<Pipeline> {
   if ('problem' in agents) return agents;
   if ('problem' in approvals) return approvals;
   if ('problem' in billing) return billing;
+  if ('problem' in reach) return reach;
   return {
     value: {
       version: PIPELINE_FORMAT_VERSION,
@@ -358,6 +381,7 @@ function pipelineOf(document: Record<string, unknown>): Mapped<Pipeline> {
       ...(agents.value === undefined ? {} : { agents: agents.value }),
       ...(approvals.value === undefined ? {} : { approvals: approvals.value }),
       ...(billing.value === undefined ? {} : { billing: billing.value }),
+      ...(reach.value === undefined ? {} : { reach: reach.value }),
     },
   };
 }

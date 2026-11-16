@@ -52,6 +52,7 @@ const KNOWN_PROGRESS_KEYS = {
   nextIncidentId:         true,
   incidents:              true,
   overseerFirstStartedAt: true,
+  branchNamespace:        true,
   tasks:                  true,
 } as const satisfies Record<keyof TrackerProgress | keyof StoredProgressFile, true>;
 
@@ -324,6 +325,7 @@ function progressOf(document: StoredProgressFile): TrackerProgress {
     ...(document.nextIncidentId === undefined ? {} : { nextIncidentId: document.nextIncidentId }),
     ...(document.incidents === undefined ? {} : { incidents: document.incidents.map(incidentOf) }),
     ...(document.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: document.overseerFirstStartedAt }),
+    ...(document.branchNamespace === undefined ? {} : { branchNamespace: document.branchNamespace }),
     tasks:      document.tasks.map(taskOf),
   });
 }
@@ -450,6 +452,7 @@ function storedDocumentOf(progress: TrackerProgress): StoredProgressFile {
     ...(progress.nextIncidentId === undefined ? {} : { nextIncidentId: progress.nextIncidentId }),
     ...(progress.incidents === undefined ? {} : { incidents: progress.incidents.map(storedIncidentOf) }),
     ...(progress.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: progress.overseerFirstStartedAt }),
+    ...(progress.branchNamespace === undefined ? {} : { branchNamespace: progress.branchNamespace }),
     tasks:      progress.tasks.map(storedTaskOf),
   });
 }

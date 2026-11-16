@@ -13,12 +13,12 @@ import type { PipelineFlowGraph }                                             fr
 import { pipelineFlowGraphOf }                                                from './PipelineFlowGraph.ts';
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 /** The pipeline `Flow.dc.html` draws: gates in every phase, a review with its re-review, and a train re-review. */
 const DRAWN_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [
     { name: 'tests', run: 'bun test --bail' },

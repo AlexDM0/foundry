@@ -424,7 +424,7 @@ describe('the concurrency figure', () => {
       epics:    [],
       logger:   createLogger(() => undefined),
       pipeline: {
-        version: 2,
+        version: 3,
         prepare: [],
         gates:   [{ name: 'verify', run: 'bun run verify' }],
         phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },

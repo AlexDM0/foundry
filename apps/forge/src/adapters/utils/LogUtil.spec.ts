@@ -189,6 +189,13 @@ describe('the Overseer and its jobs', () => {
   });
 });
 
+test('the reach and the branch namespace read as what they set, an empty reach as cleared', () => {
+  const at = '2026-09-18T20:11:03+02:00';
+  expect(wordedEntryOf({ at, kind: 'pipeline-reach-set', fields: { paths: ['/packages/shared', '/bun.lock'] } }).text).toBe('Reach set to /packages/shared /bun.lock');
+  expect(wordedEntryOf({ at, kind: 'pipeline-reach-set', fields: { paths: [] } }).text).toBe('Reach cleared');
+  expect(wordedEntryOf({ at, kind: 'branch-namespace-set', fields: { namespace: 'web' } }).text).toBe('Branch namespace set to web');
+});
+
 test('a worded entry keeps the record\'s stamp and carries its sentence', () => {
   const at = '2026-09-18T20:11:03+02:00';
   const record: LogRecord = {

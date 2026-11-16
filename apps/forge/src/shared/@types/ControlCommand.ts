@@ -163,6 +163,8 @@ export type ControlCommand =
   | { kind: 'pipeline-gates-none' }
   | { kind: 'pipeline-gate-remove'; name: string }
   | { kind: 'pipeline-approval-set'; approval: PipelineApproval; on: boolean }
+  /** The whole reach, each a repository path leading with `/`; an empty list clears it. */
+  | { kind: 'pipeline-reach-set'; paths: string[] }
   /** User's first setup of the pipeline: it opens the setup record; `replacesUnreadablePipeline` lets Apply write over an unreadable file. */
   | { kind: 'pipeline-setup-start'; billing: PipelineBilling; replacesUnreadablePipeline: boolean }
   | { kind: 'pipeline-setup-billing'; setupId: string; billing: PipelineBilling }

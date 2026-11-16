@@ -16,6 +16,7 @@ import { join }                          from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
 import { dataFoldersFor }                                       from '../../lib/data-folders/DataFoldersFor.ts';
+import { branchNamesOf }                                        from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
 import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../testing/RecordedGitFlow.ts';
@@ -84,7 +85,7 @@ testWhenSandboxExecApplies('a sandboxed Airlock agent writes every path its merg
     worktree,
     ownBranch:            TICKET_BRANCH,
     mainLine,
-    groupPrefix:          'group-',
+    branchNames:          branchNamesOf(null),
     hatchDirectory:       join(repository, 'hatch'),
     executableSearchPath: [],
     cacheFolderStyle:     dataFoldersFor('darwin', ''),

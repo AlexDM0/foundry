@@ -47,6 +47,7 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
   'epic remove',
   'init',
   'update',
+  'namespace',
   'oversee',
   'start',
   'stop',

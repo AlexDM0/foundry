@@ -94,6 +94,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'pipeline-gates-none':         'gate none',
   'pipeline-gate-remove':        'gate remove',
   'pipeline-approval-set':       'gate approval',
+  'pipeline-reach-set':          'gate reach',
   'merge-accept':                'merge accept',
   'merge-update':                'merge update',
   'pipeline-setup-start':        'pipeline setup',

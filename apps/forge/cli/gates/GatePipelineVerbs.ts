@@ -1,31 +1,36 @@
 /**
- * `gate prepare|add|order|none|remove|approval|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one control command
- * applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
+ * `gate prepare|add|order|none|remove|approval|reach|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one
+ * control command applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
  */
-import { PipelineFile }                                     from '../../src/adapters/pipeline/PipelineFile.ts';
-import { GATE_PHASES, type GatePhase }                      from '../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { Pipeline, PipelineGate, PipelinePhaseOrders } from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                                     from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
-import { ControlService }                                   from '../../src/services/control/ControlService.ts';
-import { type CacheFolderRefusal, GateCachePaths }          from '../../src/services/overseer/GateCachePaths.ts';
-import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommand }                              from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
-import { PathNestingUtil }                                  from '../../src/shared/utils/PathNestingUtil.ts';
-import type { CommandContext }                              from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                                from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                            from '../OpenTrackerForWriting.ts';
-import { refuseUsage }                                      from '../RecordedIncidentMove.ts';
-import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
-import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT }   from '../arguments/constants/SubcommandPositionalCounts.ts';
-import { OutputUtil }                                       from '../utils/OutputUtil.ts';
+import { PipelineFile }                from '../../src/adapters/pipeline/PipelineFile.ts';
+import { GATE_PHASES, type GatePhase } from '../../src/lib/tracker-model/@types/GatePhase.ts';
+import type {
+  Pipeline,
+  PipelineGate,
+  PipelinePhaseOrders,
+  PipelineStep
+} from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
+import { ControlService }                                 from '../../src/services/control/ControlService.ts';
+import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
+import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
+import type { CommandContext }                            from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                        from '../CommandControlContext.ts';
+import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
+import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
+import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
+import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
+import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
+import { OutputUtil }                                     from '../utils/OutputUtil.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
 export const GATE_PIPELINE_USAGE = {
-  prepare: `${PROGRAM} gate prepare <name> [--json] -- <command>`,
+  prepare: `${PROGRAM} gate prepare <name> [--in <folder>] [--json] -- <command>`,
   add:     `${PROGRAM} gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… `
     + '[--overseer-only] [--phases <phase>,…] [--json] -- <command>',
   order:    `${PROGRAM} gate order build|review|merge <name>… [--json]`,
@@ -33,11 +38,14 @@ export const GATE_PIPELINE_USAGE = {
   remove:   `${PROGRAM} gate remove <name> [--json]`,
   list:     `${PROGRAM} gate list [--json]`,
   approval: `${PROGRAM} gate approval tickets|merge on|off [--json]`,
+  reach:    `${PROGRAM} gate reach <path>…|none [--json]`,
 } as const;
 
 const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'overseer-only', 'phases', 'json'];
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
+
+const REACH_NONE_WORD = 'none';
 
 const UNWRITABLE_FOLDER_WORDING: Readonly<Record<CacheFolderRefusal, string>> = {
   'executables-folder': 'is, sits in or holds a bin folder or executables',
@@ -68,6 +76,13 @@ function refuseUnwritableFolder(path: string, context: CommandContext, usage: st
   if (!PathNestingUtil.wirePathIsWellFormed(path)) refuseUsage(`--writes takes an absolute or ~/ folder, and ${path} is neither.`, usage);
   const refusal = GateCachePaths.refusalOf(path, context.homeDirectory, context.executableSearchPath, context.platformPorts.dataFolders);
   if (refusal !== null) refuseUsage(`The folder ${path} ${UNWRITABLE_FOLDER_WORDING[refusal]}, so a gate may never write it; nothing was stored.`, usage);
+}
+
+/** `--in`: a folder of the project in the worktree, or of the repository when it leads with `/`; one outside both is refused when stored. */
+function folderFrom(commandArguments: ArgumentParser, usage: string): string | undefined {
+  const folder = commandArguments.option('in');
+  if (folder === undefined || PathNestingUtil.projectWirePathStaysInside(folder)) return folder;
+  return refuseUsage(`--in takes a folder of the project, or of the repository when it starts with /, and ${folder} leaves both.`, usage);
 }
 
 function phaseOf(word: string | undefined, usage: string): GatePhase {
@@ -107,8 +122,10 @@ async function applyPipelineChange(commandArguments: ArgumentParser, context: Co
 
 export async function prepareStep(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = GATE_PIPELINE_USAGE.prepare;
-  commandArguments.rejectUnknownOptions(['json'], usage);
-  const step = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, context, usage) };
+  commandArguments.rejectUnknownOptions(['in', 'json'], usage);
+  const step: PipelineStep = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, context, usage) };
+  const folder = folderFrom(commandArguments, usage);
+  if (folder !== undefined) step.in = folder;
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-prepare-step-set', step });
 }
 
@@ -117,7 +134,7 @@ export async function addGate(commandArguments: ArgumentParser, context: Command
   commandArguments.rejectUnknownOptions(GATE_ADD_OPTION_NAMES, usage);
   const gate: PipelineGate = { name: nameFrom(commandArguments, usage), run: commandLineFrom(commandArguments, context, usage) };
   const fix    = commandArguments.option('fix');
-  const folder = commandArguments.option('in');
+  const folder = folderFrom(commandArguments, usage);
   if (fix !== undefined) gate.fix = fix;
   if (folder !== undefined) gate.in = folder;
   const definedBy = commandArguments.optionValues('defined-by');
@@ -164,6 +181,19 @@ export async function setApproval(commandArguments: ArgumentParser, context: Com
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-approval-set', approval, on: switchState === 'on' });
 }
 
+/** The whole reach at once, each path once: `none` clears it. A path that is not the repository's, leading with `/`, is refused. */
+export async function setReach(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE.reach;
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  const words = commandArguments.positionals().slice(1);
+  if (words.length === 0) refuseUsage('Name each repository path the board may change besides its project, or none.', usage);
+  const paths = words.length === 1 && words[0] === REACH_NONE_WORD ? [] : words;
+  const outsideRepository = paths.find((path) => !PathNestingUtil.repositoryWirePathStaysInside(path));
+  if (outsideRepository !== undefined) refuseUsage(`${outsideRepository} is not a path of the repository: start it with /, and leave out .. and \\.`, usage);
+  if (new Set(paths).size !== paths.length) refuseUsage('Name each path once.', usage);
+  await applyPipelineChange(commandArguments, context, { kind: 'pipeline-reach-set', paths });
+}
+
 /** A gate in every phase, as a plain `gate add` stores it, is marked with no phase; any other names the phases it runs in. */
 function gateLineOf(gate: Readonly<PipelineGate>, phases: Readonly<PipelinePhaseOrders>): string {
   const phasesOfGate = GATE_PHASES.filter((phase) => phases[phase].includes(gate.name));
@@ -177,11 +207,12 @@ function gateLineOf(gate: Readonly<PipelineGate>, phases: Readonly<PipelinePhase
 function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   if (pipeline === null) return `No pipeline is set, so no gate runs and the board holds new work (checks-not-set). Add a gate with \`${GATE_PIPELINE_USAGE.add}\`, or `
     + `\`${PROGRAM} gate none\` for none on purpose.`;
-  const prepare = pipeline.prepare.map((step) => `  ${step.name}: ${step.run}`);
+  const prepare = pipeline.prepare.map((step) => `  ${step.name}${step.in === undefined ? '' : ` (in ${step.in})`}: ${step.run}`);
   const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map((gate) => gateLineOf(gate, pipeline.phases));
   const ticketReview  = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
   const mergeApproval = `Merge approval: ${pipeline.approvals?.merge === true ? 'on' : 'off'}`;
-  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval].join('\n');
+  const reach = pipeline.reach === undefined ? [] : [`Reach: ${pipeline.reach.join(' ')}`];
+  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, ...reach].join('\n');
 }
 
 /** Takes no lock and writes nothing; a malformed or older file is refused, since nothing could be listed from it. */
@@ -205,6 +236,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
     ...(pipeline?.constitution === undefined ? {} : { constitution: pipeline.constitution }),
     ...(pipeline?.agents === undefined ? {} : { agents: pipeline.agents }),
     ...(pipeline?.approvals === undefined ? {} : { approvals: pipeline.approvals }),
+    ...(pipeline?.reach === undefined ? {} : { reach: pipeline.reach }),
   };
   OutputUtil.printEntity(commandArguments, context, entity, pipelineTextOf(pipeline));
 }

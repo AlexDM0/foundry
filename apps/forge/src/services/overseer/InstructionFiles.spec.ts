@@ -45,7 +45,7 @@ const MAIN_LINE = 'main';
 const EXAMPLE_NOTES_PATH = `${PRODUCT_NAMES.DATA_FOLDER}/example-notes.md`;
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 let repositoryDirectory = '';

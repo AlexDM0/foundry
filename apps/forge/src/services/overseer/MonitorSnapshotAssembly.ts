@@ -115,6 +115,8 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'pipeline-gates-none':             null,
   'pipeline-gate-removed':           null,
   'pipeline-approval-set':           null,
+  'pipeline-reach-set':              null,
+  'branch-namespace-set':            null,
   'pipeline-gates-ordered':          null,
   'pipeline-setup-opened':           'forge',
   'pipeline-setup-billing-set':      null,

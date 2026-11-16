@@ -41,5 +41,7 @@ export interface TrackerProgress {
   incidents?:              Incident[];
   /** When the Overseer first started on this board, written once and kept by `clear`; absent on a board it never started on. */
   overseerFirstStartedAt?: string;
+  /** The namespace the board's branches are named under; absent on a board that never set one, whose branches have bare names. */
+  branchNamespace?:        string;
   tasks:                   Task[];
 }

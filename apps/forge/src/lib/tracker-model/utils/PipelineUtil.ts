@@ -22,8 +22,9 @@ export interface CataloguedGate {
   phases: GatePhase[];
 }
 
+/** A step with no `in` hashes as it did before steps had one, so adding the key moves no green of a pipeline that never sets it. */
 function canonicalStepOf(step: Readonly<PipelineStep>): object {
-  return { name: step.name, run: step.run };
+  return step.in === undefined ? { name: step.name, run: step.run } : { name: step.name, run: step.run, in: step.in };
 }
 
 function canonicalGateOf(gate: Readonly<PipelineGate>): object {
@@ -64,6 +65,7 @@ function canonicalShapeOf(pipeline: Readonly<Pipeline>): object {
     constitution: pipeline.constitution?.path ?? null,
     agents:       Object.entries(pipeline.agents ?? {}).sort(([a], [b]) => a.localeCompare(b))
       .map(([role, settings]) => [role, canonicalAgentSettingsOf(settings)]),
+    reach: pipeline.reach ?? [],
   };
 }
 

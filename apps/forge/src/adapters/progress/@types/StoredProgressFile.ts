@@ -110,6 +110,7 @@ export interface StoredProgressFile {
   nextIncidentId?:         number;
   incidents?:              StoredIncident[];
   overseerFirstStartedAt?: string;
+  branchNamespace?:        string;
   tasks:                   StoredTask[];
 }
 

@@ -11,6 +11,7 @@ import type { TicketStatus }                from '../../lib/tracker-model/@types
 import type { BranchTreeOf, MergeTargetOf } from '../../lib/tracker-model/AirlockClaims.ts';
 import { BoardRefusal }                     from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }            from '../../shared/@types/ControlCommand.ts';
+import { type BranchNames, branchNamesOf }  from '../../shared/BranchNames.ts';
 import { OperationRefusal }                 from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                  from '../../shared/WorktreesFolder.ts';
 import { MergeRun }                         from '../lifecycle/MergeRun.ts';
@@ -19,15 +20,16 @@ import type { TrackerChange }               from '../tracker/TrackerPipeline.ts'
 import { ticketIdOfReference }              from './ControlTicketLookup.ts';
 
 interface MergeApprovalSubject {
-  ticketId: string;
-  status:   TicketStatus;
-  target:   string;
-  targetOf: MergeTargetOf;
+  ticketId:    string;
+  status:      TicketStatus;
+  target:      string;
+  targetOf:    MergeTargetOf;
+  branchNames: BranchNames;
 }
 
-function branchTreeIn(repositoryRoot: string): BranchTreeOf {
+function branchTreeIn(repositoryRoot: string, branchNames: BranchNames): BranchTreeOf {
   return (ticketId) => {
-    const run = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}^{tree}`]);
+    const run = GitProcess.run(repositoryRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branchNames.ticketBranchOf(ticketId)}^{tree}`]);
     return GitProcess.succeeded(run) ? run.standardOutput.trim() : null;
   };
 }
@@ -37,22 +39,23 @@ function subjectOf(change: TrackerChange, ticketReference: string): MergeApprova
   if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
   const ticketId = ticket.frontmatter.id;
   if (!change.board.mergeApprovalIsOn()) throw new BoardRefusal({ reason: 'merge-approval-off', ticketId });
-  const targetOf = mergeTargetRuleOf(mainLineOf(change.workspace.rootDirectory));
+  const branchNames = branchNamesOf(change.board.branchNamespace());
+  const targetOf = mergeTargetRuleOf(mainLineOf(change.workspace.rootDirectory), branchNames.groupTargetPrefix);
   return {
-    ticketId, status: ticket.frontmatter.status, target: targetOf(ticket.frontmatter), targetOf
+    ticketId, status: ticket.frontmatter.status, target: targetOf(ticket.frontmatter), targetOf, branchNames
   };
 }
 
 /** Only a ticket waiting for merge, its green current, is accepted, and only while git predicts a clean merge into its target's tip. */
 function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: TrackerChange): Logged & { changed?: false } {
   const {
-    ticketId, status, target, targetOf
+    ticketId, status, target, targetOf, branchNames
   } = subjectOf(change, command.ticketReference);
   if (change.board.ticketIsMergeAccepted(ticketId)) return { logged: [], changed: false };
   const repositoryRoot = change.workspace.rootDirectory;
-  const waiting = change.board.ticketsWaitingForMergeOf(target, targetOf, branchTreeIn(repositoryRoot));
+  const waiting = change.board.ticketsWaitingForMergeOf(target, targetOf, branchTreeIn(repositoryRoot, branchNames));
   if (!waiting.some((candidate) => candidate.ticketId === ticketId)) throw new BoardRefusal({ reason: 'merge-accept-of-a-ticket-not-waiting', ticketId, status });
-  const prediction = predictMerge(repositoryRoot, { target, branch: WorktreesFolder.ticketBranchOf(ticketId) });
+  const prediction = predictMerge(repositoryRoot, { target, branch: branchNames.ticketBranchOf(ticketId) });
   if (prediction.verdict === 'conflicting') throw new BoardRefusal({
     reason: 'merge-accept-would-conflict', ticketId, target, conflictedFiles: prediction.conflictedFiles
   });

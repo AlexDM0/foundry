@@ -10,6 +10,7 @@ import { TASK_STATUSES }                                     from '../../../lib/
 import { FIRST_TASK_ID }                                     from '../../../lib/tracker-model/constants/TaskIds.ts';
 import { BoardSettingsUtil }                                 from '../../../lib/tracker-model/utils/BoardSettingsUtil.ts';
 import { VocabularyUtil }                                    from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { BranchNamespaceUtil }                               from '../../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                     from '../../../shared/constants/ProductNames.ts';
 import { OLDER_FORMAT_ADVICE }                               from '../../constants/OlderFormatAdvice.ts';
 import { StoredValueUtil }                                   from '../../utils/StoredValueUtil.ts';
@@ -133,6 +134,10 @@ function documentHeaderProblemOf(candidate: unknown): string | null {
   }
   if (candidate['overseerFirstStartedAt'] !== undefined && !textFieldIsPresent(candidate, 'overseerFirstStartedAt')) {
     return `overseerFirstStartedAt is ${JSON.stringify(candidate['overseerFirstStartedAt'])}, and when present it has to be a timestamp`;
+  }
+  const { branchNamespace } = candidate;
+  if (branchNamespace !== undefined && !(typeof branchNamespace === 'string' && BranchNamespaceUtil.namespaceIsWellFormed(branchNamespace))) {
+    return `branchNamespace is ${JSON.stringify(branchNamespace)}, and when present it has to be lower-case letters, digits and inner dashes`;
   }
   const jobsProblem = StoredJobValidationUtil.jobsProblemOf(candidate);
   if (jobsProblem !== null) return jobsProblem;

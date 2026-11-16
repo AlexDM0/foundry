@@ -34,7 +34,7 @@ const FIRST_SETUP: PipelineSetupOpening = {
 };
 
 const STORED_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  { build: ['test'], review: ['test'], merge: ['test'] },
@@ -255,7 +255,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
 
     expect(applied.outcome).toBe('applied');
     expect(board.pipeline()).toEqual({
-      version:      2,
+      version:      3,
       prepare:      [],
       gates:        [{ name: 'types', run: 'bun run typecheck' }],
       phases:       { build: ['types'], review: [], merge: [] },

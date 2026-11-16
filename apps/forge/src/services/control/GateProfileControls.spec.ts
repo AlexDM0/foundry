@@ -23,7 +23,7 @@ const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 const REPOSITORY_ROOT = '/example-agency/storefront';
 
 const STORED_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [{
     name: 'browser-tests', run: 'bun run test:browser', in: 'web', network: ['registry.npmjs.org'], writes: ['~/.cache/ms-playwright'], fix: 'bun run fix'

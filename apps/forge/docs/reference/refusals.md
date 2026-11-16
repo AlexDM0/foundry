@@ -289,6 +289,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `cannot be read as a pipeline` | `malformed-pipeline` | `pipeline.json` is malformed. Every `gate` verb but `gate retry` refuses, so no `gate` verb overwrites a hand edit. | Repair or delete the file. | |
 | `written by an earlier forge, in a pipeline format this one does not read` | `older-pipeline` | `pipeline.json` has no `version`, or a lower one: an earlier release wrote it, and no release converts it. `gate list` and every `gate` write refuse it, so none overwrites it. | Set the pipeline up again with `pipeline setup --replace-unreadable`, and Apply over the older file. | |
 | `No gate pipeline is stored, so approval <approval> was not set` | `approval-without-pipeline` | `gate approval` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `No gate pipeline is stored, so the reach was not set` | `reach-without-pipeline` | `gate reach` on a board with no `pipeline.json`: a file holding only the reach would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 
 </details>
 

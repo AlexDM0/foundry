@@ -27,6 +27,7 @@ import type { Pipeline }               from '../../lib/tracker-model/@types/Pipe
 import { Board }                       from '../../lib/tracker-model/Board.ts';
 import { createLogger }                from '../../lib/tracker-model/Logger.ts';
 import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
+import { branchNamesOf }               from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
@@ -69,7 +70,7 @@ const CONFLICTED_FILE = 'shared.txt';
 const RE_REVIEW_THRESHOLD_LINES = 10;
 
 const REVIEW_PIPELINE: Pipeline = {
-  version:   2,
+  version:   3,
   prepare:   [],
   gates:     [{ name: 'lint', run: 'bun run lint' }, { name: 'tests', run: 'bun test' }],
   phases:    { build: ['tests'], review: ['lint'], merge: ['lint'] },
@@ -151,7 +152,7 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     homeDirectory:        monitorFolder,
     inheritedEnvironment: {},
     mainLine:             TARGET,
-    groupTargetPrefix:    'group-',
+    branchNames:          branchNamesOf(null),
     watcherBundlePath:    join(monitorFolder, 'watcher.js'),
     codeVersion:          'example-version',
     gateSlots,

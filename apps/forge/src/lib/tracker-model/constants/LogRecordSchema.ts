@@ -252,6 +252,9 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-gates-ordered':      { subject: 'board', fields: { phase: 'gate-phase', names: 'gate-names' } },
   // `state` is `on` or `off`: whether User approves what `approval` names, such as `tickets`, before it moves on.
   'pipeline-approval-set':       { subject: 'board', fields: { approval: 'text', state: 'text' } },
+  // An empty `paths` is the reach cleared.
+  'pipeline-reach-set':          { subject: 'board', fields: { paths: 'file-paths' } },
+  'branch-namespace-set':        { subject: 'board', fields: { namespace: 'text' } },
   // This kind and the four after it are in `RETIRED_LOG_RECORD_KINDS`: read, never logged.
   'check-command-set':           { subject: 'board', fields: { command: 'check-command' } },
   'install-command-set':         { subject: 'board', fields: { command: 'text' } },

@@ -1,5 +1,5 @@
 /**
- * `pipeline.json` version 2 both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version` first and
+ * `pipeline.json` version 3 both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version` first and
  * an optional key only once set; the minimal pipeline is readable; an empty gate list stays written, since it is "no gates on purpose",
  * not "none set"; a file an earlier release wrote, with no `version` or a lower one, is `older`, never mapped; a file nobody could trust
  * whole is `malformed` with a reason naming the offending part, one distinct reason per rule, never a throw; and no file is `absent`.
@@ -20,14 +20,16 @@ import { PipelineFile }                                   from './PipelineFile.t
 const NO_PHASES = { build: [], review: [], merge: [] };
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 const EXAMPLE_PIPELINE: Pipeline = {
-  version: 2,
-  prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
+  version: 3,
+  prepare: [{ name: 'install', run: 'bun install --frozen-lockfile', in: '/' }, { name: 'generate', run: 'bun run generate', in: 'packages/example' }],
   gates:   [
-    { name: 'types', run: 'bun run typecheck', definedBy: ['tsconfig.json'] },
+    {
+      name: 'types', run: 'bun run typecheck', definedBy: ['tsconfig.json'], in: '/apps/example'
+    },
     {
       name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix', in: 'packages/example', network: ['registry.example.com'], writes: ['~/.cache/example'], overseerOnly: true
     },
@@ -44,6 +46,7 @@ const EXAMPLE_PIPELINE: Pipeline = {
   },
   approvals: { tickets: false },
   billing:   { mode: 'api', maxBudgetUsd: 2.5 },
+  reach:     ['/packages/shared', '/bun.lock'],
 };
 
 let scratchDirectory = '';
@@ -67,7 +70,7 @@ function reasonOf(document: unknown): string {
 /** The minimal pipeline with `fields` over it, so a case names only the part it breaks. */
 function minimalWith(fields: Record<string, unknown>): Record<string, unknown> {
   return {
-    version: 2, prepare: [], gates: [], phases: NO_PHASES, ...fields
+    version: 3, prepare: [], gates: [], phases: NO_PHASES, ...fields
   };
 }
 
@@ -108,7 +111,7 @@ describe('a readable pipeline', () => {
 
   test('keys written in another order are read and written back in the format\'s order', () => {
     const reordered = {
-      phases: NO_PHASES, approvals: { merge: true }, gates: [], prepare: [], version: 2
+      phases: NO_PHASES, approvals: { merge: true }, gates: [], prepare: [], version: 3
     };
 
     expect(Object.keys(JSON.parse(PipelineFile.contentsOf(reordered as Pipeline)) as object)).toEqual(['version', 'prepare', 'gates', 'phases', 'approvals']);
@@ -127,12 +130,13 @@ describe('a file an earlier release wrote', () => {
     expect(readingOf({})).toEqual({ verdict: 'older' });
   });
 
-  test('with a version below 2 is older', () => {
+  test('with a version below 3 is older, version 2 included, which held no prepare folder and no reach', () => {
     expect(readingOf(minimalWith({ version: 1 }))).toEqual({ verdict: 'older' });
+    expect(readingOf(minimalWith({ version: 2 }))).toEqual({ verdict: 'older' });
   });
 
-  test('with a version above 2 is malformed as a newer format', () => {
-    expect(reasonOf(minimalWith({ version: 3 }))).toBe('version is 3, a newer format than version 2, which this build reads (newer-format)');
+  test('with a version above 3 is malformed as a newer format', () => {
+    expect(reasonOf(minimalWith({ version: 4 }))).toBe('version is 4, a newer format than version 3, which this build reads (newer-format)');
   });
 
   test('with a version that is not a whole number is malformed', () => {
@@ -148,14 +152,14 @@ describe('a malformed file', () => {
   });
 
   test('missing a required key names it', () => {
-    expect(reasonOf({ version: 2, gates: [], phases: NO_PHASES })).toBe('prepare is missing');
-    expect(reasonOf({ version: 2, prepare: [], phases: NO_PHASES })).toBe('gates is missing');
-    expect(reasonOf({ version: 2, prepare: [], gates: [] })).toBe('phases is missing');
+    expect(reasonOf({ version: 3, gates: [], phases: NO_PHASES })).toBe('prepare is missing');
+    expect(reasonOf({ version: 3, prepare: [], phases: NO_PHASES })).toBe('gates is missing');
+    expect(reasonOf({ version: 3, prepare: [], gates: [] })).toBe('phases is missing');
   });
 
   test('an unknown key at every level is refused with a reason naming it', () => {
     expect(reasonOf(minimalWith({ checks: 'bun test' })))
-      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing');
+      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, cache: true }] }))).toContain('gates[0]."cache" is not a pipeline key');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', network: [] }] }))).toContain('prepare[0]."network" is not a pipeline key');
     expect(reasonOf(minimalWith({ phases: { ...NO_PHASES, deploy: [] } }))).toContain('phases."deploy" is not a pipeline key');
@@ -260,5 +264,32 @@ describe('a malformed file', () => {
     expect(reasonOf(minimalWith({ billing: { mode: 'subscription', maxBudgetUsd: 5 } }))).toBe('billing.maxBudgetUsd is present with mode subscription');
     expect(reasonOf(minimalWith({ billing: 'api' }))).toBe('billing is not an object');
     expect(readingOf(minimalWith({ billing: { mode: 'subscription' } }))).toMatchObject({ verdict: 'readable', pipeline: { billing: { mode: 'subscription' } } });
+  });
+});
+
+describe('folders and reach', () => {
+  test('a prepare step and a gate run in a project folder, or in a repository folder that starts with /, which alone is the root', () => {
+    for (const folder of ['packages/example', '/', '/apps/example', 'docs']) {
+      expect(readingOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', in: folder }] })))
+        .toMatchObject({ verdict: 'readable', pipeline: { prepare: [{ in: folder }] } });
+      expect(readingOf(withTestGateAnd({ gates: [{ ...TEST_GATE, in: folder }] }))).toMatchObject({ verdict: 'readable', pipeline: { gates: [{ in: folder }] } });
+    }
+  });
+
+  test('a folder that leaves the repository, names a drive, holds a backslash or is blank is refused, naming the step or gate', () => {
+    for (const folder of ['../sibling', '/../sibling', '//server/share', 'C:/example', 'packages\\example', 'packages/../../sibling']) {
+      expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', in: folder }] }))).toBe('prepare[0].in is not a folder inside the repository');
+      expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, in: folder }] }))).toBe('gates[0].in is not a folder inside the repository');
+    }
+    expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', in: ' ' }] }))).toBe('prepare[0].in is present and is not a non-blank text');
+  });
+
+  test('reach names repository paths that start with /, each once, and never the root alone or a path leaving it', () => {
+    expect(readingOf(minimalWith({ reach: ['/packages/shared', '/bun.lock'] }))).toMatchObject({ verdict: 'readable', pipeline: { reach: ['/packages/shared', '/bun.lock'] } });
+    expect(reasonOf(minimalWith({ reach: ['packages/shared'] }))).toBe('reach names "packages/shared", which is not a repository path leading with /');
+    expect(reasonOf(minimalWith({ reach: ['/'] }))).toBe('reach names "/", which is not a repository path leading with /');
+    expect(reasonOf(minimalWith({ reach: ['/../sibling'] }))).toBe('reach names "/../sibling", which is not a repository path leading with /');
+    expect(reasonOf(minimalWith({ reach: ['/bun.lock', '/bun.lock'] }))).toBe('reach names "/bun.lock" twice');
+    expect(reasonOf(minimalWith({ reach: '/bun.lock' }))).toBe('reach is not a list of non-blank texts');
   });
 });

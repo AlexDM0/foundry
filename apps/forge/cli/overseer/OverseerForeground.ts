@@ -53,6 +53,7 @@ import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../
 import { PictureStore }                                             from '../../src/services/tracker/PictureStore.ts';
 import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
+import { branchNamesOf }                                            from '../../src/shared/BranchNames.ts';
 import {
   apiBillingKeyIsSet,
   environmentCopy,
@@ -351,6 +352,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const codeVersion = CodeVersion.onDisk();
   const log         = overseerLoggerOf(context, files);
   const mainLine    = mainLineOf(workspace.rootDirectory);
+  const branchNames = branchNamesOf(progress.branchNamespace ?? null);
   const mergeForecastCache = createMergeForecastCache();
   const mainLineReads = new MainLineReads(workspace.rootDirectory);
   // Shown in the monitor snapshot only; until the program on disk answered, the code in memory stands in for it.
@@ -555,6 +557,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         monitorFolder:         context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
         inheritedEnvironment:  environmentCopy(),
         mainLine,
+        branchNames,
         managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,
         installVersionChanged: installWatch.installVersionChanged,
         installVersionsKnown:  installWatch.versionsSettled,

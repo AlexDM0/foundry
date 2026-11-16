@@ -10,7 +10,7 @@ import { DISPATCH_PROTOCOL }     from '../../../../src/shared/constants/Dispatch
 import { RereviewSettingsModel } from './RereviewSettingsModel.ts';
 
 const DRAFT: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [],
   gates:   [],
   phases:  { build: [], review: [], merge: [] },

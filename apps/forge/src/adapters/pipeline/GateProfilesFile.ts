@@ -23,7 +23,8 @@ const RUN_KEYS = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepa
 
 const GATE_KEYS      = ['name', 'run', 'in', 'network'] as const;
 const GATE_REQUIRED  = ['name', 'run'] as const;
-const STEP_KEYS      = ['name', 'run'] as const;
+const STEP_KEYS      = ['name', 'run', 'in'] as const;
+const STEP_REQUIRED  = ['name', 'run'] as const;
 
 const PROFILE_RUN_ID_PATTERN = /^P[1-9][0-9]*$/u;
 const SETUP_ID_PATTERN       = /^S[1-9][0-9]*$/u;
@@ -89,12 +90,15 @@ function gateOf(value: unknown, path: string): Mapped<ProfiledGate> {
 }
 
 function stepOf(value: unknown, path: string): Mapped<PipelineStep> {
-  const record = recordOf(value, path, STEP_KEYS);
+  const record = recordOf(value, path, STEP_KEYS, STEP_REQUIRED);
   if ('problem' in record) return record;
   const name = textOf(record.value['name'], `${path}.name`);
   if ('problem' in name) return name;
   const run = textOf(record.value['run'], `${path}.run`);
-  return 'problem' in run ? run : { value: { name: name.value, run: run.value } };
+  if ('problem' in run) return run;
+  if (!Object.hasOwn(record.value, 'in')) return { value: { name: name.value, run: run.value } };
+  const folder = textOf(record.value['in'], `${path}.in`);
+  return 'problem' in folder ? folder : { value: { name: name.value, run: run.value, in: folder.value } };
 }
 
 function elapsedOf(value: unknown, path: string): Mapped<number | null> {
@@ -191,7 +195,7 @@ function runDocumentOf(run: Readonly<GateProfileRun>): Record<string, unknown> {
     phase:               run.phase,
     gate:                gateDocumentOf(run.gate),
     gateHash:            run.gateHash,
-    prepare:             run.prepare.map((step) => ({ name: step.name, run: step.run })),
+    prepare:             run.prepare.map((step) => ({ name: step.name, run: step.run, ...(step.in === undefined ? {} : { in: step.in }) })),
     state:               run.state,
     stopRequested:       run.stopRequested,
     elapsedMilliseconds: run.elapsedMilliseconds,

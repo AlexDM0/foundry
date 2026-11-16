@@ -208,8 +208,9 @@ function gateErrorOutputOf(shellLine: ShellLine, run: GateProcessRun, trackedCha
   return shellLine.exitMeaningOf(run) === 'passed' && trackedChanges !== '' ? trackedChanges : run.output;
 }
 
-function gateDirectoryOf(directory: string, gate: Readonly<PipelineGate>): string {
-  return gate.in === undefined ? directory : join(directory, gate.in);
+/** A prepare step's folder reads as a gate's does. */
+function gateDirectoryOf(directory: string, step: Readonly<Pick<PipelineGate, 'in'>>): string {
+  return step.in === undefined ? directory : join(directory, step.in);
 }
 
 function gateConfinementOf(gate: Readonly<PipelineGate>): GateConfinement {
@@ -235,12 +236,13 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   const listeners = { ...(onSpawned === undefined ? {} : { onSpawned }), ...(onOutput === undefined ? {} : { onOutput }) };
   for (const step of request.prepare) {
     const statusFile = lineStatusFileOf();
-    const line = runnableLineOf(request, step.run, { directory: request.directory, statusFile }, prepareConfinement);
+    const stepDirectory = gateDirectoryOf(request.directory, step);
+    const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
     if (line.verdict === 'refused') return {
       outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
     };
     const run = await runGate({
-      argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: request.directory, environment, spawnOptions, ...listeners
+      argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: stepDirectory, environment, spawnOptions, ...listeners
     });
     const failureOutput = prepareFailureOutputOf(shellLine, run, request.directory);
     if (failureOutput !== null) return {

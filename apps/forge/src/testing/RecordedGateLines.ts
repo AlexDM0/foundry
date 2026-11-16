@@ -193,12 +193,15 @@ function spawnedProcessOf(end: GateProcessRun): unknown {
 
 export interface RecordedGateSpawns {
   /** Stands in for `Bun.spawn`: a recorded end, or a throw that is also kept for the case to fail on. */
-  readonly spawn:               (options: { cmd: readonly string[] }) => unknown;
+  readonly spawn:               (options: { cmd: readonly string[]; cwd?: string }) => unknown;
   readonly takeUnansweredCalls: () => string[];
+  /** The folder each answered spawn ran in, in spawn order, taken so the next case starts empty. */
+  readonly takeSpawnFolders:    () => (string | null)[];
 }
 
 export function createRecordedGateSpawns(): RecordedGateSpawns {
   let unansweredCalls: string[] = [];
+  let spawnFolders: (string | null)[] = [];
   return {
     spawn: (options) => {
       const end = recordedEndOf(options.cmd);
@@ -207,11 +210,17 @@ export function createRecordedGateSpawns(): RecordedGateSpawns {
         unansweredCalls.push(unanswered);
         throw new Error(unanswered);
       }
+      spawnFolders.push(options.cwd ?? null);
       return spawnedProcessOf(end);
     },
     takeUnansweredCalls: () => {
       const taken = unansweredCalls;
       unansweredCalls = [];
+      return taken;
+    },
+    takeSpawnFolders: () => {
+      const taken = spawnFolders;
+      spawnFolders = [];
       return taken;
     },
   };

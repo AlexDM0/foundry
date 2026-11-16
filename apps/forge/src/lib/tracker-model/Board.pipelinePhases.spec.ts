@@ -18,7 +18,7 @@ const LINT_GATE: PipelineGate  = { name: 'lint', run: 'bun run lint' };
 
 function pipelineWith(phases: Pipeline['phases']): Pipeline {
   return {
-    version: 2, prepare: [], gates: [TYPES_GATE, TEST_GATE, LINT_GATE], phases
+    version: 3, prepare: [], gates: [TYPES_GATE, TEST_GATE, LINT_GATE], phases
   };
 }
 
@@ -39,7 +39,7 @@ describe('adding a gate', () => {
     board.addGate(TEST_GATE, CHANGED_AT);
 
     expect(board.pipeline()).toEqual({
-      version: 2, prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+      version: 3, prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }
     });
   });
 

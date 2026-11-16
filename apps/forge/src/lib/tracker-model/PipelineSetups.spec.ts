@@ -26,7 +26,7 @@ const FIRST_SETUP: PipelineSetupOpening = {
 };
 
 const STORED_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install' }, { name: 'build', run: 'bun run build' }],
   gates:   [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
   phases:  { build: ['types', 'test'], review: ['test'], merge: ['types', 'test'] },

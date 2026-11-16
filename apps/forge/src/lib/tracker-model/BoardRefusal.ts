@@ -77,6 +77,7 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-gate-phase'; phase: string; phases: readonly GatePhase[] }
   | { reason: 'phase-order-not-a-reorder'; phase: GatePhase; names: readonly string[]; phaseGateNames: readonly string[] }
   | { reason: 'approval-without-pipeline'; approval: string }
+  | { reason: 'reach-without-pipeline' }
   | { reason: 'setup-in-progress'; setupId: string }
   | { reason: 'no-setup-open'; setupId: string }
   | { reason: 'pipeline-setup-unreadable'; problem: string }

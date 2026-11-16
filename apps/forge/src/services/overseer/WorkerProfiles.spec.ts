@@ -23,6 +23,7 @@ import { createPosixShellLine }                           from '../../lib/shell-
 import { createWindowsCommandLine }                       from '../../lib/shell-line/WindowsCommandLine.ts';
 import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import { watcherSecretPathOf }                            from '../../lib/watcher/WatcherFiles.ts';
+import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import FROZEN_DARWIN_WORKER_PROFILES                      from './FrozenDarwinWorkerProfiles.json';
@@ -69,7 +70,7 @@ function profileOf(role: ProfiledRole, networkDomains: readonly string[] = [], f
 
 describe('the pipeline\'s toolchain', () => {
   const pipeline: Pipeline = {
-    version: 2,
+    version: 3,
     prepare: [{ name: 'install', run: 'uv sync' }],
     gates:   [
       {
@@ -95,7 +96,7 @@ describe('the pipeline\'s toolchain', () => {
   test('splits the lines in the grammar they run in: on cmd, a & b grants both, and a caret-escaped & grants neither word after it', () => {
     const windowsShellLine = createWindowsCommandLine({ commandInterpreter: () => 'C:\\Windows\\system32\\cmd.exe', systemRoot: () => undefined });
     const cmdPipeline: Pipeline = {
-      version: 2,
+      version: 3,
       prepare: [{ name: 'install', run: 'npm ci & npx playwright install' }],
       gates:   [{ name: 'tests', run: 'echo a ^& b' }],
       phases:  { build: ['tests'], review: ['tests'], merge: ['tests'] },
@@ -511,5 +512,28 @@ describe('the other worktrees\' admin folders', () => {
       listedAdminFolders: ['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004'],
       ownAdminFolder:     '/example/repository/.git/worktrees/ticket-004',
     })).toEqual(['/example/repository/.git/worktrees/ticket-003', '/example/repository/.git/worktrees/Ticket-004']);
+  });
+});
+
+describe('the branches a job may not move', () => {
+  test('are, on a board with bare names, its other ticket branches only, as before namespaces', () => {
+    const branches = ['main', 'ticket-001', 'ticket-002', 'group-checkout', `${PRODUCT_NAMES.PROGRAM}/api/ticket-001`, 'claude/example'];
+
+    expect(WorkerProfiles.otherBoardBranchesOf(branches, 'ticket-001', branchNamesOf(null))).toEqual(['ticket-002']);
+  });
+
+  test('are, on a namespaced board, its other ticket branches and every branch of another namespace, never the main line or a person\'s', () => {
+    const { PROGRAM } = PRODUCT_NAMES;
+    const branches = ['main',
+      `${PROGRAM}/web/ticket-001`,
+      `${PROGRAM}/web/ticket-002`,
+      `${PROGRAM}/web/group-checkout`,
+      `${PROGRAM}/api/ticket-001`,
+      `${PROGRAM}/api/group-search`,
+      'ticket-001',
+      'claude/example'];
+
+    expect(WorkerProfiles.otherBoardBranchesOf(branches, `${PROGRAM}/web/ticket-001`, branchNamesOf('web')))
+      .toEqual([`${PROGRAM}/web/ticket-002`, `${PROGRAM}/api/ticket-001`, `${PROGRAM}/api/group-search`]);
   });
 });

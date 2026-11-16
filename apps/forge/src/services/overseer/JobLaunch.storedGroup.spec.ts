@@ -8,6 +8,7 @@ import path, { join }               from 'node:path';
 import { afterEach, expect, test }  from 'bun:test';
 
 
+import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
 import type { RecordedGitStage, RecordedGitStep }         from '../../testing/RecordedGit.ts';
@@ -62,11 +63,11 @@ async function launchInto(target: string, stageOf: (rootDirectory: string) => Re
   const trackerDirectory = join(trackerParent, PRODUCT_NAMES.DATA_FOLDER);
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
   const context = {
-    workspace:         { rootDirectory, trackerDirectory },
-    mainLine:          MAIN_LINE,
-    groupTargetPrefix: 'group-',
-    log:               () => undefined,
-    platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    workspace:     { rootDirectory, trackerDirectory },
+    mainLine:      MAIN_LINE,
+    branchNames:   branchNamesOf(null),
+    log:           () => undefined,
+    platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
   } as unknown as JobLaunchContext;
   const { job } = board.launchJob({
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target

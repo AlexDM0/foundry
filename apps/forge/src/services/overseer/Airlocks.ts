@@ -32,7 +32,7 @@ import { PARKED_HOLD_PREFIX }                                                 fr
 import { HANDOFF_RED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
 import { PENDING_APPLY_REQUEST_STATES }                                       from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { MergeQueueUtil, type MergeForecast }                                 from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { WorktreesFolder }                                                    from '../../shared/WorktreesFolder.ts';
+import type { BranchNames }                                                   from '../../shared/BranchNames.ts';
 import type { AirlockLimits }                                                 from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing }                                from '../lifecycle/Landing.ts';
@@ -61,7 +61,7 @@ export interface AirlocksContext {
   /** The main checkout, where the main line is fast-forwarded. */
   repositoryRoot:         string;
   mainLine:               string;
-  groupTargetPrefix:      string;
+  branchNames:            BranchNames;
   /** Where the group worktrees and the refresh worktrees live, beside the ticket worktrees. */
   worktreesRoot:          string;
   worktreeOf:             (ticketId: string) => string;
@@ -335,12 +335,12 @@ function forecastOf(prediction: ReturnType<typeof predictMerge>): MergeForecast 
 }
 
 export function createAirlocks(context: AirlocksContext): Airlocks {
-  const { mainLine, groupTargetPrefix } = context;
+  const { mainLine, branchNames: { groupTargetPrefix } } = context;
   const targetOf: MergeTargetOf = (ticket) => (
     ticket.group === undefined || ticket.releasesGroup === true ? mainLine : `${groupTargetPrefix}${ticket.group}`
   );
   const groupOf = (target: string): string => target.slice(groupTargetPrefix.length);
-  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}`);
+  const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`);
   const heldTargets = new Map<string, HeldTarget>();
 
   /**
@@ -414,7 +414,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (gate.outcome === 'failed') {
       // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
-      const branchRef = `refs/heads/${WorktreesFolder.ticketBranchOf(ticketId)}`;
+      const branchRef = `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`;
       returnStaleGreenRed(hold, ticketId, {
         treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? ''
       });
@@ -825,7 +825,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const released = group === undefined ? [] : hold.board.releaseBundleTicketIdsOf(group).filter((bundleTicketId) => (
       bundleTicketId !== ticketId && tickets.some((candidate) => candidate.frontmatter.id === bundleTicketId && candidate.frontmatter.status === 'reviewed')
     ));
-    hold.board.releaseTickets([ticketId, ...released], { branch: WorktreesFolder.ticketBranchOf(ticketId), commit }, hold.at);
+    hold.board.releaseTickets([ticketId, ...released], { branch: context.branchNames.ticketBranchOf(ticketId), commit }, hold.at);
     hold.board.recordMergeLanded(job.id, { target: mainLine, commit, kind: 'landed' }, hold.at);
     hold.board.endJob(job.id, { outcome: 'landed', commit }, hold.at);
   }
@@ -952,7 +952,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   function predictionOf(target: string, candidate: MergeCandidate): { candidate: MergeCandidate; branchTip: string | null; conflictedFiles: string[] | null } {
-    const branch    = WorktreesFolder.ticketBranchOf(candidate.ticketId);
+    const branch    = context.branchNames.ticketBranchOf(candidate.ticketId);
     const branchTip = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${branch}`);
     const predicted = predictMerge(context.repositoryRoot, { target, branch });
     return { candidate, branchTip, conflictedFiles: predicted.verdict === 'clean' ? [] : predicted.verdict === 'conflicting' ? predicted.conflictedFiles : null };
@@ -972,8 +972,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const clean       = predictions.filter((prediction) => prediction.conflictedFiles?.length === 0);
     const conflictsCaused = new Map(predictions.map((prediction) => {
       const others = clean.filter((other) => other.candidate.ticketId !== prediction.candidate.ticketId);
-      const branch = WorktreesFolder.ticketBranchOf(prediction.candidate.ticketId);
-      const pairs  = others.map((other) => ({ target: WorktreesFolder.ticketBranchOf(other.candidate.ticketId), branch }));
+      const branch = context.branchNames.ticketBranchOf(prediction.candidate.ticketId);
+      const pairs  = others.map((other) => ({ target: context.branchNames.ticketBranchOf(other.candidate.ticketId), branch }));
       return [prediction.candidate.ticketId, predictMerges(context.repositoryRoot, pairs).filter((pair) => pair.verdict !== 'clean').length];
     }));
     const isClean = (prediction: ReturnType<typeof predictionOf>): number => (prediction.conflictedFiles?.length === 0 ? 0 : 1);
@@ -1206,7 +1206,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const { branchTip } = first;
     return context.hold((hold) => {
       const tipsMoved = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${target}`) !== targetTip
-        || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${WorktreesFolder.ticketBranchOf(first.candidate.ticketId)}`) !== branchTip;
+        || GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(first.candidate.ticketId)}`) !== branchTip;
       return tipsMoved || claimed(() => hold.board.claimAirlock({
         ticketId: first.candidate.ticketId, target, targetTip, branchTip, predictedConflictFiles: first.conflictedFiles ?? [],
       }, targetOf, branchTreeOf, hold.at));

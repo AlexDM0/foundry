@@ -24,6 +24,7 @@ import { Board }                       from '../../lib/tracker-model/Board.ts';
 import { createLogger }                from '../../lib/tracker-model/Logger.ts';
 import { Playbook }                    from '../../lib/tracker-model/Playbook.ts';
 import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
+import { branchNamesOf }               from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
@@ -46,7 +47,7 @@ import { WatcherFleet }                                          from './Watcher
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
+  version: 3, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
 };
 const TRACKER_ID = 'example-tracker-id';
 const TARGET = 'master';
@@ -112,7 +113,7 @@ function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
     homeDirectory:        monitorFolder,
     inheritedEnvironment: {},
     mainLine:             TARGET,
-    groupTargetPrefix:    'group-',
+    branchNames:          branchNamesOf(null),
     watcherBundlePath:    join(monitorFolder, 'watcher.js'),
     codeVersion:          'example-version',
     gateSlots,

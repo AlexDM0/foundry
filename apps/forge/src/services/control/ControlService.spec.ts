@@ -107,6 +107,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-gates-none':       { kind: 'pipeline-gates-none' },
   'pipeline-gate-remove':      { kind: 'pipeline-gate-remove', name: 'test' },
   'pipeline-approval-set':     { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
+  'pipeline-reach-set':        { kind: 'pipeline-reach-set', paths: ['/packages/shared'] },
   'merge-accept':              { kind: 'merge-accept', ticketReference: '1' },
   'merge-update':              { kind: 'merge-update', ticketReference: '1' },
   'pipeline-setup-start':      { kind: 'pipeline-setup-start', billing: { mode: 'api', maxBudgetUsd: 20 }, replacesUnreadablePipeline: false },

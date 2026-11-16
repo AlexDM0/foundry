@@ -19,7 +19,7 @@ import { LogClaimUtil }    from './LogClaimUtil.ts';
 /** The word a closing event is stamped with: a delivery reads as its state's label does, so the panel never says "delivered". */
 export const CLOSING_EVENT_WORD = Object.freeze({ delivered: 'done', abandoned: 'abandoned' } as const);
 
-/** `docs/cli.md`'s name for the branch a group's bundle is built on, `GROUP_TARGET_PREFIX` in `src/services/lifecycle/MergeTargets.ts`. */
+/** `docs/cli.md`'s bare name for the branch a group's bundle is built on; a namespaced board's sits under its namespace (`src/shared/BranchNames.ts`). */
 const GROUP_BRANCH_PREFIX = 'group-';
 
 const HELD_WITHOUT_REASON_TEXT = 'no reason given';

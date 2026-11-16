@@ -12,7 +12,7 @@ import type { GateProfileRunFacts }                from '../../../../src/lib/tra
 import { GateDialogModel, type GateDialogSubject } from './GateDialogModel.ts';
 
 const DRAFT: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [
     { name: 'typecheck', run: 'bun run typecheck', writes: ['~/.cache/example'] },

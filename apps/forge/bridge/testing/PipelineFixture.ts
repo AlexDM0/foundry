@@ -143,7 +143,7 @@ const CONSTITUTION_MARKDOWN = [
 const ANCHORED_LINE = '- Use TypeScript in strict mode.';
 
 const PROPOSED_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [
     { name: 'typecheck', run: 'bun run typecheck' },
@@ -169,7 +169,7 @@ const PROPOSED_PIPELINE: Pipeline = {
 };
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
 };
 
 function constitutionEntry(readByRoles: PipelineAgentRole[], applied: boolean): ResolvedInstructionEntry {
@@ -824,7 +824,7 @@ function usageState(windows: UsageDocument['windows']): BoardStateDocument {
 
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDocument>> = {
   'A0':             () => pipelineBoardState({}),
-  'A0-unreadable':  () => pipelineBoardState({ pipeline: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 2 }\n' }, }),
+  'A0-unreadable':  () => pipelineBoardState({ pipeline: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' }, }),
   'A0b-running':    () => setupState(setupRecord()),
   'A0b-at-billing': () => setupState(setupRecord({
     stepStates: {

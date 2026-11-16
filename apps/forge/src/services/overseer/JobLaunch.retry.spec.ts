@@ -12,6 +12,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
+import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
@@ -55,11 +56,11 @@ function retryScene(): RetryScene {
   recordedGit.enterFlowStage('worktree made', rootDirectory);
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
   const context = {
-    workspace:         { rootDirectory, trackerDirectory },
-    mainLine:          'main',
-    groupTargetPrefix: 'group-',
-    log:               () => undefined,
-    platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    workspace:     { rootDirectory, trackerDirectory },
+    mainLine:      'main',
+    branchNames:   branchNamesOf(null),
+    log:           () => undefined,
+    platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const launchAttempt = (attempt: number): Readonly<Job> => {

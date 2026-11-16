@@ -62,6 +62,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gate-removed","fields":{"name":"checks"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gates-none","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-approval-set","fields":{"approval":"tickets","state":"off"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-reach-set","fields":{"paths":["/packages/shared"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-ran","fields":{"tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","outcome":"passed","cached":true}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-body-changed-after-claim","ticketId":"001","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-finished","ticketId":"001","fields":{}}',
@@ -94,6 +95,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"chart-range-set","fields":{"view":{"kind":"relative","from":"-2h","to":"now","tickMinutes":15}}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"concurrency-limit-set","fields":{"limit":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-set","fields":{"state":"running"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"branch-namespace-set","fields":{"namespace":"web"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"agent-stopped","fields":{"agentId":"example-agent","agentType":"agent-progress-worker",'
     + '"apiCallCount":12,"endContextTokens":48000,"totalInputTokens":310000,"cacheReadInputTokens":250000,"outputTokens":9000}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-started","fields":{"codeVersion":"a1b2c3d","installVersion":17}}',

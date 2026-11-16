@@ -25,6 +25,7 @@ import {
 
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
 import type { Board }                                               from '../../lib/tracker-model/Board.ts';
+import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
 import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }   from '../../testing/RecordedGit.ts';
@@ -68,7 +69,7 @@ function workspace(): Workspace {
 
 function turnEndContext() {
   return {
-    workspace: workspace(), worktreesRoot: repositoryDirectory, groupTargetPrefix: 'group/', pathStyle: { pathModule: path, foldsCase: false }
+    workspace: workspace(), worktreesRoot: repositoryDirectory, branchNames: branchNamesOf(null), pathStyle: { pathModule: path, foldsCase: false }
   };
 }
 

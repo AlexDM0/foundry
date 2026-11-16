@@ -37,7 +37,7 @@ const BUILD_JOB = {
 const BUILDER_DEFAULT = 'Build ticket #{{ticketId}} as job {{jobId}}: {{ticketTitle}}.\n';
 
 const PIPELINE: Pipeline = {
-  version:      2,
+  version:      3,
   prepare:      [],
   gates:        [],
   phases:       { build: [], review: [], merge: [] },
@@ -95,7 +95,9 @@ function writeDataFolderFile(path: string, text: string): void {
 
 function factsWith(instructions: string): JobLaunchFacts {
   return {
-    tickets:                [{ id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n' }],
+    tickets: [{
+      id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+    }],
     checksLine:             null,
     gates:                  null,
     earlierSessionReplaced: false,

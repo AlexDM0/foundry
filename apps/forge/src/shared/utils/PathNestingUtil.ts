@@ -57,6 +57,18 @@ function relativeWirePathStaysInside(wirePath: string): boolean {
   return !wirePath.split(WIRE_SEPARATOR).includes(PARENT_SEGMENT);
 }
 
+/** A stored path of the project, or of the repository when it leads with `/`, alone the repository's root; it stays inside either way. */
+function projectWirePathStaysInside(wirePath: string): boolean {
+  if (wirePath === WIRE_SEPARATOR) return true;
+  const relativePath = wirePath.startsWith(WIRE_SEPARATOR) ? wirePath.slice(WIRE_SEPARATOR.length) : wirePath;
+  return relativePath !== '' && relativeWirePathStaysInside(relativePath);
+}
+
+/** A stored path of the repository outside its root alone: it leads with `/`, names more than `/`, and stays inside. */
+function repositoryWirePathStaysInside(wirePath: string): boolean {
+  return wirePath.startsWith(WIRE_SEPARATOR) && wirePath !== WIRE_SEPARATOR && projectWirePathStaysInside(wirePath);
+}
+
 export const PathNestingUtil = Object.freeze({
   namesMatch,
   segmentsOf,
@@ -65,4 +77,6 @@ export const PathNestingUtil = Object.freeze({
   wirePathIsWellFormed,
   absolutePathOfWirePath,
   relativeWirePathStaysInside,
+  projectWirePathStaysInside,
+  repositoryWirePathStaysInside,
 });

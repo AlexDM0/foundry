@@ -493,13 +493,15 @@ never carries it.
   gate list [--json]          The board's gate pipeline, stored in <data>/pipeline.json beside
                               progress.json and never tracked. Read-only, no lock. --json prints
                               {pipelineIsSet, contentHash, phaseHashes, prepare, gates}, and
-                              version, phases, review, airlock, constitution, agents and approvals
-                              when stored; with no pipeline pipelineIsSet is false, both hashes null
-                              and both lists empty. A malformed or older file is refused at exit 1.
+                              version, phases, review, airlock, constitution, agents, approvals and
+                              reach when stored; with no pipeline pipelineIsSet is false, both hashes
+                              null and both lists empty. A malformed or older file is refused at
+                              exit 1.
 
-  gate prepare <name> [--json] -- <command>
+  gate prepare <name> [--in <folder>] [--json] -- <command>
                               Set the prepare step <name>, run before a gate in a fresh worktree;
-                              a step of the same name is replaced where it stands. One log line.
+                              a step of the same name is replaced where it stands. --in runs it in
+                              a folder, as a gate's --in names one. One log line.
   gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]
            [--network <domain>] [--writes <path>] [--overseer-only] [--phases <phase>,…]
            [--json] -- <command>
@@ -507,7 +509,8 @@ never carries it.
                               it stands; --defined-by, --network and --writes repeat. --phases
                               (build, review, merge) sets the phases it runs in: a new gate runs in
                               every phase without it, a replaced one keeps its phases.
-                              --in runs it in a folder of the worktree; --defined-by
+                              --in runs it in a folder of the project in the worktree, or of the
+                              repository when the folder starts with /; --defined-by
                               names the files that define it (git pathspec-style patterns), which
                               a job may change only when its ticket body names them; --writes a
                               folder it may write besides the worktree and temp. One log line.
@@ -529,6 +532,11 @@ never carries it.
                               Refused at exit 1 while no pipeline is stored: set the gates first.
                               Merge approval, approvals.merge, is off without the key; on, a
                               reviewed ticket waits for merge until User's merge accept.
+  gate reach <path>…|none [--json]
+                              Set the repository paths besides the project that a ticket may
+                              change, stored as reach: each starts with /, as /bun.lock or
+                              /packages/shared; none clears them. One log line. Refused at exit 1
+                              while no pipeline is stored: set the gates first.
 
   range --from <when>         The stored default axis of the chart; a bound may also be \`start\`, the
                               earliest visible row. A relative bound is stored as
@@ -539,6 +547,17 @@ never carries it.
                               The page's own range menu overrides this per browser.
   range --auto                Reset the axis to the automatic span; it takes no --from, --to or
                               --tick, and any of them beside it is refused at exit 1.
+
+  namespace [<name>] [--json] Print the board's branch namespace. With <name>, store it as
+                              branchNamespace: the board's ticket branches become
+                              ${PRODUCT_NAMES.PROGRAM}/<name>/ticket-<id> and its group branches
+                              ${PRODUCT_NAMES.PROGRAM}/<name>/group-<group>, so boards that share a repository
+                              never name the same branch. Lower-case letters, digits and inner
+                              dashes. Refused at exit 1 with nothing written while an Overseer
+                              serves the board, a job is on it, a branch is left under its current
+                              names, a branch blocks the new names, or the namespace holds another
+                              board's branches. One log line. --json prints {branchNamespace}, null
+                              for bare names.
 
   open [--no-browser]         Open the live Overseer's URL in the default browser and print it. With
                               no live Baton it first starts the Overseer detached, as

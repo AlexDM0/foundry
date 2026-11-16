@@ -36,6 +36,7 @@ import { PipelineUtil }                                                         
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
+import type { BranchNames }                                                                       from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
 import { LIFECYCLE_LIMITS }                                                                       from '../../shared/constants/LifecycleLimits.ts';
@@ -82,7 +83,7 @@ export interface JobLaunchContext {
   homeDirectory:        string;
   inheritedEnvironment: Readonly<Record<string, string | undefined>>;
   mainLine:             string;
-  groupTargetPrefix:    string;
+  branchNames:          BranchNames;
   watcherBundlePath:    string;
   /** The Overseer's own runtime, isolating arguments and entry script, which a job's network guard hook runs. */
   programCommand:       readonly string[];
@@ -362,8 +363,8 @@ function worktreeOf(workspace: Workspace, job: Readonly<Job>): string {
   return WorktreesFolder.ticketWorktreeOf(workspace.rootDirectory, ticketIdOf(job));
 }
 
-function branchOf(job: Readonly<Job>): string {
-  return WorktreesFolder.ticketBranchOf(ticketIdOf(job));
+function branchOf(context: Pick<JobLaunchContext, 'branchNames'>, job: Readonly<Job>): string {
+  return context.branchNames.ticketBranchOf(ticketIdOf(job));
 }
 
 function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
@@ -517,7 +518,7 @@ function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace): 
     name:        PREPARE_STEP_NAME,
     line:        step.run,
     folder:      `${place.folderPrefix}${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
-    in:          null,
+    in:          step.in ?? null,
     confinement: GateRun.prepareConfinementOf(manifest.gates),
   }));
   return [...prepare, ...manifest.gates.map((gate, index): GateStep => ({
@@ -675,11 +676,11 @@ function firstTargetCheckOf(context: JobLaunchContext, job: Readonly<Job>): Targ
   const target    = job.target ?? context.mainLine;
   const targetTip = GitProcess.resolvedCommitOf(context.workspace.rootDirectory, `refs/heads/${target}`);
   const branchTip = MergeRun.headOf(worktree);
-  if (targetTip === null || branchTip === null) return { verdict: 'merge-failed', reason: `The tip of ${targetTip === null ? target : branchOf(job)} cannot be read.` };
+  if (targetTip === null || branchTip === null) return { verdict: 'merge-failed', reason: `The tip of ${targetTip === null ? target : branchOf(context, job)} cannot be read.` };
   const holds = MergeRun.headHoldsCommit(worktree, targetTip);
   if (holds === 'holds') return { verdict: 'up-to-date' };
   if (holds === 'lacks') return { verdict: 'behind', targetTip, branchTip };
-  return { verdict: 'merge-failed', reason: `git cannot tell whether ${branchOf(job)} holds ${target}'s tip ${targetTip}.` };
+  return { verdict: 'merge-failed', reason: `git cannot tell whether ${branchOf(context, job)} holds ${target}'s tip ${targetTip}.` };
 }
 
 /** Read from the job folder and the worktree alone, so a restart reads the same step again. */
@@ -752,7 +753,7 @@ function mainMergeResolutionOf(context: JobLaunchContext, job: Readonly<Job>): M
 function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>): MainMergeStep {
   const round    = job.watcherInstance;
   const worktree = worktreeOf(context.workspace, job);
-  const unreadableTree: MainMergeStep = { verdict: 'merge-failed', reason: `The tree of ${branchOf(job)}'s HEAD cannot be read.` };
+  const unreadableTree: MainMergeStep = { verdict: 'merge-failed', reason: `The tree of ${branchOf(context, job)}'s HEAD cannot be read.` };
   if (existsSync(mainMergeFileOf(context.workspace.trackerDirectory, job, MAIN_MERGE_FILES.gateRequired, round))) {
     const treeId = treeOf(worktree);
     if (treeId === null) return unreadableTree;
@@ -930,12 +931,12 @@ function refMovesAllowedFor(context: JobLaunchContext, board: Board, job: Readon
   const tickets       = board.tickets();
   return refMovesAllowedOf(board.logRecordsSoFar(), {
     ownJobId:              job.id,
-    ownBranch:             branchOf(job),
-    otherJobBranches:      board.jobs().filter((other) => other.id !== job.id && isWorktreeJob(other)).map(branchOf),
-    ticketBranchOf:        WorktreesFolder.ticketBranchOf,
+    ownBranch:             branchOf(context, job),
+    otherJobBranches:      board.jobs().filter((other) => other.id !== job.id && isWorktreeJob(other)).map((other) => branchOf(context, other)),
+    ticketBranchOf:        context.branchNames.ticketBranchOf,
     releasedGroupBranchOf: (ticketId) => {
       const frontmatter = tickets.find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter;
-      return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.groupTargetPrefix}${frontmatter.group}` : null;
+      return frontmatter?.releasesGroup === true && frontmatter.group !== undefined ? `${context.branchNames.groupTargetPrefix}${frontmatter.group}` : null;
     },
     refreshWorktreeOf:            (groupBranch) => GroupWorktrees.refreshWorktreeOf(worktreesRoot, groupBranch),
     constitutionCommitWorktreeOf: (jobId) => ConstitutionCommits.commitWorktreeOf(worktreesRoot, jobId),
@@ -1104,7 +1105,7 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   const body = { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(report)), appends: false };
   hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
-  hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(job), commit: headCommit }, at).logged);
+  hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
 function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
@@ -1427,7 +1428,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
       }
       const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
       if (ticket?.frontmatter.status !== 'pending') return;
-      hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-progress', { checksLegality: true, branch: branchOf(job) }, at).logged);
+      hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-progress', { checksLegality: true, branch: branchOf(hold.context, job) }, at).logged);
       return;
     }
     case 'preparing':
@@ -1535,9 +1536,9 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     monitorFolder:    context.monitorFolder,
     homeDirectory:    context.homeDirectory,
     worktree,
-    ownBranch:        branchOf(job),
+    ownBranch:        branchOf(context, job),
     mainLine:         context.mainLine,
-    groupPrefix:      context.groupTargetPrefix,
+    branchNames:      context.branchNames,
     hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
     sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
     credentialPaths:  context.agentAdapter.credentialPathsOf(context.homeDirectory),
@@ -1725,7 +1726,7 @@ function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: 
     writeMergeSettlement(context, job, files, { verdict: 'failed', reason: launched.reason });
     return;
   }
-  context.log(`Spawned the ${files.watcherFolder} Watcher of job ${job.id} (#${ticketIdOf(job)}), merging ${record.mergedTip} into ${branchOf(job)}.`);
+  context.log(`Spawned the ${files.watcherFolder} Watcher of job ${job.id} (#${ticketIdOf(job)}), merging ${record.mergedTip} into ${branchOf(context, job)}.`);
 }
 
 /** After the hold: what a prepared review job's catch-up asks of git and the Watchers, read afresh like a gate step. */
@@ -1785,7 +1786,8 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const { rootDirectory } = context.workspace;
   const worktree = worktreeOf(context.workspace, job);
   const target = job.target ?? context.mainLine;
-  const groupName = target.startsWith(context.groupTargetPrefix) ? target.slice(context.groupTargetPrefix.length) : null;
+  const { groupTargetPrefix } = context.branchNames;
+  const groupName = target.startsWith(groupTargetPrefix) ? target.slice(groupTargetPrefix.length) : null;
   if (groupName !== null && !GroupNameUtil.groupNameIsWellFormed(groupName)) {
     recordWorktreeFailure(context, job, `The stored group "${groupName}" is not a portable group name (lower-case letters and digits in words joined by single `
       + 'hyphens); file its tickets again under a group that is, since nothing migrates.');
@@ -1794,10 +1796,10 @@ function createWorktree(context: JobLaunchContext, job: Readonly<Job>): void {
   const group = groupName !== null
     ? GroupWorktrees.prepareGroupWorktree(rootDirectory, WorktreesFolder.worktreesRootOf(rootDirectory), target, context.mainLine)
     : null;
-  const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(job)}`) !== null;
+  const branchExists = GitProcess.resolvedCommitOf(rootDirectory, `refs/heads/${branchOf(context, job)}`) !== null;
   const run = group?.verdict === 'git-failed' ? null : GitProcess.run(rootDirectory, branchExists
-    ? ['worktree', 'add', worktree, branchOf(job)]
-    : ['worktree', 'add', '-b', branchOf(job), worktree, target]);
+    ? ['worktree', 'add', worktree, branchOf(context, job)]
+    : ['worktree', 'add', '-b', branchOf(context, job), worktree, target]);
   if (GitProcess.succeeded(run)) {
     recordAnUnnormalisedCheckout(context, job, worktree);
     return;

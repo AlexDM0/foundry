@@ -164,7 +164,7 @@ describe('BoardStateAssembly.summaryOf', () => {
 });
 
 const EXAMPLE_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+  version: 3, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: ['test'], merge: ['test'] }
 };
 
 const NO_PIPELINE_SOURCES: PipelineSources = {

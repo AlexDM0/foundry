@@ -210,7 +210,7 @@ describe('add cards', () => {
   test('a re-review after the review keeps the draft review\'s name', () => {
     const slot = { slotId: 'after-review', after: 'gates-review', offeredSteps: ['re-review' as const] };
     const draft = {
-      version: 2 as const, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'careful-review' }
+      version: 3 as const, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'careful-review' }
     };
     expect(PipelineFlowModel.slotViewOf(slot, 'after-review', draft).choices[0]?.action).toEqual({
       kind:  'edit',

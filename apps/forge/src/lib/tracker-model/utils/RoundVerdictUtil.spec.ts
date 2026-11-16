@@ -149,7 +149,7 @@ describe('round 3 and later', () => {
 
 describe('the threshold the pipeline sets', () => {
   const pipelineWithoutReReview: Pipeline = {
-    version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'Review' }
+    version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'Review' }
   };
   const pipelineWithThreshold = (thresholdLines: number): Pipeline => ({ ...pipelineWithoutReReview, review: { name: 'Review', reReview: { thresholdLines } } });
   const roundOneWith = (reworkedLines: number): ReviewedRoundWithRework => ({ round: 1, findings: ROUND_ONE_FINDINGS, reworkedLines });

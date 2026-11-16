@@ -50,7 +50,9 @@ const TICKET_BODY = '## Acceptance\nA1. Example basket adds up.\n\n## Handoff\nE
 
 function messageOf(airlock: AirlockFacts, role: Job['role'] = 'reviewer', instructions = ''): string {
   const facts = {
-    tickets:                [{ id: '012', title: 'Example basket total', body: TICKET_BODY }],
+    tickets: [{
+      id: '012', title: 'Example basket total', body: TICKET_BODY, branch: 'ticket-012'
+    }],
     checksLine:             'bun run verify',
     gates:                  [{ name: 'verify', run: 'bun run verify' }],
     earlierSessionReplaced: false,

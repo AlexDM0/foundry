@@ -27,6 +27,7 @@ import type { Job }                    from '../../lib/tracker-model/@types/Job.
 import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
+import { branchNamesOf }               from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
@@ -44,7 +45,7 @@ import { type GateRunManifest, JobLaunch, type JobLaunchContext } from './JobLau
 import { WatcherFleet }                                           from './WatcherFleet.ts';
 
 const PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [],
   gates:   [{ name: 'tests', run: 'true' }, { name: 'lint', run: 'true' }],
   phases:  { build: ['tests', 'lint'], review: ['tests', 'lint'], merge: ['tests', 'lint'] },
@@ -83,7 +84,9 @@ function gatingScene(): GatingScene {
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ startCommit: START_COMMIT }));
   const platformPorts = nativePlatformPorts();
-  const context = { platformPorts, workspace: { rootDirectory, trackerDirectory }, agentAdapter: { eventsOf: () => [] } } as unknown as JobLaunchContext;
+  const context = {
+    platformPorts, workspace: { rootDirectory, trackerDirectory }, agentAdapter: { eventsOf: () => [] }, branchNames: branchNamesOf(null)
+  } as unknown as JobLaunchContext;
   const jobOf = (kind: 'build' | 'review'): Job => ({
     id: 'J2', kind, state: 'gating', ticketIds: ['001'], watcherInstance: 1
   }) as unknown as Job;
@@ -180,7 +183,7 @@ testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is
 
 /** Each phase runs a gate of its own, none of them first in the gate list, so the gate a job's first gate folder runs names its phase. */
 const ONE_GATE_PER_PHASE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [{ name: 'install', run: 'bun install' }],
   gates:   [{ name: 'audit', run: 'bun run audit' }, { name: 'tests', run: 'bun test' }, { name: 'lint', run: 'bun run lint' }],
   phases:  { build: ['lint'], review: ['tests'], merge: ['audit'] },

@@ -82,7 +82,7 @@ const EXAMPLE_SETUP: PipelineSetup = {
     revision:    3,
   },
   draft: {
-    version: 2, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: [], merge: ['test'] }, review: { name: 'Review' }
+    version: 3, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: [], merge: ['test'] }, review: { name: 'Review' }
   },
   draftRevision: 4,
   edits:         [{
@@ -217,7 +217,7 @@ describe('a malformed record', () => {
         }
       }),
       'nextNumbers.rule is not a key of nextNumbers; the keys are finding, question, edit'],
-    ['a draft that is not a pipeline', (document) => ({ ...document, draft: { version: 2, prepare: [], gates: [] } }), 'draft is not a pipeline: phases is missing'],
+    ['a draft that is not a pipeline', (document) => ({ ...document, draft: { version: 3, prepare: [], gates: [] } }), 'draft is not a pipeline: phases is missing'],
     ['an edit naming no draft field',
       (document) => ({
         ...document,

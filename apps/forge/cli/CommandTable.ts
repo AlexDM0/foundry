@@ -36,6 +36,7 @@ export const COMMAND_TABLE = {
   pipeline:       async () => (await import('./pipeline/PipelineCommand.ts')).pipelineCommand,
   await:          async () => (await import('./tracking/await/AwaitCommand.ts')).awaitCommand,
   range:          async () => (await import('./tracking/range/RangeCommand.ts')).rangeCommand,
+  namespace:      async () => (await import('./tracking/namespace/NamespaceCommand.ts')).namespaceCommand,
   open:           async () => (await import('./tracking/open/OpenCommand.ts')).openCommand,
   clear:          async () => (await import('./tracking/clear/ClearCommand.ts')).clearCommand,
   oversee:        async () => (await import('./overseer/OverseerCommand.ts')).overseeCommand,

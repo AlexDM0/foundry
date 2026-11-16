@@ -51,4 +51,8 @@ export const SETTING_CONTROLS = {
     change,
     () => change.board.setApproval(command.approval, command.on, change.at),
   ),
+  'pipeline-reach-set': (command: CommandOf<'pipeline-reach-set'>, change: TrackerChange) => inReadablePipeline(
+    change,
+    () => change.board.setReach(command.paths, change.at),
+  ),
 } as const;

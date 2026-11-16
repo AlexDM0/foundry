@@ -57,7 +57,7 @@ const GATE_PHASES_ALL = { build: ['test'], review: ['test'], merge: ['test'] };
 
 /** Review with its re-review, the merge train's re-review and gates in every phase, merge approval off. */
 const FULL_PIPELINE: Pipeline = {
-  version: 2,
+  version: 3,
   prepare: [],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  GATE_PHASES_ALL,
@@ -68,7 +68,7 @@ const FULL_PIPELINE: Pipeline = {
 const HUMAN_CODE_REVIEW_PIPELINE: Pipeline = { ...FULL_PIPELINE, approvals: { merge: true } };
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 const CONSTITUTION_MARKDOWN = [

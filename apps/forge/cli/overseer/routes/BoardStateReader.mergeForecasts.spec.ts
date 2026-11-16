@@ -7,6 +7,7 @@ import { afterAll, expect, test } from 'bun:test';
 
 
 import type { MergePrediction, predictMerges }                    from '../../../src/lib/git/MergeTree.ts';
+import { branchNamesOf }                                          from '../../../src/shared/BranchNames.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import type { RecordedGitStep }                                   from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
@@ -68,7 +69,7 @@ function countingPredictor(): CountingPredictor {
 describeWhenGitIsRecorded('caching the merge forecasts across board reads', () => {
   test('a second read over an unchanged tip set runs no prediction and returns the same forecasts', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), createMergeForecastCache(), predictor.predict);
     await recordedGit.playStage([tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, SECOND_TICKET_TIP)], async () => {
       const first = forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
       const runsAfterFirstRead = predictor.runCount();
@@ -80,7 +81,7 @@ describeWhenGitIsRecorded('caching the merge forecasts across board reads', () =
 
   test('a moved candidate branch or a moved target predicts afresh', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), createMergeForecastCache(), predictor.predict);
     const stage = [tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, MOVED_SECOND_TICKET_TIP), tipsOf(MOVED_MAIN_TIP, MOVED_SECOND_TICKET_TIP)];
     await recordedGit.playStage(stage, async () => {
       forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
@@ -95,7 +96,7 @@ describeWhenGitIsRecorded('caching the merge forecasts across board reads', () =
 
   test('a queue holding a branch that does not resolve is never cached', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), predictor.predict);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), createMergeForecastCache(), predictor.predict);
     await recordedGit.playStage([TIPS_WITH_A_MISSING_BRANCH, TIPS_WITH_A_MISSING_BRANCH], async () => {
       expect(forecasting.forecastsOf(MAIN_LINE, ['1', '3']).againstTarget['3']?.forecast).toBe('prediction-failed');
       const runsAfterFirstRead = predictor.runCount();
@@ -112,7 +113,7 @@ describeWhenGitIsRecorded('caching the merge forecasts across board reads', () =
       failNextRun = false;
       return pairs.map(() => ({ verdict: 'prediction-failed' as const, reason: 'planted failure' }));
     };
-    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, createMergeForecastCache(), failingOncePredictor);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), createMergeForecastCache(), failingOncePredictor);
     await recordedGit.playStage([tipsOf(MAIN_TIP, SECOND_TICKET_TIP), tipsOf(MAIN_TIP, SECOND_TICKET_TIP)], async () => {
       expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2']).againstTarget['1']?.forecast).toBe('prediction-failed');
       expect(forecasting.forecastsOf(MAIN_LINE, ['1', '2']).againstTarget['1']?.forecast).toBe('clean');
@@ -121,7 +122,7 @@ describeWhenGitIsRecorded('caching the merge forecasts across board reads', () =
 
   test('without a cache every read predicts afresh, asking git for no tips', async () => {
     const predictor   = countingPredictor();
-    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, null, predictor.predict);
+    const forecasting = mergeForecastingIn(repositoryDirectory, MAIN_LINE, branchNamesOf(null), null, predictor.predict);
     await recordedGit.playStage([], async () => {
       forecasting.forecastsOf(MAIN_LINE, ['1', '2']);
       const runsAfterFirstRead = predictor.runCount();

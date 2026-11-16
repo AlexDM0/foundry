@@ -28,7 +28,7 @@ Look a command up by its first word, or a stored file by its name.
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
-| `range`, `clear` | [The board's lifetime](#the-boards-lifetime) |
+| `range`, `namespace`, `clear` | [The board's lifetime](#the-boards-lifetime) |
 
 | stored file | section |
 |---|---|
@@ -810,19 +810,20 @@ before the first listing is out of reach, as it is on POSIX.
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
 | `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Overseer reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Overseer claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at the Overseer's next sweep; a slot whose Overseer is gone is taken over by the next claim, and a job that outlived its Overseer's restart keeps its slot under the new Overseer. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Overseer takes the same change as the control command `machine-agent-limit-set`. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. The text names the phases of a gate that runs in only some (`lint (runs in merge): bun run lint`); a gate with none runs in every phase. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
-| `gate prepare <name> [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
+| `gate prepare <name> [--in <folder>] [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. `--in` names the folder it runs in, as a gate's `--in` does. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
 | `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate order build\|review\|merge <name>… [--json]` | Set the run order of the gates a phase runs, with one log line (`Gates of the merge phase ordered: <names>`, kind `pipeline-gates-ordered`). Name each gate the phase runs once and no other: a gate joins or leaves a phase only through `gate add --phases`, so no gate is left in no phase. An unknown gate (`unknown-gate`) or any other list (`phase-order-not-a-reorder`) is refused at exit 1 with nothing written. |
 | `gate none [--json]` | Store an empty gate list and empty phases on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>` from the gates and from every phase, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `pending` at once. Any other approval or switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`approval-without-pipeline`), since a file holding only the switch would read as no gates on purpose. No role an agent runs under may relay it. |
 | `gate approval merge on\|off [--json]` | Switch merge approval, stored as `approvals.merge` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. Off, as with no key, the Airlocks work as without it. On, on every target (the main line, each group integration and the group release), a ticket in review done waits for merge until User runs `merge accept`: see [Merge approval](#merge-approval). Refused as `gate approval tickets` is. |
+| `gate reach <path>…\|none [--json]` | Store the repository paths besides the project that a ticket may change as `reach` in `pipeline.json`, with one log line (`Reach set to <paths>`, kind `pipeline-reach-set`). Each path starts with `/`, the repository's root, and holds no `..` or backslash; `none` clears the list. A path named twice is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`reach-without-pipeline`). No role an agent runs under may relay it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
 Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json`
 atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
 `pipeline.json` at exit 1 rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal
-pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
+pipeline, version 3 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
 (`pipelineHash`) at its next gate run, as the run read the pipeline at its start. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.
 
@@ -1412,6 +1413,7 @@ session of the intake, a fresh one after a replacement included.
 |---|---|
 | `range --from <when> --to <when> [--tick <15m\|1h\|1d>]` | Store the default axis of the chart, with one log line. `--tick` takes any positive whole number of minutes, hours or days (`15m`, `2h`, `1d`), or a bare number of minutes. Besides a `<when>`, a bound may be `start`, the earliest visible row. A relative bound is stored as written, so `--from -2h` keeps meaning "the last two hours" on every refresh. A pair that is not in order is refused at exit 1 when both are timestamps or both are relative to now; a pair naming `start` or mixing the two is not judged. The Bridge's own range menu overrides it per browser. The Progress tab's Save as the board's range sends the range shown as the control command `chart-range-set`, Fit as the automatic span. |
 | `range --auto` | Reset the axis to the automatic span. It takes no `--from`, `--to` or `--tick`; any of them beside it is refused at exit 1. |
+| `namespace [<name>] [--json]` | Print the board's branch namespace, or store `<name>` as `branchNamespace` in `progress.json`, with one log line (`Branch namespace set to <name>`, kind `branch-namespace-set`). A board with a namespace names its ticket branches `<program>/<name>/ticket-<id>` and its group branches `<program>/<name>/group-<group>`; one without keeps the bare `ticket-<id>` and `group-<group>`. A name is lower-case letters and digits, with dashes only between them, at most 40 characters. Refused at exit 1 with nothing written while an Overseer serves the board, while a job is on it, while a branch is left under its current names, while a branch named as the program or as `<program>/<name>` blocks the new names, and while the namespace already holds branches. `--json` prints `{ branchNamespace }`, `null` for bare names. |
 | `clear [--all] [--yes]` | Throw away every task row and the log, restart the clock and reset the stored axis to automatic, leaving one `Tracker cleared` log line, and keep the tickets. `--all` deletes the tickets, every epic and `<data>/pictures/` too. `--yes` skips the confirmation, and is required when standard input is not a terminal. Refused at exit 1, writing nothing, while a job other than the Assistant is live (`tracker-has-live-jobs`). The Progress tab's Clear… asks first, then sends the control command `tracker-clear` with `scope` `tasks-and-log` or `everything` (`--all`); [what survives](#clear) is below. |
 
 #### `clear`
@@ -1889,6 +1891,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `nextIncidentId` | yes | The number the next incident takes (`I2`), written by the first opening, never wound back. |
 | `incidents` | yes | The open incidents for the Assistant in opening order. |
 | `overseerFirstStartedAt` | yes | The Overseer's first start on this board, kept by `clear`. |
+| `branchNamespace` | yes | The namespace the board's branches are named under, written by `namespace`; absent, the branches have bare names. |
 | `tasks` | no | The rows. |
 
 <details>
@@ -1976,6 +1979,7 @@ Each of these reads as exit 2:
   list of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
 - a job, decision or incident whose field is missing, outside its vocabulary or of the wrong shape;
 - an `overseerFirstStartedAt` that is not text;
+- a `branchNamespace` that is not lower-case letters and digits with dashes only between them, at most 40 characters;
 - a row or history phase in a status the file format does not know, the retired `running` or `finished` included, with
   the same advice.
 
@@ -2017,12 +2021,12 @@ lives in [`pipeline.json`](#datapipelinejson).
 ### `<data>/pipeline.json`
 
 The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
-[Apply](#apply) write it through the lock. This is format version 2.
+[Apply](#apply) write it through the lock. This is format version 3.
 
 ```json
 {
-  "version": 2,
-  "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile" }],
+  "version": 3,
+  "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile", "in": "/" }],
   "gates": [
     { "name": "tests", "run": "bun test", "fix": "bun run lint:fix", "definedBy": ["package.json"] }
   ],
@@ -2035,15 +2039,16 @@ The board's pipeline, beside `progress.json`, never tracked and never inside a b
       "effort": "high",
       "instructions": [{ "kind": "constitution" }, { "kind": "default-brief", "role": "reviewer" }]
     }
-  }
+  },
+  "reach": ["/packages/shared", "/bun.lock"]
 }
 ```
 
 | key | required | value |
 |---|---|---|
-| `version` | yes | `2`, written first |
-| `prepare` | yes | steps in run order, each `name` and `run` |
-| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose |
+| `version` | yes | `3`, written first |
+| `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in`, the folder it runs in as a gate's `in` names one |
+| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root; it holds no `..`, drive or backslash |
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase |
 | `airlock` | no | the merge train: `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after a conflict merge is on: see [The Airlocks](#the-airlocks) |
@@ -2051,8 +2056,9 @@ The board's pipeline, beside `progress.json`, never tracked and never inside a b
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
+| `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 
-A file with no `version`, or a version below 2, is older: an earlier release wrote it, and no release converts it. The
+A file with no `version`, or a version below 3, is older: an earlier release wrote it, and no release converts it. The
 board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1 (`older-pipeline`); set the
 pipeline up again. A higher version, an unknown key at any level, a missing required key, a step or gate without `name`
 or `run`, a name given twice or shared by a prepare step and a gate, a phase naming an unknown gate, a gate in no
@@ -2129,7 +2135,7 @@ the lock, atomically; a start over removes it. This is format version 1.
       { "letter": "b", "text": "No" }], "recommended": ["a"], "multiple": false, "answer": null }
   ],
   "constitution": null,                          // or { markdown, annotations, draftedFrom, baseBlob, revision }
-  "draft": null,                                 // or the whole version 2 pipeline being designed, as pipeline.json
+  "draft": null,                                 // or the whole version 3 pipeline being designed, as pipeline.json
   "draftRevision": 0,
   "edits": [],                                   // { editId, by: agent | user, field, summary, undone }
   "replacesUnreadablePipeline": false,
@@ -2345,6 +2351,8 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-gate-removed` | none | `name` |
 | `pipeline-gates-ordered` | none | `phase` (`build`, `review` or `merge`), `names` (the phase's gates in their new run order) |
 | `pipeline-approval-set` | none | `approval`: `tickets`, `state`: `on` or `off` |
+| `pipeline-reach-set` | none | `paths`: the repository paths, an empty list when cleared |
+| `branch-namespace-set` | none | `namespace` |
 | `check-command-set` | none | `command` (the shell line, or `null` when cleared); retired: still read, never logged |
 | `install-command-set` | none | `command` (the install line); retired: still read, never logged |
 | `checks-definition-files-set` | none | `patterns` (empty when cleared); retired: still read, never logged |

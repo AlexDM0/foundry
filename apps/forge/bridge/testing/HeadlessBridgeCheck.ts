@@ -37,7 +37,7 @@ export const HEADLESS_CHECK_TABS = HashRouter.shownTabsOf(false, false, true);
 
 /** No gates, on purpose: a readable pipeline, so the Bridge shows the board's tabs and the live flow instead of the setup alone. */
 const HEADLESS_CHECK_PIPELINE_TEXT = `${JSON.stringify({
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 }, null, 2)}\n`;
 
 export interface HeadlessBridgeReading {

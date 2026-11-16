@@ -66,6 +66,7 @@ describe('the command table', () => {
       'machine',
       'merge',
       'merges',
+      'namespace',
       'open',
       'oversee',
       'pipeline',

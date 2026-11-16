@@ -13,7 +13,7 @@ import { WORKER_EFFORT, WORKER_MODEL }     from '../../../../src/shared/constant
 import { AgentStepDialogModel }            from './AgentStepDialogModel.ts';
 
 const MINIMAL_DRAFT: Pipeline = {
-  version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
+  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
 };
 
 describe('the form a dialog opens on', () => {
