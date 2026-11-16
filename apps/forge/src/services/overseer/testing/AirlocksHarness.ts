@@ -6,6 +6,7 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
+import { RepositoryLandings }                 from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
 import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
 import type { PipelineAirlock }               from '../../../lib/tracker-model/@types/Pipeline.ts';
@@ -14,10 +15,12 @@ import type { TicketPriority }                from '../../../lib/tracker-model/@
 import type { Board }                         from '../../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                      from '../../../shared/BranchNames.ts';
 import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
+import { PRODUCT_NAMES }                      from '../../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
 import { createPlantedRepository }            from '../../../testing/RecordedAirlockGit.ts';
 import { removeScratchDirectory }             from '../../../testing/ScratchWorkspace.ts';
+import type { SharedRepositoryLanding }       from '../../lifecycle/Landing.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -28,6 +31,9 @@ import {
 import { GroupWorktrees } from '../GroupWorktrees.ts';
 
 export const HARNESS_AT = '2026-10-28T10:00:00+01:00';
+
+/** The tracker a harness beside its siblings lands as. */
+export const HARNESS_TRACKER_ID = 'tracker-example-forge';
 
 /** Every Acceptance item accounted for, so a landing's ticket checks pass unless a spec says otherwise. */
 export const ACCOUNTED_BODY = '## Acceptance\n\nA1. Example cart totals add up.\n\n## Review\n\n- A1 holds — Example probe.\n';
@@ -54,6 +60,8 @@ export interface AirlocksHarness {
   /** The phase each gated tree was gated in, in the order of `gatedTrees`. */
   gatedPhases:      GatePhase[];
   stopped:          string[];
+  /** The landing the tracker shares with its siblings, in the repository's `.git` folder; `null` for a tracker at the root. */
+  sharedRepository: SharedRepositoryLanding | null;
   /** Every removal git declined after a refresh or a release, as the Overseer was told. */
   declinedCleanups: DeclinedCleanup[];
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
@@ -102,15 +110,23 @@ function plantedTipOf(branch: string): string {
 /**
  * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
  * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
- * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set.
+ * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set;
+ * `besideSiblings` makes the tracker one in a project folder of the repository, whose landings it shares with its siblings.
  */
 export function createRecordedAirlocksHarness(
   tickets: readonly HarnessTicket[],
   limits: Partial<AirlockLimits> = {},
   hasReviewPhase = true,
   airlock: PipelineAirlock | null = null,
+  besideSiblings = false,
 ): AirlocksHarness {
   const repository = createPlantedRepository('airlocks');
+  const sharedRepository: SharedRepositoryLanding | null = besideSiblings ? {
+    trackerId:        HARNESS_TRACKER_ID,
+    files:            RepositoryLandings.landingFilesOf(join(repository, '.git'), PRODUCT_NAMES.PROGRAM),
+    now:              () => new Date(HARNESS_AT),
+    lockHolderIsGone: () => false,
+  } : null;
   const worktreesRoot = `${repository}-worktrees`;
   for (const ticket of tickets) {
     mkdirSync(join(worktreesRoot, `ticket-${ticket.id}`), { recursive: true });
@@ -205,11 +221,13 @@ export function createRecordedAirlocksHarness(
     reportDeclinedCleanup:  (declined) => declinedCleanups.push(declined),
     mainConstitutionOf:     () => settings.mainConstitution,
     repositorySignsCommits: () => settings.signsCommits,
+    ...(sharedRepository === null ? {} : { sharedRepository }),
   });
   return {
     repository,
     board,
     slots,
+    sharedRepository,
     phases,
     gatedTrees,
     gatedPhases,

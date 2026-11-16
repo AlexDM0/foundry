@@ -1,13 +1,32 @@
 /**
  * Landing a gated commit on its target, inside the caller's `writeTracker` hold: the target's tip is read and compared with the tip the
  * merge was made against before anything moves, then main is fast-forwarded in the main checkout, or a group branch by `merge --ff-only`
- * in its worktree. Every refusal is a wordless verdict naming the outcome the Overseer acts on, so a refused landing never loops.
+ * in its worktree. Every refusal is a wordless verdict naming the outcome the Overseer acts on, so a refused landing never loops. A tracker
+ * in a project folder of its repository lands under the repository's landing lock and journals each landing for its siblings.
  */
-import { TicketAcceptanceUtil }             from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { fastForwardTo, readCurrentBranch } from '../../lib/git/BranchIntegration.ts';
-import { GitProcess, type GitHookPolicy }   from '../../lib/git/GitProcess.ts';
-import type { CheckoutWritePrimitives }     from '../../lib/git/HeldCheckout.ts';
-import type { Ticket }                      from '../../lib/tracker-model/@types/Ticket.ts';
+import { TicketAcceptanceUtil }                            from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { fastForwardTo, readCurrentBranch }                from '../../lib/git/BranchIntegration.ts';
+import { GitProcess, type GitHookPolicy }                  from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                    from '../../lib/git/GitWorktrees.ts';
+import type { CheckoutWritePrimitives }                    from '../../lib/git/HeldCheckout.ts';
+import { RepositoryLandings, type RepositoryLandingFiles } from '../../lib/git/RepositoryLandings.ts';
+import { LocalTimeUtil }                                   from '../../lib/local-time/LocalTimeUtil.ts';
+import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
+import { LIMITS }                                          from '../../shared/constants/Limits.ts';
+import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
+import type { ProjectLocation }                            from '../tracker/ProjectLocation.ts';
+import { LockGenerationSteps, type LockHolderIsGone }      from '../tracker/TrackerLock.ts';
+
+/**
+ * A tracker in a project folder of a repository its siblings land on too: its landing holds the repository's landing lock around the tip
+ * check, the fast-forward and the journal line only, never across a gate, and a tip a sibling journaled is a recorded landing.
+ */
+export interface SharedRepositoryLanding {
+  trackerId:        string;
+  files:            RepositoryLandingFiles;
+  now:              () => Date;
+  lockHolderIsGone: LockHolderIsGone;
+}
 
 /** Main is landed in the main checkout; a group branch in the worktree it is checked out in, never by `update-ref`. */
 export interface LandingTarget {
@@ -23,11 +42,14 @@ export interface LandingRequest {
   /** Tips an earlier landing recorded, so a target moved by one of them requeues rather than opening `target-moved`. */
   recordedLandings:         readonly string[];
   hookPolicy:               GitHookPolicy;
+  /** Absent for a tracker at its repository's root, which lands alone, as it always has. */
+  sharedRepository?:        SharedRepositoryLanding;
   /** Only a spec passes these, to fake git's write into the checkout. */
   checkoutWritePrimitives?: CheckoutWritePrimitives;
 }
 
 export type LandingRefusalReason =
+  | 'landing-lock-held'
   | 'target-moved-by-a-recorded-landing'
   | 'target-moved'
   | 'not-on-target-branch'
@@ -38,7 +60,7 @@ export type LandingRefusalReason =
   | 'acceptance-unaccounted'
   | 'acceptance-waived';
 
-export type LandingOutcome = 'requeue-from-branch-tip' | 'open-target-moved' | 'hold-target' | 'hold-ticket' | 'finish-board-side';
+export type LandingOutcome = 'wait-for-the-landing-lock' | 'requeue-from-branch-tip' | 'open-target-moved' | 'hold-target' | 'hold-ticket' | 'finish-board-side';
 
 /** Wordless: the caller words a refusal from these; `gitFailure` is git's own text. */
 export interface LandingRefusalFacts {
@@ -57,6 +79,7 @@ export type LandingVerdict =
 
 /** What the Overseer does with each refusal: a target-level one stops new slots on the target, a ticket-level one holds the ticket. */
 export const LANDING_OUTCOME_OF_REFUSAL: Readonly<Record<LandingRefusalReason, LandingOutcome>> = {
+  'landing-lock-held':                  'wait-for-the-landing-lock',
   'target-moved-by-a-recorded-landing': 'requeue-from-branch-tip',
   'target-moved':                       'open-target-moved',
   'not-on-target-branch':               'hold-target',
@@ -72,6 +95,8 @@ export const LANDING_OUTCOME_OF_REFUSAL: Readonly<Record<LandingRefusalReason, L
 export const ALREADY_LANDED_OUTCOME: LandingOutcome = 'finish-board-side';
 
 const NOT_AN_ANCESTOR_EXIT_CODE = 1;
+
+const COMMON_DIRECTORY_ARGUMENTS = ['rev-parse', '--path-format=absolute', '--git-common-dir'];
 
 function refused(reason: LandingRefusalReason, facts: LandingRefusalFacts = {}): LandingVerdict {
   return { verdict: 'refused', reason, facts };
@@ -92,7 +117,7 @@ function movedTargetVerdictOf(request: LandingRequest, targetTip: string): Landi
   return refused('target-moved', { targetTip });
 }
 
-function landOnTarget(request: LandingRequest): LandingVerdict {
+function landAlone(request: LandingRequest): LandingVerdict {
   const {
     target, mergedCommit, expectedTargetTip, hookPolicy
   } = request;
@@ -108,6 +133,64 @@ function landOnTarget(request: LandingRequest): LandingVerdict {
   if (merge.verdict === 'target-file-held') return refused('target-file-held', { heldFiles: merge.heldFiles, gitFailure: merge.reason.trim() });
   if (merge.blockingFiles.length > 0) return refused('dirty-checkout', { blockingFiles: merge.blockingFiles, gitFailure: merge.reason.trim() });
   return gitFailed(merge.reason.trim());
+}
+
+/**
+ * Never waits: a lock a live sibling holds is `null` at once, so a tracker's own hold is never spent waiting on another tracker, and the
+ * slot tries again on a later sweep. A contended attempt, a sibling taking the lock at the same moment, is tried again at once.
+ */
+function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: () => LandingVerdict): LandingVerdict | null {
+  const { lockDirectoryPath } = sharedRepository.files;
+  const payloadAt = (moment: Date): { processId: number; acquiredAt: string } => ({ processId: process.pid, acquiredAt: LocalTimeUtil.formatLocalIso(moment) });
+  for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
+    const attemptedAt = sharedRepository.now();
+    const acquired    = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, payloadAt(attemptedAt), attemptedAt.getTime(), sharedRepository.lockHolderIsGone);
+    if (acquired.verdict === 'held') return null;
+    if (acquired.verdict === 'contended') continue;
+    try {
+      return land();
+    } finally {
+      LockGenerationSteps.release(lockDirectoryPath, acquired.generation, payloadAt(sharedRepository.now()));
+    }
+  }
+  return null;
+}
+
+/** Under the lock, so a sibling's landing is either journaled before the tip is read or has not moved the tip yet. */
+function landBesideSiblings(request: LandingRequest, sharedRepository: SharedRepositoryLanding): LandingVerdict {
+  const { target, recordedLandings } = request;
+  const journal       = RepositoryLandings.readLandingJournal(sharedRepository.files);
+  const journaledTips = journal.verdict === 'readable' ? RepositoryLandings.tipsLandedOn(journal.landings, target.branch) : [];
+  const verdict       = landAlone({ ...request, recordedLandings: [...recordedLandings, ...journaledTips] });
+  if (verdict.verdict !== 'landed') return verdict;
+  // A line that cannot be written leaves this landing an unrecorded move to a sibling, which then asks before it lands again.
+  RepositoryLandings.appendLanding(sharedRepository.files, {
+    trackerId: sharedRepository.trackerId, target: target.branch, previousTip: verdict.previousTip, commit: verdict.commit
+  });
+  return verdict;
+}
+
+function landOnTarget(request: LandingRequest): LandingVerdict {
+  const { sharedRepository } = request;
+  if (sharedRepository === undefined) return landAlone(request);
+  return underTheLandingLock(sharedRepository, () => landBesideSiblings(request, sharedRepository)) ?? refused('landing-lock-held');
+}
+
+/**
+ * The landing a tracker shares with its siblings, its files in the product's folder of the git common directory: `null` for a tracker at
+ * its repository's root, and when git cannot name that directory, so that tracker lands alone.
+ */
+function sharedRepositoryLandingOf(
+  location: ProjectLocation, trackerId: string, now: () => Date, lockHolderIsGone: LockHolderIsGone
+): SharedRepositoryLanding | null {
+  if (location.projectPrefix === '') return null;
+  const { repositoryRoot } = location;
+  const run = GitProcess.run(repositoryRoot, COMMON_DIRECTORY_ARGUMENTS, 'hooks-off', undefined, GitWorktrees.ceilingOf(repositoryRoot));
+  const gitCommonDirectory = GitProcess.succeeded(run) ? run.standardOutput.trim() : '';
+  if (gitCommonDirectory === '') return null;
+  return {
+    trackerId, files: RepositoryLandings.landingFilesOf(gitCommonDirectory, PRODUCT_NAMES.PROGRAM), now, lockHolderIsGone
+  };
 }
 
 /** The ticket-level check a landing makes before git moves: the Acceptance, each ticket on its own. */
@@ -128,4 +211,4 @@ function ticketRefusalOf(tickets: readonly Readonly<Ticket>[]): LandingVerdict |
   return null;
 }
 
-export const Landing = Object.freeze({ landOnTarget, ticketRefusalOf });
+export const Landing = Object.freeze({ landOnTarget, ticketRefusalOf, sharedRepositoryLandingOf });

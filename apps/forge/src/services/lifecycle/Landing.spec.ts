@@ -2,7 +2,9 @@
  * Landing on git answers recorded from a real main checkout and feature commit by `src/lib/git/RecordedGitAnswers.integration.spec.ts`. What
  * matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands; main
  * lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit reads
- * as already landed; and every refusal maps to a typed outcome. Each stage names every call in order, so a call it does not name fails.
+ * as already landed; and every refusal maps to a typed outcome. A tracker in a project folder shares its landings through the git common
+ * directory, and one at its repository's root asks git nothing for them. Each stage names every call in order, so a call it does not name
+ * fails. The journal and the lock themselves are held by `Airlocks.siblingTrackers.spec.ts`.
  */
 import {
   existsSync,
@@ -20,10 +22,17 @@ import {
 } from 'bun:test';
 
 
-import { HELD_CHECKOUT_RETRY_TRIES }                                from '../../lib/git/HeldCheckout.ts';
-import { ticketFixture }                                            from '../../testing/BoardFixtures.ts';
-import { heldFileGit, type CountingCheckoutWritePrimitives }        from '../../testing/HeldFileGit.ts';
-import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }   from '../../testing/RecordedGit.ts';
+import { HELD_CHECKOUT_RETRY_TRIES }                         from '../../lib/git/HeldCheckout.ts';
+import { RepositoryLandings }                                from '../../lib/git/RepositoryLandings.ts';
+import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
+import { ticketFixture }                                     from '../../testing/BoardFixtures.ts';
+import { heldFileGit, type CountingCheckoutWritePrimitives } from '../../testing/HeldFileGit.ts';
+import {
+  GIT_CALL_SHAPES,
+  RECORDED_PLACEHOLDERS,
+  type RecordedGitStage,
+  useRecordedGit
+} from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                from '../../testing/ToolGuard.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
@@ -218,5 +227,33 @@ describeWhenGitIsRecorded('landing a gated commit', () => {
     for (const reason of ['acceptance-unnumbered', 'acceptance-unaccounted', 'acceptance-waived'] as const) {
       expect(LANDING_OUTCOME_OF_REFUSAL[reason]).toBe('hold-ticket');
     }
+  });
+});
+
+describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () => {
+  const now = (): Date => new Date('2026-10-28T10:00:00+01:00');
+
+  function sharedLandingAt(projectPrefix: string): ReturnType<typeof Landing.sharedRepositoryLandingOf> {
+    const projectDirectory = projectPrefix === '' ? repositoryDirectory : join(repositoryDirectory, projectPrefix);
+    return Landing.sharedRepositoryLandingOf({ repositoryRoot: repositoryDirectory, projectDirectory, projectPrefix }, 'tracker-example', now, () => false);
+  }
+
+  test('is none for a tracker at its repository\'s root, which asks git nothing for it', async () => {
+    expect(await playStage([], () => Promise.resolve(sharedLandingAt('')))).toBeNull();
+  });
+
+  test('lies in the product\'s folder of the git common directory for a tracker in a project folder', async () => {
+    const shared = await playStage([{
+      gitArguments: ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      answeredAs:   GIT_CALL_SHAPES.ABSOLUTE_COMMON_FOLDER_AT_THE_ROOT,
+      filledIn:     { [RECORDED_PLACEHOLDERS.REPOSITORY]: repositoryDirectory },
+    }], () => Promise.resolve(sharedLandingAt('apps/forge')));
+
+    expect(shared?.trackerId).toBe('tracker-example');
+    expect(shared?.files).toEqual(RepositoryLandings.landingFilesOf(join(repositoryDirectory, '.git'), PRODUCT_NAMES.PROGRAM));
+  });
+
+  test('a landing refused because a sibling holds the lock waits in its slot', () => {
+    expect(LANDING_OUTCOME_OF_REFUSAL['landing-lock-held']).toBe('wait-for-the-landing-lock');
   });
 });

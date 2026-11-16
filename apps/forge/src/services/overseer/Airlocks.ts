@@ -35,7 +35,7 @@ import { MergeQueueUtil, type MergeForecast }                                 fr
 import type { BranchNames }                                                   from '../../shared/BranchNames.ts';
 import type { AirlockLimits }                                                 from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
-import { LANDING_OUTCOME_OF_REFUSAL, Landing }                                from '../lifecycle/Landing.ts';
+import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import { MergeRun }                                                           from '../lifecycle/MergeRun.ts';
 import { ConstitutionCommits }                                                from './ConstitutionCommits.ts';
 import { GroupWorktrees }                                                     from './GroupWorktrees.ts';
@@ -58,8 +58,13 @@ export interface MergeAgentReading {
 }
 
 export interface AirlocksContext {
-  /** The main checkout, where the main line is fast-forwarded. */
+  /** The main checkout's root, where the main line is fast-forwarded and git runs: never a project folder, as git runs at a toplevel only. */
   repositoryRoot:         string;
+  /**
+   * Present for a tracker in a project folder of its repository: its landings take the repository's landing lock and are journaled, a
+   * sibling's journaled landing requeues a slot silently, and a held main line waits only for the paths its fast-forward changes.
+   */
+  sharedRepository?:      SharedRepositoryLanding;
   mainLine:               string;
   branchNames:            BranchNames;
   /** Where the group worktrees and the refresh worktrees live, beside the ticket worktrees. */
@@ -295,6 +300,12 @@ function uncommittedPathsOf(directory: string): string[] | null {
   return status.standardOutput.split('\n').filter((line) => line !== '').map((line) => line.slice('XY '.length));
 }
 
+function pathsTheFastForwardChangesOf(directory: string, commit: string): string[] | null {
+  const changed = GitProcess.run(directory, ['diff', '--name-only', '--no-renames', '-z', 'HEAD', commit, '--'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
+  if (!GitProcess.succeeded(changed)) return null;
+  return changed.standardOutput.split('\0').filter((path) => path !== '');
+}
+
 /**
  * The ticket's last worker from history, whatever the pipeline says now; with none ended, its reviewer, or its builder with no review
  * step.
@@ -342,6 +353,14 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   const groupOf = (target: string): string => target.slice(groupTargetPrefix.length);
   const branchTreeOf: BranchTreeOf = (ticketId) => treeOfCommit(context.repositoryRoot, `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`);
   const heldTargets = new Map<string, HeldTarget>();
+  /** The commit a held main line of a project tracker could not land: only the paths its fast-forward changes keep the line held. */
+  const commitsAHeldMainLineWaitsToLand = new Map<string, string>();
+  const sharedLanding = context.sharedRepository === undefined ? {} : { sharedRepository: context.sharedRepository };
+
+  function holdTarget(heldTarget: HeldTarget, commitItWaitsToLand: string): void {
+    heldTargets.set(heldTarget.target, heldTarget);
+    if (context.sharedRepository !== undefined && heldTarget.target === mainLine) commitsAHeldMainLineWaitsToLand.set(heldTarget.target, commitItWaitsToLand);
+  }
 
   /**
    * The newest ended job of the kind the policy launches next for a stale green outside the Airlock: its reviewer, or its builder with no
@@ -796,11 +815,27 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return branch.verdict === 'on-branch' ? branch.branch : null;
   }
 
-  /** Rechecked every sweep: each held target's checkout back on its branch with nothing uncommitted clears its notice. */
+  /**
+   * A project tracker's main line is shared with its siblings and the people working beside them, so a file its fast-forward does not
+   * change never holds it; any other target waits for nothing uncommitted at all. A question git cannot answer keeps the target held.
+   */
+  function heldTargetIsClear(target: string, directory: string): boolean {
+    if (currentBranchIn(directory) !== target) return false;
+    const uncommittedPaths = uncommittedPathsOf(directory);
+    if (uncommittedPaths === null) return false;
+    const commitItWaitsToLand = commitsAHeldMainLineWaitsToLand.get(target);
+    if (commitItWaitsToLand === undefined) return uncommittedPaths.length === 0;
+    const changedPaths = pathsTheFastForwardChangesOf(directory, commitItWaitsToLand);
+    return changedPaths !== null && !uncommittedPaths.some((path) => changedPaths.includes(path));
+  }
+
+  /** Rechecked every sweep: each held target's checkout back on its branch and clean where it must be clears its notice. */
   function recheckHeldTargets(): void {
     for (const target of [...heldTargets.keys()]) {
       const directory = target === mainLine ? context.repositoryRoot : GroupWorktrees.groupWorktreeOf(context.worktreesRoot, target);
-      if (currentBranchIn(directory) === target && (uncommittedPathsOf(directory) ?? ['?']).length === 0) heldTargets.delete(target);
+      if (!heldTargetIsClear(target, directory)) continue;
+      heldTargets.delete(target);
+      commitsAHeldMainLineWaitsToLand.delete(target);
     }
   }
 
@@ -862,6 +897,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         expectedTargetTip: slot.targetTip,
         recordedLandings:  hold.board.recordedLandingsOn(slot.target),
         hookPolicy:        'hooks-off',
+        ...sharedLanding,
       });
       if (verdict.verdict === 'refused') return verdict;
       if (slot.target === mainLine && ticket?.frontmatter.releasesGroup === true) releasedGroup = ticket.frontmatter.group;
@@ -873,15 +909,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return true;
     }
     switch (LANDING_OUTCOME_OF_REFUSAL[landed.reason]) {
+      case 'wait-for-the-landing-lock':
+        return false;
       case 'requeue-from-branch-tip':
         await freeSlot(job, { outcome: 'stopped', cause: 'target-moved-by-a-recorded-landing' });
         return true;
       case 'open-target-moved':
         return settleMovedTarget(job, landed.facts.targetTip ?? '');
       case 'hold-target':
-        heldTargets.set(slot.target, {
+        holdTarget({
           target: slot.target, branch: currentBranchIn(directory), blockingFiles: landed.facts.blockingFiles ?? [], heldFiles: landed.facts.heldFiles ?? []
-        });
+        }, mergedCommit);
         await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld });
         return true;
       case 'hold-ticket':
@@ -1108,6 +1146,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         expectedTargetTip: slot.targetTip,
         recordedLandings:  hold.board.recordedLandingsOn(mainLine),
         hookPolicy:        'hooks-off',
+        ...sharedLanding,
       });
       if (verdict.verdict === 'refused') return { verdict: 'refused', refusal: verdict } as const;
       hold.board.recordMergeLanded(job.id, { target: mainLine, commit: verdict.commit, kind: 'landed' }, hold.at);
@@ -1123,14 +1162,16 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return true;
     }
     const { refusal } = landed;
+    // The commit and its worktree stay for a later sweep, which finds the lock its sibling held free again.
+    if (LANDING_OUTCOME_OF_REFUSAL[refusal.reason] === 'wait-for-the-landing-lock') return false;
     const heldReason = HELD_APPLY_REASONS.find((reason) => reason === refusal.reason);
     // A main line moved by anyone: only `CONSTITUTION.md` changes, so a fresh job commits again on the new tip.
     if (heldReason === undefined) return endConstitutionCommit(job, { outcome: 'stopped', cause: refusal.reason });
     const blockingFiles = refusal.facts.blockingFiles ?? [];
     const heldFiles     = refusal.facts.heldFiles ?? [];
-    heldTargets.set(mainLine, {
+    holdTarget({
       target: mainLine, branch: currentBranchIn(context.repositoryRoot), blockingFiles, heldFiles
-    });
+    }, commit);
     return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.targetHeld }, (hold, setupId) => {
       hold.board.holdApply(setupId, { reason: heldReason, blockingFiles: [...blockingFiles, ...heldFiles] }, hold.at);
     });

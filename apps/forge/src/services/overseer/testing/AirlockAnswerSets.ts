@@ -26,6 +26,7 @@ import { RECORDED_AIRLOCK_IDS, type AirlocksHarness } from './AirlocksHarness.ts
 
 const MAIN_LINE = 'main';
 const CONFLICTED_FILE = 'shared.txt';
+const BASE_FILE = 'base.ts';
 
 const {
   MAIN_TIP, TICKET_TIP, GROUP_TIP, MERGED_TIP, TICKET_TREE, MERGED_TREE
@@ -76,8 +77,10 @@ export interface MainLineLanding {
   /** The branch already holds the main tip, so nothing is merged in and the branch tip lands. True unless set. */
   holdsMainLine?: boolean;
   checkedOut?:    string;
-  /** The main checkout's tracked files: `modified` holds base.ts changed, which blocks the fast-forward. */
+  /** The main checkout's tracked files: `modified` holds base.ts changed, which blocks the fast-forward when the landing changes it too. */
   checkout?:      'clean' | 'modified';
+  /** The one path the landing's fast-forward changes: base.ts unless set. */
+  changedPath?:   string;
   /** What else answers once the branch landed, such as the next candidate's reads. */
   afterLanding?:  RecordedGitStage;
 }
@@ -90,24 +93,25 @@ export interface MainLineAnswers {
 
 function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLanding'>>, commit: string, landed: RecordedGitStage): RecordedGitStep[] {
   const {
-    repository, mainTip, checkedOut, checkout
+    repository, mainTip, checkedOut, checkout, changedPath
   } = landing;
-  const blocked = checkout === 'modified';
+  const modified = checkout === 'modified';
+  const blocked  = modified && changedPath === BASE_FILE;
   const fastForward = ['merge', '--ff-only', '--quiet', commit];
   return [
     stepIn(repository, currentBranchRead(checkedOut)),
     stepIn(repository, {
       gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
-      answeredAs:   blocked ? GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_BASE : GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT,
+      answeredAs:   modified ? GIT_CALL_SHAPES.NUL_STATUS_OF_A_MODIFIED_BASE : GIT_CALL_SHAPES.NUL_STATUS_OF_A_CLEAN_CHECKOUT,
     }),
     stepIn(repository, {
       gitArguments: ['status', '--porcelain=v1', '--untracked-files=no'],
-      answeredAs:   blocked ? GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED : GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN,
+      answeredAs:   modified ? GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_MODIFIED : GIT_CALL_SHAPES.STATUS_OF_TRACKED_FILES_CLEAN,
     }),
     stepIn(repository, {
       gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', commit, '--'],
       answeredAs:   GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT,
-      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: 'base.ts' },
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: changedPath },
     }),
     stepIn(repository, blocked
       ? { gitArguments: fastForward, answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_BLOCKED_BY_MODIFIED, filledIn: { [RECORDED_PLACEHOLDERS.COMMIT]: commit } }
@@ -122,7 +126,14 @@ function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLa
  */
 function mainLineAnswersOf(landing: MainLineLanding): MainLineAnswers {
   const settled = {
-    mainTip: MAIN_TIP, branchTip: TICKET_TIP, branchTree: TICKET_TREE, holdsMainLine: true, checkedOut: MAIN_LINE, checkout: 'clean' as const, ...landing,
+    mainTip:       MAIN_TIP,
+    branchTip:     TICKET_TIP,
+    branchTree:    TICKET_TREE,
+    holdsMainLine: true,
+    checkedOut:    MAIN_LINE,
+    checkout:      'clean' as const,
+    changedPath:   BASE_FILE,
+    ...landing,
   };
   const {
     ticketId, repository, worktree, mainTip, branchTip, branchTree, holdsMainLine
