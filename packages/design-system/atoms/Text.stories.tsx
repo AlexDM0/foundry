@@ -16,6 +16,7 @@ export const Body: Story = {};
 export const Display: Story = { args: { typeRole: 'display', element: 'h1', children: 'Example workflow' } };
 export const Phase: Story = { args: { typeRole: 'phase', children: 'Example phase' } };
 export const Page: Story = { args: { typeRole: 'page', element: 'h2', children: 'Example page' } };
+export const Section: Story = { args: { typeRole: 'section', element: 'h3', children: 'Example section' } };
 export const Title: Story = { args: { typeRole: 'title', element: 'h3', children: 'Example title' } };
 export const Lead: Story = { args: { typeRole: 'lead', children: 'An example lead that opens a section.' } };
 export const Tab: Story = { args: { typeRole: 'tab', children: 'Example tab' } };

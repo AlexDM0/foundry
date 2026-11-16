@@ -36,6 +36,14 @@ describe('the text', () => {
     expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Overview');
   });
 
+  test('the section role is carried as data-type-role on the element the caller picks', () => {
+    const { container } = render(<><Text typeRole="section" element="h3">Example section</Text><Text typeRole="section">Example card</Text></>);
+    expect([...container.querySelectorAll('.design-system-text')].map((text) => [text.tagName, text.getAttribute('data-type-role')])).toEqual([
+      ['H3', 'section'],
+      ['SPAN', 'section'],
+    ]);
+  });
+
   test('each flag is its own data attribute, and an unset flag sets none', () => {
     const { container } = render(
       <>

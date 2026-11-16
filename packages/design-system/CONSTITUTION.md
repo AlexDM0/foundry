@@ -155,9 +155,9 @@ design-system/
 
 ## 8. Text
 
-- **`Text` takes one role from the type scale as `typeRole`:** `display`, `phase`, `page`, `title`, `lead`, `body`
-  (the default), `tab`, `small`, `pill` and `micro`. The role sets the font, size, line height and weight. `display`,
-  `phase` and `page` are Newsreader; every other role is Inter.
+- **`Text` takes one role from the type scale as `typeRole`:** `display`, `phase`, `page`, `section`, `title`, `lead`,
+  `body` (the default), `tab`, `small`, `pill` and `micro`. The role sets the font, size, line height and weight.
+  `display`, `phase`, `page` and `section` are Newsreader; every other role is Inter.
 - **`Text` flags:** `bold`, `muted`, `subtle`, `mono`, `struck` and `centered`, with `marginTop` and `marginBottom`
   from the spacing scale. `muted` and `subtle` exclude each other by type.
 - **The heading level is explicit, never chosen by the role.** The call site picks the element (`element="h2"`, `p`
@@ -218,7 +218,7 @@ design-system/
   The loader imports the woff2 files from TypeScript and adds them with the FontFace API. No stylesheet names a font
   file: a bundler inlines a small file that a stylesheet `url()` names as a `data:` address, and a content security
   policy that allows only the page's own origin blocks it. An imported file is emitted as a file of its own.
-- **Newsreader is only for the `display`, `phase` and `page` roles.** Inter is for everything else; the system mono
+- **Newsreader is only for the `display`, `phase`, `page` and `section` roles.** Inter is for everything else; the system mono
   stack only for machine text.
 
 ## 10. Words, actions and links

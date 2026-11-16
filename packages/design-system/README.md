@@ -65,8 +65,8 @@ any of them.
 
 ## Write text
 
-`Text` takes one role of the type scale as `typeRole`: `display`, `phase`, `page`, `title`, `lead`, `body` (the
-default), `tab`, `small`, `pill` or `micro`. The flags `bold`, `muted` or `subtle`, `mono`, `struck` and `centered`
+`Text` takes one role of the type scale as `typeRole`: `display`, `phase`, `page`, `section`, `title`, `lead`, `body`
+(the default), `tab`, `small`, `pill` or `micro`. The flags `bold`, `muted` or `subtle`, `mono`, `struck` and `centered`
 change its look. The element is your choice, never the role's: pass `element="h2"` for a heading.
 
 ```tsx

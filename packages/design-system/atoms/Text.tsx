@@ -8,8 +8,8 @@ import type { ReactNode } from 'react';
 import type { SpacingStep } from '../constants/Spacing.ts';
 import { SpacingStyleUtil } from '../utils/SpacingStyleUtil.ts';
 
-/** The roles of the type scale: the first three are set in the display face, the rest in the interface face. */
-export type TypeRole = 'display' | 'phase' | 'page' | 'title' | 'lead' | 'body' | 'tab' | 'small' | 'pill' | 'micro';
+/** The roles of the type scale: the first four are set in the display face, the rest in the interface face. */
+export type TypeRole = 'display' | 'phase' | 'page' | 'section' | 'title' | 'lead' | 'body' | 'tab' | 'small' | 'pill' | 'micro';
 
 export type TextElement = 'span' | 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 

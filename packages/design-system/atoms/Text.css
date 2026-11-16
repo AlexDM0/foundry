@@ -1,8 +1,9 @@
-/* The type scale: Newsreader 500 for display, phase and page; the interface face for the rest. The flags override the role. */
+/* The type scale: Newsreader 500 for display, phase, page and section; the interface face for the rest. The flags override the role. */
 .design-system-text { margin: 0; color: inherit; font-family: var(--font-ui); font-weight: 400; }
 .design-system-text[data-type-role="display"] { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-display); line-height: var(--line-height-display); letter-spacing: var(--letter-spacing-display); }
 .design-system-text[data-type-role="phase"] { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-phase); line-height: var(--line-height-phase); }
 .design-system-text[data-type-role="page"] { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-page); line-height: var(--line-height-page); }
+.design-system-text[data-type-role="section"] { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-section); line-height: var(--line-height-section); }
 .design-system-text[data-type-role="title"] { font-size: var(--fs-title); line-height: var(--line-height-title); font-weight: 600; }
 .design-system-text[data-type-role="lead"] { font-size: var(--fs-lead); line-height: var(--line-height-lead); }
 .design-system-text[data-type-role="body"] { font-size: var(--fs-body); line-height: var(--line-height-body); }
