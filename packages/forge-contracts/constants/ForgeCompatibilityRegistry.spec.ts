@@ -2,7 +2,8 @@
  * Forge's compatibility registry against forge's versions. What matters: the guard holds today, with nothing kept below the minimum and no
  * entry contradicting itself; raising the minimum to 1.0 makes exactly what forge keeps for clients built before system versions
  * removable and keeps every current endpoint; once that raise is made, the guard fails, naming each of those entries, until it is removed;
- * and a client built for the current forge calls each endpoint at the version the registry serves it.
+ * a client built for the current forge calls each endpoint at the version the registry serves it; and every entry is shipped, since forge
+ * serves each one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,7 +18,6 @@ const KEPT_FOR_CLIENTS_BEFORE_SYSTEM_VERSIONS = [
   'the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>',
   'the integer version keys of the documents: identityVersion, contracts, summaryVersion, monitorVersion, controlVersion',
   'channelVersion 1 on every embed message, which a released Bridge and host compare for equality',
-  'the embed mode value a released host sends, read as embedded=frame',
 ];
 
 const CURRENT_ENDPOINTS = [
@@ -55,7 +55,7 @@ describe('forge\'s compatibility registry', () => {
       .toEqual([1, 1, 2, 2, 1, 1]);
   });
 
-  test('marks every endpoint authored, since no released forge serves a versioned path yet', () => {
-    expect(FORGE_COMPATIBILITY_REGISTRY.filter((entry) => entry.kind === 'endpoint' && entry.source !== 'authored')).toEqual([]);
+  test('marks every endpoint and every compatibility path shipped, since forge 1.0 serves each versioned path beside its unversioned one', () => {
+    expect(FORGE_COMPATIBILITY_REGISTRY.filter((entry) => entry.source !== 'shipped')).toEqual([]);
   });
 });

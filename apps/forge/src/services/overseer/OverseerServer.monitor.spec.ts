@@ -1,9 +1,9 @@
 /**
  * The monitor's routes and the identity, answered by the server's request handler on requests built in memory: no socket is bound. What
  * matters: the identity carries its own version and the contracts this program serves; `GET /api/monitor` answers the snapshot only with the
- * token, and a 401, a 403 or a read's 500 answers its refusal with the routes' sentence; `GET /api/monitor/events` starts with the whole
- * newest snapshot, sends a later one only when it changed, carries `monitorVersion` in every event, and ends when the server closes its
- * streams, as a Baton pass does.
+ * token, and a 401, a 403 or a read's 500 answers its refusal with the routes' sentence; `GET /api/monitor/events` opens with a handshake
+ * naming the system version, then sends the whole newest snapshot, and a later one only when it changed, each `monitor` event carrying
+ * `monitorVersion` and the system version beside it, and ends when the server closes its streams, as a Baton pass does.
  */
 import {
   afterEach,
@@ -11,6 +11,9 @@ import {
   expect,
   test
 } from 'bun:test';
+
+import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
+import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
 import type { MonitorSnapshot }                                             from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import { MonitorStream }                                                    from './MonitorStream.ts';
@@ -29,7 +32,18 @@ function snapshotWith(openIncidents: number): MonitorSnapshot {
 
 const openHandlers: OverseerRequestHandler[] = [];
 
-function handlerOf(monitorStream: MonitorStream | null, monitor: OverseerRoutes['monitor'] = () => ({ status: 200, body: snapshotWith(0) })): OverseerRequestHandler {
+/** A `monitor` event's data: the snapshot and the system version beside its keys. */
+function monitorEventWith(openIncidents: number, systemVersion = FORGE_SYSTEM_VERSIONS.current): unknown {
+  return { ...snapshotWith(openIncidents), systemVersion };
+}
+
+const HANDSHAKE_EVENT = { kind: 'handshake', data: { systemVersion: FORGE_SYSTEM_VERSIONS.current } };
+
+function handlerOf(
+  monitorStream: MonitorStream | null,
+  monitor: OverseerRoutes['monitor'] = () => ({ status: 200, body: snapshotWith(0) }),
+  versions?: VersionsDocument,
+): OverseerRequestHandler {
   const routes = {
     token:         () => TOKEN,
     started:       () => true,
@@ -46,6 +60,7 @@ function handlerOf(monitorStream: MonitorStream | null, monitor: OverseerRoutes[
     routes,
     now:                   () => new Date('2026-11-12T12:00:00Z'),
     heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS,
+    ...(versions === undefined ? {} : { versions }),
   } as Parameters<typeof OverseerServer.requestHandlerOf>[0]);
   openHandlers.push(handler);
   return handler;
@@ -110,7 +125,7 @@ describe('GET /api/monitor/events', () => {
     expect([answer.status, await answer.json()]).toEqual([404, { refusal: 'not-ready' }]);
   });
 
-  test('starts with the whole newest snapshot, sends a later one only when it changed, and holds the stream open', async () => {
+  test('opens with the handshake, then the whole newest snapshot, sends a later one only when it changed, and holds the stream open', async () => {
     const monitorStream = MonitorStream.createMonitorStream();
     monitorStream.publish(snapshotWith(1));
     let heldOpen = false;
@@ -120,10 +135,21 @@ describe('GET /api/monitor/events', () => {
     expect([answer.status, answer.headers.get('content-type'), heldOpen]).toEqual([200, 'text/event-stream', true]);
     const reader = answer.body?.getReader();
     if (reader === undefined) throw new Error('the stream has a body');
-    expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: snapshotWith(1) });
+    expect(await nextEventOf(reader)).toEqual(HANDSHAKE_EVENT);
+    expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: monitorEventWith(1) });
     monitorStream.publish(snapshotWith(1));
     monitorStream.publish(snapshotWith(2));
-    expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: snapshotWith(2) });
+    expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: monitorEventWith(2) });
+  });
+
+  test('names the system versions a client\'s recording sets, in the handshake and in every event', async () => {
+    const monitorStream = MonitorStream.createMonitorStream();
+    monitorStream.publish(snapshotWith(1));
+    const versions = { current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } };
+    const reader = (await handlerOf(monitorStream, undefined, versions).answer(get('/api/monitor/events'), PORT)).body?.getReader();
+    if (reader === undefined) throw new Error('the stream has a body');
+    expect(await nextEventOf(reader)).toEqual({ kind: 'handshake', data: { systemVersion: versions.current } });
+    expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: monitorEventWith(1, versions.current) });
   });
 
   test('ends when the server closes its streams, as a Baton pass does', async () => {
@@ -132,6 +158,7 @@ describe('GET /api/monitor/events', () => {
     const handler = handlerOf(monitorStream);
     const reader = (await handler.answer(get('/api/monitor/events'), PORT)).body?.getReader();
     if (reader === undefined) throw new Error('the stream has a body');
+    expect((await nextEventOf(reader))?.kind).toBe('handshake');
     expect((await nextEventOf(reader))?.kind).toBe('monitor');
     handler.closeEveryStream();
     expect(await nextEventOf(reader)).toBeNull();

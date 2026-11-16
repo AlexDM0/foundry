@@ -27,6 +27,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
 import { GateProfilesFile }                                                             from '../../src/adapters/pipeline/GateProfilesFile.ts';
 import { GATE_PROFILE_RUNS_FOLDER }                                                     from '../../src/services/overseer/GateProfiling.ts';
@@ -200,12 +201,24 @@ describe('the Overseer API on a scratch board', () => {
     const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));
     expect(monitor).toMatchObject({ monitorVersion: 3, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
+    const versions: unknown = await (await fetch(new URL('api/versions', url))).json();
+    expect(versions).toEqual(FORGE_SYSTEM_VERSIONS);
+    const versionedMonitor = await (await fetch(new URL('api/v2/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
+    expect(Object.keys(versionedMonitor)).toEqual(Object.keys(monitorFixture));
     const monitorStream = await fetch(new URL('api/monitor/events', url), { headers: tokenHeaders() });
-    const firstChunk = await monitorStream.body?.getReader().read();
-    const firstEvent = new TextDecoder().decode(firstChunk?.value);
-    await monitorStream.body?.cancel().catch(() => undefined);
-    expect(/^event: (.+)$/m.exec(firstEvent)?.[1]).toBe('monitor');
-    expect(JSON.parse(/^data: (.+)$/m.exec(firstEvent)?.[1] ?? 'null')).toMatchObject({ monitorVersion: 3, project: 'Example Agency' });
+    const streamReader = monitorStream.body?.getReader();
+    let streamText = '';
+    while (streamReader !== undefined && !/event: monitor\ndata: .+\n\n/.test(streamText)) {
+      const chunk = await streamReader.read();
+      if (chunk.done) break;
+      streamText += new TextDecoder().decode(chunk.value);
+    }
+    await streamReader?.cancel().catch(() => undefined);
+    const [handshakeEvent = '', monitorEvent = ''] = streamText.split('\n\n');
+    expect(handshakeEvent).toBe(`event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}`);
+    expect(/^event: (.+)$/m.exec(monitorEvent)?.[1]).toBe('monitor');
+    const monitorEventData: unknown = JSON.parse(/^data: (.+)$/m.exec(monitorEvent)?.[1] ?? 'null');
+    expect(monitorEventData).toMatchObject({ monitorVersion: 3, project: 'Example Agency', systemVersion: FORGE_SYSTEM_VERSIONS.current });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {

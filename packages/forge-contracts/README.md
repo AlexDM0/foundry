@@ -10,7 +10,7 @@ names no client.
 | `forge-contracts/ForgeCompatibilityRegistry` | `FORGE_COMPATIBILITY_REGISTRY`: every versioned endpoint and every compatibility path forge keeps, each with its lifetime |
 | `forge-contracts/IdentityDocument` | `GET /api/v1/identity`, with the `contracts` it names |
 | `forge-contracts/BoardSummaryDocument` | `GET /api/v1/summary` |
-| `forge-contracts/MonitorSnapshotDocument` | `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, at `monitorVersion` 3, and the 1 and 2 before it |
+| `forge-contracts/MonitorSnapshotDocument` | `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, at `monitorVersion` 3, and the 1 and 2 before it; the stream's `handshake` and `monitor` events, each with the forge's system version |
 | `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, at control 2 and control 1 |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |

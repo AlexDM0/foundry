@@ -7,7 +7,7 @@
 import type { CompatibilityEntry } from 'system-versions/CompatibilityEntry';
 import type { SystemVersion }      from 'system-versions/VersionsDocument';
 
-/** `authored` for what forge has not shipped yet and the registry describes ahead of it; `shipped` for what a released forge serves. */
+/** `authored` for what forge has not shipped yet and the registry describes ahead of it; `shipped` for what forge serves. */
 export type ForgeCompatibilityEntry = CompatibilityEntry & { readonly source: 'authored' | 'shipped' };
 
 const BEFORE_SYSTEM_VERSIONS: SystemVersion = { major: 0, minor: 0 };
@@ -20,7 +20,7 @@ function currentEndpointOf(endpoint: string, version: number): ForgeCompatibilit
     version,
     introducedIn: FIRST_VERSIONED_FORGE,
     lastNeededBy: null,
-    source:       'authored',
+    source:       'shipped',
   };
 }
 
@@ -38,7 +38,7 @@ function keptForReleasedClientsOf(name: string): ForgeCompatibilityEntry {
 export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = [
   currentEndpointOf('identity', 1),
   currentEndpointOf('summary', 1),
-  // The monitor starts at v2: its warnings became objects in monitor contract 2, before system versions.
+  // The monitor starts at v2: its warnings became objects before system versions, so v1 stands for the strings no versioned path serves.
   currentEndpointOf('monitor', 2),
   currentEndpointOf('monitor/events', 2),
   currentEndpointOf('commands', 1),
@@ -46,5 +46,4 @@ export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = 
   keptForReleasedClientsOf('the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>'),
   keptForReleasedClientsOf('the integer version keys of the documents: identityVersion, contracts, summaryVersion, monitorVersion, controlVersion'),
   keptForReleasedClientsOf('channelVersion 1 on every embed message, which a released Bridge and host compare for equality'),
-  keptForReleasedClientsOf('the embed mode value a released host sends, read as embedded=frame'),
 ];

@@ -1,8 +1,11 @@
 /**
  * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 3`,
- * and the keys of `monitorVersion: 2` and `1` that differ. Keys no reader checks, such as `ticketCountByStatus` and the Overseer's
- * `generation`, are left out. Every string union is the wire's own spelling.
+ * and the keys of `monitorVersion: 2` and `1` that differ; and the stream's handshake and event, which carry the forge's system version.
+ * Keys no reader checks, such as `ticketCountByStatus` and the Overseer's `generation`, are left out. Every string union is the wire's own
+ * spelling.
  */
+import type { SystemVersion } from 'system-versions/VersionsDocument';
+
 
 export type MonitorAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
 
@@ -165,6 +168,16 @@ export interface MonitorSnapshotDocument {
   readonly activity:       readonly MonitorActivityEntryDocument[];
   /** `null` for a forge without Flint. */
   readonly flintBrain:     MonitorFlintBrainDocument | null;
+}
+
+/** The first event of `GET /api/v2/monitor/events`, `event: handshake`, sent before any `monitor` event. */
+export interface MonitorStreamHandshake {
+  readonly systemVersion: SystemVersion;
+}
+
+/** Each `monitor` event of `GET /api/v2/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
+export interface MonitorEventDocument extends MonitorSnapshotDocument {
+  readonly systemVersion: SystemVersion;
 }
 
 /** Monitor contract 2 knows no Flint. */

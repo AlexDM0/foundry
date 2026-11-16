@@ -1,14 +1,21 @@
 /**
  * The Overseer's HTTP and SSE API on 127.0.0.1, design section 9.3. Every request needs a loopback Host, against DNS rebinding; one whose
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
- * origin's page. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the bearer token; the data routes the token or
- * the session cookie a one-time code buys at `POST /api/session`; and every answer carries the Bridge's CSP, a served file a sandbox of its
- * own. A 401, a 403, a read route's 500 and a page build's 500 answer `{refusal, text}`. What a command does, and how a refusal is worded,
- * is the command surface's.
+ * origin's page. `GET /api/versions` answers at every moment, and each endpoint the compatibility registry serves also answers at its
+ * `/api/v<n>/<endpoint>`, through its unversioned route. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the
+ * bearer token; the data routes the token or the session cookie a one-time code buys at `POST /api/session`; and every answer carries the
+ * Bridge's CSP, a served file a sandbox of its own. A 401, a 403, a read route's 500 and a page build's 500 answer `{refusal, text}`. What a
+ * command does, and how a refusal is worded, is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
 
-import type { HTMLBundle } from 'bun';
+import type { HTMLBundle }                                   from 'bun';
+import { FORGE_COMPATIBILITY_REGISTRY }                      from 'forge-contracts/ForgeCompatibilityRegistry';
+import { FORGE_SYSTEM_VERSIONS }                             from 'forge-contracts/ForgeSystemVersions';
+import type { IdentityDocument }                             from 'forge-contracts/IdentityDocument';
+import type { MonitorEventDocument, MonitorStreamHandshake } from 'forge-contracts/MonitorSnapshotDocument';
+import { CompatibilityRegistryUtil }                         from 'system-versions/CompatibilityRegistryUtil';
+import type { SystemVersion, VersionsDocument }              from 'system-versions/VersionsDocument';
 
 import { WATCHER_PROTOCOL_VERSION }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
@@ -20,6 +27,7 @@ import {
   SSE_HEARTBEAT_SECONDS
 } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
+import type { MonitorSnapshot }                  from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import { BrowserSessions }                       from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }       from './EventBroker.ts';
 import type { GateProfileOutputFollower }        from './GateProfiling.ts';
@@ -27,7 +35,8 @@ import type { MonitorStream }                    from './MonitorStream.ts';
 import { OverseerPort, type OverseerPortChoice } from './OverseerPort.ts';
 import { MILLISECONDS_PER_SECOND }               from './constants/TimeUnits.ts';
 
-export interface OverseerIdentity {
+/** The package's identity, but for `application`: the program's name, which a build linked beside the released program changes. */
+export interface OverseerIdentity extends Omit<IdentityDocument, 'application'> {
   identityVersion:        typeof IDENTITY_VERSION;
   application:            string;
   trackerId:              string;
@@ -86,7 +95,7 @@ export interface OverseerRoutes {
   storePicture:    (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
   picture:         (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
-  /** The origins allowed to frame the Bridge, read per response: agent-dashboard's and Gaia's. */
+  /** The origins of the hosts allowed to frame the Bridge, read per response. */
   frameOrigins:    () => readonly string[];
   /**
    * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through
@@ -105,6 +114,8 @@ export interface OverseerServerRequest {
   heartbeatMilliseconds?: number;
   /** Overridden by specs, like the heartbeat. */
   followMilliseconds?:    number;
+  /** What `GET /api/versions` answers and the monitor stream carries; `FORGE_SYSTEM_VERSIONS` unless a client's recording overrides it. */
+  versions?:              VersionsDocument;
 }
 
 export interface OverseerServer {
@@ -147,6 +158,9 @@ const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
 const PICTURE_PATH    = /^\/api\/pictures\/([0-9a-f]{64})$/;
 const PROFILE_STREAM_PATH = /^\/api\/profiles\/([\w.-]+)\/stream$/;
 
+const API_PATH_PREFIX     = '/api/';
+const VERSIONS_PATH       = '/api/versions';
+const VERSIONED_PATH      = /^\/api\/v([1-9]\d*)\/(.+)$/;
 const EVENTS_PATH         = '/api/events';
 const MONITOR_PATH        = '/api/monitor';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
@@ -370,18 +384,28 @@ function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: 
   });
 }
 
-function monitorEventText(snapshot: unknown): string {
-  return `event: monitor\ndata: ${JSON.stringify(snapshot)}\n\n`;
+function handshakeEventText(systemVersion: SystemVersion): string {
+  const handshake: MonitorStreamHandshake = { systemVersion };
+  return `event: handshake\ndata: ${JSON.stringify(handshake)}\n\n`;
 }
 
-/** A whole snapshot on connect, then each one that changed; no ids and no replay, since every event is whole. */
-function monitorEventsResponse(routes: OverseerRoutes, eventStreams: EventStreams): Response {
+function monitorEventText(snapshot: MonitorSnapshot, systemVersion: SystemVersion): string {
+  const event: MonitorEventDocument = { ...snapshot, systemVersion };
+  return `event: monitor\ndata: ${JSON.stringify(event)}\n\n`;
+}
+
+/**
+ * The handshake, then a whole snapshot on connect, then each one that changed, every event naming the system version: an Overseer a Baton
+ * pass brings may be another version. No ids and no replay, since every event is whole.
+ */
+function monitorEventsResponse(routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): Response {
   const monitorStream = routes.monitorStream();
   const latest = monitorStream?.latest() ?? null;
   if (monitorStream === null || latest === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
   return eventStreamResponse(eventStreams, (write) => {
-    write(monitorEventText(latest));
-    const unsubscribe = monitorStream.subscribe((snapshot) => write(monitorEventText(snapshot)));
+    write(handshakeEventText(systemVersion));
+    write(monitorEventText(latest, systemVersion));
+    const unsubscribe = monitorStream.subscribe((snapshot) => write(monitorEventText(snapshot, systemVersion)));
     return { tick: () => undefined, stop: unsubscribe };
   });
 }
@@ -472,14 +496,14 @@ async function pageFileResponse(routes: OverseerRoutes, pageFiles: () => Promise
 type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 
 /** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
-function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams): (() => Response) | null {
+function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): (() => Response) | null {
   const { pathname } = new URL(request.url);
   if (request.method !== 'GET') return null;
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
   if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams);
   if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
-  if (pathname === MONITOR_EVENTS_PATH) return () => monitorEventsResponse(routes, eventStreams);
+  if (pathname === MONITOR_EVENTS_PATH) return () => monitorEventsResponse(routes, eventStreams, systemVersion);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
   if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
   const profileRunId = PROFILE_STREAM_PATH.exec(pathname)?.[1];
@@ -491,15 +515,23 @@ function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: Eve
   return null;
 }
 
-function routeOf(request: Request, access: RouteAccess, identity: OverseerIdentity, eventStreams: EventStreams, pageFiles: PageFiles): Response | Promise<Response> {
+/** What the open routes answer as they are: the identity and the system versions. */
+interface OpenDocuments {
+  identity: OverseerIdentity;
+  versions: VersionsDocument;
+}
+
+function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments, eventStreams: EventStreams, pageFiles: PageFiles): Response | Promise<Response> {
   const { routes } = access;
   const { pathname } = new URL(request.url);
   const { method } = request;
-  const dataRoute = dataRouteOf(request, routes, eventStreams);
+  // Before the identity's 503: a client of any version asks this first, also while the Overseer starts.
+  if (method === 'GET' && pathname === VERSIONS_PATH) return jsonResponse({ status: HTTP_STATUS.OK, body: documents.versions });
+  const dataRoute = dataRouteOf(request, routes, eventStreams, documents.versions.current);
   if (dataRoute !== null) return readerIsAuthorized(request, access) ? readAnswerOf(routes, dataRoute) : unauthorizedResponse(routes);
   if (method === 'GET' && pathname === '/api/identity') {
     return routes.started()
-      ? jsonResponse({ status: HTTP_STATUS.OK, body: identity })
+      ? jsonResponse({ status: HTTP_STATUS.OK, body: documents.identity })
       : jsonResponse({ status: HTTP_STATUS.UNAVAILABLE, body: { refusal: 'starting' } });
   }
   if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
@@ -511,7 +543,7 @@ function routeOf(request: Request, access: RouteAccess, identity: OverseerIdenti
     routes.onNudge();
     return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
   }
-  if (method === 'GET' && pageFiles !== null && !pathname.startsWith('/api/')) return pageFileResponse(routes, pageFiles, pathname);
+  if (method === 'GET' && pageFiles !== null && !pathname.startsWith(API_PATH_PREFIX)) return pageFileResponse(routes, pageFiles, pathname);
   return notFoundResponse();
 }
 
@@ -528,6 +560,27 @@ export interface OverseerRequestHandler {
   closeEveryStream: () => void;
 }
 
+/** Each endpoint served at a versioned path, as `<endpoint>@<version>`: every registry entry that a client of a supported version needs. */
+function servedEndpointsOf(versions: VersionsDocument): ReadonlySet<string> {
+  const removable = CompatibilityRegistryUtil.removableAt(FORGE_COMPATIBILITY_REGISTRY, versions.minimumSupported);
+  return new Set(FORGE_COMPATIBILITY_REGISTRY.flatMap((entry) => (
+    entry.kind === 'endpoint' && !removable.includes(entry) ? [`${entry.endpoint}@${entry.version}`] : []
+  )));
+}
+
+/**
+ * The request at its unversioned path, which every route answers: a served `/api/v<n>/<endpoint>` becomes `/api/<endpoint>`, keeping its
+ * method, headers and body, so the token, session, CSP and stream rules are the unversioned route's. `null` for a version not served.
+ */
+function requestAtUnversionedPath(request: Request, servedEndpoints: ReadonlySet<string>): Request | null {
+  const url = new URL(request.url);
+  const [, version, endpoint] = VERSIONED_PATH.exec(url.pathname) ?? [];
+  if (version === undefined || endpoint === undefined) return request;
+  if (!servedEndpoints.has(`${endpoint}@${version}`)) return null;
+  url.pathname = `${API_PATH_PREFIX}${endpoint}`;
+  return new Request(url.href, request);
+}
+
 /** Every request but a stream is answered within the idle timeout; a stream stays open, between its heartbeats, until a side ends it. */
 function pathIsStream(pathname: string): boolean {
   return pathname === EVENTS_PATH || pathname === MONITOR_EVENTS_PATH || JOB_STREAM_PATH.test(pathname) || PROFILE_STREAM_PATH.test(pathname);
@@ -538,6 +591,8 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
   const eventStreams = eventStreamsOf(serverRequest);
   const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
+  const versions = serverRequest.versions ?? FORGE_SYSTEM_VERSIONS;
+  const servedEndpoints = servedEndpointsOf(versions);
   const identity: OverseerIdentity = {
     identityVersion:        IDENTITY_VERSION,
     application:            PRODUCT_NAMES.PROGRAM,
@@ -552,9 +607,11 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
       if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
         return withPagePolicy(refusalResponse(routes, 'forbidden'), frameOrigins);
       }
-      if (pathIsStream(new URL(request.url).pathname)) holdOpen?.();
+      const routedRequest = requestAtUnversionedPath(request, servedEndpoints);
+      if (routedRequest === null) return withPagePolicy(notFoundResponse(), frameOrigins);
+      if (pathIsStream(new URL(routedRequest.url).pathname)) holdOpen?.();
       const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
-      return withPagePolicy(await routeOf(request, access, identity, eventStreams, pageFiles), frameOrigins);
+      return withPagePolicy(await routeOf(routedRequest, access, { identity, versions }, eventStreams, pageFiles), frameOrigins);
     },
     closeEveryStream: () => {
       for (const close of [...eventStreams.open]) close();

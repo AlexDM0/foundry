@@ -1,9 +1,12 @@
 /**
- * The picture upload's body read and the gate profile stream route, on requests built in memory: no server listens. What matters: a
- * declared length over the limit is refused before one byte is read, and a body with no declared length stops being read once it runs past
- * the limit, so an oversized upload never costs its whole size in memory; a body within the limit is read whole, its chunks in order. A
- * profile stream sends each output line after its cursor, then each line appended later, as SSE with the line number as the id; a run the
- * routes do not know is a 404; the board event stream carries no output line; and every stream route has Bun's idle timeout off.
+ * The picture upload's body read, the gate profile stream route, the system versions and the versioned paths, on requests built in memory:
+ * no server listens. What matters: a declared length over the limit is refused before one byte is read, and a body with no declared length
+ * stops being read once it runs past the limit, so an oversized upload never costs its whole size in memory; a body within the limit is
+ * read whole, its chunks in order. A profile stream sends each output line after its cursor, then each line appended later, as SSE with the
+ * line number as the id; a run the routes do not know is a 404; the board event stream carries no output line; and every stream route has
+ * Bun's idle timeout off. `GET /api/versions` answers while the Overseer starts and while it serves, with no token, behind the Host guard;
+ * every endpoint the registry serves answers at its versioned path exactly as at its unversioned one, behind the same guards, and a version
+ * or an endpoint the registry does not serve is a 404.
  */
 import {
   afterEach,
@@ -12,10 +15,17 @@ import {
   test
 } from 'bun:test';
 
-import type { BoardState }                     from './BoardState.ts';
-import { EventBroker }                         from './EventBroker.ts';
-import type { GateProfileOutputLine }          from './GateProfiling.ts';
-import { OverseerServer, type OverseerRoutes } from './OverseerServer.ts';
+import { FORGE_COMPATIBILITY_REGISTRY } from 'forge-contracts/ForgeCompatibilityRegistry';
+import { FORGE_SYSTEM_VERSIONS }        from 'forge-contracts/ForgeSystemVersions';
+import { CompatibilityRegistryUtil }    from 'system-versions/CompatibilityRegistryUtil';
+import type { VersionsDocument }        from 'system-versions/VersionsDocument';
+
+import type { MonitorSnapshot }                                             from '../../shared/monitor/@types/MonitorSnapshot.ts';
+import type { BoardState }                                                  from './BoardState.ts';
+import { EventBroker }                                                      from './EventBroker.ts';
+import type { GateProfileOutputLine }                                       from './GateProfiling.ts';
+import { MonitorStream }                                                    from './MonitorStream.ts';
+import { OverseerServer, type OverseerRequestHandler, type OverseerRoutes } from './OverseerServer.ts';
 
 const EXAMPLE_UPLOAD_URL = 'http://127.0.0.1:4100/api/pictures';
 const SIZE_LIMIT_BYTES = 8;
@@ -114,7 +124,8 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
 }
 
 function answerOf(routes: OverseerRoutes, path: string, headers: Record<string, string> = {}): Response {
-  const route = OverseerServer.dataRouteOf(new Request(new URL(path, EXAMPLE_API_ORIGIN).href, { headers }), routes, eventStreams);
+  const request = new Request(new URL(path, EXAMPLE_API_ORIGIN).href, { headers });
+  const route = OverseerServer.dataRouteOf(request, routes, eventStreams, FORGE_SYSTEM_VERSIONS.current);
   if (route === null) throw new Error(`no data route for ${path}`);
   return route();
 }
@@ -192,5 +203,142 @@ describe('the gate profile stream', () => {
   test('every stream route has Bun\'s idle timeout off, and no other route does', () => {
     expect(['/api/events', '/api/jobs/J1/stream', '/api/profiles/P1/stream'].map(OverseerServer.pathIsStream)).toEqual([true, true, true]);
     expect(['/api/state', '/api/profiles/P1', '/api/jobs/J1/files/gate.log'].map(OverseerServer.pathIsStream)).toEqual([false, false, false]);
+  });
+});
+
+const PORT = 4100;
+const TOKEN = 'example-token';
+const HOST_HEADERS = { host: `127.0.0.1:${PORT}` };
+const TOKEN_HEADERS = { ...HOST_HEADERS, authorization: `Bearer ${TOKEN}` };
+const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes'];
+
+const openHandlers: OverseerRequestHandler[] = [];
+
+afterEach(() => {
+  for (const handler of openHandlers.splice(0)) handler.closeEveryStream();
+});
+
+/** Routes that answer each versioned endpoint with a fixed body, so an answer shows which route gave it. */
+function versionedRoutesOf(started: () => boolean): OverseerRoutes {
+  const monitorStream = MonitorStream.createMonitorStream();
+  monitorStream.publish({ monitorVersion: 3, openIncidents: 0 } as unknown as MonitorSnapshot);
+  return {
+    token:         () => TOKEN,
+    started,
+    command:       (body) => Promise.resolve({ status: 200, body: { controlVersion: 1, received: body } }),
+    summary:       () => ({ summaryVersion: 1, project: 'Example Agency' }),
+    monitor:       () => ({ status: 200, body: { monitorVersion: 3 } }),
+    monitorStream: () => monitorStream,
+    refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
+    frameOrigins:  () => [],
+  } as Partial<OverseerRoutes> as OverseerRoutes;
+}
+
+function versionedHandlerOf({ started = () => true, versions }: { started?: () => boolean; versions?: VersionsDocument } = {}): OverseerRequestHandler {
+  const handler = OverseerServer.requestHandlerOf({
+    portChoice: { kind: 'given', port: PORT },
+    identity:   {
+      trackerId: 'tracker-example', project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: 4242
+    },
+    routes:                versionedRoutesOf(started),
+    now:                   () => new Date('2026-11-16T12:00:00Z'),
+    heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS,
+    ...(versions === undefined ? {} : { versions }),
+  });
+  openHandlers.push(handler);
+  return handler;
+}
+
+function requestTo(path: string, { method = 'GET', headers = TOKEN_HEADERS, body }: { method?: string; headers?: Record<string, string>; body?: unknown } = {}): Request {
+  return new Request(`${EXAMPLE_API_ORIGIN}${path}`, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+}
+
+/** The status, and the body read as JSON, or the first event of a stream. */
+async function answerFactsOf(response: Response): Promise<[number, unknown]> {
+  if (response.headers.get('content-type') !== 'text/event-stream') return [response.status, await response.json()];
+  return [response.status, await streamTextUntil(response, (soFar) => soFar.includes('event: monitor'))];
+}
+
+function servedPathOf(endpoint: string): string {
+  return `/api/v${CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current)}/${endpoint}`;
+}
+
+describe('GET /api/versions', () => {
+  test('answers the forge\'s system versions with no token, while the Overseer starts and while it serves', async () => {
+    let started = false;
+    const handler = versionedHandlerOf({ started: () => started });
+    const whileStarting = await handler.answer(requestTo('/api/versions', { headers: HOST_HEADERS }), PORT);
+    expect([whileStarting.status, await whileStarting.json()]).toEqual([200, FORGE_SYSTEM_VERSIONS]);
+    expect((await handler.answer(requestTo('/api/identity', { headers: HOST_HEADERS }), PORT)).status).toBe(503);
+    started = true;
+    const whileServing = await handler.answer(requestTo('/api/versions', { headers: HOST_HEADERS }), PORT);
+    expect([whileServing.status, await whileServing.json()]).toEqual([200, FORGE_SYSTEM_VERSIONS]);
+  });
+
+  test('answers the versions a client\'s recording sets in their place', async () => {
+    const versions = { current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } };
+    const answer = await versionedHandlerOf({ versions }).answer(requestTo('/api/versions', { headers: HOST_HEADERS }), PORT);
+    expect(await answer.json()).toEqual(versions);
+  });
+
+  test('is refused 403 for a foreign Host, like every route, and is never versioned itself', async () => {
+    const handler = versionedHandlerOf();
+    const foreign = await handler.answer(requestTo('/api/versions', { headers: { host: `example.com:${PORT}` } }), PORT);
+    expect([foreign.status, await foreign.json()]).toEqual([403, { refusal: 'forbidden', text: 'Example sentence for forbidden' }]);
+    const versioned = await handler.answer(requestTo('/api/v1/versions', { headers: HOST_HEADERS }), PORT);
+    expect([versioned.status, await versioned.json()]).toEqual([404, { refusal: 'not-found' }]);
+  });
+});
+
+describe('the versioned paths', () => {
+  test('the registry versions exactly the endpoints these cases call', () => {
+    expect(FORGE_COMPATIBILITY_REGISTRY.flatMap((entry) => (entry.kind === 'endpoint' ? [entry.endpoint] : []))).toEqual(VERSIONED_ENDPOINTS);
+  });
+
+  test('every endpoint answers at the version the registry serves exactly as at its unversioned path', async () => {
+    const calls: { endpoint: string; method?: string; body?: unknown }[] = [
+      { endpoint: 'identity' },
+      { endpoint: 'summary' },
+      { endpoint: 'monitor' },
+      { endpoint: 'monitor/events' },
+      { endpoint: 'commands', method: 'POST', body: { kind: 'overseer-pause' } },
+    ];
+    for (const { endpoint, method, body } of calls) {
+      const options = { ...(method === undefined ? {} : { method }), ...(body === undefined ? {} : { body }) };
+      const unversioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(`/api/${endpoint}`, options), PORT));
+      const versioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(servedPathOf(endpoint), options), PORT));
+      expect(versioned, endpoint).toEqual(unversioned);
+      expect(unversioned[0], endpoint).toBe(200);
+    }
+  });
+
+  test('a session code is issued at its versioned path behind the token, as at its unversioned one', async () => {
+    const handler = versionedHandlerOf();
+    const issued = await handler.answer(requestTo(servedPathOf('session-codes'), { method: 'POST' }), PORT);
+    expect([issued.status, Object.keys(await issued.json() as object)]).toEqual([200, ['code']]);
+    const refused = await handler.answer(requestTo(servedPathOf('session-codes'), { method: 'POST', headers: HOST_HEADERS }), PORT);
+    expect(refused.status).toBe(401);
+  });
+
+  test('keeps the unversioned route\'s guards: no token is a 401, and every answer carries the page policy', async () => {
+    const refused = await versionedHandlerOf().answer(requestTo(servedPathOf('monitor'), { headers: HOST_HEADERS }), PORT);
+    expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
+    expect(refused.headers.get('content-security-policy')).toContain('frame-ancestors \'none\'');
+  });
+
+  test('holds a versioned stream open, as its unversioned path', async () => {
+    let heldOpen = false;
+    await versionedHandlerOf().answer(requestTo(servedPathOf('monitor/events')), PORT, () => {
+      heldOpen = true;
+    });
+    expect(heldOpen).toBe(true);
+  });
+
+  test('a version or an endpoint the registry does not serve is a 404 not-found', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of ['/api/v9/identity', '/api/v1/monitor', '/api/v0/summary', '/api/v01/summary', '/api/v1/state', '/api/v1/events', '/api/v2/']) {
+      const answer = await handler.answer(requestTo(path), PORT);
+      expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
+    }
   });
 });
