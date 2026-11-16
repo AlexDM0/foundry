@@ -23,7 +23,7 @@ them:
 3. **`--json` does not change a refusal, with seven exceptions.** A refused command prints its sentence on standard
    error and nothing on standard output, with or without `--json`. Under `--json`, `start`, `stop`, `init`, `update`,
    `version`, `machine` and `login-item` also print `{answerVersion, refusal, text}` on standard output: the code and
-   the API sentence (rule 4), since a program such as Gaia shows it. A refusal worded from the arguments has the code
+   the API sentence (rule 4), since a monitor shows it. A refusal worded from the arguments has the code
    `arguments-refused`.
 4. **The [Bridge](../glossary.md#bridge) and a monitor show the API sentence,** beside the Bridge control that was used.
    It holds the same facts as the terminal's sentence, so the words in the first column match both. Where the terminal

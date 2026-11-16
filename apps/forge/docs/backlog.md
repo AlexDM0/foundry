@@ -69,5 +69,5 @@ here: each returns only as a new decision of the owner's.
   adapter. Launching and [session](glossary.md#session) streams sit behind that port, so a second vendor adds an adapter
   there.
 - **A cross-project overview.** Each repository's Overseer serves only its own board. The view across boards stays
-  agent-dashboard's, a separate program; its contract with this build is under [The agent-dashboard
-  contract](reference/overseer-api.md#the-agent-dashboard-contract). agent-progress keeps no machine-wide process.
+  a monitor's, a separate program; its contract with this build is under [The monitor
+  contract](reference/overseer-api.md#the-monitor-contract). agent-progress keeps no machine-wide process.

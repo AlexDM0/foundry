@@ -724,8 +724,9 @@ All boards on a machine share one gate limit: `GATE_RUNS_AT_ONCE` (2) gate runs 
 [gate slot](../glossary.md#gate-slot) recorded in the shared [`<monitor>`](../glossary.md#reading-names) folder. Its
 [usage marker](../glossary.md#usage-marker) allows no launch or resume on any board before its reset.
 
-A monitor is a separate tool, such as agent-dashboard, that shows several boards together. It finds them in
-`projects.json`, the monitor registry, and frames a Bridge with `?embedded=dashboard`, which hides the header.
+A monitor is a separate tool that shows several boards together. It finds them in `projects.json`, the monitor
+registry, and may frame a Bridge with `?embedded=frame`, which hides the header ([The embed
+contract](../reference/overseer-api.md#the-embed-contract)).
 
 ## Invariants
 
