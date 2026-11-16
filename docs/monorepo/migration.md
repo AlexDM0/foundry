@@ -110,15 +110,15 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] The rehearsal's two open findings, processes listed with `ps` in a gate and the pipeline agent's turn-end check, moved to the
       backlog below.
 
-### P6. Docs close-out and the owner's review (Claude, then the owner) — not started
+### P6. Docs close-out and the owner's review (Claude, then the owner) — under way
 
 - [x] DOC-root: the root `CLAUDE.md` names each app's rules, each package's README and the one constitution, the two trackers with
       their homes, namespaces, reach and gates, turbo as how everything verifies, and where worktrees and evidence live; the root
       `README.md`; this checklist and the design brought to the P5 gate, with the release rules kept. No `.claude/rules/gaia.md`: a
       session started in `apps/gaia` loads `apps/gaia/CLAUDE.md` itself (probe P20), and whether a path-scoped rule loads in a
       subfolder session is still unprobed.
-- [ ] DOC-forge: `apps/forge/CLAUDE.md` and forge's docs for what P3 to P5 changed.
-- [ ] DOC-gaia: `apps/gaia/CLAUDE.md`, `docs/contracts.md`, `docs/backlog.md` and `docs/forge-requirements.md` for what P3 to P5
+- [x] DOC-forge: `apps/forge/CLAUDE.md` and forge's docs for what P3 to P5 changed.
+- [x] DOC-gaia: `apps/gaia/CLAUDE.md`, `docs/contracts.md`, `docs/backlog.md` and `docs/forge-requirements.md` for what P3 to P5
       changed.
 - [ ] The owner reviews `git log --oneline main..monorepo/integration` and the gate records, and gives the go for P7.
 
