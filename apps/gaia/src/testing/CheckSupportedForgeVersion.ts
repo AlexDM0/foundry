@@ -18,6 +18,9 @@ export function supportedForgeVersionWarningOf(supported: SystemVersion, forgeCu
 
 if (import.meta.main) {
   const warning = supportedForgeVersionWarningOf(SUPPORTED_FORGE_VERSION, FORGE_SYSTEM_VERSIONS.current);
-  if (warning === null) console.log(`Gaia supports forge's current version, ${SystemVersionUtil.textOf(SUPPORTED_FORGE_VERSION)}.`);
-  else console.warn(warning);
+  const supportedText = SystemVersionUtil.textOf(SUPPORTED_FORGE_VERSION);
+  const currentText = SystemVersionUtil.textOf(FORGE_SYSTEM_VERSIONS.current);
+  if (warning !== null) console.warn(warning);
+  else if (supportedText === currentText) console.log(`Gaia supports forge's current version, ${supportedText}.`);
+  else console.log(`Gaia supports forge ${supportedText}, ahead of forge's current ${currentText}.`);
 }
