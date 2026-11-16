@@ -1,0 +1,1072 @@
+{
+  "no gate": [
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "config",
+        "--bool",
+        "commit.gpgsign"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "HEAD",
+        "3333333333333333333333333333333333333333",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/heads/"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "merge-tree",
+        "--write-tree",
+        "--name-only",
+        "--no-messages",
+        "-z",
+        "--end-of-options",
+        "master",
+        "ticket-001"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "merge",
+        "--ff-only",
+        "--quiet",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--absolute-git-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "master^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "refs/heads/master^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "refs/heads/ticket-001^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "refs/heads/ticket-001^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<scratch root>"
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "show",
+        "master:CLAUDE.md"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "symbolic-ref",
+        "--quiet",
+        "--short",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "worktree",
+        "add",
+        "-b",
+        "ticket-001",
+        "<repository>/.forge-worktrees/ticket-001",
+        "master"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "worktree",
+        "list",
+        "--porcelain"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J1",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J3",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J4",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "config",
+        "--get",
+        "core.hooksPath"
+      ],
+      "hookPolicy": "repository-hooks",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "1111111111111111111111111111111111111111",
+        "HEAD",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "for-each-ref",
+        "--format=%(refname) %(objectname)"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "log",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "--format=",
+        "1111111111111111111111111111111111111111..HEAD",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "log",
+        "-1",
+        "--format=%B",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "--is-ancestor",
+        "1111111111111111111111111111111111111111",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "--is-ancestor",
+        "1111111111111111111111111111111111111111",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "master",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-list",
+        "1111111111111111111111111111111111111111..HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--absolute-git-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--show-toplevel",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "1111111111111111111111111111111111111111^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "MERGE_HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "3333333333333333333333333333333333333333^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "HEAD^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--no-renames"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+        "--no-renames"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "worktree",
+        "list",
+        "--porcelain"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    }
+  ],
+  "one gate in every phase": [
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "config",
+        "--bool",
+        "commit.gpgsign"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "HEAD",
+        "3333333333333333333333333333333333333333",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/heads/"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "merge-tree",
+        "--write-tree",
+        "--name-only",
+        "--no-messages",
+        "-z",
+        "--end-of-options",
+        "master",
+        "ticket-001"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "merge",
+        "--ff-only",
+        "--quiet",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--absolute-git-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "master^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "refs/heads/master^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "refs/heads/ticket-001^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "refs/heads/ticket-001^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<scratch root>"
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "show",
+        "master:CLAUDE.md"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "symbolic-ref",
+        "--quiet",
+        "--short",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "worktree",
+        "add",
+        "-b",
+        "ticket-001",
+        "<repository>/.forge-worktrees/ticket-001",
+        "master"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>",
+      "gitArguments": [
+        "worktree",
+        "list",
+        "--porcelain"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J1",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J3",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/sessions/J4",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "config",
+        "--get",
+        "core.hooksPath"
+      ],
+      "hookPolicy": "repository-hooks",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "diff",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "1111111111111111111111111111111111111111",
+        "HEAD",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "diff",
+        "--no-ext-diff",
+        "HEAD",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "for-each-ref",
+        "--format=%(refname) %(objectname)"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "log",
+        "--name-only",
+        "--no-renames",
+        "-z",
+        "--format=",
+        "1111111111111111111111111111111111111111..HEAD",
+        "--"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "log",
+        "-1",
+        "--format=%B",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "--is-ancestor",
+        "1111111111111111111111111111111111111111",
+        "3333333333333333333333333333333333333333"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "--is-ancestor",
+        "1111111111111111111111111111111111111111",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "merge-base",
+        "master",
+        "HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-list",
+        "1111111111111111111111111111111111111111..HEAD"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--absolute-git-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--absolute-git-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--path-format=absolute",
+        "--show-toplevel",
+        "--git-common-dir"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "1111111111111111111111111111111111111111^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "MERGE_HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "3333333333333333333333333333333333333333^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "HEAD^{tree}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--no-renames"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+        "--no-renames"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    },
+    {
+      "folder": "<repository>/.forge-worktrees/ticket-001",
+      "gitArguments": [
+        "worktree",
+        "list",
+        "--porcelain"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": "<repository>/.forge-worktrees"
+    }
+  ]
+}

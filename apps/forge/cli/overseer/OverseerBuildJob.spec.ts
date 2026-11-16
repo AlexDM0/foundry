@@ -3,7 +3,8 @@
  * line, so no Watcher, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
  * install line, through the closing report, verification and a gate, to the Handoff code writes, the finished ticket and the review job the
  * policy launches; and each operational failure opens its own incident or decision rather than a failed pass, while a missing report or an
- * attribution trailer is a failed pass with its cause. `cli/overseer/OverseerBuildJob.integration.spec.ts` holds the real-system claims.
+ * attribution trailer is a failed pass with its cause. A tracker at its repository's root asks git, from the launch to the landing, exactly
+ * the calls it asked before a tracker could sit in a folder. `cli/overseer/OverseerBuildJob.integration.spec.ts` holds the real-system claims.
  */
 import {
   existsSync,
@@ -47,6 +48,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../src/testing/FakeGateConfinement.ts';
+import { type LoggedGitCall, startGitCallLog }                                from '../../src/testing/GitCallLog.ts';
 import { inheritedEnvironment }                                               from '../../src/testing/InheritedEnvironment.ts';
 import { nativePlatformPorts }                                                from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
@@ -58,23 +60,24 @@ import {
   type RecordedFlowCommitStageName,
   REPLAYED_OBJECT_IDS
 } from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
-import { runCommandLine }                                       from '../Main.ts';
-import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
-import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                      from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
-import { OverseerWording }                                      from './OverseerWording.ts';
+import { type RecordedWatcherStages, useRecordedWatcherStages }           from '../../src/testing/RecordedWatcherStages.ts';
+import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
+import { runCommandLine }                                                 from '../Main.ts';
+import { createCapturedCommandContext }                                   from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                         from '../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                                                from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                                from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                               from '../testing/StoredProgress.ts';
+import { OverseerWording }                                                from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const WORKTREES_FOLDER = '.forge-worktrees';
 const RED_TESTS_LINE = 'echo expected 2, received 3; exit 1';
+const FROZEN_ROOT_TRACKER_GIT_CALLS_PATH = join(import.meta.dir, 'FrozenRootTrackerGitCalls.json');
 
 const world = useRecordedWatcherStages(nativePlatformPorts());
 let ports: RecordedWatcherStages['ports'];
@@ -296,6 +299,27 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(storedProgressOf(repositoryDirectory).tasks.some((task) => task.reviewOf !== undefined)).toBe(false);
     expect(loggedEntries('decision-opened')).toEqual([]);
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
+  });
+
+  /**
+   * `FrozenRootTrackerGitCalls.json` was taken from forge at 7210f3c1, the last commit before Part B, by running these cases there with the
+   * distinct calls written out. Retake it the same way from the commit before a change meant to move a root tracker's git, never from this run.
+   */
+  test.each([
+    ['no gate', ['gate', 'none']],
+    ['one gate in every phase', ['gate', 'add', 'checks', '--', 'true']],
+  ])('a tracker at its repository\'s root with %s asks git exactly the calls forge asked before a tracker could sit in a folder', async (pipelineName, gateVerb) => {
+    const gitCalls = startGitCallLog({ [repositoryDirectory]: '<repository>', [monitorFolder]: '<monitor>', [runScratchRoot()]: '<scratch root>' });
+    try {
+      await run(gateVerb);
+      const drivePass = await drivePassPlaying(buildingSession());
+      await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
+    } finally {
+      gitCalls.stop();
+    }
+
+    const frozenCalls = JSON.parse(readFileSync(FROZEN_ROOT_TRACKER_GIT_CALLS_PATH, 'utf8')) as Record<string, LoggedGitCall[]>;
+    expect(gitCalls.distinctCalls()).toEqual(frozenCalls[pipelineName] ?? []);
   });
 
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
