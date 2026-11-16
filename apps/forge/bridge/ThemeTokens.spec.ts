@@ -92,6 +92,7 @@ const MOTION_TOKENS_ZEROED = [
   '--motion-grow',
   '--motion-fill',
   '--motion-follow',
+  '--pulse-status',
 ] as const;
 const READING_TIME_TOKEN = '--toast-duration';
 
@@ -113,6 +114,7 @@ const THEMED_COLOUR_TOKENS = [
   '--phase-ticket',
   '--tone-info',
   '--tone-success',
+  '--neutral-fill',
   '--pass-tint',
   '--pass-ink',
   '--err-fill',
@@ -205,6 +207,7 @@ const TYPE_AND_CORNER_SIZES: Readonly<Record<string, string>> = {
   '--fs-display':             '34px',
   '--fs-phase':               '28px',
   '--fs-page':                '22px',
+  '--fs-section':             '21px',
   '--fs-title':               '15px',
   '--fs-lead':                '13.5px',
   '--fs-body':                '13px',
@@ -215,6 +218,7 @@ const TYPE_AND_CORNER_SIZES: Readonly<Record<string, string>> = {
   '--line-height-display':    '40px',
   '--line-height-phase':      '34px',
   '--line-height-page':       '28px',
+  '--line-height-section':    '26px',
   '--line-height-lead':       '20px',
   '--line-height-body':       '19px',
   '--line-height-micro':      '16px',

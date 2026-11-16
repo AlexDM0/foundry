@@ -25,9 +25,9 @@
   --r-group: 8px; --r-dialog: 8px;
 
   --fs-micro: 11px; --fs-pill: 11.5px; --fs-small: 12px; --fs-tab: 12.5px; --fs-body: 13px; --fs-lead: 13.5px;
-  --fs-title: 15px; --fs-page: 22px; --fs-phase: 28px; --fs-display: 34px;
+  --fs-title: 15px; --fs-section: 21px; --fs-page: 22px; --fs-phase: 28px; --fs-display: 34px;
   --line-height-pill: 15px; --line-height-micro: 16px; --line-height-small: 16px; --line-height-tab: 18px;
-  --line-height-body: 19px; --line-height-lead: 20px; --line-height-title: 21px;
+  --line-height-body: 19px; --line-height-lead: 20px; --line-height-title: 21px; --line-height-section: 26px;
   --line-height-page: 28px; --line-height-phase: 34px; --line-height-display: 40px;
   --letter-spacing-micro: 0.07em; --letter-spacing-display: -0.02em;
 
@@ -40,6 +40,7 @@
   --motion-base: 160ms;
   --motion-slow: 220ms;
   --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
   --pulse-status:   1.6s;
   --motion-rise:      420ms;
   --motion-pop:       380ms;
@@ -55,6 +56,8 @@
   --motion-grow:      700ms;
   --motion-fill:      480ms;
   --motion-follow:    200ms;
+  /* The scale a pressed button shrinks to; a host sets 1 on the root for a press that keeps every size. */
+  --press-scale:      0.98;
 
   /* The graphite light theme: pure neutral greys with no tint, and one orange family. */
   --bg:           #f6f6f6;
@@ -77,6 +80,7 @@
 
   --tone-info:    #2196a7;
   --tone-success: #19a24e;
+  --neutral-fill: #8f8f8f;
 
   --pass-tint:    rgba(204, 251, 189, 0.4);
   --pass-ink:     #266f20;
@@ -126,18 +130,19 @@
   :root {
     --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
     --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
-    --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms;
+    --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms; --pulse-status: 0ms;
   }
 }
 
 /* One row per state tone: pills, bars, dots and badges all read these properties. */
-[data-state-tone="neutral"]        { --s-fill: #8f8f8f; --s-tint: var(--wash); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); --s-head: var(--ink-muted); }
+[data-state-tone="neutral"]        { --s-fill: var(--neutral-fill); --s-tint: var(--wash); --s-ink: var(--ink-muted); --s-edge: var(--line-strong); --s-head: var(--ink-muted); }
 [data-state-tone="accent"]         { --s-fill: var(--signal); --s-tint: var(--link-tint); --s-ink: var(--link); --s-edge: var(--accent-edge); }
 [data-state-tone="accent-outline"] { --s-fill: var(--signal); --s-tint: var(--surface); --s-ink: var(--link); --s-edge: var(--accent-edge); }
 [data-state-tone="info-outline"]   { --s-fill: var(--tone-info); --s-tint: var(--surface); --s-ink: #0e6672; --s-edge: #7cc3cd; }
 [data-state-tone="info"]           { --s-fill: var(--tone-info); --s-tint: #e0f2f5; --s-ink: #0e6672; --s-edge: #7cc3cd; }
 [data-state-tone="info-deep"]      { --s-fill: var(--tone-info); --s-tint: #c9e8ed; --s-ink: #0a5761; --s-edge: #7cc3cd; }
 [data-state-tone="success"]        { --s-fill: var(--tone-success); --s-tint: #e3f5e9; --s-ink: #156b37; --s-edge: #86cf9f; }
+[data-state-tone="error"]          { --s-fill: var(--err-fill); --s-tint: var(--err-tint); --s-ink: var(--err-ink); --s-edge: var(--err-edge); }
 [data-state-tone="ink"]            { --s-fill: var(--ink); --s-tint: var(--wash); --s-ink: var(--ink); --s-edge: var(--line-strong); }
 [data-state-tone="muted"]          { --s-fill: rgba(24, 24, 24, 0.3); --s-tint: var(--surface); --s-ink: var(--ink-4); --s-edge: var(--line); --s-head: var(--ink-4); }
 
@@ -161,6 +166,7 @@
 
   --tone-info:    #29b9c7;
   --tone-success: #53bd7f;
+  --neutral-fill: #7f8590;
 
   --pass-tint:    #193b26;
   --pass-ink:     #bce7ca;
@@ -192,7 +198,6 @@
   --shadow-tooltip: 0 8px 20px oklch(0 0 0 / 0.4);
 }
 /* The dark state rows set only the literals; every var() of a light row already follows the theme. */
-:root[data-theme="dark"] [data-state-tone="neutral"]      { --s-fill: #7f8590; }
 :root[data-theme="dark"] [data-state-tone="info-outline"] { --s-ink: #8fe0e8; --s-edge: #1f7f89; }
 :root[data-theme="dark"] [data-state-tone="info"]         { --s-tint: #123a40; --s-ink: #8fe0e8; --s-edge: #1f7f89; }
 :root[data-theme="dark"] [data-state-tone="info-deep"]    { --s-tint: #174c54; --s-ink: #b4eef3; --s-edge: #1f7f89; }
@@ -214,7 +219,7 @@
 :root:not([data-motion="ready"]) {
   --motion-fast: 0ms; --motion-base: 0ms; --motion-slow: 0ms;
   --motion-rise: 0ms; --motion-pop: 0ms; --motion-modal: 0ms; --motion-wash: 0ms; --rise-step: 0ms; --glow-period: 0ms;
-  --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms;
+  --motion-fade: 0ms; --motion-draw: 0ms; --motion-grow: 0ms; --motion-fill: 0ms; --motion-follow: 0ms; --pulse-status: 0ms;
 }
 
 /* The names for colours a token above already holds, and the washes mixed from them: one line follows both themes. */
