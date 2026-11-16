@@ -1,8 +1,8 @@
 /**
  * `gate-profiles.json` both ways. What matters: written runs read back whole and write back byte for byte, the file's own keys first and
- * every top-level key this build does not know after them, in stored order; a gate's `in` and `network` are written only when set; no file
- * is `absent`; and a file nobody could trust whole, a key in a run the read does not know included, is `malformed` with a reason naming the
- * offending part, never a throw.
+ * every top-level key this build does not know after them, in stored order; a gate's `in` and `network` and a run's `cacheReport` are
+ * written only when set; no file is `absent`; and a file nobody could trust whole, a key in a run the read does not know or a cache report
+ * outside its words included, is `malformed` with a reason naming the offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -34,6 +34,7 @@ const EXAMPLE_PROFILES: GateProfiles = {
       state:               'passed',
       stopRequested:       false,
       elapsedMilliseconds: 41_200,
+      cacheReport:         'partial',
     },
     {
       profileRunId:        'P3',
@@ -81,6 +82,12 @@ describe('a well-formed file', () => {
     expect(written.runs[1]?.gate).toEqual({ name: 'typecheck', run: 'bun run typecheck' });
   });
 
+  test('a run whose gate reported no cache is written with no cacheReport key', () => {
+    const written = JSON.parse(GateProfilesFile.contentsOf(EXAMPLE_PROFILES)) as { runs: object[] };
+
+    expect(written.runs.map((run) => Object.hasOwn(run, 'cacheReport'))).toEqual([true, false]);
+  });
+
   test('no file reads as absent', () => {
     expect(GateProfilesFile.read(filePath)).toEqual({ verdict: 'absent' });
   });
@@ -103,6 +110,7 @@ describe('a file nobody can trust whole is malformed, never a throw', () => {
     ['a run id that is no run id', documentWith({ runs: [runOf({ profileRunId: 'R1' })] }), 'runs[0].profileRunId'],
     ['a gate that writes', documentWith({ runs: [runOf({ gate: { name: 'tests', run: 'bun test', writes: ['~/.cache'] } })] }), 'runs[0].gate.writes is not a key'],
     ['a negative duration', documentWith({ runs: [runOf({ elapsedMilliseconds: -1 })] }), 'runs[0].elapsedMilliseconds'],
+    ['an unknown cache report', documentWith({ runs: [runOf({ cacheReport: 'warm' })] }), 'runs[0].cacheReport is "warm"'],
   ])('%s', (_case, text, reasonPart) => {
     writeFileSync(filePath, text);
 

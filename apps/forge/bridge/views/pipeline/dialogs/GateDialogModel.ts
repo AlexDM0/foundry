@@ -11,6 +11,7 @@ import type { Pipeline, PipelineGate }                                     from 
 import type { GateProfileRunFacts, PipelineGateRowKind, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ProfileOutputLine }                                          from '../../../api/ProfileStreamClient.ts';
 import type { FlowDraftEdit }                                              from '../flow/PipelineFlowModel.ts';
+import { GateCacheMarkModel }                                              from '../gates/GateCacheMarkModel.ts';
 
 /** Which gate the dialog shows: a stored one, or a new one, of either kind; `phase` is the tab or + it was opened from. */
 export interface GateDialogSubject {
@@ -157,11 +158,11 @@ function secondsTextOf(elapsedMilliseconds: number | null): string {
 function resultOf(run: GateProfileRunFacts): { tone: ProfileResultTone; text: string } {
   switch (run.state) {
     case 'passed':
-      return { tone: 'passed', text: `Passed in ${secondsTextOf(run.elapsedMilliseconds)}` };
+      return { tone: 'passed', text: GateCacheMarkModel.withCacheWordOf(`Passed in ${secondsTextOf(run.elapsedMilliseconds)}`, run.cacheReport) };
     case 'timed-out':
       return { tone: 'timed-out', text: `Last profile: timed out at ${secondsTextOf(run.elapsedMilliseconds)}` };
     case 'red':
-      return { tone: 'red', text: `Red after ${secondsTextOf(run.elapsedMilliseconds)}` };
+      return { tone: 'red', text: GateCacheMarkModel.withCacheWordOf(`Red after ${secondsTextOf(run.elapsedMilliseconds)}`, run.cacheReport) };
     case 'cannot-run':
       return { tone: 'red', text: 'Cannot run: the command could not start' };
     default:

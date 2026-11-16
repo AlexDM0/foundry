@@ -3,14 +3,15 @@
  * nothing); every merge step carries a derived meter whose tooltip follows where it is derived from; each step card names its kind, and a
  * Gates card says who fixes a red gate, read from its way back; a re-review is conditional and says its threshold; the switches word their
  * state; an editing card carries its change, a switch the way it turned and a gates step the count of its changed gates, while a proposal
- * carries none; each add choice sends its edit or asks for the Gate dialog; the footer's removed steps are worded from the facts; and a
- * node asks while a question it names is open.
+ * carries none; a gate pill carries the cache mark of its gate's newest profile run in the step's phase; each add choice sends its edit or
+ * asks for the Gate dialog; the footer's removed steps are worded from the facts; and a node asks while a question it names is open.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineFlowFacts, PipelineFlowNode }       from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
-import { PipelineFlowModel }                              from './PipelineFlowModel.ts';
+import type { GatePhase }                                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { GateProfileRunFacts, PipelineFlowFacts, PipelineFlowNode } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { pipelineBoardStateOf, type PipelineFixtureName }                from '../../../testing/PipelineFixture.ts';
+import { PipelineFlowModel }                                             from './PipelineFlowModel.ts';
 
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
@@ -157,7 +158,7 @@ describe('step cards', () => {
 describe('change markers', () => {
   test('a proposal and a live flow carry no change; proposed gates are plain pills', () => {
     expect(viewOf('A2', 'builder')).toMatchObject({ change: null, changeText: null });
-    expect(viewOf('A2', 'gates-build').gatePills[0]).toEqual({ gateName: 'typecheck', change: null });
+    expect(viewOf('A2', 'gates-build').gatePills[0]).toEqual({ gateName: 'typecheck', text: 'typecheck', change: null });
     expect(viewOf('A5', 'builder').change).toBeNull();
   });
 
@@ -172,6 +173,21 @@ describe('change markers', () => {
       changeText: '2 changes',
       gatePills:  [{ gateName: 'tests', change: 'changed' }, { gateName: 'lint', change: 'removed' }],
     });
+  });
+
+  test('a gate pill carries the cache mark of its gate\'s newest profile run in the step\'s phase, and none from another phase', () => {
+    const profileRunOf = (phase: GatePhase, cacheReport: GateProfileRunFacts['cacheReport']): GateProfileRunFacts => ({
+      profileRunId: `P-${phase}`, gateName: 'typecheck', phase, state: 'passed', elapsedMilliseconds: 400, cacheReport,
+    });
+    const pillsOf = (profileRuns: readonly GateProfileRunFacts[]) => PipelineFlowModel.nodeViewsOf(flowOf('A2'), EFFORTS, profileRuns)
+      .find((view) => view.nodeId === 'gates-build')?.gatePills[0]?.text;
+
+    expect([
+      pillsOf([profileRunOf('build', 'hit')]),
+      pillsOf([profileRunOf('build', 'partial')]),
+      pillsOf([profileRunOf('build', 'miss')]),
+      pillsOf([profileRunOf('merge', 'hit')]),
+    ]).toEqual(['typecheck · cached', 'typecheck · partly cached', 'typecheck', 'typecheck']);
   });
 
   test('a changed switch says the way it turned; a new or removed step says its word', () => {

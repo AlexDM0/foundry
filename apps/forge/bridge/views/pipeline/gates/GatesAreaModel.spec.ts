@@ -2,8 +2,8 @@
  * The gates table's model. What matters: a phase counts the gates that run and says why it has none; a prepare row leads with "P" and
  * gates count from 1; a reorder sends the phase's run order, or the prepare steps' order for a prepare row, without the removed rows;
  * a removed row is a band of its own, so no row passes it; Delete takes a gate out of this phase alone and removes a prepare step; a
- * prepare row opens the prepare variant; the time chip words each profile state in its pass, fail or waiting tone, asks to measure a
- * changed gate, and takes no press while it measures.
+ * prepare row opens the prepare variant; the time chip words each profile state in its pass, fail or waiting tone, with the cache mark
+ * beside the time of a run whose gate reported a full or partial hit, asks to measure a changed gate, and takes no press while it measures.
  */
 import { describe, expect, test } from 'bun:test';
 import { ReorderIndexUtil }       from 'design-system/ReorderIndexUtil';
@@ -30,9 +30,9 @@ const BUILD_ROWS: readonly PipelineGateRow[] = [
   gateRow('old-lint', { mark: 'removed' }),
 ];
 
-function profileRun(state: GateProfileRunFacts['state'], elapsedMilliseconds: number | null): GateProfileRunFacts {
+function profileRun(state: GateProfileRunFacts['state'], elapsedMilliseconds: number | null, cacheReport: GateProfileRunFacts['cacheReport'] = null): GateProfileRunFacts {
   return {
-    profileRunId: 'P1', gateName: 'tests', phase: 'build', state, elapsedMilliseconds,
+    profileRunId: 'P1', gateName: 'tests', phase: 'build', state, elapsedMilliseconds, cacheReport,
   };
 }
 
@@ -136,6 +136,16 @@ describe('the time chip', () => {
     expect(chipOf(profileRun('red', 9000))).toMatchObject({ text: 'red · 9 s', tone: 'fail' });
     expect(chipOf(profileRun('stopped', null))).toMatchObject({ text: 'stopped', tone: 'waiting' });
     expect(GatesAreaModel.rowViewsOf([prepareRow('install')], 'build', [])[0]?.profileChip).toBeNull();
+  });
+
+  test('marks the time of a run whose gate reported every task or some cached, and nothing else', () => {
+    const chipTextOf = (run: GateProfileRunFacts) => GatesAreaModel.rowViewsOf([gateRow('tests')], 'build', [run])[0]?.profileChip?.text;
+    expect([
+      chipTextOf(profileRun('passed', 400, 'hit')),
+      chipTextOf(profileRun('red', 9000, 'partial')),
+      chipTextOf(profileRun('passed', 41_000, 'miss')),
+      chipTextOf(profileRun('passed', 41_000, null)),
+    ]).toEqual(['0.4 s · cached', 'red · 9 s · partly cached', '41 s', '41 s']);
   });
 
   test('a gate an edit changed or added asks to be measured', () => {

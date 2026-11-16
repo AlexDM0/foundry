@@ -63,7 +63,9 @@ testWhenGitIsRecorded('a red gate\'s output reaches the listener, its process id
   )));
 
   if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
-  expect(run.gates).toEqual([{ outcome: 'failed', milliseconds: MEASURED_MILLISECONDS, output: pieces.join('') }]);
+  expect(run.gates).toEqual([{
+    outcome: 'failed', milliseconds: MEASURED_MILLISECONDS, cacheReport: null, output: pieces.join('')
+  }]);
   expect(pieces.join('')).toContain('example-red');
   expect(processIds).toHaveLength(1);
 });

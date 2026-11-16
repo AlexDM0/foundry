@@ -129,7 +129,7 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
   const draft = record?.draft ?? livePipeline;
   const openQuestionIds = PipelineAgentPanelModel.openQuestionIdsOf(record?.questions ?? []);
   const phase = selection.openPhase;
-  const viewById = new Map(PipelineFlowModel.nodeViewsOf(flow, facts.pipelineChoices?.efforts ?? []).map((view) => [view.nodeId, view]));
+  const viewById = new Map(PipelineFlowModel.nodeViewsOf(flow, facts.pipelineChoices?.efforts ?? [], facts.profileRuns ?? []).map((view) => [view.nodeId, view]));
   const selectedStepNodeId = selectedStepNodeIdOf(selection);
   const gatePhase = PipelinePhaseModel.gatePhaseOf(phase);
 

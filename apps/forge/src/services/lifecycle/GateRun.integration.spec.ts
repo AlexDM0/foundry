@@ -4,7 +4,8 @@
  * tracked file is red with the diff as its output; each step gets its own confinement (a prepare step the network, a gate only its own
  * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing, and a phase
  * with no gates runs no prepare step either; a gate takes a machine slot while it runs; nothing is cached, so the same tree gated twice
- * runs twice; and the gate process runs the argv it is handed, in a process group of its own, without the job variables.
+ * runs twice; and the gate process runs the argv it is handed, in a process group of its own, without the job variables; and a gate is
+ * handed its own report path, never one this process inherited, whose report is read back and removed.
  */
 import {
   existsSync,
@@ -20,14 +21,19 @@ import {
   expect,
   test
 }                                        from 'bun:test';
-import { shellLineFor }                                               from '../../lib/shell-line/ShellLineFor.ts';
-import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import { environmentCopy, JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE } from '../../shared/Environment.ts';
-import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                     from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
-import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }     from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import { shellLineFor }      from '../../lib/shell-line/ShellLineFor.ts';
+import type { PipelineGate } from '../../lib/tracker-model/@types/Pipeline.ts';
+import {
+  environmentCopy,
+  GATE_REPORT_VARIABLE,
+  HATCH_DIRECTORY_VARIABLE,
+  JOB_ID_VARIABLE
+} from '../../shared/Environment.ts';
+import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                 from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
+import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import {
   type GateConfinement,
   type GateProcessRun,
@@ -379,6 +385,30 @@ describeWhenGitIsRecorded('the gate process', () => {
     });
 
     expect(run.output.trim()).toBe('unset unset kept');
+  });
+
+  test('is handed its own report path, and what it reports there is read back and the file removed', async () => {
+    const reportFile = join(scratchDirectory, 'gate-report.json');
+    const inheritedReportFile = join(scratchDirectory, 'inherited-report.json');
+
+    const run = await runGateInThisEnvironment({
+      argv:        ['/bin/sh', '-c', `printf '{"version":1,"cache":"partial"}' > "$${GATE_REPORT_VARIABLE}"`],
+      reportFile,
+      directory:   scratchDirectory,
+      environment: { [GATE_REPORT_VARIABLE]: inheritedReportFile, PATH: '/usr/bin:/bin' },
+    });
+
+    expect([run.cacheReport, existsSync(reportFile), existsSync(inheritedReportFile)]).toEqual(['partial', false, false]);
+  });
+
+  test('handed no report path, gets none, even one this process inherited, and has no cache report', async () => {
+    const run = await runGateInThisEnvironment({
+      argv:        ['/bin/sh', '-c', `echo "\${${GATE_REPORT_VARIABLE}-unset}"`],
+      directory:   scratchDirectory,
+      environment: { [GATE_REPORT_VARIABLE]: join(scratchDirectory, 'inherited-report.json'), PATH: '/usr/bin:/bin' },
+    });
+
+    expect([run.output.trim(), run.cacheReport]).toEqual(['unset', null]);
   });
 
   test('gets exactly the environment it is handed, nothing of this process', async () => {

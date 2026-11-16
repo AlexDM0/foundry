@@ -156,6 +156,13 @@ export function launchedProgramEnvironment(launcherPath: string): Record<string,
   return { ...environmentCopy(), [LAUNCHING_PROGRAM_VARIABLE]: launcherPath };
 }
 
+export function gateReportVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
+  return `${ENVIRONMENT_PREFIX}GATE_REPORT`;
+}
+
+/** Set on every gate line the Overseer runs, never read here: the path where the gate may write its report (`GateReportFile.ts`). */
+export const GATE_REPORT_VARIABLE = gateReportVariableOf(PRODUCT_NAMES);
+
 export const JOB_ID_VARIABLE = jobIdVariableOf(PRODUCT_NAMES);
 
 export const HATCH_DIRECTORY_VARIABLE = hatchDirectoryVariableOf(PRODUCT_NAMES);

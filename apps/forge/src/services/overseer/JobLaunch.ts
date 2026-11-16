@@ -579,7 +579,8 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const end = processWatcherEnd(context.platformPorts, watcherFolder);
   if (end === 'pending') return null;
   const { shellLine } = context.platformPorts;
-  const run = { ...stepExitReportOf(end, jobFolder, step.folder), output: watcherOutputOf(watcherFolder) };
+  // A line a Watcher runs is handed no report path, so it has no cache report.
+  const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport: null, output: watcherOutputOf(watcherFolder) };
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
     const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));

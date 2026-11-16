@@ -563,7 +563,7 @@ describe('the choices, profile runs and history', () => {
       },
     };
     expect(pipelineFactsOf(inputOf({ gateProfilesReading })).profileRuns).toEqual([{
-      profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 1200
+      profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 1200, cacheReport: null
     }]);
     expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', reason: 'Example' } })).profileRuns).toEqual([]);
   });

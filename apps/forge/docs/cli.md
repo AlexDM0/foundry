@@ -169,6 +169,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `FORGE_VERSIONS_ANSWER` | No, a test setting | Empty or whitespace reads as unset; any value but two `major.minor` versions, `<current>/<minimum supported>` with the minimum not newer, is refused, `malformed-versions-answer`, when the Overseer starts | A client's recording of a scratch forge | Replaces what `GET /api/versions` answers and the system version the monitor stream names, such as `1.3/1.0`, so a client can record a forge ahead of it or of another major ([The Overseer API](reference/overseer-api.md#system-versions)). |
 | `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
 | `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
+| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs itself | A fresh path in the temporary folder where the gate may write its [report](#gate-reports). |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
@@ -182,6 +183,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 - `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY`, both set, make verbs follow [the
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
+- A gate's environment also drops a `FORGE_GATE_REPORT` it would inherit and carries its own instead.
 
 > **As built.** The hook guard also needs the program on `PATH`.
 
@@ -981,6 +983,22 @@ stream carries no output line. A profile never records a green or a `gate-ran` r
 When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and each new
 suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
 records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
+
+#### Gate reports
+
+A gate may say what its own tooling replayed from its cache. Every gate line the Overseer runs itself (a merge gate, a
+gate profile and a pipeline check) is handed a fresh path in the temporary folder in `FORGE_GATE_REPORT`. A gate that
+writes `{"version": 1, "cache": "hit" | "partial" | "miss"}` there says that every task, some of them or none replayed
+from its cache. The Overseer reads the file after the line exits and removes it. Anything else, such as no file, a
+file over 4096 bytes, a link, text that is no JSON object, another version or another word, is no report. A key that
+version 1 does not name is passed over. A gate line that a Watcher runs, as a build or review gate is, is handed no
+path. forge knows no caching tool: a gate writes a report only when its own scripts do.
+
+A gate profile keeps its gate's report with its end (`cacheReport` in `gate-profiles.json`), and the Pipeline view
+marks a run whose gate reported `hit` "cached" and `partial` "partly cached": on the time chip of the gate row, in the
+Gate dialog's profile box and on the gate's pill of its phase's gates step. A miss or no report has no mark. A
+report decides nothing: no gate passes, fails or is skipped by it. The report reaches only the Bridge's `BoardState`,
+which the page reads with the code it was served with, and no document of a monitor, so it raises no system version.
 
 An Overseer that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
 is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
@@ -2202,7 +2220,8 @@ each gate and phase is kept: a new press drops an ended one. This is format vers
       "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile" }],
       "state": "passed",                 // queued | running | passed | red | cannot-run | timed-out | stopped
       "stopRequested": false,            // User's Stop of a running run, until the Overseer records it stopped
-      "elapsedMilliseconds": 41200       // recorded and shown only; null until the run ended by itself
+      "elapsedMilliseconds": 41200,      // recorded and shown only; null until the run ended by itself
+      "cacheReport": "hit"               // hit | partial | miss: the gate's report; written only when it reported one
     }
   ]
 }

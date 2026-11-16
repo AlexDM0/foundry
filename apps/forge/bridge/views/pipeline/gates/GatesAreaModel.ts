@@ -1,13 +1,14 @@
 /**
- * The gates table's model, pure: each phase's title, line and empty sentence, each row's words, its band and its time chip, what a
- * double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates of its phase and
- * reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere.
+ * The gates table's model, pure: each phase's title, line and empty sentence, each row's words, its band and its time chip with its cache
+ * mark, what a double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates of its
+ * phase and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere.
  */
 import { ReorderIndexUtil } from 'design-system/ReorderIndexUtil';
 
 import type { GatePhase }                            from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { FlowChange, FlowDraftEdit }            from '../flow/PipelineFlowModel.ts';
+import { GateCacheMarkModel }                        from './GateCacheMarkModel.ts';
 
 /** What the gates area asks its holder to open: the Gate dialog of a gate in a phase or of a prepare step, or an empty one to add either. */
 export type GatesOpenRequest =
@@ -139,9 +140,9 @@ function profileChipOf(row: PipelineGateRow, phase: GatePhase, profileRuns: read
     case 'running':
       return { ...chip('measuring', 'waiting'), busy: true, pressable: false };
     case 'passed':
-      return chip(timeText ?? 'passed', 'pass');
+      return chip(GateCacheMarkModel.withCacheWordOf(timeText ?? 'passed', run.cacheReport), 'pass');
     case 'red':
-      return chip(timeText === null ? 'red' : `red · ${timeText}`, 'fail');
+      return chip(GateCacheMarkModel.withCacheWordOf(timeText === null ? 'red' : `red · ${timeText}`, run.cacheReport), 'fail');
     case 'timed-out':
       return chip('timed out', 'fail');
     case 'cannot-run':

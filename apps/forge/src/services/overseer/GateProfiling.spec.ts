@@ -96,7 +96,13 @@ function worktreeAddAndRemoveOf(profileRunId: string): Parameters<typeof recorde
 }
 
 function passedRun(milliseconds = PROFILED_MILLISECONDS): GateLinesRun {
-  return { failedStep: null, prepareOutput: '', gates: [{ outcome: 'passed', milliseconds, output: '' }] };
+  return {
+    failedStep:    null,
+    prepareOutput: '',
+    gates:         [{
+      outcome: 'passed', milliseconds, cacheReport: null, output: ''
+    }]
+  };
 }
 
 function profilingWith(runGateLines: GateProfilingContext['runGateLines']): ReturnType<typeof GateProfiling.createGateProfiling> {
@@ -204,7 +210,13 @@ describe('a queued run', () => {
     await applied({
       kind: 'gate-profile-start', setupId: null, gateName: 'tests', phase: 'build'
     });
-    const profiling = profilingWith(() => Promise.resolve({ failedStep: null, prepareOutput: '', gates: [{ outcome: 'failed', milliseconds: 900, output: 'example red' }] }));
+    const profiling = profilingWith(() => Promise.resolve({
+      failedStep:    null,
+      prepareOutput: '',
+      gates:         [{
+        outcome: 'failed', milliseconds: 900, cacheReport: null, output: 'example red'
+      }]
+    }));
 
     await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {
       profiling.followRuns(await storedBoard());
@@ -223,7 +235,13 @@ testWhenGitIsRecorded('a Stop of a running run ends its process tree through the
   let endTheLine = (): void => undefined;
   const profiling = profilingWith((request) => new Promise((resolve) => {
     request.onSpawned?.(PROFILE_PROCESS_ID);
-    endTheLine = () => resolve({ failedStep: null, prepareOutput: '', gates: [{ outcome: 'failed', milliseconds: 10, output: '' }] });
+    endTheLine = () => resolve({
+      failedStep:    null,
+      prepareOutput: '',
+      gates:         [{
+        outcome: 'failed', milliseconds: 10, cacheReport: null, output: ''
+      }]
+    });
   }));
 
   await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {
@@ -248,7 +266,13 @@ testWhenGitIsRecorded('an Overseer stop ends a running run\'s process tree throu
   let endTheLine = (): void => undefined;
   const profiling = profilingWith((request) => new Promise((resolve) => {
     request.onSpawned?.(PROFILE_PROCESS_ID);
-    endTheLine = () => resolve({ failedStep: null, prepareOutput: '', gates: [{ outcome: 'failed', milliseconds: 10, output: '' }] });
+    endTheLine = () => resolve({
+      failedStep:    null,
+      prepareOutput: '',
+      gates:         [{
+        outcome: 'failed', milliseconds: 10, cacheReport: null, output: ''
+      }]
+    });
   }));
 
   await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {

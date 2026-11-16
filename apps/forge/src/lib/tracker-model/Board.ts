@@ -66,7 +66,7 @@ import type { GatePhase, GateRunStamp } from './@types/GatePhase.ts';
 import type {
   GateProfileRequest,
   GateProfileRun,
-  GateProfileRunEnding,
+  GateProfileRunEnd,
   GateProfilesReading,
   GateProfiles as StoredGateProfiles
 }                                                           from './@types/GateProfile.ts';
@@ -1001,8 +1001,8 @@ export class Board {
     return this.gateProfiles.markGateProfileRunning(profileRunId);
   }
 
-  endGateProfile(profileRunId: string, ending: GateProfileRunEnding, elapsedMilliseconds: number, at: string): GateProfileChanged & { changed?: false } {
-    return this.gateProfiles.endGateProfile(profileRunId, ending, elapsedMilliseconds, at);
+  endGateProfile(profileRunId: string, end: GateProfileRunEnd, at: string): GateProfileChanged & { changed?: false } {
+    return this.gateProfiles.endGateProfile(profileRunId, end, at);
   }
 
   /** Refuses `unknown-profile-run`. */

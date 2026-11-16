@@ -7,7 +7,7 @@ import type { GateProfileChanged }     from './@types/BoardChanges.ts';
 import type {
   GateProfileRequest,
   GateProfileRun,
-  GateProfileRunEnding,
+  GateProfileRunEnd,
   GateProfiles as StoredGateProfiles
 } from './@types/GateProfile.ts';
 import type { BoardRecords }           from './BoardRecords.ts';
@@ -69,13 +69,14 @@ export class GateProfiles {
     return { logged: [], run };
   }
 
-  /** A run User asked to stop ends `stopped`, with no duration, however its process ended. */
-  endGateProfile(profileRunId: string, ending: GateProfileRunEnding, elapsedMilliseconds: number, at: string): GateProfileChanged & { changed?: false } {
+  /** A run User asked to stop ends `stopped`, with no duration and no cache report, however its process ended. */
+  endGateProfile(profileRunId: string, { ending, elapsedMilliseconds, cacheReport }: GateProfileRunEnd, at: string): GateProfileChanged & { changed?: false } {
     const run = this.requireRun(profileRunId);
     if (run.state !== 'running') return { logged: [], run, changed: false };
     if (run.stopRequested) return this.stopped(run, at);
     run.state               = ending;
     run.elapsedMilliseconds = elapsedMilliseconds;
+    if (cacheReport !== null) run.cacheReport = cacheReport;
     this.records.gateProfilesChanged = true;
     const fields = {
       gateName: run.gate.name, phase: run.phase, state: ending, elapsedMilliseconds

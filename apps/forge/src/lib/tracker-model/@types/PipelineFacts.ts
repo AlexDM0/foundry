@@ -3,7 +3,7 @@
  * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
 import type { GatePhase }                                     from './GatePhase.ts';
-import type { JobState }                                      from './Job.ts';
+import type { GateCacheReport, JobState }                     from './Job.ts';
 import type { InstructionEntry, Pipeline, PipelineAgentRole } from './Pipeline.ts';
 import type {
   ApplyRequest,
@@ -256,6 +256,8 @@ export interface GateProfileRunFacts {
   state:               GateProfileRunState;
   /** Recorded and shown only; null until the run started. */
   elapsedMilliseconds: number | null;
+  /** What the gate reported of its cache when the run ended; null while it reported nothing. */
+  cacheReport:         GateCacheReport | null;
 }
 
 /** Every model and effort a step may take, in order; an effort's meter level is its position plus one. */

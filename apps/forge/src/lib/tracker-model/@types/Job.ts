@@ -185,3 +185,6 @@ export type LandingKind = 'landed' | 'integrated';
 
 /** `cannot-run` is a gate that never judged the tree (exit 126 or 127, or a signal), never a failed pass. */
 export type GateOutcome = 'passed' | 'failed' | 'cannot-run';
+
+/** What a gate reported of its own tool's cache: every task replayed from it, some, or none. A gate that reports nothing has none. */
+export type GateCacheReport = 'hit' | 'partial' | 'miss';

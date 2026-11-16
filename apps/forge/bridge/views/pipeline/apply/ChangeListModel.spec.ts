@@ -97,7 +97,7 @@ describe('while an applied pipeline is edited', () => {
 
   test('a benchmark under way takes no second press, and a finished one names its time', () => {
     const runOf = (state: GateProfileRunFacts['state'], elapsedMilliseconds: number | null): GateProfileRunFacts => ({
-      profileRunId: 'P1', gateName: 'a11y', phase: 'merge', state, elapsedMilliseconds,
+      profileRunId: 'P1', gateName: 'a11y', phase: 'merge', state, elapsedMilliseconds, cacheReport: null,
     });
     const benchmarkAfter = (run: GateProfileRunFacts) => drawnEditingRows([run]).find((row) => row.field === 'gate:a11y')?.benchmark;
     expect(benchmarkAfter(runOf('running', 12_000))).toMatchObject({ statusText: 'Benchmarking in the merge phase…', measuring: true });

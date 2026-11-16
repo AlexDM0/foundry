@@ -2,12 +2,12 @@
  * One run of prepare steps and gates on a checkout, each gate judged on its own so one red gate never hides the next: a proposal's twice
  * run and a gate profile share it. A gate that changed the checkout fails, and the change is undone before the next gate.
  */
-import { GitProcess }                      from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                    from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }     from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellLine }                  from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GitProcess }                        from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                      from '../../lib/git/GitWorktrees.ts';
+import type { SupervisedSpawnOptions }       from '../../lib/process-identity/ProcessSupervision.ts';
+import type { ShellLine }                    from '../../lib/shell-line/ShellLine.ts';
+import type { GateCacheReport, GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }   from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   GateRun,
   type GateConfinement,
@@ -48,6 +48,8 @@ export interface GateLineRefusal {
 export interface SingleGateRun {
   outcome:      GateOutcome;
   milliseconds: number;
+  /** What the gate reported at its report path; `null` when it reported nothing readable, or never ran. */
+  cacheReport:  GateCacheReport | null;
   output:       string;
 }
 
@@ -67,7 +69,14 @@ function restoreCheckout(directory: string): void {
   GitProcess.run(directory, ['checkout', '-q', '--', '.'], 'hooks-off', undefined, GitWorktrees.ceilingOf(directory));
 }
 
-async function runLine(request: GateLineRequest, storedLine: string, directory: string, confinement: GateConfinement): Promise<GateProcessRun | GateLineRefusal> {
+/** A gate's line is handed a report path; a prepare step's is not, since a prepare step is no gate run. */
+async function runLine(
+  request: GateLineRequest,
+  storedLine: string,
+  directory: string,
+  confinement: GateConfinement,
+  lineKind: 'prepare-step' | 'gate' = 'prepare-step',
+): Promise<GateProcessRun | GateLineRefusal> {
   const statusFile = GateRun.lineStatusFileOf();
   const line = GateRun.runnableLineOf(request, storedLine, { directory, statusFile }, confinement);
   if (line.verdict === 'refused') return { verdict: 'sandbox-unavailable', reason: line.reason };
@@ -75,6 +84,7 @@ async function runLine(request: GateLineRequest, storedLine: string, directory: 
     argv:              line.argv,
     verbatimArguments: line.verbatimArguments,
     statusFile,
+    ...(lineKind === 'gate' ? { reportFile: GateRun.gateReportFileOf() } : {}),
     directory,
     environment:       request.environment,
     spawnOptions:      request.spawnOptions,
@@ -96,19 +106,30 @@ async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | Gate
     const failureOutput = GateRun.prepareFailureOutputOf(request.shellLine, run, request.directory);
     if (failureOutput === null) continue;
     if (request.shellLine.exitMeaningOf(run) === 'passed') restoreCheckout(request.directory);
-    return { failedStep: step.name, prepareOutput: failureOutput, gates: request.gates.map(() => ({ outcome: 'cannot-run', milliseconds: 0, output: failureOutput })) };
+    return {
+      failedStep:    step.name,
+      prepareOutput: failureOutput,
+      gates:         request.gates.map(() => ({
+        outcome: 'cannot-run', milliseconds: 0, cacheReport: null, output: failureOutput
+      }))
+    };
   }
   const gates: SingleGateRun[] = [];
   for (const gate of request.gates) {
     const confinement = GateRun.gateConfinementOf(gate);
     const startedAt = request.millisecondsNow();
     const gateDirectory = GateRun.gateDirectoryOf(request.directory, gate, request.projectPrefix);
-    const run = await runLine(request, gate.run, gateDirectory, request.grantsWrites ? confinement : withoutWrites(confinement));
+    const run = await runLine(request, gate.run, gateDirectory, request.grantsWrites ? confinement : withoutWrites(confinement), 'gate');
     if ('verdict' in run) return run;
     const milliseconds = request.millisecondsNow() - startedAt;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);
     if (trackedChanges !== '') restoreCheckout(request.directory);
-    gates.push({ outcome: GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges), milliseconds, output: GateRun.gateErrorOutputOf(request.shellLine, run, trackedChanges) });
+    gates.push({
+      outcome:     GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges),
+      milliseconds,
+      cacheReport: run.cacheReport,
+      output:      GateRun.gateErrorOutputOf(request.shellLine, run, trackedChanges),
+    });
   }
   return { failedStep: null, prepareOutput: '', gates };
 }

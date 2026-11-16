@@ -413,7 +413,12 @@ function pipelineFlowOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup
 function profileRunsOf(reading: GateProfilesReading): GateProfileRunFacts[] {
   if (reading.verdict !== 'readable') return [];
   return reading.profiles.runs.map((run) => ({
-    profileRunId: run.profileRunId, gateName: run.gate.name, phase: run.phase, state: run.state, elapsedMilliseconds: run.elapsedMilliseconds,
+    profileRunId:        run.profileRunId,
+    gateName:            run.gate.name,
+    phase:               run.phase,
+    state:               run.state,
+    elapsedMilliseconds: run.elapsedMilliseconds,
+    cacheReport:         run.cacheReport ?? null,
   }));
 }
 

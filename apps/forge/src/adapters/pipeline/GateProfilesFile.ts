@@ -11,15 +11,21 @@ import type {
   GateProfilesReading,
   ProfiledGate
 } from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { PipelineStep }                                                                    from '../../lib/tracker-model/@types/Pipeline.ts';
-import { FIRST_GATE_PROFILE_RUN_NUMBER, GATE_PROFILE_RUN_STATES, GATE_PROFILES_FORMAT_VERSION } from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
-import { JsonTextUtil }                                                                         from '../../shared/utils/JsonTextUtil.ts';
-import { storedFileTextOf }                                                                     from '../StoredFileText.ts';
-import { StoredValueUtil }                                                                      from '../utils/StoredValueUtil.ts';
+import type { PipelineStep }     from '../../lib/tracker-model/@types/Pipeline.ts';
+import {
+  FIRST_GATE_PROFILE_RUN_NUMBER,
+  GATE_CACHE_REPORTS,
+  GATE_PROFILE_RUN_STATES,
+  GATE_PROFILES_FORMAT_VERSION
+} from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
+import { JsonTextUtil }     from '../../shared/utils/JsonTextUtil.ts';
+import { storedFileTextOf } from '../StoredFileText.ts';
+import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
 
 const OWNED_KEYS = ['formatVersion', 'nextRunNumber', 'runs'] as const;
 
-const RUN_KEYS = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds'] as const;
+const RUN_KEYS = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds', 'cacheReport'] as const;
+const RUN_REQUIRED = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds'] as const;
 
 const GATE_KEYS      = ['name', 'run', 'in', 'network'] as const;
 const GATE_REQUIRED  = ['name', 'run'] as const;
@@ -106,7 +112,7 @@ function elapsedOf(value: unknown, path: string): Mapped<number | null> {
 }
 
 function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
-  const record = recordOf(value, path, RUN_KEYS);
+  const record = recordOf(value, path, RUN_KEYS, RUN_REQUIRED);
   if ('problem' in record) return record;
   const fields = record.value;
   const profileRunId = idOf(fields['profileRunId'], `${path}.profileRunId`, PROFILE_RUN_ID_PATTERN, 'P1');
@@ -127,6 +133,8 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
   if (typeof stopRequested !== 'boolean') return problemOf(`${path}.stopRequested is not true or false`);
   const elapsedMilliseconds = elapsedOf(fields['elapsedMilliseconds'], `${path}.elapsedMilliseconds`);
   if ('problem' in elapsedMilliseconds) return elapsedMilliseconds;
+  const cacheReport = Object.hasOwn(fields, 'cacheReport') ? wordOf(fields['cacheReport'], `${path}.cacheReport`, GATE_CACHE_REPORTS) : null;
+  if (cacheReport !== null && 'problem' in cacheReport) return cacheReport;
   return {
     value: {
       profileRunId:        profileRunId.value,
@@ -138,6 +146,7 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
       state:               state.value,
       stopRequested,
       elapsedMilliseconds: elapsedMilliseconds.value,
+      ...(cacheReport === null ? {} : { cacheReport: cacheReport.value }),
     },
   };
 }
@@ -199,6 +208,7 @@ function runDocumentOf(run: Readonly<GateProfileRun>): Record<string, unknown> {
     state:               run.state,
     stopRequested:       run.stopRequested,
     elapsedMilliseconds: run.elapsedMilliseconds,
+    ...(run.cacheReport === undefined ? {} : { cacheReport: run.cacheReport }),
   };
 }
 

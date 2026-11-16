@@ -2,20 +2,26 @@
  * A gate pipeline over recorded gate lines and recorded git. What matters: the caller is told the process id of every line it starts,
  * prepare steps and gates alike, and hears each line's output, so the Airlock can stop the tree of a merged-tree gate that never ends. A
  * prepare step that exits 0 but changes a tracked file is a setup failure naming that step, never the red first gate it would make. A
- * prepare step with a folder runs in it, as a gate with one does.
+ * prepare step with a folder runs in it, as a gate with one does. A gate's environment carries its own report path and never one this
+ * process inherited.
  */
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, expect } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  test
+} from 'bun:test';
 
-import { environmentCopy }                                from '../../shared/Environment.ts';
-import { runsAsGiven }                                    from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { RECORDED_GATE_LINES, useRecordedGateSpawns }     from '../../testing/RecordedGateLines.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
-import { GateRun }                                        from './GateRun.ts';
+import { environmentCopy, GATE_REPORT_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
+import { runsAsGiven }                                            from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
+import { RECORDED_GATE_LINES, useRecordedGateSpawns }             from '../../testing/RecordedGateLines.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                        from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import { GateRun }                                                from './GateRun.ts';
 
 const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
 const TREE_UNCHANGED = { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
@@ -87,4 +93,13 @@ testWhenGitIsRecorded('a prepare step and a gate with a folder each run in that 
   }));
 
   expect(recordedGateSpawns.takeSpawnFolders()).toEqual([join(checkoutDirectory, 'packages/example'), join(checkoutDirectory, 'docs')]);
+});
+
+test('a gate\'s environment carries its own report path, drops an inherited one and the job variables, and keeps the rest', () => {
+  const inherited = { [GATE_REPORT_VARIABLE]: '/example/inherited-report.json', [JOB_ID_VARIABLE]: 'J7', EXAMPLE_KEPT: 'kept' };
+
+  expect([GateRun.gateEnvironmentOf(inherited, '/example/gate-report.json'), GateRun.gateEnvironmentOf(inherited)]).toEqual([
+    { EXAMPLE_KEPT: 'kept', [GATE_REPORT_VARIABLE]: '/example/gate-report.json' },
+    { EXAMPLE_KEPT: 'kept' },
+  ]);
 });

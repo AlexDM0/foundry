@@ -1,9 +1,9 @@
 /**
  * The gate profile moves on a Board. What matters: a press queues one gate in one phase, and a second press while that gate and phase have
  * a run queued or running refuses `gate-profile-running`; only the newest run of a gate and phase is kept, and run ids are never reused; a
- * run ends with its duration, except one User asked to stop, which ends `stopped` with none; a Stop ends a queued run at once and only marks
- * a running one; an Overseer start stops a run left running and leaves a queued one queued; and a malformed file refuses every move and is
- * never written over.
+ * run ends with its duration and what its gate reported of its cache, except one User asked to stop, which ends `stopped` with neither; a
+ * Stop ends a queued run at once and only marks a running one; an Overseer start stops a run left running and leaves a queued one queued;
+ * and a malformed file refuses every move and is never written over.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -59,7 +59,7 @@ describe('a press', () => {
     const { board } = boardFixture();
     board.queueGateProfile(request(), AT);
     board.markGateProfileRunning('P1');
-    board.endGateProfile('P1', 'red', 900, AT);
+    board.endGateProfile('P1', { ending: 'red', elapsedMilliseconds: 900, cacheReport: null }, AT);
 
     board.queueGateProfile(request(), AT);
 
@@ -81,21 +81,35 @@ describe('the end of a run', () => {
     board.queueGateProfile(request(), AT);
     board.markGateProfileRunning('P1');
 
-    const ended = board.endGateProfile('P1', 'passed', 4200, AT);
+    const ended = board.endGateProfile('P1', { ending: 'passed', elapsedMilliseconds: 4200, cacheReport: null }, AT);
 
     expect(ended.run).toMatchObject({ state: 'passed', elapsedMilliseconds: 4200 });
     expect(records.at(-1)).toMatchObject({ kind: 'gate-profiled', profileRunId: 'P1', fields: { state: 'passed', elapsedMilliseconds: 4200 } });
   });
 
-  test('of a run User asked to stop is stopped, with no duration', () => {
+  test('keeps what the gate reported of its cache, and holds no cache report where it reported nothing', () => {
+    const { board } = boardFixture();
+    board.queueGateProfile(request(), AT);
+    board.queueGateProfile(request({ phase: 'merge' }), AT);
+    board.markGateProfileRunning('P1');
+    board.markGateProfileRunning('P2');
+
+    const reported = board.endGateProfile('P1', { ending: 'passed', elapsedMilliseconds: 400, cacheReport: 'hit' }, AT);
+    const unreported = board.endGateProfile('P2', { ending: 'passed', elapsedMilliseconds: 4200, cacheReport: null }, AT);
+
+    expect([reported.run.cacheReport, Object.hasOwn(unreported.run, 'cacheReport')]).toEqual(['hit', false]);
+  });
+
+  test('of a run User asked to stop is stopped, with no duration and no cache report', () => {
     const { board, records } = boardFixture();
     board.queueGateProfile(request(), AT);
     board.markGateProfileRunning('P1');
     expect(board.stopGateProfile('P1', AT).run.stopRequested).toBe(true);
 
-    const ended = board.endGateProfile('P1', 'red', 300, AT);
+    const ended = board.endGateProfile('P1', { ending: 'red', elapsedMilliseconds: 300, cacheReport: 'hit' }, AT);
 
     expect(ended.run).toMatchObject({ state: 'stopped', stopRequested: false, elapsedMilliseconds: null });
+    expect(Object.hasOwn(ended.run, 'cacheReport')).toBe(false);
     expect(records.at(-1)).toMatchObject({ kind: 'gate-profile-stopped', profileRunId: 'P1' });
   });
 

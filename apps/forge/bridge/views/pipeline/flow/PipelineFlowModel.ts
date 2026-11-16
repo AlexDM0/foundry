@@ -12,10 +12,12 @@ import type {
   PipelineFlowNode,
   PipelineInsertSlot,
   PipelineInsertableStep,
+  GateProfileRunFacts,
   PipelineNodeKind,
   PipelineNodeMark
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { DISPATCH_PROTOCOL } from '../../../../src/shared/constants/DispatchProtocol.ts';
+import { DISPATCH_PROTOCOL }  from '../../../../src/shared/constants/DispatchProtocol.ts';
+import { GateCacheMarkModel } from '../gates/GateCacheMarkModel.ts';
 
 /** What a step card names itself as: an agent's step, User's step, a phase's gates or a step that runs by itself. */
 export type StepKind = 'agent' | 'you' | 'gates' | 'automatic';
@@ -24,6 +26,8 @@ export type FlowChange = 'changed' | 'new' | 'removed';
 
 export interface FlowGatePillView {
   readonly gateName: string;
+  /** The gate's name, with the cache mark of its newest profile run in the step's phase beside it ("lint · cached"). */
+  readonly text:     string;
   readonly change:   FlowChange | null;
 }
 
@@ -313,8 +317,17 @@ function changeTextOf(node: PipelineFlowNode, change: FlowChange | null): string
   return CHANGE_WORDS[change];
 }
 
-/** `fixer` names who fixes a red gate of a gates node; every other node ignores it. */
-function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: GatesFixer = 'none'): FlowNodeView {
+function gatePillsOf(node: PipelineFlowNode, profileRuns: readonly GateProfileRunFacts[]): FlowGatePillView[] {
+  const { phase } = node;
+  return node.gateChips.map((chip) => ({
+    gateName: chip.gateName,
+    text:     GateCacheMarkModel.withCacheWordOf(chip.gateName, phase === null ? null : GateCacheMarkModel.gateCacheReportOf(profileRuns, chip.gateName, phase)),
+    change:   changeOfMark(chip.mark),
+  }));
+}
+
+/** `fixer` names who fixes a red gate of a gates node; every other node ignores it. `profileRuns` give a gate pill its cache mark. */
+function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: GatesFixer = 'none', profileRuns: readonly GateProfileRunFacts[] = []): FlowNodeView {
   const openAction = openActionOf(node);
   const approval = switchApprovalOf(node);
   const title = NODE_TITLES[node.nodeKind];
@@ -328,7 +341,7 @@ function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: G
     sentence:    sentenceOf(node, fixer),
     conditional: node.conditional,
     briefText:   kind === 'agent' ? instructionFilesTextOf(node) : null,
-    gatePills:   node.gateChips.map((chip) => ({ gateName: chip.gateName, change: changeOfMark(chip.mark) })),
+    gatePills:   gatePillsOf(node, profileRuns),
     meter:       meterOf(node, efforts),
     switchView:  approval === null ? null : { accessibleName: title, checked: node.switchState === 'on', approval },
     highlighted: node.nodeKind === 'human-code-review' && node.switchState === 'on',
@@ -347,9 +360,9 @@ function gatesFixerOf(flow: Pick<PipelineFlowFacts, 'edges'>, node: PipelineFlow
   return FIXER_OF_EDGE_LABEL[labelKind] ?? 'none';
 }
 
-/** Every node's view in the facts' order, each gates node worded with who fixes its red gates. */
-function nodeViewsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'edges'>, efforts: readonly string[]): FlowNodeView[] {
-  return flow.nodes.map((node) => nodeViewOf(node, efforts, node.nodeKind === 'gates' ? gatesFixerOf(flow, node) : 'none'));
+/** Every node's view in the facts' order, each gates node worded with who fixes its red gates and its gates' cache marks. */
+function nodeViewsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'edges'>, efforts: readonly string[], profileRuns: readonly GateProfileRunFacts[] = []): FlowNodeView[] {
+  return flow.nodes.map((node) => nodeViewOf(node, efforts, node.nodeKind === 'gates' ? gatesFixerOf(flow, node) : 'none', profileRuns));
 }
 
 function insertActionOf(step: PipelineInsertableStep, draft: Pipeline | null): FlowInsertAction {

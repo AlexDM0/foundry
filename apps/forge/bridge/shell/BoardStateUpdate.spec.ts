@@ -45,7 +45,7 @@ describe('the board state after an event', () => {
 
   test('a profile run replaces its run by run id or is added', () => {
     const running: GateProfileRunFacts = {
-      profileRunId: 'P1', gateName: 'typecheck', phase: 'build', state: 'running', elapsedMilliseconds: null
+      profileRunId: 'P1', gateName: 'typecheck', phase: 'build', state: 'running', elapsedMilliseconds: null, cacheReport: null
     };
     const withRun = BoardStateUpdate.boardStateAfter({ ...BOARD, profileRuns: [running] }, 'profile', { ...running, state: 'passed', elapsedMilliseconds: 4200 });
     expect(withRun?.profileRuns).toEqual([{ ...running, state: 'passed', elapsedMilliseconds: 4200 }]);

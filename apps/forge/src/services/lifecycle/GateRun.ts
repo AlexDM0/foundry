@@ -2,22 +2,23 @@
  * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate of the
  * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs under the
  * port's spawn options with the job variables removed from its environment. agent-progress keeps no gate result: caching is the
- * repository's own tooling's.
+ * repository's own tooling's, and a gate may only report what its tooling did, at the report path each gate line is handed.
  */
 import { randomUUID }           from 'node:crypto';
 import { readFileSync, rmSync } from 'node:fs';
 import { tmpdir }               from 'node:os';
 import { join }                 from 'node:path';
 
-import type { ConfinedLine }                                from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }                      from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shell-line/ShellLine.ts';
-import type { GateOutcome }                                 from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }        from '../../shared/Environment.ts';
-import { ProjectPathsUtil }                                 from '../../shared/utils/ProjectPathsUtil.ts';
+import { GateReportFile }                                                  from '../../adapters/pipeline/GateReportFile.ts';
+import type { ConfinedLine }                                               from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                                      from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                    from '../../lib/git/GitWorktrees.ts';
+import type { SupervisedSpawnOptions }                                     from '../../lib/process-identity/ProcessSupervision.ts';
+import type { ShellExitReport, ShellLine, ShellRunRefusal }                from '../../lib/shell-line/ShellLine.ts';
+import type { GateCacheReport, GateOutcome }                               from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
+import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
 
 export interface GateRequest {
   argv:               readonly string[];
@@ -25,6 +26,8 @@ export interface GateRequest {
   verbatimArguments?: boolean;
   /** Where the line may record its whole status, read back after the exit and removed; absent, no status is read, so none can pass. */
   statusFile?:        string;
+  /** Handed to the line in `FORGE_GATE_REPORT`, read back after the exit and removed; absent, the line is handed no report path. */
+  reportFile?:        string;
   directory:          string;
   /** The whole child environment, already narrowed (`launchEnvironmentOf`); the job variables are removed from it. */
   environment:        Readonly<Record<string, string>>;
@@ -42,6 +45,8 @@ export interface GateProcessRun {
   signalCode:     string | null;
   /** The status file's text, `null` when the line wrote none. */
   recordedStatus: string | null;
+  /** What the line reported at its report path, `null` when it was handed none or reported nothing readable. */
+  cacheReport:    GateCacheReport | null;
   output:         string;
 }
 
@@ -91,14 +96,25 @@ const JOB_VARIABLES: readonly string[] = [JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIA
 
 const LINE_STATUS_FILE_PREFIX = 'line-status-';
 
-/** Without this, every spec of a gated tree that runs a mutating verb would Hatch it to the Overseer rather than run it. */
-function gateEnvironmentOf(environment: Readonly<Record<string, string>>): Record<string, string> {
-  return Object.fromEntries(Object.entries(environment).filter(([name]) => !JOB_VARIABLES.includes(name)));
+const GATE_REPORT_FILE_PREFIX = 'gate-report-';
+
+/**
+ * Without the job variables' removal, every spec of a gated tree that runs a mutating verb would Hatch it to the Overseer rather than run
+ * it. The report path is the line's own: one this process inherited is never passed on.
+ */
+function gateEnvironmentOf(environment: Readonly<Record<string, string>>, reportFile?: string): Record<string, string> {
+  const kept = Object.entries(environment).filter(([name]) => !JOB_VARIABLES.includes(name) && name !== GATE_REPORT_VARIABLE);
+  return Object.fromEntries(reportFile === undefined ? kept : [...kept, [GATE_REPORT_VARIABLE, reportFile]]);
 }
 
 /** A fresh path in the temporary folder for one line's status; nothing is created until the line writes it. */
 function lineStatusFileOf(): string {
   return join(tmpdir(), `${LINE_STATUS_FILE_PREFIX}${randomUUID()}`);
+}
+
+/** A fresh path in the temporary folder, which every confinement lets a line write, for one gate's report. */
+function gateReportFileOf(): string {
+  return join(tmpdir(), `${GATE_REPORT_FILE_PREFIX}${randomUUID()}.json`);
 }
 
 /** What the line recorded as its status, `null` when it wrote nothing. */
@@ -151,13 +167,13 @@ async function streamTextOf(stream: ReadableStream<Uint8Array>, onOutput: ((text
 }
 
 async function runGate({
-  argv, verbatimArguments, statusFile, directory, environment, spawnOptions, onSpawned, onOutput
+  argv, verbatimArguments, statusFile, reportFile, directory, environment, spawnOptions, onSpawned, onOutput
 }: GateRequest): Promise<GateProcessRun> {
   try {
     const gateProcess = Bun.spawn({
       cmd:                      [...argv],
       cwd:                      directory,
-      env:                      gateEnvironmentOf(environment),
+      env:                      gateEnvironmentOf(environment, reportFile),
       stdin:                    'ignore',
       stdout:                   'pipe',
       stderr:                   'pipe',
@@ -172,14 +188,19 @@ async function runGate({
     ]);
     const signalCode = gateProcess.signalCode ?? null;
     return {
-      exitCode: signalCode === null ? exitCode : null, signalCode, recordedStatus: statusFile === undefined ? null : recordedStatusOf(statusFile), output: output + errorOutput
+      exitCode:       signalCode === null ? exitCode : null,
+      signalCode,
+      recordedStatus: statusFile === undefined ? null : recordedStatusOf(statusFile),
+      cacheReport:    reportFile === undefined ? null : GateReportFile.read(reportFile),
+      output:         output + errorOutput,
     };
   } catch (error) {
     return {
-      exitCode: null, signalCode: null, recordedStatus: null, output: error instanceof Error ? error.message : String(error)
+      exitCode: null, signalCode: null, recordedStatus: null, cacheReport: null, output: error instanceof Error ? error.message : String(error)
     };
   } finally {
     if (statusFile !== undefined) rmSync(statusFile, { force: true });
+    if (reportFile !== undefined) rmSync(reportFile, { force: true, recursive: true });
   }
 }
 
@@ -269,7 +290,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     try {
       gatesRun.push(gate.name);
       run = await runGate({
-        argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory, environment, spawnOptions, ...listeners
+        argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, reportFile: gateReportFileOf(), directory, environment, spawnOptions, ...listeners
       });
     } finally {
       releaseGateSlot?.();
@@ -293,6 +314,7 @@ export const GateRun = Object.freeze({
   prepareConfinementOf,
   trackedChangesOf,
   lineStatusFileOf,
+  gateReportFileOf,
   recordedStatusOf,
   runRefusalReasonOf,
   runnableLineOf,

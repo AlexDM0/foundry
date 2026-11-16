@@ -665,7 +665,7 @@ function applyState(changes: Partial<ApplyStateFacts> & Pick<ApplyStateFacts, 's
 
 function profileRun(state: GateProfileRunState, elapsedMilliseconds: number | null): GateProfileRunFacts {
   return {
-    profileRunId: 'P1', gateName: 'browser-tests', phase: 'merge', state, elapsedMilliseconds,
+    profileRunId: 'P1', gateName: 'browser-tests', phase: 'merge', state, elapsedMilliseconds, cacheReport: null,
   };
 }
 

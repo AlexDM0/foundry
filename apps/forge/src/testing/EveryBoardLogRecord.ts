@@ -68,7 +68,7 @@ function logEveryGateProfileRecordKind(board: Board, at: string): void {
   } as const;
   const { run } = board.queueGateProfile(request, at);
   board.markGateProfileRunning(run.profileRunId);
-  board.endGateProfile(run.profileRunId, 'passed', 4200, at);
+  board.endGateProfile(run.profileRunId, { ending: 'passed', elapsedMilliseconds: 4200, cacheReport: 'hit' }, at);
   board.stopGateProfile(board.queueGateProfile(request, at).run.profileRunId, at);
 }
 

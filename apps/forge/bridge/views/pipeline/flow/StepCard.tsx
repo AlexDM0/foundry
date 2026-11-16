@@ -143,7 +143,7 @@ export function StepCard({
           : (
             <Row wrap gap="four">
               {view.gatePills.map((pill) => (
-                <Tag key={pill.gateName} text={pill.gateName} tone="neutral" {...(pill.change === null ? {} : { change: pill.change })} />
+                <Tag key={pill.gateName} text={pill.text} tone="neutral" {...(pill.change === null ? {} : { change: pill.change })} />
               ))}
             </Row>
           )}

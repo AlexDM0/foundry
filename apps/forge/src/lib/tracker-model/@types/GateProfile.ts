@@ -3,11 +3,19 @@
  * informs: it never records a green or a gate run, and nothing waits on it.
  */
 import type { GatePhase }           from './GatePhase.ts';
+import type { GateCacheReport }     from './Job.ts';
 import type { PipelineStep }        from './Pipeline.ts';
 import type { GateProfileRunState } from './PipelineFacts.ts';
 
 /** How a run that started ended by itself; a stop is `stopped`, which has no result. */
 export type GateProfileRunEnding = 'passed' | 'red' | 'cannot-run' | 'timed-out';
+
+/** How a run ended, what it took, and what the gate reported of its cache; a gate that reported nothing has `null`. */
+export interface GateProfileRunEnd {
+  ending:              GateProfileRunEnding;
+  elapsedMilliseconds: number;
+  cacheReport:         GateCacheReport | null;
+}
 
 /** The gate as it stood at User's press, without its `writes`: a profile may write only inside its worktree and the temporary folder. */
 export interface ProfiledGate {
@@ -33,6 +41,8 @@ export interface GateProfileRun {
   stopRequested:       boolean;
   /** Recorded and shown only; `null` until the run ended by itself. */
   elapsedMilliseconds: number | null;
+  /** What the gate reported of its cache when the run ended by itself; absent while it reported nothing, and stored only once set. */
+  cacheReport?:        GateCacheReport;
 }
 
 export interface GateProfiles {

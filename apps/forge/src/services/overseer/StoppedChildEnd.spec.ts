@@ -28,7 +28,7 @@ test('a stopped gate reads cannot-run; a gate that exited 1 by itself reads fail
   const gateRunOf = (forcedStopRan: boolean) => {
     const end = endOf({ exitCode: KILLED_EXIT_CODE, signalCode: null, forcedStopRan });
     return {
-      exitCode: end.reason === 'exited' ? end.exitCode : null, signalCode: end.signal, recordedStatus: null, output: ''
+      exitCode: end.reason === 'exited' ? end.exitCode : null, signalCode: end.signal, recordedStatus: null, cacheReport: null, output: ''
     };
   };
   expect(GateRun.gateOutcomeOf(shellLine, gateRunOf(true))).toBe('cannot-run');

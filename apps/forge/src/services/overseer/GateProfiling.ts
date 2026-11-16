@@ -21,7 +21,7 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                                           from '../../lib/process-identity/ProcessIdentity.ts';
-import type { GateProfileRun, GateProfileRunEnding }                                      from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { GateOutcome }                                                               from '../../lib/tracker-model/@types/Job.ts';
 import type { ResearchFindingRecording }                                                  from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
@@ -142,11 +142,13 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
   }
 }
 
-function endingOf(run: GateLinesRun | GateLineRefusal): { ending: GateProfileRunEnding; elapsedMilliseconds: number } {
-  if ('verdict' in run) return { ending: 'cannot-run', elapsedMilliseconds: 0 };
+function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
+  const cannotRun: GateProfileRunEnd = { ending: 'cannot-run', elapsedMilliseconds: 0, cacheReport: null };
+  if ('verdict' in run) return cannotRun;
   const [gate] = run.gates;
+  if (gate === undefined) return cannotRun;
   // The log stores a whole number of milliseconds, and a clock may answer a fraction.
-  return gate === undefined ? { ending: 'cannot-run', elapsedMilliseconds: 0 } : { ending: OUTCOME_ENDINGS[gate.outcome], elapsedMilliseconds: Math.round(gate.milliseconds) };
+  return { ending: OUTCOME_ENDINGS[gate.outcome], elapsedMilliseconds: Math.round(gate.milliseconds), cacheReport: gate.cacheReport };
 }
 
 function createGateProfiling(context: GateProfilingContext): GateProfiling {
@@ -206,11 +208,11 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
         : { verdict: 'sandbox-unavailable', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) } as const;
       running.process = null;
       if ('verdict' in lines) appendOutput(run.profileRunId, lines.reason);
-      const { ending, elapsedMilliseconds } = endingOf(lines);
+      const end = endingOf(lines);
       await context.hold(({ board, at }) => {
         // A run this Overseer ended as it stopped has no result, as one User stopped has none.
         if (running.stopping) board.stopGateProfile(run.profileRunId, at);
-        const ended = board.endGateProfile(run.profileRunId, ending, elapsedMilliseconds, at);
+        const ended = board.endGateProfile(run.profileRunId, end, at);
         if (ended.run.state !== 'stopped') recordCachingFindings(board, repositoryRoot, ended.run, at);
       });
     } catch (failure) {

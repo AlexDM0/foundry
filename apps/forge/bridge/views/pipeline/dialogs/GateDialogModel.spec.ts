@@ -3,7 +3,8 @@
  * phase it was opened from; a gate with no phase, no name or no command cannot be saved, a prepare step needs no phase; a Save sends the
  * definition, keeping fields the dialog does not show, and the order of only the phases whose box changed; a new prepare step also sends
  * the prepare order; Remove is one `null` edit of the gate or the step; the kicker says the phase, the place and the mark; and the profile
- * box follows the newest run of the gate in that phase, its stream's lines shown as output keyed by their number.
+ * box follows the newest run of the gate in that phase, with the cache mark of a run whose gate reported a hit, its stream's lines shown
+ * as output keyed by their number.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -25,9 +26,9 @@ const TYPECHECK: GateDialogSubject = { rowKind: 'gate', name: 'typecheck', phase
 
 const NEW_REVIEW_GATE: GateDialogSubject = { rowKind: 'gate', name: null, phase: 'review' };
 
-function profileRun(state: GateProfileRunFacts['state'], elapsedMilliseconds: number | null): GateProfileRunFacts {
+function profileRun(state: GateProfileRunFacts['state'], elapsedMilliseconds: number | null, cacheReport: GateProfileRunFacts['cacheReport'] = null): GateProfileRunFacts {
   return {
-    profileRunId: 'P1', gateName: 'typecheck', phase: 'build', state, elapsedMilliseconds,
+    profileRunId: 'P1', gateName: 'typecheck', phase: 'build', state, elapsedMilliseconds, cacheReport,
   };
 }
 
@@ -135,6 +136,15 @@ describe('the profile box', () => {
     expect(textOf(profileRun('timed-out', 120_000))).toEqual(['timed-out', 'Last profile: timed out at 120 s', false, 'Profile again']);
     expect(textOf(profileRun('stopped', 3000))).toEqual(['stopped', 'Stopped · no result', false, 'Profile again']);
     expect(textOf(profileRun('red', 9000))).toEqual(['red', 'Red after 9 s', true, 'Profile again']);
+  });
+
+  test('a result whose gate reported a cache hit says so beside its seconds', () => {
+    const textOf = (run: GateProfileRunFacts) => {
+      const view = GateDialogModel.profileBoxViewOf('typecheck', 'build', [run]);
+      return view.state === 'result' ? view.text : null;
+    };
+    expect([textOf(profileRun('passed', 1000, 'hit')), textOf(profileRun('red', 9000, 'partial')), textOf(profileRun('passed', 58_000, 'miss'))])
+      .toEqual(['Passed in 1 s · cached', 'Red after 9 s · partly cached', 'Passed in 58 s']);
   });
 });
 
