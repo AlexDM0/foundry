@@ -10,6 +10,8 @@ import { ChoiceInput, ChoiceOption }                          from 'design-syste
 import { CountBadge }                                         from 'design-system/CountBadge';
 import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system/DataTable';
 import { EmptyState }                                         from 'design-system/EmptyState';
+import { Icon }                                               from 'design-system/Icon';
+import { IconButton }                                         from 'design-system/IconButton';
 import { NumberStepper }                                      from 'design-system/NumberStepper';
 import { PendingStep }                                        from 'design-system/PendingStep';
 import { SectionHead }                                        from 'design-system/SectionHead';
@@ -21,7 +23,6 @@ import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@type
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                        from '../../design-system/ConfirmPanel.tsx';
-import { OpenInNewTabGlyph }                                   from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { RoleDot }                                             from '../../design-system/RoleDot.tsx';
 import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
@@ -116,11 +117,14 @@ function ForgeButtonControl({
     case 'command': {
       const { command } = button;
       if (button.iconOnly) {
-        // The package's icon button cannot be disabled, so the arrow rides a label-less button named by its label, its tooltip on the wrapper.
         return (
-          <span className="gaia-forges-icon-button" title={button.label}>
-            <Button label="" leading={<OpenInNewTabGlyph />} accessibleName={button.label} compact disabled={button.disabled} onPress={() => handlers.onCommand(command)} />
-          </span>
+          <IconButton
+            drawing={<span className="gaia-forges-icon-drawing"><Icon name="arrow-out-of-square" label={null} /></span>}
+            accessibleName={button.label}
+            title={button.label}
+            disabled={button.disabled}
+            onPress={() => handlers.onCommand(command)}
+          />
         );
       }
       return <Button label={button.label} emphasis={button.emphasis} compact disabled={button.disabled} onPress={() => handlers.onCommand(command)} />;
@@ -312,9 +316,7 @@ function VersionsSubline({ versions, trackerId, handlers }: { readonly versions:
       onClick={() => handlers.onToggleVersions(trackerId)}
     >
       {subline.text}
-      <svg className="gaia-forges-versions-chevron" width="10" height="10" viewBox="0 0 12 12" aria-hidden="true" data-open={versions.isShown ? '' : undefined}>
-        <path d="M3 4.5 L6 7.5 L9 4.5" />
-      </svg>
+      <span className="gaia-forges-versions-chevron" data-open={versions.isShown ? '' : undefined}><Icon name="chevron-down" label={null} /></span>
     </button>
   );
 }
@@ -534,7 +536,10 @@ export function ForgesLayout({
         )}
         {content.hidden.length === 0 ? null : (
           <details className="gaia-forges-hidden">
-            <summary className="gaia-forges-hidden-summary">{content.hiddenHead}</summary>
+            <summary className="gaia-forges-hidden-summary">
+              {content.hiddenHead}
+              <span className="gaia-forges-hidden-chevron"><Icon name="chevron-down" label={null} /></span>
+            </summary>
             <div className="gaia-forges-group">
               {content.hidden.map((entry) => <ForgeEntryCard key={entry.trackerId} entry={entry} place="hidden" handlers={handlers} />)}
             </div>

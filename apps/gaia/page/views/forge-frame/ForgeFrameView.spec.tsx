@@ -110,7 +110,8 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${wholeReading}">${line}</span>`);
     expect(markup).toContain('<header class="gaia-forge-frame-bar"><svg class="brand-forge-mark" role="img" aria-label="Forge" width="22" height="22"');
     expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
-    expect(/<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0]).toContain('<svg class="gaia-open-in-new-tab-glyph" aria-hidden="true"');
+    const barControls = /<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0];
+    expect(barControls).toContain('<svg class="design-system-icon" viewBox="0 0 16 16" data-icon="arrow-out-of-square" aria-hidden="true"');
     expect(markup).not.toContain('aria-label="Theme: ');
     expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);

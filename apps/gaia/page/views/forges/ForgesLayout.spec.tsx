@@ -17,6 +17,8 @@ import { describe, expect, test }  from 'bun:test';
 import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
 import { DataTable }               from 'design-system/DataTable';
 import { FillMeter }               from 'design-system/FillMeter';
+import { Icon }                    from 'design-system/Icon';
+import { IconButton }              from 'design-system/IconButton';
 import type { NumberStepperProps } from 'design-system/NumberStepper';
 import { PendingStep }             from 'design-system/PendingStep';
 import { SlotMeter }               from 'design-system/SlotMeter';
@@ -138,9 +140,9 @@ function controlNamed(nodes: readonly RenderedNode[], name: string): HostElement
     && PackageControls.nameOf(element) === name);
 }
 
-/** Presses a control as a reader would: a package button through the press Gaia handed it, a host one through its click. */
+/** Presses a control as a reader would: a package button or icon button through the press Gaia handed it, a host one through its click. */
 function press(control: HostElement): void {
-  tree.dispatch(control, PackageButtons.isButton(control) ? 'onPress' : 'onClick');
+  tree.dispatch(control, PackageButtons.isButton(control) || tree.withComponent(IconButton)(control) ? 'onPress' : 'onClick');
 }
 
 describe('the table (A4)', () => {
@@ -190,10 +192,8 @@ describe('a row\'s controls', () => {
   test('"Open in new tab" is a button, not a link, that sends forge-open-in-browser and nothing else', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     const openInNewTab = controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open Example Storefront in a new tab');
-    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['label']]).toEqual(['Button', undefined, '']);
-    expect(tree.hostElementsIn([openInNewTab], tree.withClass('gaia-open-in-new-tab-glyph'))).toHaveLength(1);
-    const tooltipHolder = tree.onlyHostElementIn([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], tree.withClass('gaia-forges-icon-button'));
-    expect(tooltipHolder.props['title']).toBe('Open Example Storefront in a new tab');
+    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['title']]).toEqual(['IconButton', undefined, 'Open Example Storefront in a new tab']);
+    expect(tree.hostElementsIn(tree.unfoldedProp(openInNewTab, 'drawing'), tree.withComponent(Icon)).map((icon) => icon.props['name'])).toEqual(['arrow-out-of-square']);
     press(openInNewTab);
     expect(handled).toEqual({
       commands:          [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],

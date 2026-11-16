@@ -361,16 +361,26 @@ function tokenNamesOf(tokensText: string): ReadonlySet<string> {
   return new Set(rulesOf(tokensText).flatMap((rule) => rule.declarations).map((declaration) => declaration.property).filter((property) => property.startsWith('--')));
 }
 
+/** The package's tokens its README leaves a host to set on the root: a press scale of 1, since a press on Gaia's page changes no size. */
+const HOST_SET_PACKAGE_TOKENS: ReadonlySet<string> = new Set(['--press-scale']);
+
 /** Gaia's tokens hold only what the package lacks: a name of the package's, redefined, would change the package's components too. */
 function redefinitionSentencesOf(packageTokensText: string, gaiaTokensText: string): string[] {
   const packageTokens = tokenNamesOf(packageTokensText);
-  return [...tokenNamesOf(gaiaTokensText)].filter((tokenName) => packageTokens.has(tokenName)).map((tokenName) => `${tokenName} is the package's token, redefined`);
+  return [...tokenNamesOf(gaiaTokensText)]
+    .filter((tokenName) => packageTokens.has(tokenName) && !HOST_SET_PACKAGE_TOKENS.has(tokenName))
+    .map((tokenName) => `${tokenName} is the package's token, redefined`);
 }
 
-/** A token of Gaia's own that nothing reads is dead weight that drifts from the design: every one is read through `var()` somewhere. */
+/**
+ * A token of Gaia's own that nothing reads is dead weight that drifts from the design: every one is read through `var()` somewhere, but
+ * one the package reads.
+ */
 function unreadTokenSentencesOf(gaiaTokensText: string, readerTexts: readonly string[]): string[] {
   const readTokens = new Set(readerTexts.flatMap((text) => [...text.matchAll(/var\(\s*(--[\w-]+)/g)].map(([, tokenName = '']) => tokenName)));
-  return [...tokenNamesOf(gaiaTokensText)].filter((tokenName) => !readTokens.has(tokenName)).map((tokenName) => `${tokenName} is defined but nothing reads it`);
+  return [...tokenNamesOf(gaiaTokensText)]
+    .filter((tokenName) => !readTokens.has(tokenName) && !HOST_SET_PACKAGE_TOKENS.has(tokenName))
+    .map((tokenName) => `${tokenName} is defined but nothing reads it`);
 }
 
 function colourValueSentencesOf(stylesheetText: string, definedTokens: ReadonlySet<string>): string[] {
@@ -712,8 +722,10 @@ describe('the readers, on known and planted values', () => {
     ]);
   });
 
-  test('a token of Gaia\'s that the package already defines is named', () => {
-    expect(redefinitionSentencesOf(':root { --bg: #fff; --ink: #000; }', ':root { --sp-half: 2px; --bg: #eee; }')).toEqual(['--bg is the package\'s token, redefined']);
+  test('a token of Gaia\'s that the package already defines is named, but the press scale the package leaves to its host', () => {
+    expect(redefinitionSentencesOf(':root { --bg: #fff; --press-scale: 0.98; }', ':root { --sp-half: 2px; --bg: #eee; --press-scale: 1; }')).toEqual([
+      '--bg is the package\'s token, redefined',
+    ]);
   });
 
   test('a colour token missing from a theme is named', () => {

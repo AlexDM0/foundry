@@ -22,6 +22,7 @@ import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
 import { DataTable }              from 'design-system/DataTable';
+import { Icon }                   from 'design-system/Icon';
 import { SlotMeter }              from 'design-system/SlotMeter';
 import { Stamp }                  from 'design-system/Stamp';
 import { Tag }                    from 'design-system/Tag';
@@ -292,8 +293,8 @@ describe('each screen shows the state its artboard draws', () => {
     const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-line" title="4 / 5 agents · 2 wait on you · since 09:12">${line}</span>`);
     const openInNewTab = MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Open in new tab'));
-    const glyph = MarkupTree.onlyElementIn(openInNewTab, MarkupTree.withClass('gaia-open-in-new-tab-glyph'));
-    expect(openInNewTab.source.indexOf(glyph.source)).toBeLessThan(openInNewTab.source.lastIndexOf('Open in new tab'));
+    const arrowAfterTheWords = MarkupTree.drawnMarkupOf(createElement(Icon, { name: 'arrow-out-of-square', label: null }));
+    expect(openInNewTab.source.indexOf(arrowAfterTheWords)).toBeGreaterThan(openInNewTab.source.lastIndexOf('Open in new tab'));
     expect(pageTitleOf(markup)).toEqual([]);
     expect(themeButtonsOf(markup)).toEqual([]);
   });

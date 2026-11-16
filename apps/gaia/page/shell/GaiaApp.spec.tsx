@@ -17,6 +17,7 @@ import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
 import { CountBadge }             from 'design-system/CountBadge';
+import { Icon }                   from 'design-system/Icon';
 import { IconButton }             from 'design-system/IconButton';
 import { SegmentedControl }       from 'design-system/SegmentedControl';
 import { SlotMeter }              from 'design-system/SlotMeter';
@@ -30,7 +31,6 @@ import type { FleetDocument, FleetDocumentForge }                               
 import { CommandSender }                                                            from '../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
 import { BrandBar, themeButtonNameOf }                                              from '../design-system/BrandBar.tsx';
-import { OpenInNewTabGlyph }                                                        from '../design-system/OpenInNewTabGlyph.tsx';
 import type { ThemeChoice }                                                         from '../shared/@types/ThemeChoice.ts';
 import { DEFAULT_ROUTE, HashRouter }                                                from '../shared/HashRouter.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';
@@ -247,7 +247,9 @@ describe('the rail with no forge registered (B4)', () => {
 
 describe('Tab and names', () => {
   const OPEN_IN_NEW_TAB_LABEL = 'Open Example Storefront in a new tab';
-  const OPEN_IN_NEW_TAB = <IconButton drawing={<OpenInNewTabGlyph />} accessibleName={OPEN_IN_NEW_TAB_LABEL} title={OPEN_IN_NEW_TAB_LABEL} onPress={() => undefined} />;
+  const OPEN_IN_NEW_TAB = (
+    <IconButton drawing={<Icon name="arrow-out-of-square" label={null} />} accessibleName={OPEN_IN_NEW_TAB_LABEL} title={OPEN_IN_NEW_TAB_LABEL} onPress={() => undefined} />
+  );
 
   function unfoldedShell(fleetDocument: FleetDocument) {
     return tree.unfolded(

@@ -9,6 +9,7 @@ import { Button }      from 'design-system/Button';
 import { Card }        from 'design-system/Card';
 import { EmptyState }  from 'design-system/EmptyState';
 import { Figure }      from 'design-system/Figure';
+import { Icon }        from 'design-system/Icon';
 import { MonoId }      from 'design-system/MonoId';
 import { PendingStep } from 'design-system/PendingStep';
 import { Row }         from 'design-system/Row';
@@ -23,7 +24,6 @@ import { CommandSender, type CommandStates, type CommandSubject } from '../../ap
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
-import { OpenInNewTabGlyph }                                      from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
 import { VersionsLine, VersionsText }                             from '../../shared/VersionsText.tsx';
@@ -156,7 +156,7 @@ function LookActionButton({ action, commandStates, onCommand }: { readonly actio
     <Button
       label={action.label}
       emphasis={action.emphasis}
-      {...(action.icon === null ? {} : { leading: <OpenInNewTabGlyph /> })}
+      {...(action.icon === null ? {} : { trailing: <Icon name="arrow-out-of-square" label={null} /> })}
       disabled={!action.forgeAcceptsIt || commandIsOnItsWay(commandStates, command)}
       onPress={() => onCommand(command)}
     />

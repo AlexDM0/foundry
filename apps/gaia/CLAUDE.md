@@ -57,7 +57,7 @@ the root's.
    with ad-hoc compiler flags.
 10. **Colour lives only in tokens:** the design-system package's `tokens.css`, the brand package's for Forge's mark, and, for Gaia's own
     parts only (its mark, a fill the package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
-    package token.
+    package token but `--press-scale`, which the package leaves to its host (set to 1: a press changes no size).
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
     or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.

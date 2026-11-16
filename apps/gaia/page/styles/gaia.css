@@ -33,14 +33,6 @@
 .gaia-mark-rim { stroke: var(--mark-rim); }
 
 /* The "Open in new tab" arrow, stroked in the colour of what holds it */
-.gaia-open-in-new-tab-glyph {
-  flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--glyph-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
 
 /* Brand bar: the mark and the wordmark, a divider, the status pill and its sentence, the theme button at the far end */
 .gaia-brand-bar {
@@ -851,8 +843,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forges-code { font-size: var(--fs-pill); color: var(--ink-4); }
 .gaia-forges-controls { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-1); }
 .gaia-forges-agents-stepper { display: inline-flex; align-items: center; gap: var(--sp-1); }
-.gaia-forges-icon-button,
 .gaia-forges-button-title { display: inline-flex; }
+/* The package's icon sizes to its holder: the open-in-new-tab arrow in the icon button's 16 px glyph box */
+.gaia-forges-icon-drawing { display: inline-flex; width: var(--space-16); height: var(--space-16); }
 /* A forge Gaia cannot talk to: its agents and what waits in it are not read */
 .gaia-forges-not-read { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-4); white-space: nowrap; }
 /* The versions disclosure under the condition: the forge's version and verdict in mono with a chevron, down while closed and up while open */
@@ -874,13 +867,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 }
 .gaia-forges-versions-disclosure:hover { color: var(--ink); }
 .gaia-forges-versions-disclosure:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-.gaia-forges-versions-chevron {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--glyph-stroke-width);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+.gaia-forges-versions-chevron { display: inline-flex; width: var(--space-10); height: var(--space-10); }
 .gaia-forges-versions-chevron[data-open] { transform: rotate(180deg); }
 /* The line under the table, while a control is in use (B2) */
 .gaia-forges-controls-note { margin: 0; font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
@@ -971,16 +958,8 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 
 /* The fold's chevron after its head, pointing down while folded and up while open */
 .gaia-forges-hidden-summary::-webkit-details-marker { display: none; }
-.gaia-forges-hidden-summary::after {
-  content: "";
-  width: var(--space-5);
-  height: var(--space-5);
-  margin-top: calc(-1 * var(--space-3));
-  border-right: var(--dot-ring-width) solid currentColor;
-  border-bottom: var(--dot-ring-width) solid currentColor;
-  transform: rotate(45deg);
-}
-.gaia-forges-hidden[open] .gaia-forges-hidden-summary::after { margin-top: var(--space-3); transform: rotate(-135deg); }
+.gaia-forges-hidden-chevron { display: inline-flex; width: var(--space-12); height: var(--space-12); }
+.gaia-forges-hidden[open] .gaia-forges-hidden-chevron { transform: rotate(180deg); }
 
 /* "Add a repository" over the view: B4's form, and the line of a missing forge program under it */
 .gaia-forges-add-dialog-body { display: flex; flex-direction: column; gap: var(--sp-4); }

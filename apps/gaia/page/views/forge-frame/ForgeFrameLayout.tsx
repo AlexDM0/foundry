@@ -8,6 +8,7 @@
 import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
 import { Button }                         from 'design-system/Button';
 import { ChoiceInput, ChoiceOption }      from 'design-system/ChoiceOption';
+import { Icon }                           from 'design-system/Icon';
 import { IconButton }                     from 'design-system/IconButton';
 import { MonoId }                         from 'design-system/MonoId';
 import { Text }                           from 'design-system/Text';
@@ -18,7 +19,6 @@ import { BrainChip, type BrainChipProps, type BrainControl } from '../../design-
 import { Callout }                                           from '../../design-system/Callout.tsx';
 import { ConditionDot }                                      from '../../design-system/ConditionDot.tsx';
 import { ConfirmPanel }                                      from '../../design-system/ConfirmPanel.tsx';
-import { OpenInNewTabGlyph }                                 from '../../design-system/OpenInNewTabGlyph.tsx';
 import { Refusal }                                           from '../../design-system/Refusal.tsx';
 import { VersionsPair }                                      from '../../shared/VersionsPair.tsx';
 import { VersionsText }                                      from '../../shared/VersionsText.tsx';
@@ -182,6 +182,11 @@ function UpdateForgeStep({
   }
 }
 
+/** Open in new tab in the bar or a notice, compact, its arrow after its words. */
+function OpenInNewTabButton({ disabled, onPress }: { readonly disabled: boolean; readonly onPress: () => void }) {
+  return <Button label={OPEN_IN_NEW_TAB_LABEL} trailing={<Icon name="arrow-out-of-square" label={null} />} compact disabled={disabled} onPress={onPress} />;
+}
+
 /** A control Gaia cannot send shows disabled; its title, on the span since a disabled button takes no pointer, names both versions. */
 function UnsentControl({ label, cannotTalk }: { readonly label: string; readonly cannotTalk: BarCannotTalk }) {
   return (
@@ -200,7 +205,7 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
     <>
       {cannotTalk.verdict === 'older' ? <UpdateForgeStep {...props} /> : null}
       {cannotTalk.unsentControls.map((label) => <UnsentControl key={label} label={label} cannotTalk={cannotTalk} />)}
-      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
     </>
   );
 }
@@ -224,12 +229,12 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
       )}
       {stop === null ? null : (
         <span className="gaia-forge-frame-stop">
-          <Button label="Stop" compact disabled={!controlsMayAct} onPress={onOpenStop} />
+          <Button label="Stop" trailing={<Icon name="caret-down" label={null} />} compact disabled={!controlsMayAct} onPress={onOpenStop} />
           {stopIsOpen && controlsMayAct ? <StopPopover question={stop} {...props} /> : null}
         </span>
       )}
       {brainChip === null ? null : <BrainChip {...brainChip} />}
-      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
     </>
   );
 }
@@ -344,7 +349,7 @@ function CannotShow({ onOpenInNewTab, commandIsOnItsWay }: Pick<ForgeFrameAreaPr
   return (
     <div className="gaia-forge-frame-notice">
       <p className="gaia-forge-frame-notice-text">This forge cannot be shown inside Gaia yet.</p>
-      <Button label={OPEN_IN_NEW_TAB_LABEL} leading={<OpenInNewTabGlyph />} compact disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
+      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
     </div>
   );
 }
@@ -366,7 +371,7 @@ function CannotTalkNotice({ area, onOpenInNewTab, commandIsOnItsWay }: CannotTal
       <span className="gaia-forge-frame-versions-actions">
         <Button
           label={OPEN_IN_NEW_TAB_LABEL}
-          leading={<OpenInNewTabGlyph />}
+          trailing={<Icon name="arrow-out-of-square" label={null} />}
           // An older forge's primary is Update forge in the bar; a newer one offers nothing but its own Bridge.
           emphasis={verdict === 'newer' ? 'primary' : 'quiet'}
           disabled={commandIsOnItsWay}

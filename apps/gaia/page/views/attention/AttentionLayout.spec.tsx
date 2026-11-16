@@ -15,6 +15,7 @@ import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
 import { EmptyState }             from 'design-system/EmptyState';
 import { Figure }                 from 'design-system/Figure';
+import { Icon }                   from 'design-system/Icon';
 import { MonoId }                 from 'design-system/MonoId';
 import { PendingStep }            from 'design-system/PendingStep';
 import { Tag }                    from 'design-system/Tag';
@@ -433,6 +434,9 @@ describe('the side of the view', () => {
     expect(controls.filter((control) => PackageControls.nameOf(control).trim() === '')).toEqual([]);
     const openInNewTab = PackageButtons.buttonsIn(unfolded).filter((button) => PackageButtons.labelOf(button) === 'Open in new tab');
     expect(openInNewTab).toHaveLength(2);
-    expect(openInNewTab.map((button) => tree.hostElementsIn(tree.unfoldedProp(button, 'leading'), tree.withTag('svg')).length)).toEqual([1, 1]);
+    expect(openInNewTab.map((button) => tree.hostElementsIn(tree.unfoldedProp(button, 'trailing'), tree.withComponent(Icon)).map((icon) => icon.props['name']))).toEqual([
+      ['arrow-out-of-square'],
+      ['arrow-out-of-square'],
+    ]);
   });
 });
