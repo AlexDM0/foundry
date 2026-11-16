@@ -1,11 +1,17 @@
 /**
  * `namespace` over a scratch tracker, git answered from the recorded branch lists. What matters: a board with none reads as bare names
  * and its progress file holds no key; a name is stored, logged once and printed with the branch names it gives; a name that is not one,
- * a branch named as the program, a branch left under the board's bare names, and a namespace another tracker of the repository lists are
- * refused at exit 1 with every file as it was; a name taken lists the board in the repository's tracker list.
+ * a branch named as the program, a branch left under the board's bare names, a job on a branch, and a namespace another tracker of the
+ * repository lists are refused at exit 1 with every file as it was; the Assistant and the product owner, which work on no branch and which
+ * an Overseer's stop leaves on the board, hold no name back; a name taken lists the board in the repository's tracker list.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join }                                from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -15,6 +21,7 @@ import {
 } from 'bun:test';
 
 import { RepositoryLandings }      from '../../../src/lib/git/RepositoryLandings.ts';
+import type { Job }                from '../../../src/lib/tracker-model/@types/Job.ts';
 import { repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { workspacePathsFor }       from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
@@ -30,6 +37,7 @@ import { runCommandLine }                         from '../../Main.ts';
 import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
 import { storedLogTextOf }                        from '../../testing/StoredLogText.ts';
+import { storedProgressOf }                       from '../../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-11-16T09:00:00Z');
 
@@ -55,6 +63,23 @@ function storedFiles(): string[] {
 
 function storedNamespace(): unknown {
   return (JSON.parse(readFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, 'utf8')) as Record<string, unknown>)['branchNamespace'];
+}
+
+/** A job left running on the board, as an Overseer's stop leaves its Assistant. */
+function writeRunningJobs(jobs: readonly Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds'>[]): void {
+  const runningJobs = jobs.map((job): Job => ({
+    ...job,
+    parentJobId:        null,
+    attempt:            1,
+    target:             job.ticketIds.length === 0 ? null : 'main',
+    state:              'running',
+    watcherInstance:    1,
+    eventCursor:        { instance: 1, sequence: 0 },
+    answeredRequestIds: [],
+    crashResumes:       0,
+  }));
+  const progress = { ...storedProgressOf(repositoryDirectory), jobs: runningJobs, nextJobId: runningJobs.length + 1 };
+  writeFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, `${JSON.stringify(progress, null, 2)}\n`);
 }
 
 async function runWithExitCode(commandLineArguments: readonly string[]): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {
@@ -89,6 +114,40 @@ describeWhenGitIsRecorded('the namespace command', () => {
     expect(storedNamespace()).toBe('web');
     expect(storedLogTextOf(repositoryDirectory)).toContain('"kind":"branch-namespace-set","fields":{"namespace":"web"}');
     expect((await runWithExitCode(['namespace'])).context.outputText()).toBe(`web: the board's ticket branches are ${PROGRAM}/web/ticket-<id>.`);
+  });
+
+  test('the Assistant and the product owner, which work on no branch, hold no name back', async () => {
+    writeRunningJobs([
+      {
+        id: 'J1', kind: 'assistant', role: 'assistant', ticketIds: []
+      },
+      {
+        id: 'J2', kind: 'product-owner', role: 'product-owner', ticketIds: []
+      },
+    ]);
+
+    const set = await recordedGit.playStage(branchListOf('main'), async () => runWithExitCode(['namespace', 'web']));
+
+    expect(set.exitCode, set.context.errorText()).toBe(0);
+    expect(storedNamespace()).toBe('web');
+  });
+
+  test('a job on a branch is refused at exit 1, counted without the Assistant beside it, asking git nothing', async () => {
+    writeRunningJobs([
+      {
+        id: 'J1', kind: 'assistant', role: 'assistant', ticketIds: []
+      },
+      {
+        id: 'J2', kind: 'build', role: 'builder', ticketIds: ['001']
+      },
+    ]);
+    const before = storedFiles();
+
+    const refused = await runWithExitCode(['namespace', 'web']);
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain('The board has 1 job(s) on it, which run under its current branch names');
+    expect(storedFiles()).toEqual(before);
   });
 
   test('a name that is not one is refused at exit 1 with the usage, asking git nothing', async () => {

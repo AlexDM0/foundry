@@ -563,11 +563,13 @@ never carries it.
                               ${PRODUCT_NAMES.PROGRAM}/<name>/group-<group>, so boards that share a repository
                               never name the same branch. Lower-case letters, digits and inner
                               dashes. Refused at exit 1 with nothing written while an Overseer
-                              serves the board, a job is on it, a branch is left under its current
-                              names, a branch blocks the new names, or the namespace holds another
-                              board's branches or another tracker of the repository lists it. The
-                              board's entry in the repository's tracker list follows the name. One
-                              log line. --json prints {branchNamespace}, null for bare names.
+                              serves the board, a job that works on a branch is on it (the
+                              Assistant and the product owner work on none), a branch is left
+                              under its current names, a branch blocks the new names, or the
+                              namespace holds another board's branches or another tracker of the
+                              repository lists it. The board's entry in the repository's tracker
+                              list follows the name. One log line. --json prints
+                              {branchNamespace}, null for bare names.
 
   open [--no-browser]         Open the live Overseer's URL in the default browser and print it. With
                               no live Baton it first starts the Overseer detached, as

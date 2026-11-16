@@ -1,9 +1,10 @@
 /**
- * `namespace [<name>]` prints the board's branch namespace, or sets it while the board is idle: no Overseer serving it, no job on it and
- * no branch left under its current names, since every one of those would go on under the old names. A namespace another tracker of the
- * repository lists is refused, and the board's own entry in that list follows the name it takes.
+ * `namespace [<name>]` prints the board's branch namespace, or sets it while the board is idle: no Overseer serving it, no job that works
+ * on a branch on it and no branch left under its current names, since every one of those would go on under the old names. A namespace
+ * another tracker of the repository lists is refused, and the board's own entry in that list follows the name it takes.
  */
 import { GitProcess }                                                      from '../../../src/lib/git/GitProcess.ts';
+import type { JobKind }                                                    from '../../../src/lib/tracker-model/@types/Job.ts';
 import { readingBoardOf }                                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { Baton }                                                           from '../../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                 from '../../../src/services/overseer/OverseerFiles.ts';
@@ -28,6 +29,12 @@ const KNOWN_OPTION_NAMES = ['json'];
 const BRANCH_LIST_ARGUMENTS = ['for-each-ref', '--format=%(refname:short)', 'refs/heads'] as const;
 
 const EXAMPLE_TICKET_ID = '<id>';
+
+/**
+ * The Assistant and the product owner work on no branch, and an Overseer's stop leaves its Assistant on the board while the next start
+ * boots a new one, so counting them would refuse a namespace on every board an Overseer ever served.
+ */
+const JOB_KINDS_ON_NO_BRANCH: readonly JobKind[] = ['assistant', 'product-owner'];
 
 function ticketBranchExampleOf(branchNamespace: string | null): string {
   return branchNamesOf(branchNamespace).ticketBranchOf(EXAMPLE_TICKET_ID);
@@ -95,8 +102,12 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
 /** In the hold, so no job starts between the check and the write. */
 function setNamespace(change: TrackerChange, wantedNamespace: string) {
   const { board } = change;
-  if (board.jobs().length > 0) {
-    throw new OperationRefusal('refused', `The board has ${board.jobs().length} job(s) on it, which run under its current branch names; let them end first. Nothing was written.`);
+  const jobsOnBranches = board.jobs().filter((job) => !JOB_KINDS_ON_NO_BRANCH.includes(job.kind));
+  if (jobsOnBranches.length > 0) {
+    throw new OperationRefusal(
+      'refused',
+      `The board has ${jobsOnBranches.length} job(s) on it, which run under its current branch names; let them end first. Nothing was written.`
+    );
   }
   const branchList = GitProcess.run(change.workspace.rootDirectory, BRANCH_LIST_ARGUMENTS);
   if (!GitProcess.succeeded(branchList)) {
