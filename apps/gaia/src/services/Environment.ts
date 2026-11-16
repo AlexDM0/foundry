@@ -23,6 +23,16 @@ export function forgeProgramToRecordFrom(): string | null {
   return forgeProgram === undefined || forgeProgram === '' ? null : forgeProgram;
 }
 
+/**
+ * `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM`: the program of a forge from before system versions, which serves no `/api/versions`, such as
+ * a detached worktree's `agent-progress.ts`, so `bun run record overseer-fetch-versions` records that situation from a real forge too.
+ * `null` when unset.
+ */
+export function unversionedForgeProgramToRecordFrom(): string | null {
+  const forgeProgram = process.env[`${PRODUCT_NAMES.environmentPrefix}RECORDING_UNVERSIONED_FORGE_PROGRAM`];
+  return forgeProgram === undefined || forgeProgram === '' ? null : forgeProgram;
+}
+
 const HIGHEST_PORT = 65_535;
 
 /** The port a setting names: the default when it is unset or empty, `null` for text that is no port. */

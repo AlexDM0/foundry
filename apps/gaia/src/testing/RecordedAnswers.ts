@@ -61,7 +61,7 @@ export type FlintBrainSituation = typeof FLINT_BRAIN_SITUATIONS[number];
 
 /**
  * Forges at another system version than the one Gaia supports: one ahead of it that still serves it, called at its versioned paths; one
- * too new to talk to; one older; and one that serves no `/api/versions`, as every released forge, which is older too.
+ * too new to talk to; one older; and one that serves no `/api/versions`, as every forge before 1.0, which is older too.
  */
 export const VERSIONS_SITUATIONS = [
   'versions-ahead',
@@ -103,7 +103,10 @@ export interface RecordedOverseerFetch extends OverseerFetch {
  */
 export const OVERSEER_RECORDING_NAMES = ['overseer-fetch-supported-forge', 'overseer-fetch-other-programs'] as const;
 
-/** The recording of forges at another system version than the one Gaia supports, authored from the forge requirements V1 to V3. */
+/**
+ * The recording of forges at another system version than the one Gaia supports: forge 1.0 as itself, and ahead or newer through its test
+ * setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions.
+ */
 export const VERSIONS_OVERSEER_RECORDING_NAME = 'overseer-fetch-versions';
 
 const STREAM_CALL_SHAPE_PREFIX = 'STREAM ';

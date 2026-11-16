@@ -386,6 +386,15 @@ describe('forge-pause, forge-resume and forge-restart, carried by the API', () =
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-resume' }]);
   });
 
+  test('a resume to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
+    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
+    const forge = liveForgeAtControl(2);
+    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
+    expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-resume', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect([overseerFetch.callsAnswered().map((call) => call.callShape), sentBodiesOf(overseerFetch)]).toEqual([[COMMANDS_CALL_SHAPE], [{ kind: 'overseer-resume' }]]);
+  });
+
   test('restart sends `overseer-restart` without `now`', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
@@ -449,14 +458,6 @@ describe('forge-brain-start and forge-brain-stop, carried by the API of a forge 
     expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
   });
 
-  test('a start to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
-    const forge = liveForgeAtControl(2);
-    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
-    const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
-    expect(await controlOver({ forges, overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
-    expect(overseerFetch.callsAnswered().map((call) => call.callShape)).toEqual([COMMANDS_CALL_SHAPE]);
-  });
 
   test('a stop sends `flint-brain-stop`, and answers done', async () => {
     const overseerFetch = overseerAnsweringTheBrain('brain-ended');

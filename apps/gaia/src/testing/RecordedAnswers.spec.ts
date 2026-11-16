@@ -27,6 +27,7 @@ import {
   VERSIONS_SITUATIONS,
   type FlintBrainSituation,
   type RecordedOverseerAnswer,
+  type VersionsSituation,
 } from './RecordedAnswers.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
@@ -109,8 +110,10 @@ function documentsAnsweredIn(answers: readonly RecordedOverseerAnswer[]): readon
 
 describe('the recorded forge contracts', () => {
   const programsThatAreNoForge = ['port-held-by-another-program', 'snapshot-unreadable', 'stream-cut-inside-event'] as const;
-  const everyDocument = (): readonly Record<string, unknown>[] => documentsAnsweredIn([...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()]
-    .filter(({ callShape }) => !programsThatAreNoForge.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))));
+  const everyDocument = (situationsLeftOut: readonly VersionsSituation[] = []): readonly Record<string, unknown>[] => documentsAnsweredIn(
+    [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()]
+      .filter(({ callShape }) => ![...programsThatAreNoForge, ...situationsLeftOut].some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))),
+  );
 
   test('hold every forge snapshot at the one monitor number Gaia reads', () => {
     const monitorVersions = new Set(everyDocument().flatMap((document) => (Object.hasOwn(document, 'monitorVersion') ? [document['monitorVersion']] : [])));
@@ -118,7 +121,8 @@ describe('the recorded forge contracts', () => {
   });
 
   test('hold every forge identity naming, and every command answered at, the one control number Gaia sends', () => {
-    const documents = everyDocument();
+    // The ahead forge is forge 1.0 answering a later version through its test setting, so it serves control 1 until forge 1.1 is recorded ahead.
+    const documents = everyDocument(['versions-ahead']);
     const controlOf = (document: Record<string, unknown>): unknown => (document['contracts'] as { control?: unknown }).control;
     const identityControlVersions = new Set(documents.flatMap((document) => (Object.hasOwn(document, 'contracts') ? [controlOf(document)] : [])));
     const answerControlVersions = new Set(documents.flatMap((document) => (Object.hasOwn(document, 'controlVersion') ? [document['controlVersion']] : [])));
@@ -188,7 +192,7 @@ describe('the recorded versions of forges', () => {
     }
   });
 
-  test('answer a forge that serves no versions as every released forge answers an unknown path', () => {
+  test('answer a forge that serves no versions as every forge before 1.0 answers an unknown path', () => {
     expect(recordedVersionsAnswersOf('versions-absent').map(({ answer }) => answer)).toEqual([{ verdict: 'answered', status: 404, bodyText: '{"refusal":"not-found"}' }]);
   });
 });

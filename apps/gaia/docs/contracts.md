@@ -112,10 +112,11 @@ version, major.minor.
 
 The forge's requirements F1 to F9, G1 to G4 and V1 to V9 (`docs/forge-requirements.md`) are the owner's to run on the forge's own board. Every fixture of a forge
 contract is recorded from a forge that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped
-`authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on. No released forge serves the version
-Gaia supports yet, so both forge recordings of the Overseer are authored: `overseer-fetch-supported-forge`, a forge at
-`SUPPORTED_FORGE_VERSION` in each situation (V1 to V3, G1 to G3), and `overseer-fetch-versions`, forges ahead of it, newer, older and
-serving no `/api/versions` (V1 to V3). Every situation is a forge at a system version.
+`authored`, except one whose entry in `RECORDED_BOUNDARIES` names the forge requirements it waits on. No forge serves the version Gaia
+supports before Flint's brain, so `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, is authored
+(G1 to G3). `overseer-fetch-versions` is recorded: forge 1.0 as itself (older), ahead and newer through its test setting
+`FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a system
+version.
 
 ## The install version
 

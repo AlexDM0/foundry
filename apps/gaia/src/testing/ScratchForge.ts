@@ -45,6 +45,14 @@ export interface ScratchForge {
   readonly remove:               () => Promise<void>;
 }
 
+/** What a recording asks of its scratch forge beyond the program `GAIA_RECORDING_FORGE_PROGRAM` names, run with the forge's defaults. */
+export interface ScratchForgeOptions {
+  /** The forge program to run in place of the one `GAIA_RECORDING_FORGE_PROGRAM` names, such as a forge from before system versions. */
+  readonly program?:        string;
+  /** Forge's own settings beside its repository override and fake agent, such as `FORGE_VERSIONS_ANSWER`. */
+  readonly forgeVariables?: Readonly<Record<string, string>>;
+}
+
 /** The forge's own variables: its repository override and its scripted fake agent. */
 const FORGE_ROOT_VARIABLE = 'FORGE_ROOT';
 const FORGE_FAKE_AGENT_VARIABLE = 'FORGE_FAKE_AGENT';
@@ -84,8 +92,8 @@ export async function removeEachRepository(repositories: string[], stopAndRemove
   if (failures.length > 0) throw failures[0];
 }
 
-export function createScratchForge(recordingName: string): ScratchForge {
-  const program   = forgeProgramToRun(recordingName);
+export function createScratchForge(recordingName: string, options: ScratchForgeOptions = {}): ScratchForge {
+  const program   = options.program ?? forgeProgramToRun(recordingName);
   const forgeHome = createScratchDirectory('forge-home');
   const repositories: string[]   = [];
   const exampleValues: ExampleValue[] = [{ drawn: program, example: '/Users/example/.bun/bin/forge' }];
@@ -94,7 +102,12 @@ export function createScratchForge(recordingName: string): ScratchForge {
     const environment = environmentCopy();
     const searchPath  = openerFolder === null ? environment['PATH'] ?? '' : `${openerFolder}${delimiter}${environment['PATH'] ?? ''}`;
     return {
-      ...environment, PATH: searchPath, HOME: forgeHome, [FORGE_ROOT_VARIABLE]: workingDirectory, [FORGE_FAKE_AGENT_VARIABLE]: '1',
+      ...environment,
+      ...options.forgeVariables,
+      PATH:                        searchPath,
+      HOME:                        forgeHome,
+      [FORGE_ROOT_VARIABLE]:       workingDirectory,
+      [FORGE_FAKE_AGENT_VARIABLE]: '1',
     };
   }
 

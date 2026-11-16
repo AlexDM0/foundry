@@ -128,13 +128,14 @@ forge; a program that is no forge on an Overseer's port is recorded from a local
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
 with the system's version. Verify fails on a stale stamp and on a forge recording stamped `authored`, and lists a boundary with no recording
-for the OS as not finished. Three recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
+for the OS as not finished. Two recordings are stamped `authored`, and verify lists each as a warning. One is a dialog only a person can
 answer: `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
-recording stays authored beside its spec. The others await forge requirements, since no released forge serves the version Gaia supports:
-`overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, Flint's brain's included (V1 to V3, G1 to G3),
-and `overseer-fetch-versions`, forges ahead of it, newer, older and serving no `/api/versions` (V1 to V3). Each one's entry in
-`RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge recording be authored,
-and verify fails while a recorded one still names them. macOS's programs are stamped
+recording stays authored beside its spec. The other awaits forge requirements, since no forge serves the version Gaia supports before
+Flint's brain: `overseer-fetch-supported-forge`, a forge at `SUPPORTED_FORGE_VERSION` in each situation, Flint's brain's included (G1 to
+G3). Its entry in `RECORDED_BOUNDARIES` names the forge requirements it awaits (`forgeRequirementsAwaited`), which alone lets a forge
+recording be authored, and verify fails while a recorded one still names them. `overseer-fetch-versions` is recorded from this
+repository's forge, as itself (older) and ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from
+before system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a detached worktree's `agent-progress.ts`). macOS's programs are stamped
 with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's
 `apps/forge/agent-progress.ts` or a detached worktree's for an older forge, through
