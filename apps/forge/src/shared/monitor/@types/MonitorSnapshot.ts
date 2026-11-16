@@ -136,4 +136,6 @@ export interface MonitorSnapshot {
   readonly today:               { readonly deliveredTickets: number; readonly tokens: number };
   readonly usage:               MonitorUsage;
   readonly activity:            readonly MonitorActivityEntry[];
+  /** Flint's brain, `null` while this forge runs none. */
+  readonly flintBrain:          null;
 }

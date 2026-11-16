@@ -307,6 +307,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     today:               todayFiguresOf(state, todayCalendarDate),
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),
+    flintBrain:          null,
   };
 }
 

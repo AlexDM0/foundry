@@ -606,7 +606,7 @@ names a command line: the new-code notice asks to restart the Overseer, the inst
 request, from the same reading as `BoardState`.
 
 Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
-those of version 1. Version 3 gives each warning its kind and adds the current usage window to `usage`. `src/services/overseer/testing/fixtures/monitor-v1.json`,
+those of version 1. Version 3 gives each warning its kind, adds the current usage window to `usage`, and adds `flintBrain`. `src/services/overseer/testing/fixtures/monitor-v1.json`,
 `monitor-v2.json` and `monitor-v3.json` hold each version, frozen.
 
 <details>
@@ -628,6 +628,7 @@ those of version 1. Version 3 gives each warning its kind and adds the current u
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it |
 | `usage` | `{resetsAt, window, currentWindow, currentWindowResetsAt}`. `resetsAt` and `window` are the [usage marker](../glossary.md#usage-marker)'s limit, both `null` when no limit was hit. `currentWindow` and `currentWindowResetsAt` are the newest `usageWindow` across the board's `jobs[].live`, as in [Job live facts](#job-live-facts): the window a session is in, also under the limit. The newest is the one whose `reportedAt` names the latest instant; a report with no stamp or an unreadable one counts as the oldest. Both are `null` when no job on the board reported one, so the window of a job that left the board is no longer shown. The reset is passed on as reported, also once it is past. |
 | `activity[]` | The newest 50 log entries a person cares about, oldest first: `{logPosition, at, category, text, route}`. `logPosition` is the record's index in the log, from 0; `category` is `needs-user`, `landed`, `agent` or `forge`; `text` is the sentence the Bridge shows for the entry; `route` is the Bridge fragment of the record's subject, or `null` for the board's own. |
+| `flintBrain` | Flint's brain; `null`, since this forge runs none |
 
 </details>
 
