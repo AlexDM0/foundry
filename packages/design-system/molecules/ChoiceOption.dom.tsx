@@ -1,11 +1,12 @@
 /**
- * The choice option, in a happy-dom document. What matters: with a `ChoiceInput` it is a label whose input carries the accessible name, the group
- * and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
- * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`, the tone `data-tone`, a size other
- * than the standard one `data-size` and mono `data-mono`; an option with no letter shows none; the Other option's text field takes the
- * focus when the option is chosen and keeps out of it when the option is unchosen, so an uncheck is never chosen again, chooses the option
- * once when it takes the focus itself, and hands each typed value on; a disabled input and text field take no click and no typing; a text
- * field without an input does not compile; the recommended mark is a word in its own class; and the words are text, never markup.
+ * The choice option, in a happy-dom document. What matters: with a `ChoiceInput` it is a label whose input carries the accessible name,
+ * the group and the checked state, and a click anywhere on it calls `onChange`; without one it is a list item with no input; chosen sets
+ * `data-chosen`; the description, marks and facts show only when given; the variant sets `data-variant`, the tone `data-tone`, a size
+ * other than the standard one `data-size`, mono `data-mono` and the edged chosen look `data-chosen-look`; an option with no letter shows
+ * none; the Other option's text field takes the focus when the option is chosen and keeps out of it when the option is unchosen, so an
+ * uncheck is never chosen again, chooses the option once when it takes the focus itself, and hands each typed value on; a disabled input
+ * and text field take no click and no typing; a text field without an input does not compile; the recommended mark is a word in its own
+ * class; and the words are text, never markup.
  */
 import {
   cleanup,
@@ -163,6 +164,17 @@ describe('the choice option', () => {
     const options = [...container.querySelectorAll('.design-system-choice')];
     expect(options.map((option) => [option.getAttribute('data-size'), option.hasAttribute('data-mono')]))
       .toEqual([['compact', true], ['large', false], ['roomy', false], [null, false]]);
+  });
+
+  test('the edged chosen look sets data-chosen-look, and the tinted one, the default, sets none', () => {
+    const { container } = render(
+      <ol>
+        <ChoiceOption label="Edged" chosen variant="card" tone="question" chosenLook="edged" />
+        <ChoiceOption label="Tinted" chosen variant="card" tone="question" chosenLook="tinted" />
+        <ChoiceOption label="Default" chosen variant="card" tone="question" />
+      </ol>,
+    );
+    expect([...container.querySelectorAll('.design-system-choice')].map((option) => option.getAttribute('data-chosen-look'))).toEqual(['edged', null, null]);
   });
 
   test('an option with no letter shows none, and keeps its label', () => {

@@ -1,7 +1,8 @@
 /**
  * One lettered option of a question: its letter, its label with an optional description under it, then the caller's marks and facts. With
  * a `ChoiceInput` it is a label the radio or checkbox leads, so a click anywhere on it chooses; without, a read-only list item. A chosen
- * option reads bold; the card variant draws it as a bordered card, and the question tone in the question colours. A size other than the
+ * option reads bold; the card variant draws it as a bordered card, and the question tone in the question colours, a chosen card tinted
+ * with its edge, or with the `edged` look the edge alone. A size other than the
  * standard one sets the option as a compact row, a large option or a roomy card; `mono` sets its label as machine text, and an option with
  * no letter shows none. With a `ChoiceFreeText` it is the Other option: a text field under its label, which takes the focus when the option
  * is chosen and chooses the option when it takes the focus. A disabled input or text field fades the option and ignores a click on it.
@@ -94,6 +95,9 @@ export function ChoiceFreeText({
  */
 export type ChoiceOptionSize = 'compact' | 'standard' | 'large' | 'roomy';
 
+/** How a chosen question card stands out: `tinted` (the default) in the question tint and edge, `edged` by the edge alone on its ground. */
+export type ChoiceOptionChosenLook = 'tinted' | 'edged';
+
 /** An option that chooses takes its input; only an option that chooses takes a text field of its own words. */
 export type ChoiceOptionChoosing =
   | { readonly input?: undefined; readonly freeText?: never }
@@ -116,13 +120,15 @@ export type ChoiceOptionProps = ChoiceOptionChoosing & {
   readonly facts?:       ReactNode;
   readonly variant:      'row' | 'card';
   readonly tone?:        'question';
+  /** The look of the option once chosen, as a question card. */
+  readonly chosenLook?:  ChoiceOptionChosenLook;
   readonly size?:        ChoiceOptionSize;
   /** The label is machine text, such as a path: the mono face in the small size. */
   readonly mono?:        boolean;
 };
 
 export function ChoiceOption({
-  letter, label, description, chosen, marks, input, freeText, facts, variant, tone, size = 'standard', mono = false
+  letter, label, description, chosen, marks, input, freeText, facts, variant, tone, chosenLook = 'tinted', size = 'standard', mono = false
 }: ChoiceOptionProps) {
   const choiceInput = useRef<HTMLInputElement | null>(null);
   const freeTextField = useRef<HTMLInputElement | null>(null);
@@ -140,11 +146,12 @@ export function ChoiceOption({
     </>
   );
   const optionAttributes = {
-    'data-chosen':  chosen ? '' : undefined,
-    'data-variant': variant,
-    'data-tone':    tone,
-    'data-size':    size === 'standard' ? undefined : size,
-    'data-mono':    mono ? '' : undefined,
+    'data-chosen':      chosen ? '' : undefined,
+    'data-variant':     variant,
+    'data-tone':        tone,
+    'data-chosen-look': chosenLook === 'tinted' ? undefined : chosenLook,
+    'data-size':        size === 'standard' ? undefined : size,
+    'data-mono':        mono ? '' : undefined,
   };
   if (input === undefined) return <li className="design-system-choice" {...optionAttributes}>{content}</li>;
   return (

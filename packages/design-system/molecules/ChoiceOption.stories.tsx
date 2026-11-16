@@ -62,6 +62,15 @@ export const Chosen: Story = {
 };
 export const CardVariant: Story = { args: { variant: 'card', description: 'An example description under the label.' } };
 export const QuestionTone: Story = { args: { variant: 'card', tone: 'question' } };
+export const QuestionChosenEdged: Story = {
+  args: {
+    variant:    'card',
+    tone:       'question',
+    chosenLook: 'edged',
+    chosen:     true,
+    input:      <ChoiceInput type="radio" name="example-group" checked accessibleName="Example option" onChange={fn()} />,
+  },
+};
 export const Compact: Story = { render: () => <ul><ChoiceOption label="Example source" chosen={false} variant="card" size="compact" /></ul>, };
 export const CompactMono: Story = { render: () => <ul><ChoiceOption label="docs/example.md" chosen variant="card" size="compact" mono /></ul>, };
 export const Large: Story = {

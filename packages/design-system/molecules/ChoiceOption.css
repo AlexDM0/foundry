@@ -22,11 +22,12 @@ label.design-system-choice { cursor: pointer; }
 }
 .design-system-choice-mark[data-mark="recommended"] { color: var(--link); background: var(--link-tint); }
 
-/* An option of a question waiting on User: the surface, a strong line and ink text; once chosen, the orange tint and edge, its radio in
-   the signal colour. Other's text field sits under its label. */
+/* An option of a question waiting on User: the surface, a strong line and ink text; once chosen, the orange tint and edge, or with the
+   edged look the edge on its own ground, its radio in the signal colour. Other's text field sits under its label. */
 .design-system-choice[data-tone="question"] { align-items: flex-start; gap: var(--space-10); color: var(--decision-option-ink); }
 .design-system-choice[data-tone="question"][data-variant="card"] { background: var(--decision-option-fill); border-color: var(--line-strong); }
 .design-system-choice[data-tone="question"][data-variant="card"][data-chosen] { background: var(--decision-fill); border-color: var(--decision-edge); }
+.design-system-choice[data-tone="question"][data-variant="card"][data-chosen][data-chosen-look="edged"] { background: var(--decision-option-fill); }
 .design-system-choice[data-tone="question"] .design-system-choice-input { margin-top: var(--space-3); accent-color: var(--decision-accent); }
 .design-system-choice[data-tone="question"] .design-system-choice-text { flex: 1 1 auto; gap: var(--space-2); }
 .design-system-choice[data-tone="question"] .design-system-choice-description { font-size: var(--fs-tab); line-height: 17px; color: var(--ink-muted); }
