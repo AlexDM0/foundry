@@ -20,7 +20,7 @@ export interface ProjectLocation {
   projectPrefix:    string;
 }
 
-/** One agent checkout of the repository: its toplevel, where git runs, and the project folder inside it, where a session starts. */
+/** One agent checkout of the repository: its toplevel, where git and a job's session run, and the project folder in it, where a gate runs. */
 export interface WorktreeProjectLocation {
   worktreeRoot:               string;
   projectDirectoryInWorktree: string;

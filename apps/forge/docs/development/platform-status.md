@@ -20,6 +20,30 @@ architecture, and correct the docs that it contradicts.
 | Every port | Has run on arm64, under the full suite and real sessions. Never run on x64. |
 | `GateConfinement` (Seatbelt) | Has run on arm64. `sandbox-exec` is deprecated by Apple; a macOS release that drops it leaves gates refused. |
 
+### Sessions in a folder tracker's worktree (probed 16 November 2026)
+
+Probed on macOS arm64 with Claude Code 2.1.323: a builder of a folder tracker (`apps/example`, namespace `example`) in a
+scratch repository, its launch rendered by a real Overseer and replayed with the real `claude`, changing only the start
+folder and `sandbox.network.allowLocalBinding`. Never run on Linux or Windows.
+
+| Start folder | `allowLocalBinding` | `git add` / `git commit` | Bind 127.0.0.1 | Reach the Overseer's port | Reach another local service |
+| --- | --- | --- | --- | --- | --- |
+| the project folder in the worktree | not set | refused: `index.lock` in `<git common dir>/worktrees/<name>/` | refused | refused | refused |
+| the worktree's root | not set | committed | refused | refused | refused |
+| the worktree's root | `true` | committed | bound | answered HTTP 200 | reached |
+
+- **Start folder.** The settings, argv and environment were byte-equal in the first two rows: only the start folder
+  decides. Claude Code's sandbox grants a linked worktree's admin folder only to a session that starts at the
+  worktree's root, which holds the `.git` file naming that folder. So a session in a job's worktree starts at
+  `worktreeRoot` (`src/services/overseer/SessionPlace.ts`), and forge adds no git grant. From there Claude Code reads
+  the repository root's `CLAUDE.md` and `.claude/settings.json` of the worktree, and a folder's `CLAUDE.md` only when
+  the session works in that folder. A resumed session starts where it first started, since Claude Code finds it by
+  that folder.
+- **`allowLocalBinding` stays off.** It opens more than binding: with it set, the session also connected out to every
+  loopback port, the Overseer's API and an unrelated local service among them. Without it, outbound loopback is
+  refused at once. Setting it would give every builder and reviewer the Overseer's API and every local service on the
+  machine, so no profile sets it, held by `src/lib/claude-code/ClaudeCodeAdapter.spec.ts`.
+
 ## Linux
 
 The POSIX adapters (`PosixShellLine`, `PosixOwnerOnlyFiles`, `PosixDataFolders`, `PosixLaunchEnvironment`,

@@ -2,7 +2,8 @@
  * The build prompt's gates section. What matters: each gate the builder runs is listed by name with its exact command and its fix, in the
  * pipeline's order, under the rule to pass every gate on the final commit; a gate with a fix says to run it before fixing by hand; an
  * `overseerOnly` gate is named as the Overseer's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
- * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare.
+ * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare. A builder
+ * or reviewer at the root of a folder tracker's worktree is told the project's folder first, since its ticket names paths from there.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -186,5 +187,36 @@ describe('the build prompt\'s branch', () => {
     expect(namespaced).toContain('worktree on branch `forge/web/ticket-012`');
     expect(namespaced).toContain('Commit on `forge/web/ticket-012`');
     expect(namespaced).not.toContain('`ticket-012`');
+  });
+});
+
+describe('the project\'s folder', () => {
+  const reviewJob = { ...BUILD_JOB, kind: 'review', role: 'reviewer' } as unknown as Readonly<Job>;
+  const factsFor = (instructionsFile: string, projectFolder: string | undefined): JobLaunchFacts => ({
+    confinement: 'confined',
+    tickets:     [{
+      id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+    }],
+    checksLine:             'bun test',
+    gates:                  GATES,
+    earlierSessionReplaced: false,
+    intake:                 null,
+    airlock:                null,
+    assistant:              null,
+    instructions:           readFileSync(resourceFilePathOf('prompts', instructionsFile), 'utf8'),
+    ...projectFolder === undefined ? {} : { projectFolder },
+  });
+
+  test('is named first to a builder and a reviewer at the root of a folder tracker\'s worktree, with where the ticket\'s paths start', () => {
+    for (const [job, instructionsFile] of [[BUILD_JOB, 'BuildPrompt.md'], [reviewJob, 'ReviewPrompt.md']] as const) {
+      const message = OverseerWording.launchTextOf(job, factsFor(instructionsFile, 'apps/example')).firstMessage;
+      expect(message.startsWith('Your working directory is the root of this worktree. The project of this board is in the folder `apps/example`')).toBe(true);
+      expect(message).toContain('A path in the ticket starts from that folder. A path that starts with `/` starts from the root of the worktree.');
+    }
+  });
+
+  test('is not named to a session that starts in it', () => {
+    expect(OverseerWording.launchTextOf(BUILD_JOB, factsFor('BuildPrompt.md', undefined)).firstMessage).not.toContain('Your working directory');
+    expect(OverseerWording.launchTextOf(reviewJob, factsFor('ReviewPrompt.md', undefined)).firstMessage).not.toContain('Your working directory');
   });
 });

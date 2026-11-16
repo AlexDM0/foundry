@@ -1,8 +1,8 @@
 /**
  * The adapter is the whole of what a launched session may do, so these cases hold its rendering per role as a table: the command line
  * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
- * memory, no instruction file above the repository), the subagents, the git configuration, the scrubbed environment, the one standing
- * reply, and the lines a Watcher sends, against the ones the probes recorded.
+ * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
+ * one standing reply, and the lines a Watcher sends, against the ones the probes recorded.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -259,6 +259,11 @@ describe('the rendered settings', () => {
     expect(sandbox.filesystem.denyWrite).toEqual([`/${REPOSITORY}/.example-data`, `/${WORKTREE}/.claude`, `/${REPOSITORY}/.git/packed-refs`]);
     expect(sandbox.filesystem.denyRead).toEqual([`/${REPOSITORY}/.example-data/jobs/*/launch-*.json`, '//Users/example/.ssh', '//Users/example/.gnupg/private-keys-v1.d']);
     expect(sandbox.network).toMatchObject({ allowedDomains: ['registry.example.com'], strictAllowlist: true });
+  });
+
+  // allowLocalBinding also opens outbound loopback to every local port, the Overseer's API among them: `docs/development/platform-status.md`.
+  test.each([...ROLES])('%s: the sandbox network opens no local port, so no session reaches loopback', (role) => {
+    expect(Object.keys(settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf(role))).sandbox.network)).not.toContain('allowLocalBinding');
   });
 
   test('the gates\' writes the profile names are writable beside the Hatch, //-anchored', () => {

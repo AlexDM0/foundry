@@ -187,9 +187,20 @@ function airlockCallBudgetOf(role: string, resumesSession: boolean): number {
 
 type LaunchTicket = JobLaunchFacts['tickets'][number];
 
+/** Where a session at the root of a folder tracker's worktree finds its project, since its ticket names paths from the project's folder. */
+function projectFolderLinesOf(facts: JobLaunchFacts): string {
+  if (facts.projectFolder === undefined) return '';
+  return [
+    `Your working directory is the root of this worktree. The project of this board is in the folder \`${facts.projectFolder}\` of`,
+    'the worktree. A path in the ticket starts from that folder. A path that starts with `/` starts from the root of the worktree.',
+    '',
+    '',
+  ].join('\n');
+}
+
 /** A builder's instruction files, filled for its ticket and attempt. */
 function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts): string {
-  return filledTemplateOf(facts.instructions, {
+  return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
     ticketBranch:   ticket.branch,
     ticketTitle:    ticket.title,
@@ -206,7 +217,7 @@ function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
 
 /** A reviewer's instruction files, filled for its ticket and round; `mergeApprovalStep` is empty where no approval step applies. */
 function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, mergeApprovalStep: string): string {
-  return filledTemplateOf(facts.instructions, {
+  return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
     ticketBranch:   ticket.branch,
     ticketTitle:    ticket.title,

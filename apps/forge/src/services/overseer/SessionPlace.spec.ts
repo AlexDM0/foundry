@@ -1,11 +1,13 @@
 /**
  * Where a job's session starts and what its sandbox writes. What matters: in a ticket worktree of a tracker below its repository's root the
- * session starts in the project's folder of the worktree, so it reads the project's instructions, while it writes the whole worktree; a
- * tracker at its repository's root starts at the worktree's root as it always has; and before the worktree exists a session works in a
- * folder of its own either way. The `.git` entry is planted, since finding the project's place runs no git.
+ * session starts at the worktree's root, where Claude Code's sandbox lets it commit, and knows the project's folder from there; a tracker
+ * at its repository's root starts at the worktree's root as it always has; before the worktree exists a session works in a folder of its
+ * own either way; a pipeline agent's snapshot, which it only reads, still starts in the project's folder of it; and a resumed session
+ * starts where its first instance started, a project folder from before the change included, but never outside its checkout. The gates
+ * a session reads name each folder from where it starts. The `.git` entry is planted, since finding the project's place runs no git.
  */
-import { existsSync, mkdirSync } from 'node:fs';
-import { join }                  from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join }                                 from 'node:path';
 
 import {
   afterAll,
@@ -14,11 +16,13 @@ import {
   test
 } from 'bun:test';
 
+import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
+import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { projectLocationOf }                              from '../tracker/ProjectLocation.ts';
 import { workspacePathsFor }                              from '../tracker/Workspace.ts';
-import { SessionPlaces }                                  from './SessionPlace.ts';
+import { type SessionPlace, SessionPlaces }               from './SessionPlace.ts';
 
 const PROJECT_PREFIX = 'apps/forge';
 const TICKET_ID = '007';
@@ -46,21 +50,33 @@ function trackerIn(projectPrefix: string, withWorktree: boolean): string {
   return projectDirectory;
 }
 
-function placeOf(projectDirectory: string): ReturnType<typeof SessionPlaces.ticketSessionPlaceOf> {
+function placeOf(projectDirectory: string): SessionPlace {
   return SessionPlaces.ticketSessionPlaceOf(workspacePathsFor(projectDirectory), projectLocationOf(projectDirectory), JOB);
 }
 
+/** A job folder whose first instance's launch file records the folder its session started in. */
+function sessionOwnerJobFolderStartedIn(startFolder: string): string {
+  const jobFolder = createScratchDirectory('session-owner');
+  scratchDirectories.push(jobFolder);
+  writeFileSync(watcherFilesOf(jobFolder, 1).launchPath, `${JSON.stringify({ workingDirectory: startFolder })}\n`);
+  return jobFolder;
+}
+
 describe('a ticket worktree', () => {
-  test('of a tracker below its repository\'s root starts the session in the project\'s folder and lets it write the worktree', () => {
+  test('of a tracker below its repository\'s root starts the session at the worktree\'s root, the project\'s folder named from there', () => {
     const projectDirectory = trackerIn(PROJECT_PREFIX, true);
     const worktree = WorktreesFolder.ticketWorktreeOf(projectDirectory, TICKET_ID);
-    expect(placeOf(projectDirectory)).toEqual({ checkout: worktree, workingDirectory: join(worktree, PROJECT_PREFIX), holdsRepository: true });
+    expect(placeOf(projectDirectory)).toEqual({
+      checkout: worktree, workingDirectory: worktree, holdsRepository: true, projectFolderFromStart: PROJECT_PREFIX
+    });
   });
 
   test('of a tracker at its repository\'s root starts the session at the worktree\'s root, as it always has', () => {
     const projectDirectory = trackerIn('', true);
     const worktree = WorktreesFolder.ticketWorktreeOf(projectDirectory, TICKET_ID);
-    expect(placeOf(projectDirectory)).toEqual({ checkout: worktree, workingDirectory: worktree, holdsRepository: true });
+    expect(placeOf(projectDirectory)).toEqual({
+      checkout: worktree, workingDirectory: worktree, holdsRepository: true, projectFolderFromStart: ''
+    });
   });
 });
 
@@ -70,14 +86,71 @@ describe('no worktree yet', () => {
     (_placeName, projectPrefix) => {
       const projectDirectory = trackerIn(projectPrefix, false);
       const sessionFolder = join(WorktreesFolder.worktreesRootOf(projectDirectory), 'sessions', JOB.id);
-      expect(placeOf(projectDirectory)).toEqual({ checkout: sessionFolder, workingDirectory: sessionFolder, holdsRepository: false });
+      expect(placeOf(projectDirectory)).toEqual({
+        checkout: sessionFolder, workingDirectory: sessionFolder, holdsRepository: false, projectFolderFromStart: ''
+      });
       expect(existsSync(sessionFolder)).toBe(true);
     },
   );
 });
 
-test('a pipeline agent\'s snapshot, a checkout of the whole repository, starts its session in the project\'s folder of it', () => {
+test('a pipeline agent\'s snapshot, a checkout of the whole repository it only reads, starts its session in the project\'s folder of it', () => {
   const projectDirectory = trackerIn(PROJECT_PREFIX, false);
   const snapshot = join(WorktreesFolder.worktreesRootOf(projectDirectory), 'pipeline-agent', 'S1');
-  expect(SessionPlaces.sessionPlaceOf(projectLocationOf(projectDirectory), snapshot, true).workingDirectory).toBe(join(snapshot, PROJECT_PREFIX));
+  expect(SessionPlaces.snapshotSessionPlaceOf(projectLocationOf(projectDirectory), snapshot)).toEqual({
+    checkout: snapshot, workingDirectory: join(snapshot, PROJECT_PREFIX), holdsRepository: true, projectFolderFromStart: ''
+  });
+});
+
+describe('a resumed session', () => {
+  test('first started in the project\'s folder of a folder tracker\'s worktree resumes there, the project\'s folder its own', () => {
+    const projectDirectory = trackerIn(PROJECT_PREFIX, true);
+    const place = placeOf(projectDirectory);
+    const projectFolderInWorktree = join(place.checkout, PROJECT_PREFIX);
+    const resumedPlace = SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectFolderInWorktree));
+    expect(resumedPlace).toEqual({ ...place, workingDirectory: projectFolderInWorktree, projectFolderFromStart: '' });
+  });
+
+  test('first started at the worktree\'s root resumes at the root', () => {
+    const projectDirectory = trackerIn(PROJECT_PREFIX, true);
+    const place = placeOf(projectDirectory);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(place.checkout))).toEqual(place);
+  });
+
+  test('first started outside its checkout, or with no launch file, takes the place as it is', () => {
+    const projectDirectory = trackerIn(PROJECT_PREFIX, true);
+    const place = placeOf(projectDirectory);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectDirectory))).toEqual(place);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, join(projectDirectory, 'no-such-job-folder'))).toEqual(place);
+  });
+});
+
+describe('the gates a session reads', () => {
+  const GATES: readonly PipelineGate[] = [
+    { name: 'tests', run: 'bun test' },
+    { name: 'lint', run: 'bun run lint', in: 'tools' },
+    { name: 'workspace', run: 'bun run verify', in: '/' },
+    { name: 'docs', run: 'bun run docs', in: '/docs' },
+  ];
+
+  test('at the root of a folder tracker\'s worktree name each folder from the root, a gate with no in folder in the project\'s folder', () => {
+    const place = placeOf(trackerIn(PROJECT_PREFIX, true));
+    expect(SessionPlaces.gatesFromStartOf(place, GATES)).toEqual([
+      { name: 'tests', run: 'bun test', in: PROJECT_PREFIX },
+      { name: 'lint', run: 'bun run lint', in: `${PROJECT_PREFIX}/tools` },
+      { name: 'workspace', run: 'bun run verify' },
+      { name: 'docs', run: 'bun run docs', in: 'docs' },
+    ]);
+  });
+
+  test('are the stored gates for a session that starts in the project\'s folder: a root tracker\'s, a snapshot\'s, or one resumed there', () => {
+    const rootTrackerPlace = placeOf(trackerIn('', true));
+    const folderTrackerDirectory = trackerIn(PROJECT_PREFIX, true);
+    const folderTrackerPlace = placeOf(folderTrackerDirectory);
+    const resumedPlace = SessionPlaces.resumedSessionPlaceOf(
+      folderTrackerPlace, sessionOwnerJobFolderStartedIn(join(folderTrackerPlace.checkout, PROJECT_PREFIX))
+    );
+    const snapshotPlace = SessionPlaces.snapshotSessionPlaceOf(projectLocationOf(folderTrackerDirectory), join(folderTrackerDirectory, 'snapshot'));
+    for (const place of [rootTrackerPlace, resumedPlace, snapshotPlace]) expect(SessionPlaces.gatesFromStartOf(place, GATES)).toBe(GATES);
+  });
 });

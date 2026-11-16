@@ -112,10 +112,12 @@ export interface JobLaunchText {
 /** What the launch text is filled from: the job's tickets as stored, and the checks line its work is gated by. */
 export interface JobLaunchFacts {
   tickets:                readonly { id: string; title: string; body: string; branch: string }[];
-  /** The stored gates as the shell line's display render, which an agent reads and nothing spawns; `null` with no pipeline stored. */
+  /** The gates as the shell line's display render, which an agent reads and nothing spawns; `null` with no pipeline stored. */
   checksLine:             string | null;
-  /** The stored gates in run order, which a builder is briefed on; `null` with no pipeline stored. */
+  /** The stored gates in run order, which a builder is briefed on, each folder from where the session starts; `null` with no pipeline stored. */
   gates:                  readonly Readonly<PipelineGate>[] | null;
+  /** The tracker's project folder from the worktree's root where the session starts; absent when the session starts in the project's folder. */
+  projectFolder?:         string;
   /** The board's merge approval: on, a reviewer merges its target into the branch as its review's last step. Absent reads as off. */
   mergeApprovalIsOn?:     boolean;
   /** The job's work was last held by a session ended `replaced`, whose uncommitted changes are in the worktree it inherits. */
@@ -733,10 +735,9 @@ function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<
   };
 }
 
-/** The stored gates as the display line of this machine's shell grammar; `null` with no pipeline stored. */
-function checksLineOf(board: Board, shellLine: Pick<ShellLine, 'displayLineOf'>): string | null {
-  const pipeline = board.pipeline();
-  return pipeline === null ? null : shellLine.displayLineOf(pipeline.gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
+/** The gates as the display line of this machine's shell grammar; `null` with no pipeline stored. */
+function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine: Pick<ShellLine, 'displayLineOf'>): string | null {
+  return gates === null ? null : shellLine.displayLineOf(gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
 }
 
 type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames'>;
@@ -746,8 +747,13 @@ function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts'])
   return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
 }
 
-function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<Job>, instructions: string, airlock: AirlockFacts | null): JobLaunchFacts {
+function launchFactsOf(
+  board: Board, request: LaunchFactsSource, job: Readonly<Job>, launch: { instructions: string; airlock: AirlockFacts | null; place: SessionPlace }
+): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
+  const { instructions, airlock, place } = launch;
+  const storedGates = board.pipeline()?.gates ?? null;
+  const gates = storedGates === null ? null : SessionPlaces.gatesFromStartOf(place, storedGates);
   return {
     instructions,
     confinement: sessionConfinementOf(request.platformPorts),
@@ -757,8 +763,9 @@ function launchFactsOf(board: Board, request: LaunchFactsSource, job: Readonly<J
       .map((ticket) => ({
         id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body, branch: request.branchNames.ticketBranchOf(ticket.frontmatter.id)
       })),
-    checksLine:             checksLineOf(board, request.platformPorts.shellLine),
-    gates:                  board.pipeline()?.gates ?? null,
+    checksLine:             checksLineOf(gates, request.platformPorts.shellLine),
+    gates,
+    ...place.projectFolderFromStart === '' ? {} : { projectFolder: place.projectFolderFromStart },
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
@@ -802,9 +809,8 @@ function launchWatcher(
   request.watchHatchFolder?.(hatchDirectory);
   const snapshotContext = { workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(workspace.rootDirectory), mainLine: request.mainLine };
   const place = PipelineAgentSessions.isPipelineAgentJob(job)
-    ? SessionPlaces.sessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job), true)
+    ? SessionPlaces.snapshotSessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job))
     : SessionPlaces.ticketSessionPlaceOf(workspace, location, job);
-  const { workingDirectory } = place;
   if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
   if (job.kind === 'merge-agent') {
     const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
@@ -822,7 +828,7 @@ function launchWatcher(
     request.log(`The Airlock agent of job ${job.id} did not launch: neither its kept facts nor git tell which files conflict.`);
     return { airlockConflictsUnknownFor: job.id };
   }
-  const launchFacts      = launchFactsOf(board, request, job, instructions.text, airlock);
+  const launchFacts      = launchFactsOf(board, request, job, { instructions: instructions.text, airlock, place });
   const text             = request.launchTextOf(job, launchFacts);
   const resumeLine       = JobResumption.resumeLineOf(workspace.trackerDirectory, board, job, request);
   const redHandoffTakenOver = launchFacts.redHandoff ?? null;
@@ -839,11 +845,15 @@ function launchWatcher(
   if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
   const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
+  const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
+  const { workingDirectory } = resumesASession
+    ? SessionPlaces.resumedSessionPlaceOf(place, WatcherFleet.jobFolderOf(workspace.trackerDirectory, sessionOwnerJobId))
+    : place;
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
     programPath:   program.path,
     sessionId:     agentAdapter.sessionIdOf(trackerId, sessionOwnerJobId),
-    resume:        launchParts.resume || sessionOwnerJobId !== job.id,
+    resume:        resumesASession,
     workingDirectory,
     homeDirectory: request.homeDirectory,
     firstMessage:  launchParts.firstMessage,

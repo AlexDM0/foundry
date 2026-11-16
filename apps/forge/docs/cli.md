@@ -107,11 +107,14 @@ tracker at the root with no namespace asks git exactly what it asked before a tr
 in a folder:
 
 - needs a branch namespace (`init --namespace`, `namespace`), so two trackers' branches never share a name;
-- runs git only at a toplevel: the main checkout for its main line, a job's worktree for the job. Its sessions, gates
-  and prepare steps start in the project's folder of each checkout, and an `--in` that starts with `/` names a folder
-  from the checkout's root;
-- reads its `CLAUDE.md`, `CONSTITUTION.md` and instruction files from its own folder, and protects `.claude/`,
-  `.mcp.json` and any `<data>/` at any depth;
+- runs git only at a toplevel: the main checkout for its main line, a job's worktree for the job. A session in a job's
+  worktree starts at the worktree's root, where it can commit, and is told the project's folder; its other sessions,
+  its gates and prepare steps start in the project's folder of each checkout, and an `--in` that starts with `/` names
+  a folder from the checkout's root;
+- reads its `CONSTITUTION.md` and instruction files from its own folder. A session at a job worktree's root gets the
+  repository root's `CLAUDE.md` and project settings, and the folder's `CLAUDE.md` only when it works in the folder
+  ([platform status](development/platform-status.md)). It protects `.claude/`, `.mcp.json` and any `<data>/` at any
+  depth;
 - may change its own folder and the paths of `reach` (`gate reach`), which Customs holds;
 - watches only its own refs: its namespace, its main line, its group branches and its own worktrees. Another tracker's
   branch, a person's checkout, a stash or a tag fails none of its jobs;

@@ -272,8 +272,9 @@ function nestedCheckoutAncestorsOf(repositoryRoot: string, checkout: string, pro
 }
 
 /**
- * A session started in the project folder of a checkout nested in the main checkout writes the whole checkout, as one at the checkout's
- * root does by its sandbox's default, and reads the checkout's instruction files, never the main checkout's copies above it.
+ * A session in a checkout nested in the main checkout writes the whole checkout, by Edit and Write too, wherever in it the session started,
+ * and reads the checkout's instruction files, never the main checkout's copies above it. A job's session starts at the checkout's root, where
+ * the sandbox grants its git admin folder with no rule of forge's; a pipeline agent's snapshot starts in the project's folder of it.
  */
 function nestedCheckoutProfileOf(facts: Pick<SandboxFacts, 'repositoryRoot' | 'worktree' | 'projectPrefix'>): Pick<WorkerProfile, 'writeRoot' | 'nestedCheckoutAncestors'> {
   const projectPrefix = facts.projectPrefix ?? '';

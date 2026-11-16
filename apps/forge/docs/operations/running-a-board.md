@@ -733,8 +733,8 @@ contract](../reference/overseer-api.md#the-embed-contract)).
 A repository may hold several trackers, each in a project folder of its own, such as `apps/web` and `apps/api` of a
 monorepo ([Trackers in a repository](../cli.md#trackers-in-a-repository)). Each is a board as above, with its own
 Overseer, port and Bridge, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
-Its agents start in the project's folder of their worktree and may change that folder and the paths its pipeline's
-reach names; Customs refuses any other path.
+Its agents start at the root of their worktree, so that they can commit, and are told the project's folder; they may
+change that folder and the paths its pipeline's reach names; Customs refuses any other path.
 
 The boards share the main line. When a sibling lands first, a merge waiting on the same main line takes the new tip and
 gates again, with no decision: the sibling wrote its landing in the repository's landing journal. Only a move that no
