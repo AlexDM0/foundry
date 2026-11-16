@@ -728,6 +728,23 @@ A monitor is a separate tool that shows several boards together. It finds them i
 registry, and may frame a Bridge with `?embedded=frame`, which hides the header ([The embed
 contract](../reference/overseer-api.md#the-embed-contract)).
 
+## Several boards in one repository
+
+A repository may hold several trackers, each in a project folder of its own, such as `apps/forge` and `apps/gaia` of a
+monorepo ([Trackers in a repository](../cli.md#trackers-in-a-repository)). Each is a board as above, with its own
+Overseer, port and Bridge, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
+Its agents start in the project's folder of their worktree and may change that folder and the paths its pipeline's
+reach names; Customs refuses any other path.
+
+The boards share the main line. When a sibling lands first, a merge waiting on the same main line takes the new tip and
+gates again, with no decision: the sibling wrote its landing in the repository's landing journal. Only a move that no
+board wrote, such as a person's push, still opens `target-moved`. A landing holds the repository's landing lock for a
+moment; a board that finds it held keeps its slot and lands on a later sweep.
+
+A gate may write a small cache report, and the Pipeline view then marks a gate run that a build cache replayed. In a
+monorepo whose gates run a whole-repository build through a shared cache, a sibling's landing usually costs a replay of
+the untouched apps.
+
 ## Invariants
 
 1. The Bridge stores no board state. Closing or reloading it loses only what

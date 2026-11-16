@@ -94,11 +94,36 @@ on this repository is in [Contributing](development/contributing.md).
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
 
-### One tracker per repository
+### Trackers in a repository
 
-The [tracker](glossary.md#tracker) lives in `<data>/` at the repository root, found with
-`git rev-parse --git-common-dir`, so every [worktree](glossary.md#worktree) of a repository shares one tracker and one
-[board](glossary.md#board).
+A [tracker](glossary.md#tracker) lives in `<data>/` of the folder it tracks: the repository root, or a project folder
+of the repository that `init --root` names. A command finds it by walking up to the nearest `<data>/`. In a checkout
+that has none, such as a [worktree](glossary.md#worktree), it takes the folder's path below that checkout's toplevel,
+applies it to the main checkout found with `git rev-parse --git-common-dir`, and walks up from there. So every worktree
+of a repository shares its trackers and their [boards](glossary.md#board).
+
+A repository holds one tracker at its root, or several in folders beside each other, never one inside another. A
+tracker at the root with no namespace asks git exactly what it asked before a tracker could sit in a folder. A tracker
+in a folder:
+
+- needs a branch namespace (`init --namespace`, `namespace`), so two trackers' branches never share a name;
+- runs git only at a toplevel: the main checkout for its main line, a job's worktree for the job. Its sessions, gates
+  and prepare steps start in the project's folder of each checkout, and an `--in` that starts with `/` names a folder
+  from the checkout's root;
+- reads its `CLAUDE.md`, `CONSTITUTION.md` and instruction files from its own folder, and protects `.claude/`,
+  `.mcp.json` and any `<data>/` at any depth;
+- may change its own folder and the paths of `reach` (`gate reach`), which Customs holds;
+- watches only its own refs: its namespace, its main line, its group branches and its own worktrees. Another tracker's
+  branch, a person's checkout, a stash or a tag fails none of its jobs;
+- holds a held main line only while the paths a fast-forward changes are dirty in the main checkout.
+
+The trackers of a repository meet in `<git common dir>/forge/`, which every worktree shares:
+
+| file | holds |
+|---|---|
+| `trackers.json` | `{ version: 1, trackers: { <trackerId>: { prefix, branchNamespace } } }`: each tracker in a folder or with a namespace, which `init` and `namespace` write and check. A bare tracker at the root is not listed. |
+| `landings.jsonl` | One line per landing, `{ version: 1, trackerId, target, previousTip, commit }`, appended by each tracker in a folder. A sibling's journaled move of the target requeues a merge silently, as the tracker's own recorded landing does, and never counts toward parking; a move that no line names is `target-moved` as before. |
+| `landings.lock` | The lock folder a landing holds only around its tip check, fast-forward and journal line, and `init` around a change of the list. A landing that finds it held is refused `landing-lock-held`, keeps its slot and tries again on a later sweep. |
 
 ### Locking
 

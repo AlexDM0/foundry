@@ -233,7 +233,8 @@ today's behaviour.
 A lock and separate branch names are not enough: today each tracker treats any ref it did not move itself as foreign. A moved main tip
 is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93`, `Airlocks.ts:899-915`).
 
-- **Branch namespace:** each tracker gets a `branchNamespace` in `progress.json`, set by `init`: `forge/<namespace>/ticket-<id>`,
+- **Branch namespace:** each tracker gets a `branchNamespace` in `progress.json`, set by `init --namespace` or `namespace`:
+  `forge/<namespace>/ticket-<id>`,
   `…/group-<name>`. A tracker without the field keeps today's bare names; a tracker whose prefix is not `''` must have one. The names are
   spelled in the sandbox's ref denies (`WorkerProfiles.ts:336,351`), the wording, merge forecasting and the installed prompts and briefs,
   so the change raises forge's install version and every tracker runs `update`. No namespace may equal an existing branch name.
@@ -244,8 +245,9 @@ is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93
   landing. Forge already refuses `target-moved-by-a-recorded-landing` and requeues from the branch tip without counting it toward parking
   (`Landing.ts:60,91`); today its recorded landings are the tracker's own. The journal's entries for the target are added to them, for
   the landing and for Customs. A move not in the journal stays what it is today.
-- **Lock:** a lock file beside the journal, held only for the tip check plus the fast-forward (`Landing.ts:99-110`), not across gates
-  and agent fixes.
+- **Lock:** a lock folder beside the journal, `landings.lock`, held only for the journal read, the tip check, the fast-forward and the
+  journal line, not across gates and agent fixes. A landing never waits on it: one that finds it held is refused `landing-lock-held`,
+  keeps its slot and lands on a later sweep. A tracker at the root takes no lock and writes no journal, as before.
 - **Held targets:** a held target clears when the paths the fast-forward changes are clean in the main checkout, judged at
   `repositoryRoot` (`Airlocks.ts:799-805`), not when the whole checkout is clean.
 - **`init`** refuses a tracker above (today) and below a new one. Forge's tracker therefore leaves the git root for `apps/forge/.forge`
@@ -269,17 +271,34 @@ is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93
 
 ### Specs
 
-A fixture repository with two sibling trackers and a shared package: path mapping both ways; lookup from an agent worktree and from a
-`.claude/worktrees` checkout; git calls from a project folder run at the toplevel; Customs accepts home and reach, rejects the sibling's
-files and any nested `.claude/`; a sibling's branch, refresh worktree and landing, and a person's branch, stash or tag, fail no job and
-park no merge; two landings in a row both end on the main line; `init` refuses above and below; a tracker with prefix `''` produces the
-same commands as today.
+As built, in forge's default suite on recorded git (real git runs only in `src/lib/git`'s boundary specs, which record the fixture
+repository of two sibling trackers and a shared package, `src/testing/TwoTrackerFixture.ts`):
+
+| Claim | Held by |
+|---|---|
+| path mapping both ways, prefix `''` the identity | `src/shared/utils/ProjectPathsUtil.spec.ts`, `src/services/tracker/ProjectLocation.spec.ts` |
+| lookup from an agent worktree and a `.claude/worktrees` checkout, none from the root | `src/services/tracker/Workspace.projectLookup.spec.ts` |
+| git runs at a toplevel only | `src/GitRunsAtAToplevel.spec.ts` |
+| Customs accepts home and reach, rejects the sibling's files and nested agent configuration | `src/services/lifecycle/Customs.projectScope.spec.ts` |
+| a sibling's journaled landing requeues silently, the lock serialises only the landing, a held main line clears on its own paths | `src/services/overseer/Airlocks.siblingTrackers.spec.ts` |
+| `init` refuses above and below and a held namespace | `cli/adoption/init/InitPlacement.spec.ts` |
+| the pipeline's `in`, `/` paths and `reach` (version 3; an older one refused `older-pipeline`, nothing migrates) | `src/adapters/pipeline/PipelineFile.spec.ts`, `cli/OlderPipelineRefusal.spec.ts` |
+| a tracker at the root with no namespace asks git exactly what it asked before (the golden replay) | `cli/overseer/OverseerBuildJob.spec.ts` against `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge at `7210f3c1` |
+
+Two Overseers landing in one real repository is not a spec: with real git it could only be a `src/lib/git` boundary spec, which may not
+start an Overseer. It is the P7 rehearsal instead, in a scratch clone with the fake agent, recorded in the migration's gate notes. The
+network guard spec of the first plan was dropped: the guard stays as it is (Decided, item 1).
 
 ### Decided
 
 1. The installed forge runs from a second clone outside the monorepo, and the network guard is unchanged (decision 7).
 2. Gaia gets its own tracker at `apps/gaia` (decision 6).
 3. A gate always re-runs after a sibling's landing; Turborepo makes an unrelated landing a cache replay.
+
+Found in the rehearsal: a gate's Seatbelt profile cannot start a setuid program, so `/bin/ps` fails with `EPERM` under any profile, and
+both apps' default suites list processes with it (forge's spec helpers that look for processes, Gaia's leak check). No test suite of either
+app passes in a gate until they list processes another way (`pgrep` runs under the profile), so `gate:<app>` cannot run the `test`
+tasks yet.
 
 Not yet probed: whether a path-scoped `.claude/rules` file loads once a subfolder session reads a file under its path, and whether
 `sandbox.network.allowLocalBinding` lets a sandboxed Bash reach `127.0.0.1`. Both need a logged-in model turn.

@@ -104,7 +104,7 @@ These specs hold what the CLI prints and accepts.
 | --- | --- | --- |
 | `cli/CommandTable.spec.ts` | Every `COMMAND_TABLE` entry reaches a handler; a word that is no command, an inherited property included, is refused. | Add the entry or its handler. |
 | `cli/HelpText.spec.ts` | Help and table agree both ways; skills carry no command table; `FILING_SKILL_LIMIT_CHARACTERS`. | Edit the block in `cli/HelpText.ts`, or cut the skill. |
-| `cli/HelpText.flags.spec.ts` | Help and `docs/cli.md` name every flag; see [What specs require of docs](#what-specs-require-of-docs). | Add the flag to both texts, or remove it from both. |
+| `cli/HelpText.flags.spec.ts` | Help and `docs/cli.md` name every flag; see [What specs require of docs](#what-specs-require-of-docs). Every option either text shows with a `<value>` is in `OPTION_NAMES_WITH_VALUES`, so its value is never read as an extra positional. | Add the flag to both texts, or remove it from both; add a value option to `cli/arguments/constants/OptionNamesWithValues.ts`. |
 | `cli/ControlContract.spec.ts` | Every `ControlCommand` kind has a verb, every mutating verb is a kind's or on `NOT_RELAYABLE_MUTATING_VERBS`, every verb is placed once. | Place the verb on the list that is true for it. |
 | `cli/HatchUnderJob.spec.ts` | Relayed, read-only and refused verbs under a [job](../glossary.md#job) are exact both ways. | Move the verb between the lists in `cli/constants/JobVerbs.ts`. |
 | `cli/InstalledSurface.spec.ts` | Commands, flags and status fields the installed files name, against `cli/FrozenInstalledSurface.json`; a version's surface only grows. | Add the listed names under the current version; after an `INSTALL_VERSION` bump, add a key. Never delete a frozen name. |
@@ -133,7 +133,7 @@ These specs hold what the CLI prints and accepts.
 These sit next to the code they guard.
 
 <details>
-<summary>The 11 guards beside their subject</summary>
+<summary>The 18 guards beside their subject</summary>
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
@@ -146,6 +146,7 @@ These sit next to the code they guard.
 | `bridge/ReducedMotionStopsEveryAnimation.spec.ts` | Each rule in `bridge/styles/` or `packages/design-system/` that sets an `animation` or `animation-name` other than `none` outside `@media (prefers-reduced-motion: no-preference)` is matched, per selector of its list, by a rule inside `@media (prefers-reduced-motion: reduce)` that sets an animation on the same subject and wins the cascade (a higher specificity, or the same one later in the same stylesheet); a scroll or view timeline passes, and `ANCESTORS_THE_MARKUP_GUARANTEES`, the ancestors a reduce rule names only to win the specificity, is exact both ways. | Stop the animation in a reduce rule whose selector asks at least what the animated rule asks, such as `.design-system-activity-row[data-status] .design-system-activity-row-mark`, never only the bare subject class. |
 | `bridge/ThemeTokens.spec.ts` | Every pipeline token in `packages/design-system/styles/tokens.css` or `bridge/styles/tokens.css` has a value in the light and the dark theme (a literal in both, or an alias of a themed token), each new motion token is `0ms` under reduced motion and before the first paint, the toast's reading time is kept, and the three design colours with no name of their own each read a named token. | Add the missing dark value or zero; a new design colour gets a token in both themes. |
 | `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
+| `cli/overseer/OverseerBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. Watchers says why the bundle stays thin. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
