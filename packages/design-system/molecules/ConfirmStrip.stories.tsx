@@ -56,24 +56,38 @@ export const Danger: Story = {
   },
 };
 export const Confirming: Story = { render: () => <ConfirmingInPlace /> };
+const exampleChoices = (
+  <>
+    <ChoiceOption
+      label="Finish the step"
+      description="The example step finishes, then the build stops."
+      chosen
+      variant="card"
+      input={<ChoiceInput type="radio" name="example-stop" checked accessibleName="Finish the step" onChange={fn()} />}
+    />
+    <ChoiceOption
+      label="Stop now"
+      description="The example step stops where it is."
+      chosen={false}
+      variant="card"
+      input={<ChoiceInput type="radio" name="example-stop" checked={false} accessibleName="Stop now" onChange={fn()} />}
+    />
+  </>
+);
+
+/** The choices read in the body type and ink, never in the strip's small muted line. */
 export const WithChoices: Story = {
   args: {
+    question:    'How should the example build stop?',
+    consequence: 'The example checks keep their results.',
+    choices:     exampleChoices,
+  },
+};
+export const DangerWithChoices: Story = {
+  args: {
+    tone:     'danger',
     question: 'How should the example build stop?',
-    choices:  (
-      <>
-        <ChoiceOption
-          label="Finish the step"
-          chosen
-          variant="card"
-          input={<ChoiceInput type="radio" name="example-stop" checked accessibleName="Finish the step" onChange={fn()} />}
-        />
-        <ChoiceOption
-          label="Stop now"
-          chosen={false}
-          variant="card"
-          input={<ChoiceInput type="radio" name="example-stop" checked={false} accessibleName="Stop now" onChange={fn()} />}
-        />
-      </>
-    ),
+    choices:  exampleChoices,
+    confirm:  <Button label="Stop" emphasis="danger" onPress={fn()} />,
   },
 };

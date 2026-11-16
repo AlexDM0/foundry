@@ -1,8 +1,11 @@
 /**
  * The confirm strip, in a happy-dom document. What matters: it is a group named by its label; the question comes first, then the
  * consequence only when given, then the choices only when given, then the confirming control and Cancel; Cancel calls `onCancel`; the tone
- * sets `data-tone`; and the words are text, never markup.
+ * sets `data-tone`; the strip's small muted type stays on its own line, so a choice reads as it does outside the strip; and the words are
+ * text, never markup.
  */
+import { readFileSync } from 'node:fs';
+
 import {
   cleanup,
   fireEvent,
@@ -16,7 +19,28 @@ import {
   test
 } from 'bun:test';
 
-import { ConfirmStrip } from './ConfirmStrip.tsx';
+import { ChoiceInput, ChoiceOption } from './ChoiceOption.tsx';
+import { ConfirmStrip }              from './ConfirmStrip.tsx';
+
+const STYLESHEETS_OF_THE_STRIP_AND_ITS_CHOICES = ['../styles/tokens.css', '../styles/base.css', './ConfirmStrip.css', './ChoiceOption.css'];
+
+function exampleChoice(label: string) {
+  return (
+    <ChoiceOption
+      label={label}
+      description="The example step finishes first."
+      chosen={false}
+      variant="card"
+      input={<ChoiceInput type="radio" name={label} checked={false} accessibleName={label} onChange={() => undefined} />}
+    />
+  );
+}
+
+function typeOf(element: Element | null | undefined): [string, string] {
+  if (!element) return ['absent', 'absent'];
+  const computedStyle = getComputedStyle(element);
+  return [computedStyle.fontSize, computedStyle.color];
+}
 
 afterEach(() => {
   cleanup();
@@ -90,6 +114,35 @@ describe('the confirm strip', () => {
     expect([...withChoices?.querySelectorAll('.design-system-confirm-choices button') ?? []].map((choice) => choice.textContent)).toEqual(['Finish the step', 'Stop now']);
     expect([withChoices?.hasAttribute('data-with-choices'), withoutChoices?.hasAttribute('data-with-choices')]).toEqual([true, false]);
     expect(withoutChoices?.querySelector('.design-system-confirm-choices')).toBeNull();
+  });
+
+  test('a choice in either tone reads in the type and ink it has outside the strip, not the strip\'s small muted line', () => {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = STYLESHEETS_OF_THE_STRIP_AND_ITS_CHOICES.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+    document.head.append(stylesheet);
+    const { container } = render(
+      <>
+        {exampleChoice('Outside the strip')}
+        {(['neutral', 'danger'] as const).map((tone) => (
+          <ConfirmStrip
+            key={tone}
+            label={`Confirm the ${tone} example`}
+            question="How should the example build stop?"
+            choices={exampleChoice(`Inside the ${tone} strip`)}
+            tone={tone}
+            confirm={<button type="button">Stop</button>}
+            cancelLabel="Cancel"
+            onCancel={() => undefined}
+          />
+        ))}
+      </>,
+    );
+    const choiceTypes = [...container.querySelectorAll('.design-system-choice')]
+      .map((choice) => [typeOf(choice), typeOf(choice.querySelector('.design-system-choice-description'))]);
+    stylesheet.remove();
+    const outsideTheStrip = choiceTypes[0] ?? [];
+    expect(typeOf(container.querySelector('.design-system-confirm-text'))).not.toEqual(outsideTheStrip[0]);
+    expect(choiceTypes).toEqual([outsideTheStrip, outsideTheStrip, outsideTheStrip]);
   });
 
   test('the words are text, never markup', () => {
