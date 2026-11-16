@@ -376,12 +376,13 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>18 sentences</summary>
+<summary>19 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `is live, but its API did not answer, so nothing was started beside it` | `overseer-not-answering` | `start` found a live Overseer, or started one, whose API did not answer within the start's tries. | Run `stop`, then `start` again. | [cli.md](../cli.md#the-overseer) |
 | `must be a positive whole number of milliseconds` | `malformed-overseer-poll-interval` | The test setting `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | |
+| `must be two versions, the current and the minimum supported` | `malformed-versions-answer` | The test setting `FORGE_VERSIONS_ANSWER` holds another value. | Unset it or correct it. | [cli.md](../cli.md) |
 | `Gates and install lines cannot run confined here, so the Overseer did not start` | `gate-confinement-unavailable` | `oversee` or `open` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
 | `needs git <version> or newer` | `git-below-floor` | `init`, `oversee` or `open` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |

@@ -57,7 +57,8 @@ import {
   apiBillingKeyIsSet,
   environmentCopy,
   outlivingProgramEnvironment,
-  overseerPollIntervalOverride
+  overseerPollIntervalOverride,
+  versionsAnswerOverride
 } from '../../src/shared/Environment.ts';
 import { OperationRefusal }         from '../../src/shared/OperationRefusal.ts';
 import {
@@ -334,6 +335,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const files    = overseerFilesIn(workspace.trackerDirectory);
   const { platformPorts } = context;
   const tokenFilePath = overseerTokenPathOf(platformPorts.dataFolders.monitorFolderOf(context.homeDirectory), progress.trackerId);
+  // Read before anything is written, so a malformed test setting refuses the start rather than an Overseer half started.
+  const versionsAnswer = versionsAnswerOverride();
   mkdirSync(files.overseerDirectory, { recursive: true });
   // Before any worker starts: a folder absent when a sandbox is wrapped would go undenied.
   platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath));
@@ -433,6 +436,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     };
     const server = OverseerServer.start({
       portChoice,
+      ...(versionsAnswer === undefined ? {} : { versions: versionsAnswer }),
       now:      context.now,
       identity: {
         trackerId: progress.trackerId, project: progress.project, codeVersion, installVersion: INSTALL_VERSION, processId: process.pid,

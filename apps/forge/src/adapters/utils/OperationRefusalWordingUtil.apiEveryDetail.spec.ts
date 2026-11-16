@@ -271,6 +271,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'overseer-contended':               { kind: 'overseer-contended', overseerDirectory: '/example/overseer' },
   'gate-confinement-unavailable':     { kind: 'gate-confinement-unavailable', reason: 'Example reason' },
   'malformed-overseer-poll-interval': { kind: 'malformed-overseer-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: 'soon' },
+  'malformed-versions-answer':        { kind: 'malformed-versions-answer', variable: 'EXAMPLE_VERSIONS_ANSWER', value: 'newest' },
   'git-below-floor':                  { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
   'baton-taken':                      { kind: 'baton-taken', batonFilePath: BATON },
   'baton-not-created-whole':          { kind: 'baton-not-created-whole', batonFilePath: BATON, reason: 'Example reason' },

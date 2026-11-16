@@ -672,6 +672,9 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `Gates and install lines cannot run confined here, so the Overseer did not start: ${detail.reason}.`;
     case 'malformed-overseer-poll-interval':
       return `${detail.variable} must be a positive whole number of milliseconds, not ${JSON.stringify(detail.value)}. Unset it or correct it.`;
+    case 'malformed-versions-answer':
+      return `${detail.variable} must be two versions, the current and the minimum supported, such as "1.3/1.0", not ${JSON.stringify(detail.value)}. `
+        + 'Unset it or correct it.';
     case 'git-below-floor':
       return gitBelowFloorText(detail, channel);
     case 'baton-taken':
