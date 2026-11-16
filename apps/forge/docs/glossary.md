@@ -536,8 +536,8 @@ One of the machine-wide files in `<monitor>/gate-slots/` that cap gate runs (`Ga
 
 ### gate-ran
 
-The [log](#log) record of one gate run on a tree, with `tree`, `outcome` and `cached`. An Airlock reads the newest one
-to skip gating a tree that already passed.
+The [log](#log) record of one gate run on a tree, with `tree`, `outcome` and `cached`, and `cacheReports` once a gate
+reported its cache. An Airlock reads the newest one to skip gating a tree that already passed.
 
 ### generation
 

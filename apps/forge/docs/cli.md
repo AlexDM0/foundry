@@ -194,7 +194,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `FORGE_VERSIONS_ANSWER` | No, a test setting | Empty or whitespace reads as unset; any value but two `major.minor` versions, `<current>/<minimum supported>` with the minimum not newer, is refused, `malformed-versions-answer`, when the Overseer starts | A client's recording of a scratch forge | Replaces what `GET /api/versions` answers and the system version the monitor stream names, such as `1.3/1.0`, so a client can record a forge ahead of it or of another major ([The Overseer API](reference/overseer-api.md#system-versions)). |
 | `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
 | `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
-| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs itself | A fresh path in the temporary folder where the gate may write its [report](#gate-reports). |
+| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs, a Watcher's included | A path in the temporary folder where the gate may write its [report](#gate-reports). |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
@@ -1011,19 +1011,25 @@ records, the same way, what the snapshot's tree cannot hold on every OS, read fr
 
 #### Gate reports
 
-A gate may say what its own tooling replayed from its cache. Every gate line the Overseer runs itself (a merge gate, a
-gate profile and a pipeline check) is handed a fresh path in the temporary folder in `FORGE_GATE_REPORT`. A gate that
-writes `{"version": 1, "cache": "hit" | "partial" | "miss"}` there says that every task, some of them or none replayed
-from its cache. The Overseer reads the file after the line exits and removes it. Anything else, such as no file, a
-file over 4096 bytes, a link, text that is no JSON object, another version or another word, is no report. A key that
-version 1 does not name is passed over. A gate line that a Watcher runs, as a build or review gate is, is handed no
-path. forge knows no caching tool: a gate writes a report only when its own scripts do.
+A gate may say what its own tooling replayed from its cache. Every gate line is handed a path in the temporary folder
+in `FORGE_GATE_REPORT`: a fresh one for a line the Overseer runs itself (a merge gate, a gate profile and a pipeline
+check), and one named for the step's folder for a line a Watcher runs (a job's build or review gate), so the next pass
+reads it. A prepare step is handed none. A gate that writes `{"version": 1, "cache": "hit" | "partial" | "miss"}`
+there says that every task, some of them or none replayed from its cache. The Overseer reads the file after the line
+exits and removes it; a file left at a Watcher's path before its line starts is removed first. Anything else, such as
+no file, a file over 4096 bytes, a link, text that is no JSON object, another version or another word, is no report.
+A key that version 1 does not name is passed over. forge knows no caching tool: a gate writes a report only when its
+own scripts do.
 
-A gate profile keeps its gate's report with its end (`cacheReport` in `gate-profiles.json`), and the Pipeline view
-marks a run whose gate reported `hit` "cached" and `partial` "partly cached": on the time chip of the gate row, in the
-Gate dialog's profile box and on the gate's pill of its phase's gates step. A miss or no report has no mark. A
-report decides nothing: no gate passes, fails or is skipped by it. The report reaches only the Bridge's `BoardState`,
-which the page reads with the code it was served with, and no document of a monitor, so it raises no system version.
+A gate profile keeps its gate's report with its end (`cacheReport` in `gate-profiles.json`). A job's gate run keeps
+each gate's report in the gate's verdict in the job folder, and its `gate-ran` record carries them all with the run's
+phase (`cacheReports`) once a gate of the run reported, or once the log holds a run whose gates did, so a later run
+that reported nothing clears the mark; a board whose gates never report logs `gate-ran` as before. The Pipeline view
+marks a run whose gate reported `hit` "cached" and `partial` "partly cached": on the time chip of the gate row and in
+the Gate dialog's profile box (the profile run's), and on the gate's pill of its phase's gates step (the newest run of
+that gate in that phase, a job's or a profile's, in log order). A miss or no report has no mark. A report decides
+nothing: no gate passes, fails or is skipped by it. The report reaches only the Bridge's `BoardState`, which the page
+reads with the code it was served with, and no document of a monitor, so it raises no system version.
 
 An Overseer that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
 is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
@@ -2244,7 +2250,7 @@ each gate and phase is kept: a new press drops an ended one. This is format vers
       "phase": "merge",                  // build | review | merge
       "gate": { "name": "tests", "run": "bun test" },  // in and network when set; never writes
       "gateHash": "…",                   // the content hash of run, in and network
-      "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile" }],
+      "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile", "in": "/" }],  // in when set
       "state": "passed",                 // queued | running | passed | red | cannot-run | timed-out | stopped
       "stopRequested": false,            // User's Stop of a running run, until the Overseer records it stopped
       "elapsedMilliseconds": 41200,      // recorded and shown only; null until the run ended by itself
@@ -2404,7 +2410,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `checks-definition-files-set` | none | `patterns` (empty when cleared); retired: still read, never logged |
 | `gate-key-command-set` | none | `command` (or `null` when cleared); retired: still read, never logged |
 | `gate-cache-paths-set` | none | `paths` (empty when cleared); retired: still read, never logged |
-| `gate-ran` | none | `tree` (the gated tree's object id), `outcome` (`passed`, `failed`, `cannot-run`), `cached` (false, since no gate result is kept; true only in older logs) |
+| `gate-ran` | none | `tree` (the gated tree's object id), `outcome` (`passed`, `failed`, `cannot-run`), `cached` (false, since no gate result is kept; true only in older logs), and `cacheReports` only once a gate reported: `{phase, gates}`, each gate run `{gateName, cacheReport}` (`hit`, `partial`, `miss` or `null`), in run order |
 
 #### Overseer records
 

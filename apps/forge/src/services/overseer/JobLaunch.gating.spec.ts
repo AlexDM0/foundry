@@ -6,6 +6,8 @@
  * install and the gate run wait on each step's own Watcher in turn. A run's steps and stamp are its manifest's, written at its start: a
  * pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and the settlement
  * stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first gate's red.
+ * Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version 1's words,
+ * or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase.
  * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
@@ -40,6 +42,7 @@ import {
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import { GateRun }                                                from '../lifecycle/GateRun.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
 import { type GateRunManifest, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 import { WatcherFleet }                                           from './WatcherFleet.ts';
@@ -335,7 +338,7 @@ describe('the gate run\'s settlement', () => {
       report:   { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
       agentEnd: null,
       gate:     {
-        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest
+        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: []
       },
       sandboxRefusal:   null,
       targetCatchUp:    { verdict: 'not-checked' },
@@ -347,5 +350,89 @@ describe('the gate run\'s settlement', () => {
     expect(board.greenIsCurrent('001', EXAMPLE_TREE, 'build')).toBe(false);
     expect(board.tickets()[0]?.frontmatter.status).toBe('in-review');
     expect(board.ticketIsMergeQueued('001')).toBe(false);
+  });
+});
+
+describe('a gate\'s cache report', () => {
+  const BOTH_GATES_ENDED = [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED];
+
+  function writeReport(scene: GatingScene, folderName: string, report: unknown): string {
+    const reportFile = GateRun.gateReportFileFor(jobFileOf(scene, folderName));
+    writeFileSync(reportFile, JSON.stringify(report));
+    return reportFile;
+  }
+
+  testWhenGitIsRecorded('is kept with each gate\'s verdict, read once and removed, and a gate that reported nothing has none', async () => {
+    const scene = gatingScene();
+    const reportFile = writeReport(scene, 'gate-1', { version: 1, cache: 'hit' });
+    endStepWatcher(scene, 'gate-1', 0);
+    endStepWatcher(scene, 'gate-2', 0);
+    const cacheReports = [{ gateName: 'tests', cacheReport: 'hit' }, { gateName: 'lint', cacheReport: null }];
+    const judged = { verdict: 'judged', outcome: 'passed', cacheReports };
+
+    expect(await gateOf(scene, 'build', BOTH_GATES_ENDED)).toMatchObject(judged);
+    const keptVerdict = JSON.parse(readFileSync(jobFileOf(scene, 'gate-1-verdict.json'), 'utf8')) as { cacheReport?: string };
+    expect([existsSync(reportFile), keptVerdict.cacheReport]).toEqual([false, 'hit']);
+    expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject(judged);
+  });
+
+  testWhenGitIsRecorded('reads as none from a report of another version or outside the cache words, which is removed all the same', async () => {
+    const scene = gatingScene();
+    const reportFiles = [writeReport(scene, 'gate-1', { version: 2, cache: 'hit' }), writeReport(scene, 'gate-2', { version: 1, cache: 'warm' })];
+    endStepWatcher(scene, 'gate-1', 0);
+    endStepWatcher(scene, 'gate-2', 0);
+
+    const cacheReports = [{ gateName: 'tests', cacheReport: null }, { gateName: 'lint', cacheReport: null }];
+
+    expect(await gateOf(scene, 'build', BOTH_GATES_ENDED)).toMatchObject({ cacheReports });
+    expect(reportFiles.map(existsSync)).toEqual([false, false]);
+  });
+
+  testWhenGitIsRecorded('kept in a verdict changed by hand to a word outside the cache words, reads as none', async () => {
+    const scene = gatingScene();
+    const running = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE]) as { treeId: string };
+    writeFileSync(jobFileOf(scene, 'gate-1-verdict.json'), `${JSON.stringify({
+      treeId:      running.treeId,
+      phase:       'build',
+      phaseHash:   PipelineUtil.phaseHashOf(PIPELINE, 'build'),
+      outcome:     'failed',
+      output:      '',
+      exitCode:    1,
+      cacheReport: 'warm',
+    })}\n`);
+
+    const cacheReports = [{ gateName: 'tests', cacheReport: null }];
+
+    expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'judged', outcome: 'failed', cacheReports });
+  });
+
+  test('is logged at the settlement with the phase of the manifest the run judged by', () => {
+    const { board, records } = boardFixture({ pipeline: PIPELINE, tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
+    const { job } = board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, SETTLED_AT);
+    for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(job.id, state, SETTLED_AT);
+    const manifest: GateRunManifest = { ...PipelineUtil.gateRunStampOf(PIPELINE, 'build'), prepare: [], gates: PIPELINE.gates };
+    const cacheReports = [{ gateName: 'tests', cacheReport: 'partial' as const }, { gateName: 'lint', cacheReport: null }];
+    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+
+    JobLaunch.applyBuildJobObservations(change, { ...gatingScene().context, mainLine: 'main', log: () => undefined }, [{
+      jobId:    job.id,
+      setup:    'installed',
+      calls:    0,
+      report:   { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
+      agentEnd: null,
+      gate:     {
+        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports
+      },
+      sandboxRefusal:   null,
+      targetCatchUp:    { verdict: 'not-checked' },
+      mainMerge:        null,
+      conflictReReview: null,
+    }]);
+
+    expect(records.find((record) => record.kind === 'gate-ran')?.fields).toEqual({
+      tree: EXAMPLE_TREE, outcome: 'passed', cached: false, cacheReports: { phase: 'build', gates: cacheReports }
+    });
   });
 });

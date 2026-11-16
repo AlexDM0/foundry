@@ -4,10 +4,10 @@
  * port's spawn options with the job variables removed from its environment. agent-progress keeps no gate result: caching is the
  * repository's own tooling's, and a gate may only report what its tooling did, at the report path each gate line is handed.
  */
-import { randomUUID }           from 'node:crypto';
-import { readFileSync, rmSync } from 'node:fs';
-import { tmpdir }               from 'node:os';
-import { join }                 from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync, rmSync }   from 'node:fs';
+import { tmpdir }                 from 'node:os';
+import { join }                   from 'node:path';
 
 import { GateReportFile }                                                  from '../../adapters/pipeline/GateReportFile.ts';
 import type { ConfinedLine }                                               from '../../lib/gate-confinement/ConfinedLine.ts';
@@ -15,7 +15,7 @@ import { GitProcess }                                                      from 
 import { GitWorktrees }                                                    from '../../lib/git/GitWorktrees.ts';
 import type { SupervisedSpawnOptions }                                     from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ShellExitReport, ShellLine, ShellRunRefusal }                from '../../lib/shell-line/ShellLine.ts';
-import type { GateCacheReport, GateOutcome }                               from '../../lib/tracker-model/@types/Job.ts';
+import type { GateCacheReport, GateCacheReportOfGate, GateOutcome }        from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate, PipelineStep }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
 import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
@@ -85,12 +85,13 @@ export interface PipelineRunRequest {
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
 export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
 
+/** `cacheReports` holds what each gate that ended reported of its cache, in run order. */
 export type PipelineVerdict =
-  | { outcome: 'setup-failed'; step: string; output: string; gatesRun: string[] }
+  | { outcome: 'setup-failed'; step: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
   /** `output` is the port's reason; the step never started. */
-  | { outcome: 'sandbox-unavailable'; step: string; output: string; gatesRun: string[] }
-  | { outcome: 'passed'; gatesRun: string[] }
-  | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[] };
+  | { outcome: 'sandbox-unavailable'; step: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
+  | { outcome: 'passed'; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
+  | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] };
 
 const JOB_VARIABLES: readonly string[] = [JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE];
 
@@ -115,6 +116,21 @@ function lineStatusFileOf(): string {
 /** A fresh path in the temporary folder, which every confinement lets a line write, for one gate's report. */
 function gateReportFileOf(): string {
   return join(tmpdir(), `${GATE_REPORT_FILE_PREFIX}${randomUUID()}.json`);
+}
+
+/**
+ * A step a Watcher runs is read in a later pass, perhaps by the next Overseer, so its report path in the temporary folder is derived from
+ * the step's own folder rather than drawn fresh.
+ */
+function gateReportFileFor(stepFolder: string): string {
+  return join(tmpdir(), `${GATE_REPORT_FILE_PREFIX}${createHash('sha256').update(stepFolder).digest('hex')}.json`);
+}
+
+/** What the line reported at `reportFile`, which is removed, so no later run of the same step reads it. */
+function takeCacheReport(reportFile: string): GateCacheReport | null {
+  const cacheReport = GateReportFile.read(reportFile);
+  rmSync(reportFile, { force: true, recursive: true });
+  return cacheReport;
 }
 
 /** What the line recorded as its status, `null` when it wrote nothing. */
@@ -256,7 +272,7 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
  * `fix`. A phase with no gates passes at once: its prepare steps would prepare for nothing.
  */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
-  if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [] };
+  if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [], cacheReports: [] };
   const prepareConfinement = prepareConfinementOf(request.gates);
   const {
     shellLine, environment, spawnOptions, onSpawned, onOutput
@@ -267,23 +283,24 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     const stepDirectory = gateDirectoryOf(request.directory, step, request.projectPrefix);
     const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: []
+      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: [], cacheReports: []
     };
     const run = await runGate({
       argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: stepDirectory, environment, spawnOptions, ...listeners
     });
     const failureOutput = prepareFailureOutputOf(shellLine, run, request.directory);
     if (failureOutput !== null) return {
-      outcome: 'setup-failed', step: step.name, output: failureOutput, gatesRun: []
+      outcome: 'setup-failed', step: step.name, output: failureOutput, gatesRun: [], cacheReports: []
     };
   }
   const gatesRun: string[] = [];
+  const cacheReports: GateCacheReportOfGate[] = [];
   for (const gate of request.gates) {
     const statusFile = lineStatusFileOf();
     const directory = gateDirectoryOf(request.directory, gate, request.projectPrefix);
     const line = runnableLineOf(request, gate.run, { directory, statusFile }, gateConfinementOf(gate));
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun
+      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun, cacheReports
     };
     const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot();
     let run: GateProcessRun;
@@ -295,13 +312,14 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     } finally {
       releaseGateSlot?.();
     }
+    cacheReports.push({ gateName: gate.name, cacheReport: run.cacheReport });
     const trackedChanges = trackedChangesOf(request.directory);
     const outcome = gateOutcomeOf(shellLine, run, trackedChanges);
     if (outcome !== 'passed') return {
-      outcome, gate: gate.name, output: gateErrorOutputOf(shellLine, run, trackedChanges), gatesRun
+      outcome, gate: gate.name, output: gateErrorOutputOf(shellLine, run, trackedChanges), gatesRun, cacheReports
     };
   }
-  return { outcome: 'passed', gatesRun };
+  return { outcome: 'passed', gatesRun, cacheReports };
 }
 
 export const GateRun = Object.freeze({
@@ -315,6 +333,8 @@ export const GateRun = Object.freeze({
   trackedChangesOf,
   lineStatusFileOf,
   gateReportFileOf,
+  gateReportFileFor,
+  takeCacheReport,
   recordedStatusOf,
   runRefusalReasonOf,
   runnableLineOf,

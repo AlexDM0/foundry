@@ -78,6 +78,8 @@ function gatedRepository(): string {
 
 const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
 
+const NO_REPORT_FROM_A_OR_B = [{ gateName: 'a', cacheReport: null }, { gateName: 'b', cacheReport: null }];
+
 /** The tree read once after each of `gateCount` gates, each time unchanged. */
 /** The tree is read unchanged after each passing prepare step and after each gate. */
 function treeUnchangedAfter(stepCount: number): RecordedGitStage {
@@ -114,7 +116,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'failed', gate: 'b', output: 'expected 2, received 3\n', gatesRun: ['a', 'b']
+      outcome: 'failed', gate: 'b', output: 'expected 2, received 3\n', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B
     });
     expect(journal()).toEqual(['a', 'b']);
   });
@@ -138,8 +140,8 @@ describeWhenGitIsRecorded('the pipeline', () => {
       shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository, confinedLineOf: runsAsGiven
     };
 
-    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
-    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'] });
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B });
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B });
     expect(journal()).toEqual(['a', 'b', 'a', 'b']);
   });
 
@@ -155,7 +157,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'setup-failed', step: 'install', output: 'registry unreachable\n', gatesRun: []
+      outcome: 'setup-failed', step: 'install', output: 'registry unreachable\n', gatesRun: [], cacheReports: []
     });
     expect(journal()).toEqual([]);
   });
@@ -214,10 +216,11 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome:  'sandbox-unavailable',
-      step:     'a',
-      output:   `cmd.exe runs no line in the network share folder ${scratchDirectory}; move the repository to a drive letter`,
-      gatesRun: [],
+      outcome:      'sandbox-unavailable',
+      step:         'a',
+      output:       `cmd.exe runs no line in the network share folder ${scratchDirectory}; move the repository to a drive letter`,
+      gatesRun:     [],
+      cacheReports: [],
     });
     expect(confinedArgvs).toEqual([]);
     expect(journal()).toEqual([]);
@@ -252,7 +255,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
         },
       });
 
-      expect(verdict).toEqual({ outcome: 'passed', gatesRun: [] });
+      expect(verdict).toEqual({ outcome: 'passed', gatesRun: [], cacheReports: [] });
       expect(confinedArgvs).toEqual([]);
     }
   });
@@ -266,7 +269,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
       confinedLineOf: runsAsGiven,
     });
 
-    expect(verdict).toEqual({ outcome: 'passed', gatesRun: [] });
+    expect(verdict).toEqual({ outcome: 'passed', gatesRun: [], cacheReports: [] });
     expect(journal()).toEqual([]);
   });
 
@@ -311,7 +314,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: []
+      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: [], cacheReports: []
     });
     expect(existsSync(marker)).toBe(false);
     expect(slotEvents).toEqual([]);

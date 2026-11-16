@@ -3,6 +3,7 @@ import type { DraftState } from '../../src/lib/tracker-model/@types/Draft.ts';
 import type { LogRecord }  from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
   AppliedPipelineFacts,
+  GateCacheMarkFacts,
   GateProfileRunFacts,
   PipelineChoices,
   PipelineFlowFacts,
@@ -174,6 +175,8 @@ export interface BoardStateDocument {
   /** Null with neither a draft nor a readable pipeline to draw. */
   readonly pipelineFlow?:          PipelineFlowFacts | null;
   readonly profileRuns?:           readonly GateProfileRunFacts[];
+  /** The cache mark of each gate in each phase whose newest run, a job's or a profile's, reported one. */
+  readonly gateCacheMarks?:        readonly GateCacheMarkFacts[];
   /** The newest pipeline records, newest first, for the live view's "Earlier" list. */
   readonly pipelineHistory?:       readonly LogRecord[];
   readonly pipelineChoices?:       PipelineChoices;

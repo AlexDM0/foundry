@@ -369,7 +369,7 @@ testWhenGitIsRecorded('a reviewer back from a resume merging-main sent it on goe
     report:   { headCommit: RESOLUTION_TIP },
     agentEnd: null,
     gate:     {
-      verdict: 'judged', treeId: RESOLVED_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest: { ...stamp, prepare: [], gates: [LINT_GATE] }
+      verdict: 'judged', treeId: RESOLVED_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest: { ...stamp, prepare: [], gates: [LINT_GATE] }, cacheReports: []
     },
     sandboxRefusal:   null,
     targetCatchUp:    { verdict: 'not-checked' },
@@ -399,7 +399,7 @@ testWhenGitIsRecorded('with no review step a green build waits in merging-main, 
     report:   { headCommit: BRANCH_TIP, handoff: 'Example handoff.' },
     agentEnd: null,
     gate:     {
-      verdict: 'judged', treeId: BRANCH_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest
+      verdict: 'judged', treeId: BRANCH_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: []
     },
     sandboxRefusal:   null,
     targetCatchUp:    { verdict: 'not-checked' },

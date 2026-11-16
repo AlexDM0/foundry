@@ -84,6 +84,11 @@ const EXACT_REASONS: readonly (readonly [string, Record<string, unknown>, string
   ['optional ticket ids', withFields('hatch-applied', { ticketIds: ['001', 2] }), 'fields.ticketIds is not a list of ticket ids'],
   ['optional refusal status', withFields('hatch-applied', { status: 'denied' }), 'fields.status is "denied", which is not one of refused, unrepaired'],
   ['optional refusal detail', withFields('hatch-applied', { detail: { requestId: 'request-5' } }), 'fields.detail is not a refusal detail, an object naming its kind'],
+  [
+    'optional gate cache reports',
+    withFields('gate-ran', { cacheReports: { phase: 'build', gates: [{ gateName: 'tests', cacheReport: 'warm' }] } }),
+    'fields.cacheReports is not a gate run\'s cache reports, a phase and a list of gates each with a gateName and a cacheReport of hit, partial, miss or null',
+  ],
   ['decision id', withKeys('decision-answered', { decisionId: 7 }), 'decisionId is not a string'],
   ['incident id', withKeys('incident-escalated', { incidentId: null }), 'incidentId is not a string'],
   ['ticket id', withKeys('ticket-started', { ticketId: null }), 'ticketId is not a string'],
@@ -116,6 +121,11 @@ describe('a well-formed record', () => {
     const refused = { outcome: 'refused', status: 'refused', detail: { kind: 'hatch-identity-mismatch', requestId: 'request-5', jobId: 'J1' } };
     expect(logRecordProblemOf(withFields('hatch-applied', refused))).toBeNull();
     expect(logRecordProblemOf(withFields('hatch-applied', { ticketIds: undefined }))).toBeNull();
+  });
+
+  test('a gate run carrying its gates\' cache reports passes, a gate that reported nothing included', () => {
+    const cacheReports = { phase: 'merge', gates: [{ gateName: 'verify', cacheReport: 'hit' }, { gateName: 'audit', cacheReport: null }] };
+    expect(logRecordProblemOf(withFields('gate-ran', { cacheReports }))).toBeNull();
   });
 
   test('a review bar on task 0 passes, as a row with id 0 reads', () => {

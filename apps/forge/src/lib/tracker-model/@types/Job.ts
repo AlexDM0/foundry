@@ -3,6 +3,7 @@
  * Overseer decided is stored: a Watcher's process identity lives in the job's own folder, never on the board.
  */
 
+import type { GatePhase }           from './GatePhase.ts';
 import type { QuestionOptionNotes } from './OptionConsequences.ts';
 
 /**
@@ -188,3 +189,15 @@ export type GateOutcome = 'passed' | 'failed' | 'cannot-run';
 
 /** What a gate reported of its own tool's cache: every task replayed from it, some, or none. A gate that reports nothing has none. */
 export type GateCacheReport = 'hit' | 'partial' | 'miss';
+
+/** One gate of a job's gate run and what it reported of its cache; `null` where it reported nothing readable. */
+export interface GateCacheReportOfGate {
+  gateName:    string;
+  cacheReport: GateCacheReport | null;
+}
+
+/** What the gates of one job's gate run reported of their cache, in run order, and the phase the run was in. */
+export interface GateRunCacheReports {
+  phase: GatePhase;
+  gates: readonly GateCacheReportOfGate[];
+}

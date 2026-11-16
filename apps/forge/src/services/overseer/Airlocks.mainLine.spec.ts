@@ -2,11 +2,11 @@
  * The main line's Airlock (design section 6). What matters: candidates land one at a time in queue order, each on its gated merged tree
  * and by fast-forward alone; the merged tree runs the merge phase's gates, skipped only for a green current in that phase, and a stale green
  * is gated again in the phase it was taken in; a green records the stamp its gate run read at its start, so a pipeline edited while the
- * gates ran never leaves a current green; a moved target, a dirty checkout and a refused stamp each map to one outcome that cannot
- * loop; and a job in landing whose commit the main line holds finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left
- * mid-merge, and `Airlocks.spec.ts` a group's slot. The folders are real; git answers from the recorded answer sets of
- * `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the repository, and a by-hand move of a branch is the
- * case entering the set of the state it leaves.
+ * gates ran never leaves a current green, and the run's gate-ran record carries what its gates reported of their cache; a moved target, a
+ * dirty checkout and a refused stamp each map to one outcome that cannot loop; and a job in landing whose commit the main line holds
+ * finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left mid-merge, and `Airlocks.spec.ts` a group's slot. The folders
+ * are real; git answers from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the
+ * repository, and a by-hand move of a branch is the case entering the set of the state it leaves.
  */
 import { existsSync, rmSync } from 'node:fs';
 import { join }               from 'node:path';
@@ -152,6 +152,22 @@ describe('the merged tree\'s gate', () => {
     expect(harness.gatedTrees).toEqual([MERGED_TREE]);
     expect(harness.gatedPhases).toEqual(['merge']);
     expect(harness.board.greenPhaseOf('001')).toBe('review');
+  });
+
+  test('logs what each gate of the merged tree\'s run reported of its cache, with the run\'s phase', async () => {
+    harness = harnessAnswering({ holdsMainLine: false });
+    recordPassOn(harness, TICKET_TREE);
+    const cacheReports = { phase: 'merge' as const, gates: [{ gateName: 'verify', cacheReport: 'hit' as const }, { gateName: 'audit', cacheReport: null }] };
+    harness.settings.gateCacheReports = cacheReports;
+
+    await harness.slots.sweep();
+
+    expect(kindsLogged(harness, 'gate-ran').map((record) => record['fields'])).toEqual([
+      { tree: TICKET_TREE, outcome: 'passed', cached: false },
+      {
+        tree: MERGED_TREE, outcome: 'passed', cached: false, cacheReports
+      },
+    ]);
   });
 
   test('gates the branch\'s own tree the gates last passed when its green is current in review but not in the merge phase', async () => {

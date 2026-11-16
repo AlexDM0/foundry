@@ -8,7 +8,7 @@ import {
   INCIDENT_KINDS,
   INCIDENT_MOVES
 }                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { GATE_PROFILE_RUN_ENDINGS } from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
+import { GATE_CACHE_REPORTS, GATE_PROFILE_RUN_ENDINGS } from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import {
   FIRST_WATCHER_INSTANCE,
   GATE_OUTCOMES,
@@ -79,6 +79,21 @@ function picturesProblem(value: unknown, path: string): string | null {
 function refusalDetailProblem(value: unknown, path: string): string | null {
   if (value === undefined || (JsonRecordUtil.valueIsAPlainObject(value) && typeof value['kind'] === 'string')) return null;
   return `${path} is not a refusal detail, an object naming its kind`;
+}
+
+function gateCacheReportOfGateIsWellFormed(value: unknown): boolean {
+  if (!JsonRecordUtil.valueIsAPlainObject(value) || typeof value['gateName'] !== 'string') return false;
+  const cacheReports: readonly unknown[] = GATE_CACHE_REPORTS;
+  return value['cacheReport'] === null || cacheReports.includes(value['cacheReport']);
+}
+
+function gateCacheReportsProblem(value: unknown, path: string): string | null {
+  if (value === undefined) return null;
+  const phases: readonly unknown[] = GATE_PHASES;
+  const isWellFormed = JsonRecordUtil.valueIsAPlainObject(value) && phases.includes(value['phase'])
+    && Array.isArray(value['gates']) && value['gates'].every(gateCacheReportOfGateIsWellFormed);
+  if (isWellFormed) return null;
+  return `${path} is not a gate run's cache reports, a phase and a list of gates each with a gateName and a cacheReport of ${GATE_CACHE_REPORTS.join(', ')} or null`;
 }
 
 function checkCommandProblem(value: unknown, path: string): string | null {
@@ -179,6 +194,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'optional-ticket-ids':     (value, path) => (value === undefined ? null : listOfTextProblem(value, path, 'ticket ids')),
   'optional-refusal-status': (value, path) => (value === undefined ? null : vocabularyProblem(value, path, HATCH_REFUSAL_STATUSES)),
   'optional-refusal-detail': refusalDetailProblem,
+  'optional-cache-reports':  gateCacheReportsProblem,
   'setup-mode':              (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_MODES),
   'billing-mode':            (value, path) => vocabularyProblem(value, path, PIPELINE_BILLING_MODES),
   'setup-step':              (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEPS),

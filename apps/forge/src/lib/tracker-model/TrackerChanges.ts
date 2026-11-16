@@ -211,9 +211,27 @@ export class TrackerChanges {
     return { logged: [this.records.logger.log({ kind: 'worktree-repaired', ticketId, fields: { step: fields.step, patchPath: fields.patchPath } }, at)] };
   }
 
-  /** The gate ran outside the hold, so only its outcome is recorded here. */
+  /**
+   * The gate ran outside the hold, so only its outcome is recorded here. Its cache reports are kept once a gate of the run reported, or once
+   * the log holds a run whose gates did, so a later run that reported nothing clears the mark; a tracker whose gates never report logs as before.
+   */
   recordGateRan(fields: LogRecordFieldsOf<'gate-ran'>, at: string): Logged {
-    return { logged: [this.records.logger.log({ kind: 'gate-ran', fields: { tree: fields.tree, outcome: fields.outcome, cached: fields.cached } }, at)] };
+    const {
+      tree, outcome, cached, cacheReports
+    } = fields;
+    const keepsCacheReports = cacheReports !== undefined && (cacheReports.gates.some((gate) => gate.cacheReport !== null) || this.logHoldsGateCacheReports());
+    return {
+      logged: [this.records.logger.log({
+        kind:   'gate-ran',
+        fields: {
+          tree, outcome, cached, ...(keepsCacheReports ? { cacheReports } : {})
+        }
+      }, at)]
+    };
+  }
+
+  private logHoldsGateCacheReports(): boolean {
+    return [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'gate-ran' && record.fields.cacheReports !== undefined);
   }
 
   recordNote(text: string, at: string): Logged {

@@ -260,6 +260,16 @@ export interface GateProfileRunFacts {
   cacheReport:         GateCacheReport | null;
 }
 
+/**
+ * What the newest run of a gate in a phase reported of its cache, a job's gate run or a profile run, whichever ended last; a gate whose
+ * newest run reported nothing has none.
+ */
+export interface GateCacheMarkFacts {
+  gateName:    string;
+  phase:       GatePhase;
+  cacheReport: GateCacheReport;
+}
+
 /** Every model and effort a step may take, in order; an effort's meter level is its position plus one. */
 export interface PipelineChoices {
   models:  AgentModel[];

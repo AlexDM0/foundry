@@ -65,6 +65,7 @@ export type LogFieldShape =
   | 'optional-ticket-ids'
   | 'optional-refusal-status'
   | 'optional-refusal-detail'
+  | 'optional-cache-reports'
   | 'setup-mode'
   | 'billing-mode'
   | 'setup-step'
@@ -263,15 +264,20 @@ export const LOG_RECORD_SCHEMA = {
   'gate-key-command-set':        { subject: 'board', fields: { command: 'check-command' } },
   // An empty `paths` is the list cleared.
   'gate-cache-paths-set':        { subject: 'board', fields: { paths: 'file-paths' } },
-  // `tree` is the gated tree's object id; a cache hit ran nothing and is always `passed`.
-  'gate-ran':                    { subject: 'board', fields: { tree: 'text', outcome: 'gate-outcome', cached: 'flag' } },
-  'tracker-cleared':             { subject: 'board', fields: NO_FIELDS },
-  'overseer-started':            { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
-  'overseer-stopped':            { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
+  // `tree` is the gated tree's object id; a cache hit ran nothing and is always `passed`. `cacheReports` is written only once a gate reported.
+  'gate-ran':                    {
+    subject: 'board',
+    fields:  {
+      tree: 'text', outcome: 'gate-outcome', cached: 'flag', cacheReports: 'optional-cache-reports'
+    }
+  },
+  'tracker-cleared':   { subject: 'board', fields: NO_FIELDS },
+  'overseer-started':  { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
+  'overseer-stopped':  { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
   // The old Overseer keeps driving, or took the board back; `step` names where the successor failed, `error` what it said.
-  'baton-pass-failed':           { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
+  'baton-pass-failed': { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
   // A job's state lives in progress.json; only its launch, its interruptions, its resumes and its end are logged.
-  'job-launched':                {
+  'job-launched':      {
     subject: 'job',
     fields:  {
       kind:           'job-kind',

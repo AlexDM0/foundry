@@ -3,10 +3,11 @@
  * occupants, the gate profiles, the pipeline history and the choices. It runs no git and reads no file: the main line's texts arrive as a
  * parameter, read by the Overseer, since the render service cannot reach the overseer service.
  */
-import type { PipelineReading }     from '../../adapters/pipeline/PipelineFile.ts';
-import type { GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { Job }                 from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }           from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { PipelineReading }      from '../../adapters/pipeline/PipelineFile.ts';
+import type { GatePhase }            from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateProfilesReading }  from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { GateCacheReport, Job } from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
 import {
   PIPELINE_AGENT_ROLES,
   type InstructionEntry,
@@ -17,6 +18,7 @@ import type {
   AppliedPipelineFacts,
   ApplyStateFacts,
   ConstitutionOutline,
+  GateCacheMarkFacts,
   GateProfileRunFacts,
   PipelineChange,
   PipelineChoices,
@@ -100,6 +102,7 @@ export interface PipelineFacts {
   pipelineSetup:         PipelineSetupFacts | null;
   pipelineFlow:          PipelineFlowFacts | null;
   profileRuns:           GateProfileRunFacts[];
+  gateCacheMarks:        GateCacheMarkFacts[];
   pipelineHistory:       LogRecord[];
   pipelineChoices:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them, which the setup steps show. */
@@ -422,17 +425,43 @@ function profileRunsOf(reading: GateProfilesReading): GateProfileRunFacts[] {
   }));
 }
 
+/**
+ * Walks the log in order: a job's gate run sets the report of each gate it ran in its phase, and a profile run that ended sets the report
+ * the profile file keeps for its gate and phase, so the run that ended last stands. A profile run the log does not name stands until a job's
+ * run of its gate does.
+ */
+function gateCacheMarksOf(logRecords: readonly LogRecord[], profileRuns: readonly GateProfileRunFacts[]): GateCacheMarkFacts[] {
+  const keyOf = (gateName: string, phase: GatePhase): string => JSON.stringify([gateName, phase]);
+  const profileReportOf = (gateName: string, phase: GatePhase): GateCacheReport | null => profileRuns
+    .find((run) => run.gateName === gateName && run.phase === phase)?.cacheReport ?? null;
+  const newestByGate = new Map<string, { gateName: string; phase: GatePhase; cacheReport: GateCacheReport | null }>(
+    profileRuns.map((run) => [keyOf(run.gateName, run.phase), { gateName: run.gateName, phase: run.phase, cacheReport: run.cacheReport }])
+  );
+  for (const record of logRecords) {
+    if (record.kind === 'gate-profiled') {
+      const { gateName, phase } = record.fields;
+      newestByGate.set(keyOf(gateName, phase), { gateName, phase, cacheReport: profileReportOf(gateName, phase) });
+    }
+    if (record.kind !== 'gate-ran' || record.fields.cacheReports === undefined) continue;
+    const { phase, gates } = record.fields.cacheReports;
+    for (const gate of gates) newestByGate.set(keyOf(gate.gateName, phase), { gateName: gate.gateName, phase, cacheReport: gate.cacheReport });
+  }
+  return [...newestByGate.values()].flatMap(({ gateName, phase, cacheReport }) => (cacheReport === null ? [] : [{ gateName, phase, cacheReport }]));
+}
+
 function pipelineHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
   return logRecords.filter((record) => PIPELINE_HISTORY_KINDS.has(record.kind)).slice(-PIPELINE_HISTORY_RECORDS_SHOWN).reverse();
 }
 
 export function pipelineFactsOf(input: PipelineFactsInput): PipelineFacts {
   const setup = input.pipelineSetupReading.verdict === 'readable' ? input.pipelineSetupReading.setup : null;
+  const profileRuns = profileRunsOf(input.gateProfilesReading);
   return {
     pipeline:              appliedPipelineOf(input),
     pipelineSetup:         setup === null ? null : setupFactsOf(input, setup),
     pipelineFlow:          pipelineFlowOf(input, setup),
-    profileRuns:           profileRunsOf(input.gateProfilesReading),
+    profileRuns,
+    gateCacheMarks:        gateCacheMarksOf(input.logRecords, profileRuns),
     pipelineHistory:       pipelineHistoryOf(input.logRecords),
     pipelineChoices:       { models: [...AGENT_MODELS], efforts: [...AGENT_EFFORTS] },
     pipelineAgentDefaults: input.defaultSettingsOf('pipelineAgent'),

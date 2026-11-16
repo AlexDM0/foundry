@@ -3,9 +3,11 @@
  * prepare steps and gates alike, and hears each line's output, so the Airlock can stop the tree of a merged-tree gate that never ends. A
  * prepare step that exits 0 but changes a tracked file is a setup failure naming that step, never the red first gate it would make. A
  * prepare step with a folder runs in it, as a gate with one does. A gate's environment carries its own report path and never one this
- * process inherited.
+ * process inherited. A step a Watcher runs has one report path per step folder, read in a later pass, which a take removes.
  */
-import { join } from 'node:path';
+import { existsSync, writeFileSync } from 'node:fs';
+import { tmpdir }                    from 'node:os';
+import { dirname, join }             from 'node:path';
 
 import {
   afterEach,
@@ -102,4 +104,16 @@ test('a gate\'s environment carries its own report path, drops an inherited one 
     { EXAMPLE_KEPT: 'kept', [GATE_REPORT_VARIABLE]: '/example/gate-report.json' },
     { EXAMPLE_KEPT: 'kept' },
   ]);
+});
+
+test('a Watcher step\'s report path is one per step folder, in the temporary folder, and a take reads it once and removes it', () => {
+  const reportFile = GateRun.gateReportFileFor('/example/jobs/J2/gate-1');
+  writeFileSync(reportFile, JSON.stringify({ version: 1, cache: 'hit' }));
+
+  expect([
+    dirname(reportFile) === tmpdir(),
+    reportFile === GateRun.gateReportFileFor('/example/jobs/J2/gate-1'),
+    reportFile === GateRun.gateReportFileFor('/example/jobs/J2/gate-2'),
+  ]).toEqual([true, true, false]);
+  expect([GateRun.takeCacheReport(reportFile), existsSync(reportFile), GateRun.takeCacheReport(reportFile)]).toEqual(['hit', false, null]);
 });

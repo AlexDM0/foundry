@@ -16,12 +16,14 @@ import type { DecisionKind }            from '../../lib/tracker-model/@types/Dec
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
   GateOutcome,
+  GateRunCacheReports,
   Job,
   JobEnding,
   JobRole,
   Airlock,
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { ApplyRequestReason, MainConstitution, MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { DecisionDraft, DecisionWording }                                from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                   from '../../lib/tracker-model/AirlockClaims.ts';
@@ -107,12 +109,20 @@ export interface AirlocksContext {
 /** The merged tree's gate: its outcome and what the checks line printed, whose tail a merge-gate fixer is given. */
 export interface MergedTreeGate {
   /** `setup-failed` when a prepare step did not exit 0, `sandbox-unavailable` when a line was refused: no gate judged the tree. */
-  outcome: GateOutcome | 'setup-failed' | 'sandbox-unavailable';
+  outcome:       GateOutcome | 'setup-failed' | 'sandbox-unavailable';
   /** The red gate or the failed or refused step; `null` on a pass. */
-  step:    string | null;
-  output:  string;
+  step:          string | null;
+  output:        string;
   /** The phase and phase hash of the pipeline the run read as it started, which a row's green records; `null` when it read none. */
-  stamp:   GateRunStamp | null;
+  stamp:         GateRunStamp | null;
+  /** What each gate that ended reported of its cache; absent when no gate ran. */
+  cacheReports?: GateRunCacheReports;
+}
+
+function gateRanFieldsOf(tree: string, outcome: GateOutcome, cacheReports: GateRunCacheReports | undefined): LogRecordFieldsOf<'gate-ran'> {
+  return {
+    tree, outcome, cached: false, ...(cacheReports === undefined ? {} : { cacheReports })
+  };
 }
 
 /** A red gate goes back to the ticket's agent; a gate that could not run and a failed prepare step are the incidents a build job opens too. */
@@ -424,7 +434,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const stillWaits = ticket?.frontmatter.status === 'in-review' && ticket.frontmatter.hold === undefined
       && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
     if (!stillWaits) return;
-    if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome: gate.outcome, cached: false }, hold.at);
+    if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, gate.outcome, gate.cacheReports), hold.at);
     hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, gate.stamp, hold.at);
     if (gate.outcome === 'passed') {
       // A pipeline changed while the gates ran leaves this green not current: the ticket waits unqueued, and the next sweep gates it again.
@@ -626,10 +636,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (landsUngated) return true;
     const {
-      outcome, step, output, stamp
+      outcome, step, output, stamp, cacheReports
     } = await context.gateMergedTree(worktree, treeId, 'merge');
     const resumesSpent = await context.hold((hold) => {
-      if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan({ tree: treeId, outcome, cached: false }, hold.at);
+      if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
       const agent = mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {
         // Only the branch's own tree is the row's: a merged tree with a merge commit goes back to the branch tip when the slot frees.

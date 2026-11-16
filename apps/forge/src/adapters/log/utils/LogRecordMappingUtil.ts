@@ -1,12 +1,12 @@
 /** A validated log.jsonl line rebuilt as the model's record: only its kind's known keys, in the order the logger writes them. */
-import type { PictureReference }                     from '../../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordKind }             from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { AgentPair }                            from '../../../lib/tracker-model/@types/Ticket.ts';
-import type { ViewRange }                            from '../../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { LogFieldShape }                        from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS } from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
-import type { LogFileReading, StoredLogReading }     from '../@types/StoredLog.ts';
-import { ReviewRecordFieldsUtil }                    from './ReviewRecordFieldsUtil.ts';
+import type { GateRunCacheReports, PictureReference } from '../../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord, LogRecordKind }              from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { AgentPair }                             from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { ViewRange }                             from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { LogFieldShape }                         from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
+import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }  from '../../../lib/tracker-model/constants/LogRecordSchema.ts';
+import type { LogFileReading, StoredLogReading }      from '../@types/StoredLog.ts';
+import { ReviewRecordFieldsUtil }                     from './ReviewRecordFieldsUtil.ts';
 
 type UnknownObject = Record<string, unknown>;
 
@@ -26,6 +26,11 @@ function agentPairOf(agentPair: AgentPair): AgentPair {
 
 function picturesCopyOf(value: unknown): PictureReference[] {
   return (value as readonly PictureReference[]).map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
+}
+
+function gateCacheReportsCopyOf(value: unknown): GateRunCacheReports {
+  const reports = value as GateRunCacheReports;
+  return { phase: reports.phase, gates: reports.gates.map((gate) => ({ gateName: gate.gateName, cacheReport: gate.cacheReport })) };
 }
 
 function listCopyOf(value: unknown): unknown {
@@ -94,6 +99,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'optional-ticket-ids':     listCopyOf,
   'optional-refusal-status': sameValue,
   'optional-refusal-detail': (value) => structuredClone(value),
+  'optional-cache-reports':  gateCacheReportsCopyOf,
   'setup-mode':              sameValue,
   'billing-mode':            sameValue,
   'setup-step':              sameValue,
@@ -113,6 +119,7 @@ const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = [
   'optional-ticket-ids',
   'optional-refusal-status',
   'optional-refusal-detail',
+  'optional-cache-reports',
 ];
 
 /** Copies into `target` each value `shapes` names, in the schema's order, leaving out an optional one that is absent. */

@@ -9,6 +9,7 @@ import type { StepperStatus } from 'design-system/Stepper';
 import type { LogRecord } from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
   AppliedPipelineFacts,
+  GateCacheMarkFacts,
   GateProfileRunFacts,
   PipelineChoices,
   PipelineFlowFacts,
@@ -50,6 +51,8 @@ export interface PipelineViewFacts {
   readonly pipelineSetup?:         PipelineSetupFacts | null;
   readonly pipelineFlow?:          PipelineFlowFacts | null;
   readonly profileRuns?:           readonly GateProfileRunFacts[];
+  /** The cache mark of each gate in each phase whose newest run, a job's or a profile's, reported one. */
+  readonly gateCacheMarks?:        readonly GateCacheMarkFacts[];
   readonly pipelineChoices?:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them. */
   readonly pipelineAgentDefaults?: AgentPair;

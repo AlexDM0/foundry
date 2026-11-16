@@ -4,14 +4,21 @@
  * with the index of the line it anchors, the roles reading the constitution, and a held Apply's blocking files and the ticket holding
  * main); the flow's stage, its question markers and its change list; the live occupants on the node of each job's step, a review
  * catching up with main on the merge before review (Q5) and a filing draft on ticket creation, never the constitution commit job; every
- * model and effort in order (Q9). The main line's texts arrive as a parameter, so no case runs git.
+ * model and effort in order (Q9); and each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order. The main
+ * line's texts arrive as a parameter, so no case runs git.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineReading }            from '../../adapters/pipeline/PipelineFile.ts';
-import type { Draft }                      from '../../lib/tracker-model/@types/Draft.ts';
-import type { GateProfilesReading }        from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { Airlock, Job }               from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineReading }     from '../../adapters/pipeline/PipelineFile.ts';
+import type { Draft }               from '../../lib/tracker-model/@types/Draft.ts';
+import type { GatePhase }           from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
+import type {
+  Airlock,
+  GateCacheReport,
+  GateRunCacheReports,
+  Job
+} from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { InstructionEntry, Pipeline } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
@@ -566,6 +573,83 @@ describe('the choices, profile runs and history', () => {
       profileRunId: 'P1', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 1200, cacheReport: null
     }]);
     expect(pipelineFactsOf(inputOf({ gateProfilesReading: { verdict: 'malformed', reason: 'Example' } })).profileRuns).toEqual([]);
+  });
+
+  describe('the gates\' cache marks', () => {
+    function gateRanRecordOf(phase: GatePhase, gates: GateRunCacheReports['gates']): LogRecord {
+      return {
+        kind:   'gate-ran',
+        at:     AT,
+        fields: {
+          tree: 'example-tree', outcome: 'passed', cached: false, cacheReports: { phase, gates }
+        }
+      };
+    }
+
+    function profiledRecordOf(gateName: string, phase: GatePhase): LogRecord {
+      return {
+        kind:         'gate-profiled',
+        at:           AT,
+        profileRunId: 'P1',
+        fields:       {
+          gateName, phase, state: 'passed', elapsedMilliseconds: 400
+        }
+      };
+    }
+
+    function profilesReadingOf(gateName: string, phase: GatePhase, cacheReport: GateCacheReport | null): GateProfilesReading {
+      return {
+        verdict:  'readable',
+        profiles: {
+          formatVersion: 1,
+          nextRunNumber: 2,
+          runs:          [{
+            profileRunId:        'P1',
+            setupId:             null,
+            phase,
+            gate:                { name: gateName, run: 'bun run verify' },
+            gateHash:            'h',
+            prepare:             [],
+            state:               'passed',
+            stopRequested:       false,
+            elapsedMilliseconds: 400,
+            ...(cacheReport === null ? {} : { cacheReport }),
+          }],
+          extra: [],
+        },
+      };
+    }
+
+    test('mark each gate whose newest job run reported a hit, a partial or a miss in its phase, and no gate that reported nothing', () => {
+      const logRecords = [
+        gateRanRecordOf('build', [{ gateName: 'verify', cacheReport: 'miss' }, { gateName: 'lint', cacheReport: 'hit' }]),
+        gateRanRecordOf('build', [{ gateName: 'verify', cacheReport: 'hit' }, { gateName: 'lint', cacheReport: null }]),
+        gateRanRecordOf('merge', [{ gateName: 'audit', cacheReport: 'partial' }]),
+      ];
+
+      expect(pipelineFactsOf(inputOf({ logRecords })).gateCacheMarks).toEqual([
+        { gateName: 'verify', phase: 'build', cacheReport: 'hit' },
+        { gateName: 'audit', phase: 'merge', cacheReport: 'partial' },
+      ]);
+    });
+
+    test('take the run that ended last, a profile run or a job\'s, and keep a profile\'s mark the log does not name', () => {
+      const gateProfilesReading = profilesReadingOf('verify', 'build', 'partial');
+      const jobRun = gateRanRecordOf('build', [{ gateName: 'verify', cacheReport: 'hit' }]);
+      const profiled = profiledRecordOf('verify', 'build');
+      const marksOf = (logRecords: LogRecord[]) => pipelineFactsOf(inputOf({ logRecords, gateProfilesReading })).gateCacheMarks;
+
+      expect([marksOf([]), marksOf([profiled, jobRun]), marksOf([jobRun, profiled])]).toEqual([
+        [{ gateName: 'verify', phase: 'build', cacheReport: 'partial' }],
+        [{ gateName: 'verify', phase: 'build', cacheReport: 'hit' }],
+        [{ gateName: 'verify', phase: 'build', cacheReport: 'partial' }],
+      ]);
+    });
+
+    test('mark nothing on a board whose gates never reported', () => {
+      const unreported: LogRecord = { kind: 'gate-ran', at: AT, fields: { tree: 'example-tree', outcome: 'passed', cached: false } };
+      expect(pipelineFactsOf(inputOf({ logRecords: [unreported], gateProfilesReading: profilesReadingOf('verify', 'build', null) })).gateCacheMarks).toEqual([]);
+    });
   });
 
   test('the newest pipeline records first, without a setup\'s own steps, and no more than the list shows', () => {

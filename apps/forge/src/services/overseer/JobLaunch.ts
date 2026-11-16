@@ -4,8 +4,13 @@
  * Watcher, and writes the Handoff and finishes the ticket, each step a job state. Observing happens outside the lock, the moves in the hold,
  * and the effects (git, Watchers, frames) after it; a step's progress lives on disk in the job folder, so a restart observes it again.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname, join }                       from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 import type { AgentAdapter }            from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
@@ -20,16 +25,19 @@ import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts'
 import type { Decision }                from '../../lib/tracker-model/@types/Decision.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
+  GateCacheReport,
+  GateCacheReportOfGate,
   GateOutcome,
   Job,
   JobKind,
   JobState
 } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                                                         from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord, LogRecordFieldsOf }                                                      from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline, PipelineGate, PipelineStep }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
+import { GATE_CACHE_REPORTS }                                                                     from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
@@ -123,10 +131,19 @@ export type GateProgress =
   | { verdict: 'running'; treeId: string; stepIndex: number }
   /**
    * `step` names the red step, `null` on a pass; `ran` is false when a review left the tree the build's gates passed. `manifest` is what
-   * the run judged by: `null` when no gate ran, or when the run's manifest cannot be read, which no gate passes.
+   * the run judged by: `null` when no gate ran, or when the run's manifest cannot be read, which no gate passes. `cacheReports` holds what
+   * each gate that ended reported of its cache, in run order.
    */
   | {
-    verdict: 'judged'; treeId: string; outcome: GateStepOutcome; step: string | null; output: string; ran: boolean; exitCode?: number | null; manifest: GateRunManifest | null
+    verdict:      'judged';
+    treeId:       string;
+    outcome:      GateStepOutcome;
+    step:         string | null;
+    output:       string;
+    ran:          boolean;
+    exitCode?:    number | null;
+    manifest:     GateRunManifest | null;
+    cacheReports: GateCacheReportOfGate[];
   };
 
 /** One Watcher of a job's gate run: one prepare step, or one gate. */
@@ -141,10 +158,12 @@ interface GateStep {
 
 /** Kept beside the step's folder with the stamp of the manifest it ran under, and reused only on the same tree under an equal manifest. */
 interface StepVerdict extends GateRunStamp {
-  treeId:    string;
-  outcome:   GateStepOutcome;
-  output:    string;
-  exitCode?: number | null;
+  treeId:       string;
+  outcome:      GateStepOutcome;
+  output:       string;
+  exitCode?:    number | null;
+  /** What a gate reported of its cache; written only once it reported. */
+  cacheReport?: GateCacheReport;
 }
 
 export interface BuildJobObservation {
@@ -571,6 +590,17 @@ function readStepVerdict(verdictPath: string): StepVerdict | null {
   }
 }
 
+/** A kept cache report outside the report's words is no report, so a verdict file changed by hand marks nothing. */
+function keptCacheReportOf(verdict: Readonly<StepVerdict>): GateCacheReport | null {
+  const cacheReports: readonly unknown[] = GATE_CACHE_REPORTS;
+  return cacheReports.includes(verdict.cacheReport) ? verdict.cacheReport ?? null : null;
+}
+
+/** A gate step's report path; a prepare step is no gate run and is handed none. */
+function stepReportFileOf(jobFolder: string, step: Pick<GateStep, 'kind' | 'folder'>): string | null {
+  return step.kind === 'gate' ? GateRun.gateReportFileFor(join(jobFolder, step.folder)) : null;
+}
+
 /**
  * The step's verdict once its Watcher ended, `null` before. Kept in the job folder as it is first read, so a later gate that changes the tree
  * never turns an earlier pass red; it is this job's record of its own run, never a result another job reads.
@@ -584,8 +614,9 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const end = processWatcherEnd(context.platformPorts, watcherFolder);
   if (end === 'pending') return null;
   const { shellLine } = context.platformPorts;
-  // A line a Watcher runs is handed no report path, so it has no cache report.
-  const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport: null, output: watcherOutputOf(watcherFolder) };
+  const reportFile = stepReportFileOf(jobFolder, step);
+  const cacheReport = reportFile === null ? null : GateRun.takeCacheReport(reportFile);
+  const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport, output: watcherOutputOf(watcherFolder) };
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
     const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));
@@ -600,6 +631,7 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
       outcome:  GateRun.gateOutcomeOf(shellLine, run, trackedChanges),
       output:   GateRun.gateErrorOutputOf(shellLine, run, trackedChanges),
       exitCode: run.exitCode,
+      ...(cacheReport === null ? {} : { cacheReport }),
     };
   }
   writeFileAtomically(verdictPath, `${JSON.stringify(verdict)}\n`);
@@ -621,7 +653,7 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'pending' };
   if (reviewLeftTheTreeAsItWas(context, job, treeId)) return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null, cacheReports: []
   };
   return gateRunProgressOf(context, job, treeId, ownGateRunOf(job), pipeline);
 }
@@ -632,17 +664,19 @@ function gateRunProgressOf(
 ): Exclude<GateProgress, { verdict: 'pending' }> {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
   if (manifest === 'unreadable') return {
-    verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null
+    verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null, cacheReports: []
   };
+  const cacheReports: GateCacheReportOfGate[] = [];
   for (const [stepIndex, step] of gateStepsOf(manifest, place).entries()) {
     const verdict = stepVerdictOf(context, job, treeId, step, manifest);
     if (verdict === null) return { verdict: 'running', treeId, stepIndex };
+    if (step.kind === 'gate') cacheReports.push({ gateName: step.name, cacheReport: keptCacheReportOf(verdict) });
     if (verdict.outcome !== 'passed') return {
-      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest
+      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest, cacheReports
     };
   }
   return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true, manifest
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports
   };
 }
 
@@ -1060,6 +1094,15 @@ function gatePhaseOfJob(job: Readonly<Job>): GatePhase {
   return job.kind === REVIEW_JOB_KIND ? 'review' : 'build';
 }
 
+/** A judged run's log record: its gates' cache reports go with the phase of the manifest it ran. */
+function gateRanFieldsOf(gate: Extract<GateProgress, { verdict: 'judged' }>, outcome: GateOutcome): LogRecordFieldsOf<'gate-ran'> {
+  const { manifest, cacheReports } = gate;
+  const reports = manifest === null || cacheReports.length === 0 ? {} : { cacheReports: { phase: manifest.phase, gates: cacheReports } };
+  return {
+    tree: gate.treeId, outcome, cached: false, ...reports
+  };
+}
+
 /**
  * Records a judged gate run on the row, and routes a run that did not pass: a failed prepare step or a gate that cannot run opens its
  * incident and stops the job, a red gate is the session's red handoff. Returns whether the run passed.
@@ -1072,7 +1115,7 @@ function settleJudgedGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<G
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
     return false;
   }
-  if (gate.ran) hold.logged.push(...board.recordGateRan({ tree: gate.treeId, outcome: gate.outcome, cached: false }, at).logged);
+  if (gate.ran) hold.logged.push(...board.recordGateRan(gateRanFieldsOf(gate, gate.outcome), at).logged);
   if (gate.outcome === 'cannot-run') {
     openIncidentFor(hold, job, 'gate-cannot-run', { tree: gate.treeId, gate: gate.step ?? '' });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.gateCannotRun });
@@ -1384,7 +1427,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
         endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
         return;
       }
-      if (gate.ran) hold.logged.push(...board.recordGateRan({ tree: gate.treeId, outcome: gate.outcome, cached: false }, at).logged);
+      if (gate.ran) hold.logged.push(...board.recordGateRan(gateRanFieldsOf(gate, gate.outcome), at).logged);
       if (gate.outcome === 'passed') hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
       else if (gate.outcome === 'failed') returnRedTargetGate(hold, job, gate);
       else {
@@ -1585,9 +1628,9 @@ function cacheFolderFactsOf(context: SandboxContext): Pick<SandboxFactsRequest, 
 type SandboxContext = Pick<JobLaunchContext, 'homeDirectory' | 'inheritedEnvironment' | 'platformPorts'>;
 
 /** The portable git settings ride along, so a gate's own git reaches a long path as the Overseer's does. */
-function gateEnvironmentOf(context: SandboxContext): Record<string, string> {
+function gateEnvironmentOf(context: SandboxContext, reportFile?: string): Record<string, string> {
   const gitSettings = GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS);
-  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitSettings));
+  return GateRun.gateEnvironmentOf(context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitSettings), reportFile);
 }
 
 function processSandboxRequestOf(context: SandboxContext, facts: SandboxFacts, confinement: GateConfinement): ProcessSandboxRequest {
@@ -1611,6 +1654,8 @@ interface ProcessWatcherStep {
   line:        string;
   confinement: GateConfinement;
   subfolder:   string | null;
+  /** A gate's report path, handed to its line; absent for a prepare or install step. */
+  reportFile?: string;
 }
 
 /** A Watcher already claimed is left alone; a spawn the system refused has no process id. */
@@ -1662,8 +1707,10 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
     return { verdict: 'refused' };
   }
+  // A report left at the path before the line ran is never this run's.
+  if (step.reportFile !== undefined) rmSync(step.reportFile, { force: true, recursive: true });
   const launched = launchProcessWatcher(context, trackerId, job, folderName, {
-    workingDirectory, argv: line.argv, verbatimArguments: spawnRequest.verbatimArguments, environment: gateEnvironmentOf(context),
+    workingDirectory, argv: line.argv, verbatimArguments: spawnRequest.verbatimArguments, environment: gateEnvironmentOf(context, step.reportFile),
   });
   if (launched.verdict === 'unfit-endpoint') {
     recordSandboxRefusal(context, job, { step: folderName, reason: launched.reason });
@@ -1915,8 +1962,12 @@ function spawnGateRunStep(context: JobLaunchContext, trackerId: string, job: Rea
 }
 
 function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, step: GateStep): void {
-  const watcherFolder = join(jobFolderOf(context.workspace, job), step.folder);
-  const processWatcherStep: ProcessWatcherStep = { line: step.line, confinement: step.confinement, subfolder: step.in };
+  const jobFolder = jobFolderOf(context.workspace, job);
+  const watcherFolder = join(jobFolder, step.folder);
+  const reportFile = stepReportFileOf(jobFolder, step);
+  const processWatcherStep: ProcessWatcherStep = {
+    line: step.line, confinement: step.confinement, subfolder: step.in, ...(reportFile === null ? {} : { reportFile })
+  };
   if (step.kind !== 'gate') {
     spawnProcessWatcher(context, trackerId, job, step.folder, processWatcherStep);
     return;

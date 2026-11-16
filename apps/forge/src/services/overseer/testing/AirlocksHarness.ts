@@ -8,7 +8,7 @@ import { join }      from 'node:path';
 
 import { RepositoryLandings }                 from '../../../lib/git/RepositoryLandings.ts';
 import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { Job }                           from '../../../lib/tracker-model/@types/Job.ts';
+import type { GateRunCacheReports, Job }      from '../../../lib/tracker-model/@types/Job.ts';
 import type { PipelineAirlock }               from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type { MainConstitutionReading }       from '../../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -68,6 +68,8 @@ export interface AirlocksHarness {
   keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
   settings:    {
     gateOutcome:       MergedTreeGate['outcome'];
+    /** What the gates reported of their cache; absent unless set, as when no gate reported. */
+    gateCacheReports?: GateRunCacheReports;
     reading:           MergeAgentReading;
     /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
     resolutionLines:   number | null;
@@ -197,7 +199,11 @@ export function createRecordedAirlocksHarness(
       const stamp = board.gateRunStampOf(phase);
       settings.beforeGate();
       return Promise.resolve({
-        outcome: settings.gateOutcome, step: settings.gateOutcome === 'passed' ? null : 'tests', output: 'Example gate output\nexpected 2, received 3', stamp
+        outcome: settings.gateOutcome,
+        step:    settings.gateOutcome === 'passed' ? null : 'tests',
+        output:  'Example gate output\nexpected 2, received 3',
+        stamp,
+        ...(settings.gateCacheReports === undefined ? {} : { cacheReports: settings.gateCacheReports }),
       });
     },
     mergeAgentReadingOf: () => settings.reading,

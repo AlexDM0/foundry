@@ -7,7 +7,8 @@
  * its dialog with the step selected, and closing it clears the selection. A gate dialog opened on any screen shows a running
  * profile's output from the follower the view was given, the one the shell builds over the stream route. One modal dialog is open at a
  * time: a step dialog closes the Apply dialog and Apply closes the step dialog, and an Apply sent in one update never opens by itself in
- * the next.
+ * the next. A Gates step marks each gate whose newest run in its phase, a job's or a profile's, reported a full or partial cache hit, and
+ * no gate whose run reported a miss, reported nothing, or reported only in another phase.
  */
 import {
   act,
@@ -166,6 +167,39 @@ function appliedAt(revision: number): BoardStateDocument {
   if (pipeline?.readingVerdict !== 'readable' || pipeline.application === null) throw new Error('A5 has no applied pipeline');
   return { ...board, pipeline: { ...pipeline, application: { ...pipeline.application, appliedRevision: revision } } };
 }
+
+describe('the gates\' cache marks', () => {
+  function pillTextsOf(nodeId: string): string[] {
+    const step = document.querySelector<HTMLElement>(`[data-step-node-id="${nodeId}"]`);
+    if (step === null) throw new Error(`no step ${nodeId}`);
+    return ['typecheck', 'lint', 'unit-tests', 'browser-tests'].flatMap((gateName) => within(step).queryAllByText(new RegExp(`^${gateName}( · .+)?$`)))
+      .map((pill) => pill.textContent ?? '');
+  }
+
+  test('a Gates step marks a hit and a partial hit, and no miss, no gate that reported nothing and no mark of another phase', async () => {
+    const facts: BoardStateDocument = {
+      ...pipelineBoardStateOf('A5'),
+      gateCacheMarks: [
+        { gateName: 'typecheck', phase: 'build', cacheReport: 'hit' },
+        { gateName: 'lint', phase: 'build', cacheReport: 'partial' },
+        { gateName: 'unit-tests', phase: 'build', cacheReport: 'miss' },
+        { gateName: 'browser-tests', phase: 'review', cacheReport: 'hit' },
+      ],
+    };
+    render(<PipelineView facts={facts} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
+
+    expect(pillTextsOf('gates-build')).toEqual(['typecheck · cached', 'lint · partly cached', 'unit-tests']);
+
+    await clickSettled(within(screen.getByRole('group', { name: 'Pipeline phases' })).getByRole('button', { name: /^Merge/ }));
+    expect(pillTextsOf('gates-merge')).toEqual(['typecheck', 'unit-tests', 'browser-tests']);
+  });
+
+  test('a board that serves no cache marks marks no gate', () => {
+    render(<PipelineView facts={pipelineBoardStateOf('A5')} route={{ tab: 'pipeline', item: null }} {...pipelineViewServicesOf()} />);
+
+    expect(pillTextsOf('gates-build')).toEqual(['typecheck', 'lint', 'unit-tests']);
+  });
+});
 
 describe('one modal dialog at a time', () => {
   function nextUpdate(): BoardStateDocument {

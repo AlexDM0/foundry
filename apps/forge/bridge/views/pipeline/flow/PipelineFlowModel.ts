@@ -6,13 +6,13 @@
 import type { GatePhase }                                      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { Pipeline, PipelineApproval, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
+  GateCacheMarkFacts,
   PipelineChange,
   PipelineEdgeLabelKind,
   PipelineFlowFacts,
   PipelineFlowNode,
   PipelineInsertSlot,
   PipelineInsertableStep,
-  GateProfileRunFacts,
   PipelineNodeKind,
   PipelineNodeMark
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
@@ -26,7 +26,7 @@ export type FlowChange = 'changed' | 'new' | 'removed';
 
 export interface FlowGatePillView {
   readonly gateName: string;
-  /** The gate's name, with the cache mark of its newest profile run in the step's phase beside it ("lint · cached"). */
+  /** The gate's name, with the cache mark of its newest run in the step's phase, a job's or a profile's, beside it ("lint · cached"). */
   readonly text:     string;
   readonly change:   FlowChange | null;
 }
@@ -317,17 +317,17 @@ function changeTextOf(node: PipelineFlowNode, change: FlowChange | null): string
   return CHANGE_WORDS[change];
 }
 
-function gatePillsOf(node: PipelineFlowNode, profileRuns: readonly GateProfileRunFacts[]): FlowGatePillView[] {
+function gatePillsOf(node: PipelineFlowNode, gateCacheMarks: readonly GateCacheMarkFacts[]): FlowGatePillView[] {
   const { phase } = node;
   return node.gateChips.map((chip) => ({
     gateName: chip.gateName,
-    text:     GateCacheMarkModel.withCacheWordOf(chip.gateName, phase === null ? null : GateCacheMarkModel.gateCacheReportOf(profileRuns, chip.gateName, phase)),
+    text:     GateCacheMarkModel.withCacheWordOf(chip.gateName, phase === null ? null : GateCacheMarkModel.gateCacheReportOf(gateCacheMarks, chip.gateName, phase)),
     change:   changeOfMark(chip.mark),
   }));
 }
 
-/** `fixer` names who fixes a red gate of a gates node; every other node ignores it. `profileRuns` give a gate pill its cache mark. */
-function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: GatesFixer = 'none', profileRuns: readonly GateProfileRunFacts[] = []): FlowNodeView {
+/** `fixer` names who fixes a red gate of a gates node; every other node ignores it. `gateCacheMarks` give a gate pill its cache mark. */
+function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: GatesFixer = 'none', gateCacheMarks: readonly GateCacheMarkFacts[] = []): FlowNodeView {
   const openAction = openActionOf(node);
   const approval = switchApprovalOf(node);
   const title = NODE_TITLES[node.nodeKind];
@@ -341,7 +341,7 @@ function nodeViewOf(node: PipelineFlowNode, efforts: readonly string[], fixer: G
     sentence:    sentenceOf(node, fixer),
     conditional: node.conditional,
     briefText:   kind === 'agent' ? instructionFilesTextOf(node) : null,
-    gatePills:   gatePillsOf(node, profileRuns),
+    gatePills:   gatePillsOf(node, gateCacheMarks),
     meter:       meterOf(node, efforts),
     switchView:  approval === null ? null : { accessibleName: title, checked: node.switchState === 'on', approval },
     highlighted: node.nodeKind === 'human-code-review' && node.switchState === 'on',
@@ -361,8 +361,8 @@ function gatesFixerOf(flow: Pick<PipelineFlowFacts, 'edges'>, node: PipelineFlow
 }
 
 /** Every node's view in the facts' order, each gates node worded with who fixes its red gates and its gates' cache marks. */
-function nodeViewsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'edges'>, efforts: readonly string[], profileRuns: readonly GateProfileRunFacts[] = []): FlowNodeView[] {
-  return flow.nodes.map((node) => nodeViewOf(node, efforts, node.nodeKind === 'gates' ? gatesFixerOf(flow, node) : 'none', profileRuns));
+function nodeViewsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'edges'>, efforts: readonly string[], gateCacheMarks: readonly GateCacheMarkFacts[] = []): FlowNodeView[] {
+  return flow.nodes.map((node) => nodeViewOf(node, efforts, node.nodeKind === 'gates' ? gatesFixerOf(flow, node) : 'none', gateCacheMarks));
 }
 
 function insertActionOf(step: PipelineInsertableStep, draft: Pipeline | null): FlowInsertAction {

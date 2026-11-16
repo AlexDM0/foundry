@@ -90,3 +90,17 @@ test('a refused relayed request keeps its reply\'s status and whole detail, so t
   });
   expect(JSON.stringify(recordOf(JSON.parse(line)))).toBe(line);
 });
+
+test('a gate run\'s cache reports travel byte for byte, and a key a gate\'s report does not know does not', () => {
+  const fields = {
+    tree:         '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
+    outcome:      'passed',
+    cached:       false,
+    cacheReports: { phase: 'build', gates: [{ gateName: 'verify', cacheReport: 'hit' }, { gateName: 'lint', cacheReport: null }] },
+  };
+  const line = JSON.stringify({ at: RECORDED_AT, kind: 'gate-ran', fields });
+  const gatesWithAnUnknownKey = [{ gateName: 'verify', cacheReport: 'hit', tasks: 12 }, { gateName: 'lint', cacheReport: null }];
+  const withAnUnknownKey = { at: RECORDED_AT, kind: 'gate-ran', fields: { ...fields, cacheReports: { ...fields.cacheReports, gates: gatesWithAnUnknownKey } } };
+
+  expect([JSON.stringify(recordOf(JSON.parse(line))), JSON.stringify(recordOf(withAnUnknownKey))]).toEqual([line, line]);
+});

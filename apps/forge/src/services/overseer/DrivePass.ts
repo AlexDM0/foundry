@@ -1185,11 +1185,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
       const stamp = pipeline === null ? null : PipelineUtil.gateRunStampOf(pipeline, phase);
+      const cacheReports = verdict.cacheReports.length === 0 ? {} : { cacheReports: { phase, gates: verdict.cacheReports } };
       if (verdict.outcome === 'passed') return {
-        outcome: 'passed', step: null, output: '', stamp
+        outcome: 'passed', step: null, output: '', stamp, ...cacheReports
       };
       return {
-        outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output, stamp
+        outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output, stamp, ...cacheReports
       };
     },
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),

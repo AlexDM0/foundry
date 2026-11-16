@@ -14,6 +14,7 @@ import type { GateProfileRunEnding }                             from './GatePro
 import type { IncidentDefaultCause, IncidentKind, IncidentMove } from './Incident.ts';
 import type {
   GateOutcome,
+  GateRunCacheReports,
   InterruptionCause,
   JobKind,
   JobOutcome,
@@ -86,6 +87,7 @@ interface ValueOfFieldShape {
   'optional-ticket-ids':     readonly string[];
   'optional-refusal-status': HatchRefusalStatus;
   'optional-refusal-detail': HatchRefusalDetail;
+  'optional-cache-reports':  GateRunCacheReports;
   'setup-mode':              PipelineSetupMode;
   'billing-mode':            PipelineBilling['mode'];
   'setup-step':              PipelineSetupStep;
@@ -110,7 +112,8 @@ type OptionalFieldShape =
   | 'optional-pictures'
   | 'optional-ticket-ids'
   | 'optional-refusal-status'
-  | 'optional-refusal-detail';
+  | 'optional-refusal-detail'
+  | 'optional-cache-reports';
 
 type OptionalFieldNames<Shapes extends FieldShapes> = { [Name in keyof Shapes]: Shapes[Name] extends OptionalFieldShape ? Name : never }[keyof Shapes];
 
