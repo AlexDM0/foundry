@@ -2,7 +2,8 @@
  * A tracker in a project folder below its repository's root reads its own instruction files, never the root's (Part B spec 4). What
  * matters: a tracked instruction file, the constitution and the managed block's `CLAUDE.md` are asked of git at the repository's root by
  * their path through the project's folder; a data-folder file is read from the project's own data folder; the constitution keeps its
- * project path; tree findings name only the project's files; and a tracker at its repository's root asks git exactly as before. Each
+ * project path; the tracked instruction files Customs V11 protects are repository paths through the project's folder, so they meet git's
+ * paths; tree findings name only the project's files; and a tracker at its repository's root asks git exactly as before. Each
  * repository is a scratch folder with a `.git` folder, laid out as the two-tracker fixture's; git answers from the recorded answers of
  * `src/testing/RecordedGit.ts`.
  */
@@ -79,6 +80,23 @@ describe('a project file as git names it', () => {
 
   test('is the path itself in the tracker\'s own folder, as written, for a tracker at its repository\'s root', () => {
     expect(InstructionFiles.projectFileOf(repository, 'CLAUDE.md')).toEqual<ProjectFile>({ repositoryRoot: repository, repositoryPath: 'CLAUDE.md' });
+  });
+});
+
+describe('the tracked instruction files Customs V11 protects for a project tracker', () => {
+  const pipeline: Pipeline = {
+    ...MINIMAL_PIPELINE,
+    constitution: { path: CONSTITUTION_FILE_PATH },
+    agents:       { builder: { instructions: [{ kind: 'file', path: 'docs/example-brief.md' }, { kind: 'file', path: DATA_FOLDER_NOTES_PATH }] } },
+  };
+
+  test('are repository paths through the project\'s folder, with no data-folder file', () => {
+    expect(InstructionFiles.trackedInstructionPathsOf(pipeline, PROJECT_FOLDER).sort())
+      .toEqual([`${PROJECT_FOLDER}/${CONSTITUTION_FILE_PATH}`, `${PROJECT_FOLDER}/docs/example-brief.md`]);
+  });
+
+  test('are the project paths as written for a tracker at its repository\'s root', () => {
+    expect(InstructionFiles.trackedInstructionPathsOf(pipeline).sort()).toEqual([CONSTITUTION_FILE_PATH, 'docs/example-brief.md']);
   });
 });
 

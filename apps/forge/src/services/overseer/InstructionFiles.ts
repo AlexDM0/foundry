@@ -85,12 +85,16 @@ function isDataFolderPath(path: string): boolean {
   return path.startsWith(`${PRODUCT_NAMES.DATA_FOLDER}/`);
 }
 
-/** Every tracked file a role's resolved list names, and the constitution, which a branch may change only where its ticket names it. */
-function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[] {
+/**
+ * Every tracked file a role's resolved list names, and the constitution, which a branch may change only where its ticket names it. They are
+ * repository paths, as Customs V11 compares them with git's; `projectPrefix` is `ProjectLocation.projectPrefix`, `''` at the root.
+ */
+function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): string[] {
   const listedPaths = PIPELINE_AGENT_ROLES.flatMap((role) => PipelineUtil.resolvedInstructionsOf(pipeline, role))
     .map((entry) => instructionPathOf(pipeline, entry));
   const named = [...(pipeline?.constitution === undefined ? [] : [pipeline.constitution.path]), ...listedPaths];
-  return [...new Set(named.filter((path) => !isDataFolderPath(path)))];
+  const trackedProjectPaths = named.filter((path) => !isDataFolderPath(path));
+  return [...new Set(trackedProjectPaths.map((projectPath) => ProjectPathsUtil.toRepositoryPath(projectPrefix, projectPath)))];
 }
 
 type InstructionFileText = { verdict: 'read'; text: string } | { verdict: 'missing' } | { verdict: 'unreadable' };
