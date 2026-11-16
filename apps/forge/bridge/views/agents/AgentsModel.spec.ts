@@ -8,8 +8,10 @@
  * without a state reading ended; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every
  * count leaves out its zero parts and names one in the singular; a session says what it is about; a watch-only Watcher is worded as such; a
  * job is stopping by its state or by a stop request alone, and takes a message only with a role, a Watcher that does more than watch and no
- * stop under way; the job panel's head and transcript head are worded from the job's facts alone; and a concurrency limit is sendable only
- * as a changed whole number the Overseer would take.
+ * stop under way; the job panel's head and transcript head are worded from the job's facts alone; a concurrency limit is sendable only
+ * as a changed whole number the Overseer would take; and Flint's brain has a row only while it starts, runs, ended or was refused, never
+ * on a forge without it, a running one counting down from the forge's stated end, an ended or refused one in the forge's words, and Stop
+ * offered only while it starts or runs.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,6 +19,7 @@ import { CONCURRENCY_LIMIT_CEILING_AGENTS }                        from '../../.
 import { JOB_ROLES }                                               from '../../../src/lib/tracker-model/constants/JobStates.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }              from '../../@types/BoardStateDocument.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent } from '../../testing/BoardStateFixture.ts';
+import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain }   from '../../testing/FlintBrainFixture.ts';
 import { EXAMPLE_TIMESTAMP_SLICES }                                from '../../testing/TimestampSlicesFixture.ts';
 import type { AgentJobDocument, SubagentDocument }                 from './AgentJobDocument.ts';
 import { AgentsModel, CALL_BUDGET_WARNING_FRACTION }               from './AgentsModel.ts';
@@ -281,5 +284,49 @@ describe('the concurrency limit asked for', () => {
     expect(concurrencyLimitIsSendable(0, 4)).toBe(false);
     expect(concurrencyLimitIsSendable(2.5, 4)).toBe(false);
     expect(concurrencyLimitIsSendable(Number.NaN, 4)).toBe(false);
+  });
+});
+
+describe('Flint\'s brain\'s row', () => {
+  const NOW = new Date('2026-10-29T20:00:20Z');
+
+  test('a forge without the brain, and a brain that is off, show no row', () => {
+    expect(AgentsModel.flintBrainRowOf(null, NOW)).toBeNull();
+    expect(AgentsModel.flintBrainRowOf(OFF_FLINT_BRAIN, NOW)).toBeNull();
+  });
+
+  test('a running brain names its model, tokens and calls, counts down to the forge\'s stated end, and offers Stop', () => {
+    expect(AgentsModel.flintBrainRowOf(runningFlintBrain('2026-10-29T20:00:00Z', '2026-10-29T20:02:00Z'), NOW)).toEqual({
+      state:          'running',
+      stateLabel:     'Running',
+      endedInFailure: false,
+      modelText:      'haiku · low',
+      tokensText:     '1.2k tokens',
+      callsText:      '3 calls',
+      countdownText:  '1m 40s left',
+      sentence:       null,
+      stopOffered:    true,
+    });
+  });
+
+  test('a starting brain offers Stop and counts nothing down; one call is named in the singular', () => {
+    const row = AgentsModel.flintBrainRowOf(exampleFlintBrain({ state: 'starting', startedBy: 'api', calls: 1 }), NOW);
+    expect([row?.stateLabel, row?.countdownText, row?.callsText, row?.tokensText, row?.modelText, row?.stopOffered]).toEqual(['Starting', null, '1 call', null, null, true]);
+  });
+
+  test('an ended brain is worded by the forge, a failed run alone as a failure, and offers no Stop', () => {
+    const ended = exampleFlintBrain({
+      state: 'ended', endedReason: 'time', sentence: 'Flint\'s brain stopped after 2:00', tokens: 4000, calls: 9
+    });
+    expect(AgentsModel.flintBrainRowOf(ended, NOW)).toMatchObject({
+      stateLabel: 'Ended', endedInFailure: false, sentence: 'Flint\'s brain stopped after 2:00', countdownText: null, stopOffered: false
+    });
+    expect(AgentsModel.flintBrainRowOf({ ...ended, endedReason: 'failed' }, NOW)?.endedInFailure).toBe(true);
+  });
+
+  test('a refused brain reads the forge\'s sentence, its refusal\'s where the reading carries no other', () => {
+    const refusal = { code: 'overseer-paused', sentence: 'The Overseer is paused, so Flint\'s brain does not start.' };
+    const row = AgentsModel.flintBrainRowOf(exampleFlintBrain({ state: 'refused', refusal }), NOW);
+    expect([row?.stateLabel, row?.sentence, row?.stopOffered]).toEqual(['Refused', refusal.sentence, false]);
   });
 });

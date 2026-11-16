@@ -7,8 +7,11 @@
  * on the composer makes the thread the habitat Flint visits; in the Agents view an agent that works is copied, Flint walking below
  * the job column of full-width rows, also when Flint slept at home first and comes back while the agent already works; a board occasion
  * reaches Flint wherever it is, a stream that comes back ends the unplugged loop with a wave, and each board shows a watcher spark for
- * each agent in flight, at most 4; and a view below reaches Flint
- * through `useFlintPerform`, with one of its own elements.
+ * each agent in flight, at most 4; a view below reaches Flint
+ * through `useFlintPerform`, with one of its own elements; and while the board says the Overseer runs Flint's brain, Flint asks it over the
+ * ask route with the moves it knows and takes its move, its rule director moving whenever the brain does not, it asks nothing while the
+ * page is hidden (`FlintBrainDirector.spec.ts` holds sleep), and nothing once the board says the run ended or once its stated end has
+ * passed.
  */
 import {
   act,
@@ -26,10 +29,13 @@ import {
 
 import type { FlintHandle }                                from 'flint';
 import type { Director, PerceptionDigest, SpriteIntent }   from 'flint/SpriteHabitat';
+import { SPRITE_INTENTS }                                  from 'flint/SpriteHabitat';
 import { useFlintPerform }                                 from 'flint/react/UseFlintPerform';
+import type { MonitorFlintBrainDocument }                  from 'forge-contracts/MonitorSnapshotDocument';
 import { useRef, type ReactNode }                          from 'react';
 import { PRODUCT_NAMES }                                   from '../../src/shared/constants/ProductNames.ts';
 import type { IdentifiedRecord }                           from '../@types/BoardStateDocument.ts';
+import type { FlintBrainAsk, FlintBrainDigestDocument }    from '../api/FlintBrainClient.ts';
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';
 import { Composer }                                        from '../conversation/Composer.tsx';
 import { boardPreferenceStoreOf, type PreferenceStore }    from '../preferences/PreferenceStore.ts';
@@ -37,10 +43,11 @@ import type { BridgeClock }                                from '../shell/Bridge
 import { ControlSurroundingsContext }                      from '../shell/ControlAvailability.ts';
 import { exampleAgentJob }                                 from '../testing/BoardStateFixture.ts';
 import { fakeControlSurroundingsOf }                       from '../testing/FakeControlSurroundings.ts';
+import { exampleFlintBrain, runningFlintBrain }            from '../testing/FlintBrainFixture.ts';
 import { createManualFlintFrames, type ManualFlintFrames } from '../testing/ManualFlintFrames.ts';
 import { AgentsView }                                      from '../views/agents/AgentsView.tsx';
 import type { BoardReading, OccasionBoard }                from './BoardOccasionModel.ts';
-import { BridgeFlint }                                     from './BridgeFlint.tsx';
+import { BridgeFlint, type BridgeFlintBrain }              from './BridgeFlint.tsx';
 import { FLINT_HABITAT_CHOICE_NAME }                       from './FlintHabitatStorage.ts';
 
 const FRAME_MILLISECONDS = 16;
@@ -115,6 +122,7 @@ interface HostProperties {
   readonly boardStore:    PreferenceStore | null;
   readonly frames:        ManualFlintFrames;
   readonly boardReading?: BoardReading;
+  readonly flintBrain?:   BridgeFlintBrain;
   readonly children:      ReactNode;
 }
 
@@ -124,6 +132,7 @@ function Host(properties: HostProperties) {
       boardStore={properties.boardStore}
       frameSource={properties.frames.frameSource}
       {...(properties.boardReading === undefined ? {} : { boardReading: properties.boardReading })}
+      {...(properties.flintBrain === undefined ? {} : { flintBrain: properties.flintBrain })}
       onHandle={(made) => {
         if (made !== null) handles.push(made);
       }}
@@ -411,5 +420,109 @@ describe('a view below the host', () => {
     render(<Host boardStore={null} frames={createManualFlintFrames()}><TimelineBar onVerdicts={onVerdicts} /></Host>);
     fireEvent.click(screen.getByRole('button', { name: 'Lay the bar' }));
     expect(verdicts).toEqual(['performed', 'needs-an-element']);
+  });
+});
+
+describe('Flint\'s brain', () => {
+  const NOW = new Date('2026-10-29T20:00:00Z');
+  const RUNNING = runningFlintBrain('2026-10-29T19:59:30Z', '2026-10-29T20:01:30Z');
+  const PAGE_SHOWN = (): boolean => false;
+  const PAGE_HIDDEN = (): boolean => true;
+
+  interface RecordingBrainClient {
+    readonly asked:  FlintBrainDigestDocument[];
+    readonly client: BridgeFlintBrain['client'];
+  }
+
+  function recordingBrainClient(answer: FlintBrainAsk): RecordingBrainClient {
+    const asked: FlintBrainDigestDocument[] = [];
+    return {
+      asked,
+      client: {
+        ask: (digest) => {
+          asked.push(digest);
+          return Promise.resolve(answer);
+        },
+      },
+    };
+  }
+
+  function brainOf(reading: MonitorFlintBrainDocument, recording: RecordingBrainClient, documentIsHidden = PAGE_SHOWN): BridgeFlintBrain {
+    return {
+      reading, client: recording.client, now: () => NOW, documentIsHidden
+    };
+  }
+
+  /** The brain answers through promises, which settle only once the spec yields after the frames. */
+  async function answersSettled(): Promise<void> {
+    await act(async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    });
+  }
+
+  function renderedChat(frames: ManualFlintFrames, flintBrain: BridgeFlintBrain, turns: readonly ChatTurn[] = []) {
+    const boardStore = boardStoreOver(new Map([[STORED_HABITAT_KEY, '1:chat']]));
+    const page = render(<Host boardStore={boardStore} frames={frames} flintBrain={flintBrain}><Chat turns={turns} /></Host>);
+    placeChat();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    return (nextBrain: BridgeFlintBrain, nextTurns: readonly ChatTurn[] = turns): void => {
+      page.rerender(<Host boardStore={boardStore} frames={frames} flintBrain={nextBrain}><Chat turns={nextTurns} /></Host>);
+    };
+  }
+
+  test('while the board says the brain runs, Flint asks it over the ask route with the moves it knows, and takes its move', async () => {
+    const frames = createManualFlintFrames();
+    const recording = recordingBrainClient({ verdict: 'answered', intent: 'merge', emote: null });
+    renderedChat(frames, brainOf(RUNNING, recording));
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    await answersSettled();
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(recording.asked[0]).toMatchObject({ habitatKind: 'chat', intents: SPRITE_INTENTS, emotes: [] });
+    expect(recording.asked[1]?.lastIntent).toBe('merge');
+  });
+
+  test('when the brain does not move, Flint\'s rule director answers the cue that waits', async () => {
+    const frames = createManualFlintFrames();
+    const recording = recordingBrainClient({ verdict: 'not-asked', reason: 'too-soon' });
+    const brain = brainOf(RUNNING, recording);
+    const rerender = renderedChat(frames, brain, [DONE_TURN]);
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    await answersSettled();
+    rerender(brain, [DONE_TURN, { ...WRITING_TURN, key: 'turn-2' }]);
+    advanceFor(frames, FRAME_MILLISECONDS * 2);
+    await answersSettled();
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(recording.asked.map((digest) => digest.newCues)).toContainEqual(['agent-is-writing']);
+    expect(recording.asked.at(-1)?.lastIntent).toBe('type');
+  });
+
+  test('Flint asks nothing while the page is hidden, and its rule director goes on', async () => {
+    const frames = createManualFlintFrames();
+    const recording = recordingBrainClient({ verdict: 'answered', intent: 'merge', emote: null });
+    renderedChat(frames, brainOf(RUNNING, recording, PAGE_HIDDEN));
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS * 2);
+    await answersSettled();
+    expect(recording.asked).toEqual([]);
+  });
+
+  test('once the board says the run ended Flint asks no more, and a run whose stated end has passed is never taken up', async () => {
+    const frames = createManualFlintFrames();
+    const recording = recordingBrainClient({ verdict: 'answered', intent: 'merge', emote: null });
+    const rerender = renderedChat(frames, brainOf(RUNNING, recording));
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    await answersSettled();
+    const askedWhileRunning = recording.asked.length;
+    rerender(brainOf(exampleFlintBrain({ state: 'ended', endedReason: 'stopped' }), recording));
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS * 2);
+    await answersSettled();
+    expect([askedWhileRunning, recording.asked.length]).toEqual([1, 1]);
+    cleanup();
+    handles.splice(0);
+    const lateFrames = createManualFlintFrames();
+    const late = recordingBrainClient({ verdict: 'answered', intent: 'merge', emote: null });
+    renderedChat(lateFrames, brainOf(runningFlintBrain('2026-10-29T19:57:00Z', '2026-10-29T19:59:00Z'), late));
+    advanceFor(lateFrames, DIRECTOR_ASK_MILLISECONDS * 2);
+    await answersSettled();
+    expect(late.asked).toEqual([]);
   });
 });

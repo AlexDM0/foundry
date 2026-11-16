@@ -4,7 +4,8 @@
  * strip, and the tab bar, its tabs counting what waits on User, with whatever the shell puts at its right end. In a frame, `board.css`
  * keeps the tab bar alone. In setup, while the board has no readable pipeline, the header is the title row (the mark, the title, the
  * Setting up pill, the new-code notice, the theme button) over the setup step bar: no figures, no Waiting on User pill, no Overseer
- * controls, no activity strip and no tabs.
+ * controls, no activity strip and no tabs. Out of setup, a double click on Forge's mark wakes Flint's brain while the forge runs one that
+ * sleeps, its refusal shown beside the brand.
  */
 
 import { ForgeMark }                          from 'brand/ForgeMark';
@@ -22,6 +23,7 @@ import { ActivityStrip }                                       from './ActivityS
 import type { BridgeClock }                                    from './BridgeClock.ts';
 import { useChangedSinceMount }                                from './ChangedSinceMount.ts';
 import { CommandButton }                                       from './CommandButton.tsx';
+import { useControlCommand }                                   from './ControlCommandSender.ts';
 import { HashRouter, type BridgeTab }                          from './HashRouter.ts';
 import type { HeaderFigureLane, HeaderModel, HeaderStatistic } from './HeaderModel.ts';
 import { SetupStepBar }                                        from './SetupStepBar.tsx';
@@ -83,6 +85,10 @@ const PRODUCT_WORDMARK = 'forge';
 
 const FORGE_MARK_SIDE_PIXELS = 28;
 
+const FLINT_BRAIN_START = { kind: 'flint-brain-start' } as const;
+
+const FLINT_BRAIN_WAKE_HINT = 'Double-click to wake Flint\'s brain';
+
 function StopOverseer() {
   const [confirming, setConfirming] = useState(false);
   if (!confirming) {
@@ -108,6 +114,23 @@ function ProductBrand() {
       <ForgeMark sizePixels={FORGE_MARK_SIDE_PIXELS} />
       <span className="bridge-wordmark">{PRODUCT_WORDMARK}</span>
     </span>
+  );
+}
+
+/** The brand whose mark wakes Flint's brain on a double click, as a Bridge control: never while controls may not act. */
+function FlintBrainWakingBrand({ wakes }: { readonly wakes: boolean }) {
+  const sender = useControlCommand(wakes ? FLINT_BRAIN_START : null, { answeredWhileInstallHeld: true });
+  const markWakes = wakes && sender.enabled;
+  return (
+    <>
+      <span className="bridge-brand">
+        {markWakes
+          ? <ForgeMark sizePixels={FORGE_MARK_SIDE_PIXELS} title={FLINT_BRAIN_WAKE_HINT} onDoubleClick={() => void sender.send()} />
+          : <ForgeMark sizePixels={FORGE_MARK_SIDE_PIXELS} />}
+        <span className="bridge-wordmark">{PRODUCT_WORDMARK}</span>
+      </span>
+      {sender.refusal === null ? null : <span className="bridge-refusal" role="status">{sender.refusal}</span>}
+    </>
   );
 }
 
@@ -229,7 +252,7 @@ export function Header({
   return (
     <header className="bridge-header">
       <div className="bridge-head-title-row">
-        <ProductBrand />
+        <FlintBrainWakingBrand wakes={model.flintBrainWakes} />
         <span className="bridge-head-divider" aria-hidden="true" />
         <h1 className="bridge-title">{project}</h1>
         <StatusPill model={model} />

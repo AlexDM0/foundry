@@ -1,10 +1,12 @@
 /**
  * The Agents view: its title row, the worker list (builders and reviewers, under the project row holding the launch-slot meter and the
- * concurrency limit), then Sessions (intake and the Assistant), both ticking each second, and for the job the route names its side panel,
+ * concurrency limit), then Flint's brain's own card while the forge reports one awake or just ended, then Sessions (intake and the
+ * Assistant), all ticking each second, and for the job the route names its side panel,
  * which slides out again when the route drops the job. Show diagnostics adds the same four columns to both cards. Its clock and transcript
  * stream arrive as props, so a DOM spec drives both. The view is the agent panel habitat of Flint.
  */
 
+import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 import {
   useCallback,
   useEffect,
@@ -27,6 +29,7 @@ import type { TimestampSlices }                         from '../../utils/TimeUt
 import { ViewTitle }                                    from '../ViewTitle.tsx';
 import type { AgentJobDocument, EndedAgentJobDocument } from './AgentJobDocument.ts';
 import { AgentsModel }                                  from './AgentsModel.ts';
+import { FlintBrainCard }                               from './FlintBrainCard.tsx';
 import { JobPanel }                                     from './JobPanel.tsx';
 import { SessionCard }                                  from './SessionCard.tsx';
 import type { FollowTranscript, TranscriptMemory }      from './TranscriptPanel.tsx';
@@ -52,6 +55,8 @@ export interface AgentsViewProps {
   readonly endedJobs?:        readonly EndedAgentJobDocument[];
   /** Without the Overseer's state, Flint is never told that every agent is idle. */
   readonly overseer?:         OverseerFactsDocument | null;
+  /** The Overseer's reading of Flint's brain; `null`, or absent, on a forge that reports none. */
+  readonly flintBrain?:       MonitorFlintBrainDocument | null;
 }
 
 const NO_ENDED_JOBS: readonly EndedAgentJobDocument[] = Object.freeze([]);
@@ -75,7 +80,7 @@ const closeJobPanel = (): void => HashRouter.navigateTo({ tab: 'agents', item: n
 
 export function AgentsView({
   project, jobs, decisions, incidents, launchSlots, concurrency, tickets, selectedJobId, clock, timestampSlices, followTranscript = TranscriptStreamClient.follow,
-  endedJobs = NO_ENDED_JOBS, overseer = null
+  endedJobs = NO_ENDED_JOBS, overseer = null, flintBrain = null
 }: AgentsViewProps) {
   const now = useNowEverySecond(clock);
   const [transcriptMemory] = useState<TranscriptMemory>(() => new Map());
@@ -86,6 +91,7 @@ export function AgentsView({
   const workerJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'workers');
   const sessionJobs = agentJobs.filter((job) => AgentsModel.groupOf(job) === 'sessions');
   const selectedJob = agentJobs.find((job) => job.id === selectedJobId) ?? null;
+  const flintBrainRow = AgentsModel.flintBrainRowOf(flintBrain, now);
   const { shownJob, isClosing, finishClosing } = useShownJob(selectedJob, agentJobs);
   const viewElement = useRef<HTMLDivElement>(null);
   useAgentPanelHabitat(viewElement, {
@@ -109,6 +115,7 @@ export function AgentsView({
         showDiagnostics={showDiagnostics}
         onToggleDiagnostics={() => setShowDiagnostics((shown) => !shown)}
       />
+      {flintBrainRow === null ? null : <FlintBrainCard row={flintBrainRow} />}
       <SessionCard
         project={project}
         jobs={sessionJobs}

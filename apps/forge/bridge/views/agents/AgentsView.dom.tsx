@@ -14,7 +14,9 @@
  * view opens with its title row; the selected job's side panel names the job and its state, holds one Flint slot (112, lane), cued by the
  * selected job while it runs and idle while it does not, unless the question panel covers it and holds the page's one slot, its facts, its
  * controls and its transcript, takes a message in its foot only where the job takes one, drops a half-typed message once another job is
- * selected, and × routes the panel closed.
+ * selected, and × routes the panel closed. Flint's brain has its own card after the worker card, outside its slot meter and its count, in
+ * each state the forge reports: starting and running with Stop, which posts `flint-brain-stop`, a running one counting down each second,
+ * an ended or refused one in the forge's words; and none while it is off or on a forge without it.
  */
 import {
   act,
@@ -30,7 +32,8 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { ReactElement } from 'react';
+import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+import type { ReactElement }              from 'react';
 
 import type {
   BoardStateDocument,
@@ -47,6 +50,7 @@ import type { BridgeClock }                                                     
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
 import { QuestionPanelShownContext }                                                       from '../../shell/CoveringPanel.ts';
 import { exampleAgentJob, exampleAskingDecision, exampleSubagent }                         from '../../testing/BoardStateFixture.ts';
+import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain }                           from '../../testing/FlintBrainFixture.ts';
 import { elementOf, flintHabitatSceneOf, placeAt }                                         from '../../testing/FlintHabitatScene.ts';
 import { createManualFlintFrames }                                                         from '../../testing/ManualFlintFrames.ts';
 import { DARK_MODE_QUESTION }                                                              from '../../testing/QuestionPanelFixture.ts';
@@ -164,6 +168,7 @@ interface RenderOptions {
   readonly concurrency?:          ConcurrencyDocument | null;
   /** The question panel shows over the view, holding the page's one Flint slot. */
   readonly questionPanelIsShown?: boolean;
+  readonly flintBrain?:           MonitorFlintBrainDocument | null;
 }
 
 interface AgentsSurroundings {
@@ -200,6 +205,7 @@ function agentsSurroundingsOf(options: RenderOptions): AgentsSurroundings {
           clock={clock}
           timestampSlices={EXAMPLE_TIMESTAMP_SLICES}
           followTranscript={transcripts.follow}
+          flintBrain={options.flintBrain ?? null}
         />
       </QuestionPanelShownContext.Provider>
     </ControlSurroundingsContext.Provider>
@@ -213,7 +219,7 @@ function renderAgents(jobs: readonly AgentJobDocument[], options: RenderOptions 
   return { sent, rerender: (shownJobs, selectedJobId = options.selectedJobId ?? null) => rerender(view(shownJobs, selectedJobId)) };
 }
 
-function card(name: 'Agents' | 'Sessions'): HTMLElement {
+function card(name: 'Agents' | 'Sessions' | 'Flint\'s brain'): HTMLElement {
   return screen.getByRole('region', { name });
 }
 
@@ -699,5 +705,62 @@ describe('the title row and the job panel', () => {
     expect(window.location.hash).toBe('#agents');
     rerender([BUILD_JOB], null);
     expect(screen.queryByRole('complementary', { name: 'Job J12' })).toBeNull();
+  });
+});
+
+describe('Flint\'s brain\'s card', () => {
+  const RUNNING = runningFlintBrain('2026-10-29T20:00:00Z', '2026-10-29T20:02:00Z');
+
+  function brainRow(): HTMLElement {
+    const row = card('Flint\'s brain').querySelector<HTMLElement>('.agents-brain-row');
+    if (row === null) throw new Error('no brain row');
+    return row;
+  }
+
+  test('a running brain has its own card after the worker card, outside its slot meter and its count, with its facts and Stop', () => {
+    const clock = fakeClock();
+    renderAgents([BUILD_JOB], { flintBrain: RUNNING, clock: clock.clock });
+    const cards = screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'));
+    expect(cards).toEqual(['Agents', 'Flint\'s brain', 'Sessions']);
+    expect(brainRow().getAttribute('data-state')).toBe('running');
+    expect(brainRow().textContent).toBe('Runninghaiku · low1.2k tokens3 calls1m 55s leftStop');
+    expect(card('Agents').textContent).not.toContain('Flint');
+    expect(card('Agents').querySelector('.agents-slot-figure')?.textContent).toBe('2 / 5');
+    clock.advance(5);
+    expect(brainRow().querySelector('.agents-brain-countdown')?.textContent).toBe('1m 50s left');
+  });
+
+  test('Stop posts flint-brain-stop, also while the brain starts', async () => {
+    const running = renderAgents([], { flintBrain: RUNNING });
+    await clicked('Stop Flint\'s brain');
+    expect(running.sent).toEqual([{ kind: 'flint-brain-stop' }]);
+    cleanup();
+    const starting = renderAgents([], { flintBrain: exampleFlintBrain({ state: 'starting', startedBy: 'api' }) });
+    expect(brainRow().textContent).toBe('StartingStop');
+    await clicked('Stop Flint\'s brain');
+    expect(starting.sent).toEqual([{ kind: 'flint-brain-stop' }]);
+  });
+
+  test('an ended brain and a refused one read the forge\'s words and offer no Stop', () => {
+    renderAgents([], {
+      flintBrain: exampleFlintBrain({
+        state: 'ended', endedReason: 'time', tokens: 4000, calls: 9, model: 'haiku', effort: 'low', sentence: 'Flint\'s brain stopped after 2:00'
+      }),
+    });
+    expect(brainRow().textContent).toBe('Endedhaiku · low4k tokens9 callsFlint\'s brain stopped after 2:00');
+    expect(screen.queryByRole('button', { name: 'Stop Flint\'s brain' })).toBeNull();
+    cleanup();
+    const sentence = 'The Overseer is paused, so Flint\'s brain does not start.';
+    renderAgents([], { flintBrain: exampleFlintBrain({ state: 'refused', sentence, refusal: { code: 'overseer-paused', sentence } }) });
+    expect([brainRow().getAttribute('data-state'), brainRow().textContent]).toEqual(['refused', `Refused${sentence}`]);
+    expect(screen.queryByRole('button', { name: 'Stop Flint\'s brain' })).toBeNull();
+  });
+
+  test('a brain that is off, and a forge without one, show no card', () => {
+    renderAgents([BUILD_JOB], { flintBrain: OFF_FLINT_BRAIN });
+    expect(screen.queryByRole('region', { name: 'Flint\'s brain' })).toBeNull();
+    cleanup();
+    renderAgents([BUILD_JOB]);
+    expect(screen.queryByRole('region', { name: 'Flint\'s brain' })).toBeNull();
   });
 });

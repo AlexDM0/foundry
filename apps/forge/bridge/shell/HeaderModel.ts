@@ -3,7 +3,8 @@
  * Pause, Resume and Restart the Overseer offers, the new-code notice, the header statistics, the activity strip's facts, the open notices
  * and the warnings, both worded by `NoticeWordingUtil` as the monitor snapshot words them. The incident defaults are the incident line's
  * (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline the header is in setup: its state pill
- * reads Setting up, and it holds the setup steps with the record's statuses, and no usage.
+ * reads Setting up, and it holds the setup steps with the record's statuses, and no usage. Today's tokens count Flint's brain's runs, and a
+ * double click on Forge's mark wakes the brain while the forge runs one that is neither starting nor running.
  */
 import type { StepperStep } from 'design-system/Stepper';
 
@@ -40,25 +41,27 @@ export interface HeaderStatistic {
 }
 
 export interface HeaderModel {
-  readonly statusToken:    StatusToken;
+  readonly statusToken:     StatusToken;
   /** The state pill's word: the status token's, or Setting up while the board is in setup. */
-  readonly statusLabel:    string;
+  readonly statusLabel:     string;
   /** The orange state pill with its dot: live and out of setup; every other state is the quiet pill. */
-  readonly isRunning:      boolean;
+  readonly isRunning:       boolean;
   /** The quiet details after the state pill: each usage window the facts carry, then a usage limit hit; none in setup. */
-  readonly statusDetails:  readonly string[];
+  readonly statusDetails:   readonly string[];
   /** The setup steps with the record's statuses while the board has no readable pipeline; `null` once it has one, or says nothing of one. */
-  readonly setupSteps:     readonly StepperStep[] | null;
-  readonly pauseControl:   PauseControl;
+  readonly setupSteps:      readonly StepperStep[] | null;
+  readonly pauseControl:    PauseControl;
   /** Only with new code on disk, and never during a Baton pass: Restart is the checked pass by hand, never automatic. */
-  readonly restartOffered: boolean;
-  readonly stopOffered:    boolean;
-  readonly newCodeNotice:  string | null;
-  readonly statistics:     readonly HeaderStatistic[];
+  readonly restartOffered:  boolean;
+  readonly stopOffered:     boolean;
+  readonly newCodeNotice:   string | null;
+  readonly statistics:      readonly HeaderStatistic[];
   /** The strip's chips and counts. */
-  readonly activity:       ActivityStripFacts;
-  readonly notices:        readonly string[];
-  readonly warnings:       readonly string[];
+  readonly activity:        ActivityStripFacts;
+  readonly notices:         readonly string[];
+  readonly warnings:        readonly string[];
+  /** A double click on Forge's mark sends `flint-brain-start`: the board reports a brain, and it is neither starting nor running. */
+  readonly flintBrainWakes: boolean;
 }
 
 const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
@@ -134,7 +137,7 @@ interface BoardFigures {
 /** Today is the viewer's local date; the agents figure counts the strip's chips, so the figure and the strip agree. */
 function boardFiguresOf(state: BoardStateDocument, activity: ActivityStripFacts, todayCalendarDate: string): BoardFigures {
   const tickets = state.page?.tickets ?? [];
-  const today = todayFiguresOf(state, todayCalendarDate);
+  const today = todayFiguresOf(state, todayCalendarDate, state.flintBrain?.runs ?? []);
   return {
     workerCount:         activity.chips.length,
     pausedCount:         (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length,
@@ -177,6 +180,13 @@ function statusTokenOf(overseer: OverseerFactsDocument | null, connection: Conne
   return overseer.paused ? 'paused' : 'live';
 }
 
+const AWAKE_FLINT_BRAIN_STATES: ReadonlySet<string> = new Set(['starting', 'running']);
+
+function flintBrainWakesOf(state: BoardStateDocument | null): boolean {
+  const reading = state?.flintBrain?.reading ?? null;
+  return reading !== null && !AWAKE_FLINT_BRAIN_STATES.has(reading.state);
+}
+
 export function headerModelOf(state: BoardStateDocument | null, now: Date, connection: ConnectionState): HeaderModel {
   const overseer = state?.overseer ?? null;
   const notices = state?.notices ?? [];
@@ -189,17 +199,18 @@ export function headerModelOf(state: BoardStateDocument | null, now: Date, conne
   const figures = state === null ? null : boardFiguresOf(state, activity, TimeUtil.calendarDateOf(now.getTime()));
   return {
     statusToken,
-    statusLabel:    setupSteps === null ? STATUS_LABEL[statusToken] : SETUP_STATUS_LABEL,
-    isRunning:      statusToken === 'live' && setupSteps === null,
-    statusDetails:  state === null || setupSteps !== null ? [] : usageTextsOf(state.usage),
+    statusLabel:     setupSteps === null ? STATUS_LABEL[statusToken] : SETUP_STATUS_LABEL,
+    isRunning:       statusToken === 'live' && setupSteps === null,
+    statusDetails:   state === null || setupSteps !== null ? [] : usageTextsOf(state.usage),
     setupSteps,
-    pauseControl:   answers ? (overseer.paused ? 'resume' : 'pause') : null,
-    restartOffered: answers && newCodeOnDisk,
-    stopOffered:    answers,
-    newCodeNotice:  newCodeOnDisk ? NoticeWordingUtil.noticeTextOf({ kind: NEW_CODE }) : null,
-    statistics:     state === null || figures === null ? [] : statisticsOf(state, figures),
+    pauseControl:    answers ? (overseer.paused ? 'resume' : 'pause') : null,
+    restartOffered:  answers && newCodeOnDisk,
+    stopOffered:     answers,
+    newCodeNotice:   newCodeOnDisk ? NoticeWordingUtil.noticeTextOf({ kind: NEW_CODE }) : null,
+    statistics:      state === null || figures === null ? [] : statisticsOf(state, figures),
     activity,
-    notices:        notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(NoticeWordingUtil.noticeTextOf),
-    warnings:       NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null).map((warning) => warning.text),
+    notices:         notices.filter((notice) => notice.kind !== INCIDENT_DEFAULTED && notice.kind !== NEW_CODE).map(NoticeWordingUtil.noticeTextOf),
+    warnings:        NoticeWordingUtil.warningsOf(notices, overseer?.batonPassWarning ?? null).map((warning) => warning.text),
+    flintBrainWakes: flintBrainWakesOf(state),
   };
 }

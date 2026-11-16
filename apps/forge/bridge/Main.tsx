@@ -9,6 +9,7 @@ import { createRoot }            from 'react-dom/client';
 
 import { CommandClient }                                  from './api/CommandClient.ts';
 import { EventStreamClient }                              from './api/EventStreamClient.ts';
+import { FlintBrainClient }                               from './api/FlintBrainClient.ts';
 import { IdentityClient }                                 from './api/IdentityClient.ts';
 import { PictureUploadClient }                            from './api/PictureUploadClient.ts';
 import { ProfileStreamClient }                            from './api/ProfileStreamClient.ts';
@@ -28,11 +29,12 @@ loadDesignSystemFonts();
 
 const { embedMode } = FirstPaint.prepare(sharedPreferenceStoreOf());
 
-// One token source, so a token the command client rotated is the one the picture upload carries; each client then fetches through it.
+// One token source, so a token the command client rotated is the one the picture upload and the brain's ask carry; each fetches through it.
 const sessionTokenSource = SessionTokenSource.create();
 
 const services: BridgeServices = {
   commandClient:        CommandClient.create(undefined, sessionTokenSource),
+  flintBrainClient:     FlintBrainClient.create(sessionTokenSource),
   pictureUploadClient:  PictureUploadClient.create(undefined, sessionTokenSource),
   openEventStream:      (handlers) => EventStreamClient.open(handlers),
   fetchIdentity:        () => IdentityClient.fetchIdentity(),

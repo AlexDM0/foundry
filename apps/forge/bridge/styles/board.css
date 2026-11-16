@@ -119,7 +119,9 @@
  *   .bridge-assistant-layout  the Assistant view: its chat card (the .bridge-assistant-chat-head with Flint, then the thread and the
  *                           composer) beside the .bridge-assistant-rail of its incident sections, each step a .bridge-incident-step
  *                           with its .bridge-incident-step-time
- *   .agents-view            the Agents view: the worker Pane, then the Sessions pane (its head's .agents-tallies
+ *   .agents-view            the Agents view: the worker Pane, then Flint's brain's Pane (its .agents-brain-row[data-state]: the
+ *                           diamond StateBadge, the .agents-brain-model, the figures, the .agents-brain-countdown and Stop),
+ *                           then the Sessions pane (its head's .agents-tallies
  *                           of .agents-tally links, each an .agents-role-glyph tile of an Icon, an .agents-tally-name and
  *                           its figures), each an .agents-scroll holding an .agents-table[data-diagnostics?]: an .agents-project-row
  *                           (.agents-project-line: .agents-project-name, the .agents-slots meter with its
@@ -1177,6 +1179,12 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-tally > .agents-role-glyph { width: 20px; height: 20px; }
 .agents-tally > .agents-role-glyph > .agents-role-glyph-drawing { width: 12px; height: 12px; }
 .agents-tally-name { font-weight: 600; }
+
+/* Flint's brain's row: no job, so no table and no slot; Stop closes the row at its end. */
+.agents-brain-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) 14px; font-size: var(--fs-tab); }
+.agents-brain-model { font: var(--fs-small)/1.5 var(--font-mono); color: var(--ink-muted); }
+.agents-brain-countdown { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.agents-brain-row > .bridge-control { margin-left: auto; }
 
 .agents-muted { color: var(--ink-muted); }
 .agents-watch-only { color: var(--link); }

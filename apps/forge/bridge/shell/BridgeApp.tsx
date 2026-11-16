@@ -22,11 +22,12 @@ import type { BoardStateDocument, OverseerIdentity }                            
 import type { ConversationBoardDocument }                                                from '../@types/ConversationDocuments.ts';
 import type { CommandClient }                                                            from '../api/CommandClient.ts';
 import type { ConnectionState, EventStreamHandlers }                                     from '../api/EventStreamClient.ts';
+import type { FlintBrainClient }                                                         from '../api/FlintBrainClient.ts';
 import type { PictureUploadClient }                                                      from '../api/PictureUploadClient.ts';
 import type { SessionExchangeOutcome }                                                   from '../api/SessionCodeExchange.ts';
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import type { BoardReading }                                                             from '../flint/BoardOccasionModel.ts';
-import { BridgeFlint, type FlintFrameSource }                                            from '../flint/BridgeFlint.tsx';
+import { BridgeFlint, type BridgeFlintBrain, type FlintFrameSource }                     from '../flint/BridgeFlint.tsx';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
@@ -85,6 +86,8 @@ import { WaitingOnUserModel }                               from './WaitingOnUse
 
 export interface BridgeServices {
   readonly commandClient:        CommandClient;
+  /** Absent where Flint asks no brain: it moves by its rule director alone. */
+  readonly flintBrainClient?:    FlintBrainClient;
   /** Absent where no picture can be uploaded, so the Intake view offers none. */
   readonly pictureUploadClient?: PictureUploadClient;
   readonly openEventStream:      (handlers: EventStreamHandlers) => { close: () => void };
@@ -309,6 +312,11 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
     onRefused:     countRefusal,
   }), [streamIsDown, sessionIsLost, installIsHeld, services, loseSession, countRefusal]);
   const flintBoardReading = useMemo((): BoardReading => ({ board: boardState, connection, refusedCommandCount }), [boardState, connection, refusedCommandCount]);
+  const flintBrainReading = boardState?.flintBrain?.reading ?? null;
+  const flintBrain = useMemo(
+    (): BridgeFlintBrain | null => (services.flintBrainClient === undefined ? null : { reading: flintBrainReading, client: services.flintBrainClient, now: services.now }),
+    [services, flintBrainReading],
+  );
 
   const bridgeClock = useMemo((): BridgeClock => ({ ...BROWSER_BRIDGE_CLOCK, now: services.now }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
@@ -435,6 +443,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
           boardReading={flintBoardReading}
           {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
           {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
+          {...(flintBrain === null ? {} : { flintBrain })}
         >
           <div className="bridge-shell">
             <ConnectionBanners
@@ -492,6 +501,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
                       timestampSlices={IncidentNoticeModelUtil.timestampSlicesOf(boardState)}
                       endedJobs={boardState.endedJobs ?? NO_ENDED_JOBS}
                       overseer={boardState.overseer}
+                      flintBrain={flintBrainReading}
                     />
                   )
                   : null}

@@ -14,7 +14,9 @@
  * badge at zero. In setup (no readable pipeline) the header holds only the brand, the title, the Setting up pill, the new-code notice,
  * the theme button and the setup step bar, whose done steps show a check and link to their route, whose current step is
  * `aria-current="step"` and which says which step this is; with a pipeline set the Pipeline tab is last and the status details hold only
- * the usage windows the facts carry, and never the confinement.
+ * the usage windows the facts carry, and never the confinement. A double click on Forge's mark sends `flint-brain-start` while the forge
+ * runs a brain that sleeps, says so on the mark, sends nothing while the brain starts or runs, on a forge without it or while controls may
+ * not act, takes the start while launches are held, and shows a refusal verbatim beside the brand.
  */
 import {
   act,
@@ -33,7 +35,7 @@ import {
 import type { ReactElement } from 'react';
 
 import type { BoardStateDocument, IdentifiedRecord } from '../@types/BoardStateDocument.ts';
-import type { ControlCommandBody }                   from '../api/CommandClient.ts';
+import type { CommandOutcome, ControlCommandBody }   from '../api/CommandClient.ts';
 import type { ConnectionState }                      from '../api/EventStreamClient.ts';
 import {
   boardStateFixture,
@@ -42,22 +44,23 @@ import {
   FIXTURE_BUILDER_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import { elementOf, flintHabitatSceneOf, placeAt } from '../testing/FlintHabitatScene.ts';
-import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
+import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain } from '../testing/FlintBrainFixture.ts';
+import { elementOf, flintHabitatSceneOf, placeAt }               from '../testing/FlintHabitatScene.ts';
+import { pipelineBoardStateOf }                                  from '../testing/PipelineFixture.ts';
 import {
   nothingWaitingBoard,
   WAITING_FIXTURE_NOW,
   waitingOnUserBoard,
   type WaitingOnUserFixtureBoard
 } from '../testing/WaitingOnUserFixture.ts';
-import type { NotificationAllowance, QuestionNotifier } from '../views/questions/QuestionAlerts.ts';
-import type { BridgeClock }                             from './BridgeClock.ts';
-import { ControlSurroundingsContext }                   from './ControlAvailability.ts';
-import { HashRouter, type BridgeTab }                   from './HashRouter.ts';
-import { Header }                                       from './Header.tsx';
-import { headerModelOf, type HeaderFigureLane }         from './HeaderModel.ts';
-import type { ThemeChoice }                             from './ThemeBootstrap.ts';
-import { WaitingOnUserModel }                           from './WaitingOnUserModel.ts';
+import type { NotificationAllowance, QuestionNotifier }         from '../views/questions/QuestionAlerts.ts';
+import type { BridgeClock }                                     from './BridgeClock.ts';
+import { ControlSurroundingsContext, type ControlAvailability } from './ControlAvailability.ts';
+import { HashRouter, type BridgeTab }                           from './HashRouter.ts';
+import { Header }                                               from './Header.tsx';
+import { headerModelOf, type HeaderFigureLane }                 from './HeaderModel.ts';
+import type { ThemeChoice }                                     from './ThemeBootstrap.ts';
+import { WaitingOnUserModel }                                   from './WaitingOnUserModel.ts';
 
 const STILL_CLOCK: BridgeClock = { now: () => FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined };
 
@@ -105,15 +108,19 @@ interface HeaderSurroundings {
   /** The Kanban unless given. */
   readonly selectedTab?:     BridgeTab;
   readonly sidePanelIsOpen?: boolean;
+  /** Enabled unless given. */
+  readonly availability?:    ControlAvailability;
+  /** What the Overseer answers each command; applied unless given. */
+  readonly outcome?:         CommandOutcome;
 }
 
 function headerElementOf(state: BoardStateDocument, surroundings: HeaderSurroundings, sent: ControlCommandBody[]): ReactElement {
   const controlSurroundings = {
-    availability:  'enabled' as const,
+    availability:  surroundings.availability ?? 'enabled',
     commandClient: {
       send: (command: ControlCommandBody) => {
         sent.push(command);
-        return Promise.resolve({ verdict: 'applied' as const, outcome: 'done', result: null });
+        return Promise.resolve(surroundings.outcome ?? { verdict: 'applied' as const, outcome: 'done', result: null });
       },
     },
     onInstallHeld: () => undefined,
@@ -642,5 +649,64 @@ describe('the header with a pipeline set', () => {
     const tabs = [...within(screen.getByRole('navigation', { name: 'Views' })).getAllByRole('link')].map((tab) => tab.textContent);
     expect(tabs.at(-1)).toBe('Pipeline');
     expect(screen.queryByRole('list', { name: 'Setup steps' })).toBeNull();
+  });
+});
+
+describe('Flint\'s brain on Forge\'s mark', () => {
+  const RUNNING = runningFlintBrain('2026-10-29T11:59:00Z', '2026-10-29T12:01:00Z');
+
+  function boardWithBrain(reading: NonNullable<BoardStateDocument['flintBrain']>['reading']): BoardStateDocument {
+    return boardStateFixture({ flintBrain: { reading, runs: [] } });
+  }
+
+  async function doubleClickedMark(): Promise<void> {
+    await act(async () => {
+      fireEvent.doubleClick(screen.getByRole('img', { name: 'Forge' }));
+      await Promise.resolve();
+    });
+  }
+
+  test('a double click sends flint-brain-start while the brain sleeps, and the mark says so', async () => {
+    const sent = renderedHeader(boardWithBrain(OFF_FLINT_BRAIN));
+    expect(screen.getByRole('img', { name: 'Forge' }).querySelector('title')?.textContent).toBe('Double-click to wake Flint\'s brain');
+    await doubleClickedMark();
+    expect(sent).toEqual([{ kind: 'flint-brain-start' }]);
+  });
+
+  test('an ended or refused brain wakes again on a double click', async () => {
+    for (const reading of [exampleFlintBrain({ state: 'ended', endedReason: 'time' }), exampleFlintBrain({ state: 'refused' })]) {
+      const sent = renderedHeader(boardWithBrain(reading));
+      await doubleClickedMark();
+      expect(sent).toEqual([{ kind: 'flint-brain-start' }]);
+      cleanup();
+    }
+  });
+
+  test('a double click sends nothing while the brain starts or runs, or on a forge without it', async () => {
+    for (const state of [boardWithBrain(exampleFlintBrain({ state: 'starting' })), boardWithBrain(RUNNING), boardWithBrain(null), boardStateFixture()]) {
+      const sent = renderedHeader(state);
+      expect(screen.getByRole('img', { name: 'Forge' }).querySelector('title')).toBeNull();
+      await doubleClickedMark();
+      expect(sent).toEqual([]);
+      cleanup();
+    }
+  });
+
+  test('a double click sends nothing while the stream is down, and the start is taken while launches are held', async () => {
+    const whileDown = renderedHeader(boardWithBrain(OFF_FLINT_BRAIN), { availability: 'stream-down' });
+    await doubleClickedMark();
+    expect(whileDown).toEqual([]);
+    cleanup();
+    const whileHeld = renderedHeader(boardWithBrain(OFF_FLINT_BRAIN), { availability: 'install-held' });
+    await doubleClickedMark();
+    expect(whileHeld).toEqual([{ kind: 'flint-brain-start' }]);
+  });
+
+  test('a refused start shows the Overseer\'s sentence verbatim beside the brand', async () => {
+    const refusal = 'The Overseer is paused, so Flint\'s brain does not start.';
+    renderedHeader(boardWithBrain(OFF_FLINT_BRAIN), { outcome: { verdict: 'refused', refusal } });
+    await doubleClickedMark();
+    const shown = screen.getByText(refusal);
+    expect([shown.textContent, shown.previousElementSibling?.className]).toEqual([refusal, 'bridge-brand']);
   });
 });

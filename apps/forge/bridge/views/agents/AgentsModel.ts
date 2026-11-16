@@ -1,14 +1,18 @@
 /**
  * The Agents view's model: which board records are agent jobs, which card a job sits in (the worker list or Sessions) and in what order,
  * its role mark, its open decision as an ask, its calls against its budget, its subagents as squares, its quiet sweeps, the slot meter and
- * the cards' counts and tallies, its worded Watcher, whether it is stopping, and whether a concurrency limit asked for may be sent. Which
- * job holds a launch slot is the Overseer's `launchSlots` fact, never a kind list copied here.
+ * the cards' counts and tallies, its worded Watcher, whether it is stopping, and whether a concurrency limit asked for may be sent; and
+ * Flint's brain's own row, which is no job. Which job holds a launch slot is the Overseer's `launchSlots` fact, never a kind list copied
+ * here.
  */
-import type { IconName } from 'design-system/Icon';
+import type { IconName }                  from 'design-system/Icon';
+import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
+import { TokenCountUtil }                                                    from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                                                 from '../../../src/lib/tracker-model/@types/Task.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { IdentifiedRecord, LaunchSlotsDocument }                        from '../../@types/BoardStateDocument.ts';
+import { ElapsedTimeUtil }                                                   from '../../utils/ElapsedTimeUtil.ts';
 import { TimeUtil, type TimestampSlices }                                    from '../../utils/TimeUtil.ts';
 import type {
   AgentJobDocument,
@@ -73,6 +77,32 @@ export interface SessionTally {
   readonly liveCount:          number;
   readonly waitingOnUserCount: number;
 }
+
+/** The brain's states that show a row; `off` shows none. */
+export type FlintBrainRowState = 'starting' | 'running' | 'ended' | 'refused';
+
+export interface FlintBrainRow {
+  readonly state:          FlintBrainRowState;
+  readonly stateLabel:     string;
+  /** The run ended because its session failed: the one state worded as a failure. */
+  readonly endedInFailure: boolean;
+  /** `haiku · low`; `null` while the forge names neither. */
+  readonly modelText:      string | null;
+  readonly tokensText:     string | null;
+  readonly callsText:      string | null;
+  /** The time left of a running brain, `1m 42s left`; `null` in every other state. */
+  readonly countdownText:  string | null;
+  /** The forge's own words for an ended or refused brain. */
+  readonly sentence:       string | null;
+  readonly stopOffered:    boolean;
+}
+
+const FLINT_BRAIN_STATE_LABELS: Readonly<Record<FlintBrainRowState, string>> = {
+  starting: 'Starting',
+  running:  'Running',
+  ended:    'Ended',
+  refused:  'Refused',
+};
 
 type JobLiveWording = Pick<AgentJobDocument, 'live'>;
 type GroupedJob = Pick<AgentJobDocument, 'role'>;
@@ -309,6 +339,29 @@ function concurrencyLimitIsSendable(wantedLimit: number, currentLimit: number): 
     && wantedLimit >= LOWEST_CONCURRENCY_LIMIT_AGENTS && wantedLimit <= CONCURRENCY_LIMIT_CEILING_AGENTS;
 }
 
+function countTextOf(count: number | null, singular: string, plural: string): string | null {
+  return count === null ? null : `${count} ${count === 1 ? singular : plural}`;
+}
+
+/** Flint's brain's row: `null` for a forge without the brain and for a brain that is off. The countdown is display only. */
+function flintBrainRowOf(reading: MonitorFlintBrainDocument | null, now: Date): FlintBrainRow | null {
+  if (reading === null || reading.state === 'off') return null;
+  const { state, endsAt } = reading;
+  const modelParts = [reading.model, reading.effort].filter((part) => part !== null);
+  const remainingMilliseconds = state === 'running' && endsAt !== null ? Date.parse(endsAt) - now.getTime() : Number.NaN;
+  return {
+    state,
+    stateLabel:     FLINT_BRAIN_STATE_LABELS[state],
+    endedInFailure: state === 'ended' && reading.endedReason === 'failed',
+    modelText:      modelParts.length === 0 ? null : modelParts.join(' · '),
+    tokensText:     reading.tokens === null ? null : `${TokenCountUtil.formatTokenCount(reading.tokens)} tokens`,
+    callsText:      countTextOf(reading.calls, 'call', 'calls'),
+    countdownText:  Number.isNaN(remainingMilliseconds) ? null : `${ElapsedTimeUtil.formatElapsed(remainingMilliseconds)} left`,
+    sentence:       state === 'ended' || state === 'refused' ? reading.sentence ?? reading.refusal?.sentence ?? null : null,
+    stopOffered:    state === 'starting' || state === 'running',
+  };
+}
+
 export const AgentsModel = Object.freeze({
   isAgentJob,
   openDecisionOf,
@@ -335,4 +388,5 @@ export const AgentsModel = Object.freeze({
   panelStateTextOf,
   transcriptCountTextOf,
   concurrencyLimitIsSendable,
+  flintBrainRowOf,
 });

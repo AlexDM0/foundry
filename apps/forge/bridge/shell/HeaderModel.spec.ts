@@ -9,7 +9,8 @@
  * usage windows the facts carry and never a placeholder or the confinement, a limit hit naming its reset on the viewer's clock, since the
  * stored stamp is UTC; while the board has no readable pipeline the header is in
  * setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps linking to their route) and no usage,
- * and a board that says nothing of a pipeline is never in setup.
+ * and a board that says nothing of a pipeline is never in setup. Today's tokens count Flint's brain's runs of today, and the mark wakes
+ * the brain only on a forge that runs one and while it neither starts nor runs.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -20,8 +21,9 @@ import {
   FIXTURE_ASSISTANT_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
-import { pipelineBoardStateOf } from '../testing/PipelineFixture.ts';
-import { headerModelOf }        from './HeaderModel.ts';
+import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain } from '../testing/FlintBrainFixture.ts';
+import { pipelineBoardStateOf }                                  from '../testing/PipelineFixture.ts';
+import { headerModelOf }                                         from './HeaderModel.ts';
 
 describe('the Overseer state and its controls', () => {
   test('serving offers Pause and Stop, and no Restart without new code', () => {
@@ -251,5 +253,35 @@ describe('concurrency, usage and the statistics', () => {
   test('a usage limit hit whose reset does not parse reads without a reset time', () => {
     expect(headerModelOf(boardStateFixture({ usage: { resetsAt: 'soon', window: 'seven_day' } }), FIXTURE_NOW, 'live').statusDetails[0])
       .toBe('week usage limit hit');
+  });
+});
+
+describe('Flint\'s brain', () => {
+  test('today\'s tokens count the brain\'s runs that ended today and the one still running, never an earlier day\'s', () => {
+    const runs = [
+      { startedAt: '2026-10-28T09:00:00Z', endedAt: '2026-10-28T09:02:00Z', tokens: 9000 },
+      { startedAt: '2026-10-29T09:00:00Z', endedAt: '2026-10-29T09:02:00Z', tokens: 500 },
+      { startedAt: '2026-10-29T11:58:00Z', endedAt: null, tokens: 1000 },
+    ];
+    const model = headerModelOf(boardStateFixture({ flintBrain: { reading: OFF_FLINT_BRAIN, runs } }), FIXTURE_NOW, 'live');
+    expect(model.statistics.find((statistic) => statistic.label === 'tokens today')?.figure).toBe('6k');
+  });
+
+  test('the mark wakes the brain while it is off, ended or refused, and not while it starts or runs or on a forge without it', () => {
+    const wakesFor = (flintBrain: BoardStateDocument['flintBrain']): boolean => headerModelOf(
+      boardStateFixture(flintBrain === undefined ? {} : { flintBrain }),
+      FIXTURE_NOW,
+      'live',
+    ).flintBrainWakes;
+    const facts = (reading: NonNullable<BoardStateDocument['flintBrain']>['reading']) => ({ reading, runs: [] });
+    expect([
+      wakesFor(facts(OFF_FLINT_BRAIN)),
+      wakesFor(facts(exampleFlintBrain({ state: 'ended' }))),
+      wakesFor(facts(exampleFlintBrain({ state: 'refused' }))),
+      wakesFor(facts(exampleFlintBrain({ state: 'starting' }))),
+      wakesFor(facts(runningFlintBrain('2026-10-29T11:59:00Z', '2026-10-29T12:01:00Z'))),
+      wakesFor(facts(null)),
+      wakesFor(undefined),
+    ]).toEqual([true, true, true, false, false, false, false]);
   });
 });

@@ -15,7 +15,9 @@
  * channel version is answered by nothing, a board control in a frame shows the Overseer's refusal verbatim and posts
  * `session-lost` when its session token answers 401, and a view that throws leaves the error banner, not a blank page. The board's no-
  * pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even
- * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view.
+ * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view. Flint's brain
+ * is wired through: a board whose brain runs gives Flint its director for the run's time left and a board where it ended takes it back,
+ * the mark's double click sends `flint-brain-start`, and the Agents tab shows the brain's card.
  */
 import {
   act,
@@ -42,6 +44,7 @@ import type { CommandOutcome, ControlCommandBody }                 from '../api/
 import type { EventStreamHandlers }                                from '../api/EventStreamClient.ts';
 import { exampleAgentJob }                                         from '../testing/BoardStateFixture.ts';
 import { exampleDetailBoard, exampleDetailTicket }                 from '../testing/DetailBoardFixture.ts';
+import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain }   from '../testing/FlintBrainFixture.ts';
 import { exampleIncidentBoard }                                    from '../testing/IncidentNoticeFixture.ts';
 import { createManualFlintFrames }                                 from '../testing/ManualFlintFrames.ts';
 import { pageStylesheets }                                         from '../testing/PageStylesheets.ts';
@@ -959,6 +962,60 @@ describe('the embed channel in a frame', () => {
     bridge.answerWith({ verdict: 'no-session' });
     await recordDeliveredByHand();
     expect(posted).toEqual([envelope({ kind: 'session-lost' })]);
+  });
+});
+
+describe('Flint\'s brain', () => {
+  test('a board whose brain runs gives Flint its director for the time left, and a board where it ended takes it back', async () => {
+    const bridge = fakeBridge();
+    const brainCalls: (number | 'stopped')[] = [];
+    const recordingFlint = (handle: FlintHandle | null): void => {
+      if (handle === null) return;
+      const { startBrain, stopBrain } = handle;
+      Object.assign(handle, {
+        startBrain: (director: Parameters<FlintHandle['startBrain']>[0], maximumMilliseconds: number) => {
+          brainCalls.push(maximumMilliseconds);
+          startBrain(director, maximumMilliseconds);
+        },
+        stopBrain: () => {
+          brainCalls.push('stopped');
+          stopBrain();
+        },
+      });
+    };
+    const services = { ...bridge.services, onFlintHandle: recordingFlint, flintBrainClient: { ask: () => Promise.resolve({ verdict: 'unreachable' as const }) } };
+    render(<BridgeApp services={services} />);
+    await act(async () => {
+      bridge.stream().onConnection('live');
+      bridge.stream().onEvent('board', { ...BOARD, flintBrain: { reading: runningFlintBrain('2026-10-29T19:59:30Z', '2026-10-29T20:01:30Z'), runs: [] } });
+      await Promise.resolve();
+    });
+    // Flint is made again once the board's identity gives it its storage, and the running brain goes to the new Flint.
+    expect([brainCalls.at(-1), brainCalls.filter((call) => call !== 90_000 && call !== 'stopped')]).toEqual([90_000, []]);
+    const callsWhileRunning = brainCalls.length;
+    await act(async () => {
+      bridge.stream().onEvent('board', { ...BOARD, flintBrain: { reading: exampleFlintBrain({ state: 'ended', endedReason: 'time' }), runs: [] } });
+      await Promise.resolve();
+    });
+    expect(brainCalls.slice(callsWhileRunning)).toEqual(['stopped']);
+  });
+
+  test('a double click on Forge\'s mark sends flint-brain-start, and the Agents tab shows the brain\'s card', async () => {
+    const bridge = fakeBridge();
+    window.location.hash = '#agents';
+    await renderedLive(bridge, { ...BOARD, flintBrain: { reading: OFF_FLINT_BRAIN, runs: [] } });
+    expect(screen.queryByRole('region', { name: 'Flint\'s brain' })).toBeNull();
+    await act(async () => {
+      fireEvent.doubleClick(screen.getByRole('img', { name: 'Forge' }));
+      await Promise.resolve();
+    });
+    expect(bridge.sent).toEqual([{ kind: 'flint-brain-start' }]);
+    await act(async () => {
+      bridge.stream().onEvent('board', { ...BOARD, flintBrain: { reading: exampleFlintBrain({ state: 'starting', startedBy: 'bridge' }), runs: [] } });
+      await Promise.resolve();
+    });
+    expect(screen.getByRole('region', { name: 'Flint\'s brain' }).textContent).toContain('Starting');
+    window.location.hash = '';
   });
 });
 
