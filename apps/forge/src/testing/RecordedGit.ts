@@ -251,8 +251,9 @@ export interface RecordedGit {
   enterScenario:          (scenario: string, values: ScenarioValues) => void;
   /**
    * Until the case ends or the next call of it, answers each call outside a played stage by the step of `answerSet` with its arguments, in
-   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names fails the case. A step
-   * with `directory` answers only a call asked there, and a step with `movesTo` hands the answering on to that set.
+   * any order and as often as asked, for a case whose passes decide how often git is asked. A call no step names is answered by the
+   * scenario entered, if any, and otherwise fails the case. A step with `directory` answers only a call asked there, and a step with
+   * `movesTo` hands the answering on to that set.
    */
   answerFrom:             (answerSet: RecordedGitStage) => void;
 }
@@ -425,6 +426,8 @@ function createStagePlayer(reportUnanswered: (unanswered: string) => void, initi
   };
   const setAnswer = (set: RecordedGitStage, directory: string, gitArguments: readonly string[]): GitRun => {
     const step = set.find((candidate) => (candidate.directory ?? directory) === directory && JSON.stringify(candidate.gitArguments) === JSON.stringify(gitArguments));
+    const scenarioAnswer = step === undefined && scenarioPosition !== null ? scenarioAnswerOf(scenarioPosition, directory, gitArguments) : null;
+    if (scenarioAnswer !== null) return scenarioAnswer;
     if (step === undefined) throw unansweredError(directory, gitArguments, 'the answer set names no such call');
     answeredFlowCalls.push(gitArguments);
     if (step.movesTo !== undefined) answerSet = step.movesTo;

@@ -1,7 +1,8 @@
 /**
  * The git steps of one merge in its slot worktree (design section 6.3), as verdicts: the one merge-in against the recorded target tip,
- * the restore to the recorded branch tip an abort or a requeue starts from, V10 on a resolution and the resolution's size. Also the merge
- * of the target into a ticket's worktree before its review, run by a process of its own and settled here.
+ * the restore to the recorded branch tip an abort or a requeue starts from, V10 on a resolution, V5, V17 and V13 on a project tracker's
+ * resolution, and the resolution's size. Also the merge of the target into a ticket's worktree before its review, run by a process of its
+ * own and settled here.
  */
 import { readMergeResolutionDiff } from '../../lib/git/BranchDiffs.ts';
 import {
@@ -11,12 +12,17 @@ import {
   type MergeOutcome,
   type TipRestoreOutcome
 } from '../../lib/git/BranchMerge.ts';
-import { GitProcess }                     from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                   from '../../lib/git/GitWorktrees.ts';
-import { NOT_AN_ANCESTOR_EXIT_CODE }      from '../../lib/git/constants/GitConventions.ts';
-import type { Job, Airlock }              from '../../lib/tracker-model/@types/Job.ts';
-import type { VerificationRefusalReason } from './Customs.ts';
-import { CUSTOMS_CHECKS }                 from './Customs.ts';
+import { GitProcess }                from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }              from '../../lib/git/GitWorktrees.ts';
+import { NOT_AN_ANCESTOR_EXIT_CODE } from '../../lib/git/constants/GitConventions.ts';
+import type { Job, Airlock }         from '../../lib/tracker-model/@types/Job.ts';
+import type {
+  CustomsSubject,
+  ProjectScope,
+  VerificationCheck,
+  VerificationRefusalReason
+} from './Customs.ts';
+import { CHECKS_OF_ROLE, CUSTOMS_CHECKS } from './Customs.ts';
 
 /** The commit the slot worktree starts from, its merge's first parent, and the one merged into it, its second. */
 export interface MergeSides {
@@ -96,9 +102,8 @@ function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): T
   return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} did not commit; HEAD is ${headCommit ?? 'unreadable'}.` };
 }
 
-/** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
-function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): boolean {
-  return CUSTOMS_CHECKS.V10({
+function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): CustomsSubject {
+  return {
     role:             'airlock-agent',
     worktreePath,
     startCommit:      sides.startTip,
@@ -106,7 +111,36 @@ function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, co
     ticketBody:       '',
     bodyHashAtLaunch: '',
     merge:            { branchTip: sides.startTip, targetTip: sides.mergedTip, conflictedFiles },
-  }).verdict === 'passed';
+  };
+}
+
+/** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
+function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): boolean {
+  return CUSTOMS_CHECKS.V10(resolutionSubjectOf(worktreePath, sides, conflictedFiles)).verdict === 'passed';
+}
+
+/** What a project tracker's resolution adds to V10 from the Airlock agent's column; V14 cannot run, as no Airlock agent has a launch snapshot. */
+const RESOLUTION_SCOPE_CHECKS: readonly VerificationCheck[] = ['V5', 'V17', 'V13'];
+
+export type ResolutionScopeVerdict = { verdict: 'in-scope' } | { verdict: 'refused'; reason: VerificationRefusalReason; facts: readonly string[] };
+
+/**
+ * V5, V17 and V13 on a resolution of a tracker in a project folder: the data folders, the project's folder and its reach, and the agent
+ * configuration, each judged on what the resolution changed against git's automatic merge. A tracker at the root asks git nothing here.
+ */
+function resolutionScopeVerdictOf(
+  worktreePath: string,
+  sides: Readonly<MergeSides>,
+  conflictedFiles: readonly string[],
+  projectScope: Readonly<ProjectScope>
+): ResolutionScopeVerdict {
+  if (projectScope.projectPrefix === '') return { verdict: 'in-scope' };
+  const subject = { ...resolutionSubjectOf(worktreePath, sides, conflictedFiles), projectScope };
+  for (const check of CHECKS_OF_ROLE['airlock-agent'].filter((columnCheck) => RESOLUTION_SCOPE_CHECKS.includes(columnCheck))) {
+    const verdict = CUSTOMS_CHECKS[check](subject);
+    if (verdict.verdict === 'refused') return verdict;
+  }
+  return { verdict: 'in-scope' };
 }
 
 /** A claim the conflict re-reviewer could not make hold: the Airlock cannot ask User for a waiver, so either one refuses the merge. */
@@ -153,6 +187,7 @@ export const MergeRun = Object.freeze({
   reReviewVerdictOf,
   resolutionIsSound,
   resolutionLinesOf,
+  resolutionScopeVerdictOf,
   restoreBranchTip,
   settleTargetMerge,
   sidesOf,

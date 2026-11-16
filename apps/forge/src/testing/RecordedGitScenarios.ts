@@ -30,6 +30,7 @@ export const GIT_SCENARIOS = {
   TARGET_HISTORY_MERGED:                'a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer',
   RESOLUTION_CHANGES_CHECKED_FILES:     'a branch at <branch tip> merging <target tip> at <head>, the resolution adding package.json and data, the merge with a trailer',
   CONFLICT_RESOLVED_ELSEWHERE:          'a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target',
+  CONFLICT_RESOLVED_WITH_AGENT_CONFIG:  'a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json',
   COMMIT_AFTER_TARGET_HISTORY:          'a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>',
   PACKAGE_JSON_COMMITTED:               'a branch built from <start>, package.json committed at <head>',
   PACKAGE_JSON_THEN_PYPROJECT:          'a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>',

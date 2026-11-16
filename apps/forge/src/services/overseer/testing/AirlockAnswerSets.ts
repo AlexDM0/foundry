@@ -8,6 +8,7 @@ import {
   ancestryAsked,
   commitResolved,
   currentBranchRead,
+  hardResetTo,
   mergedIn,
   mergeInAborted,
   mergePredicted,
@@ -53,6 +54,26 @@ function beforeTheMergeIn(ticketId: string, conflicts: boolean): RecordedGitStep
 
 /** A merge-in stopped on its conflict, aborted and reset to the ticket's branch tip. */
 const abortedMergeIn = mergeInAborted(MAIN_TIP, TICKET_TIP);
+
+/** What V10 asks of the resolution the Airlock agent committed as `MERGED_TIP`: nothing unmerged, a clean check and the recorded parents. */
+const soundResolution: RecordedGitStage = [
+  { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
+  {
+    gitArguments: ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${MAIN_TIP}`],
+    answeredAs:   GIT_CALL_SHAPES.MERGE_IN_RANGE,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP },
+  },
+  { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET },
+  {
+    gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', CONFLICTED_FILE],
+    answeredAs:   GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION,
+  },
+  {
+    gitArguments: ['rev-list', '--parents', '-n', '1', MERGED_TIP],
+    answeredAs:   GIT_CALL_SHAPES.PARENTS_OF_THE_MERGE,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP, [RECORDED_PLACEHOLDERS.FIRST_TIP]: TICKET_TIP, [RECORDED_PLACEHOLDERS.SECOND_TIP]: MAIN_TIP },
+  },
+];
 
 /** More planted ids, for a main line or a branch that moves while a case runs. */
 export const MOVED_AIRLOCK_IDS = {
@@ -228,22 +249,7 @@ export const AirlockAnswerSets = {
 
   /** The Airlock agent committed its resolution as `MERGED_TIP`; the checks pass and the main line fast-forwards to it. */
   resolvedAndMerged: (): RecordedGitStage => [
-    { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
-    {
-      gitArguments: ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${MAIN_TIP}`],
-      answeredAs:   GIT_CALL_SHAPES.MERGE_IN_RANGE,
-      filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP },
-    },
-    { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET },
-    {
-      gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', CONFLICTED_FILE],
-      answeredAs:   GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION,
-    },
-    {
-      gitArguments: ['rev-list', '--parents', '-n', '1', MERGED_TIP],
-      answeredAs:   GIT_CALL_SHAPES.PARENTS_OF_THE_MERGE,
-      filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP, [RECORDED_PLACEHOLDERS.FIRST_TIP]: TICKET_TIP, [RECORDED_PLACEHOLDERS.SECOND_TIP]: MAIN_TIP },
-    },
+    ...soundResolution,
     treeRead('HEAD', MERGED_TREE),
     treeRead(TICKET_TIP, TICKET_TREE),
     commitResolved('HEAD', MERGED_TIP),
@@ -256,6 +262,13 @@ export const AirlockAnswerSets = {
       filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: CONFLICTED_FILE },
     },
     { gitArguments: ['merge', '--ff-only', '--quiet', MERGED_TIP], answeredAs: GIT_CALL_SHAPES.FAST_FORWARD_TO_A_COMMIT },
+  ],
+
+  /** The resolution passes V10 and is refused after it: with no merge in progress, the worktree is only reset to the branch tip. */
+  soundResolutionRefused: (): RecordedGitStage => [
+    ...soundResolution,
+    revisionMissing('MERGE_HEAD'),
+    ...hardResetTo(TICKET_TIP),
   ],
 
   /**

@@ -224,6 +224,19 @@ function mergedTargetIn(
   return { '<branch tip>': branchTip, '<target tip>': targetTip };
 }
 
+/** target.ts changed on the branch and on a target that also adds package.json; the conflict resolved, `stageBeside` run before its commit. */
+function conflictOnTargetResolved({ directory, startCommit }: BuiltRepository, stageBeside: () => void = () => undefined): Record<string, string> {
+  const branchTip = commitFile(directory, 'target.ts', 'export const target = \'branch\';\n');
+  gitOutputIn(directory, ['checkout', '-q', '-b', 'example-target', startCommit]);
+  commitFile(directory, 'package.json', '{ "name": "example-target" }\n');
+  const targetTip = commitFile(directory, 'target.ts', 'export const target = \'target\';\n');
+  gitOutputIn(directory, ['checkout', '-q', '-']);
+  expect(GitProcess.run(directory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target'])?.exitCode).not.toBe(0);
+  stageBeside();
+  commitFile(directory, 'target.ts', 'export const target = \'resolved\';\n');
+  return { '<branch tip>': branchTip, '<target tip>': targetTip };
+}
+
 function packageJsonAndDataStaged(directory: string): void {
   writeFileSync(join(directory, 'package.json'), '{ "scripts": { "verify": "true" } }\n');
   gitOutputIn(directory, ['add', '--', 'package.json']);
@@ -283,16 +296,11 @@ const VERIFICATION_PLANTS: readonly (readonly [string, (built: BuiltRepository) 
     () => packageJsonAndDataStaged(built.directory),
     `Merge the example target${ATTRIBUTION_TRAILER}`,
   )],
-  [GIT_SCENARIOS.CONFLICT_RESOLVED_ELSEWHERE, ({ directory, startCommit }) => {
-    const branchTip = commitFile(directory, 'target.ts', 'export const target = \'branch\';\n');
-    gitOutputIn(directory, ['checkout', '-q', '-b', 'example-target', startCommit]);
-    commitFile(directory, 'package.json', '{ "name": "example-target" }\n');
-    const targetTip = commitFile(directory, 'target.ts', 'export const target = \'target\';\n');
-    gitOutputIn(directory, ['checkout', '-q', '-']);
-    expect(GitProcess.run(directory, ['merge', '-q', '--no-ff', '--no-commit', 'example-target'])?.exitCode).not.toBe(0);
-    commitFile(directory, 'target.ts', 'export const target = \'resolved\';\n');
-    return { '<branch tip>': branchTip, '<target tip>': targetTip };
-  }],
+  [GIT_SCENARIOS.CONFLICT_RESOLVED_ELSEWHERE, (built) => conflictOnTargetResolved(built)],
+  [GIT_SCENARIOS.CONFLICT_RESOLVED_WITH_AGENT_CONFIG, (built) => conflictOnTargetResolved(built, () => {
+    writeFileIn(built.directory, 'apps/example/.claude/settings.json', '{}\n');
+    gitOutputIn(built.directory, ['add', '--', 'apps/example/.claude/settings.json']);
+  })],
   [GIT_SCENARIOS.COMMIT_AFTER_TARGET_HISTORY, (built) => {
     const merge = mergedTargetIn(built, () => plantTargetHistory(built.directory));
     writeFileSync(join(built.directory, 'package.json'), '{ "scripts": { "verify": "true" } }\n');

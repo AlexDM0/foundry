@@ -67,6 +67,11 @@ export interface AirlocksContext {
    * sibling's journaled landing requeues a slot silently, and a held main line waits only for the paths its fast-forward changes.
    */
   sharedRepository?:      SharedRepositoryLanding;
+  /**
+   * `ProjectLocation.projectPrefix`, present for a tracker in a project folder of its repository only: a conflict resolution is also held
+   * to the data folders, the project's folder and its reach, and the agent configuration.
+   */
+  projectPrefix?:         string;
   mainLine:               string;
   branchNames:            BranchNames;
   /** Where the group worktrees and the refresh worktrees live, beside the ticket worktrees. */
@@ -732,8 +737,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red
-   * one resumes the same session and a pass ends it `resolved`. A sound resolution that changed more lines than the merge train's re-review
-   * threshold goes to a conflict re-reviewer first.
+   * one resumes the same session and a pass ends it `resolved`. A resolution V10 refuses, or, for a tracker in a project folder, V5, V17 or
+   * V13 on the report of a resolution or of a red gate's fix, refuses the merge. A sound resolution that changed more lines than the merge
+   * train's re-review threshold goes to a conflict re-reviewer first.
    */
   async function settleAirlockAgent(job: Readonly<Job>, agent: Readonly<Job>, history: AirlockAgentHistory): Promise<boolean> {
     const reading = context.mergeAgentReadingOf(agent);
@@ -761,6 +767,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
       return true;
     }
+    if (await refusedOutsideProjectScope(job, worktree, resolvedFileList, `The resolution of job ${agent.id}`)) return true;
     const reReview = slotOf(job).phase === 'resolving' ? await context.hold((hold) => hold.board.pipeline()?.airlock?.reReview ?? null) : null;
     // Fail closed: a resolution whose size git cannot tell is re-reviewed.
     const resolutionLines = reReview === null ? null : context.resolutionLinesOf(worktree);
@@ -777,6 +784,20 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return true;
   }
 
+  /**
+   * For a tracker in a project folder, V5, V17 and V13 on every commit since the branch tip, so a red gate's fix and a re-reviewer's fix are
+   * judged with the resolution; a refusal refuses the merge. A tracker at its repository's root asks nothing here, as it always did.
+   */
+  async function refusedOutsideProjectScope(job: Readonly<Job>, worktree: string, resolvedFiles: readonly string[], refusedWork: string): Promise<boolean> {
+    const { projectPrefix } = context;
+    if (projectPrefix === undefined || projectPrefix === '') return false;
+    const reach = await context.hold((hold) => hold.board.pipeline()?.reach ?? []);
+    const verdict = MergeRun.resolutionScopeVerdictOf(worktree, MergeRun.sidesOf(job, slotOf(job)), resolvedFiles, { projectPrefix, reach });
+    if (verdict.verdict === 'in-scope') return false;
+    await refuseMerge(job, verdict.reason, `${refusedWork} was refused: ${verdict.reason} ${verdict.facts.join(', ')}`.trim());
+    return true;
+  }
+
   /** The commit the conflict re-reviewer started from: the resolution its merge job's resolver ended on. */
   function resolutionCommitOf(board: Board, job: Readonly<Job>): string {
     const resolverJobIds = new Set<string>();
@@ -790,7 +811,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * A re-review whose report holds goes on to the gate of the merged tree, its agent waiting through it as a resolver does, so a red gate
-   * resumes it; an invalid report, a moved history or a claim that still does not hold refuses the merge.
+   * resumes it; an invalid report, a moved history, a claim that still does not hold or, for a tracker in a project folder, a fix V5, V17 or
+   * V13 refuses, refuses the merge.
    */
   async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
     const worktree = slotWorktreeOf(job);
@@ -806,6 +828,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.reReviewFailed, `${reviewText}\n\nDoes not hold: ${verdict.acceptanceItems.join(', ')}`.trim());
       return true;
     }
+    if (await refusedOutsideProjectScope(job, worktree, [], `The conflict re-review of job ${agent.id}`)) return true;
     await context.hold((hold) => {
       hold.board.moveJob(agent.id, 'gating', hold.at);
       setPhase(hold, job, 'gating');

@@ -1155,6 +1155,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   const airlocks = createAirlocks({
     ...(sharedRepository === null ? {} : { sharedRepository }),
+    ...(projectLocation.projectPrefix === '' ? {} : { projectPrefix: projectLocation.projectPrefix }),
     repositoryRoot: projectLocation.repositoryRoot,
     mainLine:       request.mainLine,
     branchNames:    request.branchNames,

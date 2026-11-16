@@ -20,6 +20,7 @@ import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtur
 import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
 import { createPlantedRepository }            from '../../../testing/RecordedAirlockGit.ts';
 import { removeScratchDirectory }             from '../../../testing/ScratchWorkspace.ts';
+import type { ProjectScope }                  from '../../lifecycle/Customs.ts';
 import type { SharedRepositoryLanding }       from '../../lifecycle/Landing.ts';
 import {
   createAirlocks,
@@ -113,7 +114,8 @@ function plantedTipOf(branch: string): string {
  * The harness on folders with no git: every ticket's branch stands at `RECORDED_AIRLOCK_IDS.TICKET_TIP` with the tree `TICKET_TREE`, the
  * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
  * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set;
- * `besideSiblings` makes the tracker one in a project folder of the repository, whose landings it shares with its siblings.
+ * `besideSiblings` makes the tracker one in a project folder of the repository, whose landings it shares with its siblings, and
+ * `projectScope` gives the Airlocks that folder and the pipeline its reach, so a conflict resolution is held to them.
  */
 export function createRecordedAirlocksHarness(
   tickets: readonly HarnessTicket[],
@@ -121,6 +123,7 @@ export function createRecordedAirlocksHarness(
   hasReviewPhase = true,
   airlock: PipelineAirlock | null = null,
   besideSiblings = false,
+  projectScope: ProjectScope | null = null,
 ): AirlocksHarness {
   const repository = createPlantedRepository('airlocks');
   const sharedRepository: SharedRepositoryLanding | null = besideSiblings ? {
@@ -144,6 +147,7 @@ export function createRecordedAirlocksHarness(
       phases:  { build: [], review: [], merge: [] },
       ...hasReviewPhase ? { review: { name: 'Review' } } : {},
       ...airlock === null ? {} : { airlock },
+      ...projectScope === null ? {} : { reach: [...projectScope.reach] },
     },
     tickets: tickets.map((ticket) => ({
       ...ticketFixture({
@@ -228,6 +232,7 @@ export function createRecordedAirlocksHarness(
     mainConstitutionOf:     () => settings.mainConstitution,
     repositorySignsCommits: () => settings.signsCommits,
     ...(sharedRepository === null ? {} : { sharedRepository }),
+    ...(projectScope === null ? {} : { projectPrefix: projectScope.projectPrefix }),
   });
   return {
     repository,
