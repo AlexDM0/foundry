@@ -4,7 +4,8 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-16, on branch `monorepo/integration`: P0 to P5 gated green, P6 under way. Merge bases: forge
+Status as of 2026-11-16, on branch `monorepo/integration`: P0 to P6 gated green, the fixes before the go gated green and P7
+rehearsed on a copy of the live tracker; P7 waits for the owner's go. Merge bases: forge
 `main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
 `monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
 after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
@@ -110,7 +111,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] The rehearsal's two open findings, processes listed with `ps` in a gate and the pipeline agent's turn-end check, moved to the
       backlog below.
 
-### P6. Docs close-out and the owner's review (Claude, then the owner) — under way
+### P6. Docs close-out and the owner's review (Claude, then the owner) — gated green, waiting for the owner's go
 
 - [x] DOC-root: the root `CLAUDE.md` names each app's rules, each package's README and the one constitution, the two trackers with
       their homes, namespaces, reach and gates, turbo as how everything verifies, and where worktrees and evidence live; the root
@@ -120,6 +121,14 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] DOC-forge: `apps/forge/CLAUDE.md` and forge's docs for what P3 to P5 changed.
 - [x] DOC-gaia: `apps/gaia/CLAUDE.md`, `docs/contracts.md`, `docs/backlog.md` and `docs/forge-requirements.md` for what P3 to P5
       changed.
+- [x] Gate P6: the common gate; the root tracker's golden replay unchanged.
+- [x] Fixes before the go, gated green with three forced verifies in a row: the suites list processes with `pgrep`, so they run
+      under a gate's Seatbelt; the pipeline agent's turn-end check is scoped like Customs; `pipeline.json` stays at version 2 unless it
+      holds a prepare folder, a gate folder from the root or a reach, and both versions read; a gate profile keeps a prepare step's
+      folder; each gate's cache report is kept in every phase; forge's docs index links the packages' READMEs; `namespace` passes over
+      the Assistant and the product owner, which work on no branch.
+- [x] P7 rehearsed end to end on a scratch clone with a copy of the live tracker: both trackers landed a ticket through gates that run
+      `test` and `test:dom`, and a planted false pass was refused at the merge.
 - [ ] The owner reviews `git log --oneline main..monorepo/integration` and the gate records, and gives the go for P7.
 
 ### P7. Land and operate (the owner's go) — not started
@@ -130,9 +139,9 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
 - [ ] Quiesce again (Claude).
 - [ ] Fast-forward `main` to `monorepo/integration`; install; verify (Claude).
 - [ ] The installed forge: a second clone outside the monorepo, its `setup.sh`, updated by pulling (owner).
-- [ ] Forge's tracker to `apps/forge/.forge`, namespace `forge`, `forge update`; remove what the root tracker installed at the root
-      (owner).
-- [ ] Before the gates below run `test` and `test:dom`: the backlog's item 1 (Claude).
+- [ ] Forge's tracker to `apps/forge/.forge`, `forge update`, then namespace `forge`; remove what the root tracker installed at the
+      root (owner).
+- [x] Before the gates below run `test` and `test:dom`: the suites list processes with `pgrep` (Claude).
 - [ ] Gates for forge's tracker, each with `--in /`: prepare `bun install --frozen-lockfile`; `gate add verify --in / --writes
       <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by /bun.lock -- bun run gate:forge`; the
       Overseer-only merge gate `cache:audit`; reach `/packages/*` that forge owns, `/package.json`, `/bun.lock`, `/turbo.json` (owner).
@@ -156,16 +165,8 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
 
 ## Backlog
 
-What a phase left undone, with the reason it waits:
-
-1. **No test suite of either app runs under a gate's Seatbelt** (rehearsal finding 1): the profile cannot start the setuid `/bin/ps`,
-   and Gaia's leak check and forge's spec helpers that look for processes list them with it. One ticket per app: list processes
-   another way (`pgrep` runs under the profile), or skip through the tool guard with a counted reason. It waits for each app's own
-   rules and tracker, and it blocks P7's gates from running `test` and `test:dom`.
-2. **The pipeline agent's turn-end check** (`PipelineAgentSessions` `refMovesAllowedFor`) still watches every ref, not only a
-   namespaced tracker's own and the journaled landings (rehearsal finding 2), so a sibling tracker's landing can end a pipeline
-   agent's turn. A forge change for forge's tracker; it waits because the pipeline agent runs only on `pipeline setup`, `pipeline
-   update` and `advise`, which the owner starts.
+What a phase left undone, with the reason it waits: nothing. The P5 rehearsal's two findings, the suites under a gate's Seatbelt and
+the pipeline agent's turn-end check, are fixed before the go.
 
 ## Decisions
 
@@ -190,6 +191,9 @@ Still open:
    changes are the owner's, or the rules move to a path agents may change.
 3. `CodeVersion` hashes the whole root `bun.lock`, so a dependency Gaia adds shows forge's Overseer newer code: hash only forge's part,
    or word the notice.
+4. Install version 29 asks every board, also in other projects, to run `forge update` once: the builder's and reviewer's briefs name
+   the ticket branch through the namespace. On a board without a namespace the branch they name is unchanged, but forge's one exact
+   manifest per board, and an older forge that would drive a namespaced board on bare branches, keep the bump.
 
 ## Forge requirements, apart from the merge
 
