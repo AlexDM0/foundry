@@ -36,7 +36,6 @@ const ALLOWED_LITERALS: readonly LiteralFinding[] = [
   // The header's wordmark is the brand the designs fix, not a command, so it keeps its name in a build beside the released program.
   { path: 'bridge/shell/Header.tsx', literal: 'forge' },
   // The monitor snapshot's activity category for the forge's own entries: a fixed value of the monitor contract, never the program's name.
-  { path: 'src/shared/monitor/@types/MonitorSnapshot.ts', literal: 'forge' },
   { path: 'src/services/overseer/MonitorSnapshotAssembly.ts', literal: 'forge' },
 ];
 

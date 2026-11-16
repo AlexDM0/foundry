@@ -1,10 +1,11 @@
 /**
- * Control contract 1, which a monitor such as Gaia reads `contracts.control` for: the seven kinds, each body and each answer. What matters:
- * the list of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`; every applied kind answers 200 `{controlVersion: 1, outcome,
+ * Control contract 1, which a monitor reads `contracts.control` for: the seven kinds, each body and each answer. What matters: the list of
+ * kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommandOfVersionOne` and
+ * forge's own `ControlCommand`, which the typecheck holds; every applied kind answers 200 `{controlVersion: 1, outcome,
  * result}` with the outcome `done` or `nothing-to-do`; a body of a contract kind with a field of the wrong type, or none, answers 400 and
  * writes nothing, also where the applier would not check the field; a refused command answers 409 and the install hold 423, each
- * `{controlVersion: 1, refusal, text}` with the refusal's code and its sentence. A change here raises `contracts.control` in
- * `src/shared/constants/OverseerApiContracts.ts`.
+ * `{controlVersion: 1, refusal, text}` with the refusal's code and its sentence. A change here raises `contracts.control` in the
+ * `forge-contracts` package and in `src/shared/constants/OverseerApiContracts.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -14,11 +15,13 @@ import {
   expect,
   test
 } from 'bun:test';
+import type { ForgeControlCommandOfVersionOne } from 'forge-contracts/ForgeControlCommand';
 
 import { MachineLimitsFile }                              from '../../../src/adapters/machine-limits/MachineLimitsFile.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS }               from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { CONTROL_COMMAND_KINDS }                          from '../../../src/services/control/ControlService.ts';
 import { requireWorkspace }                               from '../../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }                          from '../../../src/shared/@types/ControlCommand.ts';
 import { CONTROL_CONTRACT_KINDS }                         from '../../../src/shared/constants/OverseerApiContracts.ts';
 import { useRecordedGit }                                 from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                         from '../../../src/testing/ScratchWorkspace.ts';
@@ -31,8 +34,13 @@ import { answerControlCommand, type CommandRouteRequest } from './CommandRoute.t
 const FROZEN_NOW = new Date('2026-11-12T10:00:00+01:00');
 const MACHINE_AGENT_CEILING = 4;
 
+type ContractKind = (typeof CONTROL_CONTRACT_KINDS)[number];
+
+/** A body of the kind as the package and as forge both spell it, so a change to either side's shape fails the typecheck. */
+type ContractBody<Kind extends ContractKind> = Extract<ForgeControlCommandOfVersionOne, { kind: Kind }> & ControlCommandOf<Kind>;
+
 /** Each kind of control contract 1, its body as a monitor sends it, and the outcomes its answer may carry. */
-const CONTRACT_BODIES: Readonly<Record<(typeof CONTROL_CONTRACT_KINDS)[number], { body: Record<string, unknown>; outcomes: readonly string[] }>> = {
+const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommandOfVersionOne['kind']]: { body: ContractBody<Kind>; outcomes: readonly string[] } } = {
   'overseer-pause':          { body: { kind: 'overseer-pause' }, outcomes: ['done', 'nothing-to-do'] },
   'overseer-resume':         { body: { kind: 'overseer-resume' }, outcomes: ['done', 'nothing-to-do'] },
   'overseer-stop':           { body: { kind: 'overseer-stop', now: false }, outcomes: ['done'] },

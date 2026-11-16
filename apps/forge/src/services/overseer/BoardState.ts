@@ -1,8 +1,10 @@
 /**
  * The Overseer's `BoardState` document, `GET /api/state` and the `board` event: the `status --json` document plus the page's islands,
- * every job with its live facts, the notices, the merge queue, the Overseer and usage, all from one reading Board. agent-dashboard's
- * subset, `summaryVersion: 1`, is derived from it.
+ * every job with its live facts, the notices, the merge queue, the Overseer and usage, all from one reading Board. The open summary,
+ * `summaryVersion: 1`, is derived from it.
  */
+import type { BoardSummaryDocument } from 'forge-contracts/BoardSummaryDocument';
+
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
 import type { Decision }                                                                      from '../../lib/tracker-model/@types/Decision.ts';
@@ -198,7 +200,8 @@ export interface EndedJob {
   endedAt:   string;
 }
 
-export interface BoardSummary {
+/** The package's `BoardSummaryDocument`, with every key forge sends. */
+export interface BoardSummary extends BoardSummaryDocument {
   summaryVersion:      typeof SERVED_CONTRACT_VERSIONS.summary;
   project:             string;
   overseer:            { state: OverseerRuntimeState; paused: boolean; url: string | null };

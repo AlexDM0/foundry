@@ -1,24 +1,40 @@
 /**
  * `GET /api/monitor` and each `monitor` event of `GET /api/monitor/events`: what a monitor outside the board needs, and no ticket body,
- * transcript or draft text. `monitorVersion` is the version of the shape. Every sentence in it is worded by the forge.
+ * transcript or draft text. `monitorVersion` is the version of the shape. Every sentence in it is worded by the forge. Each document
+ * extends the one `forge-contracts` publishes, so a key or a value the package's readers check cannot drift from what forge sends.
  */
+import type {
+  MonitorActivityCategory,
+  MonitorActivityEntryDocument,
+  MonitorAttentionActionLabel,
+  MonitorAttentionEntryDocument,
+  MonitorAttentionKind,
+  MonitorAttentionStampWord,
+  MonitorJobDocument,
+  MonitorJobTurn as MonitorJobTurnDocument,
+  MonitorNoticeDocument,
+  MonitorOverseerState as MonitorOverseerStateDocument,
+  MonitorSnapshotDocument,
+  MonitorUsageDocument
+} from 'forge-contracts/MonitorSnapshotDocument';
+
 import type { SERVED_CONTRACT_VERSIONS } from '../../constants/OverseerApiContracts.ts';
 
-export type MonitorOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton';
+export type MonitorOverseerState = MonitorOverseerStateDocument;
 
-export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
+export type AttentionKind = MonitorAttentionKind;
 
-export type AttentionStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed';
+export type AttentionStampWord = MonitorAttentionStampWord;
 
-export type AttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
+export type AttentionActionLabel = MonitorAttentionActionLabel;
 
-export type ActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
+export type ActivityCategory = MonitorActivityCategory;
 
 /** Whether a message sent now reaches the session between turns or waits behind the turn under way. */
-export type MonitorJobTurn = 'between-turns' | 'mid-turn';
+export type MonitorJobTurn = MonitorJobTurnDocument;
 
 /** One thing that waits on User: the Bridge's Waiting on User list holds the same entries. */
-export interface MonitorAttentionEntry {
+export interface MonitorAttentionEntry extends MonitorAttentionEntryDocument {
   /** `decision:E3`, `ticket:009`, `draft:D2`, `merge-accept:005`. */
   readonly key:                     string;
   readonly kind:                    AttentionKind;
@@ -42,7 +58,7 @@ export interface MonitorAttentionEntry {
   readonly route:                   string;
 }
 
-export interface MonitorJob {
+export interface MonitorJob extends MonitorJobDocument {
   readonly id:                  string;
   readonly kind:                string;
   readonly role:                string | null;
@@ -72,7 +88,7 @@ export interface MonitorJob {
   readonly route:               string;
 }
 
-export interface MonitorActivityEntry {
+export interface MonitorActivityEntry extends MonitorActivityEntryDocument {
   /** The record's index in the board's log, from 0. */
   readonly logPosition: number;
   readonly at:          string;
@@ -81,7 +97,7 @@ export interface MonitorActivityEntry {
   readonly route:       string | null;
 }
 
-export interface MonitorNotice {
+export interface MonitorNotice extends MonitorNoticeDocument {
   readonly kind: string;
   readonly text: string;
 }
@@ -89,12 +105,12 @@ export interface MonitorNotice {
 /** Every warning the header can show: a failed Baton pass, and an Assistant that cannot come up. */
 export type MonitorWarningKind = 'baton-pass-failed' | 'assistant-down';
 
-export interface MonitorWarning {
+export interface MonitorWarning extends MonitorNoticeDocument {
   readonly kind: MonitorWarningKind;
   readonly text: string;
 }
 
-export interface MonitorUsage {
+export interface MonitorUsage extends MonitorUsageDocument {
   /** The usage limit hit, from the machine's usage marker; both `null` when no limit was hit. */
   readonly resetsAt:              string | null;
   readonly window:                string | null;
@@ -103,7 +119,7 @@ export interface MonitorUsage {
   readonly currentWindowResetsAt: string | null;
 }
 
-export interface MonitorSnapshot {
+export interface MonitorSnapshot extends MonitorSnapshotDocument {
   readonly monitorVersion: typeof SERVED_CONTRACT_VERSIONS.monitor;
   readonly trackerId:      string;
   readonly project:        string;
