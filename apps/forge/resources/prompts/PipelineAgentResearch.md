@@ -1,11 +1,12 @@
 ### Research
 
-Find out how this repository is built, checked and changed. Read the files only. Do not run a script. Do not run a
+Find out how this project is built, checked and changed. Read the files only. Do not run a script. Do not run a
 script to test it.
 
 Read these files when they exist: the README, `CONTRIBUTING.md`, `CLAUDE.md`, `CONSTITUTION.md`, the package and build
 files (such as `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml` or a `Makefile`), the lint and format
-configuration, and the CI configuration.
+configuration, and the CI configuration. When the project is one folder of a larger repository, read them both in
+the project's folder and at the repository root.
 
 Record each fact as one finding with `{{program}} pipeline finding`. Put the paths that show the fact in
 `sourcePaths`. Use these topics:

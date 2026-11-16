@@ -1,9 +1,11 @@
 /**
  * `namespace` over a scratch tracker, git answered from the recorded branch lists. What matters: a board with none reads as bare names
  * and its progress file holds no key; a name is stored, logged once and printed with the branch names it gives; a name that is not one,
- * a branch named as the program, and a branch left under the board's bare names are refused at exit 1 with every file as it was.
+ * a branch named as the program, a branch left under the board's bare names, and a namespace another tracker of the repository lists are
+ * refused at exit 1 with every file as it was; a name taken lists the board in the repository's tracker list.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { join }                                from 'node:path';
 
 import {
   afterEach,
@@ -12,8 +14,10 @@ import {
   test
 } from 'bun:test';
 
-import { workspacePathsFor } from '../../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }     from '../../../src/shared/constants/ProductNames.ts';
+import { RepositoryLandings }      from '../../../src/lib/git/RepositoryLandings.ts';
+import { repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
+import { workspacePathsFor }       from '../../../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -105,6 +109,32 @@ describeWhenGitIsRecorded('the namespace command', () => {
     expect([blocked.exitCode, leftBehind.exitCode]).toEqual([1, 1]);
     expect(blocked.context.errorText()).toContain(`The branch ${PROGRAM} leaves git no room for branches named ${PROGRAM}/web/ticket-<id>`);
     expect(leftBehind.context.errorText()).toContain('The board\'s branches ticket-003 are under its current names');
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('a name taken lists the board, at the repository root, in the repository\'s tracker list', async () => {
+    const set = await recordedGit.playStage(branchListOf('main'), async () => runWithExitCode(['namespace', 'web']));
+    const list = repositoryTrackerListOf(repositoryDirectory);
+
+    expect(set.exitCode, set.context.errorText()).toBe(0);
+    expect(list === null ? null : RepositoryLandings.readTrackerList(list.files)).toEqual({
+      verdict:  'readable',
+      trackers: [{ trackerId: (JSON.parse(storedFiles()[0] ?? '{}') as { trackerId: string }).trackerId, prefix: '', branchNamespace: 'web' }],
+    });
+  });
+
+  test('a namespace another tracker of the repository lists is refused before git is asked, with every file as it was', async () => {
+    const list = repositoryTrackerListOf(repositoryDirectory);
+    if (list === null) throw new Error('the scratch repository keeps no list');
+    mkdirSync(join(repositoryDirectory, 'apps', 'gaia', PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
+    mkdirSync(join(list.files.trackerListFilePath, '..'), { recursive: true });
+    RepositoryLandings.writeTrackerEntry(list.files, { trackerId: 'tracker-example-gaia', prefix: 'apps/gaia', branchNamespace: 'gaia' });
+    const before = storedFiles();
+
+    const refused = await runWithExitCode(['namespace', 'gaia']);
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain('The namespace gaia is the tracker\'s in the folder apps/gaia of');
     expect(storedFiles()).toEqual(before);
   });
 });

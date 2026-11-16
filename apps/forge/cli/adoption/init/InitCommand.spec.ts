@@ -199,7 +199,7 @@ describeWhenGitIsRecorded('initialising a repository', () => {
       const repositoryDirectory = scratchRepository();
       const { exitCode, context } = await runIn(repositoryDirectory, ['init', retiredFlag], [COMMON_FOLDER_AT_THE_ROOT]);
       expect(exitCode, retiredFlag).toBe(1);
-      expect(context.errorText(), retiredFlag).toContain(`${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] [--no-hooks]`);
+      expect(context.errorText(), retiredFlag).toContain(`${PRODUCT_NAMES.PROGRAM} init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks]`);
       expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER)), retiredFlag).toBe(false);
     }
   });

@@ -4,7 +4,7 @@ import { DEFAULT_CONCURRENCY_LIMIT_AGENTS } from './constants/ConcurrencyLimits.
 import { FIRST_TASK_ID }                    from './constants/TaskIds.ts';
 
 /** `trackerId` comes from the caller, because the model has no randomness. */
-export function emptyProgressFor(input: { project: string; startedAt: string; trackerId: string }): TrackerProgress {
+export function emptyProgressFor(input: { project: string; startedAt: string; trackerId: string; branchNamespace?: string }): TrackerProgress {
   return {
     trackerId:        input.trackerId,
     project:          input.project,
@@ -13,5 +13,6 @@ export function emptyProgressFor(input: { project: string; startedAt: string; tr
     nextTaskId:       FIRST_TASK_ID,
     concurrencyLimit: DEFAULT_CONCURRENCY_LIMIT_AGENTS,
     tasks:            [],
+    ...(input.branchNamespace === undefined ? {} : { branchNamespace: input.branchNamespace }),
   };
 }

@@ -8,10 +8,12 @@ import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from '.
 import type { Workspace }                                                from './Workspace.ts';
 
 export interface NewTracker {
-  project:   string;
-  startedAt: string;
+  project:          string;
+  startedAt:        string;
   /** The page's localStorage namespace; the caller supplies it, so this module has no randomness to fake in a spec. */
-  trackerId: string;
+  trackerId:        string;
+  /** Absent for a tracker whose branches keep their bare names. */
+  branchNamespace?: string;
 }
 
 export type TrackerCreation = { verdict: 'created' } | { verdict: 'already-exists' };

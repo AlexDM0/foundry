@@ -40,20 +40,28 @@ never carries it.
   init                        Create the tracker here: \`${PRODUCT_NAMES.DATA_FOLDER}/\` with an empty progress
       [--project <name>]      file and log and a \`tickets/\` folder, and \`.gitignore\` entries for it
       [--root <path>]         and for \`${PRODUCT_NAMES.WORKTREES_FOLDER}/\`, before any worktree can exist. Beside the
-      [--no-hooks] [--json]   tracker go \`session-instructions.md\` (written first, its presence marking
-                              the install), \`reference.md\` (the ticket format, the moves and the exit
+      [--namespace <name>]    tracker go \`session-instructions.md\` (written first, its presence marking
+      [--no-hooks] [--json]   the install), \`reference.md\` (the ticket format, the moves and the exit
                               codes) and \`assistant-brief.md\`, the role prompt the Overseer fills for
                               its Assistant; the SessionStart hook \`hook session-start\` goes into
                               \`.claude/settings.local.json\`, and two skills into \`.claude/skills/\`:
                               ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a ticket loads, and
                               ${PRODUCT_NAMES.ORCHESTRATE_SKILL}, for the session running the board, which loads
                               ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for intake. It never writes CLAUDE.md. Refused when an
-                              ancestor already holds a tracker, when --root is not an existing
-                              directory, and inside a bare repository, which has no working tree to
-                              track. Re-running only refreshes what \`update\` refreshes, and
-                              \`update\` is the command to reach for there. --project names the project shown
-                              on the page, --root tracks that directory instead of the discovered
-                              repository root, and --no-hooks touches no settings file. --json
+                              ancestor already holds a tracker, when a tracker the repository's
+                              tracker list names sits above or below the directory, when --root is
+                              not an existing directory, and inside a bare repository, which has no
+                              working tree to track. Re-running only refreshes what \`update\`
+                              refreshes, and \`update\` is the command to reach for there. --project
+                              names the project shown on the page, and --no-hooks touches no
+                              settings file. Without --root it tracks the root of the repository's
+                              main checkout and, run from elsewhere, says it chose that; --root
+                              tracks that directory instead. A tracker in a folder of its repository
+                              needs --namespace, which sets its branch namespace as \`namespace\`
+                              does and is refused when another tracker of the repository lists it or
+                              a branch leaves it no room; such a tracker, and any with a namespace,
+                              is written into the repository's tracker list in the git directory, so
+                              a later \`init\` above or below it is refused. --json
                               prints {answerVersion, outcome, trackerId, project, root}, the
                               outcome \`created\` or, for a tracker that was there, \`refreshed\`.
 
@@ -146,8 +154,9 @@ never carries it.
   hook session-start          Print \`session-instructions.md\` for the session Claude Code is
                               starting: \`init\` and \`update\` wire it as the SessionStart hook in
                               \`.claude/settings.local.json\`, which a job's sessions never load. It
-                              prints nothing under a job, skips the install version check, and
-                              exits 0 whatever happens, printing nothing on failure.
+                              prints nothing under a job or where no tracker governs (the root of a
+                              repository whose trackers sit in folders of it), skips the install
+                              version check, and exits 0 whatever happens, printing nothing on failure.
 
   hook bash-domains           Keep a job's network inside its ticket's \`network\` line: the
       --allow <domains>       PreToolUse guard an Overseer renders into a job's settings. It denies,
@@ -158,7 +167,7 @@ never carries it.
                               It skips the install-version check, runs under a job, and exits 0
                               whatever happens, answering deny on any failure.
 
-  usage [--since <when>]      What this repository's subagents cost, read out of the transcripts the
+  usage [--since <when>]      What this project's subagents cost, read out of the transcripts the
       [--transcripts <folder>]
       [--json]                harness wrote for them, a workflow's agents under
                               \`subagents/workflows/<run>/\` included: one row per agent, oldest
@@ -556,8 +565,9 @@ never carries it.
                               dashes. Refused at exit 1 with nothing written while an Overseer
                               serves the board, a job is on it, a branch is left under its current
                               names, a branch blocks the new names, or the namespace holds another
-                              board's branches. One log line. --json prints {branchNamespace}, null
-                              for bare names.
+                              board's branches or another tracker of the repository lists it. The
+                              board's entry in the repository's tracker list follows the name. One
+                              log line. --json prints {branchNamespace}, null for bare names.
 
   open [--no-browser]         Open the live Overseer's URL in the default browser and print it. With
                               no live Baton it first starts the Overseer detached, as

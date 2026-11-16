@@ -1,7 +1,8 @@
 ## Progress tracking with {{program}}
 
 This repository tracks its work with the `{{program}}` CLI. The tracker lives in the git-ignored `{{dataFolder}}/`
-folder at the repository root and is shared by every worktree of it. An Overseer, started with `{{program}} oversee`,
+folder of the project's folder, the repository root or the one folder of the repository the tracker governs, and is
+shared by every worktree of it. An Overseer, started with `{{program}} oversee`,
 drives every ticket through its build, review and merge; no session drives the board by hand.
 
 - Run `{{program}} status --json` at the start of a session to find out what is in flight: its `jobs`, the

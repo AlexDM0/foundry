@@ -1,10 +1,10 @@
 ### Constitution
 
-Write the constitution of this repository. The constitution is one markdown document. The builder, the reviewer and
+Write the constitution of this project. The constitution is one markdown document. The builder, the reviewer and
 the re-reviewer read it before they start to work on a ticket. Apply commits it to the main line as
-`CONSTITUTION.md`.
+`CONSTITUTION.md` in the project's folder.
 
-- Write only rules about this repository: its structure, its conventions, its tests and its code style. Do not write
+- Write only rules about this project: its structure, its conventions, its tests and its code style. Do not write
   a rule about how {{program}} works, for example who fixes a red gate or when a review starts.
 - Use the sources that the SOURCES ticks of the setup record select: `CONTRIBUTING.md`, your research findings and
   the installed default constitution.

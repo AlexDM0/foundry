@@ -1,11 +1,14 @@
 /**
  * `namespace [<name>]` prints the board's branch namespace, or sets it while the board is idle: no Overseer serving it, no job on it and
- * no branch left under its current names, since every one of those would go on under the old names.
+ * no branch left under its current names, since every one of those would go on under the old names. A namespace another tracker of the
+ * repository lists is refused, and the board's own entry in that list follows the name it takes.
  */
 import { GitProcess }                                                      from '../../../src/lib/git/GitProcess.ts';
 import { readingBoardOf }                                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { Baton }                                                           from '../../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                 from '../../../src/services/overseer/OverseerFiles.ts';
+import { projectLocationOf }                                               from '../../../src/services/tracker/ProjectLocation.ts';
+import { listTracker, readListedTrackers, repositoryTrackerListOf }        from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import type { TrackerChange }                                              from '../../../src/services/tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                             from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                                                from '../../../src/services/tracker/Workspace.ts';
@@ -60,6 +63,35 @@ function refuseWhileAnOverseerServes(context: CommandContext): void {
   throw new OperationRefusal('refused', { kind: 'overseer-already-running', url: newest.record.url, batonFilePath });
 }
 
+function refuseANamespaceAnotherTrackerLists(context: CommandContext, wantedNamespace: string): void {
+  const workspace = requireWorkspace(context.currentDirectory);
+  const list      = repositoryTrackerListOf(workspace.rootDirectory);
+  if (list === null) return;
+  const reading = readListedTrackers(list);
+  if (reading.verdict !== 'readable') {
+    throw new OperationRefusal('refused', `The repository's tracker list ${list.files.trackerListFilePath} could not be read, so the namespace could be `
+      + 'another tracker\'s. Nothing was written.');
+  }
+  const { trackerId } = requireProgressFile(workspace);
+  const holder = reading.trackers.find((tracker) => tracker.trackerId !== trackerId && tracker.branchNamespace === wantedNamespace);
+  if (holder === undefined) return;
+  throw new OperationRefusal('refused', `The namespace ${wantedNamespace} is the tracker's in ${holder.prefix === '' ? 'the repository root' : `the folder ${holder.prefix}`} `
+    + `of ${list.repositoryRoot}; choose another name. Nothing was written.`);
+}
+
+/** After the namespace is stored; a list that could not be written is said on standard error, since the board already took the name. */
+async function listTheBoard(context: CommandContext, branchNamespace: string): Promise<void> {
+  const workspace = requireWorkspace(context.currentDirectory);
+  const list      = repositoryTrackerListOf(workspace.rootDirectory);
+  if (list === null) return;
+  const { trackerId } = requireProgressFile(workspace);
+  const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
+  const listing = await listTracker(list, tracker, context.now, context.platformPorts.processSupervision.processIsGone);
+  if (listing.verdict === 'not-listed') {
+    context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${listing.reason}); another tracker could take this namespace.`);
+  }
+}
+
 /** In the hold, so no job starts between the check and the write. */
 function setNamespace(change: TrackerChange, wantedNamespace: string) {
   const { board } = change;
@@ -91,7 +123,9 @@ export const namespaceCommand: CommandHandler = async (commandArguments, context
     );
   }
   refuseWhileAnOverseerServes(context);
+  refuseANamespaceAnotherTrackerLists(context, wantedNamespace);
   const { logged } = await openTrackerForWriting(commandArguments, context, (change) => setNamespace(change, wantedNamespace));
+  await listTheBoard(context, wantedNamespace);
   const sentence = `${OutputUtil.loggedSentencesOf(logged)}: the board's ticket branches are ${ticketBranchExampleOf(wantedNamespace)}.`;
   OutputUtil.printEntity(commandArguments, context, { branchNamespace: wantedNamespace }, sentence);
 };

@@ -38,12 +38,13 @@ export interface SubagentTranscript {
 }
 
 /**
- * `<config>/projects/` plus the repository root's absolute path with every character outside `[a-zA-Z0-9]` replaced by `-`, so every
- * worktree resolves to one folder. The caller supplies the config folder (`claudeConfigFolderOf`), since the package reads nothing from the
- * process.
+ * `<config>/projects/` plus the absolute path of the folder sessions start in, every character outside `[a-zA-Z0-9]` replaced by `-`. Claude
+ * Code keeps one such folder per start folder, so each worktree has its own; a session found by its id is searched across all of them
+ * (`findSessionSubagentTranscripts`). The caller supplies the config folder (`claudeConfigFolderOf`), since the package reads nothing from
+ * the process.
  */
-export function transcriptFolderFor(repositoryRoot: string, configFolder: string): string {
-  const slug = resolve(repositoryRoot).replace(CHARACTER_THE_SLUG_REPLACES, '-');
+export function transcriptFolderFor(sessionStartDirectory: string, configFolder: string): string {
+  const slug = resolve(sessionStartDirectory).replace(CHARACTER_THE_SLUG_REPLACES, '-');
   return join(configFolder, PROJECTS_DIRECTORY_NAME, slug);
 }
 

@@ -1,6 +1,7 @@
 /**
- * What every subagent of this repository cost, read from the harness's transcripts; `cli/measurement/hook/HookCommand.ts` records one agent as it
- * stops, this compares them all. Read-only, and finding no transcripts is one sentence at exit 0, not a refusal.
+ * What every subagent of this project cost, read from the harness's transcripts; `cli/measurement/hook/HookCommand.ts` records one agent as it
+ * stops, this compares them all. The transcripts are those of sessions started in the project's folder, where the orchestrator starts, which
+ * is the repository root only for a tracker there. Read-only, and finding no transcripts is one sentence at exit 0, not a refusal.
  */
 import { listSubagentTranscripts, transcriptFolderFor } from '../../../src/lib/claude-code/ClaudeTranscripts.ts';
 import type { CohortSummary }                           from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
