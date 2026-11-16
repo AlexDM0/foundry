@@ -5,6 +5,7 @@
  * page title's parts with the view.
  */
 import { Card }                                 from 'design-system/Card';
+import { DataTable, type DataTableColumn }      from 'design-system/DataTable';
 import { EmptyState }                           from 'design-system/EmptyState';
 import { FillMeter }                            from 'design-system/FillMeter';
 import { SectionHead }                          from 'design-system/SectionHead';
@@ -13,7 +14,6 @@ import { Stamp }                                from 'design-system/Stamp';
 import { StateDot }                             from 'design-system/StateDot';
 import type { StateTone }                       from 'design-system/StateTone';
 import { Text }                                 from 'design-system/Text';
-import { DataTable, type DataTableColumn }      from 'design-system-contributions/DataTable';
 import {
   type FocusEvent,
   type KeyboardEvent,

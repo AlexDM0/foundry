@@ -3,7 +3,7 @@
  * sentence Gaia's server answered for it, unedited here, then a compact "Try again" when the command can be sent again, and a named dismiss
  * button. Never a red button. It is an alert, so it is read out when it appears.
  */
-import { FailedAction } from 'design-system-contributions/FailedAction';
+import { FailedAction } from 'design-system/FailedAction';
 
 /** `gaia` when Gaia itself refused or nothing answered, so the refusal never blames a forge that was not asked. */
 export type RefusedBy = 'forge' | 'gaia';

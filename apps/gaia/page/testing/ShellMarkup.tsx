@@ -2,7 +2,7 @@
  * Test-only: reads the shell's server-rendered markup by Gaia's own elements. The page title area holds the package's page head, which a
  * spec compares whole against the page head drawn for the props the shell hands it, so no spec reads the markup the package draws.
  */
-import { PageHead }             from 'design-system-contributions/PageHead';
+import { PageHead }             from 'design-system/PageHead';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { FleetDocument }       from '../@types/FleetDocument.ts';

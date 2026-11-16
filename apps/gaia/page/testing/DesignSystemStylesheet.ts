@@ -1,8 +1,7 @@
 /**
- * Test-only: the packages' stylesheets and fonts for a page a browser opens from a file, where no bundler runs. The entry stylesheets, the
- * design-system package's and then the contributions package's, as the page links them, come with their imports inlined; the fonts come
- * as the `@font-face` rules the font loader stands in for, each file inlined as a `data:` address, since a file page may not load a font
- * from another file.
+ * Test-only: the design-system package's stylesheet and fonts for a page a browser opens from a file, where no bundler runs. The entry
+ * stylesheet, as the page links it, comes with its imports inlined; the fonts come as the `@font-face` rules the font loader stands in
+ * for, each file inlined as a `data:` address, since a file page may not load a font from another file.
  */
 import { readFileSync } from 'node:fs';
 
@@ -10,8 +9,8 @@ import { type FontFaceFactory, loadDesignSystemFonts } from 'design-system/FontL
 
 import { PackageStylesheet } from './PackageStylesheet.ts';
 
-/** The packages' entry stylesheets in the order `page/index.html` links them. */
-const ENTRY_STYLESHEET_EXPORTS = ['design-system/design-system.css', 'design-system-contributions/design-system-contributions.css'];
+/** The package's entry stylesheet as `page/index.html` links it. */
+const ENTRY_STYLESHEET_EXPORTS = ['design-system/design-system.css'];
 
 const FONT_FILE_SOURCE = /^url\("([^"]+)"\) format\("woff2"\)$/;
 

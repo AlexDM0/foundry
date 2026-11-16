@@ -64,7 +64,7 @@ the root's.
     `page/design-system/` holds only the parts no package has (Gaia's mark, the brand bar, the brain chip, the callout and the like)
     and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
     a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
-    `page/testing/ReactElementTree.ts`, which keeps every component the design-system packages' exports maps name folded: a spec reads and calls the
+    `page/testing/ReactElementTree.ts`, which keeps every component the design-system package's exports map names folded: a spec reads and calls the
     props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
     Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a
     spec renders a hooked root with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does, and
@@ -75,13 +75,11 @@ the root's.
     dependency at `workspace:^`, so the root's `bun install` hoists it with the one React every workspace shares. Import each entry by its
     export name (`design-system/Button`, `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no
     export, is the one exception. `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts,
-    which the page build emits and Gaia's server serves under their hashed names. The parts Gaia built for
-    the package (the text field, the checkbox, the figure, the page head, the data table, the theme button, the failed action and the
-    pending step) live in `packages/design-system-contributions`, staged to move into it under its constitution: Gaia depends on that
-    package with `workspace:^`, imports each part by its export name and passes every word in, and `page/index.html` links its stylesheet
-    after the design-system package's and before Gaia's own. Forge's mark comes from the workspace package `brand` (`packages/brand/`),
-    a dependency at `workspace:^` with a version of its own that names no Gaia: the mark by its export name (`brand/ForgeMark`), its
-    stylesheet `brand/brand.css` linked after the contributions package's and before Gaia's own. Gaia's mark is Gaia's
+    which the page build emits and Gaia's server serves under their hashed names. The parts Gaia built for the package (the text field,
+    the checkbox, the figure, the page head, the data table, the theme button, the failed action and the pending step) are the package's
+    own, and Gaia passes every word in. Forge's mark comes from the workspace package `brand` (`packages/brand/`), a dependency at
+    `workspace:^` with a version of its own that names no Gaia: the mark by its export name (`brand/ForgeMark`), its stylesheet
+    `brand/brand.css` linked after the design-system package's and before Gaia's own. Gaia's mark is Gaia's
     (`page/design-system/GaiaMark.tsx`), drawn on the brand's `MarkGeometry`; the splash, which links no `gaia.css`, carries its rules.
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;

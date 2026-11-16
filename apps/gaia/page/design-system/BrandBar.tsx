@@ -5,9 +5,9 @@
  * The theme button's name says the current choice and the next, as "Theme: auto. Switch to light".
  */
 import { StateBadge }       from 'design-system/StateBadge';
-import type { ThemeChoice } from 'design-system-contributions/ThemeChoice';
-import { ThemeCycleButton } from 'design-system-contributions/ThemeCycleButton';
-import { ThemeCycleUtil }   from 'design-system-contributions/ThemeCycleUtil';
+import type { ThemeChoice } from 'design-system/ThemeChoice';
+import { ThemeCycleButton } from 'design-system/ThemeCycleButton';
+import { ThemeCycleUtil }   from 'design-system/ThemeCycleUtil';
 import { GaiaMark }         from './GaiaMark.tsx';
 
 const HOME_HREF = '#attention';

@@ -6,7 +6,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 import { Dialog }                 from 'design-system/Dialog';
-import { TextField }              from 'design-system-contributions/TextField';
+import { TextField }              from 'design-system/TextField';
 
 import type { CommandAnswerDocument }                                     from '../../@types/CommandDocument.ts';
 import type { CommandStates }                                             from '../../api/CommandSender.ts';

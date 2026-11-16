@@ -1,9 +1,9 @@
 /**
- * Test-only: reads the rows Gaia hands the design-system contributions' data table, kept folded. Each row stands as an element of its own,
+ * Test-only: reads the rows Gaia hands the design-system package's data table, kept folded. Each row stands as an element of its own,
  * `DataTableRow`, with the flags Gaia gave it as its props and, as its children, a `DataTableCell` per column in the table's order and a
  * `DataTableBelow` for what it holds under its cells, each holding that content unfolded; none of it is markup the table draws.
  */
-import { DataTable }      from 'design-system-contributions/DataTable';
+import { DataTable }      from 'design-system/DataTable';
 import type { ReactNode } from 'react';
 
 import { type HostElement, ReactElementTree, type RenderedNode } from './ReactElementTree.ts';

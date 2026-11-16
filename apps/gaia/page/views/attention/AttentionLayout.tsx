@@ -8,15 +8,15 @@ import { Banner }      from 'design-system/Banner';
 import { Button }      from 'design-system/Button';
 import { Card }        from 'design-system/Card';
 import { EmptyState }  from 'design-system/EmptyState';
+import { Figure }      from 'design-system/Figure';
 import { MonoId }      from 'design-system/MonoId';
+import { PendingStep } from 'design-system/PendingStep';
 import { Row }         from 'design-system/Row';
 import { SectionHead } from 'design-system/SectionHead';
 import { Stamp }       from 'design-system/Stamp';
 import { Tag }         from 'design-system/Tag';
 import { Text }        from 'design-system/Text';
 import { TextButton }  from 'design-system/TextButton';
-import { Figure }      from 'design-system-contributions/Figure';
-import { PendingStep } from 'design-system-contributions/PendingStep';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';

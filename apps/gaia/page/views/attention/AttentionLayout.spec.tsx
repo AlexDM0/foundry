@@ -14,11 +14,11 @@ import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
 import { EmptyState }             from 'design-system/EmptyState';
+import { Figure }                 from 'design-system/Figure';
 import { MonoId }                 from 'design-system/MonoId';
+import { PendingStep }            from 'design-system/PendingStep';
 import { Tag }                    from 'design-system/Tag';
 import { TextButton }             from 'design-system/TextButton';
-import { Figure }                 from 'design-system-contributions/Figure';
-import { PendingStep }            from 'design-system-contributions/PendingStep';
 
 import type { CommandAnswerDocument }                   from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                           from '../../@types/FleetDocument.ts';

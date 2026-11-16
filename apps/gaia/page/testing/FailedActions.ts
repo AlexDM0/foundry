@@ -1,5 +1,5 @@
-/** Test-only: reads the design-system contributions' failed action, kept folded, by the words and handlers Gaia's refusal hands it. */
-import { FailedAction } from 'design-system-contributions/FailedAction';
+/** Test-only: reads the design-system package's failed action, kept folded, by the words and handlers Gaia's refusal hands it. */
+import { FailedAction } from 'design-system/FailedAction';
 
 import { type HostElement, ReactElementTree, type RenderedNode } from './ReactElementTree.ts';
 

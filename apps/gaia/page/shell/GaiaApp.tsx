@@ -6,7 +6,7 @@
  * disabled fieldset disables every button and field of the shell and the view, so a view's control needs no word of the stream; a link, as
  * every rail row is, still navigates.
  */
-import { PageHead }       from 'design-system-contributions/PageHead';
+import { PageHead }       from 'design-system/PageHead';
 import {
   useEffect,
   useLayoutEffect,

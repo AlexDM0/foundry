@@ -15,11 +15,11 @@
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
+import { DataTable }               from 'design-system/DataTable';
 import { FillMeter }               from 'design-system/FillMeter';
 import type { NumberStepperProps } from 'design-system/NumberStepper';
+import { PendingStep }             from 'design-system/PendingStep';
 import { SlotMeter }               from 'design-system/SlotMeter';
-import { DataTable }               from 'design-system-contributions/DataTable';
-import { PendingStep }             from 'design-system-contributions/PendingStep';
 
 import type {
   CommandAnswerDocument,

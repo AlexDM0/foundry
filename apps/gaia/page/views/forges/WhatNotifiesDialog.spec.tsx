@@ -5,8 +5,8 @@
  */
 import { describe, expect, test } from 'bun:test';
 import { Card }                   from 'design-system/Card';
+import { Checkbox }               from 'design-system/Checkbox';
 import { Dialog }                 from 'design-system/Dialog';
-import { Checkbox }               from 'design-system-contributions/Checkbox';
 
 import type { CommandStates }                                  from '../../api/CommandSender.ts';
 import { senderOver }                                          from '../../testing/CommandServer.ts';

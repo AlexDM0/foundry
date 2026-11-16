@@ -13,11 +13,11 @@ import {
 } from 'bun:test';
 import { Button }        from 'design-system/Button';
 import { Card }          from 'design-system/Card';
+import { Checkbox }      from 'design-system/Checkbox';
 import { CountBadge }    from 'design-system/CountBadge';
 import { Dialog }        from 'design-system/Dialog';
 import { NumberStepper } from 'design-system/NumberStepper';
 import { Tooltip }       from 'design-system/Tooltip';
-import { Checkbox }      from 'design-system-contributions/Checkbox';
 import {
   createElement,
   forwardRef,

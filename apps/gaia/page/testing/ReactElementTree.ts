@@ -1,6 +1,6 @@
 /**
  * Test-only: unfolds what a hook-free component returns into its host elements, the tags and props React would hand the DOM, so a spec can
- * read the markup and call a handler without a document. Every component the design-system packages export stays folded, so a spec reads
+ * read the markup and call a handler without a document. Every component the design-system package exports stays folded, so a spec reads
  * the props Gaia hands a package part and never the markup the package draws. A component that uses a hook, or an element type it does not
  * know, fails loudly.
  */
@@ -23,8 +23,8 @@ export type RenderedNode = HostElement | string;
 
 type ElementProps = Readonly<Record<string, unknown>> & { readonly children?: ReactNode };
 
-/** The packages whose components stay folded, whatever they draw inside and whichever hooks they hold. */
-const FOLDED_PACKAGE_NAMES = ['design-system', 'design-system-contributions'] as const;
+/** The package whose components stay folded, whatever they draw inside and whichever hooks they hold. */
+const FOLDED_PACKAGE_NAMES = ['design-system'] as const;
 
 /** A package's components live in the `.tsx` modules its exports map names; its types, styles and utils do not. */
 const COMPONENT_MODULE = /\.tsx$/;
@@ -41,7 +41,7 @@ function componentsExportedBy(packageName: string): unknown[] {
     .filter((exported) => typeof exported === 'function');
 }
 
-/** Read from the packages' own exports maps on the first unfold, so a component the package adds stays folded with no list kept here. */
+/** Read from the package's own exports map on the first unfold, so a component the package adds stays folded with no list kept here. */
 function packageComponents(): ReadonlySet<unknown> {
   packageComponentsFound ??= new Set(FOLDED_PACKAGE_NAMES.flatMap(componentsExportedBy));
   return packageComponentsFound;

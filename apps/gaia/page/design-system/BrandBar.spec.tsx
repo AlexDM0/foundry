@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 import { StateBadge }             from 'design-system/StateBadge';
-import { ThemeCycleButton }       from 'design-system-contributions/ThemeCycleButton';
+import { ThemeCycleButton }       from 'design-system/ThemeCycleButton';
 
 import { ReactElementTree }                              from '../testing/ReactElementTree.ts';
 import { BrandBar, type BrandStatus, themeButtonNameOf } from './BrandBar.tsx';

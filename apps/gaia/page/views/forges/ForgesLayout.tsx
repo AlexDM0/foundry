@@ -8,14 +8,14 @@
 import { Button }                                             from 'design-system/Button';
 import { ChoiceInput, ChoiceOption }                          from 'design-system/ChoiceOption';
 import { CountBadge }                                         from 'design-system/CountBadge';
+import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system/DataTable';
 import { EmptyState }                                         from 'design-system/EmptyState';
 import { NumberStepper }                                      from 'design-system/NumberStepper';
+import { PendingStep }                                        from 'design-system/PendingStep';
 import { SectionHead }                                        from 'design-system/SectionHead';
 import { SlotMeter }                                          from 'design-system/SlotMeter';
 import { StatePill }                                          from 'design-system/StatePill';
 import { Text }                                               from 'design-system/Text';
-import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system-contributions/DataTable';
-import { PendingStep }                                        from 'design-system-contributions/PendingStep';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';

@@ -5,7 +5,7 @@
  * onDismiss. How the failed action draws them (an alert, the code in mono, a compact secondary button) is the package's to hold.
  */
 import { describe, expect, test } from 'bun:test';
-import { FailedAction }           from 'design-system-contributions/FailedAction';
+import { FailedAction }           from 'design-system/FailedAction';
 
 import { type HostElement, ReactElementTree } from '../testing/ReactElementTree.ts';
 import { Refusal, type RefusedBy }            from './Refusal.tsx';

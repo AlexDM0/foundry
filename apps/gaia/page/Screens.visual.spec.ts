@@ -21,11 +21,11 @@ import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
+import { DataTable }              from 'design-system/DataTable';
 import { SlotMeter }              from 'design-system/SlotMeter';
 import { Stamp }                  from 'design-system/Stamp';
 import { Tag }                    from 'design-system/Tag';
 import { Text }                   from 'design-system/Text';
-import { DataTable }              from 'design-system-contributions/DataTable';
 import { createElement }          from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 

@@ -6,11 +6,11 @@
  * The panel and the list are unfolded without a document, the package's dialog, switches and checkboxes folded.
  */
 import { describe, expect, test } from 'bun:test';
+import { Checkbox }               from 'design-system/Checkbox';
 import { Dialog }                 from 'design-system/Dialog';
 import { Switch }                 from 'design-system/Switch';
 import { Text }                   from 'design-system/Text';
 import { TextButton }             from 'design-system/TextButton';
-import { Checkbox }               from 'design-system-contributions/Checkbox';
 
 import type { CommandAnswerDocument }                            from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                    from '../../@types/FleetDocument.ts';

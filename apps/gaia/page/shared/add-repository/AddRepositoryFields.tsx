@@ -7,7 +7,7 @@
  * form keeps the result of each send it made and shows a refusal of those subjects only beside the button whose send it was.
  */
 import { Button }                      from 'design-system/Button';
-import { TextField }                   from 'design-system-contributions/TextField';
+import { TextField }                   from 'design-system/TextField';
 import { useEffect, useRef, useState } from 'react';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';

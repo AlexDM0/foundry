@@ -21,8 +21,8 @@ import { IconButton }             from 'design-system/IconButton';
 import { SegmentedControl }       from 'design-system/SegmentedControl';
 import { SlotMeter }              from 'design-system/SlotMeter';
 import { StateBadge }             from 'design-system/StateBadge';
-import { TextField }              from 'design-system-contributions/TextField';
-import { ThemeCycleButton }       from 'design-system-contributions/ThemeCycleButton';
+import { TextField }              from 'design-system/TextField';
+import { ThemeCycleButton }       from 'design-system/ThemeCycleButton';
 import type { ReactElement }      from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 

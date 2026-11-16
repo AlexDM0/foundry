@@ -6,7 +6,7 @@
  * server stood in for by authored answers; the commands behind the form's buttons are the shared form's own, proved beside it.
  */
 import { describe, expect, test } from 'bun:test';
-import { TextField }              from 'design-system-contributions/TextField';
+import { TextField }              from 'design-system/TextField';
 
 import type { CommandAnswerDocument }         from '../../@types/CommandDocument.ts';
 import type { CommandSender, CommandStates }  from '../../api/CommandSender.ts';
