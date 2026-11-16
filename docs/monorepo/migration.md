@@ -167,6 +167,8 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
       `apps/gaia`; the root tracker's frozen git calls unchanged and no client named in forge; a scratch forge from this tree and Gaia's
       server under one scratch `HOME` with `GAIA_PORT=0`: the forge answers `/api/versions` 1.1, Gaia reads it `current`, the monitor
       carries the brain, and Gaia's relayed start and stop run and end it on the fake agent, `startedBy` `api`.
+- [x] No rollback to forge 1.0 past a brain run: 1.1's `flint-brain-ended` log record is one a 1.0 forge cannot read, so a board
+      whose brain has run reads its log only on 1.1 or newer (forge's runbook, Updating).
 - [ ] B15 as forge 1.2, waiting for the owner's monorepo design.
 
 ## Backlog

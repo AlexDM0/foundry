@@ -581,6 +581,9 @@ forge oversee --detach
 newer than the program. Update the program in the forge checkout with `git pull` and `bun install`, then run
 `forge update` again in the tracked repository.
 
+**No rollback to forge 1.0 past a brain run:** forge 1.1 logs each ended run of Flint's brain as a `flint-brain-ended`
+record, which a forge 1.0 cannot read, so once a board's brain has run, that board's log reads only on forge 1.1 or newer.
+
 ## Cleaning up by hand
 
 The Overseer removes coordination files and never removes records of work: job folders, worktrees, branches and logs

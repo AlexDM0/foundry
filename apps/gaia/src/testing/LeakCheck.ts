@@ -1,14 +1,15 @@
 /**
  * What a test run leaves behind, found after its last spec: an entry in the run's scratch folder, its scratch home or its scratch temporary
- * folder, an entry put straight in the scratch root, a new line in the git status of Gaia's folder, a child process still running, and a Gaia
- * or forge path that appeared in the account's real home. A change inside a guarded home path that was already there is only a warning,
- * since a live Gaia or forge on the machine writes there too.
+ * folder, an entry put straight in the scratch root or in the scratch forges' link root, a new line in the git status of Gaia's folder,
+ * a child process still running, and a Gaia or forge path that appeared in the account's real home. A change inside a guarded home path
+ * that was already there is only a warning, since a live Gaia or forge on the machine writes there too.
  */
 import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
 
 import {
   runFolderPrefix,
+  scratchForgeLinkRoot,
   scratchHomeFolderName,
   scratchRoot,
   scratchTemporaryFolderName,
@@ -44,6 +45,8 @@ export interface RunStateReaders {
 
 export interface TestRunBaseline {
   readonly scratchRootEntries:       ReadonlySet<string>;
+  /** Null when the scratch forges' link root was absent before the run. */
+  readonly scratchForgeLinkEntries:  ReadonlySet<string> | null;
   readonly gitStatusLines:           ReadonlySet<string> | null;
   readonly childProcessIds:          ReadonlySet<number>;
   readonly realHomeDirectory:        string;
@@ -119,6 +122,7 @@ export function takeTestRunBaseline(realHomeDirectory: string, realTemporaryDire
   const gitStatusLines = readers.gitStatusLinesNow();
   return {
     scratchRootEntries:       new Set(entriesOf(scratchRoot())),
+    scratchForgeLinkEntries:  existsSync(scratchForgeLinkRoot()) ? new Set(entriesOf(scratchForgeLinkRoot())) : null,
     gitStatusLines:           gitStatusLines === null ? null : new Set(gitStatusLines),
     childProcessIds:          new Set((readers.childProcessesNow() ?? []).map(({ processId }) => processId)),
     realHomeDirectory,
@@ -142,15 +146,28 @@ export function runFolderLeaksOf(runFolder: string | null): string[] {
   return [...runFolderLeaks, ...scratchHomeLeaks, ...scratchTemporaryLeaks];
 }
 
+/** The link root a scratch forge made and did not remove, or each link folder in it that was not there before the run. */
+export function scratchForgeLinkLeaksOf(linkRoot: string, entriesBefore: ReadonlySet<string> | null): string[] {
+  if (!existsSync(linkRoot)) return [];
+  if (entriesBefore === null) return [`${linkRoot} was left by a scratch forge`];
+  return entriesOf(linkRoot)
+    .filter((entry) => !entriesBefore.has(entry))
+    .map((entry) => `${join(linkRoot, entry)} was left in the scratch forges' link root`);
+}
+
 function guardedPathsThatAppeared(baseline: TestRunBaseline, guardedHomeEntriesAfter: ReadonlyMap<string, string>): string[] {
   return GUARDED_REAL_HOME_PATHS.filter((guardedPath) => guardedHomeEntriesAfter.has(guardedPath) && !baseline.guardedHomeEntriesBefore.has(guardedPath));
 }
 
-/** After the run folder is removed: an entry put straight in the scratch root, a changed git status, a child still running, a new guarded home path. */
+/**
+ * After the run folder is removed: an entry put straight in the scratch root or the scratch forges' link root, a changed git status, a
+ * child still running, a new guarded home path.
+ */
 export function leaksAfterTheRunFolderWent(baseline: TestRunBaseline, readers: RunStateReaders): string[] {
   const scratchRootLeaks = entriesOf(scratchRoot())
     .filter((entry) => !entry.startsWith(runFolderPrefix()) && !baseline.scratchRootEntries.has(entry))
     .map((entry) => `${join(scratchRoot(), entry)} was left in the scratch root`);
+  const scratchForgeLinkLeaks = scratchForgeLinkLeaksOf(scratchForgeLinkRoot(), baseline.scratchForgeLinkEntries);
   const statusLinesAfter = baseline.gitStatusLines === null ? [] : readers.gitStatusLinesNow() ?? [];
   const repositoryLeaks  = statusLinesAfter
     .filter((line) => baseline.gitStatusLines !== null && !baseline.gitStatusLines.has(line))
@@ -160,7 +177,7 @@ export function leaksAfterTheRunFolderWent(baseline: TestRunBaseline, readers: R
     .map(({ processId, command }) => `process ${processId} (${command}) was still running`);
   const realHomeLeaks = guardedPathsThatAppeared(baseline, guardedHomeEntriesIn(baseline.realHomeDirectory))
     .map((guardedPath) => `${join(baseline.realHomeDirectory, guardedPath)} appeared in the real home folder`);
-  return [...scratchRootLeaks, ...repositoryLeaks, ...processLeaks, ...realHomeLeaks];
+  return [...scratchRootLeaks, ...scratchForgeLinkLeaks, ...repositoryLeaks, ...processLeaks, ...realHomeLeaks];
 }
 
 /** Each entry added, removed or changed inside a guarded home path that was there before the run; a newly appeared guarded path is a leak instead. */

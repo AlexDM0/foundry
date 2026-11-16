@@ -86,8 +86,9 @@ the root's.
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
     no shadow at rest; mono for machine values. Gaia draws no Flint and calls no model: the brain's only mark is the diamond, a brain counts
-    in no figure, limit or slot, and a forge that reports no brain shows none of its parts. `page/Screens.visual.spec.ts` paints every
-    artboard from `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the design's renders.
+    in no figure, limit or slot Gaia computes (a forge's own figure, such as its tokens today, is passed on as the forge reports it), and a
+    forge that reports no brain shows none of its parts. `page/Screens.visual.spec.ts` paints every artboard from
+    `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the design's renders.
 
 ## Map
 
@@ -144,8 +145,9 @@ stamped with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's
 `apps/forge/agent-progress.ts` or a scratch clone's for an older forge, through `src/testing/ScratchForge.ts`, under a scratch home in
 scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a tracker never reaches a board above the scratch root.
-The forge is handed that home through a short link under `/tmp`, since each Watcher's socket path below it must fit, and every agent it
-launches, Flint's brain's session included, is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
+The forge is handed that home through a short link under `/tmp/gaia-scratch-forges`, since each Watcher's socket path below it must fit
+(no folder below a worktree's scratch root keeps it short enough); the link goes with the scratch forge, the folder once it is empty, and
+the leak check names either left behind. Every agent it launches, Flint's brain's session included, is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
 ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and
 verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.

@@ -5,13 +5,14 @@
  * spec in a child `bun test` under the same preload, since the check judges a whole run and this run must stay clean. The child's real home
  * is this run's scratch home, so the real-home cases never reach the real one. Gaia shares its repository with forge, so the git status
  * it judges is its own folder's: a file a forge run leaves beside it is no leak of Gaia's, planted in a scratch repository of the same shape.
+ * A scratch forge's short home link lives outside the scratch root, so its link root is judged too; a scratch folder stands in for it.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
 import { describe, expect, test }   from 'bun:test';
 
-import { environmentCopy, homeDirectory } from '../services/Environment.ts';
-import { gitStatusLinesBelow }            from './LeakCheck.ts';
+import { environmentCopy, homeDirectory }               from '../services/Environment.ts';
+import { gitStatusLinesBelow, scratchForgeLinkLeaksOf } from './LeakCheck.ts';
 import {
   createScratchDirectory,
   pathLiesInsideScratchRoot,
@@ -164,5 +165,34 @@ describe('the git status the leak check judges', () => {
     } finally {
       removeScratchPath(repositoryFolder);
     }
+  });
+});
+
+describe('the scratch forges\' link root the leak check judges', () => {
+  test('names the link root when a scratch forge made it and left it', () => {
+    const linkRoot = createScratchDirectory('link-root');
+    try {
+      expect(scratchForgeLinkLeaksOf(linkRoot, null)).toEqual([`${linkRoot} was left by a scratch forge`]);
+    } finally {
+      removeScratchPath(linkRoot);
+    }
+  });
+
+  test('names each link folder left in a link root that was there before, and passes over the ones that were', () => {
+    const linkRoot = createScratchDirectory('link-root');
+    try {
+      mkdirSync(join(linkRoot, 'forge-before'));
+      mkdirSync(join(linkRoot, 'forge-left'));
+      expect(scratchForgeLinkLeaksOf(linkRoot, new Set(['forge-before'])))
+        .toEqual([`${join(linkRoot, 'forge-left')} was left in the scratch forges' link root`]);
+    } finally {
+      removeScratchPath(linkRoot);
+    }
+  });
+
+  test('finds no leak when the link root is gone', () => {
+    const linkRoot = createScratchDirectory('link-root');
+    removeScratchPath(linkRoot);
+    expect(scratchForgeLinkLeaksOf(linkRoot, null)).toEqual([]);
   });
 });

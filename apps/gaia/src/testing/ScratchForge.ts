@@ -9,7 +9,9 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  rmdirSync,
   rmSync,
   symlinkSync,
 } from 'node:fs';
@@ -23,7 +25,12 @@ import {
 } from '../lib/process-run/ProcessRun.ts';
 import { environmentCopy, forgeProgramToRecordFrom } from '../services/Environment.ts';
 
-import { createScratchDirectory, pathLiesInsideScratchRoot, removeScratchPath } from './ScratchRoot.ts';
+import {
+  createScratchDirectory,
+  pathLiesInsideScratchRoot,
+  removeScratchPath,
+  scratchForgeLinkRoot,
+} from './ScratchRoot.ts';
 
 /** One value a recording keeps in place of what this run drew: a scratch path, a tracker id, a port or a process id. */
 export interface ExampleValue {
@@ -69,11 +76,6 @@ const PROCESS_LIST_TIMEOUT_MILLISECONDS = 10_000;
 /** `pgrep`'s exit code when no process matches. */
 const NO_PROCESS_MATCHED_EXIT_CODE = 1;
 const MONITOR_FOLDER_NAME = '.forge-monitor';
-/**
- * The forge binds each Watcher's Unix socket below its home, and a socket path has a length limit no folder below the scratch root keeps
- * in a worktree: the forge is handed its home through a short link here, while the home itself stays below the scratch root.
- */
-const SHORT_HOME_LINK_ROOT = '/tmp/gaia-scratch-forges';
 const SHORT_HOME_LINK_NAME = 'home';
 const REGISTRY_FILE_NAME = 'projects.json';
 
@@ -108,11 +110,17 @@ export async function removeEachRepository(repositories: string[], stopAndRemove
   if (failures.length > 0) throw failures[0];
 }
 
+/** Removes one scratch forge's link folder, then the link root once no other scratch forge's link is left in it. */
+export function removeShortHomeLink(shortHomeLinkFolder: string, linkRoot: string): void {
+  rmSync(shortHomeLinkFolder, { recursive: true, force: true });
+  if (existsSync(linkRoot) && readdirSync(linkRoot).length === 0) rmdirSync(linkRoot);
+}
+
 export function createScratchForge(recordingName: string, options: ScratchForgeOptions = {}): ScratchForge {
   const program   = options.program ?? forgeProgramToRun(recordingName);
   const forgeHome = createScratchDirectory('forge-home');
-  mkdirSync(SHORT_HOME_LINK_ROOT, { recursive: true });
-  const shortHomeLinkFolder = mkdtempSync(join(SHORT_HOME_LINK_ROOT, 'forge-'));
+  mkdirSync(scratchForgeLinkRoot(), { recursive: true });
+  const shortHomeLinkFolder = mkdtempSync(join(scratchForgeLinkRoot(), 'forge-'));
   const shortForgeHome = join(shortHomeLinkFolder, SHORT_HOME_LINK_NAME);
   symlinkSync(forgeHome, shortForgeHome);
   const repositories: string[]   = [];
@@ -208,7 +216,7 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   async function remove(): Promise<void> {
     await removeEachRepository(repositories, stopAndRemoveRepository);
     removeScratchPath(forgeHome);
-    rmSync(shortHomeLinkFolder, { recursive: true, force: true });
+    removeShortHomeLink(shortHomeLinkFolder, scratchForgeLinkRoot());
   }
 
   return {

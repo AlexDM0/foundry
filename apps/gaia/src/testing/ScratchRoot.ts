@@ -20,6 +20,11 @@ const SCRATCH_ROOT_FOLDER_NAME = '.scratch';
 const RUN_FOLDER_PREFIX        = 'run-';
 const SCRATCH_HOME_FOLDER_NAME = 'home';
 const SCRATCH_TEMPORARY_FOLDER_NAME = 'temporary';
+/**
+ * The forge binds each Watcher's Unix socket below its home, and a socket path has a length limit no folder below the scratch root keeps
+ * in a worktree: a scratch forge is handed its home through a short link here, the one scratch location outside the root.
+ */
+const SCRATCH_FORGE_LINK_ROOT = '/tmp/gaia-scratch-forges';
 
 let currentRunFolder: string | null = null;
 
@@ -37,6 +42,10 @@ export function scratchHomeFolderName(): string {
 
 export function scratchTemporaryFolderName(): string {
   return SCRATCH_TEMPORARY_FOLDER_NAME;
+}
+
+export function scratchForgeLinkRoot(): string {
+  return SCRATCH_FORGE_LINK_ROOT;
 }
 
 export function pathLiesInsideScratchRoot(candidatePath: string): boolean {
