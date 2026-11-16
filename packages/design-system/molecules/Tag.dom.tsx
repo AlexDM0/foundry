@@ -1,6 +1,6 @@
 /**
  * The tag, in a happy-dom document. What matters: each tone sets `data-tone`, and the state tone shows only with the `state` tone, since the
- * other tones have colours of their own; dashed sets its attribute; a dot leads the text in the state tone's fill and its shape, and the
+ * other tones have colours of their own; dashed and chip set their attributes; a dot leads the text in the state tone's fill and its shape, and the
  * warning glyph leads it as an svg, both hidden from the accessibility tree so the tag reads as its text alone; each glyph draws its own
  * path; a busy tag shows a turning ring in the glyph's place; a change sets `data-change` and `pops` sets `data-pops`; `href` makes a
  * link, `onPress` a button that calls it, and neither a span; a glyph and busy, a dot without a state tone, the `state` tone without
@@ -43,6 +43,16 @@ describe('the tag', () => {
       ['Failed', 'error', null, false],
       ['Not counted', 'neutral', null, true],
     ]);
+  });
+
+  test('chip sets data-chip on a link, and a pill sets none', () => {
+    render(
+      <>
+        <Tag text="#14" tone="neutral" href="#items/14" chip />
+        <Tag text="#15" tone="neutral" href="#items/15" />
+      </>,
+    );
+    expect(['#14', '#15'].map((name) => screen.getByRole('link', { name }).hasAttribute('data-chip'))).toEqual([true, false]);
   });
 
   test('a dot leads the text in the state tone and shape given, hidden from the accessibility tree', () => {

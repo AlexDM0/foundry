@@ -1,5 +1,6 @@
 /* A 20px pill of text, never filled orange: quiet on the wash, a state's colours, orange (the link tint) for a warning, or the failure
-   colours; its edge dashed for a fact that is not counted. */
+   colours; its edge dashed for a fact that is not counted. A chip is 24px on the surface with a hairline edge and the small radius, its tone's
+   colours still its own. */
 .design-system-tag {
   display: inline-flex; flex: none; align-items: center; gap: var(--space-6);
   height: 20px; padding: 0 var(--space-8);
@@ -8,6 +9,7 @@
   color: var(--ink-muted); background: var(--wash);
   border: 1px solid transparent; border-radius: var(--r-pill);
 }
+.design-system-tag[data-chip] { height: 24px; background: var(--surface); border-color: var(--line); border-radius: var(--r-2); }
 .design-system-tag[data-tone="warn"] { font-weight: 600; color: var(--link); background: var(--link-tint); }
 .design-system-tag[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); }
 .design-system-tag[data-dashed] { border-style: dashed; border-color: var(--line-strong); }

@@ -2,7 +2,8 @@
  * A small tinted chip of text: a status, a warning, a quiet fact. Its tone picks its colours (neutral, a state tone's, warn or error),
  * dashed draws its edge dashed, and it leads with a state dot or a glyph, both hidden from the accessibility tree; while busy a turning ring
  * takes the glyph's place. A change colours it as changed, new or removed (removed struck through), and `pops` lets it pop in. With `href`
- * it is a link, with `onPress` a button, and otherwise plain text.
+ * it is a link, with `onPress` a button, and otherwise plain text. `chip` draws it as a 24px chip on the surface with a hairline edge rather
+ * than a pill, such as an item's link.
  */
 import type { StateDotShape, StateTone } from '../@types/StateTone.ts';
 
@@ -42,6 +43,8 @@ export type TagAction =
 export type TagProps = TagColours & TagLead & TagAction & {
   readonly text:    string;
   readonly dashed?: boolean;
+  /** A 24px chip on the surface with a hairline edge and the small radius, rather than the 20px pill. */
+  readonly chip?:   boolean;
   readonly change?: TagChange;
   /** Pops in when it first shows. */
   readonly pops?:   boolean;
@@ -49,13 +52,15 @@ export type TagProps = TagColours & TagLead & TagAction & {
 };
 
 export function Tag({
-  text, tone, stateTone, dot = false, dotShape = 'solid', dashed = false, glyph, busy = false, change, pops = false, href, onPress, title
+  text, tone, stateTone, dot = false, dotShape = 'solid', dashed = false, chip = false, glyph, busy = false, change, pops = false, href, onPress,
+  title
 }: TagProps) {
   const tagAttributes = {
     title,
     'data-tone':       tone,
     'data-state-tone': tone === 'state' ? stateTone : undefined,
     'data-dashed':     dashed ? '' : undefined,
+    'data-chip':       chip ? '' : undefined,
     'data-busy':       busy ? '' : undefined,
     'data-change':     change,
     'data-pops':       pops ? '' : undefined,

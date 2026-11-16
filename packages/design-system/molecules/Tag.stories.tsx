@@ -30,4 +30,5 @@ export const New: Story = { args: { change: 'new' } };
 export const Removed: Story = { args: { change: 'removed' } };
 export const Pops: Story = { args: { pops: true } };
 export const AsLink: Story = { args: { href: '#example', title: 'Open the example' } };
+export const ChipLink: Story = { args: { href: '#example', text: '#14', chip: true } };
 export const AsButton: Story = { args: { onPress: fn() } };

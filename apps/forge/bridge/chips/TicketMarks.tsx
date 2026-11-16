@@ -12,7 +12,10 @@ const PRIORITY_MARK_TITLE: Readonly<Record<Exclude<TicketPriority, 'normal'>, st
   high: 'High priority: dispatched before every normal ticket',
 };
 
-export type TicketIdMarkProps = Omit<MonoIdProps, 'text'> & { readonly ticketId: string };
+/** Each form of the mono id's look but its text, omitted from each form apart so a size and `compact` stay exclusive. */
+type MonoIdLook = MonoIdProps extends infer Look ? Look extends unknown ? Omit<Look, 'text'> : never : never;
+
+export type TicketIdMarkProps = MonoIdLook & { readonly ticketId: string };
 
 /** The ticket's `#id` as a mono id, in the tone and size the caller gives it. */
 export function TicketIdMark({ ticketId, ...monoIdLook }: TicketIdMarkProps) {

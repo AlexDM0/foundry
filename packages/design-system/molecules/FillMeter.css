@@ -1,6 +1,8 @@
 /* A fill bar: filled to the share used in its state's fill, in the orange edge when near the limit, striped with no limit; its width
-   comes from where it sits. The bar fills from empty as it comes, then eases to each new share and colour. */
+   comes from where it sits. The bar fills from empty as it comes, then eases to each new share and colour. A borderless
+   meter draws its track with no edge and holds a little less width. */
 .design-system-fill-meter { flex: 1 1 auto; min-width: 60px; height: 6px; background: var(--wash); border: 1px solid var(--line); border-radius: var(--r-pill); overflow: hidden; }
+.design-system-fill-meter[data-borderless] { min-width: 56px; border: 0; }
 .design-system-fill-meter[data-unbounded] { background: repeating-linear-gradient(90deg, var(--wash) 0 6px, var(--line) 6px 7px); }
 .design-system-fill-meter-bar {
   display: block; height: 100%; background: var(--s-fill); border-radius: var(--r-pill);

@@ -1,6 +1,8 @@
 /* Slots: one small square per slot of the limit, dashed while free, filled in its state's fill, and a square in the orange edge for each
-   past the limit. A square turns its colour as it fills, and a square past the limit pops in. */
+   past the limit. A square turns its colour as it fills, and a square past the limit pops in. A wrapping meter shrinks to its holder
+   and runs its squares onto more lines. */
 .design-system-slot-meter { display: inline-flex; flex: none; gap: var(--space-3); }
+.design-system-slot-meter[data-wrap] { flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
 .design-system-slot-meter-cell {
   box-sizing: border-box; width: 12px; height: 12px; background: transparent; border: 1.5px dashed var(--line-strong); border-radius: 2px;
   transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);

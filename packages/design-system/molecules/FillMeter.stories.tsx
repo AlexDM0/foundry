@@ -32,4 +32,5 @@ type Story = StoryObj<typeof meta>;
 export const Fill: Story = {};
 export const Near: Story = { args: { used: 9, near: true, tone: 'neutral' } };
 export const Unlimited: Story = { args: { used: 4, limit: null } };
+export const Borderless: Story = { args: { borderless: true } };
 export const Filling: Story = { render: () => <ChangingFill /> };

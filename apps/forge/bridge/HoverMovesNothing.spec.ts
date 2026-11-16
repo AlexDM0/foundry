@@ -52,7 +52,7 @@ const MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [
   { selector: '.design-system-button:not(:disabled):active', property: 'transform' },
   { selector: '.design-system-icon-button:not(:disabled):active', property: 'transform' },
   { selector: '.design-system-menu-button:not([data-trigger="button"]):active', property: 'transform' },
-  { selector: '.design-system-segments button:active', property: 'transform' },
+  { selector: '.design-system-segments > button:not(:disabled):active', property: 'transform' },
 ];
 
 function holdsPointerState(rule: StyleRule): boolean {

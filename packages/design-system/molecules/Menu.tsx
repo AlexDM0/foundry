@@ -1,8 +1,9 @@
 /**
  * A menu: a trigger button that opens a small popover of items under itself. It closes as any popover does, its Esc caught before a side
  * panel's own and the focus back on the trigger, and an item closes it by its `closing`. The insert trigger is a round plus on a line,
- * named by `triggerName`, that pulses while closed and opens its popover beside itself. The popover drops in on open and leaves the same
- * way, inert while it goes.
+ * named by `triggerName`, that pulses while closed and opens its popover beside itself. The segment trigger sits as the last segment of a
+ * `SegmentedControl` tray, pressed while the tray's choice is one of its items. The popover drops in on open and leaves the same way, inert
+ * while it goes.
  */
 import {
   useId,
@@ -18,9 +19,9 @@ import { usePresence }  from '../utils/Presence.ts';
 
 /**
  * `outlined` a bordered trigger holding its summary, `icon` a quiet square glyph trigger, `button` a trigger in the button's look, `insert`
- * a round plus that adds something where it sits.
+ * a round plus that adds something where it sits, `segment` a segment of the `SegmentedControl` tray it trails.
  */
-export type MenuTrigger = 'outlined' | 'icon' | 'button' | 'insert';
+export type MenuTrigger = 'outlined' | 'icon' | 'button' | 'insert' | 'segment';
 
 /** `solid` in the link colour, `dashed` in a quiet grey. */
 export type MenuInsertStyle = 'solid' | 'dashed';
@@ -45,6 +46,8 @@ export interface MenuProps {
   readonly align:           'start' | 'end';
   /** A dot on the trigger, such as the one saying the rows changed under a held range. */
   readonly marked?:         boolean;
+  /** The segment trigger drawn pressed, as the tray's choice is one of its items; it needs the `segment` trigger. */
+  readonly pressed?:        boolean;
   /** A popover as wide as the confirmations its items open in place, never wider than the window. */
   readonly wide?:           boolean;
   /** The trigger's accessible name when its content is a glyph rather than words. */
@@ -64,8 +67,8 @@ export interface MenuProps {
 const CLOSES_MENU_ATTRIBUTE = 'data-closes-menu';
 
 export function Menu({
-  label, trigger, triggerContent, insertStyle, heading, align, marked = false, wide = false, triggerName, triggerTitle, triggerRef, isOpen,
-  onOpenChange, children
+  label, trigger, triggerContent, insertStyle, heading, align, marked = false, pressed = false, wide = false, triggerName, triggerTitle,
+  triggerRef, isOpen, onOpenChange, children
 }: MenuProps) {
   const [ownMenuIsOpen, setOwnMenuIsOpen] = useState(false);
   const menuIsOpen = isOpen ?? ownMenuIsOpen;
@@ -112,6 +115,7 @@ export function Menu({
         data-trigger={trigger}
         data-insert={trigger === 'insert' ? insertStyle ?? 'solid' : undefined}
         data-marked={marked ? '' : undefined}
+        aria-pressed={trigger === 'segment' ? pressed : undefined}
         aria-label={triggerName}
         aria-haspopup="dialog"
         aria-expanded={menuIsOpen}

@@ -2,8 +2,10 @@
  * The segmented control, in a happy-dom document. What matters: the selected segment alone is pressed, and none while no segment is the
  * choice; a click hands its value on; a count shows in its own mark after the label; an accessible name names its button; each button is
  * handed to `optionRef`; the group is named by its label element; a size sets `data-size`; `mono` sets `data-mono`; `separated` sets
- * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; and a label
- * is text, never markup.
+ * `data-separated`; `fill` sets `data-fill` and hands the segment count to the stylesheet's equal columns as `--segment-count`; a disabled
+ * segment cannot be clicked; a name of its own names the group where no label shows, and a group named both ways does not compile; a
+ * trailing part sits last in the tray and sets `data-trailing`, its buttons no segments, and separated segments take none by type; and a
+ * label is text, never markup.
  */
 import {
   cleanup,
@@ -18,6 +20,7 @@ import {
   test
 } from 'bun:test';
 
+import { Menu, MenuItem }                       from './Menu.tsx';
 import { SegmentedControl, type SegmentOption } from './SegmentedControl.tsx';
 
 type ExampleSpan = 'hour' | 'day' | 'all';
@@ -133,6 +136,54 @@ describe('the segmented control', () => {
     const groups = [...container.querySelectorAll<HTMLElement>('.design-system-segments')];
     expect(groups.map((group) => [group.hasAttribute('data-fill'), group.style.getPropertyValue('--segment-count'), group.querySelectorAll('button').length]))
       .toEqual([[true, '4', 4], [true, '5', 5], [false, '', 3]]);
+  });
+
+  test('a disabled segment shows but cannot be clicked, and the others still hand their value on', () => {
+    const chosen: ExampleSpan[] = [];
+    const options: readonly SegmentOption<ExampleSpan>[] = [{ value: 'hour', label: '1h', disabled: true }, { value: 'day', label: '1d' }];
+    render(<SegmentedControl accessibleName="Finished work" options={options} selected="day" onSelect={(value) => chosen.push(value)} />);
+    const buttons = [...screen.getByRole('group', { name: 'Finished work' }).querySelectorAll('button')];
+    buttons.forEach((button) => fireEvent.click(button));
+    expect([buttons.map((button) => button.disabled), chosen]).toEqual([[true, false], ['day']]);
+  });
+
+  test('a name of its own names the group where no label shows, and a group named both ways does not compile', () => {
+    render(<SegmentedControl accessibleName="Finished work" options={OPTIONS} selected={null} onSelect={() => undefined} />);
+    expect(screen.getByRole('group', { name: 'Finished work' }).hasAttribute('aria-labelledby')).toBe(false);
+    // @ts-expect-error the group is named by a label element or a name of its own, never both
+    const namedBothWays = <SegmentedControl labelledBy="example-span-label" accessibleName="Finished work" options={OPTIONS} selected={null} onSelect={() => undefined} />;
+    expect(namedBothWays.props.options).toBe(OPTIONS);
+  });
+
+  test('a trailing menu sits last in the tray and sets data-trailing, and its buttons are no segments', () => {
+    const chosen: ExampleSpan[] = [];
+    render(
+      <SegmentedControl
+        accessibleName="Finished work"
+        options={OPTIONS}
+        selected="all"
+        onSelect={(value) => chosen.push(value)}
+        trailing={(
+          <Menu label="More spans" trigger="segment" align="end" triggerContent="1 more" pressed>
+            <MenuItem label="Last week" closing="return-focus" onChoose={() => undefined} />
+          </Menu>
+        )}
+      />,
+    );
+    const group = screen.getByRole('group', { name: 'Finished work' });
+    const trailing = group.lastElementChild;
+    expect([group.hasAttribute('data-trailing'), trailing?.className, trailing?.querySelector('button')?.getAttribute('data-trigger')])
+      .toEqual([true, 'design-system-segments-trailing', 'segment']);
+    expect(group.querySelectorAll(':scope > button')).toHaveLength(OPTIONS.length);
+    fireEvent.click(screen.getByRole('button', { name: '1 more' }));
+    expect(chosen).toEqual([]);
+  });
+
+  test('separated segments take no trailing part, and a group with none sets no data-trailing', () => {
+    // @ts-expect-error a trailing part sits in the tray, and separated segments have none
+    const separatedWithTrailing = <SegmentedControl accessibleName="Spans" options={OPTIONS} selected={null} onSelect={() => undefined} separated trailing="More" />;
+    expect(separatedWithTrailing.props.separated).toBe(true);
+    expect(renderedControl(null).hasAttribute('data-trailing')).toBe(false);
   });
 
   test('a label is text, never markup', () => {

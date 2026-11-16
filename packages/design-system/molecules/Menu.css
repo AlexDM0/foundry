@@ -1,5 +1,5 @@
-/* A menu: its trigger, outlined, an icon or a button, over a popover of 32px items on the surface; a signal dot on the trigger or an
-   item marks it. A pressed trigger scales inside its own box, and the popover drops in and lifts away. */
+/* A menu: its trigger, outlined, an icon, a button or a tray's segment, over a popover of 32px items on the surface; a signal dot on the
+   trigger or an item marks it. A pressed trigger scales inside its own box, and the popover drops in and lifts away. */
 .design-system-menu { position: relative; display: flex; min-width: 0; }
 .design-system-menu-button[data-trigger="outlined"] {
   position: relative;
@@ -27,7 +27,7 @@
 .design-system-menu-button[data-trigger="outlined"]:hover,
 .design-system-menu-button[data-trigger="icon"]:hover { filter: brightness(0.94); }
 .design-system-menu-button[data-trigger="icon"][aria-expanded="true"] { border-color: var(--line-strong); }
-.design-system-menu-button:not([data-trigger="button"]):active { transform: scale(0.98); }
+.design-system-menu-button:not([data-trigger="button"]):active { transform: scale(var(--press-scale)); }
 .design-system-menu-button:focus-visible,
 .design-system-menu-item:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .design-system-menu-button[data-marked]::after,
@@ -63,7 +63,8 @@
   cursor: pointer;
 }
 .design-system-menu-popover[data-trigger="icon"] .design-system-menu-item,
-.design-system-menu-popover[data-trigger="button"] .design-system-menu-item { font-family: var(--font-ui); }
+.design-system-menu-popover[data-trigger="button"] .design-system-menu-item,
+.design-system-menu-popover[data-trigger="segment"] .design-system-menu-item { font-family: var(--font-ui); }
 .design-system-menu-item:hover { background: var(--wash); }
 .design-system-menu-item[aria-pressed="true"] { background: var(--surface-selected); }
 .design-system-menu-hint { font-family: var(--font-ui); font-weight: 400; color: var(--ink-muted); }
@@ -81,7 +82,7 @@
   color: var(--ink-muted); background: var(--surface); border: 1.5px dashed var(--line-strong); border-radius: var(--r-pill); cursor: pointer;
 }
 .design-system-menu-button[data-trigger="insert"][data-insert="solid"] { color: var(--link); border-style: solid; border-color: var(--link); }
-.design-system-menu-button[data-trigger="insert"][aria-expanded="false"] { animation: design-system-ring 2.4s ease-in-out infinite; }
+.design-system-menu-button[data-trigger="insert"][aria-expanded="false"] { animation: design-system-ring 2.4s var(--ease-in-out) infinite; }
 .design-system-menu-button[data-trigger="insert"]:hover { filter: brightness(0.94); }
 .design-system-menu-insert-glyph { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .design-system-menu-popover[data-trigger="insert"] {
@@ -90,6 +91,20 @@
 }
 .design-system-menu-popover[data-motion="out"] { animation: design-system-drop var(--motion-fast) var(--ease-out) reverse both; }
 .design-system-menu-popover[data-trigger="insert"][data-motion="out"] { animation: design-system-menu var(--motion-fast) var(--ease-out) reverse both; }
+/* The segment trigger: a segment of the tray it trails, ink-muted until hovered, filled in ink while pressed, as tall as the segments
+   beside it when the tray sets their height. */
+.design-system-menu-button[data-trigger="segment"] {
+  display: inline-flex; align-items: center; gap: var(--space-6);
+  height: var(--segment-height, auto); padding: var(--space-6) var(--space-10);
+  font: 500 var(--fs-small)/1 var(--font-ui);
+  white-space: nowrap;
+  color: var(--ink-muted); background: transparent;
+  border: 1px solid transparent; border-radius: var(--r-2);
+  cursor: pointer;
+}
+.design-system-menu-button[data-trigger="segment"]:hover { color: var(--ink); }
+.design-system-menu-button[data-trigger="segment"][aria-pressed="true"] { color: var(--surface); background: var(--ink); border-color: var(--ink); }
+.design-system-menu-button[data-trigger="segment"] .design-system-icon { width: 12px; height: 12px; }
 .design-system-menu-heading {
   padding: var(--space-4) var(--space-10) var(--space-6); font-size: var(--fs-micro); font-weight: 600; line-height: var(--line-height-micro); letter-spacing: var(--letter-spacing-micro);
   text-transform: uppercase; color: var(--ink-4);

@@ -6,7 +6,8 @@
  * hint, a checked item says so and shows its check, a pressed one only says so; a wide menu marks its popover; an item's description shows
  * under its label and describes it, leaving its name to the label and hint; a separator is a separator; a button trigger is drawn as a
  * button; the insert trigger draws its own plus under its name, says whether it is open in `aria-expanded`, carries its style, and its open
- * menu leads with its heading; and the words are text, never markup.
+ * menu leads with its heading; the segment trigger says whether it is pressed, and no other trigger does; and the words are text, never
+ * markup.
  */
 import {
   cleanup,
@@ -275,6 +276,27 @@ describe('the trigger', () => {
   test('a trigger other than insert carries no insert style', () => {
     renderMenu();
     expect(screen.getByRole('button', { name: 'Example options' }).hasAttribute('data-insert')).toBe(false);
+  });
+
+  test('the segment trigger says whether it is pressed, and another trigger says nothing of it', () => {
+    render(
+      <>
+        <Menu label="More examples" trigger="segment" align="end" triggerContent="2 more" pressed>
+          <MenuItem label="Example four" pressed closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+        <Menu label="Other examples" trigger="segment" align="end" triggerContent="3 more">
+          <MenuItem label="Example five" closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+        <Menu label="Outlined examples" trigger="outlined" align="end" triggerContent="Outlined" pressed>
+          <MenuItem label="Example six" closing="return-focus" onChoose={NOTHING} />
+        </Menu>
+      </>,
+    );
+    const triggers = ['2 more', '3 more', 'Outlined'].map((name) => screen.getByRole('button', { name }));
+    expect(triggers.map((trigger) => [trigger.getAttribute('data-trigger'), trigger.getAttribute('aria-pressed')]))
+      .toEqual([['segment', 'true'], ['segment', 'false'], ['outlined', null]]);
+    fireEvent.click(triggers[0] ?? document.body);
+    expect(screen.getByRole('dialog', { name: 'More examples' }).getAttribute('data-trigger')).toBe('segment');
   });
 
   test('the words are text, never markup', () => {

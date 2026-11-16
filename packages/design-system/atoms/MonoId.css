@@ -1,11 +1,12 @@
 /* An id in the mono face with tabular figures, in the tertiary ink; a tone gives it the secondary, the primary, the link or its holder's ink,
-   compact the micro size, and a weight its own weight. */
+   a size the pill's or the micro size, and a weight its own weight. */
 .design-system-mono-id { flex: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: var(--fs-small); color: var(--ink-4); }
 .design-system-mono-id[data-tone="muted"] { color: var(--ink-muted); }
 .design-system-mono-id[data-tone="strong"] { color: var(--ink); }
 .design-system-mono-id[data-tone="link"] { color: var(--link); }
 .design-system-mono-id[data-tone="inherited"] { color: inherit; }
-.design-system-mono-id[data-compact] { font-size: var(--fs-micro); }
+.design-system-mono-id[data-size="pill"] { font-size: var(--fs-pill); }
+.design-system-mono-id[data-size="micro"] { font-size: var(--fs-micro); }
 .design-system-mono-id[data-weight="regular"] { font-weight: 400; }
 .design-system-mono-id[data-weight="medium"] { font-weight: 500; }
 .design-system-mono-id[data-weight="bold"] { font-weight: 600; }

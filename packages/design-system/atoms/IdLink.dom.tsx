@@ -1,6 +1,7 @@
 /**
  * The id link, in a happy-dom document. What matters: the link has its href and shows its id; an `onFollow` that brought the item into view
- * stops the link being followed; and a link's click never reaches a clickable card around it.
+ * stops the link being followed; a link's click never reaches a clickable card around it; and the ink tone sets `data-tone`, the link
+ * tone none.
  */
 import {
   cleanup,
@@ -26,6 +27,17 @@ describe('the id link', () => {
     render(<IdLink text="#004" href="#items/004" />);
     const link = screen.getByRole('link', { name: '#004' });
     expect([link.className, link.getAttribute('href')]).toEqual(['design-system-id-link', '#items/004']);
+  });
+
+  test('the ink tone sets data-tone, and the link tone, the default, sets none', () => {
+    const { container } = render(
+      <>
+        <IdLink text="#1" href="#items/1" />
+        <IdLink text="#2" href="#items/2" tone="link" />
+        <IdLink text="#3" href="#items/3" tone="ink" />
+      </>,
+    );
+    expect([...container.querySelectorAll('a')].map((link) => link.getAttribute('data-tone'))).toEqual([null, null, 'ink']);
   });
 
   test('onFollow true prevents navigation and stops the click reaching a parent\'s handler', () => {

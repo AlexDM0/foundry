@@ -30,4 +30,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Slots: Story = {};
+export const Wrapping: Story = {
+  args:   { filled: 14, limit: 16, wrap: true },
+  render: (args) => <div style={{ display: 'flex', width: 120 }}><SlotMeter {...args} /></div>,
+};
 export const Filling: Story = { render: () => <FillingSlots /> };

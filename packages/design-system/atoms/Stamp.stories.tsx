@@ -15,3 +15,4 @@ type Story = StoryObj<typeof meta>;
 export const Short: Story = {};
 export const WithFullText: Story = { args: { fullText: '2026-01-01 09:41:00' } };
 export const AsTime: Story = { args: { element: 'time', fullText: '2026-01-01 09:41:00' } };
+export const WithDateTime: Story = { args: { element: 'time', dateTime: '2026-01-01T09:41:00Z', fullText: '2026-01-01 09:41:00' } };

@@ -34,6 +34,12 @@ export const IconTrigger: Story = {
 export const ButtonTrigger: Story = { args: { trigger: 'button', triggerContent: 'More' } };
 export const InsertSolid: Story = { args: { trigger: 'insert', insertStyle: 'solid', triggerName: 'Insert an example step' } };
 export const InsertDashed: Story = { args: { trigger: 'insert', insertStyle: 'dashed', triggerName: 'Insert an example step' } };
+export const Segment: Story = { args: { trigger: 'segment', triggerContent: '2 more', align: 'end' } };
+export const SegmentPressed: Story = {
+  args: {
+    trigger: 'segment', triggerContent: 'Example four', align: 'end', pressed: true
+  }
+};
 export const WithHeading: Story = { args: { heading: 'Example heading' } };
 export const Marked: Story = { args: { marked: true } };
 export const Wide: Story = {

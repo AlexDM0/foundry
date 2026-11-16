@@ -1,6 +1,7 @@
 /**
  * The mono id, in a happy-dom document. What matters: the id shows as given, and is text, never markup; the tertiary ink sets no tone,
- * another tone sets `data-tone`; compact sets `data-compact`; and a weight sets `data-weight`, absent none.
+ * another tone sets `data-tone`; the pill and micro sizes set `data-size`, compact as micro, and the small size none; a size and compact
+ * do not compile together; and a weight sets `data-weight`, absent none.
  */
 import { cleanup, render } from '@testing-library/react';
 import {
@@ -48,8 +49,22 @@ describe('the mono id', () => {
     expect(ids.map((id) => id.getAttribute('data-weight'))).toEqual([null, 'regular', 'medium', 'bold']);
   });
 
-  test('compact sets data-compact, and the standard size sets nothing', () => {
-    const ids = renderedIds(<><MonoId text="#1" /><MonoId text="#2" compact /></>);
-    expect(ids.map((id) => id.hasAttribute('data-compact'))).toEqual([false, true]);
+  test('the pill and micro sizes set data-size, compact sets the micro size, and the small size sets nothing', () => {
+    const ids = renderedIds(
+      <>
+        <MonoId text="#1" />
+        <MonoId text="#2" size="small" />
+        <MonoId text="#3" size="pill" />
+        <MonoId text="#4" size="micro" />
+        <MonoId text="#5" compact />
+      </>
+    );
+    expect(ids.map((id) => id.getAttribute('data-size'))).toEqual([null, null, 'pill', 'micro', 'micro']);
+  });
+
+  test('a size and compact do not compile together', () => {
+    // @ts-expect-error compact is the micro size: a size or compact, never both
+    const sizeAndCompact = <MonoId text="#1" size="pill" compact />;
+    expect(sizeAndCompact.props.text).toBe('#1');
   });
 });

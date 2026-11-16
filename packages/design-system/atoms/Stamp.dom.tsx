@@ -1,6 +1,6 @@
 /**
  * The stamp, in a happy-dom document. What matters: the short text shows with the full stamp as its hover title; it is a `time` element
- * when asked and a span otherwise; and a stamp is text, never markup.
+ * when asked and a span otherwise; a `time` element carries its `dateTime`, and a span takes none by type; and a stamp is text, never markup.
  */
 import { cleanup, render } from '@testing-library/react';
 import {
@@ -27,6 +27,14 @@ describe('the stamp', () => {
     const { container } = render(<Stamp shortText="13:05" element="time" />);
     const stamp = container.querySelector('.design-system-stamp');
     expect([stamp?.tagName, stamp?.hasAttribute('title')]).toEqual(['TIME', false]);
+  });
+
+  test('a time element carries its dateTime, and a span with a dateTime does not compile', () => {
+    const { container } = render(<Stamp shortText="13:05" element="time" dateTime="2026-09-18T13:05:42Z" />);
+    expect(container.querySelector('time')?.getAttribute('datetime')).toBe('2026-09-18T13:05:42Z');
+    // @ts-expect-error only a time element carries a dateTime
+    const spanWithDateTime = <Stamp shortText="13:05" dateTime="2026-09-18T13:05:42Z" />;
+    expect(spanWithDateTime.props.shortText).toBe('13:05');
   });
 
   test('a stamp is text, never markup', () => {

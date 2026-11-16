@@ -1,10 +1,11 @@
-/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered. A press scales a
-   segment inside its own box. */
+/* Segments in an outlined tray on the surface; the pressed one is filled in ink, the rest ink-muted until hovered, and a disabled one stays
+   in the quietest ink. A press scales a segment inside its own box. Only the tray's own buttons are segments: a trailing part keeps its own
+   look, and the buttons it holds, such as a menu's items, are not segments. */
 .design-system-segments {
   display: flex; gap: var(--space-2); width: max-content; padding: var(--space-2);
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
 }
-.design-system-segments button {
+.design-system-segments > button {
   font: 500 var(--fs-small)/1 var(--font-ui);
   font-variant-numeric: tabular-nums;
   padding: var(--space-6) var(--space-10);
@@ -13,32 +14,40 @@
   cursor: pointer;
   transition: var(--feedback-transition), transform var(--motion-fast) var(--ease-out);
 }
-.design-system-segments button:active { transform: scale(0.98); }
-.design-system-segments button:hover { color: var(--ink); }
-.design-system-segments button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-.design-system-segments button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.design-system-segments > button:not(:disabled):active { transform: scale(var(--press-scale)); }
+.design-system-segments > button:not(:disabled):hover { color: var(--ink); }
+.design-system-segments > button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.design-system-segments > button:disabled { cursor: not-allowed; }
+.design-system-segments > button:disabled:not([aria-pressed="true"]) { color: var(--ink-4); }
+.design-system-segments > button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 /* Mono segments, for labels that are machine text such as times. */
-.design-system-segments[data-mono] button { font-family: var(--font-mono); }
+.design-system-segments[data-mono] > button { font-family: var(--font-mono); }
 .design-system-segment-count { margin-left: var(--space-3); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); }
 
-/* Segments of a set height, and segments that take the whole width in equal columns, --segment-count of them. */
-.design-system-segments[data-size] button { display: inline-flex; align-items: center; justify-content: center; padding-block: 0; }
-.design-system-segments[data-size="standard"] button { height: 26px; }
-.design-system-segments[data-size="compact"] button { height: 22px; }
+/* Segments of a set height, and segments that take the whole width in equal columns, --segment-count of them. The height is handed on as
+   --segment-height, so a trailing segment takes it too. */
+.design-system-segments[data-size="standard"] { --segment-height: 26px; }
+.design-system-segments[data-size="compact"] { --segment-height: 22px; }
+.design-system-segments[data-size] > button { display: inline-flex; align-items: center; justify-content: center; height: var(--segment-height); padding-block: 0; }
 .design-system-segments[data-fill] {
   display: grid; grid-template-columns: repeat(var(--segment-count), minmax(0, 1fr)); box-sizing: border-box; width: 100%;
 }
-.design-system-segments[data-fill] button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.design-system-segments[data-fill][data-trailing] { grid-template-columns: repeat(var(--segment-count), minmax(0, 1fr)) auto; }
+.design-system-segments[data-fill] > button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The trailing segment: the tray's last part, as tall as the segments beside it. */
+.design-system-segments-trailing { display: flex; align-items: stretch; min-width: 0; }
 
 /* Separated segments: no tray, each an outlined button on the surface, 36px high or 32px compact; the pressed one in the orange tint. */
 .design-system-segments[data-separated] { gap: var(--space-6); padding: 0; background: transparent; border: 0; border-radius: 0; }
-.design-system-segments[data-separated] button {
+.design-system-segments[data-separated] > button {
   height: 36px; padding: 0 var(--sp-2); font-size: var(--fs-body); font-weight: 500; color: var(--ink);
   background: var(--surface); border-color: var(--line-strong);
 }
-.design-system-segments[data-separated][data-size="compact"] button { height: 32px; }
-.design-system-segments[data-separated] button[aria-pressed="true"] { font-weight: 600; color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+.design-system-segments[data-separated][data-size="compact"] > button { height: 32px; }
+.design-system-segments[data-separated] > button[aria-pressed="true"] { font-weight: 600; color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+.design-system-segments[data-separated] > button:disabled:not([aria-pressed="true"]) { color: var(--ink-4); }
 
 @media (prefers-reduced-motion: reduce) {
-  .design-system-segments button:active { transform: none; }
+  .design-system-segments > button:not(:disabled):active { transform: none; }
 }

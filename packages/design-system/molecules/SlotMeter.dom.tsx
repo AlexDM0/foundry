@@ -1,6 +1,6 @@
 /**
  * The slot meter, in a happy-dom document. What matters: it draws one cell per slot, filled first, with the cells past the limit marked
- * over; it is an image named by its label; and a label is text, never markup.
+ * over; it is an image named by its label; `wrap` sets `data-wrap`, absent none; and a label is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -29,6 +29,16 @@ describe('the slot meter', () => {
   test('the jobs past the limit add cells marked over', () => {
     render(<SlotMeter label="4 running tasks against a limit of 2" filled={4} limit={2} tone="accent" />);
     expect(cellsOf(screen.getByRole('img', { name: '4 running tasks against a limit of 2' }))).toEqual(['filled', 'filled', 'over', 'over']);
+  });
+
+  test('wrap sets data-wrap, and a meter that keeps its line sets none', () => {
+    const { container } = render(
+      <>
+        <SlotMeter label="14 of 16 slots" filled={14} limit={16} tone="accent" wrap />
+        <SlotMeter label="2 of 4 slots" filled={2} limit={4} tone="accent" />
+      </>,
+    );
+    expect([...container.querySelectorAll('.design-system-slot-meter')].map((meter) => meter.hasAttribute('data-wrap'))).toEqual([true, false]);
   });
 
   test('a label is text, never markup', () => {

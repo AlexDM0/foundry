@@ -1,6 +1,7 @@
 /**
  * The fill meter, in a happy-dom document. What matters: its bar is as wide as the share used, near and unbounded set their attributes, an
- * unbounded track holds no bar; it is an image named by its label; and a label is text, never markup.
+ * unbounded track holds no bar; `borderless` sets its attribute, absent none; it is an image named by its label; and a label is text, never
+ * markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -36,6 +37,16 @@ describe('the fill meter', () => {
     render(<FillMeter label="22 calls, no budget" used={22} limit={null} near={false} tone="accent" />);
     const meter = screen.getByRole('img', { name: '22 calls, no budget' });
     expect([meter.hasAttribute('data-unbounded'), meter.querySelector('.design-system-fill-meter-bar')]).toEqual([true, null]);
+  });
+
+  test('borderless sets its attribute, and a meter with its edge sets none', () => {
+    const { container } = render(
+      <>
+        <FillMeter label="41 of 150 calls" used={41} limit={150} near={false} tone="accent" borderless />
+        <FillMeter label="42 of 150 calls" used={42} limit={150} near={false} tone="accent" />
+      </>,
+    );
+    expect([...container.querySelectorAll('.design-system-fill-meter')].map((meter) => meter.hasAttribute('data-borderless'))).toEqual([true, false]);
   });
 
   test('a label is text, never markup', () => {
