@@ -54,6 +54,7 @@ export const GIT_SCENARIOS = {
   HONEST_CAPITALS_COMMITTED:            'main from <start>, Src/Example.ts and Example.MCP.json committed',
   TICKET_BRANCH_MADE:                   'main at <start>, ticket-007 made there and checked out',
   TICKET_BRANCH_ADDS_AGENT_CONFIG:      'main at <start>, ticket-007 checked out, .claude/settings.json committed at <head>',
+  TICKET_BRANCH_NESTS_AGENT_CONFIG:     'main at <start>, ticket-007 checked out, apps/example/.claude/settings.json committed at <head>',
   OWN_BRANCH_MOVED:                     'main moved from <start> to <head>',
   FOREIGN_BRANCH_ADDED:                 'main moved from <start> to <head>, example-foreign made at <start>',
   TARGET_AND_JOB_BRANCH_ADDED:          'main at <start>, example-target and ticket-009 made there',

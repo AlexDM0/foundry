@@ -54,6 +54,7 @@ import {
   type CustomsSubject,
   launchSnapshotOf,
   type LaunchSnapshot,
+  type ProjectScope,
   type RefMovesAllowed,
   refMovesAllowedOf,
   retriedFailedBuildJobIdOf,
@@ -391,6 +392,11 @@ function worktreeOf(workspace: Workspace, job: Readonly<Job>): string {
 /** Read from disk at each use, never kept: git runs at its `repositoryRoot`, never in the tracker's own folder below it. */
 function projectLocationOfContext(context: Pick<JobLaunchContext, 'workspace'>): ProjectLocation {
   return projectLocationOf(context.workspace.rootDirectory);
+}
+
+/** Absent for a tracker at its repository's root, so its subject, and every git call Customs makes for it, stays as it always was. */
+function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null): ProjectScope | null {
+  return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
 }
 
 function branchOf(context: Pick<JobLaunchContext, 'branchNames'>, job: Readonly<Job>): string {
@@ -919,6 +925,8 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   }
   const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
   const retriedStart = retriedJobId === null ? null : readJobStart(WatcherFleet.jobFolderOf(hold.context.workspace.trackerDirectory, retriedJobId));
+  const { projectPrefix } = projectLocationOfContext(hold.context);
+  const projectScope = projectScopeOf(projectPrefix, board.pipeline());
   const subject: CustomsSubject = {
     role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
     worktreePath:     worktreeOf(hold.context.workspace, job),
@@ -932,9 +940,10 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     launchSnapshot:   start.launchSnapshot,
     refMovesAllowed:  refMovesAllowedFor(hold.context, board, job),
     gates:            board.pipeline()?.gates ?? [],
-    instructionFiles: InstructionFiles.trackedInstructionPathsOf(board.pipeline()),
+    instructionFiles: InstructionFiles.trackedInstructionPathsOf(board.pipeline(), projectPrefix),
     target:           job.target ?? hold.context.mainLine,
     pathStyle:        hold.context.platformPorts.dataFolders,
+    ...(projectScope === null ? {} : { projectScope }),
   };
   const reportVerdict = CUSTOMS_CHECKS.V1(subject);
   if (reportVerdict.verdict === 'refused') {
@@ -1020,10 +1029,11 @@ function agentConfigHitIsSettled(board: Board, ticketId: string): boolean {
  * changes agent configuration, and those with the decision still open. Read outside the lock.
  */
 function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[]): string[] {
+  const { projectPrefix } = projectLocationOfContext(context);
   return jobs.filter(isWorktreeJob).filter((job) => {
     const worktree = worktreeOf(context.workspace, job);
     if (!existsSync(worktree)) return false;
-    return agentConfigTouchedBeforeLaunch(worktree, job.target ?? context.mainLine, context.platformPorts.dataFolders).verdict === 'refused';
+    return agentConfigTouchedBeforeLaunch(worktree, job.target ?? context.mainLine, context.platformPorts.dataFolders, projectPrefix).verdict === 'refused';
   }).map(ticketIdOf);
 }
 

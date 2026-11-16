@@ -444,6 +444,13 @@ describeWhenGitIsPresent('the git scenarios the Customs provenance spec replays'
     recordStateOf(GIT_SCENARIOS.TICKET_BRANCH_ADDS_AGENT_CONFIG, directory, { '<start>': startCommit });
   });
 
+  test(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, () => {
+    const { directory, startCommit } = startedRepository();
+    git(directory, ['checkout', '-q', '-b', 'ticket-007']);
+    commitPath(directory, 'apps/example/.claude/settings.json', '{}\n');
+    recordStateOf(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, directory, { '<start>': startCommit });
+  });
+
   test('the own branch moving, then a foreign branch appearing', () => {
     const { directory, startCommit } = startedRepository();
     commitPath(directory, 'feature.ts', 'export const feature = true;\n');
