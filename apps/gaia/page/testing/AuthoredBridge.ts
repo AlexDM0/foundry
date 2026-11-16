@@ -10,20 +10,19 @@ import type { EmbedChannelSurroundings, EmbedMessageEvent } from '../views/forge
 /** Example Storefront's Overseer in `fleet-five-forges`. */
 export const BRIDGE_ORIGIN = 'http://127.0.0.1:4951';
 
+/** A Bridge of a forge that serves V5 names its forge's system version in every message: here the forge version Gaia supports. */
+const BRIDGE_SYSTEM_VERSION = { major: 1, minor: 1 } as const;
+
+const BRIDGE_ENVELOPE = { channel: 'forge-embed', channelVersion: 1, systemVersion: BRIDGE_SYSTEM_VERSION } as const;
+
 export const BRIDGE_MESSAGES = {
-  ready:            { channel: 'forge-embed', channelVersion: 1, kind: 'ready' },
-  routeQuestionsE2: {
-    channel: 'forge-embed', channelVersion: 1, kind: 'route', fragment: '#questions/E2'
-  },
-  routeKanban: {
-    channel: 'forge-embed', channelVersion: 1, kind: 'route', fragment: '#kanban'
-  },
-  leave:                  { channel: 'forge-embed', channelVersion: 1, kind: 'leave' },
-  sessionLost:            { channel: 'forge-embed', channelVersion: 1, kind: 'session-lost' },
-  /** A Bridge of a forge that serves V5 names its forge's system version in every message: here forge 1.1. */
-  readyOfAVersionedForge: {
-    channel: 'forge-embed', channelVersion: 1, systemVersion: { major: 1, minor: 1 }, kind: 'ready'
-  },
+  ready:                     { ...BRIDGE_ENVELOPE, kind: 'ready' },
+  routeQuestionsE2:          { ...BRIDGE_ENVELOPE, kind: 'route', fragment: '#questions/E2' },
+  routeKanban:               { ...BRIDGE_ENVELOPE, kind: 'route', fragment: '#kanban' },
+  leave:                     { ...BRIDGE_ENVELOPE, kind: 'leave' },
+  sessionLost:               { ...BRIDGE_ENVELOPE, kind: 'session-lost' },
+  /** A Bridge before V5 names no system version, only the channel's. */
+  readyBeforeSystemVersions: { channel: 'forge-embed', channelVersion: 1, kind: 'ready' },
 } as const;
 
 /** The one-time code a frame session answer carries in the frame's address, numbered per session. */

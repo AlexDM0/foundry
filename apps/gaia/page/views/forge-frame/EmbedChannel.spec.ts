@@ -81,14 +81,14 @@ describe('what the channel hears', () => {
 describe('the system version of the forge behind the Bridge', () => {
   test('is handed on with the ready of a Bridge that names it, and with every message after it', () => {
     const { bridge, heard, bridgeSystemVersions } = openedOver();
-    bridge.post(BRIDGE_MESSAGES.readyOfAVersionedForge);
-    bridge.post({ ...BRIDGE_MESSAGES.leave, systemVersion: { major: 1, minor: 1 } });
+    bridge.post(BRIDGE_MESSAGES.ready);
+    bridge.post(BRIDGE_MESSAGES.leave);
     expect([heard, bridgeSystemVersions]).toEqual([[{ kind: 'ready' }, { kind: 'leave' }], [{ major: 1, minor: 1 }, { major: 1, minor: 1 }]]);
   });
 
   test('is null from a Bridge before V5, whose messages carry the channel version alone and are heard as before', () => {
     const { bridge, heard, bridgeSystemVersions } = openedOver();
-    bridge.post(BRIDGE_MESSAGES.ready);
+    bridge.post(BRIDGE_MESSAGES.readyBeforeSystemVersions);
     expect([heard, bridgeSystemVersions]).toEqual([[{ kind: 'ready' }], [null]]);
   });
 
