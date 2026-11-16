@@ -3,8 +3,9 @@
  * line, so no Watcher, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
  * install line, through the closing report, verification and a gate, to the Handoff code writes, the finished ticket and the review job the
  * policy launches; and each operational failure opens its own incident or decision rather than a failed pass, while a missing report or an
- * attribution trailer is a failed pass with its cause. A tracker at its repository's root asks git, from the launch to the landing, exactly
- * the calls it asked before a tracker could sit in a folder. `cli/overseer/OverseerBuildJob.integration.spec.ts` holds the real-system claims.
+ * attribution trailer is a failed pass with its cause. A tracker at its repository's root asks git exactly the calls it asked before a
+ * tracker could sit in a folder, on a clean run to the landing, a conflict an Airlock agent resolves, a red handoff that parks the ticket and a
+ * review round. `cli/overseer/OverseerBuildJob.integration.spec.ts` holds the real-system claims.
  */
 import {
   existsSync,
@@ -54,6 +55,7 @@ import { nativePlatformPorts }                                                fr
 import { useRecordedGit }                                                     from '../../src/testing/RecordedGit.ts';
 import {
   RECORDED_FLOW_COMMITS,
+  RECORDED_FLOW_CONFLICT,
   RECORDED_FLOW_MAIN_LINE,
   RECORDED_FLOW_PLACEHOLDERS,
   RECORDED_FLOW_TICKET_BRANCH,
@@ -87,6 +89,8 @@ let overseerLog: string[] = [];
 let buildStates: string[] = [];
 let launchRequests: AgentLaunchRequest[] = [];
 let afterEachLaunchPlan: (request: AgentLaunchRequest) => void = () => undefined;
+let afterEachHoldPhase: (board: Board) => void = () => undefined;
+let sessionStepsOfReportTitle: Readonly<Record<string, readonly FakeAgentStep[]>> = {};
 let jobsNotingStateAssignments = new WeakSet<object>();
 
 async function run(commandLineArguments: readonly string[]) {
@@ -131,14 +135,20 @@ function recordBuildStateChanges(_phase: string, board: Board): void {
   }
 }
 
-/** A reviewer only waits: played at once, it would end before a spec reads its launch. */
+/**
+ * A session whose report title a case names in `sessionStepsOfReportTitle` plays those steps. Any other reviewer only waits: played at once,
+ * it would end before a spec reads its launch.
+ */
 function launchCapturingAdapterOf(adapter: AgentAdapter): AgentAdapter {
   return {
     ...adapter,
     planOf: (request) => {
       launchRequests.push(request);
       afterEachLaunchPlan(request);
-      const isReviewer = (request.reportSchema as { title?: string } | null)?.title === 'reviewer report';
+      const reportTitle = (request.reportSchema as { title?: string } | null)?.title ?? '';
+      const namedSteps = sessionStepsOfReportTitle[reportTitle];
+      if (namedSteps !== undefined) return fakeAgentAdapter(namedSteps).planOf(request);
+      const isReviewer = reportTitle === 'reviewer report';
       return isReviewer ? fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }]).planOf(request) : adapter.planOf(request);
     },
   };
@@ -172,7 +182,10 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
     decisionWordingOf:    OverseerWording.decisionWordingOf,
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
-    afterHoldPhase:       recordBuildStateChanges,
+    afterHoldPhase:       (phase, board) => {
+      recordBuildStateChanges(phase, board);
+      afterEachHoldPhase(board);
+    },
   }));
 }
 
@@ -276,6 +289,8 @@ beforeEach(async () => {
   buildStates = [];
   launchRequests = [];
   afterEachLaunchPlan = () => undefined;
+  afterEachHoldPhase = () => undefined;
+  sessionStepsOfReportTitle = {};
   jobsNotingStateAssignments = new WeakSet<object>();
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
@@ -285,6 +300,70 @@ afterEach(() => {
   removeScratchDirectory(monitorFolder);
   removeScratchDirectory(repositoryDirectory);
 });
+
+async function passUntilLanded(gateVerb: readonly string[]): Promise<void> {
+  await run(gateVerb);
+  const drivePass = await drivePassPlaying(buildingSession());
+  await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
+}
+
+/** The Airlock agent's resolution, which moves the recorded git on to the committed merge. In the ticket worktree only, as a builder's commit. */
+function resolveConflictInTicketWorktree(): FakeAgentStep {
+  const command = `resolve ${RECORDED_FLOW_CONFLICT.path}`;
+  world.scriptShell(command, (workingDirectory) => {
+    if (workingDirectory.includes('/ticket-')) recordedGit.enterFlowStage('conflict resolved', repositoryDirectory);
+  });
+  return { kind: 'shell', command };
+}
+
+function airlockAgentResolvingTheConflict(): FakeAgentStep[] {
+  const report = {
+    role: 'builder', outcome: 'resolved', headCommit: FAKE_HEAD_PLACEHOLDER, resolvedFiles: [RECORDED_FLOW_CONFLICT.path], notes: 'Example notes', reportKind: null
+  };
+  return [
+    { kind: 'print', line: fakeStartedLine('fake-airlock-session') },
+    resolveConflictInTicketWorktree(),
+    { kind: 'print', line: fakeResultLine(report) },
+    { kind: 'await-line' },
+  ];
+}
+
+/**
+ * Each flow the frozen replay runs, under its name in `FrozenRootTrackerGitCalls.json`. The first two were taken from forge at 7210f3c1, the
+ * last commit before Part B; the conflict, the red handoff and the review round from ede42a12, the last commit before entities. Each was taken
+ * by running its case there with the distinct calls written out. Retake one the same way from the commit before a change meant to move a root
+ * tracker's git, never from this run. A review round stops at the reviewer's running session: its pass commits, which no flow stage records.
+ */
+const FROZEN_ROOT_TRACKER_FLOWS = {
+  'no gate':                             async () => await passUntilLanded(['gate', 'none']),
+  'one gate in every phase':             async () => await passUntilLanded(['gate', 'add', 'checks', '--', 'true']),
+  'a conflict with the moved main line': async () => {
+    afterEachHoldPhase = (board) => {
+      if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
+      afterEachHoldPhase = () => undefined;
+      recordedGit.enterFlowStage('branch conflicting with main', repositoryDirectory);
+    };
+    sessionStepsOfReportTitle = { 'airlock agent report': airlockAgentResolvingTheConflict() };
+    // The resolved merge is gated before it lands; its spawn options are a pure answer, so the native one stands in for the recorded table.
+    const { spawnOptionsFor } = nativePlatformPorts().processSupervision;
+    ports = { ...ports, processSupervision: { ...ports.processSupervision, spawnOptionsFor } };
+    await passUntilLanded(['gate', 'add', 'checks', '--', 'true']);
+  },
+  'a red handoff': async () => {
+    await run(['gate', 'add', 'tests', '--', RED_TESTS_LINE]);
+    const drivePass = await drivePassPlaying(buildingSession());
+    await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
+  },
+  'a review round up to the reviewer\'s report': async () => {
+    await run(['gate', 'add', 'checks', '--', 'true']);
+    setReviewPhase({ name: 'Security pass' }, { model: 'sonnet', effort: 'high' });
+    const drivePass = await drivePassPlaying(buildingSession());
+    const reviewJobId = (): string | undefined => storedProgressOf(repositoryDirectory).jobs?.find((job) => job.kind === 'review')?.id;
+    await passUntil(drivePass, () => launchRequests.some((request) => request.environment[JOB_ID_VARIABLE] === reviewJobId()), 'the reviewer launch');
+  },
+} as const satisfies Record<string, () => Promise<void>>;
+
+const FROZEN_ROOT_TRACKER_FLOW_NAMES = Object.keys(FROZEN_ROOT_TRACKER_FLOWS) as (keyof typeof FROZEN_ROOT_TRACKER_FLOWS)[];
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () => {
   test('with no review phase a gated build goes straight to the merge queue, and no reviewer or review bar is ever made', async () => {
@@ -301,25 +380,17 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
   });
 
-  /**
-   * `FrozenRootTrackerGitCalls.json` was taken from forge at 7210f3c1, the last commit before Part B, by running these cases there with the
-   * distinct calls written out. Retake it the same way from the commit before a change meant to move a root tracker's git, never from this run.
-   */
-  test.each([
-    ['no gate', ['gate', 'none']],
-    ['one gate in every phase', ['gate', 'add', 'checks', '--', 'true']],
-  ])('a tracker at its repository\'s root with %s asks git exactly the calls forge asked before a tracker could sit in a folder', async (pipelineName, gateVerb) => {
+  const frozenClaim = 'a tracker at its repository\'s root with %s asks git exactly the calls forge asked before a tracker could sit in a folder';
+  test.each(FROZEN_ROOT_TRACKER_FLOW_NAMES)(frozenClaim, async (flowName) => {
     const gitCalls = startGitCallLog({ [repositoryDirectory]: '<repository>', [monitorFolder]: '<monitor>', [runScratchRoot()]: '<scratch root>' });
     try {
-      await run(gateVerb);
-      const drivePass = await drivePassPlaying(buildingSession());
-      await passUntil(drivePass, () => loggedEntries('job-ended').some((entry) => entry.fields['outcome'] === 'landed'), 'the landing');
+      await FROZEN_ROOT_TRACKER_FLOWS[flowName]();
     } finally {
       gitCalls.stop();
     }
 
     const frozenCalls = JSON.parse(readFileSync(FROZEN_ROOT_TRACKER_GIT_CALLS_PATH, 'utf8')) as Record<string, LoggedGitCall[]>;
-    expect(gitCalls.distinctCalls()).toEqual(frozenCalls[pipelineName] ?? []);
+    expect(gitCalls.distinctCalls()).toEqual(frozenCalls[flowName] ?? []);
   });
 
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
