@@ -17,7 +17,7 @@ build each ticket on its own [worktree](../glossary.md#worktree), and your comma
 *Notice the heavy box: nothing builds before an Apply, and the Apply is what resumes a new, paused board.*
 
 ```sh
-git clone git@github.com:AlexDM0/forge.git && cd forge
+git clone git@github.com:AlexDM0/foundry.git && cd foundry
 apps/forge/setup.sh                         # once per machine; apps/forge/setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
@@ -53,8 +53,8 @@ The setup makes `forge` a command on this machine. forge runs beside the release
 names ([Reading names](../glossary.md#reading-names)).
 
 ```sh
-git clone git@github.com:AlexDM0/forge.git
-cd forge
+git clone git@github.com:AlexDM0/foundry.git
+cd foundry
 apps/forge/setup.sh
 ```
 

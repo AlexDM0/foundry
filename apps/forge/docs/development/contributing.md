@@ -35,8 +35,8 @@ forge runs beside the released `agent-progress` under its own names
 ([Reading names](../glossary.md#reading-names)). You need Bun and git. Clone and run the setup script:
 
 ```sh
-git clone git@github.com:AlexDM0/forge.git
-cd forge
+git clone git@github.com:AlexDM0/foundry.git
+cd foundry
 apps/forge/setup.sh
 ```
 

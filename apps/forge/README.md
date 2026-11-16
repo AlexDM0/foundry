@@ -130,7 +130,7 @@ The on-disk atlas maps every path.
 
 ## Quickstart
 
-forge lives at github.com/AlexDM0/forge. It needs Bun, git and a logged-in `claude`, and has been run on macOS;
+forge lives at github.com/AlexDM0/foundry. It needs Bun, git and a logged-in `claude`, and has been run on macOS;
 [getting started](docs/operations/getting-started.md) says what differs elsewhere.
 
 | Platform | x64 | arm64 | Also needs | Confinement in force |
@@ -144,7 +144,7 @@ Linux and Windows have adapters for every OS-dependent part, proved only over fa
 [the platform status](docs/development/platform-status.md) lists what has never run.
 
 ```sh
-git clone https://github.com/AlexDM0/forge.git && cd forge
+git clone https://github.com/AlexDM0/foundry.git && cd foundry
 apps/forge/setup.sh
 ```
 
