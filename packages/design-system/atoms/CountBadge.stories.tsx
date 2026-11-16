@@ -28,6 +28,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Neutral: Story = {};
+export const Plain: Story = { args: { tone: 'plain' } };
+export const Qualified: Story = { args: { qualifier: '+' } };
 export const State: Story = { args: { tone: 'state', stateTone: 'accent' } };
 export const Warn: Story = { args: { tone: 'warn' } };
 export const ErrorTone: Story = { args: { tone: 'error' } };

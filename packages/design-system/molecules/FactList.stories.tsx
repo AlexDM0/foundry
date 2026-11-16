@@ -22,3 +22,10 @@ type Story = StoryObj<typeof meta>;
 export const Inline: Story = {};
 export const Grid: Story = { args: { layout: 'grid' } };
 export const Table: Story = { args: { layout: 'table' } };
+export const TableFittedLabels: Story = {
+  args: {
+    layout:       'table',
+    fittedLabels: true,
+    facts:        [{ label: 'Messages waiting', value: '2' }, { label: 'Model', value: 'example-model' }],
+  },
+};

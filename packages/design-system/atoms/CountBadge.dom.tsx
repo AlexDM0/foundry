@@ -1,7 +1,7 @@
 /**
- * The count badge, in a happy-dom document. What matters: it shows the count; each tone sets `data-tone`; a state tone shows only with the
- * `state` tone; a marked count leads with a dot hidden from the accessibility tree; a changed count says which way it went, so it rises or
- * drops in, and the first showing says nothing.
+ * The count badge, in a happy-dom document. What matters: it shows the count and its qualifier after it, as text; each tone sets
+ * `data-tone`; a state tone shows only with the `state` tone; a marked count leads with a dot hidden from the accessibility tree; a changed
+ * count says which way it went, so it rises or drops in, keeping its qualifier, and the first showing says nothing.
  */
 import { cleanup, render } from '@testing-library/react';
 import {
@@ -25,11 +25,31 @@ describe('the count badge', () => {
         <CountBadge count={1} tone="error" />
         <CountBadge count={0} tone="neutral" />
         <CountBadge count={2} tone="warn" />
+        <CountBadge count={5} tone="plain" />
       </>,
     );
     expect([...container.querySelectorAll('.design-system-count-badge')]
       .map((badge) => [badge.textContent, badge.getAttribute('data-tone'), badge.getAttribute('data-state-tone')]))
-      .toEqual([['3', 'state', 'accent-outline'], ['1', 'error', null], ['0', 'neutral', null], ['2', 'warn', null]]);
+      .toEqual([['3', 'state', 'accent-outline'], ['1', 'error', null], ['0', 'neutral', null], ['2', 'warn', null], ['5', 'plain', null]]);
+  });
+
+  test('a qualifier follows the number in the changing part, and is text, never markup', () => {
+    const { container } = render(
+      <>
+        <CountBadge count={4} qualifier="+" tone="plain" />
+        <CountBadge count={2} qualifier="?" tone="neutral" />
+        <CountBadge count={1} qualifier="<b>planted</b>" tone="neutral" />
+      </>,
+    );
+    expect([...container.querySelectorAll('.design-system-count-badge-number')].map((number) => number.textContent)).toEqual(['4+', '2?', '1<b>planted</b>']);
+    expect(container.querySelector('b')).toBeNull();
+  });
+
+  test('a changed count keeps its qualifier and still says which way it went', () => {
+    const { container, rerender } = render(<CountBadge count={3} qualifier="+" tone="neutral" />);
+    rerender(<CountBadge count={4} qualifier="+" tone="neutral" />);
+    const number = container.querySelector('.design-system-count-badge-number');
+    expect([number?.getAttribute('data-change'), number?.textContent]).toEqual(['up', '4+']);
   });
 
   test('a marked count leads with a dot hidden from the accessibility tree, and an unmarked one has none', () => {

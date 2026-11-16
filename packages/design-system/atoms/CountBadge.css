@@ -1,6 +1,6 @@
-/* A count after a label, in a small mono pill: quiet on the wash, a state's colours, orange for a warning or the failure colours; marked
-   leads with a dot, which pops in. It is never filled orange. A changed count rises in from below when it grew and drops in from above
-   when it shrank. */
+/* A count after a label, in a small mono pill: quiet on the wash, plain on no ground, a state's colours, orange for a warning or the
+   failure colours; marked leads with a dot, which pops in. It is never filled orange. A changed count rises in from below when it grew
+   and drops in from above when it shrank. */
 .design-system-count-badge {
   display: inline-flex; align-items: center; gap: var(--space-4);
   margin-left: var(--space-6); padding: var(--space-1) var(--space-6);
@@ -11,6 +11,7 @@
   overflow: hidden;
   transition: background-color var(--motion-base) var(--ease-out), color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
 }
+.design-system-count-badge[data-tone="plain"] { background: transparent; }
 .design-system-count-badge[data-tone="state"] { color: var(--s-ink); background: var(--s-tint); border-color: var(--s-edge); }
 .design-system-count-badge[data-tone="warn"] { font-weight: 600; color: var(--link); background: var(--link-tint); }
 .design-system-count-badge[data-tone="error"] { font-weight: 600; color: var(--err-ink); background: var(--err-tint); }

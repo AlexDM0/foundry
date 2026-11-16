@@ -1,8 +1,8 @@
 /**
  * The number stepper, in a happy-dom document. What matters: the buttons and ArrowUp and ArrowDown on the group step the value by `step`;
  * a change is clamped at the minimum and the maximum, and a button that cannot step is disabled, a step that disables the focused button
- * handing the focus to the other one; the group is named, and the value is read with its unit; a changed value says which way it went,
- * so it rises or drops in.
+ * handing the focus to the other one; a disabled stepper steps on nothing; the group is named, and the value is read with its unit and its
+ * leading text; compact sets `data-compact`; a changed value says which way it went, so it rises or drops in.
  */
 import {
   cleanup,
@@ -131,5 +131,63 @@ describe('the number stepper', () => {
     expect(directionShown()).toBe('up');
     rerender(stepperOf(700));
     expect(directionShown()).toBe('down');
+  });
+
+  test('a disabled stepper disables both buttons and steps on no key', () => {
+    const changes: number[] = [];
+    render(
+      <NumberStepper
+        accessibleName="Example limit"
+        value={4}
+        step={1}
+        minimum={1}
+        maximum={8}
+        unitText="seats"
+        lowerLabel="Lower the example limit"
+        raiseLabel="Raise the example limit"
+        disabled
+        onChange={(changed) => changes.push(changed)}
+      />,
+    );
+    fireEvent.keyDown(screen.getByRole('group', { name: 'Example limit' }), { key: 'ArrowUp' });
+    expect([isDisabled('Lower the example limit'), isDisabled('Raise the example limit'), changes]).toEqual([true, true, []]);
+  });
+
+  test('a compact stepper sets data-compact, and its leading text shows before the value and is read with it', () => {
+    render(
+      <>
+        <NumberStepper
+          accessibleName="Example limit"
+          value={5}
+          step={1}
+          minimum={1}
+          unitText="seats"
+          lowerLabel="Lower the example limit"
+          raiseLabel="Raise the example limit"
+          compact
+          leadingText="4 /"
+          onChange={() => undefined}
+        />
+        <NumberStepper
+          accessibleName="Example standard limit"
+          value={5}
+          step={1}
+          minimum={1}
+          unitText="seats"
+          lowerLabel="Lower the example standard limit"
+          raiseLabel="Raise the example standard limit"
+          onChange={() => undefined}
+        />
+      </>,
+    );
+    const compact = screen.getByRole('group', { name: 'Example limit' });
+    const value = compact.querySelector('output');
+    expect([
+      compact.hasAttribute('data-compact'),
+      value?.querySelector('.design-system-number-stepper-leading')?.textContent,
+      value?.querySelector('.design-system-number-stepper-number')?.textContent,
+      value?.getAttribute('aria-label'),
+      screen.getByRole('group', { name: 'Example standard limit' }).hasAttribute('data-compact'),
+    ]).toEqual([true, '4 /', '5', '4 / 5 seats', false]);
   });
 });

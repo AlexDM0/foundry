@@ -9,15 +9,27 @@
 .design-system-number-stepper > button:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
 .design-system-number-stepper > button:disabled { color: var(--ink-4); cursor: not-allowed; }
 .design-system-number-stepper-value {
-  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 56px; height: 30px;
+  display: flex; align-items: center; justify-content: center; gap: var(--space-4); box-sizing: border-box; width: 56px; height: 30px;
   color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums;
   background: var(--bg); border-inline: 1px solid var(--line);
   overflow: hidden;
 }
+.design-system-number-stepper-leading { color: var(--ink-muted); white-space: nowrap; }
 .design-system-number-stepper-number { display: inline-block; }
 .design-system-number-stepper-number[data-change="up"] { animation: design-system-rise var(--motion-slow) var(--ease-out) both; }
 .design-system-number-stepper-number[data-change="down"] { animation: design-system-drop var(--motion-slow) var(--ease-out) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .design-system-number-stepper-number[data-change] { animation: none; }
+}
+
+/* A compact stepper: two 24px buttons, each in its own box, around the value as mono text on no ground, a leading text before it. */
+.design-system-number-stepper[data-compact] { align-items: center; gap: var(--sp-1); overflow: visible; border: 0; border-radius: 0; }
+.design-system-number-stepper[data-compact] > button {
+  width: 24px; height: 24px; font: 500 14px/1 var(--font-ui); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.design-system-number-stepper[data-compact] > button:focus-visible { outline-offset: 1px; }
+.design-system-number-stepper[data-compact] > button:disabled { color: var(--ink-disabled); border-color: var(--line); }
+.design-system-number-stepper[data-compact] > .design-system-number-stepper-value {
+  width: auto; min-width: 40px; height: auto; font: 400 var(--fs-tab)/1 var(--font-mono); background: transparent; border: 0;
 }

@@ -1,6 +1,7 @@
 /**
  * The fact list, in a happy-dom document. What matters: no facts render nothing; each fact is one `dt`/`dd` pair, in order; a second line
- * shows under its value only when given; each layout sets `data-layout`; and the words are text, never markup.
+ * shows under its value only when given; each layout sets `data-layout`, and a table's fitted labels `data-fitted-labels`, which no other
+ * layout compiles with; and the words are text, never markup.
  */
 import { cleanup, render } from '@testing-library/react';
 import {
@@ -42,6 +43,22 @@ describe('the fact list', () => {
       </>,
     );
     expect([...container.querySelectorAll('dl.design-system-facts')].map((list) => list.getAttribute('data-layout'))).toEqual(['inline', 'grid', 'table']);
+  });
+
+  test('fitted labels set data-fitted-labels on a table, and a table without them sets nothing', () => {
+    const { container } = render(
+      <>
+        <FactList facts={[{ label: 'Messages waiting', value: '2' }]} layout="table" fittedLabels />
+        <FactList facts={[{ label: 'Messages waiting', value: '2' }]} layout="table" />
+      </>,
+    );
+    expect([...container.querySelectorAll('dl.design-system-facts')].map((list) => list.hasAttribute('data-fitted-labels'))).toEqual([true, false]);
+  });
+
+  test('fitted labels do not compile beside any layout but a table', () => {
+    // @ts-expect-error only a table has a label column
+    const fittedGrid = <FactList facts={[{ label: 'Example', value: '1' }]} layout="grid" fittedLabels />;
+    expect(fittedGrid).toBeDefined();
   });
 
   test('the words are text, never markup', () => {

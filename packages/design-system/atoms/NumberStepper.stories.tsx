@@ -31,3 +31,5 @@ type Story = StoryObj<typeof meta>;
 export const Unbounded: Story = {};
 export const WithMaximum: Story = { args: { maximum: 6 } };
 export const AtTheMinimum: Story = { args: { value: 1 } };
+export const Disabled: Story = { args: { disabled: true } };
+export const Compact: Story = { args: { compact: true, value: 5, leadingText: '4 /' } };

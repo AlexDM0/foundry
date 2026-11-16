@@ -1,7 +1,8 @@
 /**
  * The section head, in a happy-dom document. What matters: its title is an `h2` unless the screen picks another element; the count shows
- * only when given; what the caller adds follows; inline sets `data-inline`; the heading look sets the title in the title role and holds
- * what the caller adds in the head's end; and the title is text, never markup.
+ * only when given, a number or a count written as text; what the caller adds follows; inline sets `data-inline` and compact `data-compact`;
+ * the title carries the id it is given; the heading look sets the title in the title role and holds what the caller adds in the head's
+ * end; and the title is text, never markup.
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import {
@@ -35,6 +36,22 @@ describe('the section head', () => {
     expect([head?.querySelector('.design-system-section-count')?.textContent, head?.lastElementChild?.textContent]).toEqual(['2', 'Example head action']);
     cleanup();
     expect(render(<SectionHead title="Example" />).container.querySelector('.design-system-section-count')).toBeNull();
+  });
+
+  test('a count written as text shows as written', () => {
+    const { container } = render(<SectionHead title="Tokens" count="1.24M" />);
+    expect(container.querySelector('.design-system-section-count')?.textContent).toBe('1.24M');
+  });
+
+  test('compact sets data-compact on the head, and a standard head sets nothing', () => {
+    const { container } = render(<><SectionHead title="Example" compact /><SectionHead title="Example" /></>);
+    expect([...container.querySelectorAll('.design-system-section-head')].map((head) => head.hasAttribute('data-compact'))).toEqual([true, false]);
+  });
+
+  test('the title carries the id it is given, and none otherwise', () => {
+    render(<><SectionHead title="Example identified" titleId="example-section-title" /><SectionHead title="Example anonymous" /></>);
+    expect([screen.getByRole('heading', { name: 'Example identified' }).id, screen.getByRole('heading', { name: 'Example anonymous' }).hasAttribute('id')])
+      .toEqual(['example-section-title', false]);
   });
 
   test('inline sets data-inline on the head, and a standard head sets nothing', () => {

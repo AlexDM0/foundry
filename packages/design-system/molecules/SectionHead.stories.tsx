@@ -16,6 +16,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Plain: Story = {};
 export const Counted: Story = { args: { count: 3 } };
+export const CountedAsText: Story = { args: { count: '4+' } };
+export const Compact: Story = { args: { count: 3, compact: true } };
 export const WithAction: Story = { args: { count: 3, children: <TextButton label="Example action" onPress={fn()} /> } };
 export const NestedHeading: Story = { args: { titleElement: 'h3' } };
 export const Inline: Story = { args: { count: 3, inline: true, children: <TextButton label="Example action" onPress={fn()} /> } };
