@@ -1,0 +1,50 @@
+/*
+ * A data table: one grid per row inside a card, a hairline under each row but the last. A regular row is 40px under a 34px head, a compact
+ * one 36px with its hairline under a 32px head, a tall one 58px. The selected row lies on the wash with an orange inset edge, an
+ * expanded one with the muted tone's faded edge; an interactive row is ringed on hover.
+ */
+.design-system-data-table {
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  background: var(--surface);
+}
+.design-system-data-table-row { border-bottom: 1px solid var(--line); transition: var(--feedback-transition); }
+.design-system-data-table-row:last-child { border-bottom: 0; }
+.design-system-data-table-row[data-selected] { background: var(--wash); box-shadow: inset 3px 0 0 var(--signal); }
+.design-system-data-table-row[data-expanded] { background: var(--wash); box-shadow: inset 3px 0 0 var(--s-fill); }
+/* An interactive row is the box a link stretched over it fills. */
+.design-system-data-table-row[data-interactive] { position: relative; }
+.design-system-data-table-row[data-interactive]:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-data-table-cells {
+  display: grid;
+  align-items: center;
+  column-gap: var(--space-12);
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 var(--space-16);
+}
+.design-system-data-table[data-row-height="compact"] .design-system-data-table-cells { min-height: 35px; }
+.design-system-data-table[data-row-height="tall"] .design-system-data-table-cells { min-height: 58px; }
+.design-system-data-table[data-column-gap="narrow"] .design-system-data-table-cells { column-gap: var(--space-8); }
+.design-system-data-table[data-inset="wide"] .design-system-data-table-cells { padding: 0 var(--space-18); }
+.design-system-data-table-row[data-head] .design-system-data-table-cells {
+  min-height: 34px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: var(--letter-spacing-micro);
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.design-system-data-table[data-row-height="compact"] .design-system-data-table-row[data-head] .design-system-data-table-cells { min-height: 32px; }
+.design-system-data-table-cell { min-width: 0; }
+.design-system-data-table-cell[data-align="end"] { text-align: end; }
+.design-system-data-table-cell[data-hidden] {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.design-system-data-table-below { display: block; padding: 0 var(--space-16) var(--space-16); }

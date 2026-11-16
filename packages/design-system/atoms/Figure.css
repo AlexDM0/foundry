@@ -1,0 +1,20 @@
+/* A figure: a mono value over its label, a hairline on its left; inline, the value beside its label, hairlines only between figures. */
+.design-system-figure {
+  display: inline-flex;
+  flex-direction: column;
+  padding: 0 var(--space-16);
+  border-left: 1px solid var(--line);
+}
+.design-system-figure-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.design-system-figure[data-state-tone] .design-system-figure-value { color: var(--s-ink); }
+.design-system-figure-label { font-size: var(--fs-small); line-height: var(--line-height-small); color: var(--ink-muted); }
+.design-system-figure[data-form="inline"] { flex-direction: row; align-items: baseline; gap: var(--space-8); padding: 0 var(--space-12); }
+.design-system-figure[data-form="inline"]:first-child { padding-left: 0; border-left: 0; }
+.design-system-figure[data-form="inline"] .design-system-figure-value { font-size: 15px; line-height: 20px; }

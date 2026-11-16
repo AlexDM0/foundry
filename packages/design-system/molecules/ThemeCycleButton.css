@@ -1,0 +1,12 @@
+/* The theme glyph: a circle stroked in the button's ink, its right half filled for auto and all of it filled for dark. */
+.design-system-theme-cycle-glyph {
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+}
+.design-system-theme-cycle-glyph[data-choice="dark"] { fill: currentColor; }
+.design-system-theme-cycle-glyph-half { fill: currentColor; }

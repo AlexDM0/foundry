@@ -25,8 +25,9 @@ const RUNTIME_PREFIXES = ['bun:', 'node:'];
 const MINIMUM_PACKAGE_FILE_COUNT = 100;
 const STYLESHEET_REFERENCE = /@import\s+(?:url\()?["']([^"']+)["']|url\(\s*["']?([^"')]+)["']?\s*\)/g;
 /**
- * The first host's words: its names and its views, its items, their states, its steps and its panels. This spec is the one file that names
- * them. The design's own names (`FlintSlot`, the decision card, the tokens such as `--lane-bg`) are no host words.
+ * The hosts' words: the first host's names and its views, its items, their states, its steps and its panels, and the second host's names
+ * and its domain. This spec is the one file that names them. The design's own names (`FlintSlot`, the decision card, the tokens such as
+ * `--lane-bg`) are no host words.
  */
 const HOST_WORDS: readonly string[] = [
   'forge',
@@ -52,6 +53,13 @@ const HOST_WORDS: readonly string[] = [
   'human-review',
   'question-panel',
   'detail-w',
+  'gaia',
+  'brain',
+  'brains',
+  'fleet',
+  'tracker',
+  'trackers',
+  'registry',
 ];
 const HOST_WORD = new RegExp(`\\b(${HOST_WORDS.join('|')})\\b`, 'gi');
 const THIS_SPEC_PATH = 'PackageIsolation.spec.ts';
