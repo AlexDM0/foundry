@@ -848,12 +848,12 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'flint/PlantedPart.ts': importing('../../apps/gaia/page/Main.tsx') })).toEqual([
       `import-leaves-the-program — flint/PlantedPart.ts:1 imports ../gaia/page/Main.tsx: ${leavesReason}`,
     ]);
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../../../packages/design-system-contributions/atoms/Figure.tsx') })).toEqual([
-      `import-leaves-the-program — bridge/shell/PlantedPart.tsx:1 imports ../../packages/design-system-contributions/atoms/Figure.tsx: ${leavesReason}`,
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../../../scripts/CacheAudit.ts') })).toEqual([
+      `import-leaves-the-program — bridge/shell/PlantedPart.tsx:1 imports ../../scripts/CacheAudit.ts: ${leavesReason}`,
     ]);
     const undeclaredReason = 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency';
-    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('design-system-contributions/Figure') })).toEqual([
-      `workspace-package-not-declared — bridge/shell/PlantedPart.tsx:1 imports design-system-contributions/Figure: ${undeclaredReason}`,
+    expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('monorepo-scripts/CacheAudit') })).toEqual([
+      `workspace-package-not-declared — bridge/shell/PlantedPart.tsx:1 imports monorepo-scripts/CacheAudit: ${undeclaredReason}`,
     ]);
     expect(plantedSentencesOf({ 'design-system/atoms/PlantedPart.tsx': importing('forge') })).toEqual([
       `workspace-package-not-declared — design-system/atoms/PlantedPart.tsx:1 imports forge: ${undeclaredReason}`,

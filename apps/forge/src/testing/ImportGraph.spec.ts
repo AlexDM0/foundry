@@ -44,8 +44,8 @@ describe('the target of a specifier', () => {
   });
 
   test('a member of the workspace the program does not declare is named apart from a package outside the workspace, the program itself included', () => {
-    expect(targetsOf(['design-system-contributions/Figure', 'gaia', 'forge'])).toEqual([
-      { specifier: 'design-system-contributions/Figure', target: { kind: 'undeclared-workspace-package', specifier: 'design-system-contributions/Figure' } },
+    expect(targetsOf(['monorepo-scripts/CacheAudit', 'gaia', 'forge'])).toEqual([
+      { specifier: 'monorepo-scripts/CacheAudit', target: { kind: 'undeclared-workspace-package', specifier: 'monorepo-scripts/CacheAudit' } },
       { specifier: 'gaia', target: { kind: 'undeclared-workspace-package', specifier: 'gaia' } },
       { specifier: 'forge', target: { kind: 'undeclared-workspace-package', specifier: 'forge' } },
     ]);

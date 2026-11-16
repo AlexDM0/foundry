@@ -1,10 +1,9 @@
 # The forge monorepo
 
 A Bun workspace: each app in `apps/` (`apps/forge/`, `apps/gaia/`), each shared package in `packages/`. Each app's `README.md` says how
-to run it and its `CLAUDE.md` holds its rules; this root's `CLAUDE.md` says whose rules each package follows. `migration/` holds what
-the design-system merge applies once and then deletes: `migration/design-system-patches/`, patches against `packages/design-system`
-with their check. `docs/monorepo/` holds the monorepo's design and the migration checklist. `scripts/` holds the root's own
-scripts, a workspace member so turbo typechecks, lints and tests them like any other.
+to run it and its `CLAUDE.md` holds its rules; this root's `CLAUDE.md` says whose rules each package follows.
+`docs/monorepo/` holds the monorepo's design and the migration checklist. `scripts/` holds the root's own scripts, a workspace member
+so turbo typechecks, lints and tests them like any other.
 
 ## Set up
 

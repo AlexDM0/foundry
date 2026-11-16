@@ -7,7 +7,6 @@ Two apps share this Bun workspace, each under its own rules. Read the rules of w
 | `apps/forge/` | forge: the tracker, the Overseer, the Bridge, the CLI | `apps/forge/CLAUDE.md` and the path-scoped `.claude/rules/*.md` |
 | `apps/gaia/` | Gaia: one window over every forge on the machine | `apps/gaia/CLAUDE.md` |
 | `packages/<name>/` | a shared package | its own `README.md` and, where it has one, `CONSTITUTION.md`, plus the rules of the app that owns it |
-| `migration/` | what the design-system merge applies once and then deletes | `migration/design-system-patches/README.md`, and Gaia's rules |
 | `docs/monorepo/` | the monorepo's design (`design.md`) and the migration checklist (`migration.md`) | this file |
 | `scripts/` | the root's own scripts (`cache:audit`), a workspace member so turbo checks them | this file |
 
@@ -18,7 +17,6 @@ Whose rules a package follows beside its own:
 - `packages/flint`, `packages/forge-contracts` and `packages/brand` are forge's (`.claude/rules/flint.md` for Flint). Nothing in a
   package forge depends on names Gaia.
 - `packages/system-versions` is both apps'; it names no server.
-- `packages/design-system-contributions` is Gaia's, until the design-system merge moves its parts into `packages/design-system`.
 
 ## Rules for the whole repository
 

@@ -1,8 +1,0 @@
-/* A failed action: text in the failure ink with its code in mono, beside its retry and dismiss buttons; it fades in as it appears. */
-.design-system-failed-action { display: flex; align-items: center; gap: var(--space-12); transition: opacity var(--motion-base) var(--ease-out); }
-.design-system-failed-action-text { flex: 1; min-width: 0; font-size: var(--fs-tab); line-height: var(--line-height-tab); color: var(--err-ink); }
-.design-system-failed-action-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: 600; }
-
-@starting-style {
-  .design-system-failed-action { opacity: 0; }
-}

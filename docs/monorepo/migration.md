@@ -4,23 +4,23 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-15, on branch `monorepo/integration` at `e50aaacb` (P2A merged). Merge bases: forge `main` `db64ed0a`, Gaia
-`main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch `monorepo/<lane>`, merged into
-`monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward, after the owner's go. Nothing is
-pushed. Each phase ends with a gate in the integration worktree: a clean `bun install --frozen-lockfile`, `bun run verify`, one
-`bun run verify -- --force`, the phase's own checks and a clean `git status`. The gate records are in the main checkout's
-`.claude/.evidence/monorepo-migration/gates/`, which is ignored.
+Status as of 2026-11-16, on branch `monorepo/integration`: P2 gated green, P3's lanes done and Gate P3 not run. Merge bases: forge
+`main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
+`monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
+after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
+`bun install --frozen-lockfile`, `bun run verify`, one `bun run verify -- --force`, the phase's own checks and a clean `git status`.
+The gate records are in the main checkout's `.claude/.evidence/monorepo-migration/gates/`, which is ignored.
 
 ## What Gaia brought
 
 | Path | What it is | Its README |
 | --- | --- | --- |
 | `apps/gaia/` | Gaia's whole app: `src/`, `page/`, `resources/`, `docs/`, its `bunfig.toml`, tsconfigs, lint config and `CLAUDE.md` | `apps/gaia/README.md` |
-| `packages/design-system-contributions/` | The eight components Gaia built that belong in the design system (`TextField`, `Checkbox`, `Figure`, `PageHead`, `FailedAction`, `PendingStep`, `ThemeCycleButton`, `DataTable`, with `ThemeChoice` and `ThemeCycleUtil`), under the design-system package's constitution | its `README.md` and `CONSTITUTION.md` |
+| a contributions package, merged in P3 | The eight components Gaia built that belong in the design system (`TextField`, `Checkbox`, `Figure`, `PageHead`, `FailedAction`, `PendingStep`, `ThemeCycleButton`, `DataTable`, with `ThemeChoice` and `ThemeCycleUtil`), now in `packages/design-system` | `packages/design-system/README.md` |
 | `packages/brand/` | Forge's mark as a React component, its tokens in both themes, and the geometry a host's mark may draw alike; it names no Gaia | its `README.md` |
 | `packages/forge-contracts/` | Forge's contract with any client: the Overseer's documents as types, forge's system versions, its compatibility registry with the raise-the-minimum report and guard, and the embed mode; it names no Gaia | its `README.md`; what Gaia asks of forge is `apps/gaia/docs/forge-requirements.md` |
 | `packages/system-versions/` | The version model any server and client share and the compatibility registry's logic, naming no server | its `README.md` |
-| `migration/design-system-patches/` | Fourteen numbered patches against the design-system package for what Gaia needs of its components, and `CheckPatches.ts` | its `README.md` |
+| `migration/`, implemented in P3 and deleted | Fourteen numbered patches against the design-system package for what Gaia needs of its components, each now built into the package | git history |
 
 ## Checklist
 
@@ -39,9 +39,9 @@ pushed. Each phase ends with a gate in the integration worktree: a clean `bun in
       `typecheck`, `lint`, `verify`, `verify:<app>`, `gate:<app>` and `cache:audit`.
 - [x] L5 setup and runtime (`BunStep`, `CodeVersion` hashing the packages and the root `bun.lock`), L2 root guards, L3 lint per
       workspace, L4 a DOM spec runner per package, L7 forge's docs, L8 the Claude Code probes in a subfolder session.
-- [ ] L1 import graph: the graph reads the declared packages, but the package include-list contracts have not moved into
-      `packages/*/ProjectIncludeList.spec.ts`, and "a package imports nothing from `apps/`" and "an app imports only the packages it
-      declares" have no planted cases yet (lane `p2-import-graph-finish`).
+- [x] L1 import graph: the graph reads the declared packages; the include-list contracts live in
+      `packages/*/ProjectIncludeList.spec.ts`, and an import that leaves forge's program by a path or names a workspace package it does
+      not declare has planted cases (lane `p2-import-graph-finish`).
 - [x] L6 network guard: dropped. The installed forge runs from a second clone instead (owner decision of 2026-11-15).
 - [x] The popover spec's timeout under concurrency: each failed poll of its `waitFor` printed a happy-dom node, walking the whole
       document (0.75 s alone, 5 s in the Bridge's tree), past the poll's 1 s bound under load. The DOM preloads of forge and the design
@@ -52,29 +52,29 @@ pushed. Each phase ends with a gate in the integration worktree: a clean `bun in
       file and prints it at the end: 0 of 8 hung under the same load. The ordering edge stays until a gate measures the cold run
       without it.
 
-### P2. Import Gaia (Claude) — under way
+### P2. Import Gaia (Claude) — done, gate green
 
 - [x] P2A: Gaia's `main` merged with `--allow-unrelated-histories` (`e50aaacb`), its 279 commits and signatures intact; Gaia's workspaces
       take turbo's task names. One forced verify had two red specs: Gaia's `SingleReactPlugin` negative case (G-a removes the plugin) and
       the design-system popover flake (the P2 gate's).
-- [ ] G-a `p2-gaia-workspace`: Gaia declares `design-system` at `workspace:^`; the link-era workarounds go (`DesignSystemPeerPreload`,
+- [x] G-a `p2-gaia-workspace`: Gaia declares `design-system` at `workspace:^`; the link-era workarounds go (`DesignSystemPeerPreload`,
       `preserveSymlinks`, `SingleReactPlugin`); a spec that every workspace package Gaia imports is declared.
-- [ ] G-b `p2-gaia-leak-check`: Gaia's leak check judges only `apps/gaia`.
+- [x] G-b `p2-gaia-leak-check`: Gaia's leak check judges only `apps/gaia`.
 - [x] G-c `p2-docs`: the root `CLAUDE.md` and `README.md`; `apps/gaia/CLAUDE.md` rules 1, 2, 9 and 11 for one repository; this design
       and this checklist under `docs/monorepo/`.
-- [ ] Gate P2: three cold `bun run verify -- --force` runs in a row, green each time (lower `--concurrency` if one flakes); the turbo
+- [x] Gate P2: three cold `bun run verify -- --force` runs in a row, green each time (lower `--concurrency` if one flakes); the turbo
       isolation smoke (an `apps/gaia` edit changes only Gaia's hashes, a `packages/design-system` edit forge's and Gaia's, a
       `packages/forge-contracts` edit only Gaia's); `bun run versions:raise-minimum` still works from `apps/gaia`.
 
-### P3. The design-system merge (Claude) — not started
+### P3. The design-system merge (Claude) — lanes done, gate not run
 
-- [ ] P3A: DS-A moves the contributions' parts into `packages/design-system`; DS-B tokens and state dots.
-- [ ] P3B: DS-C button, DS-D callout and confirm, DS-E1 counts and heads, DS-E2 meters and tags. Each patch is implemented in the
+- [x] P3A: DS-A moves the contributions' parts into `packages/design-system`; DS-B tokens and state dots.
+- [x] P3B: DS-C button, DS-D callout and confirm, DS-E1 counts and heads, DS-E2 meters and tags. Each patch is implemented in the
       package with the patch as its specification; only patch 01 applies with `git am`.
-- [ ] P3C: DS-F the package's README, constitution and exports (publishable at `0.2.0`); DS-G Gaia's call sites switch to
+- [x] P3C: DS-F the package's README, constitution and exports (publishable at `0.2.0`); DS-G Gaia's call sites switch to
       `design-system/<Export>`.
-- [ ] P3D: delete `packages/design-system-contributions`, `migration/` and `migration/*` from the workspaces.
-- [ ] Gate P3: Storybook builds; the visual pass; no `design-system-contributions` left outside git history.
+- [x] P3D: the contributions package, `migration/` and `migration/*` in the root workspaces deleted.
+- [ ] Gate P3: Storybook builds; the visual pass; no reference to the contributions package left outside git history.
 
 ### P4. Forge 1.0: contracts, brand, V1 to V6, V8, V9 (Claude) — not started; may run beside P3
 

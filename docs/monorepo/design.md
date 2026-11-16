@@ -27,7 +27,7 @@ Decisions taken on 2026-11-14 and 2026-11-15:
 
 ```
 <forge repository, git root>
-  package.json            workspaces apps/*, packages/* (and migration/* until the design-system merge);
+  package.json            workspaces apps/*, packages/*, scripts;
                           scripts typecheck, lint, verify, verify:<app>, gate:<app>, cache:audit, each through turbo
   turbo.json              the tasks typecheck, lint, test, test:dom (cached) and check (uncached)
   bun.lock  .bun-version  bunfig.toml  .githooks/  .gitattributes  scripts/CacheAudit.ts
@@ -41,8 +41,6 @@ Decisions taken on 2026-11-14 and 2026-11-15:
   packages/forge-contracts/  forge's contract with any client: documents, system versions, compatibility registry
   packages/brand/         forge's mark, its tokens and the geometry a host's mark may draw alike
   packages/system-versions/  the version model and the compatibility registry's logic, naming no server
-  packages/design-system-contributions/  Gaia's parts for the design system, until the merge moves them in
-  migration/design-system-patches/       Gaia's patches against the design system, until the merge applies them
 ```
 
 ### Tooling: Bun workspaces and Turborepo
@@ -105,9 +103,9 @@ draws no Flint, and the brain stays in the forge's Overseer: the package buys a 
 
 Forge's design-system package, with its own README and constitution, is the design system both apps draw with. This reverses Gaia's
 decisions D8/V8 ("own copy, drift accepted") and D12 ("the build writes only in the Gaia repository"); Gaia's own copies of shared
-components are gone. Gaia's additions arrive through the design-system merge: the parts of `packages/design-system-contributions` move
-into the package beside the layer they belong to, each of the fourteen patches is implemented in the package with the patch as its
-specification, Gaia switches its call sites over, and `packages/design-system-contributions` and `migration/` are deleted. The design
+components are gone. Gaia's additions arrived through the design-system merge: the parts Gaia contributed moved into the package beside
+the layer they belong to, each of Gaia's fourteen patches was implemented in the package with the patch as its specification, Gaia's
+call sites switched over, and the contributions package and `migration/` were deleted. The design
 of 2026-11-13's "nine shared names, forge's version as base", the `board.css` split and the neutral prefix are done or moot.
 
 ### The shared contracts

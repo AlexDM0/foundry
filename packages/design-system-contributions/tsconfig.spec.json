@@ -1,8 +1,0 @@
-{
-  // The package plus Bun types, so the specs, DOM specs, stories and Storybook configuration compile; the DOM-only program above stays the
-  // proof.
-  "extends": "./tsconfig.json",
-  "compilerOptions": { "types": ["bun"], "tsBuildInfoFile": "../../node_modules/.cache/typecheck/design-system-contributions-specs.tsbuildinfo" },
-  "include": ["./**/*.ts", "./**/*.tsx", "./.storybook/*.ts"],
-  "exclude": []
-}

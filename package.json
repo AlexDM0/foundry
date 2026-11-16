@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "bun@1.4.2",
   "engines": { "bun": "1.4.2" },
-  "workspaces": ["apps/*", "packages/*", "migration/*", "scripts"],
+  "workspaces": ["apps/*", "packages/*", "scripts"],
   "scripts": {
     "typecheck": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck",
     "lint": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run lint",

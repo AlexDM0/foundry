@@ -54,10 +54,6 @@
         "system-versions": "workspace:^",
       },
     },
-    "migration/design-system-patches": {
-      "name": "design-system-patches",
-      "version": "0.1.0",
-    },
     "packages/brand": {
       "name": "brand",
       "version": "0.2.0",
@@ -73,17 +69,6 @@
       "name": "design-system",
       "version": "0.2.0",
       "peerDependencies": {
-        "react": ">=19",
-      },
-    },
-    "packages/design-system-contributions": {
-      "name": "design-system-contributions",
-      "version": "0.1.0",
-      "devDependencies": {
-        "design-system": "workspace:^",
-      },
-      "peerDependencies": {
-        "design-system": "^0.1.0",
         "react": ">=19",
       },
     },
@@ -580,10 +565,6 @@
     "dequal": ["dequal@2.0.3", "", {}, "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA=="],
 
     "design-system": ["design-system@workspace:packages/design-system"],
-
-    "design-system-contributions": ["design-system-contributions@workspace:packages/design-system-contributions"],
-
-    "design-system-patches": ["design-system-patches@workspace:migration/design-system-patches"],
 
     "detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
