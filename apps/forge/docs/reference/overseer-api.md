@@ -7,8 +7,9 @@
 ## In one screen
 
 Each [board](../glossary.md#board) has one [Overseer](../glossary.md#overseer), and it serves one HTTP API on
-`127.0.0.1`. Its clients are the [Bridge](../glossary.md#bridge), the CLI, and agent-dashboard and Gaia, separate
-programs that list boards and frame the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id.
+`127.0.0.1`. Its clients are the [Bridge](../glossary.md#bridge), the CLI, and monitors: separate programs that list
+boards, read them and may frame the Bridge. The port is derived from the [tracker](../glossary.md#tracker) id. A client
+reads `GET /api/versions` first, and calls each endpoint at the version path its forge version is served.
 
 ![The User works in the Bridge, which posts commands to the Overseer server and receives server-sent events. Most CLI verbs write the board files themselves and then nudge the server; a few post a command or read the state. agent-dashboard reads with GET. The server answers by reading board files, job event logs and agent transcripts, and takes no lock to read.](../figures/overseer-api/api-at-a-glance.png)
 
@@ -38,14 +39,15 @@ A bare verb such as `oversee status` is `forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
-| `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor such as Gaia |
+| `GET /api/versions` | none | `{current, minimumSupported}`, see [System versions](#system-versions); never versioned and never removed | none, also while the Overseer starts | every client, first |
+| `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `watcherProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor |
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
 | `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
 | `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
-| `GET /api/summary` | none | `BoardSummary` | 500 `read-failed` when the read throws | agent-dashboard; never the Bridge |
-| `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor such as Gaia |
-| `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor such as Gaia |
+| `GET /api/summary` | none | `BoardSummary`, see [The summary contract](#the-summary-contract) | 500 `read-failed` when the read throws | a monitor; never the Bridge |
+| `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor |
+| `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
@@ -54,6 +56,7 @@ A bare verb such as `oversee status` is `forge oversee status`.
 | `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
 | `GET /api/profiles/<P>/stream` | session cookie or bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | `bridge/api/ProfileStreamClient.ts`, for the gate dialog's profile log |
 | `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
+| `/api/v<n>/<endpoint>` | the unversioned route's | The unversioned route's answer, for each endpoint the registry serves at `v<n>`, see [Versioned paths](#versioned-paths) | 404 `not-found` for a version or an endpoint the registry does not serve | a monitor |
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
 
@@ -84,7 +87,7 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | --- | --- | --- | --- | --- |
 | Bind | Socket | `Bun.serve` on `127.0.0.1`, `reusePort: false` | No connection | A request from another machine; a second process sharing the port |
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
-| Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, agent-dashboard's page included |
+| Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, a monitor's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
 | Reader | In the nine data routes: session token, state, events, monitor, monitor events, job stream, job files, pictures, profile stream | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
 | Bearer token | In `/api/commands`, `/api/pictures` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
@@ -97,8 +100,9 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 
 The loopback port is shared by every user of the machine, so the data routes ask who reads: the Bridge shows its
 session cookie, and a CLI reader such as `oversee status` the bearer token from the file the Baton names.
-`GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open: identity and the summary carry no ticket text,
-agent-dashboard's server reads the summary with no token, and a nudge carries no data and only schedules a Pass.
+`GET /api/versions`, `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open: the versions, identity and
+the summary carry no ticket text, a monitor's server reads them with no token, and a nudge carries no data and only
+schedules a Pass.
 
 The token never reaches another origin's page: the only route that hands it out needs a session cookie, which only a
 one-time code buys, and no answer is readable across origins. Every Overseer start writes a fresh token to the file the
@@ -146,9 +150,9 @@ default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img
 base-uri 'none'; form-action 'none'; frame-ancestors <origins, or 'none'>
 ```
 
-`FrameOrigins.frameOriginsOf` reads two server records for every response: agent-dashboard's, taking the origins of its
-`url` and `boardOrigin`, and Gaia's, taking its `origin` ([The Gaia contract](#the-gaia-contract)). A record that is
-absent or unreadable adds no origin; with no origin the policy says `'none'`. `bridge/index.html` repeats the policy as
+`FrameOrigins.frameOriginsOf` reads the framing hosts' records for every response, each giving its `origin`
+([The embed contract](#the-embed-contract)). A record that is absent or unreadable adds no origin; with no origin the
+policy says `'none'`. `bridge/index.html` repeats the policy as
 a meta tag, without `frame-ancestors`.
 
 Changed Bridge code reaches the browser only through an Overseer on that code, since the memory lives as long as the
@@ -582,20 +586,70 @@ follows the selected session alone and reads every other session's last line fro
 
 ## Contracts
 
+### System versions
+
+`GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
+forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
+`packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
+moment the server answers, while the Overseer starts too. This forge answers `1.0` and `0.0`: version 0.0 stands for
+every forge released before system versions.
+
+The system version is set by interoperability, never by a package's version:
+
+- A change that only adds, such as a key, a route, a command kind, a message kind or an event, raises the minor. Every
+  client built for that major keeps working.
+- Any other change to a route, a document, a command or a message raises the major: a key removed, renamed or retyped, a
+  value that now means something else, a route removed. A breaking change to an endpoint is served at its next version
+  beside the old one, with a registry entry.
+- Forge alone decides the minimum supported version, whoever calls. It is raised only to retire what the compatibility
+  registry keeps; `bun run versions:raise-minimum <major.minor>` in `packages/forge-contracts` is the dry run that lists
+  what a raise makes removable, and `ForgeCompatibilityRegistry.spec.ts` fails after a raise until each listed entry, and
+  the code it keeps, is gone.
+
+The test setting `FORGE_VERSIONS_ANSWER` replaces the answer and the system version the monitor stream names, so a
+client can record a forge ahead of it or of another major ([the CLI reference](../cli.md)).
+
+### Versioned paths
+
+Every endpoint of `FORGE_COMPATIBILITY_REGISTRY` (`packages/forge-contracts`) answers at `/api/v<n>/<endpoint>`, at each
+version an entry serves to a client the server still supports. The server turns the path into the unversioned one and
+answers it through that route, so the token, the session cookie, the CSP and a stream's held connection are the same.
+An answer carries no endpoint version. A version or an endpoint no entry serves is 404 `not-found`, `/api/v1/versions`
+among them.
+
+| Endpoint | Versioned path |
+| --- | --- |
+| identity | `GET /api/v1/identity` |
+| summary | `GET /api/v1/summary` |
+| monitor | `GET /api/v2/monitor` |
+| monitor events | `GET /api/v2/monitor/events` |
+| commands | `POST /api/v1/commands` |
+| session codes | `POST /api/v1/session-codes` |
+
+The monitor starts at v2: its warnings became objects before system versions. The unversioned paths stay as a
+compatibility path of the registry, for clients built before system versions, and the Bridge's own routes stay
+unversioned only: the Bridge is served by the same release.
+
+### Contract versions
+
 `GET /api/identity` answers `identityVersion`, the version of its own shape, now 1, and `contracts`, an object of whole
-numbers: the version of each contract this program serves. A contract it does not serve has no key.
+numbers: the version of each contract this program serves. A contract it does not serve has no key. A forge's system
+version, not these numbers, says whether a client can talk to it; forge keeps them for clients built before system
+versions.
 
 | Contract | Version | What it covers |
 | --- | --- | --- |
-| `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the agent-dashboard contract](#the-agent-dashboard-contract), which carries the same number as `summaryVersion` |
+| `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the summary contract](#the-summary-contract), which carries the same number as `summaryVersion` |
 | `monitor` | 3 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
 | `control` | 1 | `POST /api/commands` for the seven kinds of [control contract 1](#control-contract-1), each answer carrying the same number as `controlVersion` |
-| `embed` | 1 | [The Gaia contract](#the-gaia-contract): `?embedded=gaia` and the embed channel, whose messages carry the same number as `channelVersion` |
+| `embed` | 1 | [The embed contract](#the-embed-contract): the embed mode and the embed channel, whose messages carry the same number as `channelVersion` |
 
-A change of shape in a contract raises its number in the same change: a key added, removed or renamed, a value that
-changes type or meaning, or a union that gains or loses a value. The numbers are `SERVED_CONTRACT_VERSIONS` in
-`src/shared/constants/OverseerApiContracts.ts`, and a new contract is one entry there. A client reads a contract only at
-a number it knows; a forge with no `contracts` key serves `summary` 1 alone.
+A change of shape in a contract raises its number in the same change, and the system version with it: a key added,
+removed or renamed, a value that changes type or meaning, or a union that gains or loses a value. The numbers are
+`OVERSEER_CONTRACT_VERSIONS` in `packages/forge-contracts`, served through `SERVED_CONTRACT_VERSIONS` in
+`src/shared/constants/OverseerApiContracts.ts`; `control` stays 1 there until forge runs Flint's brain, whose commands
+control 2 adds. Each document forge sends extends the package's type of it. A client reads a contract only at a number
+it knows; a forge with no `contracts` key serves `summary` 1 alone.
 
 ## The monitor contract
 
@@ -638,9 +692,12 @@ The Bridge's Waiting on User list, its notices, its warnings and its today figur
 ## The monitor stream
 
 `GET /api/monitor/events` is server-sent events, with the same reader guard and the same `: ping` heartbeat as
-`GET /api/events`. On connect it sends one `monitor` event with the whole newest `MonitorSnapshot`, then one more after
-each publish that changed the snapshot. A publish that changes no key sends nothing. Every event carries the whole
-snapshot with its `monitorVersion`, so a client never needs the identity to read one.
+`GET /api/events`. On connect it sends one `handshake` event, `{systemVersion}`, the `current` of
+[System versions](#system-versions). Then it sends one `monitor` event with the whole newest `MonitorSnapshot`, then one
+more after each publish that changed the snapshot. A publish that changes no key sends nothing. Every `monitor` event
+carries the whole snapshot with its `monitorVersion`, and `systemVersion` beside its keys, so a client never needs the
+identity to read one, and learns the version of an Overseer that a Baton pass brought. The package types are
+`MonitorStreamHandshake` and `MonitorEventDocument`.
 
 The stream has no event ids and no replay: a client that reconnects starts from the next whole snapshot. The Overseer's
 stop and a Baton pass close every open stream, and the successor's stream starts with a
@@ -666,21 +723,14 @@ appended later.
 - The output is never on [the event stream](#the-event-stream): the Overseer publishes no event for an output line, and
   this stream sends no board event.
 
-## The agent-dashboard contract
-
-agent-dashboard is a separate program outside this repository that lists boards and frames the Bridge. Four things bind
-it to this API.
-
-![The dashboard's server finds a board's url in the registry the Overseer writes, then reads GET /api/summary. The dashboard's page gets 403 from the API, but may frame the Bridge, because the Overseer's frame-ancestors names the origins in the dashboard's server.json. Across the frame, theme messages go in and Esc comes out.](../figures/overseer-api/dashboard-contract.png)
-
-*Notice that the page gets 403 from the API and may still frame the Bridge.*
+## The summary contract
 
 **Finding a board.** The Overseer adds `overseer: {url, processId, startedAt, tokenPath}` to its entry in
 [`<monitor>`](../glossary.md#reading-names)`/projects.json` at start and removes that key at stop. The file's format is
 in the [CLI reference](../cli.md).
 
 **Reading.** `GET /api/summary` answers the JSON in the table below, with `summaryVersion` the literal 1 that versions
-the shape. The dashboard's server calls it, since its page gets 403 like any other Origin.
+the shape. A monitor's server calls it, since a page of another origin gets 403 like any other Origin.
 
 <details>
 <summary><code>BoardSummary</code> keys</summary>
@@ -698,37 +748,27 @@ the shape. The dashboard's server calls it, since its page gets 403 like any oth
 
 </details>
 
-**Framing.** The CSP's `frame-ancestors` names the dashboard's origins, read from
-`~/.agent-progress-monitor/agent-dashboard/server.json`, keys `url` and `boardOrigin`. Only the literal parameter
-`?embedded=dashboard` marks the document embedded, which sets `data-embedded` on the root.
+## The embed contract
 
-> **Careful.** That path is the dashboard's own, a literal in `DASHBOARD_SERVER_RECORD`, so it is not `<monitor>`.
+A host is a separate program that frames the Bridge of one board. Forge names no host: the query, the record and the
+messages below speak of a host only.
 
-**Talking across the frame.** `EmbeddedChannel` speaks agent-dashboard's own two message shapes over `postMessage`.
-`{kind: 'theme', themeChoice}` with `auto`, `light` or `dark` comes in, accepted only from the framing parent at its own
-origin; `auto` resolves through the system's scheme. `{kind: 'leave-board'}` goes out on an Esc that no panel and no
-inner layer used, posted to that origin and never to `*`. agent-dashboard posts the theme to, and listens on, the frame
-that shows the board, so a Bridge it frames directly answers in the shapes its board bridge already uses.
+**Framing.** Each host writes its own record to `<monitor>/frame-hosts/<name>.json`, `{version, minor, origin}`, and
+`frame-ancestors` adds the `origin` of each record. The Overseer reads the records for every response. A record that is
+absent, unreadable, or of a `version` other than 1 adds no origin. An `origin` that is no URL, or that is opaque
+(`null`, as for a `file:` URL), adds no origin.
 
-## The Gaia contract
-
-Gaia is a separate program that monitors many boards and frames the Bridge of one board. It writes its server record,
-`<monitor>/gaia/server.json`, `{version: 1, url, origin, processId, startedAt}`.
-
-**Framing.** `frame-ancestors` adds the `origin` of that record. The Overseer reads the record for every response. A
-record that is absent, unreadable, or of a `version` other than 1 adds no origin. An `origin` that is no URL, or that
-is opaque (`null`, as for a `file:` URL), adds no origin.
-
-**Embedded mode.** Only the literal parameter `?embedded=gaia` marks the document embedded for Gaia. The root then has
-`data-embedded="gaia"`. The Bridge hides its title row (project name, status line, Overseer controls, Waiting on User
-pill), its activity strip and its theme switch, so the tab bar is the first row. The banners and the incident line
-stay above the tab bar when they show. `?embedded=dashboard` does not change.
+**Embedded mode.** Only the parameter of `EMBED_MODE_QUERY` (`packages/forge-contracts`), `?embedded=frame`, marks the
+document embedded. The root then has `data-embedded="frame"`. The Bridge hides its title row (project name, status
+line, Overseer controls, Waiting on User pill), its activity strip and its theme switch, so the tab bar is the first
+row. The banners and the incident line stay above the tab bar when they show. Any other value is not embedded.
 
 **The embed channel, version 1.** Every `postMessage` in each direction is
-`{channel: 'forge-embed', channelVersion: 1, kind, ...}`. The Bridge accepts a message only from the framing parent at
-its origin, and posts only to that origin, never to `*`. It ignores a message of another `channel` or another
-`channelVersion`, an unknown `kind` and a malformed field, and sends no answer to it. `channelVersion` is
-`contracts.embed`.
+`{channel: 'forge-embed', channelVersion: 1, kind, ...}`, and the Bridge's carry its `systemVersion`, the `current` of
+[System versions](#system-versions). The Bridge accepts a message only from the framing parent at its origin, and posts
+only to that origin, never to `*`. It ignores a message of another `channel` or another `channelVersion`, an unknown
+`kind` and a malformed field, and sends no answer to it; it passes over a key it does not know, a host's
+`systemVersion` among them. `channelVersion` is `contracts.embed`.
 
 | Direction | `kind` | Fields | Meaning |
 | --- | --- | --- | --- |
@@ -736,11 +776,11 @@ its origin, and posts only to that origin, never to `*`. It ignores a message of
 | Bridge to parent | `route` | `fragment` | The route that the Bridge shows changed, such as `#questions/E2`. Sent once after `ready` for the first route. |
 | Bridge to parent | `leave` | none | An Esc that no panel and no inner layer used. |
 | Bridge to parent | `session-lost` | none | An API call answered 401: the Overseer restarted. |
-| Parent to Bridge | `theme` | `themeChoice`: `auto`, `light`, `dark` | Applied and not stored, as for agent-dashboard. |
+| Parent to Bridge | `theme` | `themeChoice`: `auto`, `light`, `dark` | Applied and not stored. |
 | Parent to Bridge | `navigate` | `fragment`, which starts with `#` | Go to this route. The Bridge answers with `route`, also when the route does not change. |
 
 A route `#questions/<id>` that names an open question opens the question panel on that question. This is true in each
-mode, not only in Gaia's frame.
+mode, not only in a host's frame.
 
 The channel is `VersionedEmbedChannel` in `bridge/shell/VersionedEmbedChannel.ts`; `BridgeApp` sends `ready`, `route`
 and `session-lost`, and follows `navigate`.
@@ -759,20 +799,25 @@ and `session-lost`, and follows `navigate`.
 9. A read route takes no lock.
 10. A picture is known by the sha256 of its bytes and its type by its first bytes; no transcript entry carries its bytes.
 11. A gate profile's output reaches a client only through its profile stream, never through the event stream.
-12. A change of shape in a contract raises its number in `contracts` in the same change.
-13. A `monitor` event is sent only when the snapshot changed, and every one carries the whole snapshot.
+12. A change of shape in a contract raises its number in `contracts`, and the system version, in the same change.
+13. A `monitor` event is sent only when the snapshot changed, and every one carries the whole snapshot and the system
+    version, after the stream's one `handshake`.
+14. `GET /api/versions` answers whenever the server answers, and is never versioned or removed.
+15. A versioned path answers exactly as its unversioned route, or 404 `not-found`.
 
 ## In the code
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Guards, routes, CSP, page build | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `OverseerServer.requestHandlerOf`, `routeOf`, `contentSecurityPolicyOf`, `pageFilesOf` | `src/services/overseer/OverseerServer.integration.spec.ts`, `src/services/overseer/OverseerServer.monitor.spec.ts` |
-| Contract versions | `src/shared/constants/OverseerApiContracts.ts` | `IDENTITY_VERSION`, `SERVED_CONTRACT_VERSIONS` | `src/services/overseer/OverseerServer.monitor.spec.ts` |
+| Contract versions | `src/shared/constants/OverseerApiContracts.ts`, `packages/forge-contracts/constants/OverseerContractVersions.ts` | `IDENTITY_VERSION`, `SERVED_CONTRACT_VERSIONS`, `OVERSEER_CONTRACT_VERSIONS` | `src/services/overseer/OverseerServer.monitor.spec.ts`, `packages/forge-contracts/constants/OverseerContractVersions.spec.ts` |
+| System versions, versioned paths | `src/services/overseer/OverseerServer.ts`, `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts` | `requestAtUnversionedPath`, `FORGE_SYSTEM_VERSIONS`, `FORGE_COMPATIBILITY_REGISTRY` | `src/services/overseer/OverseerServer.spec.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts` |
+| The versions test setting | `src/shared/Environment.ts` | `versionsAnswerOverride` | `src/shared/Environment.integration.spec.ts` |
 | Monitor snapshot | `src/services/overseer/MonitorSnapshotAssembly.ts` | `MonitorSnapshotAssembly` | `src/services/overseer/MonitorSnapshotAssembly.spec.ts` |
 | Monitor stream | `src/services/overseer/MonitorStream.ts` | `MonitorStream.createMonitorStream` | `src/services/overseer/MonitorStream.spec.ts` |
 | Waiting on User, notices, today | `src/shared/monitor/` | `attentionEntriesOf`, `NoticeWordingUtil`, `todayFiguresOf` | the `.spec.ts` beside each, `bridge/shell/WaitingOnUserModel.spec.ts` |
 | Route wiring, refusal sentences | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `SERVER_REFUSAL_TEXT` | `cli/overseer/OverseerApi.integration.spec.ts` |
-| Frame origins | `cli/overseer/routes/FrameOrigins.ts` | `FrameOrigins.frameOriginsOf`, `dashboardFrameOriginsOf`, `gaiaFrameOriginsOf` | `cli/overseer/routes/FrameOrigins.spec.ts` |
+| Frame origins | `cli/overseer/routes/FrameOrigins.ts` | `FrameOrigins.frameOriginsOf` | `cli/overseer/routes/FrameOrigins.spec.ts` |
 | The embed channel | `bridge/shell/VersionedEmbedChannel.ts` | `VersionedEmbedChannel` | `bridge/shell/VersionedEmbedChannel.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
@@ -791,5 +836,5 @@ and `session-lost`, and follows `navigate`.
 | Picture store | `src/services/tracker/PictureStore.ts` | `PictureStore` | `src/services/tracker/PictureStore.spec.ts` |
 | Clients | `bridge/api/` | `CommandClient`, `SessionTokenSource`, `PictureUploadClient`, `EventStreamClient`, `IdentityClient`, `TranscriptStreamClient`, `ProfileStreamClient` | the `.spec.ts` beside each |
 | Reconnect reload | `bridge/shell/BridgeApp.tsx` | `BridgeApp` | `bridge/shell/BridgeApp.dom.tsx` |
-| Frame channel | `bridge/shell/EmbeddedChannel.ts`, `bridge/shell/ThemeBootstrap.ts` | `EmbeddedChannel`, `isEmbeddedInDashboard` | `bridge/shell/EmbeddedChannel.dom.tsx` |
+| Embed mode | `bridge/shell/ThemeBootstrap.ts` | `ThemeBootstrap` | `bridge/shell/FirstPaint.dom.tsx` |
 | Registry key | `src/services/tracker/MonitorRegistration.ts` | `OVERSEER_KEY` | `cli/RegisterWrittenTracker.integration.spec.ts` |

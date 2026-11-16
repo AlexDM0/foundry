@@ -90,6 +90,11 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - User runs no command. A sentence that the API, a monitor or the Bridge shows names no command line and no flag. It
   names the Bridge control or a neutral action, such as "update the board". `OperationRefusalWordingUtil.apiMessageOf`
   words a refusal for the API; `messageOf` words it for the command line, which keeps its commands.
+- The Overseer API has one system version, `FORGE_SYSTEM_VERSIONS` in `packages/forge-contracts`. A review of a change
+  to a route, a document, a command or a message asks two questions. Does the change only add? Then increase the
+  minor. Does it remove or change a thing that a supported client needs? Then increase the major, and serve the
+  endpoint at its next version beside the old one, with an entry in `FORGE_COMPATIBILITY_REGISTRY`.
+  `docs/reference/overseer-api.md`, "System versions", has the rule.
 
 ### Stored files
 
