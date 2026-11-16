@@ -2,11 +2,16 @@
  * The commit of an Apply's `CONSTITUTION.md` in its own worktree. What matters: the draft's text is written byte for byte and committed
  * with hooks off, a subject that says whether main had the file and no body; main's blob must be the one the record opened on; a commit
  * git refuses is an unsigned one where the repository signs, carrying git's text; and a commit that changes any path but `CONSTITUTION.md`
- * is refused, fail closed. The folders are real; git answers from the recorded answer sets of
- * `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
+ * is refused, fail closed; a tracker below the repository's root commits its own project's file. The folders are real; git answers from
+ * the recorded answer sets of `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -18,6 +23,7 @@ import {
 import { createPlantedRepository }                             from '../../testing/RecordedAirlockGit.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { removeScratchDirectory }                              from '../../testing/ScratchWorkspace.ts';
+import { TWO_TRACKER_PROJECTS }                                from '../../testing/TwoTrackerFixture.ts';
 import { ConstitutionCommits, type ConstitutionCommitRequest } from './ConstitutionCommits.ts';
 import { RECORDED_AIRLOCK_IDS }                                from './testing/AirlocksHarness.ts';
 import {
@@ -86,6 +92,23 @@ describe('a commit', () => {
 
     expect(ConstitutionCommits.commitConstitution(request).verdict).toBe('committed');
     expect(commitCallsAsked()).toEqual([['commit', '--no-verify', '-q', '-m', 'Add the repository constitution']]);
+  });
+
+  test('of a tracker below the repository\'s root commits the project\'s CONSTITUTION.md, made from the repository\'s root', () => {
+    const request = plantedRequest();
+    const repositoryRoot = realpathSync(request.repositoryRoot);
+    const projectRequest = { ...request, repositoryRoot: join(request.repositoryRoot, TWO_TRACKER_PROJECTS.GAIA.folder) };
+    const constitutionPath = `${TWO_TRACKER_PROJECTS.GAIA.folder}/CONSTITUTION.md`;
+    mkdirSync(projectRequest.repositoryRoot, { recursive: true });
+    recordedGit.answerFrom(ConstitutionCommitAnswers.constitutionCommitAnswersOf({
+      repository: repositoryRoot, worktreesRoot: request.worktreesRoot, jobId: 'J1', mainTip: MAIN_TIP, committedTip: COMMITTED_TIP, constitutionPath
+    }));
+
+    expect(ConstitutionCommits.commitConstitution(projectRequest)).toEqual({ verdict: 'committed', commit: COMMITTED_TIP });
+    const worktree = commitWorktreeOf(repositoryRoot, 'J1', request.worktreesRoot);
+    expect(readFileSync(join(worktree, constitutionPath), 'utf8')).toBe(DRAFT_CONSTITUTION_TEXT);
+    expect(recordedGit.flowCalls()).toContainEqual(['add', '--', constitutionPath]);
+    expect(ConstitutionCommits.removeCommitWorktree(projectRequest.repositoryRoot, request.worktreesRoot, 'J1')).toBeNull();
   });
 
   test('the worktree it leaves is removed', () => {

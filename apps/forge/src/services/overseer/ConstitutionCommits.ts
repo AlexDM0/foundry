@@ -1,15 +1,17 @@
 /**
- * The commit of an Apply's `CONSTITUTION.md` (plan section 8.7), made in the Overseer's own process in a detached worktree of the main
+ * The commit of an Apply's `CONSTITUTION.md`, the project's own (plan section 8.7), made in the Overseer's own process in a detached worktree of the main
  * line's tip that its constitution commit job owns: main's blob of the file is checked against the one the record opened on, the draft's
  * text is written byte for byte, and the commit, with hooks off and the repository's own signing configuration, must change that one path
  * and nothing else. Every refusal is a wordless verdict; git's own text goes with it.
  */
-import { join } from 'node:path';
+import { mkdirSync }     from 'node:fs';
+import { dirname, join } from 'node:path';
 
-import { writeFileAtomically }    from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }             from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }           from '../../lib/git/GitWorktrees.ts';
-import { CONSTITUTION_FILE_PATH } from './InstructionFiles.ts';
+import { writeFileAtomically }                      from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                               from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                             from '../../lib/git/GitWorktrees.ts';
+import { projectLocationOf }                        from '../tracker/ProjectLocation.ts';
+import { CONSTITUTION_FILE_PATH, InstructionFiles } from './InstructionFiles.ts';
 
 /** The folder under the worktrees root that holds one commit worktree per constitution commit job. */
 export const CONSTITUTION_COMMITS_FOLDER = 'constitution-commits';
@@ -22,6 +24,7 @@ const SUBJECT_OF_A_NEW_FILE = 'Add the repository constitution';
 const SUBJECT_OF_A_CHANGED_FILE = 'Update the repository constitution';
 
 export interface ConstitutionCommitRequest {
+  /** The tracker's folder, `Workspace.rootDirectory`, from which its place in the repository is found. */
   repositoryRoot: string;
   worktreesRoot:  string;
   jobId:          string;
@@ -55,9 +58,10 @@ function subjectOf(mainHoldsTheFile: boolean): string {
   return mainHoldsTheFile ? SUBJECT_OF_A_CHANGED_FILE : SUBJECT_OF_A_NEW_FILE;
 }
 
-function constitutionBlobOf(directory: string, commit: string): ConstitutionBlobReading {
-  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${commit}:${CONSTITUTION_FILE_PATH}`];
-  const run = GitProcess.run(directory, blobArguments);
+function constitutionBlobOf(projectDirectory: string, commit: string): ConstitutionBlobReading {
+  const constitution = InstructionFiles.projectFileOf(projectDirectory, CONSTITUTION_FILE_PATH);
+  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${commit}:${constitution.repositoryPath}`];
+  const run = GitProcess.run(constitution.repositoryRoot, blobArguments);
   if (GitProcess.succeeded(run)) return { verdict: 'read', blob: run.standardOutput.trim() };
   if (run?.exitCode === PATH_NOT_ON_THE_COMMIT_EXIT_CODE) return { verdict: 'read', blob: null };
   return { verdict: 'unreadable', gitFailure: GitProcess.failureReasonOf(run, blobArguments) };
@@ -78,8 +82,9 @@ function pathsChangedBy(worktree: string, targetTip: string, commit: string): st
  * override of `commit.gpgsign`: a commit git cannot sign fails, and nothing is committed unsigned.
  */
 function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCommitVerdict {
-  const { repositoryRoot, targetTip } = request;
-  const mainBlob = constitutionBlobOf(repositoryRoot, targetTip);
+  const { targetTip } = request;
+  const { repositoryRoot, repositoryPath } = InstructionFiles.projectFileOf(request.repositoryRoot, CONSTITUTION_FILE_PATH);
+  const mainBlob = constitutionBlobOf(request.repositoryRoot, targetTip);
   if (mainBlob.verdict === 'unreadable') return refused('git-failed', mainBlob.gitFailure);
   if (mainBlob.blob !== request.baseBlob) return refused('constitution-moved');
   const worktree = commitWorktreeOf(request.worktreesRoot, request.jobId);
@@ -87,8 +92,11 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   const added = GitProcess.run(repositoryRoot, addArguments);
   if (!GitProcess.succeeded(added)) return refused('git-failed', GitProcess.failureReasonOf(added, addArguments));
   const ceiling = GitWorktrees.ceilingOf(worktree);
-  writeFileAtomically(join(worktree, CONSTITUTION_FILE_PATH), request.markdown);
-  const stageArguments = ['add', '--', CONSTITUTION_FILE_PATH];
+  const constitutionInWorktree = join(worktree, repositoryPath);
+  // A project folder holding no tracked file yet is not in the checkout.
+  mkdirSync(dirname(constitutionInWorktree), { recursive: true });
+  writeFileAtomically(constitutionInWorktree, request.markdown);
+  const stageArguments = ['add', '--', repositoryPath];
   const staged = GitProcess.run(worktree, stageArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(staged)) return refused('git-failed', GitProcess.failureReasonOf(staged, stageArguments));
   const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOf(mainBlob.blob !== null)];
@@ -100,12 +108,13 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   if (commit === null || commit === targetTip) return refused('git-failed', `git ${commitArguments.join(' ')} exited 0, yet HEAD holds no new commit.`);
   const changedPaths = pathsChangedBy(worktree, targetTip, commit);
   // Fail closed: this check is what lets the commit land with no gate.
-  if (changedPaths === null || changedPaths.length !== 1 || changedPaths[0] !== CONSTITUTION_FILE_PATH) return refused('constitution-commit-unexpected-paths');
+  if (changedPaths === null || changedPaths.length !== 1 || changedPaths[0] !== repositoryPath) return refused('constitution-commit-unexpected-paths');
   return { verdict: 'committed', commit };
 }
 
 /** Forced: the worktree holds only the job's own commit, landed or refused, never User's work. `null` once it is gone, else git's reason. */
-function removeCommitWorktree(repositoryRoot: string, worktreesRoot: string, jobId: string): string | null {
+function removeCommitWorktree(projectDirectory: string, worktreesRoot: string, jobId: string): string | null {
+  const { repositoryRoot } = projectLocationOf(projectDirectory);
   const removal = GitWorktrees.removeWithRetry({ repositoryDirectory: repositoryRoot, worktreePath: commitWorktreeOf(worktreesRoot, jobId), force: 'force' });
   return removal.verdict === 'removed' ? null : removal.reason;
 }

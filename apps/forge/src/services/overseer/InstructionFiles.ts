@@ -1,7 +1,8 @@
 /**
  * The instruction files the pipeline names for a role: its ordered list, or the role's default list where it names none, each entry
  * resolved to a path; an empty list reads the role's built-in brief. A data-folder file is read from disk; any other is tracked, so it is
- * read from the main line, never from a ticket's branch.
+ * read from the main line, never from a ticket's branch. Every path here is the project's, mapped to the repository's only where git is asked,
+ * and git runs at the repository's root.
  */
 import { createHash }   from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -21,6 +22,8 @@ import { PipelineUtil }                 from '../../lib/tracker-model/utils/Pipe
 import { resourceFilePathOf }           from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
 import { PathNestingUtil }              from '../../shared/utils/PathNestingUtil.ts';
+import { ProjectPathsUtil }             from '../../shared/utils/ProjectPathsUtil.ts';
+import { projectLocationOf }            from '../tracker/ProjectLocation.ts';
 import { AssistantBoot }                from './AssistantBoot.ts';
 import { LaunchSettings }               from './LaunchSettings.ts';
 
@@ -28,7 +31,7 @@ export const INSTRUCTION_DEFAULTS_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/briefs/
 
 export const CONSTITUTION_DEFAULT_PATH = `${INSTRUCTION_DEFAULTS_FOLDER}/constitution.md`;
 
-/** The tracked constitution at the repository root, which an Apply commits to the main line and points `constitution.path` at. */
+/** The tracked constitution at the project's root, which an Apply commits to the main line and points `constitution.path` at. */
 export const CONSTITUTION_FILE_PATH = 'CONSTITUTION.md';
 
 const CONTENT_HASH_LENGTH_CHARACTERS = 16;
@@ -36,6 +39,12 @@ const CONTENT_HASH_LENGTH_CHARACTERS = 16;
 export interface InstructionFileRead {
   path:        string;
   contentHash: string;
+}
+
+/** A project's file as git names it: the repository's root, where git runs, and the file's path from that root. */
+export interface ProjectFile {
+  repositoryRoot: string;
+  repositoryPath: string;
 }
 
 export type InstructionReading =
@@ -67,6 +76,11 @@ function instructionPathOf(pipeline: Readonly<Pipeline> | null, entry: Readonly<
   return entry.path;
 }
 
+function projectFileOf(projectDirectory: string, projectPath: string): ProjectFile {
+  const location = projectLocationOf(projectDirectory);
+  return { repositoryRoot: location.repositoryRoot, repositoryPath: ProjectPathsUtil.toRepositoryPath(location.projectPrefix, projectPath) };
+}
+
 function isDataFolderPath(path: string): boolean {
   return path.startsWith(`${PRODUCT_NAMES.DATA_FOLDER}/`);
 }
@@ -85,22 +99,23 @@ type InstructionFileText = { verdict: 'read'; text: string } | { verdict: 'missi
  * A path leaving the repository on any host, a backslash included, is read as missing, never followed. `mainRevision` is the main line's
  * name or a commit of it. A git that could not be started is `unreadable`, never `missing`, so a caller keeps no answer of it.
  */
-function fileTextReadingOf(rootDirectory: string, mainRevision: string, path: string): InstructionFileText {
+function fileTextReadingOf(projectDirectory: string, mainRevision: string, path: string): InstructionFileText {
   if (!PathNestingUtil.relativeWirePathStaysInside(path)) return { verdict: 'missing' };
   if (isDataFolderPath(path)) {
     try {
-      return { verdict: 'read', text: readFileSync(join(rootDirectory, path), 'utf8') };
+      return { verdict: 'read', text: readFileSync(join(projectDirectory, path), 'utf8') };
     } catch {
       return { verdict: 'missing' };
     }
   }
-  const shown = GitProcess.run(rootDirectory, ['show', `${mainRevision}:${path}`]);
+  const file = projectFileOf(projectDirectory, path);
+  const shown = GitProcess.run(file.repositoryRoot, ['show', `${mainRevision}:${file.repositoryPath}`]);
   if (shown === null) return { verdict: 'unreadable' };
   return GitProcess.succeeded(shown) ? { verdict: 'read', text: shown.standardOutput } : { verdict: 'missing' };
 }
 
-function fileTextOf(rootDirectory: string, mainRevision: string, path: string): string | null {
-  const reading = fileTextReadingOf(rootDirectory, mainRevision, path);
+function fileTextOf(projectDirectory: string, mainRevision: string, path: string): string | null {
+  const reading = fileTextReadingOf(projectDirectory, mainRevision, path);
   return reading.verdict === 'read' ? reading.text : null;
 }
 
@@ -122,7 +137,7 @@ function builtInBriefReadingOf(role: PipelineAgentRole): InstructionReading {
  * Read whole at each launch, so a changed file, default or pipeline reaches the next launch or resume; one missing file refuses them all. An
  * empty list reads the role's built-in brief, so the agent still knows its job.
  */
-function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): InstructionReading {
+function readingFor(projectDirectory: string, mainLine: string, pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): InstructionReading {
   const role = instructionRoleOf(job);
   if (role === null) return { verdict: 'read', text: '', files: [] };
   const entries = PipelineUtil.resolvedInstructionsOf(pipeline, role);
@@ -130,7 +145,7 @@ function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<
   const texts: string[] = [];
   const files: InstructionFileRead[] = [];
   for (const path of entries.map((entry) => instructionPathOf(pipeline, entry))) {
-    const text = fileTextOf(rootDirectory, mainLine, path);
+    const text = fileTextOf(projectDirectory, mainLine, path);
     if (text === null) return { verdict: 'instructions-missing', path };
     texts.push(text.endsWith('\n') ? text : `${text}\n`);
     files.push({ path, contentHash: contentHashOf(text) });
@@ -139,26 +154,28 @@ function readingFor(rootDirectory: string, mainLine: string, pipeline: Readonly<
 }
 
 /**
- * Main's `CONSTITUTION.md`, its text and its blob id read from one commit of the main line, so the two always belong together. A main
+ * The project's `CONSTITUTION.md` on main, its text and its blob id read from one commit of the main line, so the two always belong together. A main
  * line checked out with no commit yet holds no file, so it is absent; any other main line that does not resolve, or a git that cannot
  * answer, is unreadable, never absent.
  */
-function mainConstitutionOf(rootDirectory: string, mainLine: string): MainConstitutionReading {
-  const mainTip = GitProcess.resolvedCommitOf(rootDirectory, mainLine);
-  if (mainTip !== null) return mainConstitutionAt(rootDirectory, mainTip);
-  const currentBranch = readCurrentBranch(rootDirectory);
+function mainConstitutionOf(projectDirectory: string, mainLine: string): MainConstitutionReading {
+  const { repositoryRoot } = projectLocationOf(projectDirectory);
+  const mainTip = GitProcess.resolvedCommitOf(repositoryRoot, mainLine);
+  if (mainTip !== null) return mainConstitutionAt(projectDirectory, mainTip);
+  const currentBranch = readCurrentBranch(repositoryRoot);
   if (currentBranch.verdict === 'on-branch' && currentBranch.branch === mainLine) return { verdict: 'absent' };
   return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
 }
 
-/** Main's `CONSTITUTION.md` at one resolved commit of the main line. */
-function mainConstitutionAt(rootDirectory: string, mainTip: string): MainConstitutionReading {
-  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${CONSTITUTION_FILE_PATH}`];
-  const blobRun = GitProcess.run(rootDirectory, blobArguments);
+/** The project's `CONSTITUTION.md` at one resolved commit of the main line, named by its project path. */
+function mainConstitutionAt(projectDirectory: string, mainTip: string): MainConstitutionReading {
+  const constitution = projectFileOf(projectDirectory, CONSTITUTION_FILE_PATH);
+  const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${constitution.repositoryPath}`];
+  const blobRun = GitProcess.run(constitution.repositoryRoot, blobArguments);
   if (blobRun === null) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(blobRun, blobArguments) };
   if (!GitProcess.succeeded(blobRun)) return { verdict: 'absent' };
-  const showArguments = ['show', `${mainTip}:${CONSTITUTION_FILE_PATH}`];
-  const shown = GitProcess.run(rootDirectory, showArguments);
+  const showArguments = ['show', `${mainTip}:${constitution.repositoryPath}`];
+  const shown = GitProcess.run(constitution.repositoryRoot, showArguments);
   if (!GitProcess.succeeded(shown)) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(shown, showArguments) };
   return { verdict: 'read', constitution: { path: CONSTITUTION_FILE_PATH, markdown: shown.standardOutput, blob: blobRun.standardOutput.trim() } };
 }
@@ -168,6 +185,7 @@ export const InstructionFiles = Object.freeze({
   trackedInstructionPathsOf,
   instructionRoleOf,
   instructionPathOf,
+  projectFileOf,
   isDataFolderPath,
   fileTextOf,
   fileTextReadingOf,

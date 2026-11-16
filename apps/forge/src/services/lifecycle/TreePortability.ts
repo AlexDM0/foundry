@@ -1,9 +1,12 @@
 /**
  * What a tracked tree cannot represent on every OS, read from git's index of the commit, never from the checkout, so the findings are the same
- * on every host: a path part Windows reserves or cannot store, paths that differ only in case, and symbolic links. Nothing is repaired.
+ * on every host: a path part Windows reserves or cannot store, paths that differ only in case, and symbolic links. Only the project's own
+ * part of the tree is judged, its paths named as the project names them. Nothing is repaired.
  */
-import { GitProcess }   from '../../lib/git/GitProcess.ts';
-import { GitWorktrees } from '../../lib/git/GitWorktrees.ts';
+import { GitProcess }        from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }      from '../../lib/git/GitWorktrees.ts';
+import { ProjectPathsUtil }  from '../../shared/utils/ProjectPathsUtil.ts';
+import { projectLocationOf } from '../tracker/ProjectLocation.ts';
 
 export type TreeFindingKind = 'reserved-name' | 'unstorable-name' | 'case-collision' | 'symbolic-link';
 
@@ -18,6 +21,9 @@ export interface TreeEntry {
 }
 
 const SYMBOLIC_LINK_MODE = '120000';
+
+/** How `ProjectPathsUtil.toProjectPath` marks a repository path outside the project. */
+const OUTSIDE_THE_PROJECT_MARKER = '/';
 
 /** A device name Windows reserves whatever the extension, so `aux.c` is one too. */
 const RESERVED_PATH_PART_PATTERN = /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/i;
@@ -54,9 +60,17 @@ function treeEntriesAt(directory: string, revision: string): TreeEntry[] | null 
   });
 }
 
-function treeFindingsAt(directory: string, revision: string): TreeFinding[] {
-  const entries = treeEntriesAt(directory, revision);
-  return entries === null ? [] : findingsOf(entries);
+/** The project's entries, each named by its project path; a repository path outside the project maps to one leading with `/`. */
+function projectEntriesOf(projectPrefix: string, entries: readonly TreeEntry[]): TreeEntry[] {
+  return entries
+    .map((entry) => ({ mode: entry.mode, path: ProjectPathsUtil.toProjectPath(projectPrefix, entry.path) }))
+    .filter((entry) => !entry.path.startsWith(OUTSIDE_THE_PROJECT_MARKER));
+}
+
+function treeFindingsAt(projectDirectory: string, revision: string): TreeFinding[] {
+  const location = projectLocationOf(projectDirectory);
+  const entries = treeEntriesAt(location.repositoryRoot, revision);
+  return entries === null ? [] : findingsOf(projectEntriesOf(location.projectPrefix, entries));
 }
 
 export const TreePortability = Object.freeze({ findingsOf, treeFindingsAt });
