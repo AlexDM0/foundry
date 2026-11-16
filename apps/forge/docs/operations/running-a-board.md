@@ -730,7 +730,7 @@ contract](../reference/overseer-api.md#the-embed-contract)).
 
 ## Several boards in one repository
 
-A repository may hold several trackers, each in a project folder of its own, such as `apps/forge` and `apps/gaia` of a
+A repository may hold several trackers, each in a project folder of its own, such as `apps/web` and `apps/api` of a
 monorepo ([Trackers in a repository](../cli.md#trackers-in-a-repository)). Each is a board as above, with its own
 Overseer, port and Bridge, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
 Its agents start in the project's folder of their worktree and may change that folder and the paths its pipeline's
