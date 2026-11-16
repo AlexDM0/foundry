@@ -83,11 +83,11 @@ describe('the walk past what no checkout tracks', () => {
 describe('the program and the packages it declares', () => {
   const packageNames = declaredWorkspacePackagesOf(REPOSITORY_ROOT).map(({ name }) => name);
 
-  test('the program declares the design-system and Flint packages, each found in its own folder', () => {
-    expect(packageNames).toEqual(['design-system', 'flint']);
+  test('the program declares the brand, design-system, Flint, forge-contracts and system-versions packages, each found in its own folder', () => {
+    expect(packageNames).toEqual(['brand', 'design-system', 'flint', 'forge-contracts', 'system-versions']);
     const workspaceRoot = workspaceRootOfProgram(REPOSITORY_ROOT);
     expect(declaredWorkspacePackagesOf(REPOSITORY_ROOT).map(({ folder }) => folder))
-      .toEqual([join(workspaceRoot, 'packages/design-system'), join(workspaceRoot, 'packages/flint')]);
+      .toEqual(packageNames.map((name) => join(workspaceRoot, 'packages', name)));
   });
 
   test('the sources hold the program\'s own and each package\'s, under the package\'s name', () => {

@@ -1,10 +1,10 @@
 /**
  * The `include` list of `bridge/tsconfig.json`, held against what the Bridge reaches: every file outside its folder that its shipping
  * modules import, directly or through each other, and every shipping module of the tracker model, which the Bridge compiles whole to prove
- * the package DOM-safe. The design-system and Flint packages are workspace packages with projects of their own, each holding its own list
- * (`ProjectIncludeList.spec.ts` in its folder): the Bridge imports each by name, TypeScript finds its files through the exports of its
- * `package.json`, and the list names none of them. The comparison is exact both ways, so a missing entry and one nothing needs both
- * fail. The scan first proves it found the Bridge's reach, and each form is planted once in memory to prove the guard still names it.
+ * the package DOM-safe. Every workspace package forge declares has a project of its own: the Bridge imports each by name, TypeScript finds
+ * its files through the exports of its `package.json`, and the list names none of them. The comparison is exact both ways, so a missing
+ * entry and one nothing needs both fail. The scan first proves it found the Bridge's reach, and each form is planted once in memory to prove
+ * the guard still names it.
  */
 import { dirname, resolve } from 'node:path';
 
@@ -19,6 +19,7 @@ import {
   reachablePathsFrom,
   repositoryRootOfThisCheckout
 } from './testing/ImportGraph.ts';
+import { declaredWorkspacePackagesOf } from './testing/RepositorySources.ts';
 
 interface IncludeListContract {
   readonly configurationPath:       string;
@@ -32,15 +33,13 @@ interface IncludeListContract {
 }
 
 const TRACKER_MODEL_FOLDER = 'src/lib/tracker-model/';
-const DESIGN_SYSTEM_FOLDER = 'design-system/';
-const FLINT_FOLDER = 'flint/';
 
 const BRIDGE_PROJECT: IncludeListContract = {
   configurationPath:       'bridge/tsconfig.json',
   projectFolder:           'bridge/',
   wholePackageFolders:     [TRACKER_MODEL_FOLDER],
   ownFolderGlobs:          ['./**/*.ts', './**/*.tsx'],
-  workspacePackageFolders: [DESIGN_SYSTEM_FOLDER, FLINT_FOLDER],
+  workspacePackageFolders: declaredWorkspacePackagesOf(repositoryRootOfThisCheckout()).map(({ name }) => `${name}/`),
 };
 
 const SCANNER = importGraphScannerOf(repositoryRootOfThisCheckout());
@@ -91,6 +90,10 @@ describe('the scan itself', () => {
     expect(bridgeReach.filter((path) => !path.startsWith(TRACKER_MODEL_FOLDER)).length, 'Bridge files reached outside the model').toBeGreaterThanOrEqual(4);
     expect(bridgeReach.filter((path) => path.startsWith(TRACKER_MODEL_FOLDER)).length, 'tracker model modules').toBeGreaterThanOrEqual(20);
     expect(bridgeReach, 'Bridge files reached').toContain('src/shared/constants/ProductNames.ts');
+  });
+
+  test('it holds every workspace package forge declares apart from the list', () => {
+    expect(BRIDGE_PROJECT.workspacePackageFolders).toEqual(['brand/', 'design-system/', 'flint/', 'forge-contracts/', 'system-versions/']);
   });
 
   test('it reads the include list, which names the Bridge\'s own folder by one glob per source extension', () => {
@@ -158,6 +161,15 @@ describe('the guard still names each form, planted in memory', () => {
     ]);
   });
 
+
+  test('a file of the brand workspace package named in the list, which the package\'s exports already reach', () => {
+    const graph = SCANNER.graphWithPlantedFiles({ 'bridge/PlantedMark.ts': 'import { ForgeMark } from \'brand/ForgeMark\';\nexport const mark = ForgeMark;\n' });
+    expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntriesOf(BRIDGE_PROJECT.configurationPath), graph)).toEqual([]);
+    const includeEntries = [...includeEntriesOf(BRIDGE_PROJECT.configurationPath), '../../../packages/brand/marks/ForgeMark.tsx'];
+    expect(includeListSentencesOf(BRIDGE_PROJECT, includeEntries, graph)).toEqual([
+      'bridge/tsconfig.json lists brand/marks/ForgeMark.tsx, which nothing bridge/ ships reaches: remove it from the include list',
+    ]);
+  });
 
   test('an import only a spec or a testing helper makes is not a reach', () => {
     const graph = SCANNER.graphWithPlantedFiles({

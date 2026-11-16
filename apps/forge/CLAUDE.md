@@ -59,6 +59,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → overseer)  →  features (cli/, bridge/)
 packages/design-system/  →  bridge/ (as the workspace package design-system, by the exports of its package.json)
 packages/flint/          →  bridge/ (as the workspace package flint, only through the entries of its package.json)
+packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
 ```
 
 - `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, feature and sibling-command isolation, the bin
@@ -69,8 +70,9 @@ packages/flint/          →  bridge/ (as the workspace package flint, only thro
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
 - `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
-  `package.json` declares it as a `workspace:^` dependency, never by a file path. `src/ImportDirection.spec.ts` holds
-  this.
+  `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package but the
+  design system and Flint is one workspace-package layer, and it imports another package only when its own
+  `package.json` declares it. `src/ImportDirection.spec.ts` holds this.
 - The Bridge imports the design system as `design-system/<entry>`, with an entry that
   `packages/design-system/package.json` exports (see `.claude/rules/design-system.md`).
 - The Bridge imports only the entries that `packages/flint/package.json` exports (see `.claude/rules/flint.md`).

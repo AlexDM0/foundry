@@ -4,7 +4,8 @@
  * include-list guard relies on; and a workspace package's specifier resolves through its `exports` as Bun and TypeScript resolve it, which
  * the import-direction guard relies on to tell an import by name from one by path; and each workspace package the program declares is read
  * from its own folder under a virtual folder named after it, so the guards hold it as they held the folder it once was; a relative path
- * resolves from the importer's real folder, and a member of the workspace the program does not declare is named apart.
+ * resolves from the importer's real folder, a package with no spec project is read through its one project, and a member of the
+ * workspace the program does not declare is named apart.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -27,10 +28,11 @@ describe('the target of a specifier', () => {
 
   test('a relative or absolute path is the repository file it names, and a workspace package\'s exported entry is the file its exports map names', () => {
     const absoluteSpecifier = `${repositoryRootOfThisCheckout().replaceAll('\\', '/')}/src/shared/Environment.ts`;
-    expect(targetsOf(['./shell/HashRouter.ts', absoluteSpecifier, 'design-system/Button'])).toEqual([
+    expect(targetsOf(['./shell/HashRouter.ts', absoluteSpecifier, 'design-system/Button', 'brand/ForgeMark'])).toEqual([
       { specifier: './shell/HashRouter.ts', target: { kind: 'repository-file', path: 'bridge/shell/HashRouter.ts' } },
       { specifier: absoluteSpecifier, target: { kind: 'repository-file', path: 'src/shared/Environment.ts' } },
       { specifier: 'design-system/Button', target: { kind: 'repository-file', path: 'design-system/atoms/Button.tsx' } },
+      { specifier: 'brand/ForgeMark', target: { kind: 'repository-file', path: 'brand/marks/ForgeMark.tsx' } },
     ]);
   });
 
@@ -42,8 +44,8 @@ describe('the target of a specifier', () => {
   });
 
   test('a member of the workspace the program does not declare is named apart from a package outside the workspace, the program itself included', () => {
-    expect(targetsOf(['brand/ForgeMark', 'gaia', 'forge'])).toEqual([
-      { specifier: 'brand/ForgeMark', target: { kind: 'undeclared-workspace-package', specifier: 'brand/ForgeMark' } },
+    expect(targetsOf(['design-system-contributions/Figure', 'gaia', 'forge'])).toEqual([
+      { specifier: 'design-system-contributions/Figure', target: { kind: 'undeclared-workspace-package', specifier: 'design-system-contributions/Figure' } },
       { specifier: 'gaia', target: { kind: 'undeclared-workspace-package', specifier: 'gaia' } },
       { specifier: 'forge', target: { kind: 'undeclared-workspace-package', specifier: 'forge' } },
     ]);
@@ -63,11 +65,17 @@ describe('the target of a specifier', () => {
 describe('the declared workspace packages', () => {
   /** Floors well under today's counts, to fail a scan that found a package folder empty or read none. */
   test('each is read under a virtual folder named after it, from the package\'s own folder', () => {
-    for (const [packageName, floor] of [['design-system', 100], ['flint', 20]] as const) {
+    const floorsByPackage = [['design-system', 100], ['flint', 20], ['brand', 3], ['forge-contracts', 5], ['system-versions', 3]] as const;
+    for (const [packageName, floor] of floorsByPackage) {
       expect(SCANNER.graph.scannedPaths.filter((path) => path.startsWith(`${packageName}/`)).length, `files of ${packageName}`).toBeGreaterThanOrEqual(floor);
     }
     expect(programFileLocationOf(repositoryRootOfThisCheckout(), 'flint/package.json')).toEndWith('/packages/flint/package.json');
     expect(programFileLocationOf(repositoryRootOfThisCheckout(), 'bridge/tsconfig.json')).toBe(`${repositoryRootOfThisCheckout()}/bridge/tsconfig.json`);
+  });
+
+  test('a package with no spec project has its specs read through its one project', () => {
+    expect(SCANNER.graph.scannedPaths).toContain('forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts');
+    expect(SCANNER.graph.scannedPaths).toContain('system-versions/utils/SystemVersionUtil.spec.ts');
   });
 });
 

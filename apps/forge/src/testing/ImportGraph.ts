@@ -5,7 +5,7 @@
  * it. Planted sources add or replace files in memory, so a guard can prove it still fires. The tree is read once per run and shared frozen:
  * `bun test` runs every spec file in one process.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import {
   dirname,
   isAbsolute,
@@ -54,7 +54,8 @@ export interface ImportGraph {
 
 /** Each spec project holds its shipping project plus the specs, so these together name every file the type check compiles. */
 const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json'];
-const PACKAGE_CONFIGURATION_PATH = 'tsconfig.spec.json';
+const PACKAGE_SPEC_CONFIGURATION_PATH = 'tsconfig.spec.json';
+const PACKAGE_CONFIGURATION_PATH = 'tsconfig.json';
 
 function forwardSlashed(path: string): string {
   return path.split('\\').join('/');
@@ -102,12 +103,18 @@ function workspaceMemberNamesOf(programRoot: string): ReadonlySet<string> {
   return new Set(memberNames);
 }
 
+/** A package with no spec project compiles its specs in its one project. */
+function packageConfigurationLocationOf(packageFolder: string): string {
+  const specConfigurationLocation = join(packageFolder, PACKAGE_SPEC_CONFIGURATION_PATH);
+  return existsSync(specConfigurationLocation) ? specConfigurationLocation : join(packageFolder, PACKAGE_CONFIGURATION_PATH);
+}
+
 function programFilePathsOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[]): readonly string[] {
   const unreportedDiagnostic = (): void => undefined;
   const parsingWatcher: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: unreportedDiagnostic };
   const configurationLocations = [
     ...PROGRAM_CONFIGURATION_PATHS.map((configurationPath) => join(programRoot, configurationPath)),
-    ...workspacePackages.map((workspacePackage) => join(workspacePackage.folder, PACKAGE_CONFIGURATION_PATH)),
+    ...workspacePackages.map((workspacePackage) => packageConfigurationLocationOf(workspacePackage.folder)),
   ];
   const filePaths = configurationLocations.flatMap((configurationLocation) => {
     const parsedConfiguration = ts.getParsedCommandLineOfConfigFile(configurationLocation, {}, parsingWatcher);

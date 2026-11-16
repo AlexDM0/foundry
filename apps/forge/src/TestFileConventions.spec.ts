@@ -1,6 +1,6 @@
 /**
  * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, never `.test.ts` or `.spec.tsx`, a DOM suite a `.dom.tsx` under
- * `bridge/`, `design-system/` or `flint/` alone, and no spec or test helper creates the real
+ * `bridge/`, `design-system/`, `flint/` or `brand/` alone, and no spec or test helper creates the real
  * process context, whose working directory, clock and home are the live ones. The context is found by its factory's name as an identifier
  * in the syntax tree, so a sentence naming it is not a use. The scan first proves it saw the specs and the factory's real callers, and
  * each form is planted to prove the guard names it.
@@ -16,7 +16,7 @@ const PROCESS_CONTEXT_FACTORY = 'createProcessContext';
 const RETIRED_TEST_SUFFIX = '.test.ts';
 const UNRUN_COMPONENT_SPEC_SUFFIX = '.spec.tsx';
 const DOM_SPEC_SUFFIX = '.dom.tsx';
-const DOM_SPEC_FOLDERS = ['bridge/', 'design-system/', 'flint/'];
+const DOM_SPEC_FOLDERS = ['bridge/', 'design-system/', 'flint/', 'brand/'];
 const MINIMUM_SPEC_FILE_COUNT = 100;
 
 function isTestCode(path: string): boolean {
