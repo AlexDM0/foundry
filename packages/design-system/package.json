@@ -1,9 +1,8 @@
 {
   "name": "design-system",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A themed React component library built by composition: atoms, molecules and organisms, with its tokens, fonts and stylesheets",
   "type": "module",
-  "private": true,
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
@@ -79,6 +78,7 @@
     "./SidePanel": "./organisms/SidePanel.tsx",
     "./Tabs": "./organisms/Tabs.tsx",
     "./design-system.css": "./styles/design-system.css",
+    "./tokens.css": "./styles/tokens.css",
     "./FontLoader": "./fonts/FontLoader.ts",
     "./Spacing": "./constants/Spacing.ts",
     "./Dismissal": "./utils/Dismissal.ts",

@@ -30,7 +30,7 @@ design-system/
   organisms/          a larger composition: Dialog, SidePanel, Tabs, MultipleChoiceQuestion
   utils/              helpers that are not components: Dismissal, Presence, ValueChange, RovingFocusUtil, SpacingStyleUtil
   constants/          design decisions as values: SPACING, the spacing scale, each step a token of tokens.css
-  @types/             types several layers share: StateTone and StateDotShape
+  @types/             types several layers share: StateTone and StateDotShape, and ThemeChoice
   styles/             tokens.css, base.css, keyframes.css and the entry stylesheet design-system.css
   fonts/              Inter and Newsreader as woff2, each beside its OFL.txt, and FontLoader.ts, which registers them
   testing/            the helpers of the package's own specs; never exported
@@ -42,7 +42,8 @@ design-system/
 - **Each component has three files beside it:** `Button.tsx`, its stylesheet `Button.css` and its DOM spec
   `Button.dom.tsx`, plus its story.
 - **Exported** means named in the `exports` map of `package.json`: each component a host uses, the helpers a host
-  calls, `StateTone` and `design-system.css`. **Everything else is internal**, and a host never reaches it.
+  calls, `StateTone`, `ThemeChoice`, `design-system.css` and `tokens.css`. **Everything else is internal**, and a host
+  never reaches it.
 - **`testing/`, the specs and the stories never ship.** Nothing that ships imports them.
 
 ## 3. Import direction
@@ -54,8 +55,8 @@ design-system/
   `node:` module, no other package. A stylesheet references no file outside the folder. `PackageIsolation.spec.ts`
   holds this.
 - **A host imports the package by its name, and only the exports.** The host adds the folder as a workspace package
-  (`"workspaces": ["design-system"]` and the dependency `"design-system": "workspace:*"` in its `package.json`), and
-  Bun and TypeScript resolve each specifier through the `exports` of `package.json`.
+  (`"workspaces": ["apps/*", "packages/*"]` at the repository root and the dependency `"design-system": "workspace:^"`
+  in its `package.json`), and Bun and TypeScript resolve each specifier through the `exports` of `package.json`.
   `import { Button } from 'design-system/Button'`, never `../design-system/atoms/Button.tsx` or another file path, and
   never an entry that the exports do not list. The host holds this with a guard of its own.
 - No import cycles, at any level. No barrel files: each export is one file.

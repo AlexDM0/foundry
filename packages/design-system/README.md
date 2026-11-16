@@ -16,8 +16,14 @@ The components sit in three layers, as in atomic design: `atoms/` (one element, 
 as `Dialog`, `Tabs` and `MultipleChoiceQuestion`). Each component has its stylesheet and its DOM spec beside it.
 
 `constants/Spacing.ts` holds the spacing scale, each step the `--space-<size>` token of `styles/tokens.css`, `utils/`
-the helpers that are not components, `@types/` the shared `StateTone`, `styles/` the tokens and the entry stylesheet,
-and `fonts/` Inter and Newsreader.
+the helpers that are not components (`ThemeCycleUtil` steps a theme choice on), `@types/` the shared `StateTone` and
+`ThemeChoice`, `styles/` the tokens and the entry stylesheet, and `fonts/` Inter and Newsreader.
+
+Besides the layout and text parts, the package holds form parts (`Checkbox`, `TextField`, `NumberStepper`, `Switch`),
+the state parts (`StateDot`, `StateBadge`, `StatePill`, `CountBadge`), figures and meters (`Figure`, `FillMeter`,
+`SlotMeter`, `SegmentMeter`), the heads of a page and a section (`PageHead`, `SectionHead`), the steps of an action
+(`PendingStep`, `FailedAction`, `ConfirmStrip`), `ThemeCycleButton` and `DataTable`. The `exports` map of
+`package.json` lists every one.
 
 ## Lay out a screen
 
@@ -102,7 +108,7 @@ change its look. The element is your choice, never the role's: pass `element="h2
 Link the entry stylesheet before your own, so that a rule of yours can change a rule of the package:
 
 ```html
-<link rel="stylesheet" href="design-system/styles/design-system.css">
+<link rel="stylesheet" href="design-system/design-system.css">
 <link rel="stylesheet" href="./styles/host.css">
 ```
 
@@ -135,7 +141,8 @@ Add the folder to the host as a workspace package. In this repository it is `pac
 folder.
 
 The `exports` map of `package.json` names each entry a host may import: each component, the helpers a host uses,
-`StateTone`, `FontLoader` and the entry stylesheet. Import each one by its name, never by a file path:
+`StateTone`, `ThemeChoice`, `FontLoader`, the entry stylesheet and `tokens.css`, the tokens alone. Import each one by
+its name, never by a file path:
 
 ```tsx
 import { Button } from 'design-system/Button';
@@ -149,6 +156,8 @@ specificity. `Bun.build` resolves the link through the exports too:
 ```html
 <link rel="stylesheet" href="design-system/design-system.css">
 ```
+
+A page that draws no component but reads the theme, such as a splash, links `design-system/tokens.css` alone.
 
 The classes and keyframes of the package are not public. To reach an element of a component, pass its ref prop, such
 as `panelRef` on `SidePanel` or `scrollRef` on `SidePanelBody`; to animate a part of your own, define your own
