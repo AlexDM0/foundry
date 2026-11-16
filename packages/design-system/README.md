@@ -88,8 +88,8 @@ change its look. The element is your choice, never the role's: pass `element="h2
 - An element with `data-state-tone` set to a `StateTone` reads its colours from that tone's row: `--s-fill`,
   `--s-tint`, `--s-ink`, `--s-edge` and `--s-head`. Each tone is named for how it looks: `neutral` (grey), `accent`
   (orange on its tint), `accent-outline` (orange on the surface), `info`, `info-outline` and `info-deep` (teal),
-  `success` (green), `ink` (the text colour on the wash) and `muted` (faded ink). Map the states of your own data to
-  a tone in one place of your app; the shape of a state is a flag of the component:
+  `success` (green), `error` (the failure crimson), `ink` (the text colour on the wash) and `muted` (faded ink). Map
+  the states of your own data to a tone in one place of your app; the shape of a state is a flag of the component:
 
   ```tsx
   <StateBadge tone="neutral" label="Waiting" dashed dotShape="dashed-ring" />

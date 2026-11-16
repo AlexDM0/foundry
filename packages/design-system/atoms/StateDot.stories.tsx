@@ -5,7 +5,7 @@ import { StateDot }                      from './StateDot.tsx';
 import { Text }                          from './Text.tsx';
 import { View }                          from './View.tsx';
 
-const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'ink', 'muted'];
+const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
 const DOT_SHAPES: readonly StateDotShape[] = ['solid', 'ring', 'dashed-ring'];
 
 const meta = {
@@ -19,6 +19,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Accent: Story = {};
+export const ErrorTone: Story = { args: { tone: 'error' } };
 export const Ring: Story = { args: { tone: 'muted', shape: 'ring' } };
 export const DashedRing: Story = { args: { tone: 'neutral', shape: 'dashed-ring' } };
 export const Small: Story = { args: { small: true } };

@@ -4,7 +4,7 @@ import type { StateTone } from '../@types/StateTone.ts';
 import { StateBadge }     from './StateBadge.tsx';
 import { View }           from './View.tsx';
 
-const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'ink', 'muted'];
+const STATE_TONES: readonly StateTone[] = ['neutral', 'accent', 'accent-outline', 'info', 'info-outline', 'info-deep', 'success', 'error', 'ink', 'muted'];
 
 const meta = {
   title:     'Atoms/StateBadge',

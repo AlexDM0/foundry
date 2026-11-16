@@ -1,6 +1,6 @@
 /**
- * The state dot, in a happy-dom document. What matters: it sets `data-state-tone`, which picks its fill, a shape other than solid sets
- * `data-shape`, small and tiny set `data-size`, and it is hidden from the accessibility tree.
+ * The state dot, in a happy-dom document. What matters: it sets `data-state-tone`, which picks its fill, the error tone too; a shape other
+ * than solid sets `data-shape`; small and tiny set `data-size`; and it is hidden from the accessibility tree.
  */
 import { cleanup, render } from '@testing-library/react';
 import {
@@ -22,6 +22,11 @@ describe('the state dot', () => {
     const dot = container.querySelector('.design-system-state-dot');
     expect([dot?.getAttribute('data-state-tone'), dot?.hasAttribute('data-shape'), dot?.getAttribute('aria-hidden'), dot?.textContent])
       .toEqual(['info', false, 'true', '']);
+  });
+
+  test('the error tone sets data-state-tone like every other tone', () => {
+    const { container } = render(<StateDot tone="error" />);
+    expect(container.querySelector('.design-system-state-dot')?.getAttribute('data-state-tone')).toBe('error');
   });
 
   test('a ring and a dashed ring set data-shape', () => {
