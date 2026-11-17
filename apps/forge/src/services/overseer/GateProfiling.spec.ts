@@ -3,8 +3,9 @@
  * once, one gate in one phase, in a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, with the prepare steps and no
  * `writes` granted, holding a slot it takes only after the real gates; its output is appended as it arrives; it ends with its time, never a
  * green or a `gate-ran` record, and its worktree and slot go; a Stop, and an Overseer stop, end the process tree through the port and
- * record `stopped` with no duration; a proposal, a draft edit and a start queue no run; and a run of the open setup turns the caching
- * checks into note findings.
+ * record `stopped` with no duration; a proposal, a draft edit and a start queue no run; a run of the open setup turns the caching
+ * checks into note findings; and a run of an entity's gate runs its lines in the folders the press took from the entity's first home. Two
+ * entities that share a gate name each get their own note, in their own part of the record, never one in the forge's part.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -18,9 +19,12 @@ import {
 } from 'bun:test';
 
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { ResearchFinding }                           from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                            from '../../shared/@types/ControlCommand.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
+import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
@@ -105,7 +109,14 @@ function passedRun(milliseconds = PROFILED_MILLISECONDS): GateLinesRun {
   };
 }
 
-function profilingWith(runGateLines: GateProfilingContext['runGateLines']): ReturnType<typeof GateProfiling.createGateProfiling> {
+const storedHold: GateProfilingContext['hold'] = async (mutate) => (await writeTracker({
+  workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+})).result;
+
+function profilingWith(
+  runGateLines: GateProfilingContext['runGateLines'],
+  hold: GateProfilingContext['hold'] = storedHold
+): ReturnType<typeof GateProfiling.createGateProfiling> {
   const native = nativePlatformPorts();
   return GateProfiling.createGateProfiling({
     workspace,
@@ -132,9 +143,7 @@ function profilingWith(runGateLines: GateProfilingContext['runGateLines']): Retu
     },
     gateEnvironment: () => ({}),
     confinedLineIn:  () => (argv) => ({ verdict: 'runs', argv }),
-    hold:            async (mutate) => (await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
-    })).result,
+    hold,
     millisecondsNow: () => 0,
     wake:            () => undefined,
     log:             () => undefined,
@@ -203,6 +212,35 @@ describe('a queued run', () => {
 
     expect(lineRequests).toEqual([]);
     expect((await storedBoard()).gateProfileRuns()[0]?.state).toBe('queued');
+  });
+
+  testWhenGitIsRecorded('of an entity\'s gate runs its lines in the entity\'s folders from the worktree\'s root, and ends kept by its entity', async () => {
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => change.board.queueGateProfile({
+        setupId: null,
+        entity:  'web',
+        phase:   'build',
+        gate:    { name: 'tests', run: 'bun test', in: '/apps/web' },
+        prepare: [{ name: 'install', run: 'bun install', in: '/' }],
+      }, change.at),
+    });
+    const profiling = profilingWith(() => Promise.resolve(passedRun()));
+
+    await recordedGit.playStage(worktreeAddAndRemoveOf('P1'), async () => {
+      profiling.followRuns(await storedBoard());
+      await profiling.idle();
+    });
+
+    expect(lineRequests[0]).toMatchObject({
+      directory:     worktreeOf('P1'),
+      projectPrefix: '',
+      prepare:       [{ name: 'install', run: 'bun install', in: '/' }],
+      gates:         [{ name: 'tests', run: 'bun test', in: '/apps/web' }],
+    });
+    expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ profileRunId: 'P1', entity: 'web', state: 'passed' }]);
   });
 
   testWhenGitIsRecorded('a red gate ends red with its time', async () => {
@@ -337,4 +375,36 @@ testWhenGitIsRecorded('a run of the open setup turns a slow gate with no caching
   expect((await storedBoard()).pipelineSetup()?.findings).toEqual([{
     findingId: 'F1', topic: 'note', label: 'no-caching-tool', value: 'tests', sourcePaths: [], script: null, needsRecheck: false
   }]);
+});
+
+testWhenGitIsRecorded('runs of two entities that share a slow gate\'s name each record their own note, in their own part of the record', async () => {
+  const entityOf = (home: string): PipelineEntity => ({
+    kind: 'app', home: [home], prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: [], merge: [] },
+  });
+  const pipeline: Pipeline = {
+    version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: entityOf('/apps/web/'), api: entityOf('/apps/api/') },
+  };
+  const { board } = boardFixture({ pipeline });
+  board.openSetup({
+    mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, CHANGED_AT);
+  const profiling = profilingWith(() => Promise.resolve(passedRun(SLOW_GATE_MILLISECONDS)), (mutate) => Promise.resolve(mutate({ board, at: CHANGED_AT })));
+
+  for (const [profileRunId, entity] of [['P1', 'web'], ['P2', 'api']] as const) {
+    board.queueGateProfile({
+      setupId: 'S1', entity, phase: 'build', gate: { name: 'tests', run: 'bun test', in: `/apps/${entity}` }, prepare: []
+    }, CHANGED_AT);
+    await recordedGit.playStage(worktreeAddAndRemoveOf(profileRunId), async () => {
+      profiling.followRuns(board);
+      await profiling.idle();
+    });
+  }
+
+  const noteOf = (findingId: string): ResearchFinding => ({
+    findingId, topic: 'note', label: 'no-caching-tool', value: 'tests', sourcePaths: [], script: null, needsRecheck: false
+  });
+  const setup = board.pipelineSetup();
+  expect(setup?.findings).toEqual([]);
+  expect(setup?.entities?.['web']?.findings).toEqual([noteOf('F1')]);
+  expect(setup?.entities?.['api']?.findings).toEqual([noteOf('F2')]);
 });

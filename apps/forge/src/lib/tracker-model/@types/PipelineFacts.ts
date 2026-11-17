@@ -2,9 +2,15 @@
  * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
  * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
-import type { GatePhase }                                     from './GatePhase.ts';
-import type { GateCacheReport, JobState }                     from './Job.ts';
-import type { InstructionEntry, Pipeline, PipelineAgentRole } from './Pipeline.ts';
+import type { GatePhase }                 from './GatePhase.ts';
+import type { GateCacheReport, JobState } from './Job.ts';
+import type {
+  EntityAgentRole,
+  EntityKey,
+  InstructionEntry,
+  Pipeline,
+  PipelineAgentRole
+} from './Pipeline.ts';
 import type {
   ApplyRequest,
   PipelineDraftField,
@@ -68,6 +74,22 @@ export interface ApplyStateFacts extends ApplyRequest {
   ticketIdHoldingMain: string | null;
 }
 
+/** What the summary counts of one entity: the entity's own findings, questions and steps; User's edits are counted for the whole draft. */
+export type PipelineSetupEntitySummary = Omit<PipelineSetupSummary, 'userEditsKeptCount'>;
+
+/** One entity's part of the setup facts, from its part of the record and its pipeline in the draft, else in the stored pipeline. */
+export interface PipelineSetupEntityFacts {
+  summary:             PipelineSetupEntitySummary;
+  openQuestionCount:   number;
+  /** The state of the entity's pipeline-agent job; null when none is on the board. */
+  agentJobState:       JobState | null;
+  constitutionHtml:    string | null;
+  constitutionOutline: ConstitutionOutline | null;
+  annotations:         ResolvedSourceAnnotation[];
+  /** The entity's roles whose instruction lists hold its constitution. */
+  readByRoles:         EntityAgentRole[];
+}
+
 export interface PipelineSetupFacts {
   record:              PipelineSetup;
   summary:             PipelineSetupSummary;
@@ -83,6 +105,8 @@ export interface PipelineSetupFacts {
   /** The roles whose instruction lists hold the constitution. */
   readByRoles:         PipelineAgentRole[];
   applyState:          ApplyStateFacts | null;
+  /** Absent on a forge without entities: each entity of the draft, else of the stored pipeline, then of the record, by its key. */
+  entities?:           Record<EntityKey, PipelineSetupEntityFacts>;
 }
 
 export type PipelineNodeKind =
@@ -235,6 +259,14 @@ export interface PipelineChange {
 
 export type PipelineFlowStage = 'proposal' | 'live' | 'editing';
 
+/** The flow of one entity's pipeline, drawn and marked as the flow of a single pipeline is; its tickets stand on the forge's flow. */
+export interface PipelineEntityFlowFacts {
+  nodes:       PipelineFlowNode[];
+  edges:       PipelineFlowEdge[];
+  insertSlots: PipelineInsertSlot[];
+  gateRows:    Record<GatePhase, PipelineGateRow[]>;
+}
+
 export interface PipelineFlowFacts {
   nodes:             PipelineFlowNode[];
   edges:             PipelineFlowEdge[];
@@ -244,13 +276,17 @@ export interface PipelineFlowFacts {
   changeList:        PipelineChange[];
   ticketIdsInFlight: string[];
   toolbarStage:      PipelineFlowStage;
+  /** Absent on a forge without entities: the flow of each entity the drawn pipeline holds, by its key; the flow above is the forge's. */
+  entityFlows?:      Record<EntityKey, PipelineEntityFlowFacts>;
 }
 
 export type GateProfileRunState = 'queued' | 'running' | 'passed' | 'red' | 'cannot-run' | 'timed-out' | 'stopped';
 
-/** The newest profile run of one gate in one phase; a run starts only on User's press. */
+/** The newest profile run of one gate in one phase, of one entity on a forge over entities; a run starts only on User's press. */
 export interface GateProfileRunFacts {
   profileRunId:        string;
+  /** Only on a run of an entity's gate. */
+  entity?:             EntityKey;
   gateName:            string;
   phase:               GatePhase;
   state:               GateProfileRunState;
@@ -262,9 +298,11 @@ export interface GateProfileRunFacts {
 
 /**
  * What the newest run of a gate in a phase reported of its cache, a job's gate run or a profile run, whichever ended last; a gate whose
- * newest run reported nothing has none.
+ * newest run reported nothing has none. On a forge over entities a gate is an entity's: the mark is kept by entity, gate and phase.
  */
 export interface GateCacheMarkFacts {
+  /** Only on a mark of an entity's gate. */
+  entity?:     EntityKey;
   gateName:    string;
   phase:       GatePhase;
   cacheReport: GateCacheReport;

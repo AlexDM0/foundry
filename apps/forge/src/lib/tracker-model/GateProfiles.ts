@@ -1,7 +1,7 @@
 /**
  * The gate profile runs' moves: User's press queues one gate in one phase, the Overseer marks it running and records how it ended, and
  * User's Stop ends a queued run at once or asks the Overseer to end a running one. A second press while the gate and phase have a run
- * queued or running refuses. Only the newest run of a gate and phase is kept.
+ * queued or running refuses. Only the newest run of a gate and phase is kept; on a forge over entities, of an entity's gate and phase.
  */
 import type { GateProfileChanged }     from './@types/BoardChanges.ts';
 import type {
@@ -32,10 +32,14 @@ function gateHashOf(gate: GateProfileRequest['gate']): string {
 export class GateProfiles {
   constructor(private readonly records: BoardRecords) {}
 
-  /** Refuses `gate-profile-running` while the gate and phase have a run queued or running; an ended run of them makes way for the new one. */
+  /**
+   * Refuses `gate-profile-running` while the gate and phase, of the same entity, have a run queued or running; an ended run of them makes
+   * way for the new one.
+   */
   queueGateProfile(request: GateProfileRequest, at: string): GateProfileChanged {
     const profiles = this.writableProfiles();
-    const sameGateAndPhase = (run: Readonly<GateProfileRun>): boolean => run.gate.name === request.gate.name && run.phase === request.phase;
+    const sameGateAndPhase = (run: Readonly<GateProfileRun>): boolean => run.entity === request.entity
+      && run.gate.name === request.gate.name && run.phase === request.phase;
     const unfinished = profiles.runs.find((run) => sameGateAndPhase(run) && runIsUnfinished(run));
     if (unfinished !== undefined) {
       throw new BoardRefusal({
@@ -45,6 +49,7 @@ export class GateProfiles {
     const run: GateProfileRun = {
       profileRunId:        `${GATE_PROFILE_RUN_ID_PREFIX}${profiles.nextRunNumber}`,
       setupId:             request.setupId,
+      ...(request.entity === undefined ? {} : { entity: request.entity }),
       phase:               request.phase,
       gate:                structuredClone(request.gate),
       gateHash:            gateHashOf(request.gate),

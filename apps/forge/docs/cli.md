@@ -1039,6 +1039,11 @@ When a run of the open setup ends, the caching checks run over the times its pro
 suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
 records, the same way, what the snapshot's tree cannot hold on every OS, read from git's index.
 
+On a forge over entities, a start names the entity whose gate it profiles. The gate and the prepare steps come from that
+entity's pipeline, and each folder is taken from the repository's root through the entity's first home. A run is kept
+by entity, gate and phase, so the same gate of two entities runs and ends apart. The caching checks of an entity's run
+read only that entity's times and gates, and its notes go to the entity's part of the setup record.
+
 #### Gate reports
 
 A gate may say what its own tooling replayed from its cache. Every gate line is handed a path in the temporary folder
@@ -2271,7 +2276,8 @@ the lock, atomically; a start over removes it. This is format version 1.
 
 The [gate profiles](#gate-profiles) User started, beside `progress.json`, absent until the first `gate-profile-start`.
 Every write is made in the hold: `queued` by the command, `running` and the end by the Overseer. Only the newest run of
-each gate and phase is kept: a new press drops an ended one. This is format version 1.
+each gate and phase is kept, of each entity on a forge over entities: a new press drops an ended one. This is format
+version 1.
 
 ```jsonc
 {
@@ -2281,10 +2287,12 @@ each gate and phase is kept: a new press drops an ended one. This is format vers
     {
       "profileRunId": "P2",
       "setupId": "S1",                   // the setup whose draft the gate came from; null: the stored pipeline
+      "entity": "web",                   // the entity whose gate it is; written only on a forge over entities
       "phase": "merge",                  // build | review | merge
       "gate": { "name": "tests", "run": "bun test" },  // in and network when set; never writes
       "gateHash": "…",                   // the content hash of run, in and network
       "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile", "in": "/" }],  // in when set
+      // with an entity, each in (the gate's and the steps') is from the repository's root
       "state": "passed",                 // queued | running | passed | red | cannot-run | timed-out | stopped
       "stopRequested": false,            // User's Stop of a running run, until the Overseer records it stopped
       "elapsedMilliseconds": 41200,      // recorded and shown only; null until the run ended by itself
@@ -2298,6 +2306,8 @@ each gate and phase is kept: a new press drops an ended one. This is format vers
   piece, as a Watcher's event log is; a reader ignores an unterminated last line.
 - `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Overseer start.
 - No state is written as `timed-out` yet; the read accepts it.
+- A run without `entity` is written without the key, so a file of a forge without entities stays byte for byte. A
+  release before entities refuses a file with the key as malformed.
 - Keys the CLI does not know are kept at the top level, in their stored order, after its own, so a read and a write
   leave the file byte for byte. A file that is not JSON, has another `formatVersion`, lacks a key, holds a value of the
   wrong shape or an unknown key in a run is malformed: the board reads no run, every profile move refuses

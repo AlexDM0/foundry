@@ -4,23 +4,26 @@
  * with the index of the line it anchors, the roles reading the constitution, and a held Apply's blocking files and the ticket holding
  * main); the flow's stage, its question markers and its change list; the live occupants on the node of each job's step, a review
  * catching up with main on the merge before review (Q5) and a filing draft on ticket creation, never the constitution commit job; every
- * model and effort in order (Q9); and each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order. The main
- * line's texts arrive as a parameter, so no case runs git.
+ * model and effort in order (Q9); and each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order. On a
+ * forge over entities: the forge's flow beside each entity's flow, drawn from its single pipeline and marked against the applied entity;
+ * each entity's setup facts from its part of the record, a record-only entity included, read by the entity's roles alone; and profile runs
+ * and cache marks kept by entity, gate and phase. A forge without entities gets none of these keys. The main line's texts arrive as a
+ * parameter, so no case runs git.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineReading }     from '../../adapters/pipeline/PipelineFile.ts';
-import type { Draft }               from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }           from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
+import type { PipelineReading }                     from '../../adapters/pipeline/PipelineFile.ts';
+import type { Draft }                               from '../../lib/tracker-model/@types/Draft.ts';
+import type { GatePhase }                           from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateProfileRun, GateProfilesReading } from '../../lib/tracker-model/@types/GateProfile.ts';
 import type {
   Airlock,
   GateCacheReport,
   GateRunCacheReports,
   Job
 } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { InstructionEntry, Pipeline } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { LogRecord }                                  from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { InstructionEntry, Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   MainConstitutionReading,
   PipelineSetup,
@@ -663,5 +666,153 @@ describe('the choices, profile runs and history', () => {
     expect(history).toHaveLength(PIPELINE_HISTORY_RECORDS_SHOWN);
     expect(history[0]).toEqual(resumed);
     expect(history.some((record) => record.kind === 'pipeline-finding-recorded')).toBe(false);
+  });
+});
+
+describe('a forge over entities', () => {
+  const webEntity: PipelineEntity = {
+    kind:         'app',
+    home:         ['/apps/web'],
+    constitution: { path: '/apps/web/CONSTITUTION.md' },
+    prepare:      [{ name: 'install', run: 'bun install', in: '/' }],
+    gates:        [{ name: 'test', run: 'bun test' }],
+    phases:       { build: ['test'], review: [], merge: ['test'] },
+    review:       { name: 'review' },
+    agents:       { builder: { instructions: [{ kind: 'default-brief', role: 'builder' }] } },
+  };
+  const packageEntity: PipelineEntity = {
+    kind:    'package',
+    home:    ['/packages/ui'],
+    prepare: [],
+    gates:   [{ name: 'test', run: 'bun run test' }],
+    phases:  { build: ['test'], review: [], merge: [] },
+    review:  { name: 'review' },
+  };
+  const entityPipeline: Pipeline = {
+    ...MINIMAL_PIPELINE,
+    agents:   { productOwner: { instructions: [{ kind: 'constitution' }] } },
+    entities: { web: webEntity, ui: packageEntity },
+  };
+  const readable = (pipeline: Pipeline): PipelineReading => ({ verdict: 'readable', pipeline });
+
+  test('a forge without entities gets no entity key in its setup, flow or profile facts', () => {
+    const facts = pipelineFactsOf(inputOf({ pipelineSetupReading: { verdict: 'readable', setup: setupRecordOf({ draft: FULL_PIPELINE }) } }));
+
+    expect(Object.hasOwn(facts.pipelineSetup ?? {}, 'entities')).toBe(false);
+    expect(Object.hasOwn(facts.pipelineFlow ?? {}, 'entityFlows')).toBe(false);
+  });
+
+  test('the forge\'s flow draws no gate, and each entity\'s flow draws its own gates and prepare steps', () => {
+    const flow = pipelineFactsOf(inputOf({ pipelineReading: readable(entityPipeline) })).pipelineFlow;
+
+    expect(flow?.nodes.some((node) => node.nodeKind === 'gates')).toBe(false);
+    expect(Object.keys(flow?.entityFlows ?? {})).toEqual(['web', 'ui']);
+    expect(flow?.entityFlows?.['web']?.gateRows.merge.map((row) => [row.rowKind, row.name])).toEqual([['prepare', 'install'], ['gate', 'test']]);
+    expect(flow?.entityFlows?.['ui']?.gateRows.merge).toEqual([]);
+    expect(flow?.entityFlows?.['web']?.nodes.find((node) => node.nodeKind === 'review')?.mark).toBe('unchanged');
+  });
+
+  test('an edit marks an entity\'s gate against the applied entity, and an entity the stored pipeline lacks as new', () => {
+    const draft: Pipeline = {
+      ...entityPipeline,
+      entities: {
+        web:  { ...webEntity, gates: [...webEntity.gates, { name: 'lint', run: 'bun run lint' }], phases: { ...webEntity.phases, build: ['test', 'lint'] } },
+        ui:   packageEntity,
+        docs: { ...packageEntity, home: ['/packages/docs'] },
+      },
+    };
+    const record = setupRecordOf({ mode: 'update', draft });
+    const flows = pipelineFactsOf(inputOf({ pipelineReading: readable(entityPipeline), pipelineSetupReading: { verdict: 'readable', setup: record } })).pipelineFlow?.entityFlows;
+    const buildChipsOf = (entityKey: string) => flows?.[entityKey]?.nodes.find((node) => node.nodeId === 'gates-build')?.gateChips;
+
+    expect(buildChipsOf('web')).toEqual([{ gateName: 'test', mark: 'unchanged' }, { gateName: 'lint', mark: 'new' }]);
+    expect(buildChipsOf('ui')).toEqual([{ gateName: 'test', mark: 'unchanged' }]);
+    expect(buildChipsOf('docs')).toEqual([{ gateName: 'test', mark: 'new' }]);
+  });
+
+  test('each entity\'s setup facts come from its part of the record, read by its own roles, and its questions mark its own flow', () => {
+    const record = setupRecordOf({
+      draft:    entityPipeline,
+      entities: {
+        web: {
+          agentJobId: 'J5',
+          findings:   [{
+            findingId: 'F1', topic: 'stack', label: 'Bun', value: null, sourcePaths: [], script: null, needsRecheck: false
+          }],
+          questions:    [questionOf('Q1', { kind: 'gate', reference: 'test' })],
+          constitution: {
+            markdown: CONSTITUTION_MARKDOWN, annotations: [], draftedFrom: { contributing: false, research: true, installedDefault: false }, baseBlob: null, revision: 1,
+          },
+        },
+        api: {
+          agentJobId: null, findings: [], questions: [], constitution: null
+        },
+      },
+    });
+    const facts = pipelineFactsOf(inputOf({ pipelineSetupReading: { verdict: 'readable', setup: record } }, {
+      jobs: [jobFixture({
+        id: 'J5', kind: 'pipeline-agent', role: 'pipeline-agent', target: null
+      })],
+    }));
+    const entities = facts.pipelineSetup?.entities;
+
+    expect(Object.keys(entities ?? {})).toEqual(['web', 'ui', 'api']);
+    expect(entities?.['web']).toMatchObject({
+      summary: {
+        stackItemCount: 1, scriptCount: 0, answeredResearchQuestionCount: 0, prepareStepCount: 1, gateCountByPhase: { build: 1, review: 0, merge: 1 },
+      },
+      openQuestionCount:   1,
+      agentJobState:       'running',
+      constitutionHtml:    `<rendered>${CONSTITUTION_MARKDOWN}</rendered>`,
+      constitutionOutline: { sectionCount: 2, ruleCount: 3 },
+      readByRoles:         ['reviewer', 'reReviewer', 'conflictReReviewer'],
+    });
+    expect(entities?.['api']).toMatchObject({
+      openQuestionCount: 0, agentJobState: null, constitutionHtml: null, summary: { prepareStepCount: 0 }
+    });
+    expect(facts.pipelineSetup?.openQuestionCount).toBe(0);
+    expect(facts.pipelineFlow?.entityFlows?.['web']?.nodes.find((node) => node.nodeId === 'gates-build')?.questionIds).toEqual(['Q1']);
+    expect(facts.pipelineFlow?.entityFlows?.['ui']?.nodes.find((node) => node.nodeId === 'gates-build')?.questionIds).toEqual([]);
+  });
+
+  test('profile runs and cache marks are kept by entity, gate and phase', () => {
+    const runOf = (profileRunId: string, entity: string, cacheReport: GateCacheReport): GateProfileRun => ({
+      profileRunId,
+      setupId:             null,
+      entity,
+      phase:               'build',
+      gate:                { name: 'test', run: 'bun test', in: `/apps/${entity}` },
+      gateHash:            'h',
+      prepare:             [],
+      state:               'passed',
+      stopRequested:       false,
+      elapsedMilliseconds: 400,
+      cacheReport,
+    });
+    const gateProfilesReading: GateProfilesReading = {
+      verdict:  'readable',
+      profiles: {
+        formatVersion: 1, nextRunNumber: 3, runs: [runOf('P1', 'web', 'hit'), runOf('P2', 'ui', 'miss')], extra: []
+      },
+    };
+    const profiled: LogRecord = {
+      kind:         'gate-profiled',
+      at:           AT,
+      profileRunId: 'P2',
+      fields:       {
+        gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 400
+      },
+    };
+    const facts = pipelineFactsOf(inputOf({ gateProfilesReading, logRecords: [profiled] }));
+
+    expect(facts.profileRuns.map((run) => [run.profileRunId, run.entity, run.gateName, run.phase])).toEqual([['P1', 'web', 'test', 'build'], ['P2', 'ui', 'test', 'build']]);
+    expect(facts.gateCacheMarks).toEqual([
+      {
+        entity: 'web', gateName: 'test', phase: 'build', cacheReport: 'hit'
+      },
+      {
+        entity: 'ui', gateName: 'test', phase: 'build', cacheReport: 'miss'
+      },
+    ]);
   });
 });

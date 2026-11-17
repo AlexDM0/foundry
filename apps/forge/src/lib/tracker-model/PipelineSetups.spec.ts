@@ -7,7 +7,7 @@
  * record whose step states hold it: a first setup and an update of a pipeline without entities open with no such state and never reach
  * it, while a record over entities walks it between research and the constitution. The edits of a copy to another entity carry their
  * set's batch, the first of their edit ids, and still undo one by one; no other edit carries a batch; and a field inside an entity is
- * refused as the same field at the top would be.
+ * refused as the same field at the top would be. A finding of one entity goes to that entity's part.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,7 +17,8 @@ import type {
   PipelineDraftEdit,
   PipelineSetup,
   PipelineSetupOpening,
-  PipelineSetupReading
+  PipelineSetupReading,
+  ResearchFindingRecording
 } from './@types/PipelineSetup.ts';
 import type { Board }              from './Board.ts';
 import type { BoardRefusalDetail } from './BoardRefusal.ts';
@@ -330,6 +331,24 @@ describe('the entities step', () => {
     expect(logged.map((record) => record.fields)).toEqual([{
       step: 'research', state: 'in-progress', currentStep: 'research', needsRecheck: ['entities']
     }]);
+  });
+
+  test('a finding with an entity key goes to that entity\'s part, created the first time, numbered with the forge\'s findings', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+    const recording: ResearchFindingRecording = {
+      topic: 'note', label: 'no-caching-tool', value: 'tests', sourcePaths: [], script: null
+    };
+
+    board.recordFinding(setupId, recording, AT);
+    board.recordFinding(setupId, recording, AT, 'web');
+
+    const setup = openSetupOf(board);
+    expect(setup.findings.map((finding) => finding.findingId)).toEqual(['F1']);
+    expect(setup.entities).toEqual({
+      web: {
+        agentJobId: null, findings: [{ ...recording, findingId: 'F2', needsRecheck: false }], questions: [], constitution: null
+      }
+    });
   });
 });
 

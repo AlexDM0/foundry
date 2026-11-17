@@ -1,9 +1,9 @@
 /**
  * The Overseer's gate profiles: each run User queued is one gate in one phase, run once in a fresh detached worktree of main, under its
  * confinement and with no `writes` granted, holding a gate run slot that no waiting real gate wants. The process runs outside the hold;
- * the hold is taken only to record `running` and the end. Its output is appended to its own file as it arrives, which the profile stream
- * follows. A Stop ends the process tree through the port. At an Overseer's start, a run an earlier Overseer left running reads `stopped`
- * and every profile worktree goes.
+ * the hold is taken only to record `running` and the end. An entity's gate runs with its folders from the repository's root, as the press
+ * resolved them. Its output is appended to its own file as it arrives, which the profile stream follows. A Stop ends the process tree
+ * through the port. At an Overseer's start, a run an earlier Overseer left running reads `stopped` and every profile worktree goes.
  */
 import {
   appendFileSync,
@@ -23,9 +23,11 @@ import type { PlatformPorts }                                                   
 import type { ProcessIdentity }                                                           from '../../lib/process-identity/ProcessIdentity.ts';
 import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { GateOutcome }                                                               from '../../lib/tracker-model/@types/Job.ts';
-import type { ResearchFindingRecording }                                                  from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { EntityKey, Pipeline, PipelineGate }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup, ResearchFinding, ResearchFindingRecording }                  from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                                                   from '../../lib/tracker-model/BoardRefusal.ts';
+import { PipelineUtil }                                                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { CachingChecks, type CachingSuggestion, type RecordedGateTime }                   from '../lifecycle/CachingChecks.ts';
 import { type GateLineRun, type GateLineRefusal, type GateLinesRun }                      from '../lifecycle/GateLineRun.ts';
 import type { GateLineConfiner }                                                          from '../lifecycle/GateRun.ts';
@@ -118,23 +120,39 @@ function sameFinding(recording: ResearchFindingRecording, other: ResearchFinding
     && JSON.stringify(recording.sourcePaths) === JSON.stringify(other.sourcePaths);
 }
 
+/** The draft's gates, or the gates of the run's entity, read through its single pipeline. */
+function draftGatesOf(draft: Readonly<Pipeline> | null, run: Readonly<GateProfileRun>): readonly PipelineGate[] {
+  if (draft === null) return [];
+  if (run.entity === undefined) return draft.gates;
+  return PipelineUtil.pipelineOfEntity(draft, run.entity)?.gates ?? [];
+}
+
+/** The findings of the forge's part of the record, or of the entity's part. */
+function recordedFindingsOf(setup: Readonly<PipelineSetup> | null, entityKey: EntityKey | undefined): readonly ResearchFinding[] {
+  if (setup === null) return [];
+  if (entityKey === undefined) return setup.findings;
+  const entities = setup.entities ?? {};
+  return Object.hasOwn(entities, entityKey) ? entities[entityKey]?.findings ?? [] : [];
+}
+
 /**
- * The caching checks over every time the profiles of the run's setup recorded so far, each new suggestion a finding of the record. A
- * record that takes no move now, such as one whose Apply waits, gets none: the profile's end is recorded all the same.
+ * The caching checks over every time the profiles of the run's setup, and of its entity, recorded so far, each new suggestion a finding of
+ * the record, in the entity's part for an entity's run. A record that takes no move now, such as one whose Apply waits, gets none: the
+ * profile's end is recorded all the same.
  */
 function recordCachingFindings(board: Board, repositoryRoot: string, run: Readonly<GateProfileRun>, at: string): void {
   const setup = board.pipelineSetup();
   if (setup === null || run.setupId !== setup.setupId) return;
   const recordedTimes: RecordedGateTime[] = board.gateProfileRuns()
-    .filter((profiled) => profiled.setupId === setup.setupId && profiled.elapsedMilliseconds !== null)
+    .filter((profiled) => profiled.setupId === setup.setupId && profiled.entity === run.entity && profiled.elapsedMilliseconds !== null)
     .map((profiled) => ({ name: profiled.gate.name, milliseconds: profiled.elapsedMilliseconds ?? 0 }));
-  const gates = setup.draft?.gates ?? [];
+  const gates = draftGatesOf(setup.draft, run);
   for (const suggestion of CachingChecks.cachingSuggestionsOf(repositoryRoot, gates, recordedTimes)) {
     const recording = cachingFindingOf(suggestion);
-    const recorded = board.pipelineSetup()?.findings ?? [];
+    const recorded = recordedFindingsOf(board.pipelineSetup(), run.entity);
     if (recorded.some((finding) => sameFinding(recording, finding))) continue;
     try {
-      board.recordFinding(setup.setupId, recording, at);
+      board.recordFinding(setup.setupId, recording, at, run.entity);
     } catch (refusal) {
       if (refusal instanceof BoardRefusal) return;
       throw refusal;

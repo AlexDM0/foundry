@@ -100,6 +100,7 @@ import type {
 } from './@types/LogRecord.ts';
 import type { QuestionOptionNotes } from './@types/OptionConsequences.ts';
 import type {
+  EntityKey,
   Pipeline,
   PipelineApproval,
   PipelineBilling,
@@ -935,8 +936,8 @@ export class Board {
     return this.pipelineSetups.setupSnapshotIsTouched(setupId);
   }
 
-  recordFinding(setupId: string, recording: ResearchFindingRecording, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.recordFinding(setupId, recording, at);
+  recordFinding(setupId: string, recording: ResearchFindingRecording, at: string, entityKey?: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.recordFinding(setupId, recording, at, entityKey);
   }
 
   askSetupQuestion(setupId: string, asking: SetupQuestionAsking, at: string): PipelineSetupChanged {

@@ -1,11 +1,11 @@
 /**
  * The flow the Pipeline view draws, as values: its nodes, edges, insert slots and gate rows, each with its mark. The same pipeline gives
  * the same graph on every stage; only the marks differ: all `proposed` in a proposal, all `unchanged` live, and against the applied
- * pipeline while editing.
+ * pipeline while editing. On a forge over entities each entity's single pipeline gives a graph of its own the same way.
  */
-import { GATE_PHASES, type GatePhase }      from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PIPELINE_FORMAT_VERSION }          from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GATE_PHASES, type GatePhase }                 from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { EntityKey, Pipeline, PipelineAgentRole } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PIPELINE_FORMAT_VERSION }                     from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   DerivedSettingsSource,
   MergePlacement,
@@ -26,6 +26,7 @@ import type { PipelineDraftField } from '../../lib/tracker-model/@types/Pipeline
 import type { AgentPair }          from '../../lib/tracker-model/@types/Ticket.ts';
 import type { PipelineChangeKind } from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import { PipelineChangeUtil }      from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }            from '../../lib/tracker-model/utils/PipelineUtil.ts';
 
 export interface PipelineFlowGraphInput {
   /** The draft during a setup or an edit; the stored pipeline when live. */
@@ -40,6 +41,11 @@ export interface PipelineFlowGraphInput {
 }
 
 export type PipelineFlowGraph = Pick<PipelineFlowFacts, 'nodes' | 'edges' | 'insertSlots' | 'gateRows'>;
+
+export interface EntityFlowGraphsInput extends Omit<PipelineFlowGraphInput, 'instructionEntriesOf'> {
+  /** A role's instruction list in an entity's single pipeline, resolved to its files and their texts on main. */
+  instructionEntriesOf: (entityPipeline: Pipeline, role: PipelineAgentRole) => ResolvedInstructionEntry[];
+}
 
 export const PIPELINE_FLOW_NODE_IDS = Object.freeze({
   ticketCreation:                'ticket-creation',
@@ -401,4 +407,25 @@ export function pipelineFlowGraphOf(input: PipelineFlowGraphInput): PipelineFlow
     insertSlots: insertSlotsOf(draft, new Set(nodes.map((node) => node.nodeId))),
     gateRows:    { build: gateRowsOfPhase(context, 'build'), review: gateRowsOfPhase(context, 'review'), merge: gateRowsOfPhase(context, 'merge') },
   };
+}
+
+/**
+ * The graph of each entity the pipeline holds, by its key, drawn from the entity's single pipeline and marked against the applied
+ * pipeline's entity of that key, or against the minimal pipeline where the applied one has no such entity. Null without entities.
+ */
+export function entityFlowGraphsOf(input: EntityFlowGraphsInput): Record<EntityKey, PipelineFlowGraph> | null {
+  const { pipeline, appliedPipeline } = input;
+  if (pipeline.entities === undefined) return null;
+  return Object.fromEntries(Object.keys(pipeline.entities).flatMap((entityKey) => {
+    const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+    if (entityPipeline === null) return [];
+    const graph = pipelineFlowGraphOf({
+      pipeline:             entityPipeline,
+      appliedPipeline:      appliedPipeline === null ? null : PipelineUtil.pipelineOfEntity(appliedPipeline, entityKey),
+      stage:                input.stage,
+      defaultSettingsOf:    input.defaultSettingsOf,
+      instructionEntriesOf: (role) => input.instructionEntriesOf(entityPipeline, role),
+    });
+    return [[entityKey, graph] as const];
+  }));
 }

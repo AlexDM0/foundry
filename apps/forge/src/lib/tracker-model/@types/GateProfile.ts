@@ -2,10 +2,10 @@
  * `gate-profiles.json` beside the progress file: the gate profiles User started, each one gate in one phase, run once. A profile only
  * informs: it never records a green or a gate run, and nothing waits on it.
  */
-import type { GatePhase }           from './GatePhase.ts';
-import type { GateCacheReport }     from './Job.ts';
-import type { PipelineStep }        from './Pipeline.ts';
-import type { GateProfileRunState } from './PipelineFacts.ts';
+import type { GatePhase }               from './GatePhase.ts';
+import type { GateCacheReport }         from './Job.ts';
+import type { EntityKey, PipelineStep } from './Pipeline.ts';
+import type { GateProfileRunState }     from './PipelineFacts.ts';
 
 /** How a run that started ended by itself; a stop is `stopped`, which has no result. */
 export type GateProfileRunEnding = 'passed' | 'red' | 'cannot-run' | 'timed-out';
@@ -30,6 +30,11 @@ export interface GateProfileRun {
   profileRunId:        string;
   /** The setup record whose draft the gate came from; `null` for a gate of the stored pipeline. */
   setupId:             string | null;
+  /**
+   * The entity whose gate it is, its gate's and prepare steps' folders taken from the repository's root; absent on a pipeline without
+   * entities, and stored only once set. With the gate name and the phase, what the run is kept by.
+   */
+  entity?:             EntityKey;
   phase:               GatePhase;
   gate:                ProfiledGate;
   /** The content hash of the gate's `run`, `in` and `network`: with the phase and the gate name, what the run is kept by. */
@@ -61,9 +66,10 @@ export type GateProfilesReading =
   | { verdict: 'readable'; profiles: GateProfiles }
   | { verdict: 'malformed'; reason: string };
 
-/** User's press: one gate in one phase, with the prepare steps of the pipeline the gate came from. */
+/** User's press: one gate in one phase, with the prepare steps of the pipeline the gate came from, and its entity on a forge over entities. */
 export interface GateProfileRequest {
   setupId: string | null;
+  entity?: EntityKey;
   phase:   GatePhase;
   gate:    ProfiledGate;
   prepare: readonly PipelineStep[];

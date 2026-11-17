@@ -175,10 +175,11 @@ export interface BoardStateDocument {
   readonly pipeline?:              AppliedPipelineFacts;
   /** Null with no open setup, update or advise record. */
   readonly pipelineSetup?:         PipelineSetupFacts | null;
-  /** Null with neither a draft nor a readable pipeline to draw. */
+  /** Null with neither a draft nor a readable pipeline to draw; on a forge over entities the forge's flow, with each entity's flow. */
   readonly pipelineFlow?:          PipelineFlowFacts | null;
+  /** The newest profile run of each gate in each phase, of each entity on a forge over entities. */
   readonly profileRuns?:           readonly GateProfileRunFacts[];
-  /** The cache mark of each gate in each phase whose newest run, a job's or a profile's, reported one. */
+  /** The cache mark of each gate in each phase, of each entity on a forge over entities, whose newest run, a job's or a profile's, reported one. */
   readonly gateCacheMarks?:        readonly GateCacheMarkFacts[];
   /** The newest pipeline records, newest first, for the live view's "Earlier" list. */
   readonly pipelineHistory?:       readonly LogRecord[];

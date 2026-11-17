@@ -10,6 +10,8 @@ import type { GateCacheReport, Job } from '../../lib/tracker-model/@types/Job.ts
 import type { LogRecord }            from '../../lib/tracker-model/@types/LogRecord.ts';
 import {
   PIPELINE_AGENT_ROLES,
+  type EntityAgentRole,
+  type EntityKey,
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
@@ -26,22 +28,28 @@ import type {
   PipelineFlowNode,
   PipelineFlowStage,
   PipelineOccupant,
+  PipelineSetupEntityFacts,
+  PipelineSetupEntitySummary,
   PipelineSetupFacts,
   ResolvedInstructionEntry,
   ResolvedSourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineFacts.ts';
 import type {
+  ConstitutionDraft,
   MainConstitutionReading,
   PipelineSetup,
+  PipelineSetupEntity,
   PipelineSetupReading,
+  ResearchFinding,
+  SetupQuestion,
   SourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }                              from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                  from '../../lib/tracker-model/Board.ts';
-import { AGENT_EFFORTS, AGENT_MODELS }                 from '../../lib/tracker-model/constants/AgentSettings.ts';
-import { PipelineChangeUtil }                          from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
-import { PipelineUtil }                                from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { PIPELINE_FLOW_NODE_IDS, pipelineFlowGraphOf } from './PipelineFlowGraph.ts';
+import type { AgentPair }                                                  from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                                      from '../../lib/tracker-model/Board.ts';
+import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../lib/tracker-model/constants/AgentSettings.ts';
+import { PipelineChangeUtil }                                              from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { PIPELINE_FLOW_NODE_IDS, entityFlowGraphsOf, pipelineFlowGraphOf } from './PipelineFlowGraph.ts';
 
 /** How much of an instruction file the flow carries for its preview; the editor reads the rest itself. */
 export const INSTRUCTION_PREVIEW_LIMIT_CHARACTERS = 4000;
@@ -205,27 +213,81 @@ function applyStateOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>)
   };
 }
 
-function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): PipelineSetupFacts {
-  const { constitution, draft } = setup;
-  const readPipeline = draft ?? storedPipelineOf(input);
+/** The parts of a record or of one entity's part of it that the summary counts. */
+interface SummarisedPart {
+  findings:  readonly ResearchFinding[];
+  questions: readonly SetupQuestion[];
+}
+
+function summaryOf(part: SummarisedPart, pipeline: Readonly<Pipeline> | null): PipelineSetupEntitySummary {
   return {
-    record:  setup,
-    summary: {
-      stackItemCount:                setup.findings.filter((finding) => finding.topic === 'stack').length,
-      scriptCount:                   setup.findings.filter((finding) => finding.script !== null).length,
-      answeredResearchQuestionCount: setup.questions.filter((question) => question.step === 'research' && question.answer !== null).length,
-      prepareStepCount:              draft?.prepare.length ?? 0,
-      gateCountByPhase:              { build: draft?.phases.build.length ?? 0, review: draft?.phases.review.length ?? 0, merge: draft?.phases.merge.length ?? 0 },
-      userEditsKeptCount:            setup.edits.filter((edit) => edit.by === 'user' && !edit.undone).length,
-    },
-    openQuestionCount:   setup.questions.filter((question) => question.answer === null).length,
-    agentJobState:       input.board.jobs().find((job) => job.id === setup.agentJobId)?.state ?? null,
-    mainMovedByCommits:  input.mainLineTexts.mainMovedByCommitsOf(setup.snapshotCommit),
+    stackItemCount:                part.findings.filter((finding) => finding.topic === 'stack').length,
+    scriptCount:                   part.findings.filter((finding) => finding.script !== null).length,
+    answeredResearchQuestionCount: part.questions.filter((question) => question.step === 'research' && question.answer !== null).length,
+    prepareStepCount:              pipeline?.prepare.length ?? 0,
+    gateCountByPhase:              { build: pipeline?.phases.build.length ?? 0, review: pipeline?.phases.review.length ?? 0, merge: pipeline?.phases.merge.length ?? 0 },
+  };
+}
+
+type ConstitutionFacts = Pick<PipelineSetupFacts, 'constitutionHtml' | 'constitutionOutline' | 'annotations'>;
+
+function constitutionFactsOf(input: PipelineFactsInput, constitution: Readonly<ConstitutionDraft> | null): ConstitutionFacts {
+  return {
     constitutionHtml:    constitution === null ? null : input.renderMarkdown(constitution.markdown),
     constitutionOutline: constitution === null ? null : constitutionOutlineOf(constitution.markdown),
     annotations:         constitution === null ? [] : resolvedAnnotationsOf(constitution.markdown, constitution.annotations),
-    readByRoles:         rolesReadingOf(readPipeline, { kind: 'constitution' }),
-    applyState:          applyStateOf(input, setup),
+  };
+}
+
+function agentJobStateOf(input: PipelineFactsInput, agentJobId: string | null): PipelineSetupFacts['agentJobState'] {
+  return input.board.jobs().find((job) => job.id === agentJobId)?.state ?? null;
+}
+
+function roleIsAnEntityRole(role: PipelineAgentRole): role is EntityAgentRole {
+  return role === 'builder' || role === 'reviewer' || role === 'reReviewer' || role === 'conflictReReviewer';
+}
+
+const NO_ENTITY_PART: Readonly<PipelineSetupEntity> = {
+  agentJobId: null, findings: [], questions: [], constitution: null
+};
+
+/** The entities of the draft, else of the stored pipeline, then those only the record names, each once, in that order. */
+function setupEntityKeysOf(setup: Readonly<PipelineSetup>, readPipeline: Readonly<Pipeline> | null): EntityKey[] {
+  return [...new Set([...Object.keys(readPipeline?.entities ?? {}), ...Object.keys(setup.entities ?? {})])];
+}
+
+function setupEntityFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>, readPipeline: Readonly<Pipeline> | null): Record<EntityKey, PipelineSetupEntityFacts> {
+  return Object.fromEntries(setupEntityKeysOf(setup, readPipeline).map((entityKey) => {
+    const part = setup.entities !== undefined && Object.hasOwn(setup.entities, entityKey) ? setup.entities[entityKey] ?? NO_ENTITY_PART : NO_ENTITY_PART;
+    const entityPipeline = readPipeline === null ? null : PipelineUtil.pipelineOfEntity(readPipeline, entityKey);
+    const facts: PipelineSetupEntityFacts = {
+      summary:           summaryOf(part, entityPipeline),
+      openQuestionCount: part.questions.filter((question) => question.answer === null).length,
+      agentJobState:     agentJobStateOf(input, part.agentJobId),
+      ...constitutionFactsOf(input, part.constitution),
+      readByRoles:       rolesReadingOf(entityPipeline, { kind: 'constitution' }).filter(roleIsAnEntityRole),
+    };
+    return [entityKey, facts] as const;
+  }));
+}
+
+function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): PipelineSetupFacts {
+  const { constitution, draft } = setup;
+  const readPipeline = draft ?? storedPipelineOf(input);
+  const holdsEntities = readPipeline?.entities !== undefined || setup.entities !== undefined;
+  return {
+    record:  setup,
+    summary: {
+      ...summaryOf(setup, draft),
+      userEditsKeptCount: setup.edits.filter((edit) => edit.by === 'user' && !edit.undone).length,
+    },
+    openQuestionCount:  setup.questions.filter((question) => question.answer === null).length,
+    agentJobState:      agentJobStateOf(input, setup.agentJobId),
+    mainMovedByCommits: input.mainLineTexts.mainMovedByCommitsOf(setup.snapshotCommit),
+    ...constitutionFactsOf(input, constitution),
+    readByRoles:        rolesReadingOf(readPipeline, { kind: 'constitution' }),
+    applyState:         applyStateOf(input, setup),
+    ...(holdsEntities ? { entities: setupEntityFactsOf(input, setup, readPipeline) } : {}),
   };
 }
 
@@ -247,8 +309,8 @@ function changeListOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>,
 }
 
 /** A question on a `node` subject marks that node, named by id or kind; one on a `gate` subject marks each gates node holding that gate. */
-function questionIdsOf(node: Readonly<PipelineFlowNode>, setup: Readonly<PipelineSetup> | null): string[] {
-  return (setup?.questions ?? []).flatMap((question) => {
+function questionIdsOf(node: Readonly<PipelineFlowNode>, questions: readonly SetupQuestion[]): string[] {
+  return questions.flatMap((question) => {
     const { subject } = question;
     if (subject === null) return [];
     const marksNode = subject.kind === 'node'
@@ -389,6 +451,33 @@ function flowStageOf(setup: Readonly<PipelineSetup> | null): PipelineFlowStage {
   return setup.mode === 'setup' ? 'proposal' : 'editing';
 }
 
+function entityQuestionsOf(setup: Readonly<PipelineSetup> | null, entityKey: EntityKey): readonly SetupQuestion[] {
+  const entities = setup?.entities;
+  return entities !== undefined && Object.hasOwn(entities, entityKey) ? entities[entityKey]?.questions ?? [] : [];
+}
+
+/** Each entity's graph, its nodes marked with the questions of the entity's part of the record; absent without entities. */
+function entityFlowsOf(
+  input: PipelineFactsInput,
+  setup: Readonly<PipelineSetup> | null,
+  drawn: Readonly<Pipeline>,
+  stage: PipelineFlowStage,
+): Pick<PipelineFlowFacts, 'entityFlows'> {
+  const graphs = entityFlowGraphsOf({
+    pipeline:             drawn,
+    appliedPipeline:      storedPipelineOf(input),
+    stage,
+    defaultSettingsOf:    input.defaultSettingsOf,
+    instructionEntriesOf: (entityPipeline, role) => resolvedEntriesOf(input, entityPipeline, role),
+  });
+  if (graphs === null) return {};
+  const entityFlows = Object.fromEntries(Object.entries(graphs).map(([entityKey, graph]) => {
+    const questions = entityQuestionsOf(setup, entityKey);
+    return [entityKey, { ...graph, nodes: graph.nodes.map((node) => ({ ...node, questionIds: questionIdsOf(node, questions) })) }] as const;
+  }));
+  return { entityFlows };
+}
+
 function pipelineFlowOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup> | null): PipelineFlowFacts | null {
   const stored = storedPipelineOf(input);
   const stage  = flowStageOf(setup);
@@ -401,7 +490,7 @@ function pipelineFlowOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup
     defaultSettingsOf:    input.defaultSettingsOf,
     instructionEntriesOf: (role) => resolvedEntriesOf(input, drawn, role),
   });
-  const nodes = graph.nodes.map((node) => ({ ...node, questionIds: questionIdsOf(node, setup) }));
+  const nodes = graph.nodes.map((node) => ({ ...node, questionIds: questionIdsOf(node, setup?.questions ?? []) }));
   return {
     ...graph,
     nodes,
@@ -410,6 +499,7 @@ function pipelineFlowOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup
     ticketIdsInFlight: input.board.tickets().map(({ frontmatter }) => frontmatter).filter((frontmatter) => IN_FLIGHT_TICKET_STATUSES.has(frontmatter.status))
       .map((frontmatter) => frontmatter.id),
     toolbarStage: stage,
+    ...entityFlowsOf(input, setup, drawn, stage),
   };
 }
 
@@ -417,6 +507,7 @@ function profileRunsOf(reading: GateProfilesReading): GateProfileRunFacts[] {
   if (reading.verdict !== 'readable') return [];
   return reading.profiles.runs.map((run) => ({
     profileRunId:        run.profileRunId,
+    ...(run.entity === undefined ? {} : { entity: run.entity }),
     gateName:            run.gate.name,
     phase:               run.phase,
     state:               run.state,
@@ -425,28 +516,49 @@ function profileRunsOf(reading: GateProfilesReading): GateProfileRunFacts[] {
   }));
 }
 
+/** A gate of one phase, of one entity on a forge over entities, with what its newest run reported; null while that reported nothing. */
+interface NewestCacheReport {
+  entity:      EntityKey | undefined;
+  gateName:    string;
+  phase:       GatePhase;
+  cacheReport: GateCacheReport | null;
+}
+
 /**
  * Walks the log in order: a job's gate run sets the report of each gate it ran in its phase, and a profile run that ended sets the report
- * the profile file keeps for its gate and phase, so the run that ended last stands. A profile run the log does not name stands until a job's
- * run of its gate does.
+ * the profile file keeps for its entity, gate and phase, so the run that ended last stands. A profile run the log does not name stands until
+ * a job's run of its gate does. A job's gate run names no entity.
  */
 function gateCacheMarksOf(logRecords: readonly LogRecord[], profileRuns: readonly GateProfileRunFacts[]): GateCacheMarkFacts[] {
-  const keyOf = (gateName: string, phase: GatePhase): string => JSON.stringify([gateName, phase]);
-  const profileReportOf = (gateName: string, phase: GatePhase): GateCacheReport | null => profileRuns
-    .find((run) => run.gateName === gateName && run.phase === phase)?.cacheReport ?? null;
-  const newestByGate = new Map<string, { gateName: string; phase: GatePhase; cacheReport: GateCacheReport | null }>(
-    profileRuns.map((run) => [keyOf(run.gateName, run.phase), { gateName: run.gateName, phase: run.phase, cacheReport: run.cacheReport }])
-  );
+  const keyOf = (entity: EntityKey | undefined, gateName: string, phase: GatePhase): string => JSON.stringify([entity ?? null, gateName, phase]);
+  const profileReportOf = (entity: EntityKey | undefined, gateName: string, phase: GatePhase): GateCacheReport | null => profileRuns
+    .find((run) => run.entity === entity && run.gateName === gateName && run.phase === phase)?.cacheReport ?? null;
+  const newestByGate = new Map<string, NewestCacheReport>(profileRuns.map((run) => [
+    keyOf(run.entity, run.gateName, run.phase), {
+      entity: run.entity, gateName: run.gateName, phase: run.phase, cacheReport: run.cacheReport
+    },
+  ]));
   for (const record of logRecords) {
     if (record.kind === 'gate-profiled') {
       const { gateName, phase } = record.fields;
-      newestByGate.set(keyOf(gateName, phase), { gateName, phase, cacheReport: profileReportOf(gateName, phase) });
+      const { entity } = profileRuns.find((run) => run.profileRunId === record.profileRunId) ?? {};
+      newestByGate.set(keyOf(entity, gateName, phase), {
+        entity, gateName, phase, cacheReport: profileReportOf(entity, gateName, phase)
+      });
     }
     if (record.kind !== 'gate-ran' || record.fields.cacheReports === undefined) continue;
     const { phase, gates } = record.fields.cacheReports;
-    for (const gate of gates) newestByGate.set(keyOf(gate.gateName, phase), { gateName: gate.gateName, phase, cacheReport: gate.cacheReport });
+    for (const gate of gates) {
+      newestByGate.set(keyOf(undefined, gate.gateName, phase), {
+        entity: undefined, gateName: gate.gateName, phase, cacheReport: gate.cacheReport
+      });
+    }
   }
-  return [...newestByGate.values()].flatMap(({ gateName, phase, cacheReport }) => (cacheReport === null ? [] : [{ gateName, phase, cacheReport }]));
+  return [...newestByGate.values()].flatMap(({
+    entity, gateName, phase, cacheReport
+  }) => (cacheReport === null ? [] : [{
+    ...(entity === undefined ? {} : { entity }), gateName, phase, cacheReport
+  }]));
 }
 
 function pipelineHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {

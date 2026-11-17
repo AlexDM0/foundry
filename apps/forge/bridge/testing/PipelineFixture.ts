@@ -1,18 +1,25 @@
 /**
  * Synthetic pipeline facts for the Pipeline view's specs: one complete `BoardStateDocument` per designed state, by name, so a spec reads
  * `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own. Every value is example data on the Example Agency
- * board; each state is built when it is asked for.
+ * board; each state is built when it is asked for. The `mono-` states are a forge over entities: the facts of each entity beside the forge's.
  */
-import type { Pipeline, PipelineAgentRole } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineAgentRole,
+  PipelineEntity
+} from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   ApplyStateFacts,
+  GateCacheMarkFacts,
   GateProfileRunFacts,
   GateProfileRunState,
   PipelineChange,
   DerivedSettingsSource,
   MergePlacement,
   PipelineChoices,
+  PipelineEntityFlowFacts,
   PipelineFlowEdge,
   PipelineFlowFacts,
   PipelineFlowNode,
@@ -22,6 +29,7 @@ import type {
   PipelineNodeDialogTarget,
   PipelineNodeMark,
   PipelineOccupant,
+  PipelineSetupEntityFacts,
   PipelineSetupFacts,
   ResolvedInstructionEntry,
   ResolvedSourceAnnotation
@@ -79,7 +87,9 @@ export type PipelineFixtureName =
   | 'profile-stopped'
   | 'profile-passed'
   | 'header-both-usage-windows'
-  | 'header-no-usage-windows';
+  | 'header-no-usage-windows'
+  | 'mono-design'
+  | 'mono-live';
 
 export const PIPELINE_FIXTURE_SETUP_ID = 'S1';
 
@@ -822,6 +832,172 @@ function usageState(windows: UsageDocument['windows']): BoardStateDocument {
   return pipelineBoardState({ pipeline: APPLIED_PIPELINE, pipelineFlow: liveFlow(), usage });
 }
 
+/** An app that crosses into the design system, the design system as a whitelisted package with a review, and the root kept for a person. */
+const WEB_ENTITY: PipelineEntity = {
+  kind:      'app',
+  home:      ['/apps/web'],
+  summary:   'The Example Agency storefront.',
+  prepare:   [{ name: 'install', run: 'bun install --frozen-lockfile', in: '/' }],
+  gates:     [{ name: 'typecheck', run: 'bun run typecheck' }, { name: 'unit-tests', run: 'bun test' }],
+  phases:    { build: ['typecheck', 'unit-tests'], review: ['typecheck', 'unit-tests'], merge: ['typecheck', 'unit-tests'] },
+  review:    { name: 'review' },
+  agents:    { builder: WORKER_PAIR, reviewer: WORKER_PAIR },
+  whitelist: ['design-system'],
+  dependsOn: ['design-system'],
+};
+
+const DESIGN_SYSTEM_ENTITY: PipelineEntity = {
+  kind:         'package',
+  home:         ['/packages/design-system'],
+  summary:      'The Example Agency components.',
+  constitution: { path: '/packages/design-system/CONSTITUTION.md' },
+  prepare:      [],
+  gates:        [{ name: 'typecheck', run: 'bun run typecheck' }],
+  phases:       { build: ['typecheck'], review: ['typecheck'], merge: ['typecheck'] },
+  review:       { name: 'review' },
+};
+
+const ROOT_ENTITY: PipelineEntity = {
+  kind: 'root', home: ['/'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
+};
+
+const MONOREPO_PIPELINE: Pipeline = {
+  version:   3,
+  prepare:   [],
+  gates:     [],
+  phases:    { build: [], review: [], merge: [] },
+  airlock:   { reReview: { thresholdLines: FIXTURE_THRESHOLD_LINES } },
+  agents:    { productOwner: WORKER_PAIR },
+  approvals: { tickets: true, merge: false },
+  billing:   { mode: 'subscription' },
+  entities:  { 'web': WEB_ENTITY, 'design-system': DESIGN_SYSTEM_ENTITY, 'root': ROOT_ENTITY },
+};
+
+/** Each entity as the single pipeline its flow is drawn from: its own steps and review, the forge's merge train and approvals. */
+function entityPipelineOf(entity: PipelineEntity): Pipeline {
+  return {
+    version:   3,
+    prepare:   entity.prepare,
+    gates:     entity.gates,
+    phases:    entity.phases,
+    ...(entity.review === undefined ? {} : { review: entity.review }),
+    airlock:   MONOREPO_PIPELINE.airlock ?? {},
+    approvals: { tickets: true, merge: false },
+  };
+}
+
+function entityFlowsOf(stage: PipelineFlowStage, mark: PipelineNodeMark, applied: boolean): Record<EntityKey, PipelineEntityFlowFacts> {
+  const entities = MONOREPO_PIPELINE.entities ?? {};
+  return Object.fromEntries(Object.entries(entities).map(([entityKey, entity]) => {
+    const flow = flowOf({
+      pipeline: entityPipelineOf(entity), stage, mark, humanCodeReview: false, applied,
+    });
+    return [entityKey, {
+      nodes: flow.nodes, edges: flow.edges, insertSlots: flow.insertSlots, gateRows: flow.gateRows
+    }] as const;
+  }));
+}
+
+/** The forge's flow, which holds no gate, with each entity's flow beside it. */
+function monorepoFlowOf(stage: PipelineFlowStage, mark: PipelineNodeMark, applied: boolean): PipelineFlowFacts {
+  return flowOf({
+    pipeline: MONOREPO_PIPELINE, stage, mark, humanCodeReview: false, applied,
+  }, { entityFlows: entityFlowsOf(stage, mark, applied) });
+}
+
+const MONOREPO_APPLIED_PIPELINE: AppliedPipelineFacts = {
+  readingVerdict: 'readable',
+  pipeline:       MONOREPO_PIPELINE,
+  contentHash:    'example-content-hash-0004',
+  fileText:       `${JSON.stringify({ ...MONOREPO_PIPELINE, version: 4 }, null, 2)}\n`,
+  application:    {
+    appliedRevision: 1, appliedAt: '2026-11-12T10:30:00', appliedBy: 'user', constitutionCommit: '4444444444444444444444444444444444444444',
+  },
+};
+
+/** A profile of the web entity's typecheck while the design system's typecheck of the same phase keeps its own newest run. */
+const MONOREPO_PROFILE_RUNS: readonly GateProfileRunFacts[] = [
+  {
+    profileRunId: 'P1', entity: 'design-system', gateName: 'typecheck', phase: 'build', state: 'passed', elapsedMilliseconds: 18_000, cacheReport: 'hit',
+  },
+  {
+    profileRunId: 'P2', entity: 'web', gateName: 'typecheck', phase: 'build', state: 'running', elapsedMilliseconds: null, cacheReport: null,
+  },
+];
+
+const MONOREPO_CACHE_MARKS: readonly GateCacheMarkFacts[] = [{
+  entity: 'design-system', gateName: 'typecheck', phase: 'build', cacheReport: 'hit'
+}];
+
+const WEB_SETUP_JOB_ID = 'J5';
+
+function setupEntityFacts(changes: Partial<PipelineSetupEntityFacts> = {}): PipelineSetupEntityFacts {
+  return {
+    summary: {
+      stackItemCount: 0, scriptCount: 0, answeredResearchQuestionCount: 0, prepareStepCount: 0, gateCountByPhase: { build: 0, review: 0, merge: 0 },
+    },
+    openQuestionCount:   0,
+    agentJobState:       null,
+    constitutionHtml:    null,
+    constitutionOutline: null,
+    annotations:         [],
+    readByRoles:         ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'],
+    ...changes,
+  };
+}
+
+/** A setup over the three entities at its design step: the web entity's session runs and asks about a gate; the root has no part yet. */
+function monorepoDesignState(): BoardStateDocument {
+  const webQuestion = setupQuestion({ questionId: 'Q4', step: 'design', subject: { kind: 'gate', reference: 'unit-tests' } });
+  const record = setupRecord({
+    stepStates: {
+      billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'in-progress', apply: 'not-started',
+    },
+    draft:    MONOREPO_PIPELINE,
+    edits:    [],
+    entities: {
+      'web': {
+        agentJobId: WEB_SETUP_JOB_ID, findings: [], questions: [webQuestion], constitution: constitutionDraft(),
+      },
+      'design-system': {
+        agentJobId: null, findings: [], questions: [], constitution: null,
+      },
+    },
+  });
+  const webFacts = setupEntityFacts({
+    summary: {
+      stackItemCount: 0, scriptCount: 0, answeredResearchQuestionCount: 0, prepareStepCount: 1, gateCountByPhase: { build: 2, review: 2, merge: 2 },
+    },
+    openQuestionCount:   1,
+    agentJobState:       'running',
+    constitutionHtml:    '<h1>Example Agency constitution</h1>',
+    constitutionOutline: { sectionCount: 4, ruleCount: 6 },
+    annotations:         resolvedAnnotationsOf(constitutionDraft()),
+  });
+  const designSystemFacts = setupEntityFacts({
+    summary: {
+      stackItemCount: 0, scriptCount: 0, answeredResearchQuestionCount: 0, prepareStepCount: 0, gateCountByPhase: { build: 1, review: 1, merge: 1 },
+    },
+  });
+  const flow = monorepoFlowOf('proposal', 'proposed', false);
+  const webFlow = flow.entityFlows?.['web'];
+  const entityFlows = webFlow === undefined ? flow.entityFlows : {
+    ...flow.entityFlows,
+    web: { ...webFlow, nodes: webFlow.nodes.map((node) => (node.nodeId === 'gates-build' ? { ...node, questionIds: ['Q4'] } : node)) },
+  };
+  const entities = { 'web': webFacts, 'design-system': designSystemFacts, 'root': setupEntityFacts() };
+  return setupState(record, { entities }, { pipelineFlow: { ...flow, ...(entityFlows === undefined ? {} : { entityFlows }) } });
+}
+
+function monorepoLiveState(): BoardStateDocument {
+  return pipelineBoardState({
+    pipeline:       MONOREPO_APPLIED_PIPELINE,
+    pipelineFlow:   monorepoFlowOf('live', 'unchanged', true),
+    profileRuns:    [...MONOREPO_PROFILE_RUNS],
+    gateCacheMarks: [...MONOREPO_CACHE_MARKS],
+  });
+}
+
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDocument>> = {
   'A0':             () => pipelineBoardState({}),
   'A0-unreadable':  () => pipelineBoardState({ pipeline: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' }, }),
@@ -1000,6 +1176,8 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
     { window: 'seven_day', utilization: 18, resetsAt: '2026-11-16T09:00:00' },
   ]),
   'header-no-usage-windows': () => usageState([]),
+  'mono-design':             () => monorepoDesignState(),
+  'mono-live':               () => monorepoLiveState(),
 };
 
 /** The board state of one designed pipeline state; each call builds a fresh copy, so a spec may change what it gets. */

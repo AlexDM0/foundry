@@ -24,7 +24,9 @@ import { StoredValueUtil }  from '../utils/StoredValueUtil.ts';
 
 const OWNED_KEYS = ['formatVersion', 'nextRunNumber', 'runs'] as const;
 
-const RUN_KEYS = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds', 'cacheReport'] as const;
+const RUN_KEYS = [
+  'profileRunId', 'setupId', 'entity', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds', 'cacheReport',
+] as const;
 const RUN_REQUIRED = ['profileRunId', 'setupId', 'phase', 'gate', 'gateHash', 'prepare', 'state', 'stopRequested', 'elapsedMilliseconds'] as const;
 
 const GATE_KEYS      = ['name', 'run', 'in', 'network'] as const;
@@ -119,6 +121,8 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
   if ('problem' in profileRunId) return profileRunId;
   const setupId = fields['setupId'] === null ? { value: null } : idOf(fields['setupId'], `${path}.setupId`, SETUP_ID_PATTERN, 'S1');
   if ('problem' in setupId) return setupId;
+  const entity = Object.hasOwn(fields, 'entity') ? textOf(fields['entity'], `${path}.entity`) : null;
+  if (entity !== null && 'problem' in entity) return entity;
   const phase = wordOf(fields['phase'], `${path}.phase`, GATE_PHASES);
   if ('problem' in phase) return phase;
   const gate = gateOf(fields['gate'], `${path}.gate`);
@@ -139,6 +143,7 @@ function runOf(value: unknown, path: string): Mapped<GateProfileRun> {
     value: {
       profileRunId:        profileRunId.value,
       setupId:             setupId.value,
+      ...(entity === null ? {} : { entity: entity.value }),
       phase:               phase.value,
       gate:                gate.value,
       gateHash:            gateHash.value,
@@ -201,6 +206,7 @@ function runDocumentOf(run: Readonly<GateProfileRun>): Record<string, unknown> {
   return {
     profileRunId:        run.profileRunId,
     setupId:             run.setupId,
+    ...(run.entity === undefined ? {} : { entity: run.entity }),
     phase:               run.phase,
     gate:                gateDocumentOf(run.gate),
     gateHash:            run.gateHash,

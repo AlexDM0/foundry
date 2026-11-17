@@ -9,6 +9,7 @@
 import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { LogRecord }                                  from './@types/LogRecord.ts';
 import type {
+  EntityKey,
   Pipeline,
   PipelineBilling,
   PipelineGate,
@@ -30,6 +31,7 @@ import type {
   PipelineCheckEnding,
   PipelineCheckStart,
   PipelineSetup,
+  PipelineSetupEntity,
   PipelineSetupOpening,
   PipelineSetupStep,
   PipelineSetupStepState,
@@ -271,10 +273,12 @@ export class PipelineSetups {
     return newest?.kind === 'pipeline-snapshot-touched';
   }
 
-  recordFinding(setupId: string, recording: ResearchFindingRecording, at: string): PipelineSetupChanged {
+  /** A finding of the forge's part of the record or, with an entity key, of that entity's part; the finding numbers are the record's own. */
+  recordFinding(setupId: string, recording: ResearchFindingRecording, at: string, entityKey?: EntityKey): PipelineSetupChanged {
     const setup     = this.requireMovableSetup(setupId);
     const findingId = `${FINDING_ID_PREFIX}${setup.nextNumbers.finding}`;
-    setup.findings.push({
+    const findings  = entityKey === undefined ? setup.findings : this.entityPartOf(setup, entityKey).findings;
+    findings.push({
       findingId,
       topic:        recording.topic,
       label:        recording.label,
@@ -804,6 +808,19 @@ export class PipelineSetups {
   private store(setup: PipelineSetup): void {
     this.records.pipelineSetupReading = { verdict: 'readable', setup };
     this.records.pipelineSetupChanged = true;
+  }
+
+  /** The entity's part of the record, created empty the first time a move records into it. */
+  private entityPartOf(setup: PipelineSetup, entityKey: EntityKey): PipelineSetupEntity {
+    const entities = setup.entities ?? {};
+    setup.entities = entities;
+    const existing = Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+    if (existing !== undefined) return existing;
+    const created: PipelineSetupEntity = {
+      agentJobId: null, findings: [], questions: [], constitution: null
+    };
+    entities[entityKey] = created;
+    return created;
   }
 
   private openingConstitutionOf(opening: PipelineSetupOpening): ConstitutionDraft | null {

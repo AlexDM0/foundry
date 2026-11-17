@@ -1,8 +1,9 @@
 /**
  * `gate-profiles.json` both ways. What matters: written runs read back whole and write back byte for byte, the file's own keys first and
- * every top-level key this build does not know after them, in stored order; a gate's `in` and `network` and a run's `cacheReport` are
- * written only when set; no file is `absent`; and a file nobody could trust whole, a key in a run the read does not know or a cache report
- * outside its words included, is `malformed` with a reason naming the offending part, never a throw.
+ * every top-level key this build does not know after them, in stored order; a gate's `in` and `network` and a run's `cacheReport` and
+ * `entity` are written only when set, so a file from before entities reads and writes back byte for byte; no file is `absent`; and a file
+ * nobody could trust whole, a key in a run the read does not know, a cache report outside its words or an entity that is no text included,
+ * is `malformed` with a reason naming the offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -88,6 +89,31 @@ describe('a well-formed file', () => {
     expect(written.runs.map((run) => Object.hasOwn(run, 'cacheReport'))).toEqual([true, false]);
   });
 
+  test('a run of an entity\'s gate reads back with its entity and writes back byte for byte; a run without one is written without the key', () => {
+    const [entityRun, plainRun] = EXAMPLE_PROFILES.runs;
+    if (entityRun === undefined || plainRun === undefined) throw new Error('the example has two runs');
+    const profiles: GateProfiles = { ...EXAMPLE_PROFILES, runs: [{ ...entityRun, entity: 'web', gate: { ...entityRun.gate, in: '/apps/web' } }, plainRun] };
+    writeFileSync(filePath, GateProfilesFile.contentsOf(profiles));
+    const written = readFileSync(filePath, 'utf8');
+
+    const reading = GateProfilesFile.read(filePath);
+
+    expect(reading).toEqual({ verdict: 'readable', profiles });
+    if (reading.verdict !== 'readable') throw new Error('the file did not read');
+    expect(GateProfilesFile.contentsOf(reading.profiles)).toBe(written);
+    expect((JSON.parse(written) as { runs: object[] }).runs.map((run) => Object.hasOwn(run, 'entity'))).toEqual([true, false]);
+  });
+
+  test('a file written before entities, as stored text, writes back byte for byte', () => {
+    const storedText = `${JSON.stringify(JSON.parse(GateProfilesFile.contentsOf(EXAMPLE_PROFILES)), null, 2)}\n`;
+    writeFileSync(filePath, storedText);
+
+    const reading = GateProfilesFile.read(filePath);
+
+    if (reading.verdict !== 'readable') throw new Error('the file did not read');
+    expect(GateProfilesFile.contentsOf(reading.profiles)).toBe(storedText);
+  });
+
   test('no file reads as absent', () => {
     expect(GateProfilesFile.read(filePath)).toEqual({ verdict: 'absent' });
   });
@@ -111,6 +137,7 @@ describe('a file nobody can trust whole is malformed, never a throw', () => {
     ['a gate that writes', documentWith({ runs: [runOf({ gate: { name: 'tests', run: 'bun test', writes: ['~/.cache'] } })] }), 'runs[0].gate.writes is not a key'],
     ['a negative duration', documentWith({ runs: [runOf({ elapsedMilliseconds: -1 })] }), 'runs[0].elapsedMilliseconds'],
     ['an unknown cache report', documentWith({ runs: [runOf({ cacheReport: 'warm' })] }), 'runs[0].cacheReport is "warm"'],
+    ['an entity that is no text', documentWith({ runs: [runOf({ entity: 7 })] }), 'runs[0].entity is not a text'],
   ])('%s', (_case, text, reasonPart) => {
     writeFileSync(filePath, text);
 

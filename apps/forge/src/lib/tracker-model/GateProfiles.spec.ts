@@ -1,10 +1,10 @@
 /**
  * The gate profile moves on a Board. What matters: a press queues one gate in one phase, and a second press while that gate and phase have
  * a run queued or running refuses `gate-profile-running`; a run keeps each prepare step's folder, so it prepares where the pipeline does;
- * only the newest run of a gate and phase is kept, and run ids are never reused; a run ends with its duration and what its gate reported
- * of its cache, except one User asked to stop, which ends `stopped` with neither; a Stop ends a queued run at once and only marks a running
- * one; an Overseer start stops a run left running and leaves a queued one queued; and a malformed file refuses every move and is never
- * written over.
+ * only the newest run of a gate and phase is kept, of an entity's gate and phase on a forge over entities, and run ids are never reused; a
+ * run ends with its duration and what its gate reported of its cache, except one User asked to stop, which ends `stopped` with neither; a
+ * Stop ends a queued run at once and only marks a running one; an Overseer start stops a run left running and leaves a queued one queued;
+ * and a malformed file refuses every move and is never written over.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -62,6 +62,20 @@ describe('a press', () => {
     board.markGateProfileRunning('P1');
     expect(refusalOf(() => board.queueGateProfile(request(), AT))).toMatchObject({ reason: 'gate-profile-running' });
     expect(board.queueGateProfile(request({ phase: 'merge' }), AT).run.profileRunId).toBe('P2');
+  });
+
+  test('keeps a run by its entity too: an entity\'s gate and phase queue beside another entity\'s and the forge\'s, and replace only their own', () => {
+    const { board } = boardFixture();
+    board.queueGateProfile(request({ entity: 'web' }), AT);
+    board.queueGateProfile(request({ entity: 'ui' }), AT);
+    board.queueGateProfile(request(), AT);
+    board.markGateProfileRunning('P1');
+    board.endGateProfile('P1', { ending: 'passed', elapsedMilliseconds: 900, cacheReport: null }, AT);
+
+    board.queueGateProfile(request({ entity: 'web' }), AT);
+
+    expect(board.gateProfileRuns().map((run) => [run.profileRunId, run.entity])).toEqual([['P2', 'ui'], ['P3', undefined], ['P4', 'web']]);
+    expect(Object.hasOwn(board.gateProfileRuns()[1] ?? {}, 'entity')).toBe(false);
   });
 
   test('after a run ended, a new press replaces it, and its id is never used again', () => {
