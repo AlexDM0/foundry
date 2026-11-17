@@ -1,7 +1,8 @@
 /**
  * The denied roots a launch makes in its worktree under `mount-points`, the Linux deny shape. What matters: a worktree with no `.claude`
  * folder gets one before the launch, so the folder gets its read-only mount; a folder that cannot be made records a refusal and the launch
- * does not start; and the hold turns that refusal into `sandbox-unavailable` also for a worker launch, which stands in `running`.
+ * does not start; and the hold turns that refusal into `sandbox-unavailable` also for a worker launch, which stands in `running`. On a
+ * forge with entities a prepare step's sandbox, like a session's, makes and denies the `.claude` folder of every entity home (E7).
  */
 import {
   existsSync,
@@ -19,8 +20,10 @@ import {
 
 import type { SandboxDenyShape }                                      from '../../lib/agent-launch/WorkerProfile.ts';
 import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
+import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
@@ -52,9 +55,10 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
   }, AT);
   for (const state of ['preparing', 'running'] as const) board.moveJob(job.id, state, AT);
   const context = {
-    workspace:    { rootDirectory, trackerDirectory },
-    agentAdapter: { sandboxDenyShape },
-    log:          () => undefined,
+    platformPorts: nativePlatformPorts(),
+    workspace:     { rootDirectory, trackerDirectory },
+    agentAdapter:  { sandboxDenyShape },
+    log:           () => undefined,
   } as unknown as JobLaunchContext;
   const worktree = JobLaunch.worktreeOf(context.workspace, job);
   mkdirSync(worktree, { recursive: true });
@@ -105,5 +109,32 @@ describe('the denied roots a launch makes', () => {
     JobLaunch.applyBuildJobObservations({ board: scene.board, at: AT } as unknown as TrackerChange, scene.context, [observation]);
     expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts])).toEqual([['sandbox-unavailable', refusal]]);
     expect(scene.board.jobById(scene.job.id)).toBeUndefined();
+  });
+});
+
+const NO_PHASES = { build: [], review: [], merge: [] };
+
+const PIPELINE_WITH_ENTITIES: Pipeline = {
+  version:  3,
+  prepare:  [{ name: 'install', run: 'bun install' }],
+  gates:    [],
+  phases:   NO_PHASES,
+  entities: {
+    gaia: {
+      kind: 'app', home: ['/apps/gaia'], prepare: [], gates: [], phases: NO_PHASES
+    },
+  },
+};
+
+describe('the denied roots a prepare step makes on a forge with entities', () => {
+  test('include the .claude folder of every entity home, and one that cannot be made refuses the step before it starts', () => {
+    const scene = runningScene('mount-points');
+    const entityClaudeFolder = join(scene.worktree, 'apps', 'gaia', '.claude');
+    mkdirSync(join(scene.worktree, 'apps', 'gaia'), { recursive: true });
+    symlinkSync(join(scene.worktree, 'example-missing', 'target'), entityClaudeFolder);
+    JobLaunch.spawnNextInstallStep(scene.context, 'example-tracker', scene.job, PIPELINE_WITH_ENTITIES);
+    expect(existsSync(join(scene.worktree, '.claude'))).toBe(true);
+    const reason = `the denied folder ${entityClaudeFolder} could not be made, so it would get no read-only mount`;
+    expect(observationOf(scene.context, scene.job).sandboxRefusal).toEqual({ step: 'install', reason });
   });
 });

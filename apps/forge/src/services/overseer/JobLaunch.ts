@@ -1592,11 +1592,16 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
   return [...attributed].sort();
 }
 
-/** `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. */
-function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree: string = worktreeOf(context.workspace, job)): SandboxFacts {
+/**
+ * `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. On a forge with entities the facts
+ * also name every entity home, whose `.claude` is denied, and the job's entity.
+ */
+function sandboxFactsFor(
+  context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline> | null, worktree: string = worktreeOf(context.workspace, job)
+): SandboxFacts {
   const { workspace } = context;
   const { repositoryRoot, projectPrefix } = projectLocationOfContext(context);
-  return WorkerProfiles.sandboxFactsOf({
+  const facts = WorkerProfiles.sandboxFactsOf({
     repositoryRoot,
     projectPrefix,
     dataFolder:       workspace.trackerDirectory,
@@ -1612,6 +1617,7 @@ function sandboxFactsFor(context: JobLaunchContext, job: Readonly<Job>, worktree
     guardCommand:     guardCommandOf(context),
     ...cacheFolderFactsOf(context),
   });
+  return { ...facts, ...WorkerProfiles.entityFactsOf(pipeline, job.entity) };
 }
 
 function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'workspace'>): readonly string[] | null {
@@ -1679,10 +1685,15 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
   context.log(`The ${refusal.step} line of job ${job.id} (#${ticketIdOf(job)}) did not run: ${refusal.reason}.`);
 }
 
-/** Makes the denied roots a launch in the job's worktree needs; when one cannot be made, records the refusal and answers true, so `step` never starts. */
-function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string): boolean {
+/**
+ * Makes the denied roots a launch in the job's worktree needs, every entity home's `.claude` among them when `entityHomes` names them; when
+ * one cannot be made, records the refusal and answers true, so `step` never starts.
+ */
+function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string, entityFacts: Pick<SandboxFacts, 'entityHomes'> = {}): boolean {
   const { projectPrefix } = projectLocationOfContext(context);
-  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape, projectPrefix });
+  const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({
+    worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape, projectPrefix, ...entityFacts
+  });
   if (reason === null) return false;
   recordSandboxRefusal(context, job, { step, reason });
   return true;
@@ -1696,7 +1707,10 @@ function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): Sandbo
   }
 }
 
-function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, folderName: string, step: ProcessWatcherStep): ProcessWatcherSpawn {
+/** `pipeline` names the entity homes whose `.claude` the step's sandbox denies, as a session's does. */
+function spawnProcessWatcher(
+  context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>, folderName: string, step: ProcessWatcherStep
+): ProcessWatcherSpawn {
   const { confinement, subfolder } = step;
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, folderName);
@@ -1709,9 +1723,10 @@ function spawnProcessWatcher(context: JobLaunchContext, trackerId: string, job: 
     recordSandboxRefusal(context, job, { step: folderName, reason: GateRun.runRefusalReasonOf(runRefusal, workingDirectory) });
     return { verdict: 'refused' };
   }
-  if (deniedRootRefusalRecorded(context, job, folderName)) return { verdict: 'refused' };
+  if (deniedRootRefusalRecorded(context, job, folderName, WorkerProfiles.entityFactsOf(pipeline))) return { verdict: 'refused' };
   const spawnRequest = shellLine.spawnRequestOf(step.line, lineStatusFileOf(jobFolder, folderName));
-  const planOf = () => ProcessWatcherSandbox.planOf(processSandboxRequestOf(context, sandboxFactsFor(context, job), confinement), join(watcherFolder, JOB_FILES.profile));
+  const sandboxRequestOf = () => processSandboxRequestOf(context, sandboxFactsFor(context, job, pipeline), confinement);
+  const planOf = () => ProcessWatcherSandbox.planOf(sandboxRequestOf(), join(watcherFolder, JOB_FILES.profile));
   const line = confinedLineOf(gateConfinement, planOf, spawnRequest.argv);
   if (line.verdict === 'refused') {
     recordSandboxRefusal(context, job, { step: folderName, reason: line.reason });
@@ -1951,7 +1966,7 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
     const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
     if (liveness.verdict === 'unclaimed') {
-      spawnProcessWatcher(context, trackerId, job, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
+      spawnProcessWatcher(context, trackerId, job, pipeline, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
       return;
     }
     if (liveness.verdict !== 'ended' || !stepPassed(context, liveness.end, jobFolder, folderName)) return;
@@ -1968,10 +1983,10 @@ function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Re
 function spawnGateRunStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }): void {
   const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
   const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place)[run.stepIndex];
-  if (step !== undefined) spawnGateStep(context, trackerId, job, step);
+  if (step !== undefined) spawnGateStep(context, trackerId, job, run.pipeline, step);
 }
 
-function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, step: GateStep): void {
+function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>, step: GateStep): void {
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, step.folder);
   const reportFile = stepReportFileOf(jobFolder, step);
@@ -1979,13 +1994,13 @@ function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readon
     line: step.line, confinement: step.confinement, subfolder: step.in, ...(reportFile === null ? {} : { reportFile })
   };
   if (step.kind !== 'gate') {
-    spawnProcessWatcher(context, trackerId, job, step.folder, processWatcherStep);
+    spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
     return;
   }
   if (!context.gateSlots.tryAcquire(watcherFolder)) return;
   let spawn: ProcessWatcherSpawn;
   try {
-    spawn = spawnProcessWatcher(context, trackerId, job, step.folder, processWatcherStep);
+    spawn = spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
   } catch (error) {
     context.gateSlots.release(watcherFolder);
     throw error;
@@ -2058,6 +2073,7 @@ export const JobLaunch = Object.freeze({
   recordJobStart,
   attributionTicketIdsOf,
   someBuildJobAwaitsAPass,
+  spawnNextInstallStep,
   sandboxFactsFor,
   logUnstartableGuard,
   cacheFolderFactsOf,

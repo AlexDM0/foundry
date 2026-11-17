@@ -2,7 +2,8 @@
  * Where an agent session works: the folder its sandbox writes and the folder it starts in. A session in a job's worktree starts at the
  * worktree's root, where Claude Code's sandbox grants the worktree's own git admin folder, so it commits; a pipeline agent's snapshot, which
  * it only reads, starts in the tracker's project folder of it. In a folder of its own, or for a tracker at its repository's root, the
- * folders are one. A resumed session starts where its first instance started, since its vendor finds it by that folder.
+ * folders are one. A job of an entity of a top-level forge starts at the worktree's root too; its Edit and Write rules, not its start,
+ * keep it to its stage's folders. A resumed session starts where its first instance started, since its vendor finds it by that folder.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {

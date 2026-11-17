@@ -24,7 +24,7 @@ import type { ShellLine }                                                       
 import type { DecisionAnswer }                                                        from '../../lib/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }                                    from '../../lib/tracker-model/@types/Incident.ts';
 import type { InterruptionCause, Job, JobKind }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineGate }                                                from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording, PlaybookStep }                          from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                 from '../../lib/tracker-model/Board.ts';
 import { Playbook }                                                                   from '../../lib/tracker-model/Playbook.ts';
@@ -683,8 +683,9 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   const isAirlockAgent = job.kind === 'merge-agent';
   if (!isAirlockAgent && !JobLaunch.isWorktreeJob(job)) return profileOf(jobLaunchContext, job, place, hatchDirectory);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
-  const toolchain = WorkerProfiles.workerToolchainOf(board.pipeline(), ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine);
-  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, isAirlockAgent ? place.checkout : undefined);
+  const pipeline = board.pipeline();
+  const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine, job.entity);
+  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, pipeline, isAirlockAgent ? place.checkout : undefined);
   const profile = WorkerProfiles.profileOf(WorkerProfiles.workerRoleOf(job.role), sandboxFacts, toolchain);
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;
@@ -811,11 +812,14 @@ function launchWatcher(
   const place = PipelineAgentSessions.isPipelineAgentJob(job)
     ? SessionPlaces.snapshotSessionPlaceOf(location, PipelineAgentSessions.prepareSnapshot(snapshotContext, board, job))
     : SessionPlaces.ticketSessionPlaceOf(workspace, location, job);
-  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP)) return null;
+  const entityHomeFacts = WorkerProfiles.entityFactsOf(board.pipeline());
+  if (JobLaunch.isWorktreeJob(job) && JobLaunch.deniedRootRefusalRecorded(jobLaunchContext, job, WORKER_LAUNCH_STEP, entityHomeFacts)) return null;
   if (job.kind === 'merge-agent') {
     const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
       job.id,
-      { worktree: place.checkout, sandboxDenyShape: agentAdapter.sandboxDenyShape, projectPrefix: location.projectPrefix },
+      {
+        worktree: place.checkout, sandboxDenyShape: agentAdapter.sandboxDenyShape, projectPrefix: location.projectPrefix, ...entityHomeFacts
+      },
       request.folderMaker,
     );
     if (unmadeRoot !== null) {
@@ -1034,9 +1038,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let endedSessionsAwaitingClose: EndedJobSession[] = [];
   const triedPipelineAgentSnapshots = new Set<string>();
 
-  /** A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`. */
-  function overseerGateLineOf(worktreePath: string, profilePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
-    const facts = WorkerProfiles.sandboxFactsOf({
+  /**
+   * A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`; `pipeline`
+   * names the entity homes whose `.claude` it denies.
+   */
+  function overseerGateLineOf(
+    worktreePath: string, profilePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement
+  ): ConfinedLine {
+    const sandboxFacts = WorkerProfiles.sandboxFactsOf({
       repositoryRoot:   projectLocation.repositoryRoot,
       projectPrefix:    projectLocation.projectPrefix,
       dataFolder:       request.workspace.trackerDirectory,
@@ -1053,6 +1062,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       guardCommand:     null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
+    const facts = { ...sandboxFacts, ...WorkerProfiles.entityFactsOf(pipeline) };
     const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
@@ -1060,9 +1070,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   /** A merge gate step in the slot's worktree; one profile file per worktree. */
-  function mergeGateLineOf(worktreePath: string, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
+  function mergeGateLineOf(worktreePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement): ConfinedLine {
     const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, MERGE_GATE_PROFILES_FOLDER);
-    return overseerGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), commandArguments, confinement);
+    return overseerGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), pipeline, commandArguments, confinement);
+  }
+
+  /** The pipeline as it stands on disk, read at each confined line of a gate profile or a pipeline check; `null` when it cannot be read. */
+  function pipelineOnDisk(): Readonly<Pipeline> | null {
+    const reading = PipelineFile.read(request.workspace.pipelineFilePath);
+    return reading.verdict === 'readable' ? reading.pipeline : null;
   }
 
   /** The merged-tree gate lines running now: each leads a process group of its own, so only its stopped tree ends with the Overseer. */
@@ -1116,7 +1132,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
     confinedLineIn:  (worktreePath, profileRunId) => (commandArguments, confinement) => {
       const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
-      return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), commandArguments, confinement);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), pipelineOnDisk(), commandArguments, confinement);
     },
     hold:            holdTracker,
     // A clock exception: a profile's duration is only recorded and shown.
@@ -1135,7 +1151,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
     confinedLineIn:  (worktreePath, setupId) => (commandArguments, confinement) => {
       const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, PIPELINE_CHECK_SANDBOXES_FOLDER);
-      return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), commandArguments, confinement);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), pipelineOnDisk(), commandArguments, confinement);
     },
     hold:                  holdTracker,
     // A clock exception: a check's durations are only recorded and shown.
@@ -1192,7 +1208,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         projectPrefix:   projectLocation.projectPrefix,
         environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
         spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-        confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, commandArguments, confinement),
+        confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
         acquireGateSlot: () => gateSlots.acquire(holder),
       });
       const stamp = pipeline === null ? null : PipelineUtil.gateRunStampOf(pipeline, phase);

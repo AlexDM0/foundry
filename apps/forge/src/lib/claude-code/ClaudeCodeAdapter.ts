@@ -94,15 +94,22 @@ function fileRulesOf(facts: AgentHostFacts, tools: readonly string[], path: stri
   return tools.flatMap((tool) => [`${tool}(${facts.rulePathOf(path)})`, `${tool}(${facts.rulePathOf(path)}/**)`]);
 }
 
+const FILE_CHANGING_TOOL_NAMES = ['Edit', 'Write'] as const;
+
+/** The stage's folders when the profile names them, each as itself and as a folder; else the write root, or the working directory. */
+function editAllowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDirectory: string): string[] {
+  if (profile.stageFolders !== undefined) return profile.stageFolders.flatMap((folder) => fileRulesOf(facts, FILE_CHANGING_TOOL_NAMES, folder));
+  const writeRoot = profile.writeRoot ?? workingDirectory;
+  return FILE_CHANGING_TOOL_NAMES.map((tool) => `${tool}(${facts.rulePathOf(writeRoot)}/**)`);
+}
+
 function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDirectory: string): string[] {
   if (profile.availableTools === 'none') return [];
   const webDomains = Array.isArray(profile.webNetworkDomains) ? profile.webNetworkDomains : [];
-  const writeRoot = profile.writeRoot ?? workingDirectory;
   return [
     'Read',
     'Agent',
-    `Edit(${facts.rulePathOf(writeRoot)}/**)`,
-    `Write(${facts.rulePathOf(writeRoot)}/**)`,
+    ...editAllowRulesOf(facts, profile, workingDirectory),
     ...profile.allowedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...webDomains.map((domain) => `WebFetch(domain:${domain})`),
   ];
@@ -112,8 +119,9 @@ function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   const loopbackFetches = profile.webNetworkDomains === 'any' ? LOOPBACK_DOMAINS.map((domain) => `WebFetch(domain:${domain})`) : [];
   // A guard whose program did not resolve cannot start, so every call it would check is denied instead of let through.
   const unguardable = profile.networkDomainGuard?.programPath === null ? guardedToolNamesOf(facts) : [];
+  // Auto mode lets Edit and Write reach any path no deny rule names, so the allow rules of a stage's folders alone confine nothing.
   return [
-    ...profile.deniedWritableRoots.flatMap((root) => fileRulesOf(facts, ['Edit', 'Write'], root)),
+    ...[...profile.deniedWritableRoots, ...profile.deniedEditRoots ?? []].flatMap((root) => fileRulesOf(facts, FILE_CHANGING_TOOL_NAMES, root)),
     ...profile.deniedReadableRoots.flatMap((root) => fileRulesOf(facts, ['Read'], root)),
     ...profile.deniedCommandPrefixes.flatMap((prefix) => commandPatternsOf(facts, prefix)),
     ...loopbackFetches,

@@ -2,7 +2,7 @@
  * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
  * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
  */
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import {
   dirname,
   isAbsolute,
@@ -16,16 +16,18 @@ import type {
   SandboxDenyShape,
   WorkerProfile
 } from '../../lib/agent-launch/WorkerProfile.ts';
-import { type GitPathStyle, GitPaths }           from '../../lib/git/GitPaths.ts';
-import { GitProcess }                            from '../../lib/git/GitProcess.ts';
-import type { ShellLine }                        from '../../lib/shell-line/ShellLine.ts';
-import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
-import { WATCHER_FOLDER_NAME }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { BranchNames }                      from '../../shared/BranchNames.ts';
-import { type CacheFolderStyle, GateCachePaths } from './GateCachePaths.ts';
-import { GpgDirectories }                        from './GpgDirectories.ts';
-import { overseerFilesIn }                       from './OverseerFiles.ts';
+import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
+import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
+import type { ShellLine }                             from '../../lib/shell-line/ShellLine.ts';
+import type { JobRole }                               from '../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { WATCHER_FOLDER_NAME }                        from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { BranchNames }                           from '../../shared/BranchNames.ts';
+import { type CacheFolderStyle, GateCachePaths }      from './GateCachePaths.ts';
+import { GpgDirectories }                             from './GpgDirectories.ts';
+import { overseerFilesIn }                            from './OverseerFiles.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
@@ -57,6 +59,16 @@ export interface SandboxFacts {
   sandboxDenyShape:          SandboxDenyShape;
   /** The Overseer's absolute Bun runtime, its isolating arguments and its entry script, which the network guard runs; `null` when it cannot start. */
   guardCommand:              readonly string[] | null;
+  /** Every home folder of the pipeline's entities, repository paths leading with `/`; absent on a forge without entities. */
+  entityHomes?:              readonly string[];
+  /** The entity whose stage the job runs, among the pipeline's entities; absent for a job without an entity. */
+  stageEntity?:              StageEntity;
+}
+
+/** The entity whose stage a job runs: its homes and `reach` are what the job's Edit and Write may change. */
+export interface StageEntity {
+  entities:  PipelineEntities;
+  entityKey: EntityKey;
 }
 
 /** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
@@ -74,7 +86,7 @@ export type ProfiledRole = 'builder' | 'reviewer' | 'product-owner' | 'assistant
 const GPG_PRIVATE_KEYS_FOLDER = 'private-keys-v1.d';
 const PRODUCT_OWNER_ROLE: ProfiledRole = 'product-owner';
 
-/** The read-only git verbs and the git a worker commits with; the toolchain comes from the board, the agent-progress verbs are the Hatch's. */
+/** The read-only git verbs and the git a worker commits with; the toolchain comes from the job's pipeline, the agent-progress verbs are the Hatch's. */
 const WORKER_ALLOWED_COMMAND_PREFIXES: readonly (readonly string[])[] = [
   ['git', 'status'],
   ['git', 'diff'],
@@ -142,24 +154,29 @@ const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
   },
 });
 
-/** The `.claude` folders of the worktree no job may write: its root's and, for a tracker below the repository root, its project's. */
-function claudeFoldersOf(facts: Pick<SandboxFacts, 'worktree' | 'projectPrefix'>): string[] {
+/**
+ * The `.claude` folders of the worktree no job may write: its root's, for a tracker below the repository root its project's, and on a forge
+ * with entities every entity home's.
+ */
+function claudeFoldersOf(facts: Pick<SandboxFacts, 'worktree' | 'projectPrefix' | 'entityHomes'>): string[] {
   const rootFolder = join(facts.worktree, '.claude');
   const projectPrefix = facts.projectPrefix ?? '';
-  return projectPrefix === '' ? [rootFolder] : [rootFolder, join(facts.worktree, projectPrefix, '.claude')];
+  const trackerFolders = projectPrefix === '' ? [rootFolder] : [rootFolder, join(facts.worktree, projectPrefix, '.claude')];
+  const entityHomeFolders = (facts.entityHomes ?? []).map((home) => join(facts.worktree, EntityOwnershipUtil.homeFolderOf(home), '.claude'));
+  return [...new Set([...trackerFolders, ...entityHomeFolders])];
 }
 
 /**
  * The denied writable roots inside the worktree's writable bind. Under `mount-points` a denied path absent at launch gets no mount, so a
  * child could make it; the Overseer makes each of these before every launch instead, and they are denied whether or not they existed.
  */
-function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix'>): string[] {
+function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix' | 'entityHomes'>): string[] {
   return facts.sandboxDenyShape === 'mount-points' ? claudeFoldersOf(facts) : [];
 }
 
 /** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
 function unmadeDeniedRootRefusalOf(
-  facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER
+  facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix' | 'entityHomes'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER
 ): string | null {
   const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
   return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
@@ -239,11 +256,14 @@ export const NO_TOOLCHAIN: WorkerToolchain = Object.freeze({ networkDomains: [],
 /**
  * Every prepare step and every gate of the catalogue, whatever phases run it, but an `overseerOnly` one, which only the Overseer runs; the
  * ticket's own `network` line is added to the gates' domains. The lines are split in the grammar they run in, so a worker is granted what
- * they invoke and no more.
+ * they invoke and no more. A job of an entity takes its entity's steps and gates, none when the pipeline names no such entity.
  */
-function workerToolchainOf(pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[], shellLine: Pick<ShellLine, 'executablesOf'>): WorkerToolchain {
-  const gates = (pipeline?.gates ?? []).filter((gate) => gate.overseerOnly !== true);
-  const lines = [...(pipeline?.prepare ?? []).map((step) => step.run), ...gates.map((gate) => gate.run)];
+function workerToolchainOf(
+  pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[], shellLine: Pick<ShellLine, 'executablesOf'>, entityKey?: EntityKey
+): WorkerToolchain {
+  const toolchainPipeline = pipeline === null || entityKey === undefined ? pipeline : PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+  const gates = (toolchainPipeline?.gates ?? []).filter((gate) => gate.overseerOnly !== true);
+  const lines = [...(toolchainPipeline?.prepare ?? []).map((step) => step.run), ...gates.map((gate) => gate.run)];
   return {
     networkDomains: [...new Set([...ticketNetworkDomains, ...gates.flatMap((gate) => gate.network ?? [])])],
     writes:         [...new Set(gates.flatMap((gate) => gate.writes ?? []))],
@@ -282,7 +302,88 @@ function nestedCheckoutProfileOf(facts: Pick<SandboxFacts, 'repositoryRoot' | 'w
   return { writeRoot: facts.worktree, nestedCheckoutAncestors: nestedCheckoutAncestorsOf(facts.repositoryRoot, facts.worktree, projectPrefix) };
 }
 
-function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain, hostPaths: HostPathCheck = REAL_HOST_PATHS): WorkerProfile {
+/** What a launch on a forge with entities adds to its sandbox facts: every entity's home, and the job's entity when it has one. */
+function entityFactsOf(pipeline: Readonly<Pipeline> | null, entityKey?: EntityKey): Pick<SandboxFacts, 'entityHomes' | 'stageEntity'> {
+  const entities = pipeline?.entities;
+  if (entities === undefined) return {};
+  const entityHomes = Object.values(entities).flatMap((entity) => entity.home);
+  return { entityHomes, ...entityKey === undefined ? {} : { stageEntity: { entities, entityKey } } };
+}
+
+/** The names in a folder of the worktree at launch; none when it cannot be read. */
+export interface FolderEntries {
+  namesIn(path: string): readonly string[];
+}
+
+const REAL_FOLDER_ENTRIES: FolderEntries = Object.freeze({
+  namesIn: (path: string) => {
+    try {
+      return readdirSync(path);
+    } catch {
+      return [];
+    }
+  },
+});
+
+function stageEntityOf({ entities, entityKey }: StageEntity): Readonly<PipelineEntity> | undefined {
+  return Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+}
+
+/** The repository paths a stage's Edit and Write reach, without a trailing `/`: the whole tree, `''`, for the root entity; else its homes and `reach`. */
+function stageRepositoryPathsOf(stage: StageEntity): string[] {
+  if (stage.entityKey === EntityOwnershipUtil.rootEntityKeyOf(stage.entities)) return [''];
+  const entity = stageEntityOf(stage);
+  return [...entity?.home ?? [], ...entity?.reach ?? []].map(EntityOwnershipUtil.homeFolderOf);
+}
+
+function pathIsBelow(folder: string, repositoryPath: string): boolean {
+  return repositoryPath.startsWith(`${folder}/`);
+}
+
+/**
+ * The repository paths outside a stage's own, each as high in the tree as it holds nothing the stage may change. Only the folders on the
+ * way to a home or a `reach` path are read, their names at launch with the next folder of each such path. Those folders are never denied
+ * themselves, so a name made after launch directly in one of them (the worktree root, `/apps`) is open to Edit and Write; Customs judges it.
+ */
+function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: FolderEntries): string[] {
+  const { entities, entityKey } = stage;
+  const ownPaths = stageRepositoryPathsOf(stage).filter((path) => path !== '');
+  const otherHomes = Object.entries(entities).flatMap(([otherKey, entity]) => (otherKey === entityKey ? [] : entity.home.map(EntityOwnershipUtil.homeFolderOf)));
+  const reachPaths = (stageEntityOf(stage)?.reach ?? []).map(EntityOwnershipUtil.homeFolderOf);
+  const reachCovers = (repositoryPath: string): boolean => reachPaths.some((reachPath) => repositoryPath === reachPath || pathIsBelow(reachPath, repositoryPath));
+  const isEditable = (repositoryPath: string): boolean => reachCovers(repositoryPath) || EntityOwnershipUtil.ownerOf(entities, repositoryPath) === entityKey;
+  const editabilityChangesBelow = (repositoryPath: string, editable: boolean): boolean => (editable
+    ? otherHomes.some((home) => pathIsBelow(repositoryPath, home) && !isEditable(home))
+    : ownPaths.some((ownPath) => pathIsBelow(repositoryPath, ownPath)));
+  const deniedUnder = (folder: string): string[] => {
+    const nextNames = [...ownPaths, ...otherHomes].filter((path) => pathIsBelow(folder, path)).map((path) => path.slice(folder.length + 1).split('/')[0] ?? '');
+    const names = [...new Set([...folderEntries.namesIn(join(worktree, folder)), ...nextNames])].filter((name) => name !== '').sort();
+    return names.flatMap((name) => {
+      const child = `${folder}/${name}`;
+      const editable = isEditable(child);
+      if (editabilityChangesBelow(child, editable)) return deniedUnder(child);
+      return editable ? [] : [child];
+    });
+  };
+  return deniedUnder('');
+}
+
+/**
+ * A job of an entity: Edit and Write reach its stage's folders, and every other path of the worktree at launch is denied them; a name made
+ * later in a folder on the way to a stage's folder is not, as `deniedEditPathsOf` says.
+ */
+function stageEditProfileOf(facts: Pick<SandboxFacts, 'worktree' | 'stageEntity'>, folderEntries: FolderEntries): Pick<WorkerProfile, 'stageFolders' | 'deniedEditRoots'> {
+  if (facts.stageEntity === undefined) return {};
+  const absolutePathOf = (repositoryPath: string): string => join(facts.worktree, repositoryPath);
+  return {
+    stageFolders:    stageRepositoryPathsOf(facts.stageEntity).map(absolutePathOf),
+    deniedEditRoots: deniedEditPathsOf(facts.stageEntity, facts.worktree, folderEntries).map(absolutePathOf),
+  };
+}
+
+function profileOf(
+  role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToolchain, hostPaths: HostPathCheck = REAL_HOST_PATHS, folderEntries: FolderEntries = REAL_FOLDER_ENTRIES
+): WorkerProfile {
   const isWorker = role === 'builder' || role === 'reviewer';
   const { networkDomains } = toolchain;
   const nestedCheckout = nestedCheckoutProfileOf(facts);
@@ -302,6 +403,7 @@ function profileOf(role: ProfiledRole, facts: SandboxFacts, toolchain: WorkerToo
     attribution:            'none',
     instructionsRoot:       facts.repositoryRoot,
     ...nestedCheckout,
+    ...stageEditProfileOf(facts, folderEntries),
     gitHooksDirectory:      facts.gitHooksDirectory,
     commitSigning:          commitSigningUnder(facts),
     networkDomainGuard:     isWorker ? networkDomainGuardOf(networkDomains, facts.guardCommand) : null,
@@ -437,6 +539,8 @@ export const WorkerProfiles = Object.freeze({
   profileOf,
   workerRoleOf,
   workerToolchainOf,
+  entityFactsOf,
+  deniedEditPathsOf,
   sandboxFactsOf,
   otherBoardBranchesOf,
   otherWorktreeAdminFoldersOf,

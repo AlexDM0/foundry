@@ -21,6 +21,10 @@ export interface WorkerProfile {
    * Absent, they reach the working directory.
    */
   readonly writeRoot?:               string;
+  /** The folders and files a stage of a job of an entity may change; present, Edit and Write reach these alone, not the write root. */
+  readonly stageFolders?:            readonly string[];
+  /** The checkout's paths outside `stageFolders` at launch, which Edit and Write are denied; Bash still writes them, and Customs judges what it left. */
+  readonly deniedEditRoots?:         readonly string[];
   /**
    * The main checkout's folders above a checkout nested in it, whose instruction files and rules would reach the session beside the
    * checkout's own copies; absent when the session reads them as a session at its repository's root always has.

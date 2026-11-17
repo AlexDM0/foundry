@@ -1,10 +1,11 @@
 /**
  * Where a job's session starts and what its sandbox writes. What matters: in a ticket worktree of a tracker below its repository's root the
  * session starts at the worktree's root, where Claude Code's sandbox lets it commit, and knows the project's folder from there; a tracker
- * at its repository's root starts at the worktree's root as it always has; before the worktree exists a session works in a folder of its
- * own either way; a pipeline agent's snapshot, which it only reads, still starts in the project's folder of it; and a resumed session
- * starts where its first instance started, a project folder from before the change included, but never outside its checkout. The gates
- * a session reads name each folder from where it starts. The `.git` entry is planted, since finding the project's place runs no git.
+ * at its repository's root starts at the worktree's root as it always has, a job of an entity of a top-level forge too; before the
+ * worktree exists a session works in a folder of its own either way; a pipeline agent's snapshot, which it only reads, still starts in
+ * the project's folder of it; and a resumed session starts where its first instance started, a project folder from before the change
+ * included, but never outside its checkout. The gates a session reads name each folder from where it starts. The `.git` entry is
+ * planted, since finding the project's place runs no git.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
@@ -75,6 +76,15 @@ describe('a ticket worktree', () => {
     const projectDirectory = trackerIn('', true);
     const worktree = WorktreesFolder.ticketWorktreeOf(projectDirectory, TICKET_ID);
     expect(placeOf(projectDirectory)).toEqual({
+      checkout: worktree, workingDirectory: worktree, holdsRepository: true, projectFolderFromStart: ''
+    });
+  });
+
+  test('of a top-level forge starts a job of an entity at the worktree\'s root, never in the entity\'s home', () => {
+    const projectDirectory = trackerIn('', true);
+    const worktree = WorktreesFolder.ticketWorktreeOf(projectDirectory, TICKET_ID);
+    const entityJob = { ...JOB, entity: 'gaia', stage: 2 };
+    expect(SessionPlaces.ticketSessionPlaceOf(workspacePathsFor(projectDirectory), projectLocationOf(projectDirectory), entityJob)).toEqual({
       checkout: worktree, workingDirectory: worktree, holdsRepository: true, projectFolderFromStart: ''
     });
   });
