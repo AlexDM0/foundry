@@ -24,12 +24,16 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * ticket's Handoff parts per stage; 1.13 accepts a non-empty whitelist in the pipeline and the setup draft, so the whitelist-not-supported
  * refusal is no longer sent; 1.14 adds the monitor snapshot's entities and open tickets' entity and stage, a job's entity and stage, the
  * work-outside-entity board refusal and the hook stage-edits command; 1.15 adds a ticket's entity and stage to the board state document's
- * board facts. Each minor only adds.
+ * board facts; 1.16 adds the constitution-outside-ticket-entity refusal and job-ended cause, the draft-copy-outside-entities refusal, the
+ * package-return job outcome with the adapt builder's package return reason and entity, the need-for-sealed-package refusal, the adapt,
+ * package-review-findings and package-refused stage statements, the fresh-branch-started job marker, option labels on the entity decisions'
+ * questions, the whitelist-removed-mid-crossing decision the Overseer opens, the second-return decision for a second package return from a
+ * red gate or a review catch-up, and install version 34. Each minor only adds.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 15 },
+  current:          { major: 1, minor: 16 },
   minimumSupported: { major: 0, minor: 0 },
 };
