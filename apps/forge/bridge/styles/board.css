@@ -58,6 +58,10 @@
  *                           -chips of -chip, or the -lines of -line: -label, -value, -paths), the scripts table of
  *                           .bridge-pipeline-script[data-head?] rows (-script-name, -script-run, -script-meaning[data-not-a-gate?] or
  *                           -script-needs with its -needs-dot) in the .bridge-pipeline-scripts list, and the footer's -footer-status
+ *   .bridge-research-columns research per entity (MonoResearch): the .bridge-pipeline-research-layout card (its -layout-items of
+ *                           -layout-item), the .bridge-research-sessions list (-session-list of -session-group labels and
+ *                           .bridge-research-session[data-state] items: the -session-row[data-selected?] button with its -session-text and
+ *                           -session-end, and the row's Stop) beside the .bridge-research-session-findings with its -findings-head
  *   .bridge-entities-step[data-mode] the entities step (MonoEntities): the -head of the entities card, the .bridge-entities-table (its
  *                           -table-head, the .bridge-entities-rows list of .bridge-entity-row items: the -line (-toggle, -key, the
  *                           -homes, -summary with its -refusal, -constitution, -actions) and the expanded -panel (-add fields, the
@@ -2580,6 +2584,38 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
     animation: bridge-pulse var(--pulse-status) ease-in-out infinite;
   }
   .bridge-pipeline-research-card { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
+}
+
+/* Research per entity (MonoResearch): the layout card over the sessions list and the findings of the session shown, side by side. A
+   session row has the boards' selection look, a filled neutral ground and a 1 px border, never an orange edge; its Stop sits beside it. */
+.bridge-pipeline-research-layout {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 18px 16px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+.bridge-pipeline-research-layout-items { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0 0 0 20px; list-style: none; }
+.bridge-pipeline-research-layout-item { display: inline-flex; align-items: baseline; gap: 6px; }
+.bridge-research-columns { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.bridge-research-sessions {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 12px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+.bridge-research-session-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.bridge-research-session-group { padding: 8px 10px 2px; }
+.bridge-research-session { display: flex; align-items: center; gap: 4px; }
+.bridge-research-session-row {
+  display: flex; flex: 1 1 0; align-items: center; gap: var(--sp-2); box-sizing: border-box; min-width: 0; min-height: 44px; padding: 5px 10px;
+  border: 1px solid transparent; border-radius: var(--r-2); background: transparent; color: var(--ink); font: inherit; text-align: left;
+  cursor: pointer;
+}
+.bridge-research-session-row:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.bridge-research-session-row:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-research-session-row[data-selected] { border-color: var(--line-strong); background: var(--surface-selected); }
+.bridge-research-session-text { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+.bridge-research-session-end { display: inline-flex; flex: none; align-items: center; gap: 6px; }
+.bridge-research-session-findings { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.bridge-research-session-findings-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+@media (max-width: 900px) {
+  .bridge-research-columns { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* The entities step (MonoEntities): the entities card's table on the board's grid, a row per entity with its expanded panel, the root's

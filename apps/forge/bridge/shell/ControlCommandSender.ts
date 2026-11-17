@@ -1,11 +1,12 @@
 /**
  * Sends one `ControlCommand` the way every Bridge control does: never while the shell says controls may not act, and with the Overseer's
  * refusal kept verbatim, the sentence that it could not be reached, or the sentence that its answer to a command it may have applied was lost,
- * for the caller to show beside its control.
+ * for the caller to show beside its control. A control that acts on several jobs at once, such as Stop all, sends its commands in order and
+ * stops at the first one the Overseer does not apply.
  */
 import { useContext, useState } from 'react';
 
-import type { ControlCommandBody }                             from '../api/CommandClient.ts';
+import type { CommandOutcome, ControlCommandBody }             from '../api/CommandClient.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
 export const UNREACHABLE_WORDING = 'The Overseer could not be reached. Try again.';
@@ -27,21 +28,43 @@ export interface ControlCommandOptions {
   readonly onApplied?:                (result: unknown) => void;
 }
 
+/** What a control sends: one command, or several in order; an empty list leaves the sender disabled. */
+export type SentCommands = ControlCommandBody | readonly ControlCommandBody[];
+
+function isCommandList(command: SentCommands): command is readonly ControlCommandBody[] {
+  return Array.isArray(command);
+}
+
+function commandsOf(command: SentCommands | null): readonly ControlCommandBody[] {
+  if (command === null) return [];
+  return isCommandList(command) ? command : [command];
+}
+
 /** `command` is `null` while the form behind it is not complete: the sender stays disabled. */
-export function useControlCommand(command: ControlCommandBody | null, options: ControlCommandOptions = {}): ControlCommandSender {
+export function useControlCommand(command: SentCommands | null, options: ControlCommandOptions = {}): ControlCommandSender {
   const { answeredWhileInstallHeld = false, hasNothingToSend = false, onApplied } = options;
   const {
     availability, commandClient, onInstallHeld, onSessionLost, onRefused
   } = useContext(ControlSurroundingsContext);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && command !== null;
+  const commands = commandsOf(command);
+  const enabled = ControlAvailabilityUtil.controlIsEnabled(availability, answeredWhileInstallHeld) && !sending && !hasNothingToSend && commands.length > 0;
+
+  const outcomeOfEvery = async (): Promise<CommandOutcome> => {
+    let outcome: CommandOutcome = { verdict: 'unreachable' };
+    for (const each of commands) {
+      outcome = await commandClient.send(each);
+      if (outcome.verdict !== 'applied') return outcome;
+    }
+    return outcome;
+  };
 
   const send = async (): Promise<void> => {
-    if (command === null || !enabled) return;
+    if (!enabled) return;
     setSending(true);
     setRefusal(null);
-    const outcome = await commandClient.send(command);
+    const outcome = await outcomeOfEvery();
     setSending(false);
     if (outcome.verdict === 'applied') onApplied?.(outcome.result);
     if (outcome.verdict === 'refused') {

@@ -4,13 +4,12 @@
  */
 import { Button } from 'design-system/Button';
 
-import type { ControlCommandBody } from '../api/CommandClient.ts';
-import { useControlCommand }       from './ControlCommandSender.ts';
+import { useControlCommand, type SentCommands } from './ControlCommandSender.ts';
 
 export interface CommandButtonProps {
   readonly label:                     string;
-  /** `null` while a form behind the control is not complete: the control stays disabled. */
-  readonly command:                   ControlCommandBody | null;
+  /** `null` while a form behind the control is not complete: the control stays disabled. Several commands are sent in order. */
+  readonly command:                   SentCommands | null;
   /** Restart and Stop: the Overseer answers them while launches are held for an install change. */
   readonly answeredWhileInstallHeld?: boolean;
   /** The view's own reason it has nothing to send, such as a benchmark that is still measuring. */

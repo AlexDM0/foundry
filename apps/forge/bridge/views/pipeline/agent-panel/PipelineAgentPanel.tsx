@@ -56,6 +56,7 @@ export function PipelineAgentPanel({
   const stripQuestions = { questions: session.questions, readyToContinue: record.readyToContinue };
   const otherLevelQuestions = levelShown === null ? null : PipelineAgentPanelModel.otherLevelQuestionsOf(setup, levelShown.level);
   const activityLine = PipelineAgentPanelModel.activityLineOf(entries);
+  const shownEntityKey = levelShown?.level.kind === 'entity' ? levelShown.level.key : null;
   const turns = agentJobId === null ? [] : PipelineAgentPanelModel.chatTurnsOf(entries, agentJobId, todayCalendarDate);
   return (
     <>
@@ -69,7 +70,7 @@ export function PipelineAgentPanel({
         {activityLine === null ? null : <TypingIndicator text={activityLine} accessibleName={`${PIPELINE_AGENT_SPEAKER} is working`} />}
         {cards.map((card) => <SetupQuestionForm key={card.questionId} setupId={record.setupId} card={card} layout="stack" />)}
       </PipelinePanelBody>
-      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, stripQuestions, agentJobState)} /> : null}
+      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, stripQuestions, agentJobState, shownEntityKey)} /> : null}
       <PipelinePanelFoot>
         <Composer
           label="Message the pipeline agent"

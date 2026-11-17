@@ -5,7 +5,8 @@
  * was unreachable, and calls neither `onApplied` nor the refusal handler, so a form keeps its text for User to check; only the Overseer's
  * refusal reaches the shell's refusal handler; a 423 goes to the shell's install-held handler and a lost session to its session handler; the
  * sender is disabled while a send is in flight, while the stream is down, while launches are held unless the command is answered then, and
- * while there is no command or nothing to send, and a send past the disabled button, as a key would make, then sends nothing.
+ * while there is no command or nothing to send, and a send past the disabled button, as a key would make, then sends nothing. Several
+ * commands go in order, and the first one the Overseer does not apply ends the send with its refusal; an empty list sends nothing.
  */
 import {
   act,
@@ -21,17 +22,22 @@ import {
   test
 } from 'bun:test';
 
-import type { CommandOutcome, ControlCommandBody }                         from '../api/CommandClient.ts';
-import type { ControlAvailability, ControlSurroundings }                   from './ControlAvailability.ts';
-import { ControlSurroundingsContext }                                      from './ControlAvailability.ts';
-import { OUTCOME_UNKNOWN_WORDING, UNREACHABLE_WORDING, useControlCommand } from './ControlCommandSender.ts';
+import type { CommandOutcome, ControlCommandBody }       from '../api/CommandClient.ts';
+import type { ControlAvailability, ControlSurroundings } from './ControlAvailability.ts';
+import { ControlSurroundingsContext }                    from './ControlAvailability.ts';
+import {
+  OUTCOME_UNKNOWN_WORDING,
+  UNREACHABLE_WORDING,
+  useControlCommand,
+  type SentCommands
+} from './ControlCommandSender.ts';
 
 const PAUSE_COMMAND: ControlCommandBody = { kind: 'overseer-pause' };
 /** A caller that sends on a key, not through the disabled button: the sender itself must refuse. */
 const SEND_PAST_DISABLED_NAME = 'Send past the disabled button';
 
 interface ProbeProps {
-  readonly command:                   ControlCommandBody | null;
+  readonly command:                   SentCommands | null;
   readonly answeredWhileInstallHeld?: boolean;
   readonly hasNothingToSend?:         boolean;
   readonly onApplied?:                (result: unknown) => void;
@@ -190,5 +196,32 @@ describe('when the sender is enabled', () => {
     const whileStreamDown = renderedProbe({ command: PAUSE_COMMAND }, { availability: 'stream-down' });
     await sent(SEND_PAST_DISABLED_NAME);
     expect([withoutCommand.sent, withNothingToSend.sent, whileStreamDown.sent]).toEqual([[], [], []]);
+  });
+});
+
+describe('several commands', () => {
+  const firstStop: ControlCommandBody = { kind: 'job-stop', jobId: 'J5', mode: 'stop' };
+  const secondStop: ControlCommandBody = { kind: 'job-stop', jobId: 'J6', mode: 'stop' };
+
+  test('go in order, and the last one\'s result reaches onApplied once every one was applied', async () => {
+    const applied: unknown[] = [];
+    const probe = renderedProbe({ command: [firstStop, secondStop], onApplied: (result) => applied.push(result) });
+    await sent();
+    expect([probe.sent, applied, screen.queryByRole('status')]).toEqual([[firstStop, secondStop], [null], null]);
+  });
+
+  test('the first one the Overseer refuses ends the send with its refusal, and the rest are not sent', async () => {
+    const applied: unknown[] = [];
+    const refused: CommandOutcome = { verdict: 'refused', refusal: 'The Overseer refused the example stop.' };
+    const probe = renderedProbe({ command: [firstStop, secondStop], onApplied: (result) => applied.push(result) }, { answers: [Promise.resolve(refused)] });
+    await sent();
+    expect([probe.sent, applied, screen.getByRole('status').textContent]).toEqual([[firstStop], [], 'The Overseer refused the example stop.']);
+  });
+
+  test('an empty list leaves the sender disabled, and its send sends nothing', async () => {
+    const probe = renderedProbe({ command: [] });
+    expect(sendButton().disabled).toBe(true);
+    await sent(SEND_PAST_DISABLED_NAME);
+    expect(probe.sent).toEqual([]);
   });
 });

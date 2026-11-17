@@ -1,7 +1,9 @@
 /**
  * The research step's model. What matters: findings group by topic with their source paths and scripts become rows; a script that needs
  * a network or a service carries its note; a finding to recheck says so; the status lines follow the agent's state and the facts; Continue
- * is always a command, with attention only when the agent marked the research ready; Stop has nothing to stop once the agent stopped.
+ * is always a command, with attention only when the agent marked the research ready; Stop has nothing to stop once the agent stopped. In
+ * monorepo mode the layout findings are their own list, never a card; the status line says that each entity has a session once one has
+ * a part; Continue opens the next step the record walks, `entities` while it walks it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -106,5 +108,35 @@ describe('the commands', () => {
   test('Stop stops the agent job, and has nothing to stop once it stopped', () => {
     expect(ResearchStepModel.stopCommandOf(researchSetup())).toEqual({ kind: 'job-stop', jobId: 'J4', mode: 'stop' });
     expect(ResearchStepModel.stopCommandOf({ ...researchSetup(), agentJobState: null })).toBeNull();
+  });
+});
+
+describe('monorepo mode', () => {
+  const layoutFinding: ResearchFinding = {
+    findingId: 'F9', topic: 'layout', label: 'apps/web', value: 'Next.js', sourcePaths: ['package.json'], script: null, needsRecheck: false,
+  };
+
+  test('the layout findings are their own list, with their sources, and never a card', () => {
+    const findings = [...researchSetup().record.findings, layoutFinding];
+    expect(ResearchStepModel.layoutItemsOf(findings)).toEqual([{ findingId: 'F9', folder: 'apps/web', description: 'Next.js' }]);
+    expect(ResearchStepModel.layoutSourcePathsOf(findings)).toEqual(['package.json']);
+    expect(ResearchStepModel.findingSectionsOf(findings).map((section) => section.title)).toEqual(['Stack', 'Conventions']);
+  });
+
+  test('the status line says that each entity has a session once one has a part of the record', () => {
+    const setup = withRecord(researchSetup(), {
+      entities: {
+        web: {
+          agentJobId: 'J5', findings: [], questions: [], constitution: null
+        }
+      }
+    });
+    expect(ResearchStepModel.statusLineOf({ setup, agentLaunchedAt: null }, PIPELINE_FIXTURE_NOW))
+      .toBe('Pipeline agent J4 · research done · one session per entity · snapshot of main at 1111111');
+  });
+
+  test('Continue opens the next step the record walks', () => {
+    expect(ResearchStepModel.continueStepOf(['billing', 'research', 'entities', 'constitution', 'design', 'apply'])).toBe('entities');
+    expect(ResearchStepModel.continueStepOf(['billing', 'research', 'constitution', 'design', 'apply'])).toBe('constitution');
   });
 });

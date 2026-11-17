@@ -2,7 +2,8 @@
  * The pipeline agent panel at a level of monorepo mode. What matters: the forge's session is the record's own, and single mode reads it
  * the same; an entity's session is its own part of the record, its job, questions and findings, never the forge's or another entity's,
  * and an entity with no part yet has no job and no question; the line over the chat counts the open questions of every other level with
- * the forge first, worded by where they wait, and is absent while no other level asks; the head names the level.
+ * the forge first, worded by where they wait, and is absent while no other level asks; the head names the level. An entity's research
+ * session's strip names the entity it reads; the forge's strip and every other step's read as in single mode.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -92,5 +93,18 @@ describe('the head', () => {
     expect(PipelineAgentPanelModel.panelTitleOf(null)).toBe('Pipeline agent');
     expect(PipelineAgentPanelModel.panelTitleOf(FORGE_LEVEL)).toBe('Pipeline agent · Forge');
     expect(PipelineAgentPanelModel.panelTitleOf(WEB_LEVEL)).toBe('Pipeline agent · web');
+  });
+});
+
+describe('the strip at a level', () => {
+  const record = { questions: [], readyToContinue: [] };
+
+  test('an entity\'s research session names the entity it reads', () => {
+    expect(PipelineAgentPanelModel.agentStripOf('research', record, 'running', 'web')).toMatchObject({ text: 'Reading', entityKey: 'web' });
+  });
+
+  test('the forge\'s research strip and an entity\'s design strip read as in single mode', () => {
+    expect(PipelineAgentPanelModel.agentStripOf('research', record, 'running', null)).toEqual(PipelineAgentPanelModel.agentStripOf('research', record, 'running'));
+    expect(PipelineAgentPanelModel.agentStripOf('design', record, 'running', 'web').text).toBe('Designing the pipeline');
   });
 });

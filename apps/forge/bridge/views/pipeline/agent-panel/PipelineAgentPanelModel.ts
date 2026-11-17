@@ -10,6 +10,7 @@ import type { TagProps } from 'design-system/Tag';
 
 import type { SpriteHabitat }      from 'flint/SpriteHabitat';
 import type { JobState }           from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { EntityKey }          from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type {
   PipelineSetup,
@@ -73,6 +74,8 @@ export interface AgentStripView {
   readonly flintHabitat: SpriteHabitat;
   /** `null` on a step whose agent does one thing the whole time: Flint's arrival in the slot says it. */
   readonly flintCue:     FlintSlotCue | null;
+  /** The entity whose codebase an entity's research session reads, set in mono after the words: "Reading web". */
+  readonly entityKey?:   EntityKey;
 }
 
 const RESEARCH_STRIP: AgentStripView = { text: 'Reading the repository', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_READS, };
@@ -84,6 +87,9 @@ const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', flintH
 const PROPOSAL_READY_STRIP: AgentStripView = { text: 'Proposal ready', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_IS_DONE, };
 
 const QUESTION_OPEN_TEXT = 'Waiting for your answer';
+
+/** An entity's research session reads only its own codebase, which the strip names after this word. */
+const ENTITY_RESEARCH_TEXT = 'Reading';
 
 /** The panel head's word for an agent with no job on the board. */
 const STOPPED_TEXT = 'Stopped';
@@ -249,18 +255,20 @@ function messageCommandOf(agentJobId: string | null, text: string): ControlComma
 /**
  * A question of the step that waits on User comes first, on every step; the design then says its proposal is ready once the agent suggests
  * to continue past the design, as the panel head does; a stopped agent, with no job on the board, shows no work; else research reads, the
- * constitution drafts and the design designs.
+ * constitution drafts and the design designs. An entity's research session reads that entity, which the strip names.
  */
 function agentStripOf(
   step: SetupQuestionStep,
   record: { readonly questions: readonly SetupQuestion[]; readonly readyToContinue: PipelineSetup['readyToContinue'] },
-  agentJobState: JobState | null
+  agentJobState: JobState | null,
+  entityKey: EntityKey | null = null
 ): AgentStripView {
   const { flintHabitat } = WORKING_STRIPS[step];
   const questionIsOpen = record.questions.some((question) => question.step === step && question.answer === null);
   if (questionIsOpen) return { text: QUESTION_OPEN_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_WAITS_ON_USER };
   if (step === 'design' && record.readyToContinue.includes('design')) return PROPOSAL_READY_STRIP;
   if (agentJobState === null) return { text: STOPPED_TEXT, flintHabitat, flintCue: FLINT_SLOT_CUES.AGENT_IS_IDLE };
+  if (step === 'research' && entityKey !== null) return { ...RESEARCH_STRIP, text: ENTITY_RESEARCH_TEXT, entityKey };
   return WORKING_STRIPS[step];
 }
 

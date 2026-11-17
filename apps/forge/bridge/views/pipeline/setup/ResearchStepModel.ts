@@ -2,14 +2,19 @@
  * The research step's model, pure: the findings by topic with their source paths, the scripts as rows (a script that needs a network or a
  * service carries that note), the status line over the page, the panel head's status, the footer's counts, and the commands of Continue
  * and Stop. The research runs nothing: no finding offers to run a script. Continue is always offered; the agent's `readyToContinue` only
- * draws attention to it.
+ * draws attention to it. In monorepo mode the layout the agent reports first stands apart from the findings, and Continue opens `entities`.
  */
-import type { PipelineSetupFacts }                                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { ResearchFinding, ResearchFindingTopic, SetupQuestion } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { ControlCommandBody }                                   from '../../../api/CommandClient.ts';
-import { ChatTurnWordingUtil }                                       from '../../../conversation/ChatTurnWordingUtil.ts';
-import { ElapsedTimeUtil }                                           from '../../../utils/ElapsedTimeUtil.ts';
-import type { PanelStatus }                                          from '../PipelinePanel.tsx';
+import type { PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type {
+  PipelineSetupStep,
+  ResearchFinding,
+  ResearchFindingTopic,
+  SetupQuestion
+} from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ControlCommandBody } from '../../../api/CommandClient.ts';
+import { ChatTurnWordingUtil }     from '../../../conversation/ChatTurnWordingUtil.ts';
+import { ElapsedTimeUtil }         from '../../../utils/ElapsedTimeUtil.ts';
+import type { PanelStatus }        from '../PipelinePanel.tsx';
 
 /** Scripts are rows of their own, and the layout belongs to the `entities` step. */
 export type CardTopic = Exclude<ResearchFindingTopic, 'scripts' | 'layout'>;
@@ -25,6 +30,8 @@ const TOPIC_TITLES: Readonly<Record<CardTopic, string>> = {
 };
 
 const SHORT_COMMIT_LENGTH = 7;
+
+const SESSION_PER_ENTITY_TEXT = 'one session per entity';
 
 export type ResearchState = 'researching' | 'ready' | 'stopped';
 
@@ -131,14 +138,41 @@ function openResearchQuestionsOf(questions: readonly SetupQuestion[]): SetupQues
   return questions.filter((question) => question.step === 'research' && question.answer === null);
 }
 
-/** "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s"; the time only while the agent runs and its launch is known. */
+/**
+ * "Pipeline agent J4 · researching · snapshot of main at 1111111 · 2m 40s"; the time only while the agent runs and its launch is known.
+ * Once entities have sessions of their own, the line says so after the state.
+ */
 function statusLineOf(facts: ResearchFacts, now: Date): string {
   const { record } = facts.setup;
   const state = researchStateOf(facts.setup);
   const agent = record.agentJobId === null ? 'Pipeline agent' : `Pipeline agent ${record.agentJobId}`;
+  const perEntity = Object.keys(record.entities ?? {}).length === 0 ? [] : [SESSION_PER_ENTITY_TEXT];
   const snapshot = record.snapshotCommit === null ? [] : [`snapshot of main at ${record.snapshotCommit.slice(0, SHORT_COMMIT_LENGTH)}`];
   const elapsed = state === 'stopped' ? null : ElapsedTimeUtil.elapsedSinceText(facts.agentLaunchedAt, now);
-  return [agent, STATE_WORDS[state], ...snapshot, ...(elapsed === null ? [] : [elapsed])].join(' · ');
+  return [agent, STATE_WORDS[state], ...perEntity, ...snapshot, ...(elapsed === null ? [] : [elapsed])].join(' · ');
+}
+
+/** One stand-alone codebase the layout reports: its folder, and what it is when the agent said. */
+export interface LayoutItem {
+  readonly findingId:   string;
+  readonly folder:      string;
+  readonly description: string | null;
+}
+
+/** The layout the agent reports first, in the order found: the codebases from which the `entities` step proposes entities. */
+function layoutItemsOf(findings: readonly ResearchFinding[]): LayoutItem[] {
+  return findings
+    .filter((finding) => finding.topic === 'layout')
+    .map((finding) => ({ findingId: finding.findingId, folder: finding.label, description: finding.value }));
+}
+
+function layoutSourcePathsOf(findings: readonly ResearchFinding[]): string[] {
+  return uniqueSourcePathsOf(findings.filter((finding) => finding.topic === 'layout'));
+}
+
+/** The step Continue opens: the next one the record walks, `entities` while monorepo mode is open, else `constitution`. */
+function continueStepOf(walkedSteps: readonly PipelineSetupStep[]): PipelineSetupStep {
+  return walkedSteps[walkedSteps.indexOf('research') + 1] ?? 'constitution';
 }
 
 const PANEL_STATUSES: Readonly<Record<ResearchState, PanelStatus>> = {
@@ -190,6 +224,9 @@ export const ResearchStepModel = Object.freeze({
   scriptCountTextOf,
   researchStateOf,
   statusLineOf,
+  layoutItemsOf,
+  layoutSourcePathsOf,
+  continueStepOf,
   panelStatusOf,
   footerCountsOf,
   headingOf,

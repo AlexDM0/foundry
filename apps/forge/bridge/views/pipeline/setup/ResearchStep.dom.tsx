@@ -5,12 +5,16 @@
  * is enabled while the agent still researches; while a turn runs the typing line says what the agent does, politely live; a step prompt
  * the Overseer sent reads as its system line with the prompt on User's ask, never as a User bubble; grey lines
  * stand in before the first finding; Stop stops the agent's job; the panel head says the agent researches, and the page's one Flint slot
- * waits on User while a research question is open.
+ * waits on User while a research question is open. In monorepo mode (MonoResearch): the layout comes first; each session's row says its
+ * state in words; a press on a row shows that session's findings and chat at its level in the route; Stop on a row stops that session
+ * alone, and Stop all stops every live session and none that ended; Continue opens the entities step; no control sets how many sessions
+ * run at once.
  */
 import {
   cleanup,
   fireEvent,
   screen,
+  waitFor,
   within
 } from '@testing-library/react';
 import {
@@ -20,6 +24,7 @@ import {
   test
 } from 'bun:test';
 
+import type { ResearchFinding }                         from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { BoardStateDocument }                      from '../../../@types/BoardStateDocument.ts';
 import { clickSettled, fakeControls, fakeTranscripts }  from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf } from '../../../testing/PipelineFixture.ts';
@@ -27,8 +32,11 @@ import { PipelineView }                                 from '../PipelineView.ts
 
 const RESEARCH_ROUTE = { tab: 'pipeline', item: 'setup/research' } as const;
 
+const hashListenerRemovals: (() => void)[] = [];
+
 afterEach(() => {
   cleanup();
+  for (const removal of hashListenerRemovals.splice(0)) removal();
   window.location.hash = '';
 });
 
@@ -222,5 +230,128 @@ describe('the actions', () => {
     await clickSettled(screen.getByRole('button', { name: 'Stop the pipeline agent' }));
     expect(controls.sent).toEqual([{ kind: 'job-stop', jobId: 'J4', mode: 'stop' }]);
     expect(window.location.hash).toBe('#pipeline');
+  });
+});
+
+function finding(findingId: string, topic: ResearchFinding['topic'], label: string, value: string | null): ResearchFinding {
+  return {
+    findingId, topic, label, value, sourcePaths: ['package.json'], script: null, needsRecheck: false
+  };
+}
+
+/**
+ * The A1 research over the mono-design entities: the layout reported, web's session runs with a finding and a question, design-system's
+ * session stopped with none, and root has no session yet.
+ */
+function monorepoResearchBoard(): BoardStateDocument {
+  const board = researchingBoard();
+  const monorepoSetup = pipelineBoardStateOf('mono-design').pipelineSetup;
+  const setup = board.pipelineSetup;
+  if (setup === null || setup === undefined || monorepoSetup === null || monorepoSetup === undefined) throw new Error('no setup');
+  const webFacts = monorepoSetup.entities?.['web'];
+  if (webFacts === undefined) throw new Error('the fixture mono-design has no web facts');
+  const [researchQuestion] = setup.record.questions;
+  if (researchQuestion === undefined) throw new Error('the fixture A1 has no research question');
+  const webQuestion = { ...researchQuestion, questionId: 'Q7', question: 'Do web\'s browser tests need the API?' };
+  return {
+    ...board,
+    pipelineSetup: {
+      ...setup,
+      record: {
+        ...setup.record,
+        stepStates: { ...setup.record.stepStates, entities: 'not-started' },
+        draft:      monorepoSetup.record.draft,
+        questions:  [],
+        findings:   [...setup.record.findings, finding('F8', 'layout', 'apps/web', 'Next.js'), finding('F9', 'layout', 'packages/design-system', 'components')],
+        entities:   {
+          'web': {
+            agentJobId: 'J5', findings: [finding('F10', 'stack', 'Framework', 'Next.js 14')], questions: [webQuestion], constitution: null
+          },
+          'design-system': {
+            agentJobId: 'J6', findings: [], questions: [], constitution: null
+          },
+        },
+      },
+      entities: {
+        'web':           { ...webFacts, agentJobState: 'running', openQuestionCount: 1 },
+        'design-system': { ...webFacts, agentJobState: null, openQuestionCount: 0 },
+        'root':          { ...webFacts, agentJobState: null, openQuestionCount: 0 },
+      },
+    },
+  };
+}
+
+/** The fragments the address bar moved to, as the page heard them, so a spec waits on the page hearing a move, never on a fixed time. */
+function heardFragments(): () => string[] {
+  const fragments: string[] = [];
+  const listener = (event: HashChangeEvent): void => {
+    fragments.push(new URL(event.newURL).hash);
+  };
+  window.addEventListener('hashchange', listener);
+  hashListenerRemovals.push(() => window.removeEventListener('hashchange', listener));
+  return () => fragments;
+}
+
+function sessionRow(name: string): HTMLElement {
+  return within(screen.getByRole('region', { name: 'Research sessions' })).getByRole('button', { name: new RegExp(`^${name},`, 'u') });
+}
+
+describe('research per entity', () => {
+  test('the layout comes first, and each session\'s row says its state in words', () => {
+    renderResearch(monorepoResearchBoard());
+    expect(screen.getByRole('region', { name: 'Layout' }).textContent).toContain('packages/design-system');
+    expect(['Forge', 'web', 'design-system', 'root'].map((name) => sessionRow(name).getAttribute('aria-label'))).toEqual([
+      'Forge, Shared by every entity, Researching, 4 findings',
+      'web, app, Researching, 1 finding, 1 open question',
+      'design-system, package, Stopped',
+      'root, every other path, Not started',
+    ]);
+    expect(document.querySelector('.bridge-pipeline-research-status')?.textContent).toContain('one session per entity');
+    expect(screen.queryByRole('spinbutton')).toBeNull();
+  });
+
+  test('a press on a row shows that session\'s findings and chat, at its level in the route', async () => {
+    const { transcripts } = renderResearch(monorepoResearchBoard());
+    expect(sessionRow('Forge').getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(sessionRow('web'));
+    expect(window.location.hash).toBe('#pipeline/entity/web/setup/research');
+    await waitFor(() => expect(sessionRow('web').getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByRole('region', { name: 'Findings of web' }).textContent).toContain('Only what is in apps/web.');
+    const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
+    expect(within(panel).getByText('Pipeline agent · web')).toBeDefined();
+    expect(within(panel).getByRole('group', { name: /Do web's browser tests need the API/u })).toBeDefined();
+    expect(transcripts.followedJobs()).toContain('J5');
+  });
+
+  test('a stopped session without findings says so', async () => {
+    window.location.hash = '#pipeline/entity/design-system/setup/research';
+    renderResearch(monorepoResearchBoard());
+    expect(screen.getByRole('region', { name: 'Findings of design-system' }).textContent).toContain('Stopped before it found anything.');
+  });
+
+  test('Stop on a row stops that session alone', async () => {
+    const { controls } = renderResearch(monorepoResearchBoard());
+    expect(screen.queryByRole('button', { name: 'Stop design-system\'s session' })).toBeNull();
+    await clickSettled(screen.getByRole('button', { name: 'Stop web\'s session' }));
+    expect(controls.sent).toEqual([{ kind: 'job-stop', jobId: 'J5', mode: 'stop' }]);
+  });
+
+  test('Stop all stops every live session and none that ended, then returns to the resume summary', async () => {
+    const { controls } = renderResearch(monorepoResearchBoard());
+    const heard = heardFragments();
+    expect(screen.queryByRole('button', { name: 'Stop the pipeline agent' })).toBeNull();
+    await clickSettled(screen.getByRole('button', { name: 'Stop every research session' }));
+    await waitFor(() => expect(heard()).toContain('#pipeline'));
+    expect(controls.sent).toEqual([{ kind: 'job-stop', jobId: 'J4', mode: 'stop' }, { kind: 'job-stop', jobId: 'J5', mode: 'stop' }]);
+  });
+
+  test('Continue opens the entities step', async () => {
+    const { controls } = renderResearch(monorepoResearchBoard());
+    const heard = heardFragments();
+    await clickSettled(screen.getByRole('button', { name: 'Continue to entities' }));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
+    }]);
+    await waitFor(() => expect(heard()).toContain('#pipeline/setup/entities'));
   });
 });
