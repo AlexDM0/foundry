@@ -32,6 +32,8 @@ export interface RelayingJob {
   setupEntity?:                     EntityKey;
   /** The entity whose stage the job runs; absent on a forge without entities. */
   entity?:                          EntityKey;
+  /** The packages whose change for the job's ticket a package review sealed; absent when none is sealed. */
+  sealedPackages?:                  readonly EntityKey[];
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -123,7 +125,8 @@ function questionOptionsOfOwnJob(job: RelayingJob, command: ControlCommandOf<'qu
 
 /**
  * Only the builder of an entity's stage declares a need, and only a complete one: what its ticket needs to be readied. The fields are read
- * as untrusted JSON, so one that is no text is an incomplete need.
+ * as untrusted JSON, so one that is no text is an incomplete need. A need names no package whose change for the ticket is sealed: only a
+ * `package-return` changes a sealed package (E42).
  */
 function needVerdictOf(job: RelayingJob, command: ControlCommandOf<'need-declare'>): BouncerVerdict {
   if (job.role !== 'builder' || job.entity === undefined) return refused('need-outside-an-entity');
@@ -131,6 +134,7 @@ function needVerdictOf(job: RelayingJob, command: ControlCommandOf<'need-declare
   if (!fields.every((field) => typeof field === 'string')) return refused('need-incomplete');
   const declaration = { entity: command.entity, title: command.title, body: command.bodyText };
   if (NeedUtil.gapsOf(declaration, TicketAcceptanceUtil.readinessGapsOf).length > 0) return refused('need-incomplete');
+  if (job.sealedPackages?.includes(declaration.entity) === true) return refused('need-for-sealed-package');
   return { verdict: 'admitted', command: { ...command, jobId: job.id } };
 }
 

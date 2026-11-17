@@ -448,7 +448,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 [reviewer](../glossary.md#reviewer), [Handoff](../glossary.md#handoff).
 
 <details open>
-<summary>13 sentences</summary>
+<summary>14 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -459,6 +459,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `pending`. | Assign only its own draft tickets and tickets ready for review or pending. | |
 | `only a build job of an entity declares a need` | `need-outside-an-entity` | A session that is not the builder of an entity's stage relayed `need declare`. | Nothing to do from the job: report the change in the Handoff. | [cli.md](../cli.md#need-declare) |
 | `a need names its entity and a title, and its body holds` | `need-incomplete` | A builder relayed a need with a blank entity or title, or a body without a numbered `## Acceptance` or a `## Brief`. | Write the missing part, and declare the need again. | [cli.md](../cli.md#need-declare) |
+| `the change of this ticket in that package is sealed` | `need-for-sealed-package` | The builder of a crossing ticket's stage relayed a need for a package whose change for the ticket a package review sealed (E42). | The adapt builder ends with the outcome `package-return` and writes the change in `packageReturnReason`. | [cli.md](../cli.md#need-declare) |
 | `this job is the agent of no open pipeline setup record` | `job-serves-no-setup` | A pipeline agent relayed a setup move while no open record names its job as the agent. | Nothing to do from the job: the record was started over or applied. | |
 | `it is legal only as a move the named delivered incident allows` | `incident-move-not-allowed` | The incident was not delivered to this Assistant, or does not allow the move. A terminal move under `--incident` prints it too, and so do `incident answer`, `incident note` and `incident escalate` on a kind that does not list them, with no `--incident` flag involved. Some listed moves cannot succeed. | Use a move the incident allows. | |
 | `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | A pipeline agent's request names a `setupId`; the Overseer stamps the record the agent serves. A `jobId`, `role` or `admission` never gets here: the Hatch format check below catches these fields first. | Send the verb with no setup id under the job. | |

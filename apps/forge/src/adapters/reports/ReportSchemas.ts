@@ -104,6 +104,34 @@ export const PACKAGE_BUILDER_REPORT_SCHEMA: JsonSchema = {
   anyOf:   [REFUSED_NEEDS_ITS_REASON],
 };
 
+const ADAPT_BUILDER_REPORT_PROPERTIES: Readonly<Record<string, JsonSchema>> = {
+  ...BUILDER_REPORT_PROPERTIES,
+  outcome:             { enum: ['built', 'blocked', 'cannot-build', 'wound-down', 'needs-declared', 'package-return'] },
+  packageReturnReason: NULLABLE_TEXT,
+  packageReturnEntity: NULLABLE_TEXT,
+};
+
+const ADAPT_BUILDER_REQUIRED_PROPERTIES = Object.keys(BUILDER_REPORT_PROPERTIES);
+
+const PACKAGE_RETURN_NEEDS_ITS_REASON: JsonSchema = {
+  if:   { properties: { outcome: { const: 'package-return' } } },
+  then: { properties: { packageReturnReason: { type: 'string', minLength: 1 } }, required: ['packageReturnReason'] },
+};
+
+/**
+ * Stage 4 of a crossing ticket, adapt: a builder report that may send the ticket back to a sealed package's build (E41). `package-return`,
+ * with what the package must give in `packageReturnReason`, ends the stage; `packageReturnEntity` names the package when more than one is
+ * sealed. Only an adapt build may report it.
+ */
+export const ADAPT_BUILDER_REPORT_SCHEMA: JsonSchema = {
+  $schema: DRAFT_07,
+  title:   'adapt builder report',
+  ...closedObject(ADAPT_BUILDER_REPORT_PROPERTIES, ADAPT_BUILDER_REQUIRED_PROPERTIES),
+  ...BLOCKED_NEEDS_ITS_REASON,
+  // The subset has no `allOf`: a one-entry `anyOf` holds the second condition beside the first.
+  anyOf:   [PACKAGE_RETURN_NEEDS_ITS_REASON],
+};
+
 const FINDING_DESCRIPTION: Readonly<Record<string, JsonSchema>> = {
   class:    { enum: REVIEW_FINDING_CLASSES },
   severity: { enum: REVIEW_FINDING_SEVERITIES },

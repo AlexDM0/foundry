@@ -279,7 +279,7 @@ function reviewerEntityScopeOf(job: Readonly<Job>, crossingStage: CrossingStageF
       `This review is stage 5 of the ticket: the review of \`${entity}\`. ${fixScope}`,
       `The change of the ticket in ${codeListOf(crossingStage.crossedPackages.map(({ entity: packageEntity }) => packageEntity))} is sealed. `
       + 'Do not change the files of these packages. When the cause of a problem is in a package, write it in your `reviewText`, and claim '
-      + 'the item `does-not-hold`. The builder then sends the package back.',
+      + 'the item `does-not-hold`. The ticket then goes back to the builder of the adapt stage, which can send it back to the package.',
       ...crossingStage.crossedPackages.map((packageReview) => packageReviewLineOf(entity, packageReview)),
     ]);
   }
@@ -314,17 +314,36 @@ function adaptMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaun
   return adapt.resumesSession ? message : `${message}\n\n${builderInstructionsOf(job, ticket, facts)}`;
 }
 
-/** Stage 2: the package builder reads the rules of its stage, then the build prompt of its package. */
-function packageBuildMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, homeEntity: string): string {
+/** What the adapt builder wrote the package must give, when it sent the ticket back to this package build (E41, E42). */
+function packageReturnSectionOf(homeEntity: string, packageEntity: string, packageReturnReason: string): string {
+  const indentedReason = packageReturnReason.trim().split('\n').map((line) => (line === '' ? '' : `  ${line}`)).join('\n');
+  return [
+    `## Why the ticket is back in \`${packageEntity}\``,
+    '',
+    `In stage 4, the builder of \`${homeEntity}\` sent the ticket back to \`${packageEntity}\`. The Overseer lifted the seal of `
+    + `\`${packageEntity}\`. The builder of \`${homeEntity}\` wrote what the package must give:`,
+    '',
+    indentedReason,
+    '',
+    `Make this change in \`${packageEntity}\`, if its constitution allows it. This ticket goes back one time only.`,
+  ].join('\n');
+}
+
+/** Stage 2: the package builder reads why the ticket came back to it, if it did, then the rules of its stage, then the build prompt of its package. */
+function packageBuildMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, packageBuild: Extract<CrossingStageFacts, { stage: 'package-build' }>): string {
+  const packageEntity = job.entity ?? '';
   const stageRules = filledTemplateOf(promptOf('PackageBuildPrompt.md'), {
     ticketId:                 ticket.id,
     ticketBranch:             ticket.branch,
     target:                   job.target ?? '',
-    homeEntity,
-    packageEntity:            job.entity ?? '',
+    homeEntity:               packageBuild.homeEntity,
+    packageEntity,
     exposedSurfaceDefinition: EXPOSED_SURFACE_DEFINITION,
   }).trim();
-  return `${stageRules}\n\n${builderInstructionsOf(job, ticket, facts)}`;
+  const packageReturn = packageBuild.packageReturnReason === undefined
+    ? ''
+    : `${packageReturnSectionOf(packageBuild.homeEntity, packageEntity, packageBuild.packageReturnReason)}\n\n`;
+  return `${packageReturn}${stageRules}\n\n${builderInstructionsOf(job, ticket, facts)}`;
 }
 
 /** Where a session at the root of a folder tracker's worktree finds its project, since its ticket names paths from the project's folder. */
@@ -700,7 +719,7 @@ function freshBuilderMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
   if (crossingStage?.stage === 'adapt') {
     return adaptMessageOf(job, ticket, facts, afterSettledNeeds ? { ...crossingStage, resumesSession: false } : crossingStage);
   }
-  if (crossingStage?.stage === 'package-build') return packageBuildMessageOf(job, ticket, facts, crossingStage.homeEntity);
+  if (crossingStage?.stage === 'package-build') return packageBuildMessageOf(job, ticket, facts, crossingStage);
   return builderInstructionsOf(job, ticket, facts);
 }
 

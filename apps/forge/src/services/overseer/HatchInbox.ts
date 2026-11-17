@@ -111,6 +111,14 @@ function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[
   });
 }
 
+/** The packages sealed for the ticket of a job of an entity, which no need may name (E42); nothing for any other job. */
+function sealedPackagesOf(board: Board, job: Readonly<Job>): Pick<RelayingJob, 'sealedPackages'> {
+  const [ticketId] = job.ticketIds;
+  if (job.entity === undefined || ticketId === undefined) return {};
+  const sealedPackages = Object.keys(board.ticketSealsOf(ticketId));
+  return sealedPackages.length === 0 ? {} : { sealedPackages };
+}
+
 function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
   const served = PipelineAgentSessions.servedLevelOf(board, job.id);
   return {
@@ -127,6 +135,7 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
     setupId: served?.setup.setupId ?? null,
     ...(served === null || served.entityKey === null ? {} : { setupEntity: served.entityKey }),
     ...(job.entity === undefined ? {} : { entity: job.entity }),
+    ...sealedPackagesOf(board, job),
   };
 }
 

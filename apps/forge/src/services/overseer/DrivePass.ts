@@ -9,6 +9,7 @@ import { basename, join }          from 'node:path';
 
 import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
 import {
+  ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   PACKAGE_BUILDER_REPORT_SCHEMA,
@@ -395,13 +396,15 @@ function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhas
 
 /**
  * A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. A package
- * stage's report also states what the package exposes (A1): the package builder states it, the package reviewer confirms it.
+ * stage's report also states what the package exposes (A1): the package builder states it, the package reviewer confirms it. An
+ * adapt build's report may send the ticket back to a sealed package (E41).
  */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   if (job.kind === 'merge-agent' && airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
   const stageName = TicketStageUtil.stageOfJob(job)?.name;
   if (job.kind === 'build' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
   if (job.kind === 'review' && stageName === 'package-review') return PACKAGE_REVIEWER_REPORT_SCHEMA;
+  if (job.kind === 'build' && stageName === 'adapt') return ADAPT_BUILDER_REPORT_SCHEMA;
   return REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null;
 }
 

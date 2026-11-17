@@ -12,7 +12,7 @@ proposal is in the commits of the branch `{{ticketBranch}}`. To see it, run `git
 - You can change the proposal. You can also change what the package exposes, if the package needs this change.
 - After your report, the Overseer runs the gates of `{{packageEntity}}`. Then it runs the gates of each entity that
   depends on `{{packageEntity}}`, other than `{{homeEntity}}`. A change in the package must not break these entities.
-- If the constitution of `{{packageEntity}}` does not permit the change, do not make it. End with the outcome
+- If the constitution of `{{packageEntity}}` does not allow the change, do not make it. End with the outcome
   `refused`, and write the reason in `refusedReason`.
 
 ## What the package exposes

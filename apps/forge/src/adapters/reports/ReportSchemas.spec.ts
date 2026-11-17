@@ -3,11 +3,13 @@
  * holds both. The cases that matter are the shapes the design removed or constrained: no `blockedOn`, a `blocked` report needing its
  * reason, a `needs-declared` builder outcome, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only
  * beside `cannot-resolve`; a package stage's report states, and confirms or corrects, what the package exposes, and no other report does;
- * only a package build refuses the work (E22), and only with its reason.
+ * only a package build refuses the work (E22), and only with its reason; only an adapt build sends the ticket back to a package, and only
+ * with what the package must give (E41).
  */
 import { describe, expect, test } from 'bun:test';
 
 import {
+  ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   PACKAGE_BUILDER_REPORT_SCHEMA,
@@ -49,6 +51,8 @@ const REVIEWED = {
 const RESOLVED = {
   role: 'reviewer', outcome: 'resolved', headCommit: HEAD, resolvedFiles: ['cli/Main.ts'], notes: '', reportKind: null
 };
+
+const PACKAGE_RETURN = { ...BUILT, outcome: 'package-return', packageReturnReason: 'The package must export the price in cents.' };
 
 const ITEM_NAMED_BY_ITS_TEXT = { ...BUILT, acceptance: [{ item: 'A1. The palette names a colour.', state: 'met', evidence: 'palette.txt line 1' }] };
 
@@ -115,6 +119,15 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
   ['a package reviewer report confirming the statement', PACKAGE_REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, true],
   ['a package reviewer report that neither confirms nor corrects it (E40)', PACKAGE_REVIEWER_REPORT_SCHEMA, REVIEWED, false],
   ['a reviewer report of any other stage confirming it', REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, false],
+  ['a built adapt builder report, as any builder report', ADAPT_BUILDER_REPORT_SCHEMA, BUILT, true],
+  ['an adapt builder report sending the ticket back with its reason (E41)', ADAPT_BUILDER_REPORT_SCHEMA, PACKAGE_RETURN, true],
+  ['an adapt builder report naming the package it sends the ticket back to (E41)', ADAPT_BUILDER_REPORT_SCHEMA, { ...PACKAGE_RETURN, packageReturnEntity: 'ui-kit' }, true],
+  ['an adapt builder report sending the ticket back without a reason (E41)', ADAPT_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'package-return' }, false],
+  ['an adapt builder report sending the ticket back with an empty reason (E41)', ADAPT_BUILDER_REPORT_SCHEMA, { ...PACKAGE_RETURN, packageReturnReason: '' }, false],
+  ['a blocked adapt builder report still needing its reason', ADAPT_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'blocked' }, false],
+  ['an adapt builder report refusing the change, which only a package build may', ADAPT_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'refused', refusedReason: 'No.' }, false],
+  ['a builder report of any other stage sending the ticket back (E41)', BUILDER_REPORT_SCHEMA, PACKAGE_RETURN, false],
+  ['a package builder report sending the ticket back (E41)', PACKAGE_BUILDER_REPORT_SCHEMA, { ...PACKAGE_RETURN, exposedSurfaceChanged: false }, false],
 ];
 
 describe('the report table', () => {
@@ -123,7 +136,9 @@ describe('the report table', () => {
   });
 
   test('each schema is a draft-07 document that survives JSON unchanged, as the command line receives it', () => {
-    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, PACKAGE_BUILDER_REPORT_SCHEMA, PACKAGE_REVIEWER_REPORT_SCHEMA]) {
+    for (const schema of [
+      BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, PACKAGE_BUILDER_REPORT_SCHEMA, PACKAGE_REVIEWER_REPORT_SCHEMA, ADAPT_BUILDER_REPORT_SCHEMA
+    ]) {
       expect(schema.$schema).toBe('http://json-schema.org/draft-07/schema#');
       expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);
     }

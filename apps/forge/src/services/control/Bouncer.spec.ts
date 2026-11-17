@@ -3,10 +3,9 @@
  * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, its entity rule (its own draft or any ticket ready for
  * review or pending, stamped with its job), the own-job stamp on the `question-options` of every
  * role that asks User, a builder's need for another entity (only from the builder of an entity's stage, only complete, stamped
- * with its job; incomplete covering a field that is no text), the pipeline agent's setup moves stamped with its job, its setup and,
- * for an entity's session, its entity (every other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's
- * incident moves, and the planted
- * forgeries (a `role`, a `jobId` or an admission in the command).
+ * with its job; incomplete covering a field that is no text; never for a package sealed for its ticket, E42), the pipeline agent's
+ * setup moves stamped with its job, its setup and, for an entity's session, its entity (every other kind refused, and a setup or entity
+ * of the agent's own choosing too), the Assistant's incident moves, and the planted forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
 import { describe, expect, test } from 'bun:test';
@@ -227,6 +226,11 @@ describe('a need for another entity', () => {
   ] as const)('a need with %s is refused need-incomplete', (_caseName, overrides) => {
     const command = { ...NEED, ...overrides } as unknown as ControlCommand;
     expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web' }), command)).toEqual({ verdict: 'refused', reason: 'need-incomplete' });
+  });
+
+  test('a need for a package whose change for the ticket is sealed is refused need-for-sealed-package (E42)', () => {
+    expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web', sealedPackages: ['shared'] }), NEED)).toEqual({ verdict: 'refused', reason: 'need-for-sealed-package' });
+    expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web', sealedPackages: ['ui-kit'] }), NEED)).toEqual({ verdict: 'admitted', command: { ...NEED, jobId: 'J12' } });
   });
 
   test('a need naming a job of its own choosing is refused hatch-identity-mismatch', () => {

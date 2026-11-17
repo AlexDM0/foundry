@@ -66,6 +66,8 @@ export type JobOutcome =
   | 'needs-declared'
   /** A package build refused the package change its constitution forbids; its reason is in the `package-refused` decision. */
   | 'refused'
+  /** An adapt build sent the ticket back to a sealed package's build; its reason goes to that build. */
+  | 'package-return'
   | 'failed'
   | 'blocked'
   | 'replaced'

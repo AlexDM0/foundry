@@ -15,7 +15,10 @@
  * confirmed it, else `adapt` (E40, C15), and must confirm or correct the statement. A later stage whose branch no longer holds the sealed
  * change is sent back once, then fails (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `##
  * Handoff` holds one part per stage that built, each stage writing only its own, and a package build that refuses the change ends `refused`
- * with a `package-refused` decision that holds the ticket (E22).
+ * with a `package-refused` decision that holds the ticket (E22). An adapt build that needs more of the package ends `package-return`: the
+ * seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and the reason waits for the package
+ * builder, while the adapt branch holds no change of the package (E42); a second return opens `second-return` and keeps `adapt` (E45). A
+ * home review that does not hold for a cause in the package goes back to `adapt`, whose return reaches the package build (E52).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -91,10 +94,11 @@ const {
 type CrossingTicket = CrossingStagePlace;
 
 interface CrossingRow {
-  stage?:    TicketStage;
-  seals?:    Record<string, string>;
-  status?:   'in-progress' | 'in-review';
-  pipeline?: Pipeline;
+  stage?:          TicketStage;
+  seals?:          Record<string, string>;
+  status?:         'in-progress' | 'in-review';
+  pipeline?:       Pipeline;
+  packageReturns?: number;
 }
 
 /** The shop's ticket in a scratch copy of the fixture's places, its row storing `stage` and `seals` when given. */
@@ -107,7 +111,12 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
   const { board } = boardFixture({
     pipeline: row.pipeline ?? CROSSING_PIPELINE,
     tasks:    [taskFixture({
-      id: 1, ticket: SHOP_TICKET.id, status, ...(row.stage === undefined ? {} : { stage: row.stage }), ...(row.seals === undefined ? {} : { seals: row.seals })
+      id:     1,
+      ticket: SHOP_TICKET.id,
+      status,
+      ...(row.stage === undefined ? {} : { stage: row.stage }),
+      ...(row.seals === undefined ? {} : { seals: row.seals }),
+      ...(row.packageReturns === undefined ? {} : { packageReturns: row.packageReturns }),
     })],
     tickets: [ticketFixture({
       id: SHOP_TICKET.id, status, task: 1, entity: SHOP.key
@@ -426,6 +435,98 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     expect(batonPassOf(ticket, job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
     const sentBack = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: 'an-example-seal-of-another-change' }, status: 'in-review' });
     expect(runStage(sentBack, HOME_REVIEWER, { ...run, scopeResumed: true }).whereTheJobWent).toBe('failed: sealed-change-altered');
+  });
+});
+
+const PACKAGE_RETURN_REASON = 'The package must export the basket total in cents.';
+
+/** An adapt build's report that sends the ticket back to the package with `PACKAGE_RETURN_REASON`. */
+function packageReturnReportOf(extraFields: Record<string, unknown> = {}): StageRun['reportOf'] {
+  return builtReportOf({ outcome: 'package-return', packageReturnReason: PACKAGE_RETURN_REASON, ...extraFields });
+}
+
+function loggedPackageReturnsOf(board: Board) {
+  return board.logRecordsSoFar().flatMap((record) => (record.kind === 'package-return' && record.ticketId === SHOP_TICKET.id ? [record.fields] : []));
+}
+
+/** The package build the Playbook would launch next for the returned ticket, launched straight on the board. */
+function returnedPackageBuildOf(ticket: CrossingTicket): Readonly<Job> {
+  return ticket.board.launchJob({
+    kind: 'build', role: 'builder', ticketIds: [SHOP_TICKET.id], parentJobId: null, attempt: 2, target: ENTITY_FORGE_MAIN_LINE, entity: UI_KIT.key, stage: 2
+  }, AT).job;
+}
+
+describeWhenGitIsRecorded('stage 4, adapt, that sends the ticket back to the package', () => {
+  test('lifts the seal, moves the row to the package build, counts one return and logs package-return (E41)', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) } });
+    const { whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', packageReturnReportOf()));
+
+    expect(whereTheJobWent).toBe('package-return: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({});
+    expect(ticket.board.tasks()[0]?.packageReturns).toBe(1);
+    expect(loggedPackageReturnsOf(ticket.board)).toEqual([{ entity: UI_KIT.key, fromStage: 'adapt', returns: 1 }]);
+    expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-progress');
+  });
+
+  test('for one more change in the package gives the package build its reason, its own commits holding no change of the package (E42)', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) } });
+    const { job } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', packageReturnReportOf({ packageReturnEntity: UI_KIT.key })));
+
+    expect(CrossingStages.stageStatementOf(ticket.context.workspace.trackerDirectory, job.id))
+      .toEqual({ stage: 'adapt', returnedPackage: UI_KIT.key, packageReturnReason: PACKAGE_RETURN_REASON });
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+    expect(CrossingStages.crossingStageFactsOf(ticket.board, ticket.context.workspace.trackerDirectory, returnedPackageBuildOf(ticket), false))
+      .toEqual({ stage: 'package-build', homeEntity: SHOP.key, packageReturnReason: PACKAGE_RETURN_REASON });
+  });
+
+  test('whose own commit changed the package is sent back, and the ticket stays in adapt (E42)', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED) } });
+    const { job, whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<shop ticket tip>', packageReturnReportOf()));
+
+    expect(whereTheJobWent).toBe('interrupted: V17');
+    expect(batonPassOf(ticket, job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(UI_KIT)}`);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+    expect(loggedPackageReturnsOf(ticket.board)).toEqual([]);
+  });
+
+  test('naming a package that is not sealed fails as a report without one, and the row keeps adapt (E41)', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) } });
+    const { whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', packageReturnReportOf({ packageReturnEntity: ADMIN.key })));
+
+    expect(whereTheJobWent).toBe('failed: no-report');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+  });
+
+  test('after one earlier return opens second-return, keeps the seal and the count, and the row keeps adapt (E45)', () => {
+    const seal = sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED);
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: seal }, packageReturns: 1 });
+    const { whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', packageReturnReportOf()));
+
+    expect(whereTheJobWent).toBe('package-return: ');
+    expect(ticket.board.decisions()).toMatchObject([{ kind: 'second-return', ticketIds: [SHOP_TICKET.id], context: UI_KIT.key }]);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: seal });
+    expect(ticket.board.tasks()[0]?.packageReturns).toBe(1);
+    expect(loggedPackageReturnsOf(ticket.board)).toEqual([]);
+  });
+
+  test('after a home review that does not hold for a cause in the package reaches the package build (E52)', () => {
+    const seals = { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED) };
+    const ticket = crossingTicketOf({ stage: HOME_REVIEW, seals, status: 'in-review' });
+    const claims = [{
+      item: 'A1', result: 'does-not-hold', handoffContradicted: false, note: 'The package exports the total in euros.'
+    }];
+    const homeReview = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED_REVIEWED', '<adapt tip>', reviewedReportOf({ claims, reviewText: 'The cause is in ui-kit.' })));
+    expect(homeReview.whereTheJobWent).toBe('does-not-hold: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+
+    const { whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED_REVIEWED', '<adapt tip>', packageReturnReportOf()));
+
+    expect(whereTheJobWent).toBe('package-return: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({});
+    expect(ticket.board.tasks()[0]?.packageReturns).toBe(1);
   });
 });
 

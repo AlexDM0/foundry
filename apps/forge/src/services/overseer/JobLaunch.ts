@@ -1181,31 +1181,40 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     endJobOnItsRefusal(hold, job, String(reportFieldOf(observation.report, 'refusedReason') ?? ''));
     return;
   }
+  if (outcome === 'package-return') {
+    endJobOnItsPackageReturn(hold, job, subject, observation.report);
+    return;
+  }
   const verdict = clearCustoms(subject);
-  if (verdict.verdict === 'refused' && SCOPE_REFUSALS.includes(verdict.reason) && job.entity !== undefined && scopeResumeSpent(hold.context, job)) {
+  if (verdict.verdict === 'refused') {
+    routeCustomsRefusal(hold, job, verdict);
+    return;
+  }
+  hold.logged.push(...board.moveJob(job.id, 'gating', at).logged);
+}
+
+/** A refusal of a scope check sends an entity's session back once, then fails the job; a resumable check sends it back to fix. */
+function routeCustomsRefusal(hold: HoldContext, job: Readonly<Job>, verdict: Readonly<Extract<CustomsVerdict, { verdict: 'refused' }>>): void {
+  if (SCOPE_REFUSALS.includes(verdict.reason) && job.entity !== undefined && scopeResumeSpent(hold.context, job)) {
     if (verdict.reason === ONLY_OUTSIDE_THE_ENTITY) openWorkInOtherEntityDecision(hold, job, verdict.facts);
     endJob(hold, job, { outcome: 'failed', cause: verdict.reason });
     return;
   }
-  if (verdict.verdict === 'refused') {
-    if (resumableCustomsChecksOf(job).includes(verdict.check)) {
-      interruptOnRedHandoff(hold, job, {
-        kind:        'customs',
-        name:        verdict.check,
-        command:     null,
-        fixCommand:  null,
-        exitCode:    null,
-        fullLogPath: null,
-        output:      customsOutputOf(verdict),
-        ...(SCOPE_REFUSALS.includes(verdict.reason) ? { scopeResumed: true as const } : {}),
-      });
-      return;
-    }
-    if (verdict.check === 'V13') openAgentConfigDecision(hold, job);
-    endJob(hold, job, { outcome: 'failed', cause: verdict.check === 'V7' ? BUILD_JOB_CAUSES.attribution : verdict.reason });
+  if (resumableCustomsChecksOf(job).includes(verdict.check)) {
+    interruptOnRedHandoff(hold, job, {
+      kind:        'customs',
+      name:        verdict.check,
+      command:     null,
+      fixCommand:  null,
+      exitCode:    null,
+      fullLogPath: null,
+      output:      customsOutputOf(verdict),
+      ...(SCOPE_REFUSALS.includes(verdict.reason) ? { scopeResumed: true as const } : {}),
+    });
     return;
   }
-  hold.logged.push(...board.moveJob(job.id, 'gating', at).logged);
+  if (verdict.check === 'V13') openAgentConfigDecision(hold, job);
+  endJob(hold, job, { outcome: 'failed', cause: verdict.check === 'V7' ? BUILD_JOB_CAUSES.attribution : verdict.reason });
 }
 
 /**
@@ -1237,6 +1246,38 @@ function endJobOnItsRefusal(hold: HoldContext, job: Readonly<Job>, refusedReason
     ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: refusedReason
   }, at).logged);
   endJob(hold, job, { outcome: 'refused' });
+}
+
+/** The sealed package an adapt build's return names: the one it names, or the only one sealed; `null` when it names none of them. */
+function returnedPackageOf(sealedPackages: readonly EntityKey[], namedPackage: unknown): EntityKey | null {
+  if (typeof namedPackage === 'string' && namedPackage !== '') return sealedPackages.includes(namedPackage) ? namedPackage : null;
+  const [onlySealedPackage, ...otherSealedPackages] = sealedPackages;
+  return otherSealedPackages.length === 0 ? onlySealedPackage ?? null : null;
+}
+
+/**
+ * An adapt build that needs the package to give more ends `package-return` (E41, E42): its own commits must stay in its homes and `reach`,
+ * so it holds no change of the package, and its reason waits in its job folder for the returned package build. The Board lifts the seal,
+ * counts the return and moves the ticket to the package build; a second return opens `second-return` and keeps the stage (E45). A report
+ * from any other stage, or one that names no sealed package, fails as a report without one.
+ */
+function endJobOnItsPackageReturn(hold: HoldContext, job: Readonly<Job>, subject: CustomsSubject, report: unknown): void {
+  const { board, at } = hold.change;
+  const ticketId = ticketIdOf(job);
+  const returnedPackage = returnedPackageOf(CrossingStages.sealedPackagesOf(board, ticketId), reportFieldOf(report, 'packageReturnEntity'));
+  if (TicketStageUtil.stageOfJob(job)?.name !== 'adapt' || returnedPackage === null) {
+    endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport });
+    return;
+  }
+  const scopeVerdict = CUSTOMS_CHECKS[SCOPE_CHECK](subject);
+  if (scopeVerdict.verdict === 'refused') {
+    routeCustomsRefusal(hold, job, { ...scopeVerdict, check: SCOPE_CHECK });
+    return;
+  }
+  const packageReturnReason = String(reportFieldOf(report, 'packageReturnReason') ?? '');
+  CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'adapt', returnedPackage, packageReturnReason });
+  endJob(hold, job, { outcome: 'package-return' });
+  hold.logged.push(...board.returnTicketToThePackage(ticketId, returnedPackage, hold.context.decisionWordingOf, at).logged);
 }
 
 /**

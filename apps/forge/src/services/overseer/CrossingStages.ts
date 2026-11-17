@@ -38,18 +38,20 @@ export interface SealedPackageReview {
  */
 export type CrossingStageFacts =
   | { stage: 'build'; whitelistedPackages: readonly string[] }
-  | { stage: 'package-build'; homeEntity: string }
+  | { stage: 'package-build'; homeEntity: string; packageReturnReason?: string }
   | { stage: 'package-review'; homeEntity: string; exposedSurfaceChanged: boolean }
   | { stage: 'adapt'; crossedPackages: readonly CrossedPackageResult[]; resumesSession: boolean }
   | { stage: 'review'; crossedPackages: readonly SealedPackageReview[] };
 
 /**
  * What a package stage's verified report stated, kept in its job folder, since the stages after it read it once the job ended. A package
- * review also keeps the `reach` paths its package's stages changed, which its seal covers (E3).
+ * review also keeps the `reach` paths its package's stages changed, which its seal covers (E3). An adapt build that sent the ticket back
+ * keeps the package and what the package must give, which the returned package build is told (E41, E42).
  */
 export type StageStatement =
   | { stage: 'package-build'; exposedSurfaceChanged: boolean }
-  | { stage: 'package-review'; exposedSurfaceConfirmed: boolean; reviewText: string; sealedReachPaths: readonly string[] };
+  | { stage: 'package-review'; exposedSurfaceConfirmed: boolean; reviewText: string; sealedReachPaths: readonly string[] }
+  | { stage: 'adapt'; returnedPackage: string; packageReturnReason: string };
 
 /** What the package stages of one crossed package stated: `null` where a stage left no statement. */
 export interface PackageStageStatements {
@@ -191,6 +193,11 @@ function stageStatementOf(trackerDirectory: string, jobId: string): StageStateme
     return null;
   }
   const exposedSurfaceChanged = fieldOf(stored, 'exposedSurfaceChanged');
+  const returnedPackage = fieldOf(stored, 'returnedPackage');
+  const packageReturnReason = fieldOf(stored, 'packageReturnReason');
+  if (fieldOf(stored, 'stage') === 'adapt' && typeof returnedPackage === 'string' && typeof packageReturnReason === 'string') {
+    return { stage: 'adapt', returnedPackage, packageReturnReason };
+  }
   if (fieldOf(stored, 'stage') === 'package-build' && typeof exposedSurfaceChanged === 'boolean') return { stage: 'package-build', exposedSurfaceChanged };
   const exposedSurfaceConfirmed = fieldOf(stored, 'exposedSurfaceConfirmed');
   const reviewText = fieldOf(stored, 'reviewText');
@@ -235,6 +242,16 @@ function packageStageStatementsOf(trackerDirectory: string, logRecords: readonly
 }
 
 /**
+ * What the newest adapt build of the ticket that sent it back to `packageKey` wrote the package must give (E41, E42); `null` when no adapt
+ * build sent it back there.
+ */
+function packageReturnReasonOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, homeEntity: EntityKey, packageKey: EntityKey): string | null {
+  const adaptJobId = newestStageJobIdOf(logRecords, ticketId, { name: 'adapt', entity: homeEntity }, 'package-return');
+  const statement = adaptJobId === null ? null : stageStatementOf(trackerDirectory, adaptJobId);
+  return statement?.stage === 'adapt' && statement.returnedPackage === packageKey ? statement.packageReturnReason : null;
+}
+
+/**
  * Whether `adapt` is skipped (C15, A1): for every crossed package the package builder stated that what the package exposes did not change
  * from the proposal, and the package reviewer confirmed it. A statement left out counts as a change.
  */
@@ -269,7 +286,10 @@ function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Reado
       const whitelistedPackages = whitelistOf(entitiesOf(pipeline), jobStage.entity);
       return whitelistedPackages.length === 0 ? null : { stage: 'build', whitelistedPackages: [...whitelistedPackages] };
     },
-    'package-build':  () => ({ stage: 'package-build', homeEntity }),
+    'package-build': () => {
+      const packageReturnReason = packageReturnReasonOf(trackerDirectory, logRecords, ticketId, homeEntity, jobStage.entity);
+      return { stage: 'package-build', homeEntity, ...(packageReturnReason === null ? {} : { packageReturnReason }) };
+    },
     'package-review': () => ({
       stage:                 'package-review',
       homeEntity,
@@ -305,6 +325,7 @@ export const CrossingStages = Object.freeze({
   writeStageStatement,
   stageStatementOf,
   packageStageStatementsOf,
+  packageReturnReasonOf,
   adaptIsSkipped,
   confirmedExposedSurfaceChangedOf,
   sealedPackagesOf,

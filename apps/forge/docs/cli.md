@@ -1496,7 +1496,9 @@ forge need declare "Export the basket total" --entity shared --body-file need.md
 - A need for the entity and title the job declared before replaces that need's body, and the same body is nothing to
   do. A job declares at most five needs (`need-limit-reached`).
 - A relayed declaration is admitted only from a builder whose job runs an entity's stage, and only complete
-  (`need-outside-an-entity`, `need-incomplete`), before the hold.
+  (`need-outside-an-entity`, `need-incomplete`), before the hold. A need for a package whose change for the job's
+  ticket a package review sealed is refused `need-for-sealed-package`: only the adapt stage's `package-return` changes
+  a sealed package.
 - The declaration is only recorded: no ticket is filed and nothing is logged.
 
 When the builder then reports `needs-declared`, its job ends with that outcome, and its branch and commits stay. In the
@@ -1723,9 +1725,16 @@ from `adapt` or the home `review` back to a `package-build` is a package return,
   `adapt`.
 - **Adapt (stage 4).** The home builder resumes its stage 1 session; when that session cannot resume, a fresh one
   starts on the branch. It answers only for its own commits. Gated green it settles as a build above, and the row moves
-  to the home `review`.
+  to the home `review`. A package that does not give the home what it needs, or one more change in a package, is a
+  package return: the builder reports `package-return` with what the package must give in `packageReturnReason`, and
+  names the package in `packageReturnEntity` when more than one is sealed. Its own commits still answer to V17, so
+  they hold no change of a package; it runs no gate and ends `package-return`, its branch and commits kept, and the
+  reason waits in its job folder's `stage-statement.json`. The row then returns to that package's `package-build`,
+  whose builder is told the reason. A second return opens the `second-return` decision, which holds the ticket, and the
+  row keeps `adapt`. A report that names no sealed package, or a `package-return` from any other stage, fails
+  `no-report`.
 - **Review (stage 5).** The reviewer gets each package review's `reviewText`. A review that does not hold moves the row
-  back to `adapt`.
+  back to `adapt`, also for a cause in a package, which the adapt builder then returns to that package.
 
 From the package build on, a job whose branch no longer holds a sealed change is refused V17
 `sealed-change-altered`, which sends the session back once, as any other V17 refusal of a job of an entity. The

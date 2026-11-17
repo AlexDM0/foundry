@@ -10,4 +10,5 @@ export type RoleCommandRefusalReason =
   | 'incident-target-mismatch'
   | 'job-serves-no-setup'
   | 'need-outside-an-entity'
-  | 'need-incomplete';
+  | 'need-incomplete'
+  | 'need-for-sealed-package';

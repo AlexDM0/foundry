@@ -873,6 +873,7 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'job-serves-no-setup':               'this job is the agent of no open pipeline setup record',
   'need-outside-an-entity':            'only a build job of an entity declares a need',
   'need-incomplete':                   'a need names its entity and a title, and its body holds a numbered ## Acceptance and a ## Brief',
+  'need-for-sealed-package':           'the change of this ticket in that package is sealed; end the stage with the outcome package-return',
 };
 
 /** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

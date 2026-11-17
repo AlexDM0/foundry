@@ -14,6 +14,7 @@ import {
 import path, { join, relative, resolve } from 'node:path';
 
 import {
+  ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
   BUILDER_REPORT_SCHEMA,
   PACKAGE_BUILDER_REPORT_SCHEMA,
@@ -325,10 +326,14 @@ function inAPackageStage(subject: Pick<CustomsSubject, 'crossingStage'>): boolea
   return isAPackageStage(crossingStageNameOf(subject));
 }
 
-/** A package stage's report carries the statement of what the package exposes (A1): the package builder states it, its reviewer confirms it. */
+/**
+ * A package stage's report carries the statement of what the package exposes (A1): the package builder states it, its reviewer confirms it.
+ * An adapt build's report may send the ticket back to a sealed package (E41).
+ */
 function reportSchemaOf(role: ReportingRole, stageName: TicketStageName | null): JsonSchema {
   if (role === 'builder' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
   if (role === 'reviewer' && stageName === 'package-review') return PACKAGE_REVIEWER_REPORT_SCHEMA;
+  if (role === 'builder' && stageName === 'adapt') return ADAPT_BUILDER_REPORT_SCHEMA;
   return REPORT_SCHEMA_OF_ROLE[role];
 }
 

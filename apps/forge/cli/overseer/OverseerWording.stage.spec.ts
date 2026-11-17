@@ -6,8 +6,10 @@
  * reads its stage's rules first, states `exposedSurfaceChanged` (A1) and declares no need into its home entity (E24); the package reviewer
  * of stage 3 is told that statement and confirms or corrects it with `exposedSurfaceConfirmed` (C15); the adapt stage resumes the stage 1
  * session with its message alone (A2), a fresh session (E43) gets the message before its build prompt, and a need cannot name a sealed
- * package, which only `package-return` changes (E42); a fresh session after settled needs still gets its stage's message; the home review
- * of stage 5 is told the packages are sealed. No placeholder is left unfilled.
+ * package, which only `package-return` changes, with what the package must give (E41, E42); the package build the ticket returned to is
+ * told that reason before its stage's rules (E42), and one the ticket did not return to is told nothing of a return; a fresh session after
+ * settled needs still gets its stage's message; the home review of stage 5 is told the packages are sealed, and that a cause in a package
+ * goes back through the adapt stage (E52). No placeholder is left unfilled.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -151,9 +153,27 @@ describe('a builder of an entity', () => {
     expect(message.startsWith('The package stages of #014 are complete. Your session of stage 1 continues.')).toBe(true);
     expect(message).toContain('The change of the ticket in `shared` is sealed.');
     expect(message).toContain('### The package `shared`\n\nWhat the package exposes changed from the proposal.\n\nThe export now returns cents.');
-    expect(message).toContain('End with the outcome `package-return`');
+    expect(message).toContain('End with the outcome `package-return`. In `packageReturnReason`, write what the\n  package must give.');
+    expect(message).toContain('If more than one package is sealed, write the key of the package in `packageReturnEntity`.');
     expect(message.endsWith('Run the gates of `web` again, and end with your report.')).toBe(true);
     expect(message).not.toContain('You build ticket #014');
+  });
+
+  test('in stage 2 after a return from adapt, the package builder gets the reason before its stage\'s rules (E42)', () => {
+    const reason = 'The package must export the basket total in cents.\n{{notAPlaceholder}}';
+    const message = messageOf('build', 'shared', { stage: 'package-build', homeEntity: 'web', packageReturnReason: reason });
+
+    expect(message.startsWith('## Why the ticket is back in `shared`\n\nIn stage 4, the builder of `web` sent the ticket back to `shared`.')).toBe(true);
+    expect(message).toContain('The builder of `web` wrote what the package must give:\n\n  The package must export the basket total in cents.\n');
+    expect(message.indexOf('The package must export the basket total in cents.')).toBeLessThan(message.indexOf('This job is stage 2 of ticket #014'));
+    expect(message).toContain('does not allow the change');
+  });
+
+  test('in stage 2 without a return, the package builder is told nothing of one (E42)', () => {
+    const message = messageOf('build', 'shared', { stage: 'package-build', homeEntity: 'web' });
+
+    expect(message.startsWith('This job is stage 2 of ticket #014')).toBe(true);
+    expect(message).not.toContain('Why the ticket is back');
   });
 
   test('in stage 4, a fresh session gets the adapt message before its build prompt, which holds the ticket', () => {
@@ -200,6 +220,7 @@ describe('a reviewer of an entity', () => {
 
     expect(message).toContain('This review is stage 5 of the ticket: the review of `web`.');
     expect(message).toContain('The change of the ticket in `shared` is sealed.');
+    expect(message).toContain('The ticket then goes back to the builder of the adapt stage, which can send it back to the package.');
     expect(message).toContain('The reviewer of `shared` wrote no review text.');
   });
 
