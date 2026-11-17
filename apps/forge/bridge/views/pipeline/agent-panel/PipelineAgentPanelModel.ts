@@ -2,27 +2,31 @@
  * The pipeline agent panel's model, pure: the chat the agent's transcript reads as, the line of what the agent does while a turn runs, the
  * setup questions of one step worded as question cards, and the commands an answer and a message send. Questions are setup questions in
  * the record, never decisions: an answer is `pipeline-setup-answer`, a message `job-message` to the agent's job. The agent strip above
- * the composer says what the agent does on each step, beside Flint's slot: the habitat of the step, with its cue.
+ * the composer says what the agent does on each step, beside Flint's slot: the habitat of the step, with its cue. In monorepo mode the
+ * panel holds the session of one level, the forge's or one entity's: its job, its questions and its findings, never another level's; the
+ * open questions of the other levels are only counted and linked.
  */
 import type { TagProps } from 'design-system/Tag';
 
-import type { SpriteHabitat } from 'flint/SpriteHabitat';
-import type { JobState }      from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { SpriteHabitat }      from 'flint/SpriteHabitat';
+import type { JobState }           from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type {
   PipelineSetup,
   ResearchFinding,
   SetupQuestion,
   SetupQuestionStep
 } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DisplayState }                  from '../../../../src/lib/tracker-model/@types/Task.ts';
-import type { ControlCommandBody }            from '../../../api/CommandClient.ts';
-import type { TranscriptEntryDocument }       from '../../../api/TranscriptStreamClient.ts';
-import type { ChatTurn }                      from '../../../conversation/ChatThread.tsx';
-import { ChatThreadModelUtil }                from '../../../conversation/ChatThreadModel.ts';
-import { ChatTurnWordingUtil }                from '../../../conversation/ChatTurnWordingUtil.ts';
-import { FLINT_SLOT_CUES, type FlintSlotCue } from '../../../flint/FlintSlotCues.ts';
-import { FLINT_SLOT_HABITATS }                from '../../../flint/FlintSlotHabitats.ts';
-import { StateToneUtil }                      from '../../../utils/StateToneUtil.ts';
+import type { DisplayState }                                   from '../../../../src/lib/tracker-model/@types/Task.ts';
+import type { ControlCommandBody }                             from '../../../api/CommandClient.ts';
+import type { TranscriptEntryDocument }                        from '../../../api/TranscriptStreamClient.ts';
+import type { ChatTurn }                                       from '../../../conversation/ChatThread.tsx';
+import { ChatThreadModelUtil }                                 from '../../../conversation/ChatThreadModel.ts';
+import { ChatTurnWordingUtil }                                 from '../../../conversation/ChatTurnWordingUtil.ts';
+import { FLINT_SLOT_CUES, type FlintSlotCue }                  from '../../../flint/FlintSlotCues.ts';
+import { FLINT_SLOT_HABITATS }                                 from '../../../flint/FlintSlotHabitats.ts';
+import { StateToneUtil }                                       from '../../../utils/StateToneUtil.ts';
+import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
 
 export const PIPELINE_AGENT_SPEAKER = 'Pipeline agent';
 
@@ -249,7 +253,7 @@ function messageCommandOf(agentJobId: string | null, text: string): ControlComma
  */
 function agentStripOf(
   step: SetupQuestionStep,
-  record: Pick<PipelineSetup, 'questions' | 'readyToContinue'>,
+  record: { readonly questions: readonly SetupQuestion[]; readonly readyToContinue: PipelineSetup['readyToContinue'] },
   agentJobState: JobState | null
 ): AgentStripView {
   const { flintHabitat } = WORKING_STRIPS[step];
@@ -264,7 +268,82 @@ function composerTagOf(agentJobState: JobState | null): TagProps {
   return agentJobState === null ? STOPPED_TAG : RUNNING_TAG;
 }
 
+/** The session one level's chat holds: its agent's job, the job's state, and the questions and findings of that session alone. */
+export interface LevelSession {
+  readonly agentJobId:    string | null;
+  readonly agentJobState: JobState | null;
+  readonly questions:     readonly SetupQuestion[];
+  readonly findings:      readonly ResearchFinding[];
+}
+
+/** The line over the chat that counts the open questions of the other levels, each level a link. */
+export interface OtherLevelQuestionsView {
+  readonly text:   string;
+  readonly levels: readonly PipelineLevel[];
+}
+
+type LevelSessionFacts = Pick<PipelineSetupFacts, 'record' | 'agentJobState' | 'entities'>;
+
+const PANEL_TITLE = PIPELINE_AGENT_SPEAKER;
+
+/** The forge's session is the record's own; an entity's is its part of the record, with no job and no question until it has one. */
+function levelSessionOf(setup: LevelSessionFacts, level: PipelineLevel | null): LevelSession {
+  const { record } = setup;
+  if (level === null || PipelineLevelModel.isForgeLevel(level)) {
+    return {
+      agentJobId: record.agentJobId, agentJobState: setup.agentJobState, questions: record.questions, findings: record.findings
+    };
+  }
+  const entityParts = record.entities ?? {};
+  const part = Object.hasOwn(entityParts, level.key) ? entityParts[level.key] : undefined;
+  const entityFacts = setup.entities ?? {};
+  const facts = Object.hasOwn(entityFacts, level.key) ? entityFacts[level.key] : undefined;
+  return {
+    agentJobId:    part?.agentJobId ?? null,
+    agentJobState: facts?.agentJobState ?? null,
+    questions:     part?.questions ?? [],
+    findings:      part?.findings ?? [],
+  };
+}
+
+function openCountOf(questions: readonly SetupQuestion[]): number {
+  return questions.filter((question) => question.answer === null).length;
+}
+
+function questionCountTextOf(count: number): string {
+  return `${count} ${count === 1 ? 'question' : 'questions'}`;
+}
+
+/** Where the other levels' questions are: "in another entity", "in other entities", "in an entity", "at the Forge level", "at other levels". */
+function placeTextOf(level: PipelineLevel, levels: readonly PipelineLevel[]): string {
+  const forgeIsAmong = levels.some(PipelineLevelModel.isForgeLevel);
+  if (forgeIsAmong) return levels.length === 1 ? 'at the Forge level' : 'at other levels';
+  if (PipelineLevelModel.isForgeLevel(level)) return levels.length === 1 ? 'in an entity' : 'in entities';
+  return levels.length === 1 ? 'in another entity' : 'in other entities';
+}
+
+/** The open questions of every level but the one shown, the forge first; `null` while no other level asks. */
+function otherLevelQuestionsOf(setup: LevelSessionFacts, level: PipelineLevel): OtherLevelQuestionsView | null {
+  const entityKeys = Object.keys(setup.record.entities ?? {});
+  const counted = [FORGE_LEVEL, ...entityKeys.map((key) => PipelineLevelModel.entityLevelOf(key))]
+    .filter((other) => !PipelineLevelModel.levelsAreEqual(other, level))
+    .map((other) => ({ level: other, openCount: openCountOf(levelSessionOf(setup, other).questions) }))
+    .filter((entry) => entry.openCount > 0);
+  if (counted.length === 0) return null;
+  const levels = counted.map((entry) => entry.level);
+  const total = counted.reduce((sum, entry) => sum + entry.openCount, 0);
+  return { text: `${questionCountTextOf(total)} ${placeTextOf(level, levels)}`, levels };
+}
+
+/** "Pipeline agent" in single mode, "Pipeline agent · web" or "Pipeline agent · Forge" at a level. */
+function panelTitleOf(level: PipelineLevel | null): string {
+  return level === null ? PANEL_TITLE : `${PANEL_TITLE} · ${PipelineLevelModel.levelNameOf(level)}`;
+}
+
 export const PipelineAgentPanelModel = Object.freeze({
+  levelSessionOf,
+  otherLevelQuestionsOf,
+  panelTitleOf,
   chatTurnsOf,
   activityLineOf,
   questionCardsOf,

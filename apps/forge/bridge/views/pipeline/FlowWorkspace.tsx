@@ -2,6 +2,7 @@
  * The page of every pipeline stage that draws the flow (the proposal, live, editing and the smallest pipeline), in the Focus layout of
  * `PipelinePage`: the page's title row over the phase stepper and the one open phase, the stage's panel in the right column, the stage's
  * footer bar under both; and the dialog a step, a gate row or an add choice opens. With no flow yet, the title row, the panel and the footer still stand.
+ * In monorepo mode the level rail stands left of the page and the level's breadcrumb over the title; single mode passes neither.
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';
@@ -19,16 +20,20 @@ import { PipelinePhaseModel }                from './flow/PipelinePhaseModel.ts'
 import { MinimalPipelineNoteModel }          from './live/MinimalPipelineNoteModel.ts';
 
 export interface FlowWorkspaceProps {
-  readonly facts:     PipelineViewFacts;
-  readonly selection: FlowSelection;
-  readonly title:     string;
-  readonly lead:      string;
+  readonly facts:       PipelineViewFacts;
+  readonly selection:   FlowSelection;
+  readonly title:       string;
+  readonly lead:        string;
   /** A line over the phases, such as the agent still designing. */
-  readonly notice?:   ReactNode;
+  readonly notice?:     ReactNode;
   /** The right column: the stage's panel. */
-  readonly aside:     ReactNode;
+  readonly aside:       ReactNode;
   /** The full-width bar under the phase and the panel. */
-  readonly footer:    ReactNode;
+  readonly footer:      ReactNode;
+  /** Monorepo mode's level rail, left of the page. */
+  readonly rail?:       ReactNode;
+  /** Monorepo mode's level, over the title. */
+  readonly breadcrumb?: ReactNode;
 }
 
 /** The element that stands for a shown item: a step card, a gate row or the open phase's gates table. */
@@ -42,7 +47,7 @@ function elementOf(layout: HTMLElement | null, item: FlowShownItem): HTMLElement
 }
 
 export function FlowWorkspace({
-  facts, selection, title, lead, notice = null, aside, footer
+  facts, selection, title, lead, notice = null, aside, footer, rail = null, breadcrumb = null
 }: FlowWorkspaceProps) {
   const followProfileLog = useProfileLogFollower();
   const layoutRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +60,7 @@ export function FlowWorkspace({
   const record = facts.pipelineSetup?.record ?? null;
   const main = (
     <>
+      {breadcrumb}
       <ViewTitle title={title} lead={lead} />
       {notice}
       {flow === null
@@ -77,7 +83,7 @@ export function FlowWorkspace({
   );
   return (
     <>
-      <PipelinePage ref={layoutRef} main={main} panel={aside} footer={footer} />
+      <PipelinePage ref={layoutRef} main={main} panel={aside} footer={footer} rail={rail} />
       <PipelineDialogs
         facts={facts}
         request={selection.openRequest}

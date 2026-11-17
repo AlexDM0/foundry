@@ -37,6 +37,8 @@ const ALLOWED_LITERALS: readonly LiteralFinding[] = [
   { path: 'bridge/shell/Header.tsx', literal: 'forge' },
   // The monitor snapshot's activity category for the forge's own entries: a fixed value of the monitor contract, never the program's name.
   { path: 'src/services/overseer/MonitorSnapshotAssembly.ts', literal: 'forge' },
+  // The pipeline view's forge level: a kind of the level union and a segment of its route, never the program's name.
+  { path: 'bridge/views/pipeline/entities/PipelineLevelModel.ts', literal: 'forge' },
 ];
 
 /** The name standing alone, longest first: not inside a path, a folder, a file name, a longer name or a storage key. */

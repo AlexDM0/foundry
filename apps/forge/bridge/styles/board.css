@@ -72,6 +72,18 @@
  *   .bridge-pipeline-design[data-state] the design step (A2Proposal): the -latest-change block (-latest-change-text,
  *                           -latest-change-links) under the agent's chat, the .bridge-pipeline-change-list of -change-list-item cards
  *                           or the -change-list-empty line; the footer's -hint[data-tone] with its -hint-dot, and the -apply holder
+ *   .bridge-entity-rail      monorepo mode's level rail (the Mono boards' left column), in the Focus layout's
+ *                           .bridge-pipeline-focus-rail: the filter field, the -attention line, the -rows of the forge row and each
+ *                           -group (its -group-label) of .bridge-entity-rail-row[aria-current?][data-selected?] buttons (the
+ *                           -forge-mark, the -row-text with its -row-kind, the -row-end of counts and the status mark, a -checked
+ *                           mark), the -no-match line and the -note
+ *   .bridge-entity-breadcrumb the level over a monorepo page's title: the -link to the forge level, the -separator, the -current
+ *                           level
+ *   .bridge-change-group    one level's part of the Changes list: the -head[aria-expanded] with its -chevron, the -items of -item
+ *                           cards; a -batch card (the -batch-head with its -batch-title and the set's Undo, the -disclosure, the
+ *                           -batch-edits list)
+ *   .bridge-other-level-questions the line over a level's chat counting the other levels' open questions: its -links of -link, the
+ *                           -note
  *   .bridge-pipeline-activity-rows the live flow's panel (A5Live): its "Now" rows and the -activity-history of
  *                           -activity-history-line entries with their -activity-history-clock; the .bridge-pipeline-toast holder of
  *                           the toast after an Apply
@@ -2735,6 +2747,75 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
   .bridge-pipeline-design-hint[data-tone="answered"],
   .bridge-pipeline-design-latest-change { animation: bridge-pop var(--motion-pop) var(--ease-out) both; }
 }
+
+/* Monorepo mode's level rail, as the Mono boards draw the left column: 232 px of the forge row and the entity groups, the selected row
+ * filled with the neutral selection ground and a 1 px border, never an orange edge. */
+.bridge-pipeline-focus-rail { display: flex; flex: 0 0 232px; flex-direction: column; min-width: 0; min-height: 0; margin: var(--sp-2) 0 20px; }
+.bridge-entity-rail { display: flex; flex: 1 1 auto; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
+.bridge-entity-rail-attention { padding: 0 4px; }
+.bridge-entity-rail-rows { display: flex; flex-direction: column; gap: 2px; }
+.bridge-entity-rail-group { display: flex; flex-direction: column; gap: 2px; }
+.bridge-entity-rail-group-label { padding: 8px 10px 2px; }
+.bridge-entity-rail-row {
+  display: flex; align-items: center; gap: var(--sp-2); box-sizing: border-box; width: 100%; min-height: 44px; padding: 5px 10px;
+  border: 1px solid transparent; border-radius: var(--r-2); background: transparent; color: var(--ink); font: inherit; text-align: left;
+  cursor: pointer;
+}
+.bridge-entity-rail-row:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.bridge-entity-rail-row:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-entity-rail-row[data-selected] { border-color: var(--line-strong); background: var(--surface-selected); }
+.bridge-entity-rail-forge-mark { display: inline-flex; flex: none; color: var(--ink); }
+.bridge-entity-rail-row-text { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+.bridge-entity-rail-row-kind { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bridge-entity-rail-row-end { display: inline-flex; flex: none; align-items: center; gap: 6px; }
+.bridge-entity-rail-checked { display: inline-flex; align-items: center; gap: 6px; }
+.bridge-entity-rail-no-match { margin: 0; padding: 4px 10px; font-size: var(--fs-small); color: var(--ink-muted); }
+.bridge-entity-rail-note {
+  margin: auto 0 0; padding: 12px 10px 0; border-top: 1px solid var(--line); font-size: var(--fs-small); line-height: 17px; color: var(--ink-muted);
+}
+
+/* The level over a monorepo page's title: "Pipeline", a link to the forge level, then the level itself. */
+.bridge-entity-breadcrumb { display: flex; align-items: center; gap: 6px; padding-bottom: 4px; font-size: var(--fs-tab); color: var(--ink-muted); }
+.bridge-entity-breadcrumb-link { color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px; }
+.bridge-entity-breadcrumb-link:hover { color: var(--ink); }
+.bridge-entity-breadcrumb-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-entity-breadcrumb-separator { color: var(--ink-muted); }
+.bridge-entity-breadcrumb-current { display: inline-flex; color: var(--ink); }
+
+/* One level's part of the Changes list: a head that folds it, its change cards, and a copy's batch card with its own list of edits. */
+.bridge-change-group { display: flex; flex-direction: column; gap: 6px; }
+.bridge-change-group-head,
+.bridge-change-group-disclosure {
+  display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 0 2px; margin: 0; border: 0; background: transparent;
+  font: inherit; text-align: left; cursor: pointer;
+}
+.bridge-change-group-head { height: 26px; color: var(--ink); }
+.bridge-change-group-disclosure { height: 24px; color: var(--link); font-size: var(--fs-tab); font-weight: 500; }
+.bridge-change-group-head:focus-visible,
+.bridge-change-group-disclosure:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-change-group-chevron { display: inline-flex; transition: transform var(--motion-fast) var(--ease-out); }
+.bridge-change-group-head[aria-expanded="false"] .bridge-change-group-chevron,
+.bridge-change-group-disclosure[aria-expanded="false"] .bridge-change-group-chevron { transform: rotate(-90deg); }
+.bridge-change-group-items,
+.bridge-change-group-batch-edits { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bridge-change-group-item { display: block; }
+.bridge-change-group-batch {
+  display: flex; flex-direction: column; gap: 8px; padding: 9px 12px 10px; border: 1px solid var(--line); border-radius: var(--r-2);
+  background: var(--surface-page);
+}
+.bridge-change-group-batch-head { display: flex; align-items: center; gap: var(--sp-2); }
+.bridge-change-group-batch-title { display: flex; flex: 1 1 0; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+
+/* The line over a level's chat that links the open questions of the other levels. */
+.bridge-other-level-questions {
+  display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 18px; border-bottom: 1px solid var(--line);
+  background: var(--link-tint);
+}
+.bridge-other-level-questions-links { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.bridge-other-level-questions-link { color: var(--link); font-size: var(--fs-small); font-weight: 500; }
+.bridge-other-level-questions-link:hover { color: var(--ink); }
+.bridge-other-level-questions-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-other-level-questions-note { margin-left: auto; }
 
 /* The live flow's panel (A5Live): the "Now" rows and the "Earlier" records with their clocks; the toast after an Apply, laid over the
  * flow without moving it. The Now rows, like the Changes tab's cards, rise one --rise-step after another, as FlowLive and FlowEditing

@@ -2,11 +2,13 @@
  * The Pipeline view's model, pure: which screen the facts and the route pick, the setup steps in their order with their words, and the
  * fragment of each step's route (`#pipeline/setup/<step>`). The screen follows the facts first: a record in `setup` mode opens the route's
  * step, or the resume summary on the bare `#pipeline`; a record in `update` or `advise` mode is the flow being edited; a readable pipeline
- * is the live flow; anything else is the setup landing, which names an unreadable file's reason.
+ * is the live flow; anything else is the setup landing, which names an unreadable file's reason. In monorepo mode a route leads with its
+ * level (`PipelineLevelModel`), and the screen reads the item under it.
  */
 import type { StepperStatus } from 'design-system/Stepper';
 
-import type { LogRecord } from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord }                           from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline, PipelineEntity } from '../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   GateCacheMarkFacts,
@@ -20,6 +22,7 @@ import type { PipelineSetup, PipelineSetupMode, PipelineSetupStep } from '../../
 import type { AgentPair }                                           from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
 import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
+import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }      from './entities/PipelineLevelModel.ts';
 import { MinimalPipelineNoteModel }                                 from './live/MinimalPipelineNoteModel.ts';
 
 /** The setup steps in their order; single mode leaves out `entities` (`setupStepsOf`). */
@@ -91,6 +94,31 @@ function setupHasEntities(record: PipelineSetup | null): boolean {
   return record.stepStates.entities !== undefined || record.entities !== undefined || record.draft?.entities !== undefined;
 }
 
+/** What the shown entities are read from: the draft of an open record, else the stored pipeline. */
+export interface ShownEntitiesFacts {
+  readonly pipeline?:      AppliedPipelineFacts;
+  readonly pipelineSetup?: { readonly record: { readonly draft: Pick<Pipeline, 'entities'> | null } } | null;
+}
+
+/** The entities a monorepo screen shows: the draft's while a record holds a draft, else the stored pipeline's; none in single mode. */
+function entitiesShownOf(facts: ShownEntitiesFacts): Readonly<Record<EntityKey, PipelineEntity>> {
+  const draft = facts.pipelineSetup?.record.draft ?? null;
+  if (draft !== null) return draft.entities ?? {};
+  return facts.pipeline?.readingVerdict === 'readable' ? facts.pipeline.pipeline.entities ?? {} : {};
+}
+
+/** Monorepo mode is a fact, never a choice: the setup record has entities, or the stored pipeline holds them. */
+function monorepoModeOf(facts: Pick<PipelineViewFacts, 'pipeline' | 'pipelineSetup'>): boolean {
+  if (setupHasEntities(facts.pipelineSetup?.record ?? null)) return true;
+  return facts.pipeline?.readingVerdict === 'readable' && facts.pipeline.pipeline.entities !== undefined;
+}
+
+/** The level a monorepo screen shows: the route's, else the forge; `null` in single mode, whatever the route names. */
+function levelShownOf(facts: Pick<PipelineViewFacts, 'pipeline' | 'pipelineSetup'>, route: BridgeRoute): PipelineLevel | null {
+  if (!monorepoModeOf(facts)) return null;
+  return PipelineLevelModel.leveledItemOf(route.item).level ?? FORGE_LEVEL;
+}
+
 /** The steps the stepper shows, in order: single mode has no `entities` step. */
 function setupStepsOf(record: PipelineSetup | null): readonly PipelineSetupStep[] {
   return setupHasEntities(record) ? PIPELINE_SETUP_STEPS : PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities');
@@ -113,11 +141,12 @@ function unreadablePipelineOf(pipeline: AppliedPipelineFacts | undefined): Unrea
 
 function screenOf(facts: PipelineViewFacts, route: BridgeRoute): PipelineScreen {
   const record = facts.pipelineSetup?.record ?? null;
+  const item = PipelineLevelModel.itemWithinLevelOf(route.item);
   if (record !== null && record.mode === 'setup') {
-    const step = routedStepOf(route.item, record);
+    const step = routedStepOf(item, record);
     return step === null ? { screen: 'setup-resume' } : { screen: 'setup-step', step };
   }
-  if (record !== null) return route.item === CONSTITUTION_EDIT_ITEM ? { screen: 'constitution-edit' } : { screen: 'flow', stage: 'editing' };
+  if (record !== null) return item === CONSTITUTION_EDIT_ITEM ? { screen: 'constitution-edit' } : { screen: 'flow', stage: 'editing' };
   if (facts.pipeline?.readingVerdict === 'readable') return { screen: 'flow', stage: 'live' };
   return { screen: 'setup-landing', unreadable: unreadablePipelineOf(facts.pipeline) };
 }
@@ -136,18 +165,21 @@ function setupStepStatusOf(record: PipelineSetup | null, step: PipelineSetupStep
   }
 }
 
-function setupStepRouteOf(step: PipelineSetupStep): BridgeRoute {
-  return { tab: 'pipeline', item: `${SETUP_ITEM_PREFIX}${step}` };
+/** A step's route, at the level given in monorepo mode. */
+function setupStepRouteOf(step: PipelineSetupStep, level: PipelineLevel | null = null): BridgeRoute {
+  const item = `${SETUP_ITEM_PREFIX}${step}`;
+  return level === null ? { tab: 'pipeline', item } : PipelineLevelModel.routeAtLevel(level, item);
 }
 
-/** Where a setup step reopens, `#pipeline/setup/<step>`. */
-function setupStepFragmentOf(step: PipelineSetupStep): string {
-  return HashRouter.fragmentOf(setupStepRouteOf(step));
+/** Where a setup step reopens, `#pipeline/setup/<step>`, or under the level given in monorepo mode. */
+function setupStepFragmentOf(step: PipelineSetupStep, level: PipelineLevel | null = null): string {
+  return HashRouter.fragmentOf(setupStepRouteOf(step, level));
 }
 
 /** Where the constitution is edited: its setup step in a first setup, else `#pipeline/edit/constitution` (an update, advise or a live board). */
-function constitutionFragmentOf(mode: PipelineSetupMode | null): string {
-  if (mode === 'setup') return setupStepFragmentOf('constitution');
+function constitutionFragmentOf(mode: PipelineSetupMode | null, level: PipelineLevel | null = null): string {
+  if (mode === 'setup') return setupStepFragmentOf('constitution', level);
+  if (level !== null) return PipelineLevelModel.fragmentAtLevel(level, CONSTITUTION_EDIT_ITEM);
   return HashRouter.fragmentOf({ tab: 'pipeline', item: CONSTITUTION_EDIT_ITEM });
 }
 
@@ -203,16 +235,26 @@ function unreadableTextOf(unreadable: UnreadablePipeline): string {
 
 /** The live flow under a `#pipeline/setup/<step>` route: the setup was applied, so the route goes back to `#pipeline`. */
 function setupRouteIsLeftOf(screen: PipelineScreen, route: BridgeRoute): boolean {
-  return screen.screen === 'flow' && screen.stage === 'live' && route.item?.startsWith(SETUP_ITEM_PREFIX) === true;
+  return screen.screen === 'flow' && screen.stage === 'live' && PipelineLevelModel.itemWithinLevelOf(route.item)?.startsWith(SETUP_ITEM_PREFIX) === true;
 }
 
 const LIVE_ROUTE: BridgeRoute = Object.freeze({ tab: 'pipeline', item: null });
 
+/** Where a left setup route goes: the live flow at the route's level, or `#pipeline` on a single-mode route. */
+function liveRouteOf(route: BridgeRoute): BridgeRoute {
+  const { level } = PipelineLevelModel.leveledItemOf(route.item);
+  return level === null ? LIVE_ROUTE : PipelineLevelModel.routeAtLevel(level, null);
+}
+
 export const PipelineViewModel = Object.freeze({
   liveRoute: LIVE_ROUTE,
+  liveRouteOf,
   setupRouteIsLeftOf,
   screenOf,
   setupHasEntities,
+  entitiesShownOf,
+  monorepoModeOf,
+  levelShownOf,
   setupStepsOf,
   setupStepStatusOf,
   setupStepRouteOf,

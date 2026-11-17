@@ -246,8 +246,8 @@ export function PipelineView({
   const setupRouteIsLeft = PipelineViewModel.setupRouteIsLeftOf(screen, route);
   const appliedToast = useAppliedToast(facts);
   useEffect(() => {
-    if (setupRouteIsLeft) HashRouter.navigateTo(PipelineViewModel.liveRoute);
-  }, [setupRouteIsLeft]);
+    if (setupRouteIsLeft) HashRouter.navigateTo(PipelineViewModel.liveRouteOf(route));
+  }, [setupRouteIsLeft, route]);
   return (
     <section className="bridge-pipeline" aria-label={PipelineViewModel.screenTitleOf(screen)} data-screen={screen.screen}>
       <ProfileLogFollowerContext.Provider value={followProfileLog}>

@@ -2,7 +2,8 @@
  * The pipeline agent's conversation inside a pipeline panel: what the step shows before it, the agent's chat, what follows the chat, the
  * line of what the agent does while a turn runs, and the step's setup questions as decision cards last; then the agent strip with Flint,
  * and the composer that messages the agent in the panel's foot. An answer and a message go to the Overseer as commands, and a refusal
- * shows verbatim.
+ * shows verbatim. In monorepo mode the panel shows one level's session, the forge's or an entity's, under a line that links the open
+ * questions of the other levels; the head that holds the panel names the level by `PipelineAgentPanelModel.panelTitleOf`.
  */
 import { TypingIndicator } from 'design-system/TypingIndicator';
 import type { ReactNode }  from 'react';
@@ -13,9 +14,17 @@ import { ChatThread }                                      from '../../../conver
 import { Composer }                                        from '../../../conversation/Composer.tsx';
 import { useTranscript, type TranscriptFollower }          from '../../../conversation/TranscriptLog.tsx';
 import { PipelinePanelBody, PipelinePanelFoot }            from '../PipelinePanel.tsx';
+import { OtherLevelQuestionsStrip }                        from '../entities/OtherLevelQuestionsStrip.tsx';
+import type { PipelineLevel }                              from '../entities/PipelineLevelModel.ts';
 import { AgentStrip }                                      from './AgentStrip.tsx';
 import { PIPELINE_AGENT_SPEAKER, PipelineAgentPanelModel } from './PipelineAgentPanelModel.ts';
 import { SetupQuestionForm }                               from './SetupQuestionForm.tsx';
+
+/** The level a monorepo panel shows, and where the same screen opens at another level. */
+export interface AgentPanelLevel {
+  readonly level:  PipelineLevel;
+  readonly hrefOf: (level: PipelineLevel) => string;
+}
 
 export interface PipelineAgentPanelProps {
   readonly setup:               PipelineSetupFacts;
@@ -31,19 +40,26 @@ export interface PipelineAgentPanelProps {
   readonly afterChat?:          ReactNode;
   /** Flint's strip above the composer, on the setup steps only: one slot per page. */
   readonly showsAgentStrip?:    boolean;
+  /** Absent in single mode: the record's one session. */
+  readonly levelShown?:         AgentPanelLevel | null;
 }
 
 export function PipelineAgentPanel({
-  setup, step, followTranscript, todayCalendarDate, composerPlaceholder, beforeChat = null, afterChat = null, showsAgentStrip = false
+  setup, step, followTranscript, todayCalendarDate, composerPlaceholder, beforeChat = null, afterChat = null, showsAgentStrip = false,
+  levelShown = null
 }: PipelineAgentPanelProps) {
   const { record } = setup;
-  const { agentJobId } = record;
+  const session = PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null);
+  const { agentJobId, agentJobState } = session;
   const { entries, historyKey } = useTranscript(agentJobId, followTranscript);
-  const cards = PipelineAgentPanelModel.questionCardsOf(record.questions, step, record.findings);
+  const cards = PipelineAgentPanelModel.questionCardsOf(session.questions, step, session.findings);
+  const stripQuestions = { questions: session.questions, readyToContinue: record.readyToContinue };
+  const otherLevelQuestions = levelShown === null ? null : PipelineAgentPanelModel.otherLevelQuestionsOf(setup, levelShown.level);
   const activityLine = PipelineAgentPanelModel.activityLineOf(entries);
   const turns = agentJobId === null ? [] : PipelineAgentPanelModel.chatTurnsOf(entries, agentJobId, todayCalendarDate);
   return (
     <>
+      {otherLevelQuestions === null || levelShown === null ? null : <OtherLevelQuestionsStrip view={otherLevelQuestions} hrefOf={levelShown.hrefOf} />}
       <PipelinePanelBody followsEnd>
         {beforeChat}
         {turns.length === 0
@@ -53,13 +69,13 @@ export function PipelineAgentPanel({
         {activityLine === null ? null : <TypingIndicator text={activityLine} accessibleName={`${PIPELINE_AGENT_SPEAKER} is working`} />}
         {cards.map((card) => <SetupQuestionForm key={card.questionId} setupId={record.setupId} card={card} layout="stack" />)}
       </PipelinePanelBody>
-      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, record, setup.agentJobState)} /> : null}
+      {showsAgentStrip ? <AgentStrip strip={PipelineAgentPanelModel.agentStripOf(step, stripQuestions, agentJobState)} /> : null}
       <PipelinePanelFoot>
         <Composer
           label="Message the pipeline agent"
           recipientLabel={PIPELINE_AGENT_SPEAKER}
           recipientJobId={agentJobId}
-          status={PipelineAgentPanelModel.composerTagOf(setup.agentJobState)}
+          status={PipelineAgentPanelModel.composerTagOf(agentJobState)}
           placeholder={composerPlaceholder}
           sendLabel="Send"
           commandOf={(text) => PipelineAgentPanelModel.messageCommandOf(agentJobId, text)}
