@@ -5,6 +5,9 @@
  * dialog opens on that state's text from the facts, its Cancel is Cancel apply, which sends `pipeline-apply-cancel`, and a signing
  * failure offers the exact text of CONSTITUTION.md; Cancel, on the foot's start side, closes the dialog; once the facts show the
  * pipeline applied, the view leaves the setup route for the live flow.
+ * Over entities (MonoApply): the dialog lists what is stored per level and the constitutions in the one commit; an entity worth a look
+ * links to its level and never blocks Apply; the line about pending tickets without an entity shows; E94 shows only in update mode over a
+ * stored pipeline without entities, with a link to each ticket and Apply disabled, and never on a first Apply.
  */
 import {
   act,
@@ -20,11 +23,14 @@ import {
 } from 'bun:test';
 import { useState } from 'react';
 
+import type { PipelineEntity }                                                    from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupFacts }                                                from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { BoardStateDocument }                                                from '../../../@types/BoardStateDocument.ts';
 import type { BridgeRoute }                                                       from '../../../shell/HashRouter.ts';
 import { clickSettled, fakeControls }                                             from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
 import { PipelineView }                                                           from '../PipelineView.tsx';
+import { ApplyDialog }                                                            from './ApplyDialog.tsx';
 
 const DESIGN_ROUTE: BridgeRoute = { tab: 'pipeline', item: 'setup/design' };
 
@@ -153,5 +159,97 @@ describe('the landing', () => {
     show(pipelineBoardStateOf('A5'));
     expect(screen.queryByRole('dialog', { name: 'Apply the pipeline?' })).toBeNull();
     expect(window.location.hash).toBe('#pipeline');
+  });
+});
+
+const ADMIN_ENTITY: PipelineEntity = {
+  kind: 'app', home: ['/apps/admin'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] },
+};
+
+/** The monorepo design with its open question answered away, so Apply can open; with `admin`, an entity worth a look. */
+function monorepoBoard(withAdmin: boolean): BoardStateDocument {
+  const board = pipelineBoardStateOf('mono-design');
+  const setup = board.pipelineSetup ?? null;
+  if (setup === null) throw new Error('the fixture mono-design has no setup');
+  const { record } = setup;
+  const draft = record.draft === null || !withAdmin ? record.draft : { ...record.draft, entities: { ...record.draft.entities, admin: ADMIN_ENTITY } };
+  const entities = Object.fromEntries(Object.entries(record.entities ?? {}).map(([entityKey, part]) => [entityKey, { ...part, questions: [] }]));
+  const entityFacts = Object.fromEntries(Object.entries(setup.entities ?? {}).map(([entityKey, facts]) => [entityKey, { ...facts, openQuestionCount: 0 }]));
+  const monorepoSetup: PipelineSetupFacts = {
+    ...setup, openQuestionCount: 0, record: { ...record, draft, entities }, entities: entityFacts,
+  };
+  return { ...board, pipelineSetup: monorepoSetup };
+}
+
+function renderMonorepoDesign(withAdmin: boolean) {
+  const controls = fakeControls();
+  controls.render(<PipelineView facts={monorepoBoard(withAdmin)} route={DESIGN_ROUTE} {...pipelineViewServicesOf()} />);
+  return controls;
+}
+
+describe('over entities', () => {
+  test('lists what is stored per level and the constitutions the one commit holds', async () => {
+    renderMonorepoDesign(false);
+    await clickSettled(button(screen.getByRole('region', { name: 'Pipeline design actions' }), 'Apply pipeline'));
+    const levels = within(applyDialog()).getByRole('list', { name: 'What is stored, per level' });
+    expect(within(levels).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'ForgeHuman ticket review on, human code review off, conflict re-review over 750 lines',
+      'webapp · 1 prepare step · 2 build, 2 review and 2 merge gates · review on',
+      'design-systempackage · 1 build, 1 review and 1 merge gates · review on',
+      'rootroot · Kept for a person: no gates, no constitution',
+    ]);
+    expect(within(applyDialog()).getByText('1 constitution goes to main in one commit')).toBeDefined();
+    expect(within(within(applyDialog()).getByRole('list', { name: 'Constitutions in the commit' })).getByText('web')).toBeDefined();
+    expect(within(applyDialog()).getByText('The 4 pending tickets start building, 2 jobs at once.')).toBeDefined();
+    expect(within(applyDialog()).getByText('4 pending tickets name no entity. After Apply the product owner gives each one an entity.')).toBeDefined();
+    expect(within(applyDialog()).queryByText('Apply is refused')).toBeNull();
+  });
+
+  test('an entity worth a look links to its level and never blocks Apply', async () => {
+    const controls = renderMonorepoDesign(true);
+    await clickSettled(button(screen.getByRole('region', { name: 'Pipeline design actions' }), 'Apply pipeline'));
+    const worthALook = within(applyDialog()).getByRole('list', { name: 'Worth a look' });
+    expect(within(worthALook).getByText('admin has no gates')).toBeDefined();
+    expect(within(worthALook).getAllByRole('link', { name: 'Open admin' })[0]?.getAttribute('href')).toBe('#pipeline/entity/admin/setup/design');
+    await clickSettled(button(applyDialog(), 'Apply'));
+    expect(controls.sent.at(-1)).toMatchObject({ kind: 'pipeline-apply', setupId: 'S1', resumesBoard: true });
+  });
+});
+
+describe('E94 before Apply', () => {
+  function renderDialog(mode: 'setup' | 'update') {
+    const setup = monorepoBoard(false).pipelineSetup ?? null;
+    if (setup === null) throw new Error('the monorepo board has a setup');
+    const storedPipeline = pipelineBoardStateOf('A5').pipeline;
+    if (storedPipeline === undefined) throw new Error('the fixture A5 stores a pipeline');
+    const controls = fakeControls();
+    controls.render(
+      <ApplyDialog
+        setup={{ ...setup, record: { ...setup.record, mode } }}
+        pendingTicketCount={0}
+        concurrencyLimit={2}
+        onClose={() => undefined}
+        storedPipeline={storedPipeline}
+        ticketIdsInFlight={['14']}
+      />
+    );
+    return controls;
+  }
+
+  test('in update mode over a stored pipeline without entities, says Apply is refused, links the ticket and keeps Apply disabled', () => {
+    renderDialog('update');
+    const alert = within(applyDialog()).getByRole('alert');
+    expect(within(alert).getByText('Apply is refused')).toBeDefined();
+    expect(within(alert).getByRole('link', { name: 'Open 14' }).getAttribute('href')).toBe('#kanban/ticket/14');
+    expect(button(applyDialog(), 'Apply').disabled).toBe(true);
+    expect(within(applyDialog()).queryByRole('checkbox', { name: /Resume the board/u })).toBeNull();
+  });
+
+  test('never shows on a first Apply, where Apply stays enabled', async () => {
+    const controls = renderDialog('setup');
+    expect(within(applyDialog()).queryByRole('alert')).toBeNull();
+    expect(button(applyDialog(), 'Apply').disabled).toBe(false);
+    await clickSettled(button(applyDialog(), 'Apply'));
+    expect(controls.sent.at(-1)).toMatchObject({ kind: 'pipeline-apply', setupId: 'S1' });
   });
 });

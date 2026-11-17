@@ -3,7 +3,8 @@
  * or was refused with what User can do next. After a signing failure, "View CONSTITUTION.md" opens the exact text User may commit by hand.
  * The foot under it is the dialogs' shared one: Cancel (or Back) on the start side and Apply on the end with no pending request, Cancel
  * apply while one is pending, and Apply again beside it once the request was refused; each command's refusal shows verbatim beside its
- * button.
+ * button. Over entities the pending state counts the constitutions in the commit, and a first Apply that the board would refuse keeps
+ * Apply disabled with the reason on hover.
  */
 
 import { BusyIndicator } from 'design-system/BusyIndicator';
@@ -11,20 +12,22 @@ import { Button }        from 'design-system/Button';
 import { Dialog }        from 'design-system/Dialog';
 import { useState }      from 'react';
 
-import type { ApplyStateFacts }    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { ControlCommandBody } from '../../../api/CommandClient.ts';
-import { CommandButton }           from '../../../shell/CommandButton.tsx';
-import { ApplyPendingStateModel }  from './ApplyPendingStateModel.ts';
+import type { ApplyStateFacts }                                 from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ControlCommandBody }                              from '../../../api/CommandClient.ts';
+import { CommandButton }                                        from '../../../shell/CommandButton.tsx';
+import { ApplyPendingStateModel, type EntityConstitutionCount } from './ApplyPendingStateModel.ts';
 
 export interface ApplyPendingStateProps {
-  readonly applyState:           ApplyStateFacts;
+  readonly applyState:               ApplyStateFacts;
   /** The draft's text of `CONSTITUTION.md`, byte for byte; null when the draft has none. */
-  readonly constitutionMarkdown: string | null;
+  readonly constitutionMarkdown:     string | null;
+  /** Over entities, how many drafted constitutions the commit holds; absent on a forge without entities. */
+  readonly entityConstitutionCount?: EntityConstitutionCount;
 }
 
-export function ApplyPendingState({ applyState, constitutionMarkdown }: ApplyPendingStateProps) {
+export function ApplyPendingState({ applyState, constitutionMarkdown, entityConstitutionCount = null }: ApplyPendingStateProps) {
   const [constitutionIsShown, setConstitutionIsShown] = useState(false);
-  const view = ApplyPendingStateModel.pendingViewOf(applyState);
+  const view = ApplyPendingStateModel.pendingViewOf(applyState, entityConstitutionCount);
   return (
     <div className="bridge-pipeline-apply-pending" data-state={view.state} role="status">
       <p className="bridge-pipeline-apply-pending-line">
@@ -59,19 +62,21 @@ export function ApplyPendingState({ applyState, constitutionMarkdown }: ApplyPen
 }
 
 export interface ApplyFootProps {
-  readonly setupId:      string;
-  readonly applyState:   ApplyStateFacts | null;
+  readonly setupId:        string;
+  readonly applyState:     ApplyStateFacts | null;
   /** "Cancel" in A4, "Back" in A6b: it only closes the dialog. */
-  readonly closeLabel:   string;
-  readonly onClose:      () => void;
-  readonly applyLabel:   string;
-  readonly applyCommand: ControlCommandBody;
+  readonly closeLabel:     string;
+  readonly onClose:        () => void;
+  readonly applyLabel:     string;
+  readonly applyCommand:   ControlCommandBody;
   /** Called once the Overseer took the Apply: it may still commit `CONSTITUTION.md` before the pipeline lands. */
-  readonly onApplySent?: () => void;
+  readonly onApplySent?:   () => void;
+  /** Why Apply cannot be sent yet, shown on hover over the disabled Apply; absent while it can. */
+  readonly applyWaitsFor?: string;
 }
 
 export function ApplyFoot({
-  setupId, applyState, closeLabel, onClose, applyLabel, applyCommand, onApplySent
+  setupId, applyState, closeLabel, onClose, applyLabel, applyCommand, onApplySent, applyWaitsFor
 }: ApplyFootProps) {
   const offersApply = applyState === null || ApplyPendingStateModel.pendingViewOf(applyState).offersApplyAgain;
   return (
@@ -80,7 +85,14 @@ export function ApplyFoot({
         ? <Button label={closeLabel} onPress={onClose} />
         : <CommandButton label="Cancel apply" command={ApplyPendingStateModel.cancelCommandOf(setupId)} />}
       <span className="bridge-pipeline-dialog-foot-gap" />
-      {offersApply
+      {offersApply && applyWaitsFor !== undefined
+        ? (
+          <span title={applyWaitsFor}>
+            <Button label={applyLabel} emphasis="primary" disabled />
+          </span>
+        )
+        : null}
+      {offersApply && applyWaitsFor === undefined
         ? (
           <CommandButton
             label={applyLabel}

@@ -11,6 +11,7 @@ import type { LogRecord }                           from '../../../src/lib/track
 import type { EntityKey, Pipeline, PipelineEntity } from '../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
+  EntityAssignmentFacts,
   GateCacheMarkFacts,
   GateProfileRunFacts,
   PipelineChoices,
@@ -64,11 +65,13 @@ export interface PipelineViewFacts {
   readonly pipelineHistory?:       readonly LogRecord[];
   /** The setup landing and the first Apply count the pending tickets in it; the live flow cuts its stamps by the payload's limits. */
   readonly page?:            {
-    readonly tickets:  readonly { readonly status: string }[];
+    readonly tickets:  readonly { readonly status: string; readonly entity?: string }[];
     readonly payload?: { readonly limits?: TimestampSlices };
   };
   /** The first Apply says how many tickets start building at a time. */
-  readonly concurrency?: { readonly limit: number };
+  readonly concurrency?:      { readonly limit: number };
+  /** The product owner's progress after the first Apply over entities. */
+  readonly entityAssignment?: EntityAssignmentFacts;
 }
 
 /** The Focus layout's title row: the page title and the sentence under it. */

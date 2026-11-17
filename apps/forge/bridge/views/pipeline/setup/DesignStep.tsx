@@ -34,6 +34,7 @@ import { AgentMeter }                                          from '../agent-pa
 import { PipelineAgentPanel }                                  from '../agent-panel/PipelineAgentPanel.tsx';
 import { PipelineAgentPanelModel }                             from '../agent-panel/PipelineAgentPanelModel.ts';
 import { ApplyDialog }                                         from '../apply/ApplyDialog.tsx';
+import { ApplyDialogModel }                                    from '../apply/ApplyDialogModel.ts';
 import { ChangeList }                                          from '../apply/ChangeList.tsx';
 import { ChangeListModel }                                     from '../apply/ChangeListModel.ts';
 import { CopyBetweenEntitiesDialog }                           from '../editing/CopyBetweenEntitiesDialog.tsx';
@@ -270,6 +271,10 @@ function DesignPage({
             concurrencyLimit={facts.concurrency?.limit ?? null}
             onClose={selection.closeApply}
             {...(onApplySent === undefined ? {} : { onApplySent })}
+            {...(facts.pipeline === undefined ? {} : { storedPipeline: facts.pipeline })}
+            ticketIdsInFlight={facts.pipelineFlow?.ticketIdsInFlight ?? []}
+            pendingTicketWithoutEntityCount={ApplyDialogModel.pendingTicketWithoutEntityCountOf(facts.page?.tickets ?? [])}
+            {...(shown === null ? {} : { entityHrefOf: (entityKey: EntityKey) => hrefOf(PipelineLevelModel.entityLevelOf(entityKey)) })}
           />
         )
         : null}

@@ -2,7 +2,8 @@
  * The model of a pending Apply, pure: what the commit of `CONSTITUTION.md` waits on, worded from the facts' `applyState`. While it
  * commits, the work or the ticket whose landing holds main; when held or refused, the stored reason as a sentence with the files that
  * block main, what User can do next, and whether the dialog offers the exact text to commit by hand. The resume summary shows the same
- * state on one line.
+ * state on one line. Over entities the commit holds each drafted constitution, so the pending state counts them and words the reasons for
+ * the constitutions rather than for `CONSTITUTION.md`.
  */
 import type { ApplyStateFacts }    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ApplyRequestReason } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
@@ -28,21 +29,46 @@ const HELD_NEXT_STEP = 'The commit runs on its own once main is clean. Cancel ap
 
 const UNSIGNED_NEXT_STEP = `Commit this text as ${CONSTITUTION_FILE_NAME} on main by hand, signed, then press Apply again.`;
 
+const ENTITIES_UNSIGNED_NEXT_STEP = 'Commit the drafted constitutions on main by hand, signed, then press Apply again.';
+
 const REFUSED_NEXT_STEP = 'Press Apply to try again, or cancel apply to change the draft.';
 
-function filesTextOf(blockingFiles: readonly string[]): string {
-  return blockingFiles.length === 0 ? CONSTITUTION_FILE_NAME : blockingFiles.join(', ');
+/**
+ * How many drafted constitutions of entities the commit holds; null on a forge without entities, whose commit holds `CONSTITUTION.md`
+ * alone.
+ */
+export type EntityConstitutionCount = number | null;
+
+function filesTextOf(blockingFiles: readonly string[], entityConstitutionCount: EntityConstitutionCount): string {
+  if (blockingFiles.length > 0) return blockingFiles.join(', ');
+  return entityConstitutionCount === null ? CONSTITUTION_FILE_NAME : 'the constitution files';
+}
+
+/** Over entities, the reasons that name the constitution file name the constitutions instead; null for every other reason. */
+function entitiesReasonSentenceOf(reason: ApplyRequestReason | null): string | null {
+  switch (reason) {
+    case 'git-failed':
+      return 'Git failed to commit or land the constitutions.';
+    case 'constitution-commit-unexpected-paths':
+      return 'The commit changed more than the constitutions, so it did not land.';
+    case 'constitution-moved':
+      return 'A constitution changed on main since the Apply read it.';
+    default:
+      return null;
+  }
 }
 
 /** The stored reason as a sentence, with the files that block main where the reason has them. */
-function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: readonly string[]): string {
+function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: readonly string[], entityConstitutionCount: EntityConstitutionCount = null): string {
+  const entitiesSentence = entityConstitutionCount === null ? null : entitiesReasonSentenceOf(reason);
+  if (entitiesSentence !== null) return entitiesSentence;
   switch (reason) {
     case 'dirty-checkout':
-      return `Main has uncommitted changes to ${filesTextOf(blockingFiles)}.`;
+      return `Main has uncommitted changes to ${filesTextOf(blockingFiles, entityConstitutionCount)}.`;
     case 'not-on-target-branch':
       return 'The main checkout is not on the main branch.';
     case 'target-file-held':
-      return `A file of the main checkout is held: ${filesTextOf(blockingFiles)}.`;
+      return `A file of the main checkout is held: ${filesTextOf(blockingFiles, entityConstitutionCount)}.`;
     case 'git-failed':
       return 'Git failed to commit or land the constitution.';
     case 'constitution-commit-unsigned':
@@ -63,24 +89,32 @@ function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: read
 }
 
 /** "Committing CONSTITUTION.md to main", or "Waiting for the merge train: 14 is landing" while a ticket's landing holds main. */
-function committingTextOf(applyState: ApplyStateFacts): string {
-  return applyState.ticketIdHoldingMain === null ? COMMITTING_TEXT : `Waiting for the merge train: ${applyState.ticketIdHoldingMain} is landing`;
+function committingTextOf(applyState: ApplyStateFacts, entityConstitutionCount: EntityConstitutionCount = null): string {
+  if (applyState.ticketIdHoldingMain !== null) return `Waiting for the merge train: ${applyState.ticketIdHoldingMain} is landing`;
+  if (entityConstitutionCount === null) return COMMITTING_TEXT;
+  if (entityConstitutionCount === 0) return 'Committing the constitutions to main';
+  return `Committing ${entityConstitutionCount === 1 ? '1 constitution' : `${entityConstitutionCount} constitutions`} to main in one commit`;
 }
 
-function pendingViewOf(applyState: ApplyStateFacts): ApplyPendingView {
+function pendingViewOf(applyState: ApplyStateFacts, entityConstitutionCount: EntityConstitutionCount = null): ApplyPendingView {
   const { state } = applyState;
   if (state === 'committing') {
     return {
-      state, text: committingTextOf(applyState), nextStep: null, offersConstitutionText: false, offersApplyAgain: false,
+      state, text: committingTextOf(applyState, entityConstitutionCount), nextStep: null, offersConstitutionText: false, offersApplyAgain: false,
     };
   }
-  const text = reasonSentenceOf(applyState.reason, applyState.blockingFiles);
+  const text = reasonSentenceOf(applyState.reason, applyState.blockingFiles, entityConstitutionCount);
   if (state === 'held') {
     return {
       state, text, nextStep: HELD_NEXT_STEP, offersConstitutionText: false, offersApplyAgain: false,
     };
   }
   const unsigned = applyState.reason === 'constitution-commit-unsigned';
+  if (unsigned && entityConstitutionCount !== null) {
+    return {
+      state, text, nextStep: ENTITIES_UNSIGNED_NEXT_STEP, offersConstitutionText: false, offersApplyAgain: true,
+    };
+  }
   return {
     state, text, nextStep: unsigned ? UNSIGNED_NEXT_STEP : REFUSED_NEXT_STEP, offersConstitutionText: unsigned, offersApplyAgain: true,
   };

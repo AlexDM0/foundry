@@ -112,7 +112,9 @@
  *                           board" checkbox row, the -changes-rows list of -changes-row change rows (over entities, one
  *                           -changes-level per level with its -changes-level-head, a copy's set as a -changes-batch row), the in-flight note's
  *                           .bridge-pipeline-in-flight-dot and -tickets of -ticket chips, and the -pending[data-state] block of a pending
- *                           Apply (-pending-line with its busy ring and -pending-text, -pending-next, -pending-actions)
+ *                           Apply (-pending-line with its busy ring and -pending-text, -pending-next, -pending-actions); over
+ *                           entities the -levels list of -level lines, the -constitutions list of -constitution rows, the
+ *                           -worth-a-look list of -worth-a-look-item callouts and the -ticket-links of a refusal
  *   .bridge-pipeline-dialog-settings[data-size] the step dialogs' model and effort: a -field (-label) holding the -select with its
  *                           -select-chevron, and one holding the effort segments; the -instructions group's -brief box of
  *                           -brief-row[data-quiet?][data-foot?] rows (-brief-row-text) and listed files, the -add-file field, the
@@ -3022,6 +3024,19 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-apply-pending-text { font-weight: 600; }
 .bridge-pipeline-apply-pending-next { margin: 0; }
 .bridge-pipeline-apply-pending-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* The first Apply over entities (MonoApply): what is stored per level, the constitutions in the one commit, the entities worth a look,
+ * and the links to the tickets that refuse Apply. */
+.bridge-pipeline-apply-levels,
+.bridge-pipeline-apply-constitutions,
+.bridge-pipeline-apply-worth-a-look { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bridge-pipeline-apply-level {
+  display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--sp-2); align-items: baseline; padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.bridge-pipeline-apply-constitution { display: flex; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-apply-worth-a-look-item { display: block; }
+.bridge-pipeline-apply-ticket-links { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
 /* Flint's home corner and the drop target of a carried Flint; Flint draws itself, and only its body takes pointer input. */
 .bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 56px; pointer-events: none; }

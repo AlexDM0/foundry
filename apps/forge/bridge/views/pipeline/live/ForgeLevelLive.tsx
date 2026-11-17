@@ -2,7 +2,8 @@
  * The forge level of a live monorepo pipeline (MonoLive), in place of the phases: what every entity shares, as it runs now. The Ticket
  * phase holds the product owner's step with the drafts it writes and the two approvals as they are applied; the merge train lists the
  * ticket in the Airlock and the queue behind it; the board's jobs in flight stand against its limit; and a note says that gates belong to
- * an entity. Nothing here changes the pipeline: an update does that.
+ * an entity. After the first Apply over entities, the Ticket phase also counts the product owner's entity assignments and opens their
+ * progress. Nothing here changes the pipeline: an update does that.
  */
 import { DataTable }      from 'design-system/DataTable';
 import { MonoId }         from 'design-system/MonoId';
@@ -12,6 +13,7 @@ import { View }           from 'design-system/View';
 import type { ReactNode } from 'react';
 
 import type { PipelineFlowFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { EntityAssignmentLine }   from '../apply/EntityAssignmentProgress.tsx';
 import { ForgeLevelPageModel }    from '../entities/ForgeLevelPageModel.ts';
 import type { FlowSelection }     from '../flow/FlowSelection.ts';
 import { PipelineFlowModel }      from '../flow/PipelineFlowModel.ts';
@@ -81,6 +83,7 @@ export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
               />
             </div>
           )}
+        <EntityAssignmentLine assignment={facts.entityAssignment} />
         {approvals.map((approval) => (
           <View key={approval.approval}>
             <Text bold>{`${approval.title}: ${approval.isOn ? 'on' : 'off'}`}</Text>

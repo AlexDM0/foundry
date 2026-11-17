@@ -2,7 +2,8 @@
  * The pending Apply's model against hand-made `applyState` facts. What matters: while committing, the line names the commit, or the
  * ticket whose landing holds main; every stored hold and refusal reason is worded as a sentence, with the blocking files where the reason
  * has them; only a refused request offers Apply again, and only a signing failure offers the text of CONSTITUTION.md; the resume
- * summary's one line says the same; Cancel apply names the record.
+ * summary's one line says the same; Cancel apply names the record. Over entities the committing line counts the constitutions in the one
+ * commit, the reasons that name the file name the constitutions, and a signing failure asks for the drafted constitutions by hand.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -75,5 +76,25 @@ describe('the resume summary line and Cancel apply', () => {
 
   test('Cancel apply names the record', () => {
     expect(ApplyPendingStateModel.cancelCommandOf('S1')).toEqual({ kind: 'pipeline-apply-cancel', setupId: 'S1' });
+  });
+});
+
+describe('over entities', () => {
+  test('the committing line counts the constitutions in the one commit', () => {
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'committing' }), 3).text).toBe('Committing 3 constitutions to main in one commit');
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'committing' }), 1).text).toBe('Committing 1 constitution to main in one commit');
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'committing', ticketIdHoldingMain: '14' }), 3).text)
+      .toBe('Waiting for the merge train: 14 is landing');
+  });
+
+  test('the reasons that name the file name the constitutions, and a signing failure offers no single text', () => {
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'refused', reason: 'constitution-moved' }), 2).text)
+      .toBe('A constitution changed on main since the Apply read it.');
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'held', reason: 'dirty-checkout' }), 2).text)
+      .toBe('Main has uncommitted changes to the constitution files.');
+    const unsigned = ApplyPendingStateModel.pendingViewOf(applyState({ state: 'refused', reason: 'constitution-commit-unsigned' }), 2);
+    expect(unsigned.offersConstitutionText).toBe(false);
+    expect(unsigned.nextStep).toBe('Commit the drafted constitutions on main by hand, signed, then press Apply again.');
+    expect(unsigned.offersApplyAgain).toBe(true);
   });
 });
