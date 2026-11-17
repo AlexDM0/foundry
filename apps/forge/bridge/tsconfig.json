@@ -97,6 +97,7 @@
     "../src/lib/tracker-model/constants/ConcurrencyLimits.ts",
     "../src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts",
     "../src/lib/tracker-model/constants/DraftFields.ts",
+    "../src/lib/tracker-model/constants/EntityDecisionAnswers.ts",
     "../src/lib/tracker-model/constants/FlintBrainVocabulary.ts",
     "../src/lib/tracker-model/constants/EpicFields.ts",
     "../src/lib/tracker-model/constants/JobMoveLegality.ts",

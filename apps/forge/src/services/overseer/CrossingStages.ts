@@ -12,6 +12,7 @@ import type { LogRecord }                             from '../../lib/tracker-mo
 import type { EntityKey, Pipeline }                   from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketStage, TicketStageName }          from '../../lib/tracker-model/@types/Task.ts';
 import type { Board }                                 from '../../lib/tracker-model/Board.ts';
+import { ENTITY_DECISION_ANSWERS }                    from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketStageUtil }                            from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { CrossingStageScope, SealedChange }      from '../lifecycle/Customs.ts';
@@ -36,8 +37,14 @@ export interface SealedPackageReview {
  * What a job of a ticket that crosses into whitelisted packages is told of its stage (strategy 4.2). The job's `entity` is the entity the
  * stage runs under: the home entity in `build`, `adapt` and `review`, the package in `package-build` and `package-review`.
  */
+/** A package build that refused the ticket's change of its package, and why (E22): stage 1 takes that change back out. */
+export interface RefusedPackageChange {
+  entity:        string;
+  refusedReason: string;
+}
+
 export type CrossingStageFacts =
-  | { stage: 'build'; whitelistedPackages: readonly string[] }
+  | { stage: 'build'; whitelistedPackages: readonly string[]; refusedPackageChanges?: readonly RefusedPackageChange[] }
   | { stage: 'package-build'; homeEntity: string; packageReturnReason?: string; packageReviewFindings?: string }
   | { stage: 'package-review'; homeEntity: string; exposedSurfaceChanged: boolean }
   | { stage: 'adapt'; crossedPackages: readonly CrossedPackageResult[]; resumesSession: boolean }
@@ -53,7 +60,8 @@ export type StageStatement =
   | { stage: 'package-build'; exposedSurfaceChanged: boolean }
   | { stage: 'package-review'; exposedSurfaceConfirmed: boolean; reviewText: string; sealedReachPaths: readonly string[] }
   | { stage: 'package-review-findings'; reviewSection: string }
-  | { stage: 'adapt'; returnedPackage: string; packageReturnReason: string };
+  | { stage: 'adapt'; returnedPackage: string; packageReturnReason: string }
+  | { stage: 'package-refused'; refusedReason: string };
 
 /** What the package stages of one crossed package stated: `null` where a stage left no statement. */
 export interface PackageStageStatements {
@@ -85,20 +93,26 @@ function reachOf(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey): rea
   return Object.hasOwn(entities, entityKey) ? entities[entityKey]?.reach ?? [] : [];
 }
 
-/** In stage 1 the builder may write a proposal in the homes of the packages its entity whitelists; in no other stage. */
-function proposalHomesOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'entity' | 'stage'>>): string[] {
+/**
+ * In stage 1 the builder may write a proposal in the homes of the packages its entity whitelists; in no other stage. A package whose build
+ * refused the ticket's change is left out (E22), so a stage 1 that still changes it is sent back.
+ */
+function proposalHomesOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'entity' | 'stage'>>, packagesLeftOut: readonly EntityKey[] = []): string[] {
   if (job.entity === undefined || job.stage !== TicketStageUtil.stageNumberOf('build')) return [];
   const entities = entitiesOf(pipeline);
-  return whitelistOf(entities, job.entity).flatMap((packageKey) => homesOf(entities, packageKey));
+  return whitelistOf(entities, job.entity).filter((packageKey) => !packagesLeftOut.includes(packageKey)).flatMap((packageKey) => homesOf(entities, packageKey));
 }
 
 /**
  * The whitelisted packages a stage 1 branch changed, in the order their stages run (a package before the packages that consume it): the
- * owners of `changedPaths`, given as git spells them, that the home entity whitelists. None for a branch that stayed in its entity.
+ * owners of `changedPaths`, given as git spells them, that `whitelist` names, the home entity's unless the ticket's own is given. None for a
+ * branch that stayed in its entity.
  */
-function crossedPackagesOf(pipeline: Readonly<Pipeline> | null, homeEntity: EntityKey, changedPaths: readonly string[]): EntityKey[] {
+function crossedPackagesOf(
+  pipeline: Readonly<Pipeline> | null, homeEntity: EntityKey, changedPaths: readonly string[], ticketWhitelist?: readonly EntityKey[]
+): EntityKey[] {
   const entities = entitiesOf(pipeline);
-  const whitelist = whitelistOf(entities, homeEntity);
+  const whitelist = ticketWhitelist ?? whitelistOf(entities, homeEntity);
   if (whitelist.length === 0) return [];
   const owners = [...EntityOwnershipUtil.pathsByOwnerOf(entities, changedPaths.map((gitPath) => `${REPOSITORY_ROOT_FOLDER}${gitPath}`)).keys()];
   return EntityOwnershipUtil.stageOrderOf(entities, owners.filter((owner) => whitelist.includes(owner)));
@@ -195,6 +209,8 @@ function stageStatementOf(trackerDirectory: string, jobId: string): StageStateme
     return null;
   }
   const exposedSurfaceChanged = fieldOf(stored, 'exposedSurfaceChanged');
+  const refusedReason = fieldOf(stored, 'refusedReason');
+  if (fieldOf(stored, 'stage') === 'package-refused' && typeof refusedReason === 'string') return { stage: 'package-refused', refusedReason };
   const returnedPackage = fieldOf(stored, 'returnedPackage');
   const packageReturnReason = fieldOf(stored, 'packageReturnReason');
   if (fieldOf(stored, 'stage') === 'adapt' && typeof returnedPackage === 'string' && typeof packageReturnReason === 'string') {
@@ -322,6 +338,88 @@ function sealedPackagesOf(board: Board, ticketId: string): EntityKey[] {
   return Object.keys(board.ticketSealsOf(ticketId));
 }
 
+/** The packages of the ticket's crossing that its row stores: each sealed one, then the package whose stage the row is in. */
+function rowCrossingPackagesOf(board: Board, ticketId: string): EntityKey[] {
+  const stage = board.ticketStageOf(ticketId);
+  const sealedPackages = sealedPackagesOf(board, ticketId);
+  const packageStage = stage !== null && (stage.name === 'package-build' || stage.name === 'package-review') ? [stage.entity] : [];
+  return [...new Set([...sealedPackages, ...packageStage])];
+}
+
+/** Each package whose build refused the ticket's change (E22), newest refusal last, with the job that refused it. */
+function refusedPackageJobsOf(logRecords: readonly LogRecord[], ticketId: string): { entity: EntityKey; jobId: string }[] {
+  const packageBuildNumber = TicketStageUtil.stageNumberOf('package-build');
+  const packageByJobId = new Map<string, EntityKey>();
+  let refused: { entity: EntityKey; jobId: string }[] = [];
+  for (const record of logRecords) {
+    if (record.kind === 'tracker-cleared') {
+      packageByJobId.clear();
+      refused = [];
+    }
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) && record.fields.stage === packageBuildNumber && record.fields.entity !== undefined) {
+      packageByJobId.set(record.jobId, record.fields.entity);
+    }
+    if (record.kind !== 'job-ended' || record.fields.outcome !== 'refused') continue;
+    const entity = packageByJobId.get(record.jobId);
+    if (entity !== undefined) refused = [...refused.filter((earlier) => earlier.entity !== entity), { entity, jobId: record.jobId }];
+  }
+  return refused;
+}
+
+/** The packages whose build refused the ticket's change: stage 1 of the ticket may no longer write a proposal there (E22). */
+function refusedPackagesOf(logRecords: readonly LogRecord[], ticketId: string): EntityKey[] {
+  return refusedPackageJobsOf(logRecords, ticketId).map(({ entity }) => entity);
+}
+
+/** Each refused package with the reason its build kept in its job folder; an unread statement gives an empty reason. */
+function refusedPackageChangesOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string): RefusedPackageChange[] {
+  return refusedPackageJobsOf(logRecords, ticketId).map(({ entity, jobId }) => {
+    const statement = stageStatementOf(trackerDirectory, jobId);
+    return { entity, refusedReason: statement?.stage === 'package-refused' ? statement.refusedReason : '' };
+  });
+}
+
+/**
+ * User answered a `whitelist-removed-mid-crossing` decision of the ticket with "finish under the old whitelist" since its crossing began: its
+ * newest move back to `build`, or its newest entity assignment (E19).
+ */
+function finishesUnderTheOldWhitelist(logRecords: readonly LogRecord[], ticketId: string): boolean {
+  const whitelistDecisionIds = new Set<string>();
+  let finishes = false;
+  for (const record of logRecords) {
+    if (record.kind === 'tracker-cleared') finishes = false;
+    if (record.kind === 'entity-assigned' && record.ticketId === ticketId) finishes = false;
+    if (record.kind === 'stage-started' && record.ticketId === ticketId && record.fields.stage === 'build') finishes = false;
+    if (record.kind === 'decision-opened' && record.fields.kind === 'whitelist-removed-mid-crossing' && record.fields.ticketIds.includes(ticketId)) {
+      whitelistDecisionIds.add(record.decisionId);
+    }
+    if (record.kind === 'decision-answered' && whitelistDecisionIds.has(record.decisionId)
+      && Object.values(record.fields.answer).includes(ENTITY_DECISION_ANSWERS.finishUnderTheOldWhitelist)) finishes = true;
+  }
+  return finishes;
+}
+
+/**
+ * The packages the ticket may cross into: its home's whitelist, with the packages of its stored crossing once User chose to finish it
+ * under the old whitelist (E19), and without the packages whose build refused its change (E22).
+ */
+function ticketWhitelistOf(board: Board, ticketId: string, homeEntity: EntityKey): EntityKey[] {
+  const logRecords = board.logRecordsSoFar();
+  const keptPackages = finishesUnderTheOldWhitelist(logRecords, ticketId) ? rowCrossingPackagesOf(board, ticketId) : [];
+  const refusedPackages = refusedPackagesOf(logRecords, ticketId);
+  return [...new Set([...whitelistOf(entitiesOf(board.pipeline()), homeEntity), ...keptPackages])].filter((packageKey) => !refusedPackages.includes(packageKey));
+}
+
+/**
+ * The packages of the ticket's stored crossing that its home's whitelist no longer names, unless User chose to finish under the old
+ * whitelist (E19). None for a ticket that crosses into no package.
+ */
+function packagesRemovedMidCrossingOf(board: Board, ticketId: string, homeEntity: EntityKey): EntityKey[] {
+  if (board.ticketStageOf(ticketId) === null || finishesUnderTheOldWhitelist(board.logRecordsSoFar(), ticketId)) return [];
+  const whitelist = whitelistOf(entitiesOf(board.pipeline()), homeEntity);
+  return rowCrossingPackagesOf(board, ticketId).filter((packageKey) => !whitelist.includes(packageKey));
+}
+
 /**
  * What a build or review job of an entity is told of its stage; `null` for a job without an entity or stage, and for a stage 1 build of
  * an entity that whitelists nothing, which is told what any build of an entity is told.
@@ -335,8 +433,11 @@ function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Reado
   const logRecords = board.logRecordsSoFar();
   const stageFactsOf: Readonly<Record<TicketStageName, () => CrossingStageFacts | null>> = {
     'build': () => {
-      const whitelistedPackages = whitelistOf(entitiesOf(pipeline), jobStage.entity);
-      return whitelistedPackages.length === 0 ? null : { stage: 'build', whitelistedPackages: [...whitelistedPackages] };
+      const refusedPackageChanges = refusedPackageChangesOf(trackerDirectory, logRecords, ticketId);
+      const refusedPackages = refusedPackageChanges.map(({ entity }) => entity);
+      const whitelistedPackages = whitelistOf(entitiesOf(pipeline), jobStage.entity).filter((packageKey) => !refusedPackages.includes(packageKey));
+      if (whitelistedPackages.length === 0 && refusedPackageChanges.length === 0) return null;
+      return { stage: 'build', whitelistedPackages, ...(refusedPackageChanges.length === 0 ? {} : { refusedPackageChanges }) };
     },
     'package-build': () => {
       const packageReturnReason = packageReturnReasonOf(trackerDirectory, logRecords, ticketId, homeEntity, jobStage.entity);
@@ -389,5 +490,12 @@ export const CrossingStages = Object.freeze({
   adaptIsSkipped,
   confirmedExposedSurfaceChangedOf,
   sealedPackagesOf,
+  rowCrossingPackagesOf,
+  refusedPackageJobsOf,
+  refusedPackagesOf,
+  refusedPackageChangesOf,
+  finishesUnderTheOldWhitelist,
+  ticketWhitelistOf,
+  packagesRemovedMidCrossingOf,
   crossingStageFactsOf,
 });

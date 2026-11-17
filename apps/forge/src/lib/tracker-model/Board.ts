@@ -546,6 +546,16 @@ export class Board {
     return this.ticketStageRows.moveTicketStage(ticketId, stage, at);
   }
 
+  /** A crossing ticket's package change dropped or turned into a need: the package's seal is lifted, the ticket goes back to build (E19, E22). */
+  moveTicketBackToBuild(ticketId: string, homeEntity: string, packageEntity: string, at: string): Logged {
+    return this.ticketStageRows.moveTicketBackToBuild(ticketId, homeEntity, packageEntity, at);
+  }
+
+  /** The ticket no longer crosses into a package: its row's stage and seals go (E15). */
+  clearTicketStage(ticketId: string): void {
+    this.ticketStageRows.clearTicketStage(ticketId);
+  }
+
   /**
    * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
    * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
@@ -553,7 +563,9 @@ export class Board {
   returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
     const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };
     if (!this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, packageBuild)) return this.moveTicketStage(ticketId, packageBuild, at);
-    const draft: DecisionDraft = { kind: 'second-return', ticketIds: [ticketId], jobId: null };
+    const draft: DecisionDraft = {
+      kind: 'second-return', ticketIds: [ticketId], jobId: null, subject: { packageEntity }
+    };
     if (this.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.includes(ticketId))) return { logged: [] };
     return {
       logged: this.openDecision({
@@ -1346,8 +1358,8 @@ export class Board {
     this.ticketSettings.refuseAnUnknownEntity(ticketId, entity);
   }
 
-  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string): TicketChanged {
-    return this.ticketSettings.setTicketEntity(ticketId, assignment, at);
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastPending?: boolean } = {}): TicketChanged {
+    return this.ticketSettings.setTicketEntity(ticketId, assignment, at, options);
   }
 
   holdTicket(ticketId: string, reason: string, at: string): TicketChanged {

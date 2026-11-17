@@ -8,10 +8,23 @@ import type { IncidentDefaultCause, IncidentDeliveryTurn, IncidentOpening } from
 export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 
 /** A decision code opens from the facts; its questions are worded by the caller, never by the policy. */
+/** What a decision the Overseer opens about entities is about, which its wording names and its options offer. */
+export interface DecisionDraftSubject {
+  /** The entities that own the paths a ticket's build changed outside its own entity: the answer may move the ticket to one (E15). */
+  owningEntities?: readonly string[];
+  /** The paths a ticket's build changed outside its own entity (E15). */
+  paths?:          readonly string[];
+  /** The package a crossing ticket's decision is about (E19, E22, E45). */
+  packageEntity?:  string;
+  /** The need a decision was opened for, as `<entity>: <title>` (E12, E13). */
+  need?:           string;
+}
+
 export interface DecisionDraft {
   kind:      DecisionKind;
   ticketIds: readonly string[];
   jobId:     string | null;
+  subject?:  DecisionDraftSubject;
 }
 
 export interface DecisionWording {

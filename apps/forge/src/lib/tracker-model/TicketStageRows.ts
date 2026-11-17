@@ -60,6 +60,33 @@ export class TicketStageRows {
     return { logged };
   }
 
+  /**
+   * The package change of a crossing ticket is dropped or becomes a need (E19, E22): the package's seal is lifted, so stage 1 may take the
+   * change out, and the ticket goes back to `build` of its home, where a ticket already back there stays. No package return is counted.
+   */
+  moveTicketBackToBuild(ticketId: string, homeEntity: string, packageEntity: string, at: string): Logged {
+    const row = this.records.ensureTaskForTicket(this.records.requireTicket(ticketId), at);
+    const logged: LogRecord[] = [];
+    if (row.seals !== undefined && Object.hasOwn(row.seals, packageEntity)) {
+      row.seals = Object.fromEntries(Object.entries(row.seals).filter(([sealedEntity]) => sealedEntity !== packageEntity));
+      logged.push(this.records.logger.log({ kind: 'seal-lifted', ticketId, fields: { entity: packageEntity } }, at));
+    }
+    if ((row.stage?.name ?? STAGE_OF_A_ROW_WITHOUT_ONE) === STAGE_OF_A_ROW_WITHOUT_ONE) return { logged };
+    return { logged: [...logged, ...this.moveTicketStage(ticketId, { name: 'build', entity: homeEntity }, at).logged] };
+  }
+
+  /**
+   * The ticket starts afresh in another entity (E15): its row stores no stage, so its next build is stage 1 of its new entity, and the
+   * seals of its old branch go, emptied rather than removed as a lifted seal leaves them.
+   */
+  clearTicketStage(ticketId: string): void {
+    const ticket = this.records.requireTicket(ticketId);
+    const row = this.records.linkedTaskRecordOf(ticket);
+    if (row === undefined) return;
+    delete row.stage;
+    if (row.seals !== undefined) row.seals = {};
+  }
+
   sealTicketPackage(ticketId: string, packageEntity: string, seal: string, at: string): Logged {
     const row = this.records.ensureTaskForTicket(this.records.requireTicket(ticketId), at);
     row.seals = { ...row.seals, [packageEntity]: seal };

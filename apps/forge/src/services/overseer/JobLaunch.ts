@@ -316,6 +316,7 @@ const JOB_FILES = {
   targetMerge:            'target-merge.json',
   targetMergeSettlement:  'target-merge-settlement.json',
   targetConflict:         'target-conflict.json',
+  freshBranchStarted:     'fresh-branch-started',
 } as const;
 
 /**
@@ -458,7 +459,7 @@ function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey, pro
  * job of a ticket of an entity which constitutions the job may change (E8).
  */
 function projectScopeOf(
-  projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>, ticketEntity?: string
+  projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>, ticketEntity?: string, refusedPackages: readonly EntityKey[] = []
 ): ProjectScope | null {
   const entities = pipeline?.entities;
   if (entities === undefined) return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
@@ -467,7 +468,7 @@ function projectScopeOf(
     projectPrefix,
     reach:       pipeline?.reach ?? [],
     entityHomes: entityHomesOf(pipeline),
-    ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity, CrossingStages.proposalHomesOf(pipeline, job)) }),
+    ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity, CrossingStages.proposalHomesOf(pipeline, job, refusedPackages)) }),
     ...(job?.entity === undefined || ticketEntity === undefined ? {} : { constitutions: { ticketEntity, constitutions } }),
   };
 }
@@ -1130,7 +1131,8 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const retriedStart = retriedJobId === null ? null : readJobStart(WatcherFleet.jobFolderOf(hold.context.workspace.trackerDirectory, retriedJobId));
   const { projectPrefix } = projectLocationOfContext(hold.context);
   const pipeline = board.pipeline();
-  const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity);
+  const refusedPackages = pipeline?.entities === undefined ? [] : CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), ticketIdOf(job));
+  const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity, refusedPackages);
   const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
     role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
@@ -1231,15 +1233,19 @@ function endJobOnItsNeeds(hold: HoldContext, job: Readonly<Job>): void {
 
 /**
  * A package build whose constitution forbids the package change ends `refused` (E22), its branch and commits kept, and opens
- * `package-refused` with its reason, which holds the ticket until User answers. Only a package build's report can say `refused`.
+ * `package-refused` with its reason, which holds the ticket until User answers. The reason also waits in its job folder, for the stage 1
+ * that takes the change back out once User drops it or turns it into a need. Only a package build's report can say `refused`.
  */
 function endJobOnItsRefusal(hold: HoldContext, job: Readonly<Job>, refusedReason: string): void {
   const { board, at } = hold.change;
-  if (TicketStageUtil.stageOfJob(job)?.name !== 'package-build') {
+  if (TicketStageUtil.stageOfJob(job)?.name !== 'package-build' || job.entity === undefined) {
     endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport });
     return;
   }
-  const draft: DecisionDraft = { kind: PACKAGE_REFUSED_DECISION, ticketIds: job.ticketIds, jobId: null };
+  CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-refused', refusedReason });
+  const draft: DecisionDraft = {
+    kind: PACKAGE_REFUSED_DECISION, ticketIds: job.ticketIds, jobId: null, subject: { packageEntity: job.entity }
+  };
   hold.logged.push(...board.openDecision({
     ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: refusedReason
   }, at).logged);
@@ -1301,11 +1307,16 @@ function openDependentBrokenDecision(hold: HoldContext, job: Readonly<Job>, gate
 
 /**
  * A session sent back once to take its change out of another entity still changed nothing in its own: all the work of the ticket belongs
- * to another entity (E15). User moves the ticket there or abandons it, and the decision holds it.
+ * to another entity (E15). User moves the ticket to an entity that owns the paths, or abandons it, and the decision holds it.
  */
 function openWorkInOtherEntityDecision(hold: HoldContext, job: Readonly<Job>, pathsOutside: readonly string[]): void {
   const { board, at } = hold.change;
-  const draft: DecisionDraft = { kind: WORK_IN_OTHER_ENTITY_DECISION, ticketIds: job.ticketIds, jobId: null };
+  const entities = board.pipeline()?.entities ?? {};
+  const repositoryPaths = pathsOutside.map((gitPath) => (gitPath.startsWith(REPOSITORY_ROOT_FOLDER) ? gitPath : `${REPOSITORY_ROOT_FOLDER}${gitPath}`));
+  const owningEntities = [...EntityOwnershipUtil.pathsByOwnerOf(entities, repositoryPaths).keys()].filter((entityKey) => entityKey !== job.entity);
+  const draft: DecisionDraft = {
+    kind: WORK_IN_OTHER_ENTITY_DECISION, ticketIds: job.ticketIds, jobId: null, subject: { owningEntities, paths: pathsOutside }
+  };
   if (board.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId)))) return;
   hold.logged.push(...board.openDecision({
     ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: pathsOutside.join(' ')
@@ -1536,13 +1547,17 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
-/** The branch changed by stage 1, sorted by owner; `null` when git cannot tell. */
+/**
+ * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into (E19, E22); `null` when git cannot tell.
+ */
 function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey): EntityKey[] | null {
   const start = readJobStart(jobFolderOf(hold.context.workspace, job));
   if (start === null) return null;
   const target = job.target ?? hold.context.mainLine;
   const changedPaths = pathsTheBranchChangedPastTargetOf(worktreeOf(hold.context.workspace, job), start.startCommit, target);
-  return changedPaths === null ? null : CrossingStages.crossedPackagesOf(hold.change.board.pipeline(), homeEntity, changedPaths);
+  const { board } = hold.change;
+  if (changedPaths === null) return null;
+  return CrossingStages.crossedPackagesOf(board.pipeline(), homeEntity, changedPaths, CrossingStages.ticketWhitelistOf(board, ticketIdOf(job), homeEntity));
 }
 
 /**
@@ -1570,19 +1585,30 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
     board.moveTicketStage(ticketId, { name: 'review', entity: jobStage.entity }, at);
     return false;
   }
-  if (jobStage.name !== 'build' || CrossingStages.proposalHomesOf(board.pipeline(), job).length === 0) return false;
+  if (jobStage.name !== 'build') return false;
+  const refusedPackages = CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), ticketId);
+  if (CrossingStages.proposalHomesOf(board.pipeline(), job, refusedPackages).length === 0) return settledOutsideAnyCrossing(hold, ticketId);
   const crossedPackages = crossedPackagesAfterStageOneOf(hold, job, jobStage.entity);
   if (crossedPackages === null) {
     endJob(hold, job, { outcome: 'failed', cause: 'git-failed' });
     return true;
   }
   const [firstPackage] = crossedPackages;
-  if (firstPackage === undefined) return false;
+  if (firstPackage === undefined) return settledOutsideAnyCrossing(hold, ticketId);
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
   hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, allowsPastPending: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   board.moveTicketStage(ticketId, { name: 'package-build', entity: firstPackage }, at);
   return true;
+}
+
+/**
+ * A stage 1 that a dropped package change sent back to `build` (E22), whose branch now stays in its entity, settles as any build: its row
+ * no longer stores a stage, so its review is the home's own. Returns false, so the build settles as it always has.
+ */
+function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
+  if (hold.change.board.ticketStageOf(ticketId) !== null) hold.change.board.clearTicketStage(ticketId);
+  return false;
 }
 
 /**
@@ -2478,6 +2504,55 @@ function recordWorktreeFailure(context: JobLaunchContext, job: Readonly<Job>, er
   context.log(`Creating the worktree of job ${job.id} failed: ${errorText}`);
 }
 
+/**
+ * Whether the ticket's entity was set after its previous job launched (E15): the branch and worktree hold the work of its old entity, so
+ * the build starts afresh. A ticket no job worked on before has no branch to drop.
+ */
+function ticketEntityChangedSinceItsBranch(logRecords: readonly LogRecord[], job: Readonly<Job>): boolean {
+  const ticketId = ticketIdOf(job);
+  let previousLaunchSeen = false;
+  let entityChangedSinceIt = false;
+  for (const record of logRecords) {
+    if (record.kind === 'job-launched' && record.jobId === job.id) break;
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId)) {
+      previousLaunchSeen = true;
+      entityChangedSinceIt = false;
+    }
+    if (record.kind === 'entity-assigned' && record.ticketId === ticketId && previousLaunchSeen) entityChangedSinceIt = true;
+  }
+  return entityChangedSinceIt;
+}
+
+/** The step that failed, worded as git's own failure; `null` when the step ran. */
+function gitStepFailureOf(directory: string, gitArguments: readonly string[]): string | null {
+  const run = GitProcess.run(directory, gitArguments);
+  return GitProcess.succeeded(run) ? null : GitProcess.failureReasonOf(run, gitArguments);
+}
+
+/**
+ * A build of a ticket moved to another entity (E15) drops the ticket's worktree and branch before its worktree is made, once per job, so
+ * it builds afresh from its target. Only on a pipeline with entities; a failure is the worktree's failure, which the setup incident takes.
+ */
+function startAfreshInTheNewEntity(context: JobLaunchContext, board: Board, job: Readonly<Job>, jobFolder: string): void {
+  if (job.kind !== 'build' || job.entity === undefined || board.pipeline()?.entities === undefined) return;
+  if (existsSync(join(jobFolder, JOB_FILES.freshBranchStarted)) || existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return;
+  if (!ticketEntityChangedSinceItsBranch(board.logRecordsSoFar(), job)) return;
+  const { repositoryRoot } = projectLocationOfContext(context);
+  const worktree = worktreeOf(context.workspace, job);
+  const branch = branchOf(context, job);
+  const worktreeFailure = existsSync(worktree)
+    ? gitStepFailureOf(repositoryRoot, ['worktree', 'remove', '--force', worktree])
+    : gitStepFailureOf(repositoryRoot, ['worktree', 'prune']);
+  const branchExists = worktreeFailure === null && GitProcess.resolvedCommitOf(repositoryRoot, `refs/heads/${branch}`) !== null;
+  const failure = worktreeFailure ?? (branchExists ? gitStepFailureOf(repositoryRoot, ['branch', '-D', branch]) : null);
+  if (failure !== null) {
+    recordWorktreeFailure(context, job, failure);
+    return;
+  }
+  mkdirSync(jobFolder, { recursive: true });
+  writeFileAtomically(join(jobFolder, JOB_FILES.freshBranchStarted), `${branch}\n`);
+}
+
 /** Created when absent; a leftover folder that git does not read as a checkout of the repository is a failure, never reused. */
 function prepareWorktree(context: JobLaunchContext, job: Readonly<Job>, jobFolder: string): boolean {
   const worktree = worktreeOf(context.workspace, job);
@@ -2521,6 +2596,7 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
   for (const job of board.jobs().filter(isWorktreeJob)) {
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
+      startAfreshInTheNewEntity(context, board, job, jobFolder);
       const worktreeIsReady = prepareWorktree(context, job, jobFolder);
       const unnormalised = existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised));
       if (worktreeIsReady && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
@@ -2655,6 +2731,7 @@ export const JobLaunch = Object.freeze({
   answeredWaiverTreesOf,
   applyBuildJobObservations,
   runBuildJobEffects,
+  startAfreshInTheNewEntity,
   deliverBuildJobFrames,
   recordJobStart,
   attributionTicketIdsOf,

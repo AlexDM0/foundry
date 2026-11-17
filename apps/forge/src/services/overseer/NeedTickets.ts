@@ -51,7 +51,9 @@ function rootEntityHasNoGates(pipeline: Readonly<Pipeline> | null, entityKey: En
 function openNeedDecision(
   change: TrackerChange, kind: DecisionKind, ticketIds: readonly string[], context: string, decisionWordingOf: DecisionWordingOf
 ): readonly LogRecord[] {
-  const draft: DecisionDraft = { kind, ticketIds, jobId: null };
+  const draft: DecisionDraft = {
+    kind, ticketIds, jobId: null, subject: { need: context }
+  };
   return change.board.openDecision({
     ...draft, askedBy: 'overseer', requestId: null, questions: decisionWordingOf(draft).questions, context
   }, change.at).logged;
@@ -74,11 +76,17 @@ function dependencyClosesACircle(board: Board, waitingTicketId: string, needTick
   return TicketDependencyUtil.dependencyLoopFrom(waitingTicketId, dependsOn, dependsOnById) !== null;
 }
 
+/** The job a need is filed by: the build that declared it, or the job whose package change User turned into a need (E19, E22). */
+export type DeclaringJob = Readonly<Pick<Job, 'id' | 'entity'>>;
+
+/** A need as its ticket is filed: its entity, title and body, and the tickets that wait on it. */
+export type NeedToFile = Readonly<Pick<DeclaredNeed, 'entity' | 'title' | 'body' | 'ticketIds'>>;
+
 /**
  * The need's ticket is the need's entity's, filed by the declaring job and submitted at once: `pending` with ticket review off, else
  * `ready-for-review`. Every ticket of the job waits on it, and it waits on none of them.
  */
-function fileNeed(change: TrackerChange, job: Readonly<Job>, need: Readonly<DeclaredNeed>, decisionWordingOf: DecisionWordingOf): LogRecord[] {
+function fileNeed(change: TrackerChange, job: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf): LogRecord[] {
   const { board, at } = change;
   const waitingTicketIds = need.ticketIds.filter((ticketId) => board.tickets().some((ticket) => ticket.frontmatter.id === ticketId));
   const declared = waitingTicketIds.flatMap((ticketId) => board.recordNeedDeclared(ticketId, { entity: need.entity, title: need.title, byJob: job.id }, at).logged);
@@ -109,6 +117,16 @@ function fileNeed(change: TrackerChange, job: Readonly<Job>, need: Readonly<Decl
 function fileNeedsOf(change: TrackerChange, job: Readonly<Job>, decisionWordingOf: DecisionWordingOf): NeedsFiled {
   const needs = change.board.takeNeedsOf(job.id);
   return { logged: needs.flatMap((need) => fileNeed(change, job, need, decisionWordingOf)), filedNeedCount: needs.length };
+}
+
+/**
+ * A crossing ticket's change of a package that User turned into a need (E19, E22): filed as a ticket of the package by the job that last
+ * worked on the package change, which the crossing ticket waits on, as a need its build declared.
+ */
+function filePackageChangeNeed(
+  change: TrackerChange, declaringJob: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf
+): LogRecord[] {
+  return fileNeed(change, declaringJob, need, decisionWordingOf);
 }
 
 /** The ticket's newest ended build job when it ended `needs-declared`; a replaced session in between is the same stage taken over. */
@@ -142,4 +160,4 @@ function needsSettledOf(board: Board, job: Readonly<Job>, launch: Pick<NeedsSett
   return { needs, mainLine: launch.mainLine, resumesSession: launch.resumesSession };
 }
 
-export const NeedTickets = Object.freeze({ fileNeedsOf, needsSettledOf });
+export const NeedTickets = Object.freeze({ fileNeedsOf, filePackageChangeNeed, needsSettledOf });

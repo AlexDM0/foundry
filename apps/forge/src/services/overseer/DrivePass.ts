@@ -75,22 +75,23 @@ import {
   type DeclinedCleanup,
   type HeldTarget
 } from './Airlocks.ts';
-import { AnswerDelivery }                                                   from './AnswerDelivery.ts';
-import { type ApiBilling, ApiBillingStops, type StoppedSession }            from './ApiBillingStops.ts';
-import { AssistantBoot, type AssistantFacts }                               from './AssistantBoot.ts';
-import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
-import { Baton }                                                            from './Baton.ts';
-import { CrossingStages, type CrossingStageFacts }                          from './CrossingStages.ts';
-import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
-import { GateProfiling }                                                    from './GateProfiling.ts';
-import { GateRunSlots }                                                     from './GateRunSlots.ts';
-import { GpgDirectories }                                                   from './GpgDirectories.ts';
-import { GroupWorktrees }                                                   from './GroupWorktrees.ts';
-import { HatchInbox, type PendingHatchRequest }                             from './HatchInbox.ts';
-import { type DefaultedIncident, IncidentRouter }                           from './IncidentRouter.ts';
-import { InstructionFiles }                                                 from './InstructionFiles.ts';
-import { IntakeSessions, type IntakeFacts }                                 from './IntakeSessions.ts';
-import { type EndedJobSession, JobControlDelivery }                         from './JobControlDelivery.ts';
+import { AnswerDelivery }                                                        from './AnswerDelivery.ts';
+import { type ApiBilling, ApiBillingStops, type StoppedSession }                 from './ApiBillingStops.ts';
+import { AssistantBoot, type AssistantFacts }                                    from './AssistantBoot.ts';
+import { type AssistantChatFacts, type AssistantReading, AssistantSession }      from './AssistantSession.ts';
+import { Baton }                                                                 from './Baton.ts';
+import { CrossingStages, type CrossingStageFacts }                               from './CrossingStages.ts';
+import { EndedJobTokens }                                                        from './EndedJobTokens.ts';
+import { EntityDecisionAnswers, type PackageNeedFacts, type PackageNeedWording } from './EntityDecisionAnswers.ts';
+import { GateProfiling }                                                         from './GateProfiling.ts';
+import { GateRunSlots }                                                          from './GateRunSlots.ts';
+import { GpgDirectories }                                                        from './GpgDirectories.ts';
+import { GroupWorktrees }                                                        from './GroupWorktrees.ts';
+import { HatchInbox, type PendingHatchRequest }                                  from './HatchInbox.ts';
+import { type DefaultedIncident, IncidentRouter }                                from './IncidentRouter.ts';
+import { InstructionFiles }                                                      from './InstructionFiles.ts';
+import { IntakeSessions, type IntakeFacts }                                      from './IntakeSessions.ts';
+import { type EndedJobSession, JobControlDelivery }                              from './JobControlDelivery.ts';
 import {
   BUILD_JOB_CAUSES,
   type BuildJobObservation,
@@ -233,6 +234,8 @@ export interface DrivePassRequest {
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
   newCodeOnDisk?:                    () => boolean;
   decisionWordingOf:                 (draft: DecisionDraft) => DecisionWording;
+  /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
+  packageNeedWordingOf:              (facts: PackageNeedFacts) => PackageNeedWording;
   launchTextOf:                      (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
   /** One numbered chat to the Assistant listing the incidents it delivers, their facts and allowed moves. */
   assistantChatTextOf:               (facts: AssistantChatFacts) => string;
@@ -1369,6 +1372,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const buildJobRecords = JobLaunch.applyBuildJobObservations(change, jobLaunchContext, observation.buildJobs);
         const usageResetsAt = UsageLimits.usageResetsAtOf(observation.usageMarker, usageLimitHits);
         const agentConfigHold = JobLaunch.holdAgentConfigHits(change, jobLaunchContext, observation.ticketIdsTouchingAgentConfig);
+        EntityDecisionAnswers.actOnAnswers(change, {
+          decisionWordingOf:    request.decisionWordingOf,
+          packageNeedWordingOf: request.packageNeedWordingOf,
+          branchNames:          request.branchNames,
+          mainLine:             request.mainLine,
+          repositoryRoot:       projectLocation.repositoryRoot,
+        });
+        EntityDecisionAnswers.openWhitelistRemovedDecisions(change.board, request.decisionWordingOf, change.at);
         const observations = {
           mainLine:                     request.mainLine,
           groupTargetPrefix:            request.branchNames.groupTargetPrefix,

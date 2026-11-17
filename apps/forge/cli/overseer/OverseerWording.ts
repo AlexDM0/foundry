@@ -5,6 +5,7 @@
 import { readFileSync }                from 'node:fs';
 import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { CLAUDE_API_KEY_VARIABLE }     from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
+import type { DecisionQuestionOption } from '../../src/lib/tracker-model/@types/Decision.ts';
 import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
 import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
@@ -19,14 +20,20 @@ import type {
   ResearchFinding,
   SetupQuestion
 } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }                                from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
-import { DEFAULT_CONSTITUTION_SOURCES }                                       from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { ROOT_ENTITY_KEY }                                                    from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }                                     from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
-import type { AssistantFacts }                                                from '../../src/services/overseer/AssistantBoot.ts';
-import type { AssistantChatFacts }                                            from '../../src/services/overseer/AssistantSession.ts';
-import type { BatonPassFailure }                                              from '../../src/services/overseer/BatonPass.ts';
-import type { CrossedPackageResult, CrossingStageFacts, SealedPackageReview } from '../../src/services/overseer/CrossingStages.ts';
+import type { DecisionDraft, DecisionWording } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
+import { ENTITY_DECISION_ANSWERS }             from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
+import { DEFAULT_CONSTITUTION_SOURCES }        from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { ROOT_ENTITY_KEY }                     from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
+import type { AssistantFacts }                 from '../../src/services/overseer/AssistantBoot.ts';
+import type { AssistantChatFacts }             from '../../src/services/overseer/AssistantSession.ts';
+import type { BatonPassFailure }               from '../../src/services/overseer/BatonPass.ts';
+import type {
+  CrossedPackageResult,
+  CrossingStageFacts,
+  RefusedPackageChange,
+  SealedPackageReview
+} from '../../src/services/overseer/CrossingStages.ts';
 import type {
   AirlockFacts,
   JobLaunchFacts,
@@ -34,6 +41,7 @@ import type {
   ReviewFindingsFacts,
   OverseerNotice
 } from '../../src/services/overseer/DrivePass.ts';
+import type { PackageNeedFacts, PackageNeedWording }                  from '../../src/services/overseer/EntityDecisionAnswers.ts';
 import type { NeedsSettledFacts }                                     from '../../src/services/overseer/NeedTickets.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/overseer/RedHandoff.ts';
 import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
@@ -95,11 +103,95 @@ function budgetReachedWordingOf(draft: DecisionDraft): DecisionWording {
   };
 }
 
+/** A decision of one question; with options, its answer is the label of the option User chose. */
+function oneQuestionWordingOf(draft: DecisionDraft, question: string, options: DecisionQuestionOption[], context: string): DecisionWording {
+  return {
+    questions: [{
+      question, header: draft.kind, multiSelect: false, options
+    }],
+    context,
+  };
+}
+
+function optionOf(label: string, description: string): DecisionQuestionOption {
+  return { label, description };
+}
+
+/** The need as the decision names it, `<entity>: <title>`, or a plain phrase when the draft names none. */
+function needPhraseOf(draft: DecisionDraft): string {
+  return draft.subject?.need === undefined ? 'a need' : `the need "${draft.subject.need}"`;
+}
+
+function packagePhraseOf(draft: DecisionDraft): string {
+  return draft.subject?.packageEntity === undefined ? 'a package' : `the package \`${draft.subject.packageEntity}\``;
+}
+
+function sentenceStartOf(phrase: string): string {
+  return `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)}`;
+}
+
+const CONTINUE_WITHOUT_THE_NEED = optionOf('Continue without the need', 'The ticket runs its stage again without the change.');
+
+/**
+ * The entity decisions, each with the choices `docs/cli.md` gives it. Only `work-in-other-entity`, `package-refused` and
+ * `whitelist-removed-mid-crossing` are acted on, so only they offer a choice the Overseer carries out; the others release the ticket.
+ */
+function entityDecisionWordingOf(draft: DecisionDraft): DecisionWording | null {
+  const tickets = ticketsPhraseOf(draft.ticketIds);
+  const answers = ENTITY_DECISION_ANSWERS;
+  switch (draft.kind) {
+    case 'need-for-root':
+      return oneQuestionWordingOf(draft, `${tickets} declared ${needPhraseOf(draft)} for the root entity, which has no gates to check the change. `
+        + 'Make the change yourself, or decline it.', [
+        optionOf('The change is made', 'You made the change in the root entity. The ticket runs its stage again.'),
+        CONTINUE_WITHOUT_THE_NEED,
+      ], 'No ticket is filed for a need of the root entity while it has no gates.');
+    case 'need-closes-circle':
+      return oneQuestionWordingOf(draft, `${tickets} declared ${needPhraseOf(draft)}, which would close a circle in the entities' dependsOn. `
+        + 'The need is refused.', [CONTINUE_WITHOUT_THE_NEED], 'To stop the ticket instead, abandon it on the board.');
+    case 'need-abandoned':
+      return oneQuestionWordingOf(draft, `The ticket filed for a need of ${tickets} was abandoned. The ticket no longer waits on it.`, [CONTINUE_WITHOUT_THE_NEED],
+        'To stop the ticket instead, abandon it on the board.');
+    case 'work-in-other-entity': {
+      const owningEntities = draft.subject?.owningEntities ?? [];
+      const paths = draft.subject?.paths ?? [];
+      return oneQuestionWordingOf(draft, `All the work of ${tickets} belongs to another entity${owningEntities.length === 0 ? '' : ` (${codeListOf(owningEntities)})`}. `
+        + 'Move the ticket to that entity, or abandon it.', [
+        ...owningEntities.map((entityKey) => optionOf(
+          `${answers.moveToEntityPrefix}${entityKey}`,
+          `The ticket moves to \`${entityKey}\`. Its branch and worktree are dropped, and it builds again from the start in \`${entityKey}\`.`
+        )),
+        optionOf(answers.abandon, 'The ticket is abandoned.'),
+      ], paths.length === 0 ? '' : `The build changed only these files: ${codeListOf(paths)}.`);
+    }
+    case 'package-refused':
+      return oneQuestionWordingOf(draft, `The builder of ${packagePhraseOf(draft)} refused the change of ${tickets}: its constitution forbids it. `
+        + 'Drop the package change, turn it into a need, or abandon the ticket.', [
+        optionOf(answers.dropThePackageChange, 'The ticket goes back to stage 1, whose builder is told the reason and takes the change out of the package.'),
+        optionOf(answers.turnItIntoANeed, 'The change goes to a ticket of the package, which this ticket waits on, and the ticket goes back to stage 1.'),
+        optionOf(answers.abandon, 'The ticket is abandoned.'),
+      ], '');
+    case 'whitelist-removed-mid-crossing':
+      return oneQuestionWordingOf(draft, `${sentenceStartOf(packagePhraseOf(draft))} left the whitelist while ${tickets} crossed into it. `
+        + 'Finish the ticket under the old whitelist, or turn the package change into a need.', [
+        optionOf(answers.finishUnderTheOldWhitelist, 'The stages of the ticket continue as its crossing stored them.'),
+        optionOf(answers.turnThePackageChangeIntoANeed, 'The change goes to a ticket of the package, which this ticket waits on, and the ticket goes back to stage 1.'),
+      ], '');
+    case 'second-return':
+      return oneQuestionWordingOf(draft, `${tickets} would go back to ${packagePhraseOf(draft)} a second time. The owner agreed to one way back, `
+        + 'so the ticket stays at its stage.', [optionOf('Keep the ticket at its stage', 'The stage runs again.')], 'To stop the ticket instead, abandon it on the board.');
+    default:
+      return null;
+  }
+}
+
 function decisionWordingOf(draft: DecisionDraft): DecisionWording {
   if (draft.kind === 'checks-not-set') return CHECKS_NOT_SET_WORDING;
   if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
   if (draft.kind === 'api-authentication-failed') return API_AUTHENTICATION_FAILED_WORDING;
   if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
+  const entityDecisionWording = entityDecisionWordingOf(draft);
+  if (entityDecisionWording !== null) return entityDecisionWording;
   return {
     questions: [{
       question:    `The Overseer needs a decision (${draft.kind}) about ${ticketsPhraseOf(draft.ticketIds)}.`,
@@ -219,6 +311,14 @@ function needDeclarationLineOf(crossingStage: CrossingStageFacts | null): string
     + 'and end with the outcome `needs-declared`. When each need is settled, the Overseer starts this stage again.';
 }
 
+/** A package whose builder refused the ticket's change (E22): stage 1 takes the change back out of the package. */
+function refusedPackageChangeLineOf(refused: Readonly<RefusedPackageChange>): string {
+  const reason = refused.refusedReason.trim();
+  const reasonText = reason === '' ? 'It gave no reason.' : `Its reason:\n\n${reason.split('\n').map((line) => (line === '' ? '' : `  ${line}`)).join('\n')}\n`;
+  return `The builder of \`${refused.entity}\` refused the change of this ticket in that package. ${reasonText}\n  Remove each change of `
+    + `\`${refused.entity}\` from the branch. Customs sends your session back for a change of \`${refused.entity}\`.`;
+}
+
 /**
  * A builder of an entity: where it writes, the proposal its whitelist permits in stage 1, and how it declares a need for another entity. A
  * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle (A10).
@@ -233,10 +333,12 @@ function builderEntityScopeOf(job: Readonly<Job>, facts: JobLaunchFacts): string
     + 'This change is a proposal. After your report, the builder of each package builds it in its own stage, and its reviewer seals it.',
   ];
   const isRootEntityJob = entity === (facts.rootEntityKey ?? ROOT_ENTITY_KEY);
+  const refusedLines = crossingStage?.stage === 'build' ? (crossingStage.refusedPackageChanges ?? []).map(refusedPackageChangeLineOf) : [];
   return placeholderBulletsOf([
     `This job builds in the entity \`${entity}\`. Change only the files in the homes of \`${entity}\` and in its \`reach\`. Customs sends `
     + 'your session back one time for a change to a different file, and a second such change fails the job.',
     ...proposalLines,
+    ...refusedLines,
     ...(isRootEntityJob ? [] : [needDeclarationLineOf(crossingStage)]),
   ]);
 }
@@ -958,8 +1060,41 @@ function batonPassWarningTextOf(failure: BatonPassFailure): string {
   return `the Baton pass to code ${failure.successorCodeVersion} failed at ${failure.step}: ${failure.error}; this Overseer keeps driving`;
 }
 
+/** The proposal of the crossing ticket as a fenced diff, which a diff's own backtick fences cannot close. */
+function proposalBlockOf(proposal: string): string {
+  if (proposal.trim() === '') return 'Git could not show the proposal. Read it on the branch of the ticket.';
+  return ['~~~~diff', proposal.trimEnd(), '~~~~'].join('\n');
+}
+
+/** The need's ticket of a package change that User turned into a need (E19, E22): what the package must hold, why, and the proposal. */
+function packageNeedWordingOf(facts: PackageNeedFacts): PackageNeedWording {
+  const cause = facts.cause === 'package-refused'
+    ? `The builder of \`${facts.packageEntity}\` refused this change, because the constitution of the package forbids it. Its reason:\n\n`
+      + `${(facts.refusedReason ?? '').trim() === '' ? '(no reason given)' : (facts.refusedReason ?? '').trim()}`
+    : `\`${facts.packageEntity}\` left the whitelist of \`${facts.homeEntity}\` while the ticket crossed into it.`;
+  return {
+    title: `Change ${facts.packageEntity} for #${facts.ticketId} of ${facts.homeEntity}`,
+    body:  [
+      '## Acceptance',
+      '',
+      `A1. \`${facts.packageEntity}\` holds the change that ticket #${facts.ticketId} of \`${facts.homeEntity}\` proposed for it, as far as `
+      + `the constitution of \`${facts.packageEntity}\` permits.`,
+      '',
+      '## Brief',
+      '',
+      `Ticket #${facts.ticketId} of \`${facts.homeEntity}\` proposed a change of \`${facts.packageEntity}\`. ${cause}`,
+      '',
+      `User turned the change into this ticket. Ticket #${facts.ticketId} waits for it. The proposal, from the branch \`${facts.ticketBranch}\`:`,
+      '',
+      proposalBlockOf(facts.proposal),
+      '',
+    ].join('\n'),
+  };
+}
+
 export const OverseerWording = Object.freeze({
   decisionWordingOf,
+  packageNeedWordingOf,
   launchTextOf: launchTextWithEarlierSessionNoteOf,
   assistantChatTextOf,
   windDownMessage,

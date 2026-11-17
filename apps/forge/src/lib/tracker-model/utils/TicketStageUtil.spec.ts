@@ -1,9 +1,10 @@
 /**
  * The stage moves of a crossing ticket (strategy 4.2 and 5.2 to 5.7). What matters: the first crossing runs build, package build, package
  * review, adapt and review in that order, and adapt may be skipped; every way back the strategy names is legal and nothing else is, so a
- * later unit cannot jump a package review or a seal; only a move from `adapt` or `review` into a package build counts as a package return,
- * since the second one opens a decision; a stage's number is the job's `stage`, and its counter key is its job launch's key, so a return to
- * a stage finds its counts, and a job's entity and number give its stage back; and a stage name read from outside is a membership test.
+ * later unit cannot jump a package review or a seal, and a package change turned into a need goes back to build from any later stage (E19);
+ * only a move from `adapt` or `review` into a package build counts as a package return, since the second one opens a decision; a stage's
+ * number is the job's `stage`, and its counter key is its job launch's key, so a return to a stage finds its counts, and a job's entity and
+ * number give its stage back; and a stage name read from outside is a membership test.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -40,6 +41,9 @@ describe('the stage move table', () => {
     expect(stageMoveIsLegal('adapt', 'package-build'), 'E41, E42').toBe(true);
     expect(stageMoveIsLegal('review', 'adapt'), 'E51, E52, E65 for a home gate').toBe(true);
     expect(stageMoveIsLegal('review', 'package-build'), 'E65 for a package or dependent gate').toBe(true);
+    for (const laterStage of ['package-review', 'adapt', 'review'] as const) {
+      expect(stageMoveIsLegal(laterStage, 'build'), `E19: a package change turned into a need from ${laterStage}`).toBe(true);
+    }
   });
 
   test('allows exactly these moves, so no stage skips a package review or a seal', () => {
@@ -47,11 +51,14 @@ describe('the stage move table', () => {
       'build -> package-build',
       'package-build -> build',
       'package-build -> package-review',
+      'package-review -> build',
       'package-review -> package-build',
       'package-review -> adapt',
       'package-review -> review',
+      'adapt -> build',
       'adapt -> package-build',
       'adapt -> review',
+      'review -> build',
       'review -> package-build',
       'review -> adapt',
     ]);

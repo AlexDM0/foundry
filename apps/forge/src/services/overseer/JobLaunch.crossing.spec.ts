@@ -11,17 +11,17 @@
  * once the resumes are spent ends the job and opens `dependent-broken`, while the package's own goes the red handoff's way. The package
  * review settles its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31),
  * and one that does not hold sends the package build back with its Review, kept in its job folder since the ticket holds none (E34); one
- * that holds seals the ticket's own change to the package, a lockfile
- * change of its stages among it (E3), and runs the home review when the build stated no change of what the package exposes and the review
- * confirmed it, else `adapt` (E40, C15), and must confirm or correct the statement. A later stage whose branch no longer holds the sealed
- * change is sent back once, then fails (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `##
- * Handoff` holds one part per stage that built, each stage writing only its own, and a package build that refuses the change ends `refused`
- * with a `package-refused` decision that holds the ticket (E22). An adapt build that needs more of the package ends `package-return`: the
+ * that holds seals the ticket's own change to the package, a lockfile change of its stages among it (E3), and runs the home review when the
+ * build stated no change of what the package exposes and the review confirmed it, else `adapt` (E40, C15), and must confirm or correct the
+ * statement. A later stage whose branch no longer holds the sealed change is sent back once, then fails (E33); `adapt` that kept the seal
+ * reaches its gates and hands over to the home review. The `## Handoff` holds one part per stage that built, each stage writing only its
+ * own, and a package build that refuses the change ends `refused` with a `package-refused` decision about the package that holds the
+ * ticket, its reason kept in its job folder for stage 1 (E22). An adapt build that needs more of the package ends `package-return`: the
  * seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and the reason waits for the package
  * builder, while the adapt branch holds no change of the package (E42); a second return opens `second-return` and keeps `adapt` (E45). A
  * home review that does not hold goes back to `adapt` and in progress, after an adapt that ran and after a skipped one (E51), and for a
- * cause in the package `adapt`'s return reaches the package build (E52). With merge approval on, a package review that holds moves on to the
- * next stage, and only the home review waits in `merging-main`, once per ticket (E36).
+ * cause in the package `adapt`'s return reaches the package build (E52). With merge approval on, a package review that holds moves on to
+ * the next stage, and only the home review waits in `merging-main`, once per ticket (E36).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -35,7 +35,7 @@ import {
 
 import type { Job }                                 from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionWording }                     from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { DecisionDraft, DecisionWording }      from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { TicketStage }                         from '../../lib/tracker-model/@types/Task.ts';
 import type { Board }                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                            from '../../shared/BranchNames.ts';
@@ -302,11 +302,31 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
   test('that refuses the change ends refused and opens package-refused with its reason, which holds the ticket (E22)', () => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
     const refused = builtReportOf({ outcome: 'refused', exposedSurfaceChanged: false, refusedReason: 'The constitution forbids a second export.' });
-    const { whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', refused));
+    const { job, whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', refused));
 
     expect(whereTheJobWent).toBe('refused: ');
     expect(ticket.board.decisions()).toMatchObject([{ kind: 'package-refused', ticketIds: [SHOP_TICKET.id], context: 'The constitution forbids a second export.' }]);
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+    expect(CrossingStages.stageStatementOf(ticket.context.workspace.trackerDirectory, job.id))
+      .toEqual({ stage: 'package-refused', refusedReason: 'The constitution forbids a second export.' });
+  });
+
+  test('E22: that refuses the change words package-refused about the package', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+    const drafts: DecisionDraft[] = [];
+    const wordingContext = {
+      ...ticket.context,
+      decisionWordingOf: (draft: DecisionDraft) => {
+        drafts.push(draft);
+        return WORDING;
+      }
+    } as JobLaunchContext;
+    const refused = builtReportOf({ outcome: 'refused', exposedSurfaceChanged: false, refusedReason: 'The constitution forbids a second export.' });
+    runStage({ ...ticket, context: wordingContext }, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', refused));
+
+    expect(drafts).toEqual([{
+      kind: 'package-refused', ticketIds: [SHOP_TICKET.id], jobId: null, subject: { packageEntity: UI_KIT.key }
+    }]);
   });
 
   test('whose report does not state what the package exposes fails as a report without one (E40)', () => {

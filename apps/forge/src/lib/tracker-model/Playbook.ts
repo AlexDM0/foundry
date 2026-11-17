@@ -50,7 +50,7 @@ const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = [
 ];
 
 /** The decisions a crossing ticket's package stages open, which hold it the same way. */
-const CROSSING_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['package-refused', 'second-return', 'dependent-broken'];
+const CROSSING_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['package-refused', 'second-return', 'dependent-broken', 'whitelist-removed-mid-crossing'];
 
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];

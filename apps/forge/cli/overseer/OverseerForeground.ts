@@ -590,6 +590,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         apiBillingKeyIsSet,
         newCodeOnDisk:         installWatch.newCodeOnDisk,
         decisionWordingOf:     OverseerWording.decisionWordingOf,
+        packageNeedWordingOf:  OverseerWording.packageNeedWordingOf,
         launchTextOf:          OverseerWording.launchTextOf,
         assistantChatTextOf:   OverseerWording.assistantChatTextOf,
         windDownMessage:       OverseerWording.windDownMessage(),

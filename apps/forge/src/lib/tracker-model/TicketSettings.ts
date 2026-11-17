@@ -118,13 +118,18 @@ export class TicketSettings {
     });
   }
 
-  /** Set only while no agent has claimed the ticket, as its network is; `updated` is not stamped, and the reason is logged, never stored. */
-  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string): TicketChanged {
+  /**
+   * Set only while no agent has claimed the ticket, as its network is; `updated` is not stamped, and the reason is logged, never stored. The
+   * Overseer acting on User's answer to `work-in-other-entity` moves a started ticket too (E15), so its next build starts afresh there.
+   */
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastPending?: boolean } = {}): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
     this.refuseAnUnknownEntity(ticketId, assignment.entity);
-    if (!TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) throw new BoardRefusal({ reason: 'entity-of-a-ticket-past-pending', ticketId, status });
+    if (options.allowsPastPending !== true && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) {
+      throw new BoardRefusal({ reason: 'entity-of-a-ticket-past-pending', ticketId, status });
+    }
     if (frontmatter.entity === assignment.entity) throw new BoardRefusal({ reason: 'entity-unchanged', ticketId, entity: assignment.entity });
     if (assignment.reason.trim() === '') throw new BoardRefusal({ reason: 'entity-without-reason', ticketId });
 

@@ -1,18 +1,18 @@
 /**
- * The Playbook's launches for a crossing ticket's stages (strategy 4.2 and 5.8) on the entity-forge fixture's entities, each rule claim watched
- * failing under the mutant of its line. What matters: a ticket whose row stores a stage launches that stage's job in the stage's entity and
- * number whatever its status, a reviewer only for an entity with a review phase; review rounds count within their stage and are kept on a
- * return to it, so the home review's round 1 is its first; a package review never counts against the home builder's resumes, while it
- * counts against the package builder's, so a package build and package review loop parks once they are spent (E34); a ticket that
+ * The Playbook's launches for a crossing ticket's stages (strategy 4.2 and 5.8) on the entity-forge fixture's entities, each rule claim
+ * watched failing under the mutant of its line. What matters: a ticket whose row stores a stage launches that stage's job in the stage's
+ * entity and number whatever its status, a reviewer only for an entity with a review phase; review rounds count within their stage and are
+ * kept on a return to it, so the home review's round 1 is its first; a package review never counts against the home builder's resumes,
+ * while it counts against the package builder's, so a package build and package review loop parks once they are spent (E34); a ticket that
  * crosses into no package launches as today, as stage 1 or stage 5 of its own entity, and still parks after today's failed passes when
  * review rounds come between its failed builds; a forge without entities launches exactly as today, a stored stage ignored. The scheduling
  * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
  * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
  * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and a stopped stage job's
  * successor stays in its stage (E75); a usage limit holds a ticket between stages (E76); and an open decision of the package stages
- * (`package-refused`, `second-return`, `dependent-broken`) holds the ticket it names until User answers (E22, E45, E26). A pending ticket
- * without an entity launches nothing on a pipeline with entities until it has one, since its build would read the forge-level pipeline,
- * while a forge without entities launches it as today (E94).
+ * (`package-refused`, `second-return`, `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers
+ * (E22, E45, E26, E19). A pending ticket without an entity launches nothing on a pipeline with entities until it has one, since its build
+ * would read the forge-level pipeline, while a forge without entities launches it as today (E94).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -345,10 +345,10 @@ const CLAIMS: StageClaim[] = [
     }), [packageBuildOf('001', 2)]),
     mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
   },
-  ...(['package-refused', 'second-return', 'dependent-broken'] as const).map((kind) => ({
-    name:   `an open ${kind} decision holds the crossing ticket it names`,
+  ...(['package-refused', 'second-return', 'dependent-broken', 'whitelist-removed-mid-crossing'] as const).map((kind) => ({
+    name:   `${kind === 'whitelist-removed-mid-crossing' ? 'E19: ' : ''}an open ${kind} decision holds the crossing ticket it names`,
     holds:  (policy: typeof Playbook) => launchesExactly(policy, entityFacts({ tickets: [crossingTicket(PACKAGE_BUILD)], decisions: [openDecisionOf(kind)] }), []),
-    mutant: policyLine('[\'package-refused\', \'second-return\', \'dependent-broken\']', '[]'),
+    mutant: policyLine('[\'package-refused\', \'second-return\', \'dependent-broken\', \'whitelist-removed-mid-crossing\']', '[]'),
   })),
   {
     name:  'E94: a pending ticket without an entity launches nothing on a pipeline with entities until it has one',

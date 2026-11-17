@@ -392,8 +392,9 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   lifecycle: its progress is a Board roll-up over its tickets, and it never touches dispatch, claiming, concurrency or
   release, which stay `group`'s.
 - In a forge with entities, `ticket add --entity` and `ticket entity` set a ticket's `entity`. The product owner sets it
-  on its own draft ticket or on a ticket in `ready-for-review` or `pending`, and User sets it on the command line. No
-  Bridge control sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
+  on its own draft ticket or on a ticket in `ready-for-review` or `pending`, and User sets it on the command line. The
+  Overseer sets it on a started ticket when User answers `work-in-other-entity` with a move (E15). No Bridge control
+  sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
   entity. The Overseer gives a worker's finding the entity that owns the paths of its Brief's `Work belongs in:` line.
   When the line names no path, or paths of more than one entity, the finding gets the entity of the job that found it
   (E83, E53). The Board refuses to move a ticket without an entity to `pending` (`ticket-without-entity`), so

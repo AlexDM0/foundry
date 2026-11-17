@@ -4,30 +4,31 @@
  * matters: a branch that changed only the shop's files reaches its gates; one that also changed the admin app's files is sent back once on
  * a red handoff naming them, and a second scope refusal fails the job, also after a red gate in between, while a V17 whose git failed
  * spends no resume (E11); one that changed only the admin app's files is sent back once, then fails and opens `work-in-other-entity`, which
- * holds the ticket (E15); a need for the root entity, which has no gates, opens `need-for-root` and files nothing (E12); a need of the
- * package's job for an app that consumes the package would close a circle and opens `need-closes-circle` (E13); a need for the admin app is
- * filed as its ticket, which waits for the owner with ticket review on, holds the shop's ticket until delivered and then reruns the shop's
- * stage, and once abandoned leaves the shop's ticket with `need-abandoned` (E14). Each open decision holds its ticket. A folder that no
- * entity names is the root entity's, so a build of the shop that creates one is sent back as for another entity's files (E6). A build of
- * the shop that changed the package's constitution, which its ticket names, is sent back once and then fails, as any scope refusal (E8).
+ * offers the admin app and holds the ticket (E15); a need for the root entity, which has no gates, opens `need-for-root` and files nothing
+ * (E12); a need of the package's job for an app that consumes the package would close a circle and opens `need-closes-circle` (E13); a need
+ * for the admin app is filed as its ticket, which waits for the owner with ticket review on, holds the shop's ticket until delivered and
+ * then reruns the shop's stage, and once abandoned leaves the shop's ticket with `need-abandoned` (E14). Each open decision holds its
+ * ticket. A folder that no entity names is the root entity's, so a build of the shop that creates one is sent back as for another entity's
+ * files (E6). A build of the shop that changed the package's constitution, which its ticket names, is sent back once and then fails, as any
+ * scope refusal (E8).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import { PipelineFile }                       from '../../adapters/pipeline/PipelineFile.ts';
-import { GitProcess }                         from '../../lib/git/GitProcess.ts';
-import type { Job }                           from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                         from '../../lib/tracker-model/Board.ts';
-import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketBodyHashUtil }                 from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { branchNamesOf }                      from '../../shared/BranchNames.ts';
-import { LIFECYCLE_LIMITS }                   from '../../shared/constants/LifecycleLimits.ts';
-import { PRODUCT_NAMES }                      from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }        from '../../testing/BoardFixtures.ts';
+import { PipelineFile }                                      from '../../adapters/pipeline/PipelineFile.ts';
+import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { EntityOwnershipUtil }                               from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketBodyHashUtil }                                from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
+import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
+import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                       from '../../testing/BoardFixtures.ts';
 import {
   ENTITY_FORGE_ENTITIES,
   ENTITY_FORGE_MAIN_LINE,
@@ -296,6 +297,24 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
     expect(verify(sentBack, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN)).toBe('failed: changed-only-outside-home-and-reach');
     expect(decisionsOf(sentBack.board)).toEqual([['work-in-other-entity', [SHOP_TICKET.id]]]);
     expect(launchedTicketIdsOf(sentBack.board)).toEqual([]);
+  });
+
+  test('E15: opens work-in-other-entity offering the entity that owns the changed files', () => {
+    const sentBack = launchedBuildOf(SHOP);
+    const drafts: DecisionDraft[] = [];
+    const context = {
+      ...sentBack.context,
+      decisionWordingOf: (draft: DecisionDraft) => {
+        drafts.push(draft);
+        return WORDING;
+      }
+    } as JobLaunchContext;
+    leaveARedHandoff(sentBack, 'customs', 'V17', true);
+    verify({ ...sentBack, context }, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN);
+
+    expect(drafts).toEqual([{
+      kind: 'work-in-other-entity', ticketIds: [SHOP_TICKET.id], jobId: null, subject: { owningEntities: [ADMIN.key], paths: [sourceFileOf(ADMIN)] }
+    }]);
   });
 });
 

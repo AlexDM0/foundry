@@ -61,6 +61,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     installVersionChanged: () => false,
     apiBillingKeyIsSet:    () => false,
     decisionWordingOf:     () => ({ questions: [], context: '' }),
+    packageNeedWordingOf:  () => ({ title: 'Example need', body: '' }),
     launchTextOf:          () => ({ firstMessage: 'Example first message', roleBrief: 'Example role' }),
     assistantChatTextOf:   (facts) => `Example chat ${facts.sequence}`,
     windDownMessage:       'Example wind-down message',
