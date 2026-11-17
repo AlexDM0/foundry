@@ -23,6 +23,7 @@ export const TICKET_USAGE = [
   'size <id> XS|S|M|L|XL|XXL [--at <when>]',
   'network <id> <domain>... | --clear [--at <when>] [--json]',
   'entity <id> <key> --reason <text> [--at <when>] [--json]',
+  'group <id> <name> [--at <when>] [--json]',
   'agent <id> [--model <m>] [--effort <e>] [--at <when>]',
   'hold <id> [--reason <text>] [--at <when>]',
   'unhold <id> [--at <when>]',

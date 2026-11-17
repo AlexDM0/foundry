@@ -78,6 +78,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'incident-escalate':          ['incident', 'escalate', 'I1'],
   'ticket-network':             ['ticket', 'network', '1', 'api.example.com'],
   'ticket-entity':              ['ticket', 'entity', '1', 'web', '--reason', 'The basket page is the web app\'s'],
+  'ticket-group':               ['ticket', 'group', '1', 'checkout-redesign'],
   'ticket-hold':                ['ticket', 'hold', '1', '--reason', 'waiting on Alex Example'],
   'ticket-unhold':              ['ticket', 'unhold', '1'],
   'epic-add':                   ['epic', 'add', 'search', 'Search'],

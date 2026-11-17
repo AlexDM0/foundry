@@ -113,6 +113,8 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'malformed-epic-key':                { reason: 'malformed-epic-key', epicKey: 'Checkout Redesign' },
   'malformed-group-name':              { reason: 'malformed-group-name', group: 'Checkout Redesign' },
   'group-name-case-twin':              { reason: 'group-name-case-twin', group: 'Checkout', existingGroup: 'checkout' },
+  'group-of-a-settled-ticket':         { reason: 'group-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
+  'ticket-already-in-a-group':         { reason: 'ticket-already-in-a-group', ticketId: '004', group: 'checkout-redesign' },
   'epic-already-exists':               { reason: 'epic-already-exists', epicKey: 'checkout-redesign' },
   'unknown-epic':                      { reason: 'unknown-epic', missingEpicKeys: ['checkout-redesign'] },
   'epic-still-named':                  { reason: 'epic-still-named', epicKey: 'checkout-redesign', ticketIds: ['004'] },

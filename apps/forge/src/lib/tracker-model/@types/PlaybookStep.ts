@@ -11,13 +11,15 @@ export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 /** What a decision the Overseer opens about entities is about, which its wording names and its options offer. */
 export interface DecisionDraftSubject {
   /** The entities that own the paths a ticket's build changed outside its own entity: the answer may move the ticket to one (E15). */
-  owningEntities?: readonly string[];
+  owningEntities?:  readonly string[];
   /** The paths a ticket's build changed outside its own entity (E15). */
-  paths?:          readonly string[];
+  paths?:           readonly string[];
   /** The package a crossing ticket's decision is about (E19, E22, E45). */
-  packageEntity?:  string;
+  packageEntity?:   string;
   /** The need a decision was opened for, as `<entity>: <title>` (E12, E13). */
-  need?:           string;
+  need?:            string;
+  /** The dependent entity whose gate a crossing ticket's package change breaks (E26). */
+  dependentEntity?: string;
 }
 
 export interface DecisionDraft {

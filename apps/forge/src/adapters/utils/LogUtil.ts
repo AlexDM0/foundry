@@ -131,6 +131,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} marked as the release ticket of group ${record.fields.group}`;
     case 'ticket-release-cleared':
       return `Ticket #${record.ticketId} no longer marked as its group's release ticket`;
+    case 'ticket-grouped':
+      return `Ticket #${record.ticketId} in group ${record.fields.group}`;
     case 'ticket-epics-set':
       return `Ticket #${record.ticketId} belongs to ${epicsText(record.fields.epics)}`;
     case 'ticket-network-set':
@@ -141,6 +143,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} belongs to entity ${record.fields.entity}: ${record.fields.reason}`;
     case 'need-declared':
       return `Ticket #${record.ticketId} needs work in entity ${record.fields.entity}, declared by job ${record.fields.byJob}: ${record.fields.title}`;
+    case 'dependent-fix-filed':
+      return `Ticket #${record.ticketId} breaks entity ${record.fields.entity}: ${TicketPhraseUtil.ticketReferencesText(record.fields.fixTicketIds)} filed in its group to fix it`;
     case 'stage-started':
       return `Ticket #${record.ticketId} started the stage ${record.fields.stage} of entity ${record.fields.entity}`;
     case 'seal-set':
@@ -407,6 +411,7 @@ function taskIdsConcernedBy(record: LogRecordContent): number[] {
 
 function ticketIdsConcernedBy(record: LogRecordContent): string[] {
   if (record.kind === 'ticket-dependencies-set') return [...new Set([record.ticketId, ...record.fields.dependsOn])];
+  if (record.kind === 'dependent-fix-filed') return [...new Set([record.ticketId, ...record.fields.fixTicketIds])];
   if (record.kind === 'ticket-introduced-by-set' && record.fields.introducedBy !== undefined) return [record.ticketId, record.fields.introducedBy];
   if (record.kind === 'draft-closed' || record.kind === 'job-launched' || record.kind === 'decision-opened' || record.kind === 'incident-opened') {
     return [...record.fields.ticketIds];

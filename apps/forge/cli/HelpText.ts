@@ -333,6 +333,13 @@ never carries it.
                               a draft ticket, ready for review or pending, with a blank reason,
                               and when nothing would change.
 
+  ticket group <id> <name> [--at <when>] [--json]
+                              Put a ticket that has no group into one, a started ticket too: its
+                              next landing goes to the group's branch, and the group's release
+                              takes it to the main line. One log line. Refused at exit 1, writing
+                              nothing, on a ticket already in a group, on a delivered or abandoned
+                              ticket, and on a name \`ticket add --group\` refuses.
+
   ticket ready <id> [<id>...] [--at <when>] [--json]
                               Ready draft tickets to build, all or nothing: each becomes pending
                               with a pending row at any priority, one log line each. Refused at

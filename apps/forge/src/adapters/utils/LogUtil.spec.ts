@@ -75,6 +75,11 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, 'Ticket #001 unheld'],
   [{ kind: 'ticket-release-marked', ticketId: '001', fields: { group: 'example-shop' } }, 'Ticket #001 marked as the release ticket of group example-shop'],
   [{ kind: 'ticket-release-cleared', ticketId: '001', fields: {} }, 'Ticket #001 no longer marked as its group\'s release ticket'],
+  [{ kind: 'ticket-grouped', ticketId: '001', fields: { group: 'example-shop' } }, 'Ticket #001 in group example-shop'],
+  [
+    { kind: 'dependent-fix-filed', ticketId: '001', fields: { entity: 'admin', fixTicketIds: ['004'] } },
+    'Ticket #001 breaks entity admin: #004 filed in its group to fix it',
+  ],
   [
     {
       kind:     'review-bar-started',
@@ -146,7 +151,7 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   ],
 ];
 
-const RECORD_KIND_COUNT = 38;
+const RECORD_KIND_COUNT = 40;
 
 test('every kind of record reads as the sentence the log held before there were records', () => {
   expect(new Set(SENTENCE_FOR_RECORD.map(([record]) => record.kind)).size, 'the table covers every kind').toBe(RECORD_KIND_COUNT);
@@ -305,6 +310,11 @@ describe('the entry the page reads', () => {
       [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, { taskIds: [], ticketIds: ['001'] }],
       [{ kind: 'ticket-release-marked', ticketId: '007', fields: { group: 'release #002' } }, { taskIds: [], ticketIds: ['007'] }],
       [{ kind: 'ticket-release-cleared', ticketId: '007', fields: {} }, { taskIds: [], ticketIds: ['007'] }],
+      [{ kind: 'ticket-grouped', ticketId: '007', fields: { group: 'release-002' } }, { taskIds: [], ticketIds: ['007'] }],
+      [
+        { kind: 'dependent-fix-filed', ticketId: '007', fields: { entity: 'admin', fixTicketIds: ['008'] } },
+        { taskIds: [], ticketIds: ['007', '008'] },
+      ],
       [{ kind: 'ticket-check-command-restamped', ticketId: '007', fields: { command: 'bun run example-checks' } }, { taskIds: [], ticketIds: ['007'] }],
       [
         {

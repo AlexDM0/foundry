@@ -81,6 +81,7 @@ import { AssistantBoot, type AssistantFacts }                                   
 import { type AssistantChatFacts, type AssistantReading, AssistantSession }      from './AssistantSession.ts';
 import { Baton }                                                                 from './Baton.ts';
 import { CrossingStages, type CrossingStageFacts }                               from './CrossingStages.ts';
+import type { DependentFixFacts, DependentFixWording }                           from './DependentFixTickets.ts';
 import { EndedJobTokens }                                                        from './EndedJobTokens.ts';
 import { EntityDecisionAnswers, type PackageNeedFacts, type PackageNeedWording } from './EntityDecisionAnswers.ts';
 import { GateProfiling }                                                         from './GateProfiling.ts';
@@ -236,6 +237,8 @@ export interface DrivePassRequest {
   decisionWordingOf:                 (draft: DecisionDraft) => DecisionWording;
   /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
   packageNeedWordingOf:              (facts: PackageNeedFacts) => PackageNeedWording;
+  /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
+  dependentFixWordingOf:             (facts: DependentFixFacts) => DependentFixWording;
   launchTextOf:                      (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
   /** One numbered chat to the Assistant listing the incidents it delivers, their facts and allowed moves. */
   assistantChatTextOf:               (facts: AssistantChatFacts) => string;
@@ -1373,11 +1376,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const usageResetsAt = UsageLimits.usageResetsAtOf(observation.usageMarker, usageLimitHits);
         const agentConfigHold = JobLaunch.holdAgentConfigHits(change, jobLaunchContext, observation.ticketIdsTouchingAgentConfig);
         EntityDecisionAnswers.actOnAnswers(change, {
-          decisionWordingOf:    request.decisionWordingOf,
-          packageNeedWordingOf: request.packageNeedWordingOf,
-          branchNames:          request.branchNames,
-          mainLine:             request.mainLine,
-          repositoryRoot:       projectLocation.repositoryRoot,
+          decisionWordingOf:     request.decisionWordingOf,
+          packageNeedWordingOf:  request.packageNeedWordingOf,
+          dependentFixWordingOf: request.dependentFixWordingOf,
+          branchNames:           request.branchNames,
+          mainLine:              request.mainLine,
+          repositoryRoot:        projectLocation.repositoryRoot,
         });
         EntityDecisionAnswers.openWhitelistRemovedDecisions(change.board, request.decisionWordingOf, change.at);
         const observations = {

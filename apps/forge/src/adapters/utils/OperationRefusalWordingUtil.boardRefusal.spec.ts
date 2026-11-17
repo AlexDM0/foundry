@@ -428,6 +428,14 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     + 'file system gives both one branch and one worktree. Nothing was written.',
   ],
   [
+    { reason: 'group-of-a-settled-ticket', ticketId: '001', status: 'abandoned' },
+    'Ticket #001 is abandoned, and it was not put into a group: no agent will work it again. Nothing was written.',
+  ],
+  [
+    { reason: 'ticket-already-in-a-group', ticketId: '001', group: 'example-shop' },
+    'Ticket #001 is already in group example-shop, and a ticket stays in the group it is in. Nothing was written.',
+  ],
+  [
     { reason: 'epic-already-exists', epicKey: 'checkout-redesign' },
     'There is already an epic checkout-redesign. Nothing was written; `agent-progress epic edit checkout-redesign` changes it.',
   ],
@@ -451,7 +459,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 60;
+const REFUSAL_REASON_COUNT = 62;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

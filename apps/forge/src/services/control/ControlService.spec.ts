@@ -54,6 +54,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'ticket-entity':     {
     kind: 'ticket-entity', ticketReference: '3', entity: 'web', reason: 'The basket page is the web app\'s'
   },
+  'ticket-group':  { kind: 'ticket-group', ticketReference: '3', group: 'checkout-redesign' },
   'ticket-hold':   { kind: 'ticket-hold', ticketReference: '3', reason: '' },
   'ticket-unhold': { kind: 'ticket-unhold', ticketReference: '3' },
   'epic-add':      {

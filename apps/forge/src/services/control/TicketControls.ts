@@ -186,7 +186,12 @@ export const TICKET_CONTROLS = {
     change.at,
   ),
   'ticket-entity': setEntity,
-  'ticket-hold':   (command: CommandOf<'ticket-hold'>, change: TrackerChange) => change.board.holdTicket(
+  'ticket-group':  (command: CommandOf<'ticket-group'>, change: TrackerChange) => change.board.setTicketGroup(
+    ticketIdOfReference(change, command.ticketReference),
+    command.group,
+    change.at,
+  ),
+  'ticket-hold': (command: CommandOf<'ticket-hold'>, change: TrackerChange) => change.board.holdTicket(
     ticketIdOfReference(change, command.ticketReference),
     command.reason,
     change.at,

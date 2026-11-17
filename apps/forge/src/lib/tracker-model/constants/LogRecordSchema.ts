@@ -141,6 +141,7 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-unheld':                   { subject: 'ticket', fields: NO_FIELDS },
   'ticket-release-marked':           { subject: 'ticket', fields: { group: 'text' } },
   'ticket-release-cleared':          { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-grouped':                  { subject: 'ticket', fields: { group: 'text' } },
   'ticket-epics-set':                { subject: 'ticket', fields: { epics: 'epic-keys' } },
   // An empty `domains` cleared the line.
   'ticket-network-set':              { subject: 'ticket', fields: { domains: 'network-domains' } },
@@ -148,6 +149,8 @@ export const LOG_RECORD_SCHEMA = {
   'entity-assigned':                 { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
   // A build stage's job of the ticket declared work it needs in another entity; the Overseer files that work as its own ticket.
   'need-declared':                   { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
+  // E26: the Overseer filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
+  'dependent-fix-filed':             { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
   // A crossing ticket's row moved into `stage`, run by the agents of `entity`; a stage job never moves the ticket's status.
   'stage-started':                   { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
   // A package review sealed the ticket's own change to package `entity`; `seal` is its hash, as the row stores it.

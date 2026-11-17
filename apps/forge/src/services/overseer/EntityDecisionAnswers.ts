@@ -2,7 +2,8 @@
  * What the Overseer does with User's answer to an entity decision, at the start of its next pass, before the Playbook launches anything:
  * `work-in-other-entity` moves the ticket to the entity that owns its work or abandons it (E15); `package-refused` drops the package change,
  * turns it into a need, or abandons the ticket (E22); `whitelist-removed-mid-crossing` finishes the crossing under the old whitelist or turns
- * the package change into a need (E19). It also opens `whitelist-removed-mid-crossing` for a crossing ticket whose stored crossing holds a
+ * the package change into a need (E19); `dependent-broken` files a fix ticket of the dependent in the ticket's group, or abandons the ticket
+ * (E26). It also opens `whitelist-removed-mid-crossing` for a crossing ticket whose stored crossing holds a
  * package its home's whitelist no longer names, before its next stage launches.
  *
  * An answer is acted on once: anything the act logs about the ticket, or a launch of it, shows it was. An answer that names no option acts
@@ -19,6 +20,7 @@ import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                  
 import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
 import type { TrackerChange }                                                         from '../tracker/TrackerPipeline.ts';
 import { CrossingStages }                                                             from './CrossingStages.ts';
+import { type DependentFixContext, DependentFixTickets }                              from './DependentFixTickets.ts';
 import { NeedTickets }                                                                from './NeedTickets.ts';
 
 /** Why a crossing ticket's change of a package becomes a need. */
@@ -43,11 +45,12 @@ export interface PackageNeedWording {
 }
 
 export interface EntityDecisionAnswerContext {
-  decisionWordingOf:    (draft: DecisionDraft) => DecisionWording;
-  packageNeedWordingOf: (facts: PackageNeedFacts) => PackageNeedWording;
-  branchNames:          Pick<BranchNames, 'ticketBranchOf' | 'groupTargetPrefix'>;
-  mainLine:             string;
-  repositoryRoot:       string;
+  decisionWordingOf:     (draft: DecisionDraft) => DecisionWording;
+  packageNeedWordingOf:  (facts: PackageNeedFacts) => PackageNeedWording;
+  dependentFixWordingOf: DependentFixContext['dependentFixWordingOf'];
+  branchNames:           Pick<BranchNames, 'ticketBranchOf' | 'groupTargetPrefix'>;
+  mainLine:              string;
+  repositoryRoot:        string;
 }
 
 /** User's answer to an entity decision the Overseer has not acted on yet. */
@@ -58,8 +61,13 @@ export interface AnswerToActOn {
   answer:     string;
 }
 
-/** What the ticket's act logs, or its launch: any of them after the answer shows the answer was acted on. */
-const RECORDS_THAT_ACT_ON_AN_ANSWER: readonly LogRecord['kind'][] = ['entity-assigned', 'stage-started', 'seal-lifted', 'ticket-abandoned'];
+/**
+ * What the ticket's act logs, or its launch: any of them after the answer shows the answer was acted on. Not `ticket-grouped`, which User's
+ * own `ticket group` logs too, so grouping the ticket before the next pass never drops the answer.
+ */
+const RECORDS_THAT_ACT_ON_AN_ANSWER: readonly LogRecord['kind'][] = [
+  'entity-assigned', 'stage-started', 'seal-lifted', 'ticket-abandoned', 'dependent-fix-filed'
+];
 
 function decisionKindIsActedOn(kind: Decision['kind']): kind is DecisionKindActedOn {
   return (DECISION_KINDS_ACTED_ON as readonly string[]).includes(kind);
@@ -213,6 +221,22 @@ function actOnWhitelistRemoved(change: TrackerChange, context: EntityDecisionAns
   }
 }
 
+/**
+ * E26: the dependent's fix ticket goes into the ticket's group, waiting on it, and the group's release lands both; the ticket's next package
+ * build leaves out that dependent's gates, which run at the release. Abandoning abandons the ticket.
+ */
+function actOnDependentBroken(change: TrackerChange, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
+  if (answer.answer === ENTITY_DECISION_ANSWERS.abandon) {
+    abandon(change.board, answer, change.at);
+    return;
+  }
+  if (!answer.answer.startsWith(ENTITY_DECISION_ANSWERS.fileAFixTicketForPrefix)) return;
+  const dependentEntity = answer.answer.slice(ENTITY_DECISION_ANSWERS.fileAFixTicketForPrefix.length).trim();
+  if (!Object.hasOwn(change.board.pipeline()?.entities ?? {}, dependentEntity)) return;
+  const fixContext = { dependentFixWordingOf: context.dependentFixWordingOf, ticketBranchOf: context.branchNames.ticketBranchOf };
+  DependentFixTickets.fileFixTicket(change, fixContext, { ticketId: answer.ticketId, dependentEntity });
+}
+
 /** Acts on every answer that waits for it, oldest first, in the hold before the Playbook, so the same pass launches what it freed. */
 function actOnAnswers(change: TrackerChange, context: EntityDecisionAnswerContext): void {
   if (change.board.pipeline()?.entities === undefined) return;
@@ -220,6 +244,7 @@ function actOnAnswers(change: TrackerChange, context: EntityDecisionAnswerContex
     if (answer.kind === 'work-in-other-entity') actOnWorkInOtherEntity(change.board, answer, change.at);
     if (answer.kind === 'package-refused') actOnPackageRefused(change, context, answer);
     if (answer.kind === 'whitelist-removed-mid-crossing') actOnWhitelistRemoved(change, context, answer);
+    if (answer.kind === 'dependent-broken') actOnDependentBroken(change, context, answer);
   }
 }
 

@@ -879,6 +879,7 @@ describeWhenGitIsRecorded('the subcommand groups', () => {
       'depends',
       'entity',
       'epic',
+      'group',
       'hold',
       'introduced-by',
       'link',

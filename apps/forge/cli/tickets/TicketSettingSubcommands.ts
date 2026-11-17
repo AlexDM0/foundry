@@ -15,6 +15,7 @@ import type { TicketSubcommandHandler }                                 from './
 import { setTicketDependencies }                                        from './TicketDepends.ts';
 import { setTicketEntity }                                              from './TicketEntity.ts';
 import { setTicketEpics }                                               from './TicketEpic.ts';
+import { setTicketGroup }                                               from './TicketGroup.ts';
 import { holdOrUnholdTicket }                                           from './TicketHold.ts';
 import { setTicketIntroducedBy }                                        from './TicketIntroducedBy.ts';
 import { markOrClearReleaseTicket }                                     from './TicketReleaseMarker.ts';
@@ -134,6 +135,7 @@ async function setTicketNetwork(commandArguments: ArgumentParser, context: Comma
 export const TICKET_SETTING_SUBCOMMANDS: Readonly<Record<string, TicketSubcommandHandler>> = {
   network:         setTicketNetwork,
   entity:          setTicketEntity,
+  group:           setTicketGroup,
   link:            linkOneTicket,
   depends:         setTicketDependencies,
   epic:            setTicketEpics,

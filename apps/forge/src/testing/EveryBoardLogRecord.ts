@@ -127,6 +127,8 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordWorktreeRepaired('001', { step: 'prune', patchPath: null }, at);
   board.markReleaseTicket('002', at);
   board.clearReleaseTicket('002', at);
+  board.setTicketGroup('004', 'example-shop', at);
+  board.recordDependentFixFiled('004', { entity: 'web', fixTicketIds: ['002'] }, at);
   board.addEpic({
     key:      'example-checkout',
     title:    'Example checkout redesign',

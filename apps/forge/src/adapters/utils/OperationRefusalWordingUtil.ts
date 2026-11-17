@@ -233,6 +233,11 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'group-name-case-twin':
       return `Group "${detail.group}" differs from the existing group "${detail.existingGroup}" only in case, and a case-insensitive `
         + `file system gives both one branch and one worktree. ${NOTHING_WAS_WRITTEN}`;
+    case 'group-of-a-settled-ticket':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and it was not put into a group: `
+        + `no agent will work it again. ${NOTHING_WAS_WRITTEN}`;
+    case 'ticket-already-in-a-group':
+      return `Ticket #${detail.ticketId} is already in group ${detail.group}, and a ticket stays in the group it is in. ${NOTHING_WAS_WRITTEN}`;
     case 'epic-already-exists':
       return `There is already an epic ${detail.epicKey}. Nothing was written; `
         + `${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} epic edit ${detail.epicKey}\` changes it`, 'edit that epic to change it')}.`;

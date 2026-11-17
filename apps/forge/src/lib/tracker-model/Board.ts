@@ -207,6 +207,7 @@ import { TicketStageRows }                             from './TicketStageRows.t
 import { TokenCredits }                                from './TokenCredits.ts';
 import { TrackerChanges }                              from './TrackerChanges.ts';
 import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
+import { SETTLED_TICKET_STATUSES }                     from './constants/Statuses.ts';
 import { GroupNameUtil }                               from './utils/GroupNameUtil.ts';
 import { OptionConsequencesUtil }                      from './utils/OptionConsequencesUtil.ts';
 import { PipelineUtil }                                from './utils/PipelineUtil.ts';
@@ -962,6 +963,27 @@ export class Board {
     this.epicRules.refuseUnknownEpicKeys(ticket.frontmatter.epics ?? []);
     this.ticketLinks.refuseUnworkableLinksOfAFiledTicket(ticket.frontmatter);
     return this.ticketMoves.fileTicket(ticket, at);
+  }
+
+  /**
+   * Puts a ticket that has no group into one, a started ticket too: refused as a filing's group is, and for a delivered or abandoned ticket.
+   * Its next landing goes to the group's branch.
+   */
+  setTicketGroup(ticketId: string, group: string, at: string): TicketChanged {
+    const ticket = this.records.requireTicket(ticketId);
+    const { status, group: currentGroup } = ticket.frontmatter;
+    if (SETTLED_TICKET_STATUSES.includes(status)) throw new BoardRefusal({ reason: 'group-of-a-settled-ticket', ticketId, status });
+    if (currentGroup !== undefined) throw new BoardRefusal({ reason: 'ticket-already-in-a-group', ticketId, group: currentGroup });
+    this.refuseAnUnportableGroup(group);
+    ticket.frontmatter.group = group;
+    this.records.markChanged(ticket);
+    return { logged: [this.records.logger.log({ kind: 'ticket-grouped', ticketId, fields: { group } }, at)], ticket };
+  }
+
+  /** E26: a ticket of each dependent that the crossing ticket's package change breaks was filed in the crossing ticket's group. */
+  recordDependentFixFiled(ticketId: string, fix: LogRecordFieldsOf<'dependent-fix-filed'>, at: string): Logged {
+    this.records.requireTicket(ticketId);
+    return { logged: [this.records.logger.log({ kind: 'dependent-fix-filed', ticketId, fields: { entity: fix.entity, fixTicketIds: [...fix.fixTicketIds] } }, at)] };
   }
 
   /** A `null` cause clears the link. */

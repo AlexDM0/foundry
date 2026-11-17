@@ -41,6 +41,8 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"worktree-repaired","ticketId":"001","fields":{"step":"prune","patchPath":null}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-release-marked","ticketId":"002","fields":{"group":"example-shop"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-release-cleared","ticketId":"002","fields":{}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-grouped","ticketId":"004","fields":{"group":"example-shop"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"dependent-fix-filed","ticketId":"004","fields":{"entity":"web","fixTicketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"epic-added","epicKey":"example-checkout","fields":{"title":"Example checkout redesign"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"epic-edited","epicKey":"example-checkout","fields":{"title":"Example checkout overhaul"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"epic-removed","epicKey":"example-checkout","fields":{}}',

@@ -391,6 +391,11 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - A ticket's `epics` is an ordered list, the first its primary epic, written only when non-empty. An epic has no
   lifecycle: its progress is a Board roll-up over its tickets, and it never touches dispatch, claiming, concurrency or
   release, which stay `group`'s.
+- `ticket add --group` and `ticket group` set a ticket's `group`. `ticket group` puts a ticket that has no group into
+  one, also a started ticket, and refuses what a filing's group refuses, a ticket in a group and a settled ticket. In a
+  forge with entities, User's answer to `dependent-broken` (E26) can file a fix ticket of the dependent in the group of
+  the crossing ticket. The package build of that ticket then does not run the gates of that dependent: the release of
+  the group runs them.
 - In a forge with entities, `ticket add --entity` and `ticket entity` set a ticket's `entity`. The product owner sets it
   on its own draft ticket or on a ticket in `ready-for-review` or `pending`, and User sets it on the command line. The
   Overseer sets it on a started ticket when User answers `work-in-other-entity` with a move (E15). No Bridge control

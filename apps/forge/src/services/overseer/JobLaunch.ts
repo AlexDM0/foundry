@@ -97,6 +97,7 @@ import type { TrackerChange }                                          from '../
 import type { Workspace }                                              from '../tracker/Workspace.ts';
 import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
 import { CrossingStages }                                              from './CrossingStages.ts';
+import { DependentFixTickets }                                         from './DependentFixTickets.ts';
 import type { GateRunSlots }                                           from './GateRunSlots.ts';
 import { GroupWorktrees }                                              from './GroupWorktrees.ts';
 import { GuardCommand }                                                from './GuardCommand.ts';
@@ -410,12 +411,20 @@ export const BUILD_JOB_CAUSES = {
 /** The causes a review job ends `does-not-hold` with when its branch could not be brought up to the target before the reviewer. */
 const TARGET_CATCH_UP_CAUSES: readonly string[] = [BUILD_JOB_CAUSES.targetConflict, BUILD_JOB_CAUSES.targetGateRed];
 
+/** What a package build's gate run reads of its job's start: the entities whose gates it leaves out. */
+type PackageBuildStart = Pick<JobStart, 'homeEntity' | 'dependentsFixedInGroup'>;
+
 interface JobStart {
-  startCommit:      string;
-  bodyHashAtLaunch: string;
-  launchSnapshot:   LaunchSnapshot;
+  startCommit:             string;
+  bodyHashAtLaunch:        string;
+  launchSnapshot:          LaunchSnapshot;
   /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
-  homeEntity?:      EntityKey;
+  homeEntity?:             EntityKey;
+  /**
+   * A package build's dependents whose fix tickets are in its ticket's group, whose gates its run also leaves out: the group's release runs
+   * them (E26). Absent when there are none.
+   */
+  dependentsFixedInGroup?: EntityKey[];
 }
 
 function ticketIdOf(job: Readonly<Job>): string {
@@ -632,11 +641,19 @@ function gateRunManifestFileOf(place: GateRunPlace): string {
 
 /**
  * The entities a package build's gate run checks after the package's own (E25, E26): the package's dependents but its home entity, whose
- * app the adapt stage brings in line. None for every other job.
+ * app the adapt stage brings in line, and but those whose fix tickets are in the ticket's group, which the group's release gates. None for
+ * every other job.
  */
-function dependentsGatedOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, homeEntity: EntityKey | undefined): EntityKey[] {
+function dependentsGatedOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, start: Readonly<PackageBuildStart>): EntityKey[] {
   if (pipeline.entities === undefined || job.entity === undefined || TicketStageUtil.stageOfJob(job)?.name !== 'package-build') return [];
-  return EntityOwnershipUtil.dependentsOf(pipeline.entities, [job.entity]).filter((entityKey) => entityKey !== homeEntity);
+  const leftOut = [start.homeEntity, ...start.dependentsFixedInGroup ?? []];
+  return EntityOwnershipUtil.dependentsOf(pipeline.entities, [job.entity]).filter((entityKey) => !leftOut.includes(entityKey));
+}
+
+/** The dependents of the package of a package build: every other job has none. */
+function dependentsOfThePackageOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): EntityKey[] {
+  if (pipeline?.entities === undefined || job.entity === undefined || TicketStageUtil.stageOfJob(job)?.name !== 'package-build') return [];
+  return EntityOwnershipUtil.dependentsOf(pipeline.entities, [job.entity]);
 }
 
 /** A dependent's gate, named for its entity, so a red one tells the package builder whose gate it is. */
@@ -648,11 +665,11 @@ function dependentGateOf(entityKey: EntityKey, gate: Readonly<PipelineGate>): Pi
  * `null` when the pipeline no longer holds the job's entity. A package build runs the package's steps, then each gated dependent's, each
  * from its own first home.
  */
-function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: GatePhase, homeEntity: EntityKey | undefined): GateRunManifest | null {
+function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: GatePhase, start: Readonly<PackageBuildStart>): GateRunManifest | null {
   const stepsPipeline = stepsPipelineOf(pipeline, job);
   if (stepsPipeline === null) return null;
   const manifest = { ...jobGateRunStampOf(pipeline, job, phase), prepare: [...stepsPipeline.prepare], gates: PipelineUtil.gatesOfPhase(stepsPipeline, phase) };
-  const dependents = dependentsGatedOf(pipeline, job, homeEntity);
+  const dependents = dependentsGatedOf(pipeline, job, start);
   if (dependents.length === 0 || job.entity === undefined) return manifest;
   const dependentPipelines = dependents.flatMap((entityKey) => {
     const dependentPipeline = stepsPipelineOf(pipeline, { entity: entityKey });
@@ -709,7 +726,7 @@ function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place:
     const stored = readJsonFile<unknown>(manifestPath);
     return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
   }
-  const manifest = manifestOf(pipeline, job, place.phase, readJobStart(jobFolderOf(context.workspace, job))?.homeEntity);
+  const manifest = manifestOf(pipeline, job, place.phase, readJobStart(jobFolderOf(context.workspace, job)) ?? {});
   if (manifest === null) return 'unreadable';
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -1296,10 +1313,19 @@ function dependentGateIsRedPastItsResumes(hold: HoldContext, job: Readonly<Job>,
   return gateIsADependents && resumes >= LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING;
 }
 
-/** User files tickets for the dependents in one group with this ticket; the decision names the red gate and holds the ticket. */
+/**
+ * User has the dependent fixed by a ticket in this ticket's group, or abandons the ticket; the decision names the red gate, its subject the
+ * package and the dependent, and it holds the ticket.
+ */
 function openDependentBrokenDecision(hold: HoldContext, job: Readonly<Job>, gateName: string): void {
   const { board, at } = hold.change;
-  const draft: DecisionDraft = { kind: DEPENDENT_BROKEN_DECISION, ticketIds: job.ticketIds, jobId: null };
+  const dependentEntity = dependentsOfThePackageOf(board.pipeline(), job).find((entityKey) => gateName.startsWith(`${entityKey}: `));
+  const draft: DecisionDraft = {
+    kind:      DEPENDENT_BROKEN_DECISION,
+    ticketIds: job.ticketIds,
+    jobId:     null,
+    subject:   { ...(job.entity === undefined ? {} : { packageEntity: job.entity }), ...(dependentEntity === undefined ? {} : { dependentEntity }) },
+  };
   hold.logged.push(...board.openDecision({
     ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: gateName
   }, at).logged);
@@ -2669,6 +2695,15 @@ function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readon
   }
 }
 
+/** What a package build's start records of the entities its gate run leaves out; nothing for every other job. */
+function packageBuildStartOf(board: Board, job: Readonly<Job>): PackageBuildStart {
+  const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
+  const homeEntity = TicketStageUtil.stageOfJob(job)?.name === 'package-build' ? ticket?.frontmatter.entity : undefined;
+  if (ticket === undefined || homeEntity === undefined) return {};
+  const dependentsFixedInGroup = DependentFixTickets.dependentsFixedInGroupOf(board, ticket.frontmatter.id, dependentsOfThePackageOf(board.pipeline(), job));
+  return { homeEntity, ...(dependentsFixedInGroup.length === 0 ? {} : { dependentsFixedInGroup }) };
+}
+
 /**
  * Written as the session's Watcher is first spawned: the commit verification measures from, the body hash V6 compares with, and the refs,
  * worktree HEADs and hooks folder V13 and V14 compare with.
@@ -2681,9 +2716,8 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   const startCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD', GitWorktrees.ceilingOf(worktree));
   const launchSnapshot = launchSnapshotOf(worktree);
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
-  const homeEntity = TicketStageUtil.stageOfJob(job)?.name === 'package-build' ? ticket.frontmatter.entity : undefined;
   const start: JobStart = {
-    startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot, ...(homeEntity === undefined ? {} : { homeEntity })
+    startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot, ...packageBuildStartOf(board, job)
   };
   mkdirSync(dirname(startPath), { recursive: true });
   writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);
@@ -2734,6 +2768,7 @@ export const JobLaunch = Object.freeze({
   startAfreshInTheNewEntity,
   deliverBuildJobFrames,
   recordJobStart,
+  packageBuildStartOf,
   attributionTicketIdsOf,
   someBuildJobAwaitsAPass,
   spawnNextInstallStep,

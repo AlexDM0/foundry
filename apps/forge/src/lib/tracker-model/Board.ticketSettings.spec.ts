@@ -1,7 +1,8 @@
 /**
  * A link never leaves two tickets naming one row, an agent change is judged on the resolved pair, and a hold or unhold that would change
  * nothing is refused. An entity is set only to a key the pipeline names, only before an agent claims the ticket, and with a reason the log
- * keeps and the ticket does not. Refusals are asserted by reason code, before anything changed.
+ * keeps and the ticket does not. A ticket goes into a group only from no group, whatever its status but settled, and only under a name a
+ * filing could give it (E26, owner answer A11). Refusals are asserted by reason code, before anything changed.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -238,6 +239,40 @@ describe('setTicketEntity', () => {
     const blank = boardFixture({ tickets: [ticketFixture({ id: '001' })], pipeline: entityPipelineFixture() });
     expect(expectRefusedWithNothingChanged(blank, () => blank.board.setTicketEntity('001', { ...ASSIGNMENT, reason: '  ' }, CHANGED_AT), 'entity-without-reason'))
       .toEqual({ reason: 'entity-without-reason', ticketId: '001' });
+  });
+});
+
+describe('setTicketGroup', () => {
+  test.each(['draft', 'pending', 'in-progress', 'in-review', 'reviewed'] as const)('a ticket %s with no group joins it, logging ticket-grouped', (status) => {
+    const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', status })] });
+    const changed = board.setTicketGroup('001', 'checkout-redesign', CHANGED_AT);
+
+    expect(tickets[0]?.frontmatter.group).toBe('checkout-redesign');
+    expect(records).toEqual([{
+      at: CHANGED_AT, kind: 'ticket-grouped', ticketId: '001', fields: { group: 'checkout-redesign' }
+    }]);
+    expect(changed.logged).toEqual(records);
+  });
+
+  test('a ticket already in a group, the same group too, is refused, with nothing written', () => {
+    const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', group: 'example-shop' })] });
+    expect(expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketGroup('001', 'example-shop', CHANGED_AT), 'ticket-already-in-a-group'))
+      .toEqual({ reason: 'ticket-already-in-a-group', ticketId: '001', group: 'example-shop' });
+  });
+
+  test.each(['delivered', 'abandoned'] as const)('a ticket %s is refused, with nothing written', (status) => {
+    const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status })] });
+    expect(expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketGroup('001', 'example-shop', CHANGED_AT), 'group-of-a-settled-ticket'))
+      .toEqual({ reason: 'group-of-a-settled-ticket', ticketId: '001', status });
+  });
+
+  test('a name that is not portable, and the case twin of a stored group, are refused as a filing refuses them, with nothing written', () => {
+    const malformed = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
+    expectRefusedWithNothingChanged(malformed, () => malformed.board.setTicketGroup('001', 'Example_Shop', CHANGED_AT), 'malformed-group-name');
+
+    const twin = boardFixture({ tickets: [ticketFixture({ id: '001' }), ticketFixture({ id: '002', group: 'Example-Shop' })] });
+    expect(expectRefusedWithNothingChanged(twin, () => twin.board.setTicketGroup('001', 'example-shop', CHANGED_AT), 'group-name-case-twin'))
+      .toEqual({ reason: 'group-name-case-twin', group: 'example-shop', existingGroup: 'Example-Shop' });
   });
 });
 

@@ -92,6 +92,8 @@ export type BoardRefusalDetail =
   | { reason: 'malformed-epic-key'; epicKey: string }
   | { reason: 'malformed-group-name'; group: string }
   | { reason: 'group-name-case-twin'; group: string; existingGroup: string }
+  | { reason: 'group-of-a-settled-ticket'; ticketId: string; status: TicketStatus }
+  | { reason: 'ticket-already-in-a-group'; ticketId: string; group: string }
   | { reason: 'epic-already-exists'; epicKey: string }
   | { reason: 'unknown-epic'; missingEpicKeys: readonly string[] }
   | { reason: 'epic-still-named'; epicKey: string; ticketIds: readonly string[] }

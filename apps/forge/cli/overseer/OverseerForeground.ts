@@ -591,6 +591,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         newCodeOnDisk:         installWatch.newCodeOnDisk,
         decisionWordingOf:     OverseerWording.decisionWordingOf,
         packageNeedWordingOf:  OverseerWording.packageNeedWordingOf,
+        dependentFixWordingOf: OverseerWording.dependentFixWordingOf,
         launchTextOf:          OverseerWording.launchTextOf,
         assistantChatTextOf:   OverseerWording.assistantChatTextOf,
         windDownMessage:       OverseerWording.windDownMessage(),

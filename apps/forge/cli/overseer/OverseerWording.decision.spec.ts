@@ -1,10 +1,11 @@
 /**
  * The questions the Overseer itself opens, as User reads them in the question panel. What matters: `checks-not-set` says in its own words
  * that no pipeline is set and how one gets set, never the generic sentence that names only its kind; a kind with no wording of its own
- * still gets that generic sentence. Each entity decision but `dependent-broken` (left to the owner's answer on E26) has its own question
- * with the choices `docs/cli.md` gives it, naming what it is about: `work-in-other-entity` offers a move to each entity that owns the work
- * and abandoning (E15), `package-refused` its three answers (E22) and `whitelist-removed-mid-crossing` its two (E19), each option labelled
- * as the Overseer reads the answer back; the need decisions name the need, and `second-return` the package.
+ * still gets that generic sentence. Each entity decision has its own question with the choices `docs/cli.md` gives it, naming what it is
+ * about: `work-in-other-entity` offers a move to each entity that owns the work and abandoning (E15), `package-refused` its three answers
+ * (E22), `whitelist-removed-mid-crossing` its two (E19) and `dependent-broken` a fix ticket for the dependent in the ticket's group and
+ * abandoning (E26), each option labelled as the Overseer reads the answer back and naming no command; the need decisions name the need, and
+ * `second-return` the package. The fix ticket of a dependent carries a numbered Acceptance and a Brief, so it can be readied.
  */
 import { expect, test } from 'bun:test';
 
@@ -91,9 +92,26 @@ test('the need decisions name the need, second-return the package, and none fall
     .questions[0]?.question).toContain('the package `ui-kit`');
 });
 
-test('dependent-broken keeps the generic sentence until the owner answers E26', () => {
-  expect(OverseerWording.decisionWordingOf({ kind: 'dependent-broken', ticketIds: ['001'], jobId: null }).questions[0]?.question)
-    .toBe('The Overseer needs a decision (dependent-broken) about #001.');
+test('E26: dependent-broken names the package and the dependent and offers a fix ticket in the group or abandoning, naming no command', () => {
+  const wording = OverseerWording.decisionWordingOf({
+    kind: 'dependent-broken', ticketIds: ['001'], jobId: null, subject: { packageEntity: 'ui-kit', dependentEntity: 'admin' }
+  });
+
+  expect(wording.questions[0]?.question).toBe('The change of the package `ui-kit` by #001 breaks `admin`: its gate is still red after the package '
+    + 'builder tried to fix it. File a fix ticket for it in the group of the ticket, or abandon the ticket.');
+  expect(wording.questions[0]?.options.map((option) => option.label)).toEqual([`${ENTITY_DECISION_ANSWERS.fileAFixTicketForPrefix}admin`, ENTITY_DECISION_ANSWERS.abandon]);
+  expect(JSON.stringify(wording)).not.toContain(PRODUCT_NAMES.PROGRAM);
+  expect(JSON.stringify(wording)).not.toContain('--');
+});
+
+test('E26: the fix ticket of a dependent names the change it fixes, with a numbered Acceptance and a Brief', () => {
+  const fix = OverseerWording.dependentFixWordingOf({
+    ticketId: '001', ticketBranch: 'forge/001', homeEntity: 'shop', packageEntity: 'ui-kit', dependentEntity: 'admin', group: 'ticket-001'
+  });
+
+  expect(fix.title).toBe('Fix admin for the change of ui-kit in #001');
+  expect(fix.body).toStartWith('## Acceptance\n\nA1. The gates of `admin` pass with the change of `ui-kit` that ticket #001 makes.\n\n## Brief\n\n');
+  expect(fix.body).toContain('the group `ticket-001`');
 });
 
 test('the need of a refused package change carries the reason and the proposal as a fenced diff, with a numbered Acceptance', () => {

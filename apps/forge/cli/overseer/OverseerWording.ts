@@ -34,6 +34,7 @@ import type {
   RefusedPackageChange,
   SealedPackageReview
 } from '../../src/services/overseer/CrossingStages.ts';
+import type { DependentFixFacts, DependentFixWording } from '../../src/services/overseer/DependentFixTickets.ts';
 import type {
   AirlockFacts,
   JobLaunchFacts,
@@ -133,8 +134,9 @@ function sentenceStartOf(phrase: string): string {
 const CONTINUE_WITHOUT_THE_NEED = optionOf('Continue without the need', 'The ticket runs its stage again without the change.');
 
 /**
- * The entity decisions, each with the choices `docs/cli.md` gives it. Only `work-in-other-entity`, `package-refused` and
- * `whitelist-removed-mid-crossing` are acted on, so only they offer a choice the Overseer carries out; the others release the ticket.
+ * The entity decisions, each with the choices `docs/cli.md` gives it. Only `work-in-other-entity`, `package-refused`,
+ * `whitelist-removed-mid-crossing` and `dependent-broken` are acted on, so only they offer a choice the Overseer carries out; the others
+ * release the ticket.
  */
 function entityDecisionWordingOf(draft: DecisionDraft): DecisionWording | null {
   const tickets = ticketsPhraseOf(draft.ticketIds);
@@ -177,6 +179,19 @@ function entityDecisionWordingOf(draft: DecisionDraft): DecisionWording | null {
         optionOf(answers.finishUnderTheOldWhitelist, 'The stages of the ticket continue as its crossing stored them.'),
         optionOf(answers.turnThePackageChangeIntoANeed, 'The change goes to a ticket of the package, which this ticket waits on, and the ticket goes back to stage 1.'),
       ], '');
+    case 'dependent-broken': {
+      const dependentEntity = draft.subject?.dependentEntity;
+      const dependentPhrase = dependentEntity === undefined ? 'a dependent entity' : `\`${dependentEntity}\``;
+      return oneQuestionWordingOf(draft, `The change of ${packagePhraseOf(draft)} by ${tickets} breaks ${dependentPhrase}: its gate is still red `
+        + 'after the package builder tried to fix it. File a fix ticket for it in the group of the ticket, or abandon the ticket.', [
+        ...(dependentEntity === undefined ? [] : [optionOf(
+          `${answers.fileAFixTicketForPrefix}${dependentEntity}`,
+          `A ticket of \`${dependentEntity}\` that waits on this ticket goes into its group. The package build no longer runs the gates of `
+          + `\`${dependentEntity}\`; the release of the group runs them, with both tickets.`
+        )]),
+        optionOf(answers.abandon, 'The ticket is abandoned.'),
+      ], 'A ticket in no group goes into a new group named after it.');
+    }
     case 'second-return':
       return oneQuestionWordingOf(draft, `${tickets} would go back to ${packagePhraseOf(draft)} a second time. The owner agreed to one way back, `
         + 'so the ticket stays at its stage.', [optionOf('Keep the ticket at its stage', 'The stage runs again.')], 'To stop the ticket instead, abandon it on the board.');
@@ -1092,9 +1107,32 @@ function packageNeedWordingOf(facts: PackageNeedFacts): PackageNeedWording {
   };
 }
 
+/** The fix ticket of a dependent that a crossing ticket's package change breaks (E26): bring the dependent in line with the change. */
+function dependentFixWordingOf(facts: DependentFixFacts): DependentFixWording {
+  return {
+    title: `Fix ${facts.dependentEntity} for the change of ${facts.packageEntity} in #${facts.ticketId}`,
+    body:  [
+      '## Acceptance',
+      '',
+      `A1. The gates of \`${facts.dependentEntity}\` pass with the change of \`${facts.packageEntity}\` that ticket #${facts.ticketId} makes.`,
+      '',
+      '## Brief',
+      '',
+      `Ticket #${facts.ticketId} of \`${facts.homeEntity}\` changes \`${facts.packageEntity}\`. The change breaks \`${facts.dependentEntity}\`: `
+      + `a gate of \`${facts.dependentEntity}\` is red with it. User filed this ticket in the group \`${facts.group}\` with ticket `
+      + `#${facts.ticketId}. This ticket waits on it and starts from the branch of the group, which holds the change. The release of the group `
+      + 'lands both tickets on the main line together.',
+      '',
+      `Change only \`${facts.dependentEntity}\`. Do not change \`${facts.packageEntity}\`. The change is on the branch \`${facts.ticketBranch}\`.`,
+      '',
+    ].join('\n'),
+  };
+}
+
 export const OverseerWording = Object.freeze({
   decisionWordingOf,
   packageNeedWordingOf,
+  dependentFixWordingOf,
   launchTextOf: launchTextWithEarlierSessionNoteOf,
   assistantChatTextOf,
   windDownMessage,

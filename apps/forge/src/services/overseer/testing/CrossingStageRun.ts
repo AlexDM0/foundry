@@ -9,7 +9,6 @@ import { GitProcess }                                                           
 import type { Job }                                                                        from '../../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                                      from '../../../lib/tracker-model/Board.ts';
 import { TicketBodyHashUtil }                                                              from '../../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { TicketStageUtil }                                                                 from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { LIFECYCLE_LIMITS }                                                                from '../../../shared/constants/LifecycleLimits.ts';
 import { ENTITY_FORGE_MAIN_LINE }                                                          from '../../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';
@@ -147,19 +146,13 @@ function ticketOf(place: CrossingStagePlace) {
   return place.board.tickets().find((candidate) => candidate.frontmatter.id === place.ticketId);
 }
 
-/** A package build's home entity, whose gates its run leaves out; none for every other job. */
-function homeEntityOf(place: CrossingStagePlace, job: Readonly<Job>): string | undefined {
-  return TicketStageUtil.stageOfJob(job)?.name === 'package-build' ? ticketOf(place)?.frontmatter.entity : undefined;
-}
-
 /** The job's start as the Overseer records it at the first Watcher's spawn. */
 function writeJobStart(place: CrossingStagePlace, job: Readonly<Job>, jobFolder: string, startCommit: string): void {
-  const homeEntity = homeEntityOf(place, job);
   const jobStart = {
     startCommit,
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketOf(place)?.body ?? ''),
     launchSnapshot:   launchSnapshotOf(JobLaunch.worktreeOf(place.context.workspace, job)),
-    ...(homeEntity === undefined ? {} : { homeEntity }),
+    ...JobLaunch.packageBuildStartOf(place.board, job),
   };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
 }
@@ -184,7 +177,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, report, { verdict: 'pending' })]);
   const pipeline = board.pipeline();
   if (board.jobById(job.id)?.state === 'gating' && pipeline !== null) {
-    const manifest = JobLaunch.manifestOf(pipeline, job, job.kind === 'review' ? 'review' : 'build', homeEntityOf(place, job));
+    const manifest = JobLaunch.manifestOf(pipeline, job, job.kind === 'review' ? 'review' : 'build', JobLaunch.packageBuildStartOf(place.board, job));
     const verdict = run.redGate === undefined
       ? { outcome: 'passed' as const, step: null, output: '' }
       : {

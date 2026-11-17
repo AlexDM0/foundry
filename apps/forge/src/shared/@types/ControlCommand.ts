@@ -120,6 +120,8 @@ export type ControlCommand =
    * names the product owner as the one who assigned it; without one it is User's own command.
    */
   | { kind: 'ticket-entity'; ticketReference: string; entity: string; reason: string; jobId?: string }
+  /** Puts a ticket that has no group into one, a started ticket too: its next landing goes to the group's branch. */
+  | { kind: 'ticket-group'; ticketReference: string; group: string }
   | { kind: 'ticket-hold'; ticketReference: string; reason: string }
   | { kind: 'ticket-unhold'; ticketReference: string }
   | { kind: 'epic-add'; key: string; title: string; bodyText: string }

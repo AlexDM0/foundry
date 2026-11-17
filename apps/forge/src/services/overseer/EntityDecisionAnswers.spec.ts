@@ -8,7 +8,11 @@
  * abandoning, the ticket is abandoned (E22). A crossing ticket whose package left its home's whitelist opens
  * `whitelist-removed-mid-crossing` before its next stage, once, which holds it; finishing under the old whitelist lets the stored stages
  * continue with the package kept in the ticket's crossing, and a need lifts the package's seal, sends the ticket back to stage 1 in progress
- * and files the change as a ticket of the package (E19). An answer is acted on once, one naming no option acts on nothing, and a forge
+ * and files the change as a ticket of the package (E19). `dependent-broken` answered with a fix puts a crossing ticket in no group into the
+ * group `ticket-<id>` and files a ticket of the dependent in its group that waits on it, submitted at once and in the group's release, whose
+ * bundle then holds both, so the release gates the dependent with them; the ticket's next package build launches; a release ticket of the
+ * group waits on the fix, a crossing ticket that released the group hands its mark to the fix, a dependent already fixed in the group gets
+ * no second ticket, and abandoning abandons the ticket (E26). An answer is acted on once, one naming no option acts on nothing, and a forge
  * without entities acts on none.
  */
 import { mkdirSync }  from 'node:fs';
@@ -66,6 +70,7 @@ function wordingOf(draft: DecisionDraft): DecisionWording {
     'work-in-other-entity':           [...(draft.subject?.owningEntities ?? []).map((entityKey) => `${answers.moveToEntityPrefix}${entityKey}`), answers.abandon],
     'package-refused':                [answers.dropThePackageChange, answers.turnItIntoANeed, answers.abandon],
     'whitelist-removed-mid-crossing': [answers.finishUnderTheOldWhitelist, answers.turnThePackageChangeIntoANeed],
+    'dependent-broken':               [`${answers.fileAFixTicketForPrefix}${draft.subject?.dependentEntity ?? ''}`, answers.abandon],
   };
   const options = (optionsByKind[draft.kind] ?? []).map((label) => ({ label, description: `Example ${label}` }));
   return {
@@ -124,9 +129,10 @@ function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipel
       needs.push(facts);
       return { title: `Change ${facts.packageEntity} for #${facts.ticketId}`, body: `${NEED_BODY_PREFIX}${facts.refusedReason ?? ''}\n\n${facts.proposal}` };
     },
-    branchNames:    BRANCH_NAMES,
-    mainLine:       ENTITY_FORGE_MAIN_LINE,
-    repositoryRoot: repository,
+    dependentFixWordingOf: (facts) => ({ title: `Fix ${facts.dependentEntity} for #${facts.ticketId}`, body: `${NEED_BODY_PREFIX}Example fix in group ${facts.group}.` }),
+    branchNames:           BRANCH_NAMES,
+    mainLine:              ENTITY_FORGE_MAIN_LINE,
+    repositoryRoot:        repository,
   };
   return {
     board, change: { board, at: AT, workspace } as unknown as TrackerChange, context, needs
@@ -435,5 +441,111 @@ describe('a package that left the whitelist mid-crossing', () => {
     expect(forge.needs.map(({ cause, packageEntity, refusedReason }) => ({ cause, packageEntity, refusedReason })))
       .toEqual([{ cause: 'whitelist-removed', packageEntity: UI_KIT.key, refusedReason: null }]);
     expect(forge.board.tickets().find((ticket) => ticket.frontmatter.id === NEED_TICKET.id)?.frontmatter.entity).toBe(UI_KIT.key);
+  });
+});
+
+describe('dependent-broken, answered', () => {
+  const FIX_TICKET_ID = '002';
+  const FIX_ANSWER = `${ENTITY_DECISION_ANSWERS.fileAFixTicketForPrefix}${ADMIN.key}`;
+
+  /** The shop's ticket in its package build, whose gate of the admin app stayed red, and the decision that opened. */
+  function brokenAdminApp(prepare: (forge: Forge) => void = () => undefined): { forge: Forge; decision: Readonly<Decision> } {
+    const forge = forgeWith('shop-crosses-into-ui-kit');
+    moveAlong(forge.board, [PACKAGE_BUILD]);
+    prepare(forge);
+    endedJobOf(forge, UI_KIT.key, TicketStagesUnderTest.packageBuild, 'failed');
+    const decision = openDecisionOf(forge, 'dependent-broken', { packageEntity: UI_KIT.key, dependentEntity: ADMIN.key }, `${ADMIN.key}: verify`);
+    return { forge, decision };
+  }
+
+  function ticketOf(board: Board, ticketId: string) {
+    return board.tickets().find((ticket) => ticket.frontmatter.id === ticketId)?.frontmatter;
+  }
+
+  test('E26: a fix puts the ticket in no group into its own group and files the admin app\'s ticket there, waiting on it', () => {
+    const { forge, decision } = brokenAdminApp();
+    answer(forge, decision, FIX_ANSWER);
+    const group = `ticket-${SHOP_TICKET.id}`;
+
+    expect(shopTicketOf(forge.board)).toMatchObject({ group, status: 'in-progress' });
+    expect(ticketOf(forge.board, FIX_TICKET_ID)).toMatchObject({
+      entity: ADMIN.key, group, dependsOn: [SHOP_TICKET.id], status: 'ready-for-review', title: `Fix ${ADMIN.key} for #${SHOP_TICKET.id}`
+    });
+    expect(forge.board.logRecordsSoFar().filter((record) => record.kind === 'ticket-grouped' || record.kind === 'dependent-fix-filed'))
+      .toMatchObject([
+        { kind: 'ticket-grouped', ticketId: SHOP_TICKET.id, fields: { group } },
+        { kind: 'dependent-fix-filed', ticketId: SHOP_TICKET.id, fields: { entity: ADMIN.key, fixTicketIds: [FIX_TICKET_ID] } },
+      ]);
+  });
+
+  test('E26: the fix ticket becomes the group\'s release ticket, so the release lands both and gates the admin app with them (E68)', () => {
+    const { forge, decision } = brokenAdminApp();
+    answer(forge, decision, FIX_ANSWER);
+
+    expect(ticketOf(forge.board, FIX_TICKET_ID)?.releasesGroup).toBe(true);
+    expect(forge.board.releaseBundleOf(`ticket-${SHOP_TICKET.id}`)).toEqual([SHOP_TICKET.id, FIX_TICKET_ID]);
+  });
+
+  test('E26: the ticket\'s package build runs again, and the answer is acted on once', () => {
+    const { forge, decision } = brokenAdminApp();
+    answer(forge, decision, FIX_ANSWER);
+    EntityDecisionAnswers.actOnAnswers(forge.change, forge.context);
+
+    expect(EntityDecisionAnswers.answersToActOnOf(forge.board)).toEqual([]);
+    expect(forge.board.tickets()).toHaveLength(2);
+    expect(launchesOf(followThePlaybook(forge.board))).toEqual([`launch-build #${SHOP_TICKET.id} ${UI_KIT.key} stage 2 attempt 2`]);
+  });
+
+  test('E26: in a group with a release ticket the release ticket waits on the fix; a crossing ticket that released the group hands it over', () => {
+    const released = brokenAdminApp((forge) => {
+      forge.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
+      forge.board.fileTicket(ticketFixture({
+        id: '002', status: 'pending', entity: SHOP.key, group: 'example-release'
+      }), AT);
+      forge.board.markReleaseTicket('002', AT);
+    });
+    answer(released.forge, released.decision, FIX_ANSWER);
+    expect(ticketOf(released.forge.board, '003')).toMatchObject({ entity: ADMIN.key, group: 'example-release', dependsOn: [SHOP_TICKET.id] });
+    expect(ticketOf(released.forge.board, '002')).toMatchObject({ releasesGroup: true, dependsOn: ['003'] });
+
+    const releasing = brokenAdminApp((forge) => {
+      forge.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
+      forge.board.markReleaseTicket(SHOP_TICKET.id, AT);
+    });
+    answer(releasing.forge, releasing.decision, FIX_ANSWER);
+    expect(shopTicketOf(releasing.forge.board)?.releasesGroup).toBeUndefined();
+    expect(ticketOf(releasing.forge.board, FIX_TICKET_ID)?.releasesGroup).toBe(true);
+  });
+
+  test('E26: an answer User follows with ticket group before the next pass is still acted on, filing the fix in the group User named', () => {
+    const { forge, decision } = brokenAdminApp();
+    forge.board.answerDecision(decision.id, [FIX_ANSWER], AT);
+    forge.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
+    EntityDecisionAnswers.actOnAnswers(forge.change, forge.context);
+
+    expect(ticketOf(forge.board, FIX_TICKET_ID)).toMatchObject({ entity: ADMIN.key, group: 'example-release', dependsOn: [SHOP_TICKET.id] });
+    expect(EntityDecisionAnswers.answersToActOnOf(forge.board)).toEqual([]);
+  });
+
+  test('E26: a dependent that already has a ticket in the group gets no second one', () => {
+    const { forge, decision } = brokenAdminApp((prepared) => {
+      prepared.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
+      prepared.board.fileTicket(ticketFixture({
+        id: '002', status: 'pending', entity: ADMIN.key, group: 'example-release'
+      }), AT);
+    });
+    answer(forge, decision, FIX_ANSWER);
+
+    expect(forge.board.tickets()).toHaveLength(2);
+    expect(forge.board.logRecordsSoFar().some((record) => record.kind === 'dependent-fix-filed')).toBe(false);
+  });
+
+  test('E26: abandoning abandons the ticket and files no fix', () => {
+    const { forge, decision } = brokenAdminApp();
+    answer(forge, decision, ENTITY_DECISION_ANSWERS.abandon);
+
+    expect(shopTicketOf(forge.board)).toMatchObject({ status: 'abandoned' });
+    expect(shopTicketOf(forge.board)?.group).toBeUndefined();
+    expect(forge.board.tickets()).toHaveLength(1);
   });
 });

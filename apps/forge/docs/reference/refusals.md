@@ -173,8 +173,10 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `belongs to no group, so it cannot be a group's release ticket` | `release-mark-of-an-ungrouped-ticket` | The ticket has no group. | File it in the group. | |
 | `already has its release ticket` | `group-already-has-a-release-ticket` | A group has one open release ticket. The other form reads `is already the release ticket of group`. | Clear the mark the sentence names first, or nothing. | |
 | `is not its group's release ticket` | `ticket-is-not-a-release-ticket` | `release-of --clear` on an unmarked ticket. | Nothing. | |
-| `is not a usable group name` | `malformed-group-name` | `ticket add --group` named a group that is not lower-case letters and digits in words joined by single hyphens. | Name the group as `checkout-redesign` is named. | |
-| `only in case, and a case-insensitive file system gives both one branch and one worktree` | `group-name-case-twin` | `ticket add --group` named a group that differs from an existing one only in case. | Use the existing group's name. | |
+| `is not a usable group name` | `malformed-group-name` | `ticket add --group` or `ticket group` named a group that is not lower-case letters and digits in words joined by single hyphens. | Name the group as `checkout-redesign` is named. | |
+| `only in case, and a case-insensitive file system gives both one branch and one worktree` | `group-name-case-twin` | `ticket add --group` or `ticket group` named a group that differs from an existing one only in case. | Use the existing group's name. | |
+| `and it was not put into a group` | `group-of-a-settled-ticket` | `ticket group` on a `delivered` or `abandoned` ticket. | Nothing. | |
+| `a ticket stays in the group it is in` | `ticket-already-in-a-group` | `ticket group` on a ticket that has a group. | Nothing. | |
 | `and no move takes a ticket to ready for review` | `move-to-ready-for-review` | `ticket status <ticket> ready-for-review`, or another move to that status. | Close the draft with `ticket submit` or `intake close`. | |
 | `is ready for review, so it was not moved` | `move-of-a-ticket-ready-for-review` | A move of a `ready-for-review` ticket other than `ticket abandon`. | User reviews it and runs `ticket ready <ticket>`. | |
 | `and carries the release mark of group <group>` | `reopen-beside-an-open-release-ticket` | Reopening would leave two open release tickets. | Clear the other mark first. | |
