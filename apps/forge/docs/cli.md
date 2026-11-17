@@ -879,7 +879,9 @@ before the first listing is out of reach, as it is on POSIX.
 
 Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json`
 atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
-`pipeline.json` at exit 1 rather than overwrite it. On a board with no `pipeline.json` it starts from the minimal
+`pipeline.json` at exit 1 rather than overwrite it. On a pipeline with entities every write but `gate approval` is
+refused at exit 1 with nothing written (`pipeline-set-per-entity`): each entity holds its own prepare steps, gates and
+reach, which the pipeline builder sets. On a board with no `pipeline.json` it starts from the minimal
 pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
 (`pipelineHash`) at its next gate run, as the run read the pipeline at its start. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.

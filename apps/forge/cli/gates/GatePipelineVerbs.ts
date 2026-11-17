@@ -1,6 +1,7 @@
 /**
  * `gate prepare|add|order|none|remove|approval|reach|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one
  * control command applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
+ * On a pipeline with entities the Board refuses each write of the forge's own steps, gates and reach, since every entity holds its own.
  */
 import { PipelineFile }                from '../../src/adapters/pipeline/PipelineFile.ts';
 import { GATE_PHASES, type GatePhase } from '../../src/lib/tracker-model/@types/GatePhase.ts';

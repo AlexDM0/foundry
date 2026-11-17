@@ -118,6 +118,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'unknown-gate':                      { reason: 'unknown-gate', gateName: 'lint', gateNames: ['test'] },
   'approval-without-pipeline':         { reason: 'approval-without-pipeline', approval: 'merge' },
   'reach-without-pipeline':            { reason: 'reach-without-pipeline' },
+  'pipeline-set-per-entity':           { reason: 'pipeline-set-per-entity', entityKeys: ['root', 'web'] },
   'unknown-draft':                     { reason: 'unknown-draft', draftId: 'D9' },
   'draft-claimed-by-another-owner':    { reason: 'draft-claimed-by-another-owner', draftId: 'D2', owner: 'Alex Example' },
   'draft-closed-into-unknown-tickets': { reason: 'draft-closed-into-unknown-tickets', draftId: 'D2', missingTicketReferences: ['#999'] },

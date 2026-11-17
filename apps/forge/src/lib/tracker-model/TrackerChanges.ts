@@ -64,6 +64,12 @@ export class TrackerChanges {
     if (pendingStates.includes(reading.setup.applyRequest.state)) throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId: reading.setup.setupId });
   }
 
+  /** Beside `entities` the forge's own prepare steps, gates and reach stay empty, and each entity's are set in the pipeline builder. */
+  private refuseEntityPipeline(): void {
+    const entities = this.records.pipeline?.entities;
+    if (entities !== undefined) throw new BoardRefusal({ reason: 'pipeline-set-per-entity', entityKeys: Object.keys(entities) });
+  }
+
   /**
    * Every pipeline change is accepted with tickets in flight: no row is stamped here, and each row records the hash of the pipeline it is
    * judged by at its next gate run.
@@ -79,6 +85,7 @@ export class TrackerChanges {
 
   /** A step of the same name is replaced where it stands, so a prepare step is set rather than added twice. */
   setPrepareStep(step: PipelineStep, at: string): PipelineChanged {
+    this.refuseEntityPipeline();
     const logged = [this.records.logger.log({ kind: 'pipeline-prepare-step-set', fields: { name: step.name, run: step.run } }, at)];
     return this.changedPipelineOf((pipeline) => {
       const index = pipeline.prepare.findIndex((candidate) => candidate.name === step.name);
@@ -92,6 +99,7 @@ export class TrackerChanges {
    * phases; with them, the gate runs in exactly those phases, keeping its place in a phase it was in and running last in one it joins.
    */
   addGate(gate: PipelineGate, at: string, phases: readonly GatePhase[] | null = null): PipelineChanged {
+    this.refuseEntityPipeline();
     this.refusePendingApply();
     if (phases !== null) this.refuseUnusablePhases(gate.name, phases);
     const logged = [this.records.logger.log({ kind: 'pipeline-gate-added', fields: { name: gate.name, run: gate.run } }, at)];
@@ -119,6 +127,7 @@ export class TrackerChanges {
 
   /** Only a new order of the gates the phase already runs: a gate joins or leaves a phase through `addGate`, so no gate is left in none. */
   orderPhaseGates(phase: GatePhase, names: readonly string[], at: string): PipelineChanged {
+    this.refuseEntityPipeline();
     this.refusePendingApply();
     if (!GATE_PHASES.includes(phase)) throw new BoardRefusal({ reason: 'unknown-gate-phase', phase, phases: GATE_PHASES });
     const gateNames   = this.records.pipeline?.gates.map((gate) => gate.name) ?? [];
@@ -144,6 +153,7 @@ export class TrackerChanges {
 
   /** No gates on purpose: an empty list stored, which counts as set, unlike no pipeline at all. */
   setNoGates(at: string): PipelineChanged {
+    this.refuseEntityPipeline();
     const logged = [this.records.logger.log({ kind: 'pipeline-gates-none', fields: {} }, at)];
     return this.changedPipelineOf((pipeline) => {
       pipeline.gates.length = 0;
@@ -152,6 +162,7 @@ export class TrackerChanges {
   }
 
   removeGate(name: string, at: string): PipelineChanged {
+    this.refuseEntityPipeline();
     this.refusePendingApply();
     const gateNames = this.records.pipeline?.gates.map((gate) => gate.name) ?? [];
     if (!gateNames.includes(name)) throw new BoardRefusal({ reason: 'unknown-gate', gateName: name, gateNames });
@@ -174,6 +185,7 @@ export class TrackerChanges {
 
   /** Refused with no stored pipeline, as an approval is: a file holding only the reach would read as no gates on purpose. */
   setReach(paths: readonly string[], at: string): PipelineChanged {
+    this.refuseEntityPipeline();
     this.refusePendingApply();
     if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'reach-without-pipeline' });
     const logged = [this.records.logger.log({ kind: 'pipeline-reach-set', fields: { paths: [...paths] } }, at)];

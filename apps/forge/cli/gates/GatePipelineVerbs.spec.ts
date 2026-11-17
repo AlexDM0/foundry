@@ -6,7 +6,8 @@
  * content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate that runs in
  * only some, since a line with none reads as every phase; a step or gate folder stays in the repository, `/` leading for its root; the
  * reach holds repository paths and needs a stored pipeline; a malformed file is refused, never overwritten, and a refused write leaves the
- * progress file, the pipeline and the log as they were. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
+ * progress file, the pipeline and the log as they were, a pipeline with entities byte for byte, since each entity's steps, gates and
+ * reach are set in the pipeline builder. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
   existsSync,
@@ -26,6 +27,7 @@ import { PipelineFile }                           from '../../src/adapters/pipel
 import { platformPortsFor }                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PLATFORM_HOST_FACTS }                    from '../../src/shared/PlatformHostFacts.ts';
+import { entityForgePipelineTextOf }              from '../../src/testing/EntityForgeFixture.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
@@ -36,6 +38,17 @@ import { fileReadyTicket }                        from '../testing/ReadyTicketFi
 import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
 
 const FROZEN_NOW = new Date('2026-10-30T09:00:00Z');
+
+const ENTITY_PIPELINE_WRITES: readonly (readonly string[])[] = [
+  ['gate', 'add', 'test', '--', 'bun test'],
+  ['gate', 'prepare', 'install', '--', 'bun install'],
+  ['gate', 'order', 'build', 'test'],
+  ['gate', 'none'],
+  ['gate', 'remove', 'test'],
+  ['gate', 'reach', '/bun.lock'],
+];
+
+const entityPipelinesAreRead = PipelineFile.documentReadingOf(JSON.parse(entityForgePipelineTextOf('strict-isolation'))).verdict === 'readable';
 
 let repositoryDirectory = '';
 
@@ -242,6 +255,33 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
       expect(refused.context.errorText()).toContain('gates[0] has no name');
     }
     expect(storedFiles()).toEqual(malformedBefore);
+  });
+
+  test('every write of the steps, gates or reach of a pipeline with entities is refused at exit 1 with every file byte-identical', async () => {
+    writeFileSync(pipelineFilePath(), entityForgePipelineTextOf('strict-isolation'));
+    const before = storedFiles();
+    for (const write of ENTITY_PIPELINE_WRITES) {
+      const refused = await runWithExitCode(write);
+      expect(refused.exitCode, write.join(' ')).toBe(1);
+      expect(storedFiles(), write.join(' ')).toEqual(before);
+    }
+  });
+
+  // Until the reader accepts entities its refusal comes first, for every write and gate approval too; with it, only the writes are refused.
+  test('each such write is refused as set per entity once the reader accepts entities, and gate approval is then accepted', async () => {
+    writeFileSync(pipelineFilePath(), entityForgePipelineTextOf('strict-isolation'));
+    const before          = storedFiles();
+    const expectedWording = entityPipelinesAreRead ? 'each entity has its own prepare steps, gates and reach' : 'holds entities, which this forge does not run yet';
+    for (const write of ENTITY_PIPELINE_WRITES) {
+      const refused = await runWithExitCode(write);
+      expect(refused.context.errorText(), write.join(' ')).toContain(expectedWording);
+    }
+    expect(storedFiles()).toEqual(before);
+
+    const approval = await runWithExitCode(['gate', 'approval', 'merge', 'on']);
+    expect(approval.exitCode).toBe(entityPipelinesAreRead ? 0 : 1);
+    if (entityPipelinesAreRead) expect(PipelineFile.read(pipelineFilePath())).toMatchObject({ verdict: 'readable', pipeline: { approvals: { merge: true } } });
+    else expect(storedFiles()).toEqual(before);
   });
 
   test.each([
