@@ -10,6 +10,7 @@ import type {
   PictureReference
 }                                           from './@types/Job.ts';
 import type { LogRecord }         from './@types/LogRecord.ts';
+import type { EntityKey }         from './@types/Pipeline.ts';
 import type { AgentQuestions }    from './AgentQuestions.ts';
 import type { BoardRecords }      from './BoardRecords.ts';
 import { BoardRefusal }           from './BoardRefusal.ts';
@@ -117,10 +118,14 @@ export class JobControls {
     }, at);
   }
 
-  /** Recorded `launching` with no ticket, target or build slot, on User's command alone: a setup's start or `advise`. */
-  startPipelineAgent(at: string): JobChanged {
+  /**
+   * Recorded `launching` with no ticket, target or build slot, on User's command alone: a setup's start or `advise`. A session of one
+   * entity is stamped with its key.
+   */
+  startPipelineAgent(at: string, entityKey?: EntityKey): JobChanged {
+    const entity = entityKey === undefined ? {} : { entity: entityKey };
     return this.jobRules.launchJob({
-      kind: PIPELINE_AGENT_KIND, role: PIPELINE_AGENT_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null
+      kind: PIPELINE_AGENT_KIND, role: PIPELINE_AGENT_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null, ...entity
     }, at);
   }
 

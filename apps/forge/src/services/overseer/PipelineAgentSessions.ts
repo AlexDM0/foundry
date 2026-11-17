@@ -2,7 +2,8 @@
  * The Overseer's side of a pipeline agent session: one detached snapshot of the main line per setup record, kept across the record's jobs and
  * checked out at the record's snapshot commit before each launch; a profile writing only its Hatch with no network; and Customs at each
  * turn end. A refusal marks the record's snapshot touched, which Apply refuses, and opens an incident. A snapshot that neither the open
- * record nor a live agent holds is removed.
+ * record nor a live agent holds is removed. On a forge over entities the record has a session per entity beside the forge's, each
+ * served from the record's one snapshot and stamped with its entity.
  */
 import {
   existsSync,
@@ -19,7 +20,7 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { ShellLineGrammar }                                                          from '../../lib/shell-line/ShellLine.ts';
 import type { Job }                                                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineBilling }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { EntityKey, Pipeline, PipelineBilling }                                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup, PipelineSetupMode }                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
 import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
@@ -80,10 +81,35 @@ function isPipelineAgentJob(job: Readonly<Job>): boolean {
   return job.kind === PIPELINE_AGENT_KIND;
 }
 
-/** The open setup record the job serves; `null` for an `advise` job that no record names. */
-function servedSetupOf(board: Board, job: Readonly<Job>): Readonly<PipelineSetup> | null {
+/** The part of the open record a pipeline agent serves: the forge's own, or one entity's. */
+export interface ServedLevel {
+  setup:     Readonly<PipelineSetup>;
+  /** Null for the forge's session. */
+  entityKey: EntityKey | null;
+}
+
+/** The open record and the level whose session the job is; `null` for an `advise` job that no record names. */
+function servedLevelOf(board: Board, jobId: string): ServedLevel | null {
   const setup = board.pipelineSetup();
-  return setup !== null && setup.agentJobId === job.id ? setup : null;
+  if (setup === null) return null;
+  if (setup.agentJobId === jobId) return { setup, entityKey: null };
+  const parts = setup.entities ?? {};
+  const entityKey = Object.keys(parts).find((key) => parts[key]?.agentJobId === jobId);
+  return entityKey === undefined ? null : { setup, entityKey };
+}
+
+/** The open setup record the job serves at any level; `null` for an `advise` job that no record names. */
+function servedSetupOf(board: Board, job: Readonly<Job>): Readonly<PipelineSetup> | null {
+  return servedLevelOf(board, job.id)?.setup ?? null;
+}
+
+/** The record's first session: the forge's, else the first entity's that has one; `null` while no session serves it. */
+function firstSessionOf(setup: Readonly<PipelineSetup>): { agentJobId: string; entityKey: EntityKey | undefined } | null {
+  if (setup.agentJobId !== null) return { agentJobId: setup.agentJobId, entityKey: undefined };
+  for (const [entityKey, part] of Object.entries(setup.entities ?? {})) {
+    if (part.agentJobId !== null) return { agentJobId: part.agentJobId, entityKey };
+  }
+  return null;
 }
 
 /** A record's agents share the record's snapshot; an agent no record names has one of its own. */
@@ -97,14 +123,15 @@ function launchBillingOf(board: Board, job: Readonly<Job>): PipelineBilling | un
 }
 
 /**
- * In the hold: a record whose agent has no snapshot commit yet takes main's tip, the commit its snapshot is made at. The read runs git only
- * until the record holds one.
+ * In the hold: a record whose agents have no snapshot commit yet takes main's tip, the commit its snapshot is made at. The read runs git
+ * only until the record holds one.
  */
 function pinSnapshotCommit(change: TrackerChange, mainLine: string): void {
   const setup = change.board.pipelineSetup();
-  if (setup === null || setup.agentJobId === null || setup.snapshotCommit !== null || setup.applyRequest !== null) return;
+  const session = setup === null ? null : firstSessionOf(setup);
+  if (setup === null || session === null || setup.snapshotCommit !== null || setup.applyRequest !== null) return;
   const mainTip = GitProcess.resolvedCommitOf(projectLocationOf(change.workspace.rootDirectory).repositoryRoot, mainLine);
-  if (mainTip !== null) change.board.attachSetupAgent(setup.setupId, setup.agentJobId, mainTip);
+  if (mainTip !== null) change.board.attachSetupAgent(setup.setupId, session.agentJobId, mainTip, session.entityKey);
 }
 
 /**
@@ -149,6 +176,8 @@ export interface PipelineAgentFacts {
   mode:                  PipelineSetupMode;
   /** Null for an agent no record names. */
   setup:                 Readonly<PipelineSetup> | null;
+  /** The entity whose session this is, stamped by the Overseer; null for the forge's session and for an agent no record names. */
+  entity:                EntityKey | null;
   storedPipeline:        Readonly<Pipeline> | null;
   /** The installed default constitution, one of the sources the constitution is drafted from; null when the file is missing. */
   installedConstitution: string | null;
@@ -173,11 +202,12 @@ function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: She
   const gateHistory = board.logRecordsSoFar()
     .flatMap((record) => (record.kind === 'gate-ran' ? [`${record.at} ${record.fields.outcome}${record.fields.cached ? ' (cached)' : ''} tree ${record.fields.tree}`] : []))
     .slice(-GATE_HISTORY_RECORDS);
-  const setup = servedSetupOf(board, job);
+  const served = servedLevelOf(board, job.id);
+  const setup = served?.setup ?? null;
   const storedPipeline = board.pipeline();
   const mode = setup?.mode ?? (storedPipeline === null ? 'setup' : 'advise');
   return {
-    mode, setup, storedPipeline, installedConstitution: installedConstitutionOf(rootDirectory), gateHistory, lineGrammar
+    mode, setup, entity: served?.entityKey ?? null, storedPipeline, installedConstitution: installedConstitutionOf(rootDirectory), gateHistory, lineGrammar
   };
 }
 
@@ -283,6 +313,7 @@ function removeUnheldSnapshots(
 
 export const PipelineAgentSessions = Object.freeze({
   isPipelineAgentJob,
+  servedLevelOf,
   launchBillingOf,
   pinSnapshotCommit,
   prepareSnapshot,

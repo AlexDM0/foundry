@@ -4,7 +4,9 @@
  * `<worktrees>/pipeline-checks/<S>`, with no `writes` granted, holding a slot it takes only after the real gates; the result is stored in
  * the record, its output cut to its end, and the record's agent gets it as a message in the same hold, with no `gate-ran` record; a refused
  * line ends the check `cannot-run` with the reason; an Overseer stop ends the process tree through the port and the check reads `stopped`
- * with no message; and an Overseer start reads a check left running as `stopped` and removes every check worktree.
+ * with no message; and an Overseer start reads a check left running as `stopped` and removes every check worktree. On a draft over
+ * entities, each entity's check runs in its own worktree `<S>-<entity>`, its steps and gates from the entity's first home, and only that
+ * entity's session hears the end; that case holds the board in memory, since no stored record holds entities yet.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -16,14 +18,15 @@ import {
   test
 } from 'bun:test';
 
-import type { ProcessIdentity }          from '../../lib/process-identity/ProcessIdentity.ts';
-import type { PipelineCheck }            from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Board }                    from '../../lib/tracker-model/Board.ts';
-import { CHECK_OUTPUT_LIMIT_CHARACTERS } from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import type { ControlCommand }           from '../../shared/@types/ControlCommand.ts';
-import { WorktreesFolder }               from '../../shared/WorktreesFolder.ts';
-import { ECHOED_CONTROL_CONTEXT }        from '../../testing/EchoedControlContext.ts';
-import { nativePlatformPorts }           from '../../testing/NativePlatformPorts.ts';
+import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
+import type { PipelineCheck, PipelineSetup }                      from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Board }                                             from '../../lib/tracker-model/Board.ts';
+import { CHECK_OUTPUT_LIMIT_CHARACTERS }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
+import { WorktreesFolder }                                        from '../../shared/WorktreesFolder.ts';
+import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
+import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -36,7 +39,7 @@ import { writeReadableTracker }                                                 
 import { waitUntil }                                                                       from '../../testing/WaitUntil.ts';
 import { ControlService }                                                                  from '../control/ControlService.ts';
 import type { ProposalRunRecord, ProposalRunRequest }                                      from '../lifecycle/ProposalTwiceRun.ts';
-import { writeTracker }                                                                    from '../tracker/TrackerPipeline.ts';
+import { type TrackerChange, writeTracker }                                                from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }                                               from '../tracker/Workspace.ts';
 import { PIPELINE_CHECK_WORKTREES_FOLDER, PipelineChecking, type PipelineCheckingContext } from './PipelineChecking.ts';
 
@@ -69,6 +72,21 @@ beforeEach(() => {
 afterEach(() => {
   removeScratchDirectory(repository);
 });
+
+function changeOfFixture(fixture: BoardFixture): TrackerChange {
+  return {
+    board:                          fixture.board,
+    workspace,
+    at:                             CHANGED_AT,
+    malformedTickets:               [],
+    malformedEpics:                 [],
+    malformedDrafts:                [],
+    unreadablePipeline:             null,
+    storedLogEntryCount:            0,
+    storedLogRecords:               [],
+    deleteAllTicketFilesAfterwards: () => undefined,
+  };
+}
 
 async function applied(command: ControlCommand): Promise<void> {
   await writeTracker({
@@ -120,7 +138,12 @@ function recordOf(request: ProposalRunRequest, output: string): ProposalRunRecor
   };
 }
 
-function checkingWith(runProposalTwice: PipelineCheckingContext['runProposalTwice']): ReturnType<typeof PipelineChecking.createPipelineChecking> {
+function checkingWith(
+  runProposalTwice: PipelineCheckingContext['runProposalTwice'],
+  hold: PipelineCheckingContext['hold'] = async (mutate) => (await writeTracker({
+    workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+  })).result,
+): ReturnType<typeof PipelineChecking.createPipelineChecking> {
   const native = nativePlatformPorts();
   return PipelineChecking.createPipelineChecking({
     workspace,
@@ -145,11 +168,9 @@ function checkingWith(runProposalTwice: PipelineCheckingContext['runProposalTwic
       },
       release: (holder) => { heldSlots = heldSlots.filter((held) => held !== holder); },
     },
-    gateEnvironment: () => ({}),
-    confinedLineIn:  () => (argv) => ({ verdict: 'runs', argv }),
-    hold:            async (mutate) => (await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
-    })).result,
+    gateEnvironment:       () => ({}),
+    confinedLineIn:        () => (argv) => ({ verdict: 'runs', argv }),
+    hold,
     millisecondsNow:       () => 0,
     wake:                  () => undefined,
     log:                   () => undefined,
@@ -303,4 +324,41 @@ testWhenGitIsRecorded('an Overseer start reads a check left running as stopped a
   expect(await storedCheck()).toMatchObject({ state: 'stopped', result: null });
   expect(runRequests).toEqual([]);
   expect(existsSync(worktreeOf('S1'))).toBe(false);
+});
+
+testWhenGitIsRecorded('an entity\'s check runs from its first home in a worktree of its own, and only that entity\'s session hears the end', async () => {
+  const pipeline = entityPipelineFixture();
+  const fixture = boardFixture({ pipeline });
+  ControlService.apply({ kind: 'pipeline-agent-advise' }, changeOfFixture(fixture), ECHOED_CONTROL_CONTEXT);
+  const setup = fixture.board.pipelineSetup() as PipelineSetup | null;
+  if (setup === null) throw new Error('the advise opened no record');
+  setup.draft = structuredClone(pipeline);
+  const draftWeb = setup.draft.entities?.['web'];
+  if (draftWeb === undefined) throw new Error('the draft has no web entity');
+  draftWeb.prepare = [{ name: 'install', run: 'bun install', in: 'tools' }];
+  draftWeb.gates = [{ name: 'test', run: 'bun test' }];
+  draftWeb.phases.build = ['test'];
+  fixture.board.startPipelineAgent(CHANGED_AT, 'web');
+  fixture.board.attachSetupAgent('S1', 'J2', null, 'web');
+  fixture.board.requestPipelineCheck('S1', CHANGED_AT);
+  fixture.records.length = 0;
+  const checking = checkingWith((request) => Promise.resolve(recordOf(request, '')), (mutate) => Promise.resolve(mutate({ board: fixture.board, at: CHANGED_AT })));
+
+  await recordedGit.playStage(worktreeOfMainTipAddedAndRemoved('S1-web'), async () => {
+    checking.followChecks(fixture.board);
+    await checking.idle();
+  });
+
+  expect(runRequests).toHaveLength(1);
+  expect(runRequests[0]).toMatchObject({
+    directory: worktreeOf('S1-web'),
+    prepare:   [{ name: 'install', run: 'bun install', in: '/apps/web/tools' }],
+    gates:     [{ name: 'test', run: 'bun test', in: '/apps/web' }],
+  });
+  const check = fixture.board.pipelineSetup()?.entities?.['web']?.check;
+  expect(check).toMatchObject({ gateNames: ['test'], state: 'checked' });
+  expect(fixture.board.pipelineSetup()?.check).toBeUndefined();
+  expect(fixture.records.filter((record) => record.kind === 'job-messaged').map((record) => [record.jobId, JSON.parse(String((record.fields as { text: string }).text))])).toEqual([
+    ['J2', { kind: 'check-ended', setupId: 'S1', check }],
+  ]);
 });

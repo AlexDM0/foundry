@@ -3,8 +3,11 @@
  * agent under the fake agent, and the agent's own verbs relayed under its job the way `cli/HatchUnderJob.spec.ts` relays them, each applied
  * by the next pass. What matters: the setup start launches the agent on setup S1's snapshot; its finding, question, constitution with its
  * sources, and proposal reach the record; User's answer and Continues bring the record to the apply step; and Apply, with main holding no
- * `CONSTITUTION.md`, stores only the request, waiting for the constitution commit, with no `pipeline.json` written. Git answers from the
- * recorded flow of `src/testing/RecordedGitFlow.ts`; the session plays `src/testing/RecordedWatcherStages.ts`.
+ * `CONSTITUTION.md`, stores only the request, waiting for the constitution commit, with no `pipeline.json` written. An advise at an
+ * entity of the stored pipeline launches that entity's own session alone, stamped with its entity, and the Overseer stamps the entity on
+ * what it relays, so its finding lands in that entity's part alone; an advise at an entity the stored pipeline does not hold launches
+ * nothing. Git answers from the recorded flow of `src/testing/RecordedGitFlow.ts`; the session plays
+ * `src/testing/RecordedWatcherStages.ts`.
  */
 import { existsSync } from 'node:fs';
 import {
@@ -15,12 +18,18 @@ import {
 } from 'bun:test';
 
 import { PipelineSetupFile }                                         from '../../src/adapters/pipeline/PipelineSetupFile.ts';
+import type { Pipeline }                                             from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup }                                        from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { ControlService }                                            from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                            from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                                from '../../src/services/overseer/HatchInbox.ts';
 import { WatcherFleet }                                              from '../../src/services/overseer/WatcherFleet.ts';
+import { type TrackerChange, writeTracker }                          from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                          from '../../src/services/tracker/Workspace.ts';
+import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
+import { entityPipelineFixture }                                     from '../../src/testing/BoardFixtures.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH }          from '../../src/testing/DrivePassHarness.ts';
+import { ECHOED_CONTROL_CONTEXT }                                    from '../../src/testing/EchoedControlContext.ts';
 import { fakeAgentAdapter, fakeStartedLine }                         from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                       from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                       from '../../src/testing/NativePlatformPorts.ts';
@@ -80,6 +89,21 @@ async function relayAsTheAgent(jobId: string, commandLineArguments: readonly str
   expect((await run(commandLineArguments, context)).outputText()).toStartWith('queued ');
   drivePass?.wake(true);
   await drivePass?.idle();
+}
+
+/**
+ * The real advise command at `web`. This build refuses a stored pipeline or a record's draft that holds entities, so the hold's pipeline
+ * holds `web` only while the command runs, and the stored draft keeps none.
+ */
+function adviseAtWebOf(change: TrackerChange): unknown {
+  const storedPipeline = change.board.pipeline() as Pipeline | null;
+  const webEntity = entityPipelineFixture().entities?.['web'];
+  if (storedPipeline === null || webEntity === undefined) throw new Error('no stored pipeline to advise on');
+  storedPipeline.entities = { web: webEntity };
+  const advised = ControlService.apply({ kind: 'pipeline-agent-advise', entity: 'web' }, change, ECHOED_CONTROL_CONTEXT);
+  delete storedPipeline.entities;
+  delete advised.result.setup.draft?.entities;
+  return advised.result;
 }
 
 function setupRecord(): PipelineSetup {
@@ -175,5 +199,48 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one setup end to end', () => 
     });
     expect(existsSync(requireWorkspace(repositoryDirectory).pipelineFilePath)).toBe(false);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === agentJobId)?.kind).toBe('pipeline-agent');
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a session at an entity', () => {
+  test('an advise at an entity launches that entity\'s session alone, stamped with its entity, and its relayed finding lands in its part', async () => {
+    await run(['gate', 'none']);
+
+    await writeTracker({
+      workspace: requireWorkspace(repositoryDirectory),
+      at:        SPEC_STAMP,
+      now:       SPEC_CLOCK,
+      mutate:    (change) => adviseAtWebOf(change),
+    });
+    const webJobId = setupRecord().entities?.['web']?.agentJobId ?? null;
+    if (webJobId === null) throw new Error('the advise launched no session for web');
+    await untilTheAgentSessionIsLive(webJobId);
+    await relayAsTheAgent(webJobId, ['pipeline', 'finding', '--', JSON.stringify({
+      topic: 'scripts', label: 'Web tests', value: 'bun test', sourcePaths: ['apps/web/package.json']
+    })]);
+
+    const record = setupRecord();
+    expect(record).toMatchObject({
+      mode: 'advise', openedAtEntity: 'web', agentJobId: null, findings: []
+    });
+    expect(record.entities?.['web']?.findings.map((finding) => finding.label)).toEqual(['Web tests']);
+    const pipelineAgentJobs = (storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'pipeline-agent');
+    expect(pipelineAgentJobs).toEqual([expect.objectContaining({ id: webJobId, entity: 'web' })]);
+  });
+
+  test('an advise at an entity the stored pipeline does not hold is refused, with no record opened and no session launched', async () => {
+    await run(['gate', 'none']);
+
+    const attempt = writeTracker({
+      workspace: requireWorkspace(repositoryDirectory),
+      at:        SPEC_STAMP,
+      now:       SPEC_CLOCK,
+      mutate:    (change) => ControlService.apply({ kind: 'pipeline-agent-advise', entity: 'web' }, change, ECHOED_CONTROL_CONTEXT),
+    });
+
+    const refusal = await attempt.then(() => null, (thrown: unknown) => (thrown instanceof OperationRefusal ? thrown.detail : thrown));
+    expect(refusal).toEqual({ kind: 'board-refusal', boardRefusal: { reason: 'setup-entity-unknown', entity: 'web', entityKeys: [] } });
+    expect(existsSync(requireWorkspace(repositoryDirectory).pipelineSetupFilePath)).toBe(false);
+    expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
   });
 });

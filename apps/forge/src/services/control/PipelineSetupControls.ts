@@ -5,6 +5,10 @@
  * stops it. An answer, a constitution or draft edit, an Undo, a discard, a Continue, a resume and a check also message the agent in the
  * same hold, in the caller's words, with what the move changed, and open it again when a stop closed it. An update, an advise and an Apply read main's
  * `CONSTITUTION.md` through the context.
+ *
+ * On a forge over entities each entity has a session of its own, its level: the Continue of the `entities` step launches one for each
+ * entity of the draft, an update or advise opens at the forge or at one entity, and each move messages the session of the level it
+ * changed, never another's.
  */
 import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                             from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
@@ -12,11 +16,13 @@ import { GitProcess }                                      from '../../lib/git/G
 import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
 import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
 import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { Pipeline, PipelineBilling }                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { EntityKey, Pipeline, PipelineBilling }       from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
   MainConstitution,
   PipelineDraftEdit,
+  PipelineDraftField,
+  PipelineSetup,
   PipelineSetupOpening,
   PipelineSetupStep,
   SetupQuestionReply
@@ -25,6 +31,7 @@ import type { Board }                                             from '../../li
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { PipelineChangeUtil }                                     from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
+import { PipelineDraftEditUtil }                                  from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, DraftFieldValue, SetupMessage }     from '../../shared/@types/ControlContext.ts';
@@ -111,6 +118,18 @@ function markdownFieldOf(command: SentCommand): string | undefined {
   return value;
 }
 
+/** The level a command names: an entity's key, or `undefined` for the forge when the command names none. */
+function entityFieldOf(command: SentCommand): EntityKey | undefined {
+  return Object.hasOwn(command, 'entity') ? textFieldOf(command, 'entity') : undefined;
+}
+
+/** A level named by an entity must be one the pipeline holds; the forge always is. */
+function requireEntityLevel(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): void {
+  if (entityKey === undefined) return;
+  const entities = pipeline?.entities ?? {};
+  if (!Object.hasOwn(entities, entityKey)) throw new BoardRefusal({ reason: 'setup-entity-unknown', entity: entityKey, entityKeys: Object.keys(entities) });
+}
+
 function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
   const edits = fieldOf(command, 'edits');
   if (!Array.isArray(edits) || edits.length === 0) refuseMalformedSetupCommand(command.kind, 'edits');
@@ -121,21 +140,69 @@ function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
   });
 }
 
+/** The pipeline-agent session of a level: the record's own for the forge, the entity's part's for an entity; null while it has none. */
+export function agentJobIdAt(setup: Readonly<PipelineSetup>, entityKey?: EntityKey): string | null {
+  if (entityKey === undefined) return setup.agentJobId;
+  const entities = setup.entities ?? {};
+  return Object.hasOwn(entities, entityKey) ? entities[entityKey]?.agentJobId ?? null : null;
+}
+
+function entityKeysOfParts(setup: Readonly<PipelineSetup>): EntityKey[] {
+  return Object.keys(setup.entities ?? {});
+}
+
 /**
  * The record's pipeline agent hears User's move in the same hold, so the next turn starts from it: a live one gets the message, and one a
  * stop closed opens again with its conversation. A record with no agent, an agent whose input is closing, or one that ended otherwise gets
- * no message: the record is what a later agent starts from.
+ * no message: the record is what a later agent starts from. With an entity key it is that entity's session.
  */
-function messagedToTheAgent(changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage): PipelineSetupChanged {
-  return messagedToTheSetupAgent(changed, change.board, context.setupMessageWordingOf(message), change.at);
+function messagedToTheAgent(
+  changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage, entityKey?: EntityKey
+): PipelineSetupChanged {
+  return messagedToTheSetupAgent(changed, change.board, context.setupMessageWordingOf(message), change.at, entityKey);
 }
 
-/** The same for the Overseer, which words its own message; a record whose agent takes no message is returned as it was. */
-export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Board, text: string, at: string): PipelineSetupChanged {
-  const { agentJobId } = changed.setup;
+/** The same for the Overseer, which words its own message; a record whose agent at the level takes no message is returned as it was. */
+export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Board, text: string, at: string, entityKey?: EntityKey): PipelineSetupChanged {
+  const agentJobId = agentJobIdAt(changed.setup, entityKey);
   if (agentJobId === null || !agentTakesAMessage(board, agentJobId)) return changed;
   const messaged = board.messageJobAsOverseer(agentJobId, text, at);
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
+}
+
+/** A move of the whole record: the forge's session hears it as before, then each entity's session. */
+function messagedToEveryAgent(changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage): PipelineSetupChanged {
+  return entityKeysOfParts(changed.setup).reduce(
+    (latest, entityKey) => messagedToTheAgent(latest, change, context, message, entityKey),
+    messagedToTheAgent(changed, change, context, message),
+  );
+}
+
+/** The level a draft field belongs to: an entity's key for a field inside that entity; the forge for every other, an entity's definition too. */
+function levelOfField(field: PipelineDraftField): EntityKey | undefined {
+  const scope = PipelineDraftEditUtil.entityScopeOf(field);
+  return scope === null || scope.field === null ? undefined : scope.entityKey;
+}
+
+/**
+ * A draft move's message per level, each with only its own fields: the forge's session hears the forge's fields, and every one when no
+ * field is inside an entity; an entity's session hears its fields, only when the move changed one.
+ */
+function messagedPerLevel(
+  changed: PipelineSetupChanged,
+  change: TrackerChange,
+  context: ControlContext,
+  fields: readonly PipelineDraftField[],
+  messageOf: (keeps: (field: PipelineDraftField) => boolean) => SetupMessage,
+): PipelineSetupChanged {
+  const entityKeys = [...new Set(fields.flatMap((field) => levelOfField(field) ?? []))];
+  const forgeKeeps = (field: PipelineDraftField): boolean => levelOfField(field) === undefined;
+  const forgeHears = entityKeys.length === 0 || fields.some(forgeKeeps);
+  const forgeMessaged = forgeHears ? messagedToTheAgent(changed, change, context, messageOf(forgeKeeps)) : changed;
+  return entityKeys.reduce(
+    (latest, entityKey) => messagedToTheAgent(latest, change, context, messageOf((field) => levelOfField(field) === entityKey), entityKey),
+    forgeMessaged,
+  );
 }
 
 function agentTakesAMessage(board: Board, agentJobId: string): boolean {
@@ -144,11 +211,18 @@ function agentTakesAMessage(board: Board, agentJobId: string): boolean {
   return board.endedJobOutcomeOf(agentJobId)?.outcome === 'closed';
 }
 
-/** A new pipeline agent for the record: launched by User's command alone, never by the lifecycle. */
-function startedAgentOf(changed: PipelineSetupChanged, change: TrackerChange): PipelineSetupChanged {
-  const launched = change.board.startPipelineAgent(change.at);
-  const attached = change.board.attachSetupAgent(changed.setup.setupId, launched.job.id, null);
+/** A new pipeline agent for the record, or for one entity's part of it: launched by User's command alone, never by the lifecycle. */
+function startedAgentOf(changed: PipelineSetupChanged, change: TrackerChange, entityKey?: EntityKey): PipelineSetupChanged {
+  const launched = change.board.startPipelineAgent(change.at, entityKey);
+  const attached = change.board.attachSetupAgent(changed.setup.setupId, launched.job.id, null, entityKey);
   return { setup: attached.setup, logged: [...changed.logged, ...launched.logged] };
+}
+
+/** Once the layout is confirmed, each entity of the draft whose part has no session gets one, for its research, constitution and design. */
+function startedEntityAgentsOf(changed: PipelineSetupChanged, change: TrackerChange): PipelineSetupChanged {
+  return Object.keys(changed.setup.draft?.entities ?? {})
+    .filter((entityKey) => agentJobIdAt(changed.setup, entityKey) === null)
+    .reduce((latest, entityKey) => startedAgentOf(latest, change, entityKey), changed);
 }
 
 /** Main's `CONSTITUTION.md`, `null` when main holds none; a read git cannot answer refuses, since a guess would hide a change on main. */
@@ -181,11 +255,13 @@ function startSetup(command: CommandOf<'pipeline-setup-start'>, change: TrackerC
 }
 
 /**
- * An update or advise starts from the stored pipeline, so an older or malformed file refuses with its own reason; its billing is the
- * stored one, and its constitution main's text with the stored sources of that very text.
+ * An update or advise starts from the stored pipeline, so an older or malformed file refuses with its own reason, as does a level the
+ * stored pipeline has no entity for; its billing is the stored one, and its constitution main's text with the stored sources of that very
+ * text.
  */
-function updateOpeningOf(mode: 'update' | 'advise', change: TrackerChange, context: ControlContext): PipelineSetupOpening {
+function updateOpeningOf(mode: 'update' | 'advise', change: TrackerChange, context: ControlContext, entityKey: EntityKey | undefined): PipelineSetupOpening {
   requireReadablePipeline(change);
+  requireEntityLevel(change.board.pipeline(), entityKey);
   const billing = change.board.pipeline()?.billing ?? { mode: 'subscription' };
   const constitutionOpening = change.board.pipeline() === null ? { mainConstitution: null, storedAnnotations: [] } : openingConstitutionOf(change, context);
   return {
@@ -193,13 +269,25 @@ function updateOpeningOf(mode: 'update' | 'advise', change: TrackerChange, conte
   };
 }
 
-function startUpdate(_command: CommandOf<'pipeline-update-start'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
-  return change.board.openSetup(updateOpeningOf('update', change, context), change.at);
+/** An update or advise record opened at its level: at an entity, the record names that entity and holds its part. */
+function openedAtLevelOf(mode: 'update' | 'advise', change: TrackerChange, context: ControlContext, entityKey: EntityKey | undefined): PipelineSetupChanged {
+  const opened = change.board.openSetup(updateOpeningOf(mode, change, context, entityKey), change.at);
+  if (entityKey === undefined) return opened;
+  return { setup: change.board.openSetupAtEntity(opened.setup.setupId, entityKey).setup, logged: opened.logged };
 }
 
-/** `advise` opens an advise record on the stored pipeline and launches its pipeline agent, which proposes edits of the record's draft. */
-export function startAdvice(_command: CommandOf<'pipeline-agent-advise'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
-  return startedAgentOf(change.board.openSetup(updateOpeningOf('advise', change, context), change.at), change);
+/** An update at an entity names that level, so a resume opens that entity's session and none at the forge. */
+function startUpdate(command: CommandOf<'pipeline-update-start'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  return openedAtLevelOf('update', change, context, entityFieldOf(command));
+}
+
+/**
+ * `advise` opens an advise record on the stored pipeline and launches its pipeline agent, which proposes edits of the record's draft; at
+ * an entity, the session is that entity's.
+ */
+export function startAdvice(command: CommandOf<'pipeline-agent-advise'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  const entityKey = entityFieldOf(command);
+  return startedAgentOf(openedAtLevelOf('advise', change, context, entityKey), change, entityKey);
 }
 
 function setBilling(command: CommandOf<'pipeline-setup-billing'>, change: TrackerChange): PipelineSetupChanged {
@@ -211,18 +299,24 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: TrackerChan
   const step    = stepFieldOf(command);
   if (fieldOf(command, 'move') !== 'continue') refuseMalformedSetupCommand(command.kind, 'move');
   const changed = change.board.continueSetupStep(setupId, step, change.at);
-  return messagedToTheAgent(changed, change, context, {
+  const messaged = messagedToEveryAgent(changed, change, context, {
     kind: 'step-continued', setupId, mode: changed.setup.mode, step, currentStep: changed.setup.currentStep
   });
+  return step === 'entities' ? startedEntityAgentsOf(messaged, change) : messaged;
 }
 
-/** The record's live agent is stopped in the same hold; the Overseer removes the snapshot once no pipeline agent runs. */
+/**
+ * Every live agent of the record, the forge's and each entity's, is stopped in the same hold; the Overseer removes the snapshot once no
+ * pipeline agent runs.
+ */
 function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: TrackerChange): PipelineSetupChanged {
   const changed  = change.board.startOverSetup(textFieldOf(command, 'setupId'), change.at);
-  const { agentJobId } = changed.setup;
-  const agent = agentJobId === null ? undefined : change.board.jobById(agentJobId);
-  if (agent === undefined || agent.state === 'stopping') return changed;
-  return { setup: changed.setup, logged: [...changed.logged, ...change.board.requestJobStop(agent.id, 'stop', change.at).logged] };
+  const agentJobIds = [changed.setup.agentJobId, ...entityKeysOfParts(changed.setup).map((entityKey) => agentJobIdAt(changed.setup, entityKey))];
+  const stopped = agentJobIds.flatMap((agentJobId) => {
+    const agent = agentJobId === null ? undefined : change.board.jobById(agentJobId);
+    return agent === undefined || agent.state === 'stopping' ? [] : change.board.requestJobStop(agent.id, 'stop', change.at).logged;
+  });
+  return stopped.length === 0 ? changed : { setup: changed.setup, logged: [...changed.logged, ...stopped] };
 }
 
 /** Every path whose content differs between the two commits, as git spells it; `null` when git cannot answer. */
@@ -264,12 +358,29 @@ function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: Tracke
   const message: SetupMessage = {
     kind: 'setup-resumed', setupId, mainMovedByCommits: move?.mainMovedByCommits ?? 0, changedPaths: move?.changedPaths ?? []
   };
-  const { agentJobId } = resumed.setup;
-  if (agentJobId === null) return startedAgentOf(resumed, change);
-  if (agentTakesAMessage(change.board, agentJobId)) return messagedToTheAgent(resumed, change, context, message);
+  return resumedLevelsOf(resumed.setup).reduce((latest, entityKey) => resumedAgentOf(latest, change, context, message, entityKey), resumed);
+}
+
+/**
+ * The levels a resume opens: the level the record opened at, the forge unless an update or advise opened at an entity; and each other
+ * entity whose part a session served. A part that only a check or an edit made is no level.
+ */
+function resumedLevelsOf(setup: Readonly<PipelineSetup>): (EntityKey | undefined)[] {
+  const servedEntityKeys = entityKeysOfParts(setup)
+    .filter((entityKey) => entityKey !== setup.openedAtEntity && agentJobIdAt(setup, entityKey) !== null);
+  return [setup.openedAtEntity, ...servedEntityKeys];
+}
+
+/** A level with no agent gets one; one that takes a message hears the resume; one that ended other than by a stop is replaced. */
+function resumedAgentOf(
+  resumed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage, entityKey: EntityKey | undefined
+): PipelineSetupChanged {
+  const agentJobId = agentJobIdAt(resumed.setup, entityKey);
+  if (agentJobId === null) return startedAgentOf(resumed, change, entityKey);
+  if (agentTakesAMessage(change.board, agentJobId)) return messagedToTheAgent(resumed, change, context, message, entityKey);
   // A live agent whose input is closing ends `closed`, and User's next move opens it again.
   if (change.board.jobById(agentJobId) !== undefined) return resumed;
-  return startedAgentOf(resumed, change);
+  return startedAgentOf(resumed, change, entityKey);
 }
 
 function answerQuestion(command: CommandOf<'pipeline-setup-answer'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
@@ -279,7 +390,12 @@ function answerQuestion(command: CommandOf<'pipeline-setup-answer'>, change: Tra
   const changed    = change.board.answerSetupQuestion(setupId, questionId, reply, change.at);
   return messagedToTheAgent(changed, change, context, {
     kind: 'question-answered', setupId, questionId, reply
-  });
+  }, questionLevelOf(changed.setup, questionId));
+}
+
+/** The entity whose part holds the question; the forge's own questions, and an id no part holds, are the forge's. */
+function questionLevelOf(setup: Readonly<PipelineSetup>, questionId: string): EntityKey | undefined {
+  return entityKeysOfParts(setup).find((entityKey) => setup.entities?.[entityKey]?.questions.some((question) => question.questionId === questionId) === true);
 }
 
 function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
@@ -288,16 +404,18 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
   const markdown    = markdownFieldOf(command);
   const draftedFrom = sourcesFieldOf(command);
   if (markdown === undefined && draftedFrom === undefined) refuseMalformedSetupCommand(command.kind, 'markdown');
+  const entityKey = entityFieldOf(command);
+  if (change.board.pipelineSetup()?.setupId === setupId) requireEntityLevel(change.board.pipelineSetup()?.draft ?? null, entityKey);
   const edit    = { revision, ...(markdown === undefined ? {} : { markdown }), ...(draftedFrom === undefined ? {} : { draftedFrom }) };
-  const changed = change.board.editConstitution(setupId, edit, change.at);
-  const { constitution } = changed.setup;
+  const changed = change.board.editConstitution(setupId, edit, change.at, entityKey);
+  const constitution = entityKey === undefined ? changed.setup.constitution : changed.setup.entities?.[entityKey]?.constitution ?? null;
   return messagedToTheAgent(changed, change, context, {
     kind:        'constitution-edited',
     setupId,
     revision:    constitution?.revision ?? revision,
     markdown:    markdown === undefined ? null : constitution?.markdown ?? markdown,
     draftedFrom: draftedFrom === undefined ? null : { ...(constitution?.draftedFrom ?? draftedFrom) },
-  });
+  }, entityKey);
 }
 
 /**
@@ -323,6 +441,10 @@ function draftChangesOf(before: Readonly<Pipeline>, changed: PipelineSetupChange
   return PipelineChangeUtil.changesBetween(before, after, false).map(({ field, after: value }) => ({ field, value }));
 }
 
+function changeFieldsOf(changes: readonly DraftFieldValue[]): PipelineDraftField[] {
+  return changes.map((fieldChange) => fieldChange.field);
+}
+
 /** The edits land together at the next revision. */
 function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId  = textFieldOf(command, 'setupId');
@@ -333,13 +455,17 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
   requireStorableDraft(setupId, change.board.draftAfterEdits(setupId, request));
   const changed  = change.board.editDraft(setupId, request, change.at);
   const newEdits = changed.setup.edits.slice(-edits.length);
-  return messagedToTheAgent(changed, change, context, {
-    kind:          'draft-edited',
-    setupId,
-    draftRevision: changed.setup.draftRevision,
-    editIds:       newEdits.map((edit) => edit.editId),
-    fields:        newEdits.map((edit) => edit.field),
-    changes:       draftChangesOf(before, changed),
+  const changes  = draftChangesOf(before, changed);
+  return messagedPerLevel(changed, change, context, [...newEdits.map((edit) => edit.field), ...changeFieldsOf(changes)], (keeps) => {
+    const keptEdits = newEdits.filter((edit) => keeps(edit.field));
+    return {
+      kind:          'draft-edited',
+      setupId,
+      draftRevision: changed.setup.draftRevision,
+      editIds:       keptEdits.map((edit) => edit.editId),
+      fields:        keptEdits.map((edit) => edit.field),
+      changes:       changes.filter((fieldChange) => keeps(fieldChange.field)),
+    };
   });
 }
 
@@ -353,26 +479,33 @@ function undoDraftEdit(command: CommandOf<'pipeline-draft-undo'>, change: Tracke
   if (undone === undefined) return changed;
   return messagedToTheAgent(changed, change, context, {
     kind: 'draft-edit-undone', setupId, draftRevision: changed.setup.draftRevision, editId, field: undone.field, changes: draftChangesOf(before, changed)
-  });
+  }, levelOfField(undone.field));
 }
 
 function discardDraft(command: CommandOf<'pipeline-draft-discard'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const before  = workingDraftOf(change.board);
   const changed = change.board.discardDraft(setupId, change.at);
-  return messagedToTheAgent(changed, change, context, {
-    kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision, changes: draftChangesOf(before, changed)
-  });
+  const changes = draftChangesOf(before, changed);
+  return messagedPerLevel(changed, change, context, changeFieldsOf(changes), (keeps) => ({
+    kind: 'draft-discarded', setupId, draftRevision: changed.setup.draftRevision, changes: changes.filter((fieldChange) => keeps(fieldChange.field))
+  }));
 }
 
-/** The Overseer runs the queued check at its next pass; the agent hears which gates it runs. */
+/**
+ * The Overseer runs the queued checks at its next pass; the agent hears which gates it runs. On a draft over entities, each entity the
+ * draft touched has its own check, and its session hears only its gates.
+ */
 function requestCheck(command: CommandOf<'pipeline-check'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const changed = change.board.requestPipelineCheck(setupId, change.at);
-  const { check } = changed.setup;
-  return messagedToTheAgent(changed, change, context, {
-    kind: 'check-requested', setupId, draftRevision: changed.setup.draftRevision, gateNames: check?.gateNames ?? []
+  const messageOf = (gateNames: readonly string[]): SetupMessage => ({
+    kind: 'check-requested', setupId, draftRevision: changed.setup.draftRevision, gateNames
   });
+  if (changed.setup.draft?.entities === undefined) return messagedToTheAgent(changed, change, context, messageOf(changed.setup.check?.gateNames ?? []));
+  return entityKeysOfParts(changed.setup)
+    .filter((entityKey) => changed.setup.entities?.[entityKey]?.check?.state === 'queued')
+    .reduce((latest, entityKey) => messagedToTheAgent(latest, change, context, messageOf(latest.setup.entities?.[entityKey]?.check?.gateNames ?? []), entityKey), changed);
 }
 
 function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevision: number; resumesBoard: boolean } {

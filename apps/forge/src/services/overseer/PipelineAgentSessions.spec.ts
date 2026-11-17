@@ -5,8 +5,10 @@
  * and the facts its first message is built from (the record and the installed default constitution), so a fresh session in place of a replaced one
  * starts from the same; a launch adds the record's snapshot at that commit, or checks an existing one out at it when a resume moved it, and takes the
  * snapshot start again. A snapshot no open record and no live agent holds is removed once per Overseer, and one the removal leaves is named as a
- * leftover. A namespaced tracker's turn end lets a ref outside its own move. Git answers from the recordings of `src/testing/RecordedGit.ts`
- * and the scenarios of `src/testing/RecordedGitScenarios.ts`, whose snapshot is setup S1's under a worktrees root at the repository.
+ * leftover. A namespaced tracker's turn end lets a ref outside its own move. On a forge over entities, an entity's session is served
+ * from the record's one snapshot, its facts name its entity, and a record whose sessions are only at entities still pins its snapshot
+ * commit. Git answers from the recordings of `src/testing/RecordedGit.ts` and the scenarios of `src/testing/RecordedGitScenarios.ts`,
+ * whose snapshot is setup S1's under a worktrees root at the repository.
  */
 import {
   existsSync,
@@ -255,6 +257,39 @@ testWhenGitIsRecorded('a record whose agent has no snapshot commit takes main\'s
   await recordedGit.playStage([], async () => PipelineAgentSessions.pinSnapshotCommit(changeOf(board), 'main'));
 
   expect(board.pipelineSetup()?.snapshotCommit).toBe(START_COMMIT);
+});
+
+test('an entity\'s session serves its entity\'s part of the record, from the record\'s snapshot and billing, and its facts name the entity', () => {
+  const { board, jobId } = boardWithSetupAgent();
+  const { job } = board.startPipelineAgent(AT, 'web');
+  board.attachSetupAgent(SETUP_ID, job.id, null, 'web');
+
+  expect(PipelineAgentSessions.servedLevelOf(board, jobId)).toMatchObject({ entityKey: null });
+  expect(PipelineAgentSessions.servedLevelOf(board, job.id)).toMatchObject({ entityKey: 'web' });
+  expect(PipelineAgentSessions.servedLevelOf(board, 'J99')).toBeNull();
+  expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
+  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory)).toMatchObject({ mode: 'setup', entity: 'web' });
+  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, { ...job, id: jobId }, 'posix-shell', repositoryDirectory)?.entity).toBeNull();
+});
+
+testWhenGitIsRecorded('a record whose sessions are only at entities takes main\'s tip, once', async () => {
+  const { board } = boardFixture();
+  board.openSetup({
+    mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+  }, AT);
+  const { job } = board.startPipelineAgent(AT, 'web');
+  board.attachSetupAgent(SETUP_ID, job.id, null, 'web');
+  const mainResolved: RecordedGitStep = {
+    gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', 'main^{commit}'],
+    answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
+    filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: START_COMMIT },
+  };
+
+  await recordedGit.playStage([mainResolved], async () => PipelineAgentSessions.pinSnapshotCommit(changeOf(board), 'main'));
+
+  expect(board.pipelineSetup()?.snapshotCommit).toBe(START_COMMIT);
+  expect(board.pipelineSetup()?.agentJobId).toBeNull();
+  expect(board.pipelineSetup()?.entities?.['web']?.agentJobId).toBe(job.id);
 });
 
 testWhenGitIsRecorded('a snapshot no open record holds is removed once with no agent running, and one the removal leaves is a leftover', async () => {

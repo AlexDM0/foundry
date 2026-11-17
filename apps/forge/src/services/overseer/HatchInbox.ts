@@ -21,6 +21,7 @@ import { WorktreesFolder }                               from '../../shared/Work
 import { Bouncer, type RelayingJob }                     from '../control/Bouncer.ts';
 import { ControlService }                                from '../control/ControlService.ts';
 import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
+import { PipelineAgentSessions }                         from './PipelineAgentSessions.ts';
 
 export interface PendingHatchRequest {
   jobId:     string;
@@ -111,7 +112,7 @@ function pendingRequestsOf(repositoryRoot: string, jobs: readonly Readonly<Job>[
 }
 
 function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
-  const setup = board.pipelineSetup();
+  const served = PipelineAgentSessions.servedLevelOf(board, job.id);
   return {
     id:           job.id,
     role:         job.role,
@@ -123,7 +124,8 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
     ticketIdsReadyForReviewOrPending: board.tickets()
       .filter((ticket) => ticket.frontmatter.status === 'ready-for-review' || ticket.frontmatter.status === 'pending')
       .map((ticket) => ticket.frontmatter.id),
-    setupId: setup !== null && setup.agentJobId === job.id ? setup.setupId : null,
+    setupId: served?.setup.setupId ?? null,
+    ...(served === null || served.entityKey === null ? {} : { setupEntity: served.entityKey }),
   };
 }
 

@@ -1,0 +1,352 @@
+/**
+ * User's setup kinds on a forge over entities, applied to a Board in a change. What matters: once User continues the `entities` step,
+ * each entity of the draft gets a pipeline-agent session of its own, stamped with its entity and held in its part of the record; an
+ * advise opens at the forge or at one entity of the stored pipeline, and the record names that entity; an update at an entity holds
+ * that entity's part, whose session a resume opens without one at the forge; a resume opens the level the record opened at and each
+ * entity a session served, never an entity whose part only a check made; a level the pipeline has no entity for is refused before
+ * anything is written; an answer, a constitution edit, a discard and a check message the session of the level they change and no other;
+ * a check covers each entity whose gates the draft touched, with its own gates; and a start over stops every session. A forge without
+ * entities keeps one session, which `PipelineSetupControls.spec.ts` holds.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
+import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
+import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
+import { ControlService }                                         from './ControlService.ts';
+
+const CHANGED_AT = '2026-11-12T10:00:00+01:00';
+
+const WORKSPACE = workspacePathsFor('/example-agency/storefront');
+
+const WEB_TEST_GATE = { name: 'test', run: 'bun test' };
+
+function changeOf(fixture: BoardFixture): TrackerChange {
+  return {
+    board:                          fixture.board,
+    workspace:                      WORKSPACE,
+    at:                             CHANGED_AT,
+    malformedTickets:               [],
+    malformedEpics:                 [],
+    malformedDrafts:                [],
+    unreadablePipeline:             null,
+    storedLogEntryCount:            0,
+    storedLogRecords:               [],
+    deleteAllTicketFilesAfterwards: () => undefined,
+  };
+}
+
+function apply(fixture: BoardFixture, command: ControlCommand): unknown {
+  return ControlService.apply(command, changeOf(fixture), ECHOED_CONTROL_CONTEXT).result;
+}
+
+function refusalOf(attempt: () => unknown): unknown {
+  try {
+    attempt();
+  } catch (error) {
+    if (error instanceof BoardRefusal) return error.detail;
+    throw error;
+  }
+  throw new Error('the command was not refused');
+}
+
+function messagesOf(fixture: BoardFixture): { jobId: string; message: unknown }[] {
+  return fixture.records
+    .filter((record) => record.kind === 'job-messaged')
+    .map((record) => ({ jobId: String(record.jobId), message: JSON.parse(String((record.fields as { text: string }).text)) as unknown }));
+}
+
+function setupOf(fixture: BoardFixture): PipelineSetup {
+  const setup = fixture.board.pipelineSetup();
+  if (setup === null) throw new Error('no setup record is open');
+  return setup;
+}
+
+function withWebTestGate(pipeline: Pipeline): Pipeline {
+  const draft = structuredClone(pipeline);
+  const web = draft.entities?.['web'];
+  if (web === undefined) throw new Error('the fixture has no web entity');
+  web.gates = [WEB_TEST_GATE];
+  web.phases.build = ['test'];
+  return draft;
+}
+
+/** A first setup S1 at the `entities` step whose draft holds the root entity, `web` and `design-system`; its forge session is J1. */
+function boardAtEntitiesStep(): BoardFixture {
+  const opened = boardFixture();
+  apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
+  const setup: PipelineSetup = {
+    ...structuredClone(setupOf(opened)),
+    stepStates: {
+      billing: 'done', research: 'done', entities: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
+    },
+    currentStep: 'entities',
+    draft:       entityPipelineFixture(),
+  };
+  const fixture = boardFixture({ pipelineSetup: { verdict: 'readable', setup } });
+  fixture.board.startPipelineAgent(CHANGED_AT);
+  fixture.records.length = 0;
+  return fixture;
+}
+
+/** S1 past the `entities` step: J1 serves the forge, J2 the root entity, J3 `web` and J4 `design-system`. */
+function boardWithEntitySessions(): BoardFixture {
+  const fixture = boardAtEntitiesStep();
+  apply(fixture, {
+    kind: 'pipeline-setup-step', setupId: 'S1', step: 'entities', move: 'continue'
+  });
+  fixture.records.length = 0;
+  return fixture;
+}
+
+describe('one session per entity', () => {
+  test('the Continue of the entities step launches a session for each entity of the draft, stamped with its entity', () => {
+    const fixture = boardAtEntitiesStep();
+
+    apply(fixture, {
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'entities', move: 'continue'
+    });
+
+    const setup = setupOf(fixture);
+    expect(setup.agentJobId).toBe('J1');
+    expect(Object.entries(setup.entities ?? {}).map(([entityKey, part]) => [entityKey, part.agentJobId])).toEqual([
+      ['root', 'J2'], ['web', 'J3'], ['design-system', 'J4'],
+    ]);
+    expect(['J2', 'J3', 'J4'].map((jobId) => fixture.board.jobById(jobId)?.entity)).toEqual(['root', 'web', 'design-system']);
+    expect(fixture.board.jobById('J1')?.entity).toBeUndefined();
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J1',
+      message: {
+        kind: 'step-continued', setupId: 'S1', mode: 'setup', step: 'entities', currentStep: 'constitution'
+      }
+    }]);
+  });
+
+  test('a later Continue messages every session and launches none again', () => {
+    const fixture = boardWithEntitySessions();
+
+    apply(fixture, {
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'constitution', move: 'continue'
+    });
+
+    expect(fixture.records.filter((record) => record.kind === 'job-launched')).toEqual([]);
+    expect(messagesOf(fixture).map((sent) => sent.jobId)).toEqual(['J1', 'J2', 'J3', 'J4']);
+  });
+
+  test('a start over stops every session of the record', () => {
+    const fixture = boardWithEntitySessions();
+
+    apply(fixture, { kind: 'pipeline-setup-start-over', setupId: 'S1' });
+
+    expect(fixture.records.filter((record) => record.kind === 'job-stop-requested').map((record) => record.jobId)).toEqual(['J1', 'J2', 'J3', 'J4']);
+  });
+});
+
+describe('a level of advise and update', () => {
+  test('an advise at an entity launches that entity\'s session alone, held in its part of the record', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+
+    apply(fixture, { kind: 'pipeline-agent-advise', entity: 'web' });
+
+    const setup = setupOf(fixture);
+    expect(setup.mode).toBe('advise');
+    expect(setup.openedAtEntity).toBe('web');
+    expect(setup.agentJobId).toBeNull();
+    expect(setup.entities?.['web']?.agentJobId).toBe('J1');
+    expect(fixture.board.jobById('J1')).toMatchObject({ kind: 'pipeline-agent', entity: 'web' });
+    expect(fixture.records.find((record) => record.kind === 'job-launched')?.fields).toMatchObject({ entity: 'web' });
+  });
+
+  test('an advise at the forge launches the forge\'s session, with no entity', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+
+    apply(fixture, { kind: 'pipeline-agent-advise' });
+
+    expect(setupOf(fixture).agentJobId).toBe('J1');
+    expect(setupOf(fixture).entities).toBeUndefined();
+    expect(Object.hasOwn(setupOf(fixture), 'openedAtEntity')).toBe(false);
+    expect(fixture.board.jobById('J1')).not.toHaveProperty('entity');
+  });
+
+  test.each([
+    ['an entity the stored pipeline does not hold', entityPipelineFixture(), ['root', 'web', 'design-system']],
+    ['any entity of a stored pipeline without entities', {
+      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    } as Pipeline, []],
+  ])('an advise at %s is refused, with no record opened and no session launched', (_case, pipeline, entityKeys) => {
+    const fixture = boardFixture({ pipeline });
+
+    expect(refusalOf(() => apply(fixture, { kind: 'pipeline-agent-advise', entity: 'shop' }))).toEqual({ reason: 'setup-entity-unknown', entity: 'shop', entityKeys });
+    expect(fixture.board.pipelineSetup()).toBeNull();
+    expect(fixture.board.jobs()).toEqual([]);
+  });
+
+  test('an update at an entity holds that entity\'s part, and a resume opens that entity\'s session alone', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+
+    apply(fixture, { kind: 'pipeline-update-start', entity: 'web' });
+    expect(setupOf(fixture).openedAtEntity).toBe('web');
+    expect(setupOf(fixture).entities).toEqual({
+      web: {
+        agentJobId: null, findings: [], questions: [], constitution: null
+      }
+    });
+    expect(fixture.board.jobs()).toEqual([]);
+
+    apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' });
+
+    expect(setupOf(fixture).agentJobId).toBeNull();
+    expect(setupOf(fixture).entities?.['web']?.agentJobId).toBe('J1');
+    expect(fixture.board.jobById('J1')?.entity).toBe('web');
+  });
+
+  test('an update at the forge whose check made an entity\'s part resumes the forge\'s session alone', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+    apply(fixture, { kind: 'pipeline-update-start' });
+    setupOf(fixture).draft = withWebTestGate(entityPipelineFixture());
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+    expect(Object.keys(setupOf(fixture).entities ?? {})).toEqual(['web']);
+
+    apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' });
+
+    expect(setupOf(fixture).agentJobId).toBe('J1');
+    expect(setupOf(fixture).entities?.['web']?.agentJobId).toBeNull();
+    expect(fixture.board.jobs().map((job) => [job.id, job.entity ?? null])).toEqual([['J1', null]]);
+  });
+
+  test('a resume of a setup past the entities step messages the forge\'s session and each entity\'s, and launches none', () => {
+    const fixture = boardWithEntitySessions();
+
+    apply(fixture, { kind: 'pipeline-setup-resume', setupId: 'S1' });
+
+    expect(messagesOf(fixture).map((message) => message.jobId)).toEqual(['J1', 'J2', 'J3', 'J4']);
+    expect(fixture.board.jobs()).toHaveLength(4);
+  });
+});
+
+describe('the session that hears a move', () => {
+  test('an answer to an entity\'s question messages that entity\'s session alone', () => {
+    const fixture = boardWithEntitySessions();
+    fixture.board.askSetupQuestion('S1', {
+      step: 'constitution', subject: null, question: 'Does web keep its own lint rules?', context: '', optionTexts: ['Yes', 'No'], recommendedLetters: ['a'], multiple: false
+    }, CHANGED_AT, 'web');
+    fixture.records.length = 0;
+
+    apply(fixture, {
+      kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q1', answer: { form: 'letters', choices: ['a'] }
+    });
+
+    expect(setupOf(fixture).entities?.['web']?.questions[0]?.answer).toMatchObject({ letters: ['a'] });
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J3',
+      message: {
+        kind: 'question-answered', setupId: 'S1', questionId: 'Q1', reply: { letters: ['a'] }
+      }
+    }]);
+  });
+
+  test('a constitution edit at an entity changes that entity\'s draft and messages its session alone', () => {
+    const fixture = boardWithEntitySessions();
+
+    apply(fixture, {
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown: '# Web\n', entity: 'web'
+    });
+
+    expect(setupOf(fixture).constitution).toBeNull();
+    expect(setupOf(fixture).entities?.['web']?.constitution).toMatchObject({ markdown: '# Web\n', revision: 1 });
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J3',
+      message: {
+        kind: 'constitution-edited', setupId: 'S1', revision: 1, markdown: '# Web\n', draftedFrom: null
+      }
+    }]);
+  });
+
+  test('a constitution edit at an entity the draft does not hold is refused, with the record untouched', () => {
+    const fixture = boardWithEntitySessions();
+
+    expect(refusalOf(() => apply(fixture, {
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown: '# Shop\n', entity: 'shop'
+    }))).toEqual({ reason: 'setup-entity-unknown', entity: 'shop', entityKeys: ['root', 'web', 'design-system'] });
+    expect(fixture.records).toEqual([]);
+  });
+
+  test('a discard messages the session of each entity whose fields it changed, with only its own fields', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+    apply(fixture, { kind: 'pipeline-agent-advise' });
+    setupOf(fixture).draft = withWebTestGate(entityPipelineFixture());
+    fixture.board.startPipelineAgent(CHANGED_AT, 'web');
+    fixture.board.attachSetupAgent('S1', 'J2', null, 'web');
+    fixture.records.length = 0;
+
+    apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
+
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J2',
+      message: {
+        kind:          'draft-discarded',
+        setupId:       'S1',
+        draftRevision: 1,
+        changes:       [
+          { field: 'entity:web/gate:test', value: null },
+          { field: 'entity:web/phase-order:build', value: [] },
+        ],
+      },
+    }]);
+  });
+});
+
+describe('the pipeline check per entity', () => {
+  function updateWithWebGate(): BoardFixture {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+    apply(fixture, { kind: 'pipeline-update-start' });
+    setupOf(fixture).draft = withWebTestGate(entityPipelineFixture());
+    fixture.board.startPipelineAgent(CHANGED_AT, 'web');
+    fixture.board.attachSetupAgent('S1', 'J1', null, 'web');
+    fixture.records.length = 0;
+    return fixture;
+  }
+
+  test('covers only the entities whose gates the draft touched, each with its own gates, and messages each one\'s session', () => {
+    const fixture = updateWithWebGate();
+
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+
+    const setup = setupOf(fixture);
+    expect(setup.check).toBeUndefined();
+    expect(setup.entities?.['web']?.check).toEqual({
+      draftRevision: 0, gateNames: ['test'], state: 'queued', result: null, reason: null
+    });
+    expect(Object.keys(setup.entities ?? {})).toEqual(['web']);
+    expect(fixture.board.queuedPipelineCheckLevels()).toEqual(['web']);
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J1',
+      message: {
+        kind: 'check-requested', setupId: 'S1', draftRevision: 0, gateNames: ['test']
+      }
+    }]);
+  });
+
+  test('an entity\'s check runs its steps and gates with its first home, and a second press waits for it', () => {
+    const fixture = updateWithWebGate();
+    apply(fixture, { kind: 'pipeline-check', setupId: 'S1' });
+
+    expect(fixture.board.startPipelineCheck('S1', 'web')).toEqual({
+      draftRevision: 0, prepare: [], gates: [WEB_TEST_GATE], entityHome: '/apps/web'
+    });
+    expect(refusalOf(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S1' }))).toEqual({ reason: 'pipeline-check-running', setupId: 'S1' });
+    expect(fixture.board.stopRunningPipelineCheck()?.setup.entities?.['web']?.check?.state).toBe('stopped');
+  });
+
+  test('a draft that touches no entity\'s gate is refused no-gate-to-check', () => {
+    const fixture = boardFixture({ pipeline: entityPipelineFixture() });
+    apply(fixture, { kind: 'pipeline-update-start' });
+
+    expect(refusalOf(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S1' }))).toEqual({ reason: 'no-gate-to-check', setupId: 'S1' });
+  });
+});

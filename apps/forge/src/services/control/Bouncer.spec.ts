@@ -2,7 +2,8 @@
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
  * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, its entity rule (its own draft or any ticket ready for
  * review or pending, stamped with its job), the own-job stamp on the `question-options` of every
- * role that asks User, the pipeline agent's setup moves stamped with its job and its setup (every other kind refused), the Assistant's
+ * role that asks User, the pipeline agent's setup moves stamped with its job, its setup and, for an entity's session, its entity (every
+ * other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's
  * incident moves, and the planted
  * forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
@@ -233,6 +234,21 @@ describe('pipeline agent', () => {
 
   test('a request naming a setup of its own choosing is refused hatch-identity-mismatch', () => {
     const command: ControlCommand = { kind: 'pipeline-step-ready', setupId: 'S1', step: 'research' };
+    expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test.each(PIPELINE_AGENT_COMMANDS.map((command) => [command.kind, command] as const))('%s of an entity\'s session is stamped with its entity too', (_kind, command) => {
+    const entityAgent = jobOf('pipeline-agent', { ticketIds: [], setupId: 'S2', setupEntity: 'web' });
+    expect(Bouncer.verdictOf(entityAgent, command)).toEqual({
+      verdict: 'admitted',
+      command: {
+        ...command, jobId: 'J12', setupId: 'S2', entity: 'web'
+      } as ControlCommand
+    });
+  });
+
+  test('a request naming an entity of its own choosing is refused hatch-identity-mismatch', () => {
+    const command: ControlCommand = { kind: 'pipeline-step-ready', entity: 'web', step: 'research' };
     expect(Bouncer.verdictOf(agent, command)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 

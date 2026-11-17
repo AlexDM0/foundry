@@ -313,6 +313,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `has no Apply to cancel or settle` | `no-apply-pending` | `pipeline apply-cancel` with no Apply request. | Nothing to do. | [Apply](../cli.md#apply) |
 | `has a check not ended yet` | `pipeline-check-running` | `pipeline check` while the record's check is `queued` or `running`. | Wait for its result. | [Pipeline checks](../cli.md#pipeline-checks) |
 | `changes or adds no gate, so there is nothing to check` | `no-gate-to-check` | `pipeline check` on a draft that changes or adds no gate against the base pipeline. | Change or add a gate first. | [Pipeline checks](../cli.md#pipeline-checks) |
+| `The pipeline names no entity` | `setup-entity-unknown` | `advise`, an update or a constitution edit at an entity the pipeline does not hold, or at any entity of a pipeline without entities. | Name an entity the pipeline holds, or the forge. | [Pipeline setup](../cli.md#pipeline-setup) |
 | `still asks <ids>: answer every question before the Apply` | `setup-question-open` | An Apply while a setup question has no answer. | Answer each question named. | [Apply](../cli.md#apply) |
 | `needs a recheck of <steps>` | `setup-step-needs-recheck` | An Apply while a step before Apply needs a recheck. | Continue each step named. | [Apply](../cli.md#apply) |
 | `changed its snapshot, so its findings cannot be trusted` | `setup-snapshot-touched` | An Apply after a turn end of the pipeline agent found its snapshot changed. | Resume the setup, then apply. | [Apply](../cli.md#apply) |

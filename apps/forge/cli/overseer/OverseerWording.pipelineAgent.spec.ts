@@ -4,7 +4,8 @@
  * the record alone and gets the same message after its note; the research block also while billing is open; the advise block with the
  * design rules and the gate history on a stored pipeline; the confinement claims as the platform holds them; and the grammar its lines run
  * in, filled from the shell line port's `lineGrammar`. The constitution block asks for one whole document whose sources travel only in
- * the `sources` list.
+ * the `sources` list. An entity's session reads that it works on its entity only, and its entity's findings, questions and constitution
+ * in place of the forge's; the forge's session reads no such line.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -98,7 +99,7 @@ function factsWith(pipelineAgent: Partial<PipelineAgentFacts>, confinement: JobL
     airlock:                null,
     assistant:              null,
     pipelineAgent:          {
-      mode: 'setup', setup: null, storedPipeline: null, installedConstitution: null, gateHistory: [], lineGrammar: 'posix-shell', ...pipelineAgent
+      mode: 'setup', setup: null, entity: null, storedPipeline: null, installedConstitution: null, gateHistory: [], lineGrammar: 'posix-shell', ...pipelineAgent
     },
     instructions: '',
   };
@@ -188,6 +189,27 @@ test('carries the record\'s facts: findings, questions with answers, the constit
   expect(message).toContain('"name": "install"');
   expect(message).toContain('- E1 by agent, gate:test: Run the unit tests in the build and review phases.');
   expect(message).toContain('# Installed default');
+});
+
+test('an entity\'s session reads its entity\'s part of the record and that it works on that entity only', () => {
+  const setup = setupAt('constitution');
+  const withWeb: PipelineSetup = {
+    ...setup,
+    entities: {
+      web: {
+        agentJobId: 'J9', findings: [], questions: [], constitution: { ...setup.constitution, markdown: '# Web rules\n', revision: 1 } as PipelineSetup['constitution']
+      }
+    },
+  };
+
+  const message = firstMessageOf(factsWith({ setup: withWeb, entity: 'web' }));
+
+  expect(message).toContain('This session works on the entity web only.');
+  expect(message).toContain('Propose edits only of the fields entity:web/<field>.');
+  expect(message).toContain('# Web rules');
+  expect(message).not.toContain('- F1 scripts, Unit tests');
+  expect(message).toContain('### Findings\n\nNone yet.');
+  expect(firstMessageOf(factsWith({ setup: withWeb }))).not.toContain('This session works on the entity');
 });
 
 test('a record with no constitution yet names the SOURCES ticks a first draft is held to', () => {

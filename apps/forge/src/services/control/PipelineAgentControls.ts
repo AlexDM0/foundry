@@ -1,22 +1,29 @@
 /**
  * The pipeline agent's kinds of the setup record: a finding, a question, the constitution, draft edits and a ready step. The Bouncer stamps
- * the setup the agent serves; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
+ * the setup the agent serves and, for the session of one entity, that entity, whose part of the record its finding, question and
+ * constitution go to; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
  * the field before the Board is touched; every other refusal is found before the Board changes too, since a relayed command shares the
  * Overseer's hold, which a refusal does not undo. None of them messages the agent: it made the move. The agent's first proposal also records what
  * the snapshot's tree cannot hold on every OS.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
 import type { PipelineSetupChanged }                                      from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { EntityKey }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandKind, ControlCommandOf }                      from '../../shared/@types/ControlCommand.ts';
 import { TreePortability }                                                from '../lifecycle/TreePortability.ts';
 import type { TrackerChange }                                             from '../tracker/TrackerPipeline.ts';
 import { refuseMalformedSetupCommand, requireStorableDraft, textFieldOf } from './PipelineSetupControls.ts';
 
-/** Who sent the command and which record it serves are the Overseer's stamps, not part of the payload. */
-const STAMPED_KEYS: readonly string[] = ['kind', 'jobId', 'setupId'];
+/** Who sent the command, which record and which entity it serves are the Overseer's stamps, not part of the payload. */
+const STAMPED_KEYS: readonly string[] = ['kind', 'jobId', 'setupId', 'entity'];
 
 function payloadOf(command: ControlCommandOf<PipelineAgentControlKind>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(command).filter(([key]) => !STAMPED_KEYS.includes(key)));
+}
+
+/** The entity the Bouncer stamped; `undefined` for the forge's session. */
+function stampedEntityOf(command: ControlCommandOf<PipelineAgentControlKind>): EntityKey | undefined {
+  return Object.hasOwn(command, 'entity') ? textFieldOf(command, 'entity') : undefined;
 }
 
 function readPayload<Value>(commandKind: ControlCommandKind, reading: PayloadReading<Value>): Value {
@@ -27,19 +34,19 @@ function readPayload<Value>(commandKind: ControlCommandKind, reading: PayloadRea
 function recordFinding(command: ControlCommandOf<'pipeline-finding-record'>, change: TrackerChange): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const finding = readPayload(command.kind, SetupPayloadSchemas.findingReadingOf(payloadOf(command)));
-  return change.board.recordFinding(setupId, finding, change.at);
+  return change.board.recordFinding(setupId, finding, change.at, stampedEntityOf(command));
 }
 
 function askQuestion(command: ControlCommandOf<'pipeline-question-ask'>, change: TrackerChange): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const asking  = readPayload(command.kind, SetupPayloadSchemas.questionReadingOf(payloadOf(command)));
-  return change.board.askSetupQuestion(setupId, asking, change.at);
+  return change.board.askSetupQuestion(setupId, asking, change.at, stampedEntityOf(command));
 }
 
 function draftConstitution(command: ControlCommandOf<'pipeline-constitution-draft'>, change: TrackerChange): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const setting = readPayload(command.kind, SetupPayloadSchemas.constitutionReadingOf(payloadOf(command)));
-  return change.board.setConstitution(setupId, setting, change.at);
+  return change.board.setConstitution(setupId, setting, change.at, stampedEntityOf(command));
 }
 
 /**

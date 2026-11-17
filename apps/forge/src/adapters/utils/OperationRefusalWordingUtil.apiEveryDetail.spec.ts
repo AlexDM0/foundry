@@ -198,6 +198,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'no-apply-pending':          { reason: 'no-apply-pending', setupId: 'S1' },
   'pipeline-check-running':    { reason: 'pipeline-check-running', setupId: 'S1' },
   'no-gate-to-check':          { reason: 'no-gate-to-check', setupId: 'S1' },
+  'setup-entity-unknown':      { reason: 'setup-entity-unknown', entity: 'shop', entityKeys: ['root', 'web'] },
   'setup-question-open':       { reason: 'setup-question-open', setupId: 'S1', questionIds: ['Q1'] },
   'setup-step-needs-recheck':  { reason: 'setup-step-needs-recheck', setupId: 'S1', steps: ['design'] },
   'setup-snapshot-touched':    { reason: 'setup-snapshot-touched', setupId: 'S1' },

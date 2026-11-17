@@ -1,5 +1,6 @@
 /**
- * The pipeline agent's setup kinds, applied as the Bouncer admitted them: stamped with the setup it serves. What matters: a misshapen
+ * The pipeline agent's setup kinds, applied as the Bouncer admitted them: stamped with the setup it serves and, for an entity's session,
+ * that entity, whose part of the record takes its finding, question and constitution. What matters: a misshapen
  * payload or a missing setup is `malformed-setup-command` naming the field, with the Board untouched; a question takes two to four
  * options and exactly one recommendation unless it takes several, and never "Other"; a proposed edit outside the closed field union, or
  * one that leaves a draft the `pipeline.json` validator refuses, is refused; the constitution is stored byte for byte, and an empty,
@@ -138,6 +139,28 @@ describe('a finding', () => {
     expect(fixture.board.pipelineSetup()?.findings).toEqual([{
       findingId: 'F1', topic: 'scripts', label: 'Unit tests', value: 'bun test', sourcePaths: ['package.json'], script: null, needsRecheck: false
     }]);
+  });
+});
+
+describe('the session of one entity', () => {
+  test('records its finding, question and constitution in that entity\'s part, the forge\'s own untouched', () => {
+    const fixture = boardAt('research');
+    const stamp = { jobId: 'J5', setupId: 'S1', entity: 'web' };
+    apply(fixture, {
+      kind: 'pipeline-finding-record', ...stamp, topic: 'scripts', label: 'Unit tests', value: 'bun test', sourcePaths: ['apps/web/package.json'], script: null
+    });
+    apply(fixture, question(stamp));
+    apply(fixture, { ...constitution(CONSTITUTION_TEXT, []), ...stamp });
+
+    const setup = fixture.board.pipelineSetup();
+    expect(setup?.findings).toEqual([]);
+    expect(setup?.questions).toEqual([]);
+    expect(setup?.constitution).toBeNull();
+    expect(setup?.entities?.['web']).toMatchObject({
+      findings:     [{ findingId: 'F1', label: 'Unit tests' }],
+      questions:    [{ questionId: 'Q1', question: 'Is the type check a gate?' }],
+      constitution: { markdown: CONSTITUTION_TEXT, revision: 1 },
+    });
   });
 });
 

@@ -6,7 +6,8 @@
  * withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is
  * idempotent by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes
  * the rest, and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at
- * design, with Apply not reached. Once Apply lands, in whichever hold, the record's live pipeline agent is stopped. A constitution commit
+ * design, with Apply not reached. Once Apply lands, in whichever hold, every live pipeline agent of the record is stopped, each entity's
+ * session beside the forge's, since a closed record leaves none of them a level to serve. A constitution commit
  * job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a refusal
  * git's text.
  */
@@ -302,12 +303,24 @@ describe('stage 2 when main already holds the draft\'s text', () => {
 });
 
 describe('the record\'s pipeline agent once Apply lands', () => {
-  function withRunningAgent(world: ApplyWorld): string {
-    const { job } = world.board.startPipelineAgent(AT);
-    world.board.attachSetupAgent(world.setupId, job.id, 'a'.repeat(40));
+  function withRunningAgent(world: ApplyWorld, entityKey?: string): string {
+    const { job } = world.board.startPipelineAgent(AT, entityKey);
+    world.board.attachSetupAgent(world.setupId, job.id, 'a'.repeat(40), entityKey);
     world.board.moveJob(job.id, 'running', AT);
     return job.id;
   }
+
+  test('each entity\'s running session is stopped beside the forge\'s in the same hold', () => {
+    const world = firstSetupAtApply();
+    const forgeAgentJobId = withRunningAgent(world);
+    const webAgentJobId   = withRunningAgent(world, 'web');
+    const apiAgentJobId   = withRunningAgent(world, 'api');
+
+    const applied = world.board.requestApply(world.setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, AT);
+
+    expect([forgeAgentJobId, webAgentJobId, apiAgentJobId].map((jobId) => world.board.jobById(jobId)?.state)).toEqual(['stopping', 'stopping', 'stopping']);
+    expect(applied.logged.map((record) => record.kind)).toEqual(['pipeline-applied', 'job-stop-requested', 'job-stop-requested', 'job-stop-requested']);
+  });
 
   test('a running agent is stopped in the hold of a stage 2 that runs at once, after the record\'s close', () => {
     const world = firstSetupAtApply();

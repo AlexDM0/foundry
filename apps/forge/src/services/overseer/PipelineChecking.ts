@@ -3,7 +3,8 @@
  * two times, in a fresh detached worktree of main, under each gate's confinement and with no `writes` granted, holding a gate run slot that
  * no waiting real gate wants. The process runs outside the hold; the hold is taken only to mark the check running and to store its end,
  * which the record's pipeline agent then reads as a message. At an Overseer's start, a check an earlier Overseer left running reads
- * `stopped`, and every check worktree goes.
+ * `stopped`, and every check worktree goes. On a draft over entities each entity the draft touched has its own check: its steps and gates
+ * run from its first home, and its session hears the end.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join }                               from 'node:path';
@@ -12,10 +13,12 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                                           from '../../lib/process-identity/ProcessIdentity.ts';
+import type { EntityKey }                                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineCheckEnding, PipelineCheckResult, PipelineCheckStart }              from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
 import { CHECK_OUTPUT_LIMIT_CHARACTERS, NO_TOUCHED_GATE_REASON }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import type { SetupMessage }                                                              from '../../shared/@types/ControlContext.ts';
+import { EntityFoldersUtil }                                                              from '../../shared/utils/EntityFoldersUtil.ts';
 import { messagedToTheSetupAgent }                                                        from '../control/PipelineSetupControls.ts';
 import type { GateLineConfiner }                                                          from '../lifecycle/GateRun.ts';
 import type { ProposalRunRecord, ProposalTwiceRun }                                       from '../lifecycle/ProposalTwiceRun.ts';
@@ -23,7 +26,7 @@ import { projectLocationOf }                                                    
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
 import { GateRunSlots }                                                                   from './GateRunSlots.ts';
 
-/** The check worktrees' folder under the worktrees root, one `<setupId>` worktree each; the Overseer owns it. */
+/** The check worktrees' folder under the worktrees root, one `<setupId>` worktree each, `<setupId>-<entity>` for an entity's; the Overseer owns it. */
 export const PIPELINE_CHECK_WORKTREES_FOLDER = 'pipeline-checks';
 
 /** The stored reason of a check whose main line resolved to no commit. */
@@ -41,8 +44,8 @@ export interface PipelineCheckingContext {
   platformPorts:         Pick<PlatformPorts, 'shellLine' | 'processSupervision'>;
   gateSlots:             Pick<ReturnType<typeof GateRunSlots.createGateRunSlots>, 'tryAcquireAfterRealGates' | 'release'>;
   gateEnvironment:       () => Readonly<Record<string, string>>;
-  /** Confines each line of the check in its worktree, as a gate of the Overseer's is confined. */
-  confinedLineIn:        (worktreePath: string, setupId: string) => GateLineConfiner;
+  /** Confines each line of the check in its worktree, as a gate of the Overseer's is confined; `checkName` names the check's own profile. */
+  confinedLineIn:        (worktreePath: string, checkName: string) => GateLineConfiner;
   hold:                  <Result>(mutate: (hold: PipelineCheckHold) => Result) => Promise<Result>;
   /** A clock exception: a run's duration is only recorded and shown. */
   millisecondsNow:       () => number;
@@ -66,6 +69,14 @@ export interface PipelineChecking {
   idle:          () => Promise<void>;
 }
 
+/** One queued check: the record's, at the forge (`undefined`) or at one entity. */
+interface CheckLevel {
+  setupId:   string;
+  entityKey: EntityKey | undefined;
+  /** The worktree's and the profile's name: the setup id, and for an entity its key, escaped as a file name. */
+  checkName: string;
+}
+
 interface CheckInThisProcess {
   promise:  Promise<void>;
   /** The line now running, `null` between lines. */
@@ -76,6 +87,21 @@ interface CheckInThisProcess {
 /** The end of the output, which is where a failing gate says why. */
 function outputTailOf(output: string): string {
   return output.length <= CHECK_OUTPUT_LIMIT_CHARACTERS ? output : output.slice(-CHECK_OUTPUT_LIMIT_CHARACTERS);
+}
+
+function checkLevelOf(setupId: string, entityKey: EntityKey | null): CheckLevel {
+  if (entityKey === null) return { setupId, entityKey: undefined, checkName: setupId };
+  return { setupId, entityKey, checkName: `${setupId}-${encodeURIComponent(entityKey)}` };
+}
+
+/** An entity's steps and gates read their folders from its first home; the forge's run as the draft names them. */
+function rootedStartOf(started: PipelineCheckStart): Pick<PipelineCheckStart, 'prepare' | 'gates'> {
+  const { entityHome } = started;
+  if (entityHome === undefined) return { prepare: started.prepare, gates: started.gates };
+  return {
+    prepare: EntityFoldersUtil.rootedStepsOf(started.prepare, entityHome),
+    gates:   started.gates.map((gate) => EntityFoldersUtil.rootedGateOf(gate, entityHome)),
+  };
 }
 
 /** The log and the record store whole milliseconds, and a clock may answer a fraction. */
@@ -115,15 +141,16 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
     if (stop.verdict === 'refused') context.log(`The stop of a pipeline check was refused: ${stop.reason}`);
   }
 
-  /** The record keeps the end, and the record's agent hears it in the same hold; a record that moved on keeps nothing. */
-  function recordEnding(board: Board, setupId: string, ending: PipelineCheckEnding, at: string): void {
-    const ended = board.endPipelineCheck(setupId, ending);
-    const check = ended?.setup.check;
+  /** The record keeps the end, and the session of the check's level hears it in the same hold; a record that moved on keeps nothing. */
+  function recordEnding(board: Board, level: CheckLevel, ending: PipelineCheckEnding, at: string): void {
+    const { setupId, entityKey } = level;
+    const ended = board.endPipelineCheck(setupId, ending, entityKey);
+    const check = entityKey === undefined ? ended?.setup.check : ended?.setup.entities?.[entityKey]?.check;
     if (ended === null || check === undefined) return;
-    messagedToTheSetupAgent(ended, board, context.setupMessageWordingOf({ kind: 'check-ended', setupId, check }), at);
+    messagedToTheSetupAgent(ended, board, context.setupMessageWordingOf({ kind: 'check-ended', setupId, check }), at, entityKey);
   }
 
-  async function endingOf(setupId: string, started: PipelineCheckStart, worktreePath: string, running: CheckInThisProcess): Promise<PipelineCheckEnding> {
+  async function endingOf(checkName: string, started: PipelineCheckStart, worktreePath: string, running: CheckInThisProcess): Promise<PipelineCheckEnding> {
     const snapshotCommit = GitProcess.resolvedCommitOf(repositoryRoot, context.mainLine);
     if (snapshotCommit === null) return { state: 'cannot-run', reason: MAIN_LINE_UNRESOLVED_REASON };
     const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, snapshotCommit]);
@@ -132,9 +159,8 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
       shellLine:       platformPorts.shellLine,
       environment:     context.gateEnvironment(),
       spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-      confinedLineOf:  context.confinedLineIn(worktreePath, setupId),
-      prepare:         started.prepare,
-      gates:           started.gates,
+      confinedLineOf:  context.confinedLineIn(worktreePath, checkName),
+      ...rootedStartOf(started),
       directory:       worktreePath,
       projectPrefix,
       snapshotCommit,
@@ -150,42 +176,48 @@ function createPipelineChecking(context: PipelineCheckingContext): PipelineCheck
   }
 
   /** Never throws: a failure is logged, and the check reads `stopped` at the next start. */
-  async function runCheck(setupId: string, holder: string, running: CheckInThisProcess): Promise<void> {
-    const worktreePath = join(worktreesFolder, setupId);
+  async function runCheck(level: CheckLevel, holder: string, running: CheckInThisProcess): Promise<void> {
+    const { setupId, entityKey, checkName } = level;
+    const worktreePath = join(worktreesFolder, checkName);
     try {
       const started = await context.hold(({ board, at }) => {
-        const start = board.startPipelineCheck(setupId);
+        const start = board.startPipelineCheck(setupId, entityKey);
         if (start === null || start.gates.length > 0) return start;
         // The draft changed back since User's press, so no gate is left to run.
-        recordEnding(board, setupId, { state: 'cannot-run', reason: NO_TOUCHED_GATE_REASON }, at);
+        recordEnding(board, level, { state: 'cannot-run', reason: NO_TOUCHED_GATE_REASON }, at);
         return null;
       });
       if (started === null) return;
       mkdirSync(worktreesFolder, { recursive: true });
-      const ending = await endingOf(setupId, started, worktreePath, running);
+      const ending = await endingOf(checkName, started, worktreePath, running);
       await context.hold(({ board, at }) => {
         // A check this Overseer ended as it stopped has no result.
         if (running.stopping) board.stopRunningPipelineCheck();
-        else recordEnding(board, setupId, ending, at);
+        else recordEnding(board, level, ending, at);
       });
     } catch (failure) {
       context.log(`Pipeline check of setup ${setupId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);
     } finally {
       context.gateSlots.release(holder);
       if (existsSync(worktreePath)) removeWorktree(worktreePath);
-      checksInThisProcess.delete(setupId);
+      checksInThisProcess.delete(checkName);
       context.wake();
     }
   }
 
+  /** Each queued check of the record starts while a slot is free after the real gates: the forge's, or each entity's in record order. */
   function followChecks(board: Board): void {
     const setup = board.pipelineSetup();
-    if (setup?.check?.state !== 'queued' || checksInThisProcess.has(setup.setupId)) return;
-    const holder = GateRunSlots.inProcessHolderOf(`pipeline-check:${setup.setupId}`);
-    if (!context.gateSlots.tryAcquireAfterRealGates(holder)) return;
-    const running: CheckInThisProcess = { promise: Promise.resolve(), process: null, stopping: false };
-    checksInThisProcess.set(setup.setupId, running);
-    running.promise = runCheck(setup.setupId, holder, running);
+    if (setup === null) return;
+    for (const entityKey of board.queuedPipelineCheckLevels()) {
+      const level = checkLevelOf(setup.setupId, entityKey);
+      if (checksInThisProcess.has(level.checkName)) continue;
+      const holder = GateRunSlots.inProcessHolderOf(`pipeline-check:${level.checkName}`);
+      if (!context.gateSlots.tryAcquireAfterRealGates(holder)) return;
+      const running: CheckInThisProcess = { promise: Promise.resolve(), process: null, stopping: false };
+      checksInThisProcess.set(level.checkName, running);
+      running.promise = runCheck(level, holder, running);
+    }
   }
 
   async function settleAtStart(): Promise<void> {

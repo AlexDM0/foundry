@@ -93,6 +93,8 @@ export type BoardRefusalDetail =
   | { reason: 'no-apply-pending'; setupId: string }
   | { reason: 'pipeline-check-running'; setupId: string }
   | { reason: 'no-gate-to-check'; setupId: string }
+  /** A pipeline-agent level named by an entity the pipeline it reads does not hold; `entityKeys` is empty when it holds none. */
+  | { reason: 'setup-entity-unknown'; entity: string; entityKeys: readonly string[] }
   | { reason: 'setup-question-open'; setupId: string; questionIds: readonly string[] }
   | { reason: 'setup-step-needs-recheck'; setupId: string; steps: readonly PipelineSetupStep[] }
   | { reason: 'setup-snapshot-touched'; setupId: string }

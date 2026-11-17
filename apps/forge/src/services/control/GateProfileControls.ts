@@ -16,7 +16,7 @@ import type {
 import { BoardRefusal }                             from '../../lib/tracker-model/BoardRefusal.ts';
 import { PipelineUtil }                             from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandOf as CommandOf }       from '../../shared/@types/ControlCommand.ts';
-import { ProjectPathsUtil }                         from '../../shared/utils/ProjectPathsUtil.ts';
+import { EntityFoldersUtil }                        from '../../shared/utils/EntityFoldersUtil.ts';
 import type { TrackerChange }                       from '../tracker/TrackerPipeline.ts';
 import { refuseMalformedSetupCommand, textFieldOf } from './PipelineSetupControls.ts';
 import { requireReadablePipeline }                  from './SettingControls.ts';
@@ -64,13 +64,9 @@ function gateSourceOf(source: Readonly<Pipeline> | null, entityKey: EntityKey | 
   return { pipeline, firstHome: source.entities?.[entityKey]?.home[0] ?? '/' };
 }
 
-/**
- * A folder of an entity's step from the repository's root: one leading with `/` already is; any other is under the entity's first home,
- * and none is that home. Without an entity the folder stays as the pipeline names it.
- */
+/** Without an entity the folder stays as the pipeline names it; an entity's is read from the repository's root. */
 function folderOf(firstHome: string | null, folder: string | undefined): string | undefined {
-  if (firstHome === null || folder?.startsWith('/') === true) return folder;
-  return `/${ProjectPathsUtil.toRepositoryPath(firstHome.replace(/^\/+|\/+$/gu, ''), folder ?? '')}`;
+  return firstHome === null ? folder : EntityFoldersUtil.rootedFolderOf(firstHome, folder);
 }
 
 /** What a profile runs of the gate: never its `writes`, which a profile is not granted, nor its fix. */
@@ -85,8 +81,7 @@ function profiledGateOf(gate: Readonly<PipelineGate>, firstHome: string | null):
 }
 
 function preparedStepsOf(steps: readonly PipelineStep[], firstHome: string | null): readonly PipelineStep[] {
-  if (firstHome === null) return steps;
-  return steps.map((step) => ({ name: step.name, run: step.run, in: folderOf(firstHome, step.in) ?? '/' }));
+  return firstHome === null ? steps : EntityFoldersUtil.rootedStepsOf(steps, firstHome);
 }
 
 function startGateProfile(command: GateProfileStartCommand, change: TrackerChange): GateProfileChanged {

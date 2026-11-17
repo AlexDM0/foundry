@@ -70,8 +70,11 @@ const OWNED_KEYS = [
   'nextNumbers',
 ] as const;
 
-/** `check` is written only once User first asks for one, and `entities` only on a forge over entities, so a record without stays as stored. */
-const OPTIONAL_OWNED_KEYS = ['check', 'entities'] as const;
+/**
+ * `check` is written only once User first asks for one, and `entities` and `openedAtEntity` only on a forge over entities, so a record
+ * without stays as stored.
+ */
+const OPTIONAL_OWNED_KEYS = ['check', 'entities', 'openedAtEntity'] as const;
 
 /** Every step has a state but `entities`, which a record has only while it walks that step. */
 const ALWAYS_STATED_STEPS = PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities');
@@ -420,6 +423,10 @@ function setupIdOf(value: unknown): Mapped<string> {
   return problemOf(`setupId is ${JSON.stringify(value) ?? 'missing'}, and it has to be a setup id such as S1`);
 }
 
+function openedAtEntityOf(value: unknown): Mapped<string> {
+  return typeof value === 'string' && value !== '' ? { value } : problemOf('openedAtEntity is not an entity key');
+}
+
 function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const missingKey = OWNED_KEYS.find((key) => !Object.hasOwn(document, key));
   if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
@@ -428,7 +435,9 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   if (check !== null && 'problem' in check) return check;
   const entities = Object.hasOwn(document, 'entities') ? setupEntitiesOf(document['entities']) : null;
   if (entities !== null && 'problem' in entities) return entities;
-  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra' | 'check' | 'entities'>>({
+  const openedAtEntity = Object.hasOwn(document, 'openedAtEntity') ? openedAtEntityOf(document['openedAtEntity']) : null;
+  if (openedAtEntity !== null && 'problem' in openedAtEntity) return openedAtEntity;
+  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra' | 'check' | 'entities' | 'openedAtEntity'>>({
     setupId:                    setupIdOf(document['setupId']),
     mode:                       wordOf(document['mode'], 'mode', PIPELINE_SETUP_MODES),
     baseContentHash:            nullableTextOf(document['baseContentHash'], 'baseContentHash'),
@@ -456,6 +465,7 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
       ...mapped.value,
       ...(check === null ? {} : { check: check.value }),
       ...(entities === null ? {} : { entities: entities.value }),
+      ...(openedAtEntity === null ? {} : { openedAtEntity: openedAtEntity.value }),
       extra
     }
   };
@@ -517,6 +527,7 @@ function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
     ['applyRequest', setup.applyRequest],
     ...(setup.check === undefined ? [] : [['check', setup.check]]),
     ...(setup.entities === undefined ? [] : [['entities', setupEntitiesDocumentOf(setup.entities)]]),
+    ...(setup.openedAtEntity === undefined ? [] : [['openedAtEntity', setup.openedAtEntity]]),
     ['nextNumbers', setup.nextNumbers],
     ...setup.extra,
   ]);

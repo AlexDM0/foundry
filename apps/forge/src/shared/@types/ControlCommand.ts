@@ -9,6 +9,7 @@ import type { GatePhase }                          from '../../lib/tracker-model
 import type { JobStopMode, PictureReference }      from '../../lib/tracker-model/@types/Job.ts';
 import type { OptionNote }                         from '../../lib/tracker-model/@types/OptionConsequences.ts';
 import type {
+  EntityKey,
   PipelineApproval,
   PipelineBilling,
   PipelineGate,
@@ -152,7 +153,8 @@ export type ControlCommand =
   | { kind: 'job-message'; jobId: string; text: string; pictures?: PictureReference[]; incidentId?: string }
   /** With pictures the text may be blank. */
   | { kind: 'intake-start'; text: string; pictures?: PictureReference[] }
-  | { kind: 'pipeline-agent-advise' }
+  /** `entity` names the level the session advises on, an entity of the stored pipeline; absent is the forge. */
+  | { kind: 'pipeline-agent-advise'; entity?: EntityKey }
   /** Relayed by a product owner without `jobId`: the role policy stamps its own job, from the Hatch folder. */
   | { kind: 'intake-close'; jobId?: string; proposedDraftSets: string[][] }
   /** The product owner's short title for its intake; relayed without `jobId` like `intake-close`. */
@@ -181,9 +183,17 @@ export type ControlCommand =
   | { kind: 'pipeline-setup-resume'; setupId: string }
   | { kind: 'pipeline-setup-answer'; setupId: string; questionId: string; answer: DecisionAnswerForm }
   /** `markdown` is the whole document; `draftedFrom` the SOURCES ticks; `revision` the constitution revision User saw. */
-  | { kind: 'pipeline-constitution-edit'; setupId: string; revision: number; markdown?: string; draftedFrom?: ConstitutionSources }
-  /** Opens an update record on the stored pipeline. */
-  | { kind: 'pipeline-update-start' }
+  | {
+    kind:         'pipeline-constitution-edit';
+    setupId:      string;
+    revision:     number;
+    markdown?:    string;
+    draftedFrom?: ConstitutionSources;
+    /** The entity whose constitution it edits; absent is the forge's. */
+    entity?:      EntityKey;
+  }
+  /** Opens an update record on the stored pipeline; `entity` names the level it opens at, an entity of that pipeline; absent is the forge. */
+  | { kind: 'pipeline-update-start'; entity?: EntityKey }
   | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[] }
   | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
   | { kind: 'pipeline-draft-discard'; setupId: string }
@@ -196,15 +206,16 @@ export type ControlCommand =
   /** User's press: the Overseer runs the gates the draft changes or adds twice, in a fresh worktree of main, and tells the agent. */
   | { kind: 'pipeline-check'; setupId: string }
   /**
-   * The pipeline agent's moves on the setup record it serves. Relayed without `jobId` or `setupId`: the role policy stamps its own job and
-   * that job's setup, from the Hatch folder and the record.
+   * The pipeline agent's moves on the setup record it serves. Relayed without `jobId`, `setupId` or `entity`: the role policy stamps its
+   * own job, that job's setup and, for the session of one entity, that entity, from the Hatch folder and the record.
    */
-  | ({ kind: 'pipeline-finding-record'; jobId?: string; setupId?: string } & ResearchFindingRecording)
+  | ({ kind: 'pipeline-finding-record'; jobId?: string; setupId?: string; entity?: EntityKey } & ResearchFindingRecording)
   /** `options` are the option texts in letter order, `a` first; `recommended` their letters. */
   | {
     kind:        'pipeline-question-ask';
     jobId?:      string;
     setupId?:    string;
+    entity?:     EntityKey;
     step:        SetupQuestionStep;
     subject:     SetupQuestionSubject | null;
     question:    string;
@@ -214,10 +225,12 @@ export type ControlCommand =
     multiple:    boolean;
   }
   /** The whole document each time, never a section; `sources` name the lines a source stands behind. */
-  | { kind: 'pipeline-constitution-draft'; jobId?: string; setupId?: string; markdown: string; sources: SourceAnnotation[] }
-  | { kind: 'pipeline-draft-propose'; jobId?: string; setupId?: string; edits: ProposedFieldEdit[] }
+  | {
+    kind: 'pipeline-constitution-draft'; jobId?: string; setupId?: string; entity?: EntityKey; markdown: string; sources: SourceAnnotation[]
+  }
+  | { kind: 'pipeline-draft-propose'; jobId?: string; setupId?: string; entity?: EntityKey; edits: ProposedFieldEdit[] }
   /** The agent's suggestion that User may continue the step; it never moves a step. */
-  | { kind: 'pipeline-step-ready'; jobId?: string; setupId?: string; step: SetupQuestionStep }
+  | { kind: 'pipeline-step-ready'; jobId?: string; setupId?: string; entity?: EntityKey; step: SetupQuestionStep }
   /** With merge approval on: User's accept of a ticket waiting for merge, refused unless git predicts a clean merge into its target. */
   | { kind: 'merge-accept'; ticketReference: string }
   /** With merge approval on: the target merged into the ticket's worktree in the hold, with no Airlock; a conflict is aborted. */

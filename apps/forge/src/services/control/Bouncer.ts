@@ -4,6 +4,7 @@
  */
 import type { Incident }                                             from '../../lib/tracker-model/@types/Incident.ts';
 import type { JobRole }                                              from '../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketStatus }                                         from '../../lib/tracker-model/@types/Ticket.ts';
 import { TicketIdUtil }                                              from '../../lib/tracker-model/utils/TicketIdUtil.ts';
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
@@ -25,6 +26,8 @@ export interface RelayingJob {
   ticketIdsReadyForReviewOrPending: readonly string[];
   /** For a pipeline agent: the open setup record whose agent this job is; null when it serves none. */
   setupId:                          string | null;
+  /** For a pipeline agent of one entity's part of that record: the entity; absent for the forge's session. */
+  setupEntity?:                     EntityKey;
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -154,9 +157,15 @@ function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): Bounc
 function pipelineAgentVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
   if (!PIPELINE_AGENT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
-  if (Object.hasOwn(command, 'setupId')) return refused('hatch-identity-mismatch');
+  if (Object.hasOwn(command, 'setupId') || Object.hasOwn(command, 'entity')) return refused('hatch-identity-mismatch');
   if (job.setupId === null) return refused('job-serves-no-setup');
-  return { verdict: 'admitted', command: { ...command, jobId: job.id, setupId: job.setupId } as ControlCommand };
+  const entity = job.setupEntity === undefined ? {} : { entity: job.setupEntity };
+  return {
+    verdict: 'admitted',
+    command: {
+      ...command, jobId: job.id, setupId: job.setupId, ...entity
+    } as ControlCommand
+  };
 }
 
 function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {

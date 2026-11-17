@@ -1022,6 +1022,22 @@ agent, or with one that ended otherwise, gets no message: the record is what a l
 `POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming the
 field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
+On a forge over entities, each entity has a pipeline-agent session of its own beside the forge's: the Continue of the
+`entities` step launches one for each entity of the draft that has none, stamped with its entity (the job's `entity`)
+and named in that entity's part of the record (`entities.<key>.agentJobId`). Every session reads the record's one
+snapshot. The Overseer stamps a session's entity on each move it relays, so its findings, questions and constitution go
+to its entity's part. `pipeline-agent-advise` and `pipeline-update-start` take an optional `entity`, the level they open
+at, which the record names as `openedAtEntity` (absent at the forge): an advise at an entity launches that entity's
+session alone, and an update at an entity holds that entity's part, whose session a resume opens without one at the
+forge. `pipeline-constitution-edit` takes the same `entity` for that entity's constitution. An entity the pipeline does
+not hold is refused `setup-entity-unknown`. Each move messages the session of the level it changes and no other: an
+answer the session whose part holds the question, a draft edit, Undo or discard each entity's session with only the
+fields inside that entity, and the forge's session with the rest; a Continue and a resume reach every session. A resume
+opens the level the record opened at and each entity whose part a session served, never an entity whose part only a
+check or an edit made. A start over and an Apply stop every session. A check covers each entity whose gates the draft
+touched: that entity's part holds its own `check` of its own gates, run from its first home, and only its session hears
+the end.
+
 The Overseer's board state carries the record as `pipelineSetup` (the [Overseer
 API](reference/overseer-api.md#boardstate)). Its `mainMovedByCommits` (main's commits past `snapshotCommit`) is read
 from git and never stored; the Overseer keeps the count by (`snapshotCommit`, main's tip), so a state read asks git
@@ -1135,10 +1151,10 @@ a commit landed, an open `checks-not-set` decision withdrawn, logged `decision-w
 when the draft holds a constitution; `constitution-sources.json`, the agent's sources keyed by the blob id of the text
 main holds; `log.jsonl` (the commit job's `merge-landed` and `job-ended` when a commit landed, then `pipeline-applied`
 with the changed, new and removed field names and the constitution commit, or `null`); and last the removal of
-`pipeline-setup.json`. The same hold asks the record's live pipeline agent to stop, logged `job-stop-requested` (one
-with no session ends `closed` at once), and once no pipeline agent is left the Overseer removes the snapshot under
-`<worktrees>/pipeline-agent/`. Nothing is written under `<data>/briefs/defaults/`, and nothing but the commit's
-fast-forward writes `CONSTITUTION.md` in the main checkout.
+`pipeline-setup.json`. The same hold asks each live pipeline agent of the record, the forge's and every entity's, to
+stop, logged `job-stop-requested` (one with no session ends `closed` at once), and once no pipeline agent is left the
+Overseer removes the snapshot under `<worktrees>/pipeline-agent/`. Nothing is written under `<data>/briefs/defaults/`,
+and nothing but the commit's fast-forward writes `CONSTITUTION.md` in the main checkout.
 
 Apply is idempotent by setup and revision. A pipeline this draft already stored is no one else's move, so a retried
 Apply finishes what is missing and never refuses `pipeline-moved`; the same revision while its request waits answers

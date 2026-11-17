@@ -313,6 +313,10 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Pipeline setup ${detail.setupId} has a check not ended yet: wait for its result. ${NOTHING_WAS_WRITTEN}`;
     case 'no-gate-to-check':
       return `The draft of pipeline setup ${detail.setupId} changes or adds no gate, so there is nothing to check. ${NOTHING_WAS_WRITTEN}`;
+    case 'setup-entity-unknown':
+      return detail.entityKeys.length === 0
+        ? `The pipeline names no entity, so it has no level ${detail.entity}. ${NOTHING_WAS_WRITTEN}`
+        : `The pipeline names no entity ${detail.entity}, only ${detail.entityKeys.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
     case 'no-apply-pending':
       return `Pipeline setup ${detail.setupId} has no Apply to cancel or settle. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-question-open':

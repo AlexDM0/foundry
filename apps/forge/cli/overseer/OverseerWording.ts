@@ -422,8 +422,7 @@ function sourceTicksTextOf(draftedFrom: Readonly<ConstitutionSources>): string {
   return ticks.length === 0 ? 'none' : ticks.join(', ');
 }
 
-function constitutionLinesOf(setup: Readonly<PipelineSetup>): string[] {
-  const { constitution } = setup;
+function constitutionLinesOf(constitution: Readonly<PipelineSetup>['constitution']): string[] {
   if (constitution === null) return [`No constitution is drafted yet. The SOURCES ticks select: ${sourceTicksTextOf(DEFAULT_CONSTITUTION_SOURCES)}.`];
   const sources = constitution.annotations.map((annotation) => `- Line "${annotation.lineText}" (occurrence ${annotation.occurrence}): `
     + `${annotation.kind}${annotation.path === null ? '' : `, ${annotation.path}`}`);
@@ -438,6 +437,19 @@ function pipelineBlockOf(pipeline: Readonly<Pipeline>): string {
   return fencedBlockOf(JSON.stringify(pipeline, null, 2), 'json');
 }
 
+/** The session's own part of the record: the forge's, or its entity's, which holds nothing until the session records into it. */
+function levelPartOf(setup: Readonly<PipelineSetup>, entityKey: string | null): Pick<PipelineSetup, 'findings' | 'questions' | 'constitution'> {
+  if (entityKey === null) return setup;
+  const parts = setup.entities ?? {};
+  return (Object.hasOwn(parts, entityKey) ? parts[entityKey] : undefined) ?? { findings: [], questions: [], constitution: null };
+}
+
+/** For the session of one entity: what it works on, and what it must not change. */
+function entityLevelLineOf(entityKey: string): string {
+  return `This session works on the entity ${entityKey} only. The findings, questions and constitution below are of this entity. `
+    + `Propose edits only of the fields entity:${entityKey}/<field>. Another session works on each other entity.`;
+}
+
 /** The record as the agent reads it in its first message: a fresh session in place of a replaced one starts from it. */
 function setupFactsTextOf(facts: PipelineAgentFacts): string {
   const { setup } = facts;
@@ -448,11 +460,13 @@ function setupFactsTextOf(facts: PipelineAgentFacts): string {
   } else {
     const stepStates = Object.entries(setup.stepStates).map(([step, state]) => `${step} ${state}`).join(', ');
     const edits = setup.edits.map((edit) => `- ${edit.editId} by ${edit.by}, ${edit.field}: ${edit.summary}${edit.undone ? ' (undone)' : ''}`);
+    const part = levelPartOf(setup, facts.entity);
     sections.push(
       `Setup ${setup.setupId}, mode ${setup.mode}. The current step is ${setup.currentStep}. Steps: ${stepStates}.`,
-      `### Findings\n\n${setup.findings.length === 0 ? 'None yet.' : setup.findings.map(findingLineOf).join('\n')}`,
-      `### Questions\n\n${setup.questions.length === 0 ? 'None yet.' : setup.questions.flatMap(questionLinesOf).join('\n')}`,
-      `### Constitution\n\n${constitutionLinesOf(setup).join('\n\n')}`,
+      ...(facts.entity === null ? [] : [entityLevelLineOf(facts.entity)]),
+      `### Findings\n\n${part.findings.length === 0 ? 'None yet.' : part.findings.map(findingLineOf).join('\n')}`,
+      `### Questions\n\n${part.questions.length === 0 ? 'None yet.' : part.questions.flatMap(questionLinesOf).join('\n')}`,
+      `### Constitution\n\n${constitutionLinesOf(part.constitution).join('\n\n')}`,
       `### Draft pipeline\n\n${setup.draft === null ? 'No draft yet.' : `Revision ${setup.draftRevision}.\n\n${pipelineBlockOf(setup.draft)}`}`,
       `### Edits\n\n${edits.length === 0 ? 'None yet.' : edits.join('\n')}`,
     );

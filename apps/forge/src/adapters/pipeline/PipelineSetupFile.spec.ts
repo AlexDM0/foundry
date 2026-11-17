@@ -3,7 +3,8 @@
  * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
  * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; a record of a forge
  * without entities, as an open record stored before them, reads and writes back byte for byte with no `entities` key and no `entities`
- * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set; an edit
+ * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set, and an
+ * update or advise opened at an entity keeps `openedAtEntity` after the parts, while a record opened at the forge has no such key; an edit
  * stored without `batch`, as every edit but a copy's is, reads and writes back byte for byte with no `batch` key, while a copy's edits
  * keep theirs after `undone`, an entity's field included; no file is `absent`; and a file nobody could trust whole, a nested key the read
  * does not know included, is `malformed` with a reason naming the offending part, never a throw.
@@ -327,6 +328,21 @@ describe('a readable record', () => {
     const keys = Object.keys(document);
     expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'entities', 'nextNumbers']);
     expect(Object.keys(document.entities['api'] ?? {})).toEqual(['agentJobId', 'findings', 'questions', 'constitution']);
+    expect(Object.hasOwn(document, 'openedAtEntity')).toBe(false);
+  });
+
+  test('a record opened at an entity keeps openedAtEntity after the parts and writes back byte for byte', () => {
+    const openedAtWeb: PipelineSetup = { ...EXAMPLE_OVER_ENTITIES, mode: 'advise', openedAtEntity: 'web' };
+    const text = PipelineSetupFile.contentsOf(openedAtWeb);
+    writeFileSync(setupFilePath, text);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    expect(reading).toEqual({ verdict: 'readable', setup: openedAtWeb });
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
+    const keys = Object.keys(JSON.parse(text) as object);
+    expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'entities', 'openedAtEntity', 'nextNumbers']);
   });
 
   test('edits stored without a batch read, then write back byte for byte with no batch key', () => {
@@ -447,6 +463,7 @@ describe('a malformed record', () => {
       (document) => ({ ...document, stepStates: { ...(document['stepStates'] as object), entities: 'paused' } }),
       'stepStates.entities is "paused", which is not one of not-started, in-progress, done, needs-recheck'],
     ['entities that are not an object', (document) => ({ ...document, entities: [] }), 'entities is not an object'],
+    ['an empty openedAtEntity', (document) => ({ ...document, openedAtEntity: '' }), 'openedAtEntity is not an entity key'],
     ['an entity part with a key the read does not know',
       (document) => ({
         ...document,

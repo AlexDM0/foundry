@@ -245,6 +245,8 @@ export interface PipelineCheckStart {
   draftRevision: number;
   prepare:       PipelineStep[];
   gates:         PipelineGate[];
+  /** An entity's check only: the entity's first home, under which its steps' and gates' folders are read. */
+  entityHome?:   string;
 }
 
 export interface SetupNextNumbers {
@@ -291,6 +293,8 @@ export interface PipelineSetup {
   check?:                     PipelineCheck;
   /** Absent on a forge without entities; each entity's part by its key, written only once set. The draft holds every entity. */
   entities?:                  Record<EntityKey, PipelineSetupEntity>;
+  /** An update or advise opened at an entity: that entity's key, the level whose session a resume opens. Absent at the forge. */
+  openedAtEntity?:            EntityKey;
   nextNumbers:                SetupNextNumbers;
   /** Keys this build does not know, kept in order so a round trip stays byte-identical. */
   extra:                      Array<[string, unknown]>;

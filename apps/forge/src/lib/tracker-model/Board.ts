@@ -409,8 +409,8 @@ export class Board {
     return { logged: this.endJob(jobId, { outcome: 'closed' }, at).logged };
   }
 
-  startPipelineAgent(at: string): JobChanged {
-    return this.jobControls.startPipelineAgent(at);
+  startPipelineAgent(at: string, entityKey?: EntityKey): JobChanged {
+    return this.jobControls.startPipelineAgent(at, entityKey);
   }
 
   launchJob(launch: JobLaunch, at: string): JobChanged {
@@ -924,8 +924,12 @@ export class Board {
     return this.pipelineSetups.resumeSetup(setupId, snapshotCommit, changedPaths, at);
   }
 
-  attachSetupAgent(setupId: string, agentJobId: string, snapshotCommit: string | null): PipelineSetupChanged {
-    return this.pipelineSetups.attachSetupAgent(setupId, agentJobId, snapshotCommit);
+  attachSetupAgent(setupId: string, agentJobId: string, snapshotCommit: string | null, entityKey?: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.attachSetupAgent(setupId, agentJobId, snapshotCommit, entityKey);
+  }
+
+  openSetupAtEntity(setupId: string, entityKey: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.openAtEntity(setupId, entityKey);
   }
 
   recordSetupSnapshotTouched(setupId: string, refusal: SnapshotRefusal, at: string): PipelineSetupChanged {
@@ -940,20 +944,20 @@ export class Board {
     return this.pipelineSetups.recordFinding(setupId, recording, at, entityKey);
   }
 
-  askSetupQuestion(setupId: string, asking: SetupQuestionAsking, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.askSetupQuestion(setupId, asking, at);
+  askSetupQuestion(setupId: string, asking: SetupQuestionAsking, at: string, entityKey?: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.askSetupQuestion(setupId, asking, at, entityKey);
   }
 
   answerSetupQuestion(setupId: string, questionId: string, reply: SetupQuestionReply, at: string): PipelineSetupChanged {
     return this.pipelineSetups.answerSetupQuestion(setupId, questionId, reply, at);
   }
 
-  setConstitution(setupId: string, setting: ConstitutionSetting, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.setConstitution(setupId, setting, at);
+  setConstitution(setupId: string, setting: ConstitutionSetting, at: string, entityKey?: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.setConstitution(setupId, setting, at, entityKey);
   }
 
-  editConstitution(setupId: string, edit: ConstitutionEdit, at: string): PipelineSetupChanged {
-    return this.pipelineSetups.editConstitution(setupId, edit, at);
+  editConstitution(setupId: string, edit: ConstitutionEdit, at: string, entityKey?: EntityKey): PipelineSetupChanged {
+    return this.pipelineSetups.editConstitution(setupId, edit, at, entityKey);
   }
 
   /** The draft the edits would leave, with nothing stored; refused as `editDraft` refuses them. */
@@ -982,17 +986,22 @@ export class Board {
     return this.pipelineSetups.startOverSetup(setupId, at);
   }
 
-  /** Refuses `no-gate-to-check` and `pipeline-check-running`; the Overseer runs the check. */
+  /** Refuses `no-gate-to-check` and `pipeline-check-running`; the Overseer runs the check, one per entity the draft touched. */
   requestPipelineCheck(setupId: string, at: string): PipelineSetupChanged {
     return this.pipelineSetups.requestCheck(setupId, at);
   }
 
-  startPipelineCheck(setupId: string): PipelineCheckStart | null {
-    return this.pipelineSetups.startCheck(setupId);
+  /** The record's queued checks: the forge's own as `null`, else each entity's key. */
+  queuedPipelineCheckLevels(): (EntityKey | null)[] {
+    return this.pipelineSetups.queuedCheckLevels();
   }
 
-  endPipelineCheck(setupId: string, ending: PipelineCheckEnding): PipelineSetupChanged | null {
-    return this.pipelineSetups.endCheck(setupId, ending);
+  startPipelineCheck(setupId: string, entityKey?: EntityKey): PipelineCheckStart | null {
+    return this.pipelineSetups.startCheck(setupId, entityKey);
+  }
+
+  endPipelineCheck(setupId: string, ending: PipelineCheckEnding, entityKey?: EntityKey): PipelineSetupChanged | null {
+    return this.pipelineSetups.endCheck(setupId, ending, entityKey);
   }
 
   stopRunningPipelineCheck(): PipelineSetupChanged | null {
@@ -1051,14 +1060,19 @@ export class Board {
   }
 
   /**
-   * An applied record leaves its pipeline agent nothing to serve: a live one is stopped, as a start over stops it, and the Overseer removes
-   * the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops nothing.
+   * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
+   * over stops them, and the Overseer removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
+   * nothing.
    */
   private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, at: string): PipelineApplyChanged {
-    const agentJobId = changed.outcome === 'applied' ? changed.setup?.agentJobId ?? null : null;
-    const agent      = agentJobId === null ? undefined : this.jobById(agentJobId);
-    if (agent === undefined || agent.state === 'stopping') return changed;
-    return { ...changed, logged: [...changed.logged, ...this.requestJobStop(agent.id, 'stop', at).logged] };
+    const setup = changed.outcome === 'applied' ? changed.setup : null;
+    if (setup === null) return changed;
+    const agentJobIds = [setup.agentJobId, ...Object.values(setup.entities ?? {}).map((entityPart) => entityPart.agentJobId)];
+    const stopped = agentJobIds.flatMap((agentJobId) => {
+      const agent = agentJobId === null ? undefined : this.jobById(agentJobId);
+      return agent === undefined || agent.state === 'stopping' ? [] : this.requestJobStop(agent.id, 'stop', at).logged;
+    });
+    return stopped.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...stopped] };
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
