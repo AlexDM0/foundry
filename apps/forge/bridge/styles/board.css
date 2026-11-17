@@ -58,6 +58,15 @@
  *                           -chips of -chip, or the -lines of -line: -label, -value, -paths), the scripts table of
  *                           .bridge-pipeline-script[data-head?] rows (-script-name, -script-run, -script-meaning[data-not-a-gate?] or
  *                           -script-needs with its -needs-dot) in the .bridge-pipeline-scripts list, and the footer's -footer-status
+ *   .bridge-entities-step[data-mode] the entities step (MonoEntities): the -head of the entities card, the .bridge-entities-table (its
+ *                           -table-head, the .bridge-entities-rows list of .bridge-entity-row items: the -line (-toggle, -key, the
+ *                           -homes, -summary with its -refusal, -constitution, -actions) and the expanded -panel (-add fields, the
+ *                           .bridge-whitelist-editor with its -head, -crossing and -entries, the -reach)), the .bridge-root-entity
+ *                           (-line, -choices), the .bridge-entities-add form and the .bridge-entity-refusals alert (-head, -list of
+ *                           -item with its -actions); .bridge-removable-chip[data-refused?] (-text, -refusal) and
+ *                           .bridge-compact-select with its -chevron; the fold dialog's .bridge-fold-target, -before-after and
+ *                           .bridge-fold-folders of .bridge-fold-folder; the crossing dialog's .bridge-crossing-stages of
+ *                           .bridge-crossing-stage[data-owner] (-head, -number, -entity, -facts)
  *   .bridge-pipeline-gates[data-empty?] a phase's gates table under its steps: the -head (title, count, line, add buttons), then
  *                           the -rows: the -columns header over a reorderable list of
  *                           .bridge-pipeline-gate-row[data-row-kind][data-change?][data-selected?] rows (-name with its
@@ -2565,6 +2574,94 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
     animation: bridge-pulse var(--pulse-status) ease-in-out infinite;
   }
   .bridge-pipeline-research-card { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }
+}
+
+/* The entities step (MonoEntities): the entities card's table on the board's grid, a row per entity with its expanded panel, the root's
+   row with its two choices, the add form and the refusal alert in the error colours; the chips, the compact select, and the fold and
+   crossing dialogs' parts. A package's crossing stage is told apart by its dashed edge as well as its tint. */
+.bridge-entities-step { display: flex; flex-direction: column; min-width: 0; }
+.bridge-entities-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.bridge-entities-table { display: flex; flex-direction: column; min-width: 0; }
+.bridge-entities-table-head,
+.bridge-entity-row-line {
+  display: grid; grid-template-columns: 16px 116px 92px 196px minmax(0, 1fr) 104px 92px 84px; gap: 10px; align-items: center;
+}
+.bridge-entities-table-head { padding: 0 0 6px; font-size: var(--fs-small); color: var(--ink-4); border-bottom: 1px solid var(--line); }
+.bridge-entities-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.bridge-entity-row { display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+.bridge-entity-row-line { min-height: 44px; padding: 6px 0; }
+.bridge-entity-row-toggle {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 0; border: 0;
+  background: transparent; color: var(--ink-muted); cursor: pointer; transform: rotate(-90deg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+.bridge-entity-row-toggle[aria-expanded="true"] { transform: none; }
+.bridge-entity-row-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-entity-row-key {
+  box-sizing: border-box; width: 100%; min-width: 0; height: 30px; padding: 0 8px; font: 600 var(--fs-small)/1 var(--font-mono);
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-entity-row-key:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-entity-row-homes { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.bridge-entity-row-summary { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bridge-entity-row-refusal { font-size: var(--fs-small); font-weight: 600; color: var(--err-ink); }
+.bridge-entity-row-constitution { min-width: 0; }
+.bridge-entity-row-actions { display: inline-flex; justify-content: flex-end; align-items: center; gap: 4px; }
+.bridge-entity-row-panel { display: flex; flex-direction: column; gap: 12px; margin: 0 0 12px 26px; padding: 12px 14px; background: var(--bg); border-radius: var(--r-3); }
+.bridge-entity-row-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.bridge-entity-row-reach { display: flex; flex-direction: column; gap: 8px; }
+.bridge-whitelist-editor { display: flex; flex-direction: column; gap: 8px; }
+.bridge-whitelist-editor-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.bridge-whitelist-editor-crossing { margin-left: auto; }
+.bridge-whitelist-editor-entries { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bridge-removable-chip {
+  display: inline-flex; align-items: center; gap: 4px; box-sizing: border-box; height: 26px; padding: 0 2px 0 8px;
+  font: var(--fs-small)/1 var(--font-mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+.bridge-removable-chip[data-refused] { color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
+.bridge-removable-chip-text { white-space: nowrap; }
+.bridge-removable-chip-refusal { font-family: var(--font-ui); font-weight: 600; white-space: nowrap; }
+.bridge-compact-select { position: relative; display: inline-flex; min-width: 0; }
+.bridge-compact-select > select {
+  box-sizing: border-box; min-width: 0; height: 30px; padding: 0 28px 0 9px; font: inherit; font-size: var(--fs-small); color: var(--ink);
+  appearance: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); cursor: pointer;
+}
+.bridge-compact-select > select:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-compact-select-chevron {
+  position: absolute; top: 50%; right: 9px; width: 12px; height: 12px; margin-top: -6px; pointer-events: none;
+  fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.bridge-root-entity { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 4px; }
+.bridge-root-entity-line { display: grid; grid-template-columns: 142px 92px minmax(0, 1fr) 104px; gap: 10px; align-items: center; padding-left: 26px; }
+.bridge-root-entity-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-left: 26px; }
+.bridge-entities-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.bridge-entity-refusals {
+  display: flex; flex-direction: column; gap: 6px; padding: 9px 12px 9px 14px; color: var(--err-ink);
+  background: var(--err-tint); border: 1px solid var(--err-edge); border-radius: var(--r-3);
+}
+.bridge-entity-refusals-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.bridge-entity-refusals-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bridge-entity-refusals-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.bridge-entity-refusals-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+.bridge-fold-target { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.bridge-fold-before-after { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+.bridge-fold-folders { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bridge-fold-folder {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font: var(--fs-small)/1 var(--font-mono); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-crossing-stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.bridge-crossing-stage { display: flex; min-width: 0; }
+.bridge-crossing-stage-head { display: flex; align-items: center; gap: 8px; }
+.bridge-crossing-stage-number {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; font: 600 var(--fs-micro)/1 var(--font-mono);
+  color: var(--ink-muted); border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+}
+.bridge-crossing-stage-entity { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bridge-crossing-stage-facts { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+@media (max-width: 900px) {
+  .bridge-crossing-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* The 388 px panel of every pipeline screen, as the Flow boards draw it: a head with the panel's name, its state dot and word and its

@@ -88,10 +88,16 @@ export type PipelineScreen =
   | { readonly screen: 'constitution-edit' }
   | { readonly screen: 'flow'; readonly stage: 'live' | 'editing' };
 
-/** Monorepo mode is a fact, never a choice: the record walks the `entities` step, or holds entities in its own keys or its draft. */
+/**
+ * Monorepo mode is a fact, never a choice: the record holds entities in its own keys or its draft, or walks the `entities` step. A record
+ * whose `entities` step is done while it holds no entity declined monorepo mode there, and is in single mode.
+ */
 function setupHasEntities(record: PipelineSetup | null): boolean {
   if (record === null) return false;
-  return record.stepStates.entities !== undefined || record.entities !== undefined || record.draft?.entities !== undefined;
+  if (record.entities !== undefined || record.draft?.entities !== undefined) return true;
+  const entitiesState = record.stepStates.entities;
+  if (entitiesState === undefined) return false;
+  return entitiesState !== 'done' || record.currentStep === 'entities';
 }
 
 /** What the shown entities are read from: the draft of an open record, else the stored pipeline. */

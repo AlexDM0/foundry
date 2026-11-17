@@ -6,7 +6,7 @@
  * Overseer that serves no pipeline facts lands on setup. A step's route is `#pipeline/setup/<step>`; once the setup is applied, the live
  * flow leaves a setup route for `#pipeline`, and only a setup route. Monorepo mode is a fact of the record: single mode shows no
  * `entities` step and its route falls back to the resume summary, while a record walking the step, or holding entities, shows it after
- * the research.
+ * the research; a record that left the step done with no entity declined monorepo mode and is in single mode.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -86,16 +86,26 @@ describe('single mode and monorepo mode', () => {
 
   test('a record walking the entities step, or holding entities, shows the step after the research and opens its route once reached', () => {
     const single = recordOf('A0b-recheck');
-    const walking: PipelineSetup = { ...single, stepStates: { ...single.stepStates, entities: 'done' } };
+    const walking: PipelineSetup = { ...single, stepStates: { ...single.stepStates, entities: 'needs-recheck' } };
     const holding: PipelineSetup = { ...single, entities: {} };
 
     expect(PipelineViewModel.setupStepsOf(walking)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
     expect(PipelineViewModel.setupHasEntities(holding)).toBe(true);
-    expect(PipelineViewModel.setupStepStatusOf(walking, 'entities')).toBe('done');
+    expect(PipelineViewModel.setupStepStatusOf(walking, 'entities')).toBe('recheck');
     const state = pipelineBoardStateOf('A0b-recheck');
     const facts = { ...state, pipelineSetup: { ...state.pipelineSetup, record: walking } } as typeof state;
     expect(screenOf(facts, pipelineRoute('setup/entities'))).toEqual({ screen: 'setup-step', step: 'entities' });
     expect(PipelineViewModel.screenTitleOf({ screen: 'setup-step', step: 'entities' })).toBe('Entities');
+  });
+
+  test('a record that left the entities step done with no entity declined monorepo mode, and is in single mode', () => {
+    const single = recordOf('A0b-recheck');
+    const declined: PipelineSetup = { ...single, stepStates: { ...single.stepStates, entities: 'done' } };
+    const stillThere: PipelineSetup = { ...declined, currentStep: 'entities' };
+
+    expect(PipelineViewModel.setupHasEntities(declined)).toBe(false);
+    expect(PipelineViewModel.setupStepsOf(declined)).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupHasEntities(stillThere)).toBe(true);
   });
 });
 

@@ -2,11 +2,12 @@
  * The resume summary's model. What matters: each step carries the record's status and the summary the facts' counts give it, and a done
  * or recheck step reopens at its route; the current step carries the open questions and the pipeline agent's job; a pending Apply names
  * its commit, hold or refusal; Resume and Start over name the record; the main-moved note shows only while main moved; the footer counts
- * the done steps.
+ * the done steps. In monorepo mode the entities step follows the research and counts the draft's entities with the root.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { PipelineSetupFacts }                        from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { entitiesStepBoardOf }                            from '../../../testing/EntitiesStepFixture.ts';
 import { pipelineBoardStateOf, type PipelineFixtureName } from '../../../testing/PipelineFixture.ts';
 import { ResumeSummaryModel }                             from './ResumeSummaryModel.ts';
 
@@ -31,6 +32,14 @@ describe('each step\'s row', () => {
       ['design', 'current', 'Proposal saved: 1 prepare step, 3 build gates, 3 review gates, 3 merge gates. 2 changes by User kept.', null],
       ['apply', 'upcoming', 'not yet', null],
     ]);
+  });
+
+  test('in monorepo mode the entities step follows the research and counts the draft\'s entities with the root', () => {
+    const setup = entitiesStepBoardOf().pipelineSetup;
+    if (setup === undefined || setup === null) throw new Error('the entities board has a setup');
+    expect(ResumeSummaryModel.resumeStepsOf(setup).map((step) => step.step)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(stepOf(setup, 'entities')).toMatchObject({ status: 'current', summary: '6 entities: 2 apps, 3 packages and the root' });
+    expect(ResumeSummaryModel.doneStepsTextOf(setup)).toBe('2 of 6 steps done');
   });
 
   test('a step that needs a recheck says so and reopens', () => {

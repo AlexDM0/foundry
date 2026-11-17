@@ -6,7 +6,7 @@
 import type { StepperStatus } from 'design-system/Stepper';
 
 import type { JobState }                        from '../../../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineBilling }                 from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineBilling }       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetupFacts }              from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetupStep }               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }              from '../../../api/CommandClient.ts';
@@ -57,6 +57,16 @@ function billingTextOf(billing: PipelineBilling): string {
   return billing.maxBudgetUsd === undefined ? 'API key' : `API key · cap $${billing.maxBudgetUsd} per launch`;
 }
 
+/** "6 entities: 2 apps, 3 packages and the root", the root counted though the draft may only imply it. */
+function entitiesSummaryOf(draft: Pick<Pipeline, 'entities'> | null): string {
+  const entities = Object.values(draft?.entities ?? {});
+  if (entities.length === 0) return 'No entity proposed yet';
+  const appCount = entities.filter((entity) => entity.kind === 'app').length;
+  const packageCount = entities.filter((entity) => entity.kind === 'package').length;
+  return `${countText(appCount + packageCount + 1, 'entity', 'entities')}: ${countText(appCount, 'app', 'apps')}, `
+    + `${countText(packageCount, 'package', 'packages')} and the root`;
+}
+
 /** The step's summary once it was reached; a step not started has none, except Apply's "not yet". */
 function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string | null {
   const { record, summary } = facts;
@@ -70,7 +80,7 @@ function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string |
           + `${countText(summary.answeredResearchQuestionCount, 'question', 'questions')} answered`
         : null;
     case 'entities':
-      return null;
+      return reached ? entitiesSummaryOf(record.draft) : null;
     case 'constitution':
       if (!reached) return null;
       return facts.constitutionOutline === null

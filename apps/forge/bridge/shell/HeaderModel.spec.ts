@@ -9,7 +9,8 @@
  * usage windows the facts carry and never a placeholder or the confinement, a limit hit naming its reset on the viewer's clock, since the
  * stored stamp is UTC; while the board has no readable pipeline the header is in
  * setup, its quiet pill reading Setting up, with the record's step statuses (done and recheck steps linking to their route) and no usage,
- * and a board that says nothing of a pipeline is never in setup. Today's tokens count Flint's brain's runs of today, and the mark wakes
+ * six steps with the entities step while the record is in monorepo mode and five once it declined it, and a board that says nothing of
+ * a pipeline is never in setup. Today's tokens count Flint's brain's runs of today, and the mark wakes
  * the brain only on a forge that runs one and while it neither starts nor runs.
  */
 import { describe, expect, test } from 'bun:test';
@@ -21,6 +22,7 @@ import {
   FIXTURE_ASSISTANT_JOB,
   FIXTURE_NOW
 } from '../testing/BoardStateFixture.ts';
+import { entitiesStepBoardOf }                                   from '../testing/EntitiesStepFixture.ts';
 import { exampleFlintBrain, OFF_FLINT_BRAIN, runningFlintBrain } from '../testing/FlintBrainFixture.ts';
 import { pipelineBoardStateOf }                                  from '../testing/PipelineFixture.ts';
 import { headerModelOf }                                         from './HeaderModel.ts';
@@ -111,6 +113,21 @@ describe('the header in setup', () => {
       ['design', 'recheck', '#pipeline/setup/design'],
       ['apply', 'upcoming', null],
     ]);
+  });
+
+  test('a record in monorepo mode shows six steps, the entities step after the research; one that declined it shows five', () => {
+    const monorepo = headerModelOf(entitiesStepBoardOf(), FIXTURE_NOW, 'live');
+    expect(monorepo.setupSteps?.map(({ key, status }) => [key, status])).toEqual([
+      ['billing', 'done'], ['research', 'done'], ['entities', 'current'], ['constitution', 'upcoming'], ['design', 'upcoming'], ['apply', 'upcoming'],
+    ]);
+    const declined = entitiesStepBoardOf({
+      currentStep: 'constitution',
+      stepStates:  {
+        billing: 'done', research: 'done', entities: 'done', constitution: 'in-progress', design: 'not-started', apply: 'not-started'
+      },
+      draft: null,
+    });
+    expect(headerModelOf(declined, FIXTURE_NOW, 'live').setupSteps?.map(({ key }) => key)).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
   });
 
   test('an unreadable pipeline is setup too, a readable one is not, and a board that says nothing of a pipeline never is', () => {

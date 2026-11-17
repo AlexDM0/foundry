@@ -1,6 +1,6 @@
 /**
  * The Pipeline tab: the screen `PipelineViewModel.screenOf` picks from the board's pipeline facts and the route. The setup landing and a
- * reopened billing step show the billing step, the research and constitution steps their pages (the constitution also at
+ * reopened billing step show the billing step, the research, entities and constitution steps their pages (the constitution also at
  * `#pipeline/edit/constitution` while an applied pipeline is edited), the design step the proposed flow beside the pipeline agent, the
  * bare `#pipeline` of an open setup the resume summary; each of them carries its own heading, and every other screen shows its title. The
  * setup landing names an unreadable `pipeline.json` in a warn banner. The flow screen draws the Focus layout (the phase stepper, the open
@@ -44,6 +44,7 @@ import { MinimalPipelineNoteModel }                                       from '
 import { BillingStep }                                                    from './setup/BillingStep.tsx';
 import { ConstitutionStep }                                               from './setup/ConstitutionStep.tsx';
 import { DesignStep }                                                     from './setup/DesignStep.tsx';
+import { EntitiesStep }                                                   from './setup/EntitiesStep.tsx';
 import { ResearchStep }                                                   from './setup/ResearchStep.tsx';
 import { ResumeSummary }                                                  from './setup/ResumeSummary.tsx';
 
@@ -202,6 +203,9 @@ function ScreenContent({
   if (screen.screen === 'setup-step' && screen.step === 'billing') return <BillingStep facts={facts} replacesUnreadablePipeline={false} />;
   if (screen.screen === 'setup-step' && screen.step === 'research' && setup !== null) {
     return <ResearchStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />;
+  }
+  if (screen.screen === 'setup-step' && screen.step === 'entities' && setup !== null) {
+    return <EntitiesStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />;
   }
   const constitutionIsShown = (screen.screen === 'setup-step' && screen.step === 'constitution') || screen.screen === 'constitution-edit';
   if (constitutionIsShown && setup !== null) return <ConstitutionStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} />;
