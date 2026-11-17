@@ -1,6 +1,7 @@
 /**
  * The needs a build job of one entity declares for another entity (strategy section 4.3): checked and kept on the board, in declaring order,
- * for the Overseer to file as that entity's tickets. A declaration logs nothing and files no ticket.
+ * for the Overseer to file as that entity's tickets. A declaration logs nothing and files no ticket; the filing takes the job's needs off,
+ * and a job that ends any other way drops them.
  */
 import type { NeedDeclared }                  from './@types/BoardChanges.ts';
 import type { DeclaredNeed, NeedDeclaration } from './@types/Need.ts';
@@ -47,5 +48,10 @@ export class Needs {
 
   needs(): readonly Readonly<DeclaredNeed>[] {
     return this.records.progress.needs ?? [];
+  }
+
+  /** The job's needs in declaring order, taken off the board for filing; a job that ends without filing them drops them as it ends. */
+  takeNeedsOf(jobId: string): DeclaredNeed[] {
+    return this.jobRules.takeNeedsOf(jobId);
   }
 }

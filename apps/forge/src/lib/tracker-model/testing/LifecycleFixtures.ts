@@ -78,6 +78,7 @@ export function factsWith(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts
     overseerState:               'running',
     pipelineIsSet:               true,
     reviewIsSet:                 true,
+    pipelineHasEntities:         false,
     observations:                FIXTURE_OBSERVATIONS,
     ...overrides,
   };

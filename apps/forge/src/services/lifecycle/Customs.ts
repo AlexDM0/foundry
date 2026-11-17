@@ -58,6 +58,7 @@ export type VerificationRefusalReason =
   | 'merge-unresolved'
   | 'checks-definition-changed'
   | 'changed-outside-home-and-reach'
+  | 'changed-only-outside-home-and-reach'
   | 'instruction-file-changed'
   | 'finding-not-filed-by-job'
   | 'branch-touches-agent-config'
@@ -566,7 +567,8 @@ export function pathsOutsideWritableFoldersOf(gitPaths: readonly string[], writa
 
 /**
  * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
- * tracker at the root asks git nothing here, unless the job is a job of an entity.
+ * tracker at the root asks git nothing here, unless the job is a job of an entity, whose branch that changed nothing in its own folders is
+ * refused apart: all its work belongs to another entity.
  */
 function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const { projectScope } = subject;
@@ -576,7 +578,9 @@ function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const paths = subject.target === undefined ? pathsChangedInRange(subject) : pathsTheBranchChangedPast(subject, subject.target);
   if (paths === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
   const outside = writableFolders === undefined ? pathsOutsideHomeAndReachOf(paths, projectScope) : pathsOutsideWritableFoldersOf(paths, writableFolders);
-  return outside.length === 0 ? PASSED : refused('changed-outside-home-and-reach', outside);
+  if (outside.length === 0) return PASSED;
+  const onlyOutside = writableFolders !== undefined && outside.length === paths.length;
+  return refused(onlyOutside ? 'changed-only-outside-home-and-reach' : 'changed-outside-home-and-reach', outside);
 }
 
 /** Every gate but an `overseerOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */

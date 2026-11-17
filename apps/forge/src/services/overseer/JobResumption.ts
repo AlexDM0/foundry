@@ -175,10 +175,13 @@ function failedStaleGreenResume(trackerDirectory: string, predecessor: Readonly<
 /** The fields a session owner is read from: the job's own entity and stage decide whose session it may carry on. */
 type SessionOwnerSubject = Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId' | 'entity' | 'stage'>>;
 
+/** A build of the same attempt, entity and stage carries on the session of a build that ended so: sent back by its review, or its needs settled. */
+const SESSION_CARRYING_OUTCOMES: readonly string[] = ['built', 'needs-declared'];
+
 /**
  * The job whose session a build job carries on: a build of the same attempt, entity and stage after one that ended `built` was sent back by
- * its review, and resumes that builder's session (itself perhaps carried on from an earlier one) with the review's findings. The job itself
- * for every other job.
+ * its review, or after one that ended `needs-declared` once its needs are settled, and resumes that builder's session (itself perhaps carried
+ * on from an earlier one). The job itself for every other job.
  */
 function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string {
   if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);
@@ -192,7 +195,9 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwner
       const scope = sessionScopeOf(record.fields);
       const sameAttempt = newestEnded !== null && attemptByJobId.get(newestEnded.jobId) === record.fields.attempt;
       const sameScope = newestEnded !== null && runsTheSameEntityAndStage(scopeByJobId.get(newestEnded.jobId), scope);
-      const carriesOn = sameAttempt && sameScope && newestEnded?.outcome === 'built' ? sessionOwnerByJobId.get(newestEnded.jobId) : undefined;
+      const carriesOn = newestEnded !== null && sameAttempt && sameScope && SESSION_CARRYING_OUTCOMES.includes(newestEnded.outcome)
+        ? sessionOwnerByJobId.get(newestEnded.jobId)
+        : undefined;
       sessionOwnerByJobId.set(record.jobId, carriesOn ?? record.jobId);
       attemptByJobId.set(record.jobId, record.fields.attempt);
       scopeByJobId.set(record.jobId, scope);

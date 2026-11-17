@@ -20,6 +20,7 @@ import type {
   PictureReference
 }                                   from './@types/Job.ts';
 import type { HatchAppliedRecord, LogRecord, LogRecordFieldsOf }    from './@types/LogRecord.ts';
+import type { DeclaredNeed }                                        from './@types/Need.ts';
 import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
@@ -163,6 +164,8 @@ export class Jobs {
     const liveJobs = this.liveJobRecords();
     liveJobs.splice(liveJobs.indexOf(job), 1);
     job.outcome = ending.outcome;
+    // The filing takes a `needs-declared` job's needs off first; any other ending drops them, unfiled.
+    this.takeNeedsOf(jobId);
     const logged = this.records.logger.log({
       kind:   'job-ended',
       jobId,
@@ -283,6 +286,17 @@ export class Jobs {
     const left = pending.filter((notes) => !taken.includes(notes));
     if (left.length === 0) delete job.pendingOptionNotes;
     else job.pendingOptionNotes = left;
+    return taken;
+  }
+
+  /** The job's declared needs in declaring order, taken off the board; `needs` goes once the last need left, so a board ends as it began. */
+  takeNeedsOf(jobId: string): DeclaredNeed[] {
+    const needs = this.records.progress.needs ?? [];
+    const taken = needs.filter((need) => need.jobId === jobId);
+    if (taken.length === 0) return [];
+    const kept = needs.filter((need) => need.jobId !== jobId);
+    if (kept.length === 0) delete this.records.progress.needs;
+    else this.records.progress.needs = kept;
     return taken;
   }
 

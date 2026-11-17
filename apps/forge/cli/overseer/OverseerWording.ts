@@ -32,6 +32,7 @@ import type {
   ReviewFindingsFacts,
   OverseerNotice
 } from '../../src/services/overseer/DrivePass.ts';
+import type { NeedsSettledFacts }                                     from '../../src/services/overseer/NeedTickets.ts';
 import type { RedHandoffFacts }                                       from '../../src/services/overseer/RedHandoff.ts';
 import type { DraftFieldValue, SetupMessage }                         from '../../src/shared/@types/ControlContext.ts';
 import { filledTemplateOf }                                           from '../../src/shared/FilledTemplate.ts';
@@ -349,6 +350,29 @@ function reviewFindingsMessageOf(ticketId: string, facts: Readonly<ReviewFinding
   ].join('\n');
 }
 
+function settledNeedLineOf(need: Readonly<NeedsSettledFacts['needs'][number]>): string {
+  const ticket = need.ticketId === null ? 'no ticket: User decided it' : `#${need.ticketId}, ${need.status ?? 'gone'}`;
+  return `- ${need.entity}: ${need.title} (${ticket})`;
+}
+
+/**
+ * The first line of a build that runs its stage again once the needs the stage declared are settled: the resumed session continues, and a
+ * fresh session gets it before its build prompt, as the notes of the session before it.
+ */
+function needsSettledMessageOf(ticketId: string, facts: Readonly<NeedsSettledFacts>): string {
+  const opening = facts.resumesSession
+    ? `The needs that you declared for #${ticketId} are settled. Your session continues.`
+    : `An earlier session of #${ticketId} declared needs in other entities. They are settled now. The commits of that session are on your branch.`;
+  return [
+    opening,
+    '',
+    ...facts.needs.map(settledNeedLineOf),
+    '',
+    `Before you continue the work, merge \`${facts.mainLine}\` into your branch: \`git merge --no-edit ${facts.mainLine}\`. If a conflict occurs, `
+    + 'resolve it and commit the merge. Then continue the work of the ticket and end with your report.',
+  ].join('\n');
+}
+
 type SessionConfinement = JobLaunchFacts['confinement'];
 
 type PipelineAgentFacts = NonNullable<JobLaunchFacts['pipelineAgent']>;
@@ -517,6 +541,9 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
     return { firstMessage: reviewerInstructionsOf(job, ticket, facts, mergeApprovalStep), roleBrief };
   }
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };
+  const needsSettled = facts.needsSettled ?? null;
+  if (needsSettled?.resumesSession === true) return { firstMessage: needsSettledMessageOf(ticket.id, needsSettled), roleBrief };
+  if (needsSettled !== null) return { firstMessage: `${needsSettledMessageOf(ticket.id, needsSettled)}\n\n${builderInstructionsOf(job, ticket, facts)}`, roleBrief };
   const reviewFindings = facts.reviewFindings ?? null;
   if (reviewFindings !== null) return { firstMessage: reviewFindingsMessageOf(ticket.id, reviewFindings), roleBrief };
   return { firstMessage: builderInstructionsOf(job, ticket, facts), roleBrief };

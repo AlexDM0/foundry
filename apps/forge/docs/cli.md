@@ -1439,7 +1439,35 @@ forge need declare "Export the basket total" --entity shared --body-file need.md
   do. A job declares at most five needs (`need-limit-reached`).
 - A relayed declaration is admitted only from a builder whose job runs an entity's stage, and only complete
   (`need-outside-an-entity`, `need-incomplete`), before the hold.
-- The need is only recorded: no ticket is filed and nothing is logged.
+- The declaration is only recorded: no ticket is filed and nothing is logged.
+
+When the builder then reports `needs-declared`, its job ends with that outcome, and its branch and commits stay. In the
+same hold the Overseer files each need it kept, in declaring order, and takes it off `needs`:
+
+- The need becomes a ticket of its entity, with its title and body, stamped `filedByJob` with the declaring job, and is
+  submitted at once: `pending` with ticket review off, `ready-for-review` with it on, where it waits for User like any
+  ticket. Every ticket of the job gets it in `dependsOn`; the need's ticket waits on none of them. Each waiting ticket
+  logs `need-declared`.
+- A need for the root entity when that entity has no gates is no ticket: it opens `need-for-root` on the waiting
+  tickets. A need whose ticket would close a circle in `dependsOn` is not added there and opens `need-closes-circle`.
+- A job that reports `needs-declared` with no need kept, or a job without an entity, fails `no-report`.
+
+On a pipeline with entities the Playbook then:
+
+- launches nothing for a ticket with an unsettled dependency, whatever its status, so the waiting ticket keeps its
+  status and its counters; a forge without entities still waits only with a `pending` ticket;
+- runs a need's ticket at the highest priority of itself and the open tickets that wait on it, also through a need of
+  a need, read at each pass, so raising a waiting ticket raises its needs;
+- runs the stage that declared the needs again once each need's ticket is delivered, in the same attempt (a `reviewed`
+  need is not on the main line yet, so it still holds the waiting ticket): the build resumes the declaring session, or a
+  fresh session starts on the same branch, and either is told each need with its ticket and status and merges the main
+  line in before it continues, where the needs landed, also when its own target is a group branch;
+- drops a need's ticket that was abandoned from the waiting ticket's `dependsOn` and opens `need-abandoned` on it.
+
+An open `need-for-root`, `need-closes-circle`, `need-abandoned` or `work-in-other-entity` decision holds the tickets it
+names. `work-in-other-entity` opens when a build whose last red handoff was for V17 again changed nothing in its own
+entity's folders: Customs refuses it `changed-only-outside-home-and-reach`, and the job fails. A build whose last red
+handoff was for anything else gets the one V17 resume first.
 
 ### Jobs and sessions
 
@@ -1587,8 +1615,9 @@ first home and stamps that entity's phase hash. Its session is told these gates,
 gate's `definedBy` pattern without a leading `/` names a file of the entity's first home. The job may change only its
 entity's homes and `reach`: a path that a deeper home of another entity holds is that entity's, and the root entity
 owns every path that no other home holds. Customs V17 refuses any other change and sends the session back on a red
-handoff, whose `gate-failure.md` names each path to take out. A job carries on only a session of its own entity and
-stage. A job without an entity keeps the checks it always had.
+handoff, whose `gate-failure.md` names each path to take out; a session sent back so whose branch still changed
+nothing in its own entity fails and opens `work-in-other-entity` (see [`need declare`](#need-declare)). A job carries on
+only a session of its own entity and stage. A job without an entity keeps the checks it always had.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
@@ -2041,7 +2070,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `overseerFirstStartedAt` | yes | The Overseer's first start on this board, kept by `clear`. |
 | `branchNamespace` | yes | The namespace the board's branches are named under, written by `namespace`; absent, the branches have bare names. |
 | `tasks` | no | The rows. |
-| `needs` | yes | The needs build jobs declared with `need declare`, in declaring order, each `{jobId, ticketIds, entity, title, body}`: the declaring job, its tickets, which wait for the need, the entity the need is for, and the title and body of the ticket it becomes. Written only by a declaration, so a forge without entities never writes it. |
+| `needs` | yes | The needs build jobs declared with `need declare`, in declaring order, each `{jobId, ticketIds, entity, title, body}`: the declaring job, its tickets, which wait for the need, the entity the need is for, and the title and body of the ticket it becomes. Written only by a declaration, so a forge without entities never writes it. The Overseer takes a job's needs off as it files them, a job that ends any other way drops its needs unfiled, and the key goes with the last one. |
 
 <details>
 <summary>A job's keys</summary>

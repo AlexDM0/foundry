@@ -409,6 +409,11 @@ export class Board {
     return this.needRules.needs();
   }
 
+  /** The job's needs, taken off the board for the Overseer to file. */
+  takeNeedsOf(jobId: string): DeclaredNeed[] {
+    return this.needRules.takeNeedsOf(jobId);
+  }
+
   /** Removes and gives back the job's notes for the questions of one request, matched by each question's text. */
   takeQuestionOptionNotes(jobId: string, questionTexts: readonly string[]): QuestionOptionNotes[] {
     return this.jobRules.takeQuestionOptionNotes(jobId, (notes) => questionTexts.some((text) => OptionConsequencesUtil.notesAreForQuestion(notes, text)));
@@ -709,6 +714,7 @@ export class Board {
       overseerState:               this.overseerState(),
       pipelineIsSet:               this.records.pipeline !== null,
       reviewIsSet:                 this.records.pipeline?.review !== undefined,
+      pipelineHasEntities:         this.records.pipeline?.entities !== undefined,
       observations,
     };
   }
@@ -745,6 +751,11 @@ export class Board {
           ...step.jobId === undefined ? [] : this.endJob(step.jobId, { outcome: 'failed', cause: step.cause }, at).logged,
           ...this.holdTicket(step.ticketId, `${PARKED_HOLD_PREFIX}${step.cause}`, at).logged,
           ...openDecision({ kind: 'parked', ticketIds: [step.ticketId], jobId: null }),
+        ];
+      case 'release-abandoned-need':
+        return [
+          ...this.ticketDependencies.removeTicketDependencies(step.ticketId, [step.needTicketId], at).logged,
+          ...openDecision({ kind: 'need-abandoned', ticketIds: [step.ticketId], jobId: null }),
         ];
       case 'open-decision':
         return openDecision(step.decision);

@@ -36,6 +36,8 @@ export type PlaybookStep =
   | { kind: 'withdraw-retired-decision'; decisionId: string }
   // `jobId` names a job interrupted on a red handoff with its resumes spent, which ends `failed` as its ticket parks.
   | { kind: 'park'; ticketId: string; cause: ParkCause; jobId?: string }
+  // On a pipeline with entities: the ticket filed for a need of `ticketId` was abandoned, so it leaves its `dependsOn` and User decides.
+  | { kind: 'release-abandoned-need'; ticketId: string; needTicketId: string }
   | { kind: 'open-decision'; decision: DecisionDraft }
   | { kind: 'open-incident'; incident: IncidentOpening }
   | { kind: 'default-incident'; incidentId: string; cause: IncidentDefaultCause }

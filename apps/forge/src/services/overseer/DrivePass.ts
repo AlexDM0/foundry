@@ -88,6 +88,7 @@ import { LaunchSettings, type SessionLaunchSettings }                 from './La
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
 import { runMergedTreeGates }                                         from './MergedTreeGateRun.ts';
+import { NeedTickets, type NeedsSettledFacts }                        from './NeedTickets.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { PipelineChecking }                                           from './PipelineChecking.ts';
@@ -126,6 +127,8 @@ export interface JobLaunchFacts {
   redHandoff?:            RedHandoffFacts | null;
   /** What a builder its review sent back is resumed with, in place of its build prompt; `null` for every other job. */
   reviewFindings?:        ReviewFindingsFacts | null;
+  /** What a build that runs its stage again after the needs it declared are settled is told; `null` for every other job. */
+  needsSettled?:          NeedsSettledFacts | null;
   /** A product owner's request, and what a fresh one takes over from the session it replaces; `null` for every other job. */
   intake:                 IntakeFacts | null;
   /** What a merge-gate fixer or a resolution reviewer is told of its Airlock; `null` for every other job. */
@@ -741,7 +744,7 @@ function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine
   return gates === null ? null : shellLine.displayLineOf(gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
 }
 
-type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames'>;
+type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine'>;
 
 /** An `unavailable` answer still asks for the sandbox, so the session refuses to start rather than run unconfined. */
 function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts']): AgentConfinement {
@@ -756,6 +759,8 @@ function launchFactsOf(
   const pipeline = board.pipeline();
   const jobGates = pipeline === null ? null : JobLaunch.sessionGatesOf(pipeline, job);
   const gates = jobGates === null ? null : SessionPlaces.gatesFromStartOf(place, jobGates);
+  const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
+  const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
   return {
     instructions,
     confinement: sessionConfinementOf(request.platformPorts),
@@ -771,7 +776,8 @@ function launchFactsOf(
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
-    reviewFindings:         reviewFindingsOf(board, trackerDirectory, job),
+    reviewFindings:         needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job) : null,
+    needsSettled,
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar, request.workspace.rootDirectory),

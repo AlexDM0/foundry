@@ -3,7 +3,9 @@
  * pipeline's order, under the rule to pass every gate on the final commit; a gate with a fix says to run it before fixing by hand; an
  * `overseerOnly` gate is named as the Overseer's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
  * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare. A builder
- * or reviewer at the root of a folder tracker's worktree is told the project's folder first, since its ticket names paths from there.
+ * or reviewer at the root of a folder tracker's worktree is told the project's folder first, since its ticket names paths from there. A
+ * build that runs its stage again after its needs are settled is told each need with its ticket and status and to merge the main line in,
+ * where the needs landed, even on a group target: a resumed session gets that alone, a fresh one gets it before the build prompt.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
@@ -177,6 +179,51 @@ describe('the first line of a builder resumed after its review', () => {
     expect(conflictMessage).toContain('- src/Basket.ts\n- docs/basket.md');
     expect(conflictMessage).toContain('resume 1 of 2');
     expect(conflictMessage).not.toContain('found a claim that does not hold');
+  });
+});
+
+describe('the first line of a build that runs its stage again after its needs are settled', () => {
+  const facts: JobLaunchFacts = {
+    tickets: [{
+      id: '012', title: 'Example basket total', body: '## Acceptance\nA1. Example basket adds up.\n', branch: 'ticket-012'
+    }],
+    checksLine:             'bun test',
+    gates:                  GATES,
+    earlierSessionReplaced: false,
+    needsSettled:           {
+      needs: [
+        {
+          entity: 'design-system', title: 'Export the basket total', ticketId: '013', status: 'delivered'
+        },
+        {
+          entity: 'root', title: 'Add the example lockfile entry', ticketId: null, status: null
+        },
+      ],
+      mainLine:       'main',
+      resumesSession: true,
+    },
+    confinement:  'confined',
+    intake:       null,
+    airlock:      null,
+    assistant:    null,
+    instructions: BUILD_INSTRUCTIONS,
+  };
+
+  test('in the resumed session names each need and its ticket and the merge of the main line, and not the build prompt', () => {
+    const message = OverseerWording.launchTextOf({ ...BUILD_JOB, target: 'group-checkout' }, facts).firstMessage;
+    expect(message).toContain('The needs that you declared for #012 are settled.');
+    expect(message).toContain('- design-system: Export the basket total (#013, delivered)');
+    expect(message).toContain('- root: Add the example lockfile entry (no ticket: User decided it)');
+    expect(message).toContain('`git merge --no-edit main`');
+    expect(message).not.toContain('group-checkout');
+    expect(message).not.toContain('Pass every gate on your final commit');
+  });
+
+  test('in a fresh session comes before the build prompt', () => {
+    const needsSettled = facts.needsSettled === undefined || facts.needsSettled === null ? null : { ...facts.needsSettled, resumesSession: false };
+    const message = OverseerWording.launchTextOf(BUILD_JOB, { ...facts, needsSettled }).firstMessage;
+    expect(message.startsWith('An earlier session of #012 declared needs in other entities.')).toBe(true);
+    expect(message).toContain('Pass every gate on your final commit');
   });
 });
 

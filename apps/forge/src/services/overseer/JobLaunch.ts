@@ -93,6 +93,7 @@ import { GuardCommand }                                                from './G
 import { HatchInbox }                                                  from './HatchInbox.ts';
 import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
 import type { SessionLaunchSettings }                                  from './LaunchSettings.ts';
+import { NeedTickets }                                                 from './NeedTickets.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                     from './ProcessStarts.ts';
 import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './ProcessWatcherSandbox.ts';
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
@@ -361,6 +362,11 @@ function treeStopAtEndOf(job: Readonly<Job>): { treeStopAtEndGraceMilliseconds?:
 }
 
 const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
+
+const WORK_IN_OTHER_ENTITY_DECISION = 'work-in-other-entity';
+
+/** The scope check's refusal of a job of an entity whose branch changed nothing in its own folders. */
+const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
 function callBudgetOf(job: Readonly<Job>): number {
   return job.kind === REVIEW_JOB_KIND || job.role === CONFLICT_RE_REVIEWER_ROLE ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
@@ -1076,10 +1082,15 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     return;
   }
   if (outcome === 'needs-declared') {
-    endJob(hold, job, job.entity === undefined ? { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport } : { outcome: 'needs-declared' });
+    endJobOnItsNeeds(hold, job);
     return;
   }
   const verdict = clearCustoms(subject);
+  if (verdict.verdict === 'refused' && verdict.reason === ONLY_OUTSIDE_THE_ENTITY && job.entity !== undefined && workingOffAScopeHandoff(hold.context, job)) {
+    openWorkInOtherEntityDecision(hold, job, verdict.facts);
+    endJob(hold, job, { outcome: 'failed', cause: verdict.reason });
+    return;
+  }
   if (verdict.verdict === 'refused') {
     if (resumableCustomsChecksOf(job).includes(verdict.check)) {
       interruptOnRedHandoff(hold, job, {
@@ -1092,6 +1103,33 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     return;
   }
   hold.logged.push(...board.moveJob(job.id, 'gating', at).logged);
+}
+
+/**
+ * A job of an entity files its needs as their entities' tickets in this hold and ends `needs-declared`, its branch and commits kept; one
+ * that kept no need declared nothing, and a job without an entity has no needs, so both fail as a report without one.
+ */
+function endJobOnItsNeeds(hold: HoldContext, job: Readonly<Job>): void {
+  if (job.entity === undefined) {
+    endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport });
+    return;
+  }
+  const filed = NeedTickets.fileNeedsOf(hold.change, job, hold.context.decisionWordingOf);
+  hold.logged.push(...filed.logged);
+  endJob(hold, job, filed.filedNeedCount === 0 ? { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport } : { outcome: 'needs-declared' });
+}
+
+/**
+ * A session sent back once to take its change out of another entity still changed nothing in its own: all the work of the ticket belongs
+ * to another entity (E15). User moves the ticket there or abandons it, and the decision holds it.
+ */
+function openWorkInOtherEntityDecision(hold: HoldContext, job: Readonly<Job>, pathsOutside: readonly string[]): void {
+  const { board, at } = hold.change;
+  const draft: DecisionDraft = { kind: WORK_IN_OTHER_ENTITY_DECISION, ticketIds: job.ticketIds, jobId: null };
+  if (board.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId)))) return;
+  hold.logged.push(...board.openDecision({
+    ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: pathsOutside.join(' ')
+  }, at).logged);
 }
 
 /** The other jobs' branches, which their own sessions move, and the refs the Overseer's own landings and refreshes move or remove. */
@@ -1218,6 +1256,12 @@ const RESUMABLE_CUSTOMS_CHECKS: readonly VerificationCheck[] = ['V3', 'V4', 'V15
 
 /** V17, the scope check: a job of an entity is resumed to take a change outside its stage's folders back out (E11). */
 const SCOPE_CHECK: VerificationCheck = 'V17';
+
+/** The job's last red handoff sent it back for V17: a red gate or another Customs check before it leaves the one V17 resume unspent. */
+function workingOffAScopeHandoff(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
+  const facts = RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job));
+  return facts?.kind === 'customs' && facts.name === SCOPE_CHECK;
+}
 
 /** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */
 function resumableCustomsChecksOf(job: Readonly<Pick<Job, 'entity'>>): readonly VerificationCheck[] {

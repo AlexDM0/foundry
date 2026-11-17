@@ -17,6 +17,7 @@ import type { PlaybookObservations, PlaybookStep }                              
 import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
 import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
 import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
+import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
 import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
 import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
 import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
@@ -31,10 +32,14 @@ export interface PlaybookTicket {
   group?:       string;
   /** A passed review queued it to land: it waits for its Airlock, never for another review. */
   mergeQueued?: boolean;
+  /** The job that filed it; a need's ticket names the build job of the ticket that waits on it. */
+  filedByJob?:  string;
 }
 
 /** The decisions naming a ticket that hold every launch on it until User answers. */
-const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['waiver', 'branch-touches-agent-config', 'forced-stop-refused', 'budget-reached'];
+const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = [
+  'waiver', 'branch-touches-agent-config', 'forced-stop-refused', 'budget-reached', 'need-for-root', 'need-closes-circle', 'need-abandoned', 'work-in-other-entity'
+];
 
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];
@@ -49,6 +54,11 @@ export interface PlaybookFacts {
   pipelineIsSet:               boolean;
   /** The pipeline has a `review` phase; without one no reviewer is ever launched, and a gated build queues to merge. */
   reviewIsSet:                 boolean;
+  /**
+   * The pipeline names entities: a ticket with an unsettled dependency launches nothing whatever its status, and a need's ticket runs at
+   * the highest priority of the tickets that wait on it.
+   */
+  pipelineHasEntities:         boolean;
   observations:                PlaybookObservations;
 }
 
@@ -103,6 +113,7 @@ export interface NextLaunchNumbers {
 interface IndexedPlaybookFacts extends PlaybookFacts {
   readonly launchesByJobId: JobLaunchesByJobId;
   readonly statusById:      ReadonlyMap<string, TicketStatus>;
+  readonly ticketById:      ReadonlyMap<string, PlaybookTicket>;
 }
 
 function isCrash(cause: InterruptionCause | undefined): boolean {
@@ -128,6 +139,7 @@ function indexedFactsOf(facts: PlaybookFacts): IndexedPlaybookFacts {
     ...facts,
     launchesByJobId: jobLaunchesByJobIdOf(facts.logRecords),
     statusById:      new Map(facts.tickets.map((ticket) => [ticket.id, ticket.status])),
+    ticketById:      new Map(facts.tickets.map((ticket) => [ticket.id, ticket])),
   };
 }
 
@@ -261,6 +273,22 @@ function builderReturnsFromReview(ticketId: string, facts: IndexedLog): boolean 
   return returns;
 }
 
+/**
+ * The ticket's newest ended build job declared needs: once they are settled, the stage that declared them runs again in the same attempt.
+ * An unhold since then starts a fresh attempt instead.
+ */
+function builderReturnsFromItsNeeds(ticketId: string, facts: IndexedLog): boolean {
+  const launches = facts.launchesByJobId;
+  let returns = false;
+  for (const record of facts.logRecords) {
+    if (record.kind === 'ticket-unheld' && record.ticketId === ticketId) returns = false;
+    if (record.kind !== 'job-ended') continue;
+    const launch = launches.get(record.jobId);
+    if (launch?.kind === 'build' && launch.ticketIds.includes(ticketId)) returns = record.fields.outcome === 'needs-declared';
+  }
+  return returns;
+}
+
 /** The ticket's newest ended build job was replaced while interrupted on a red handoff: its fresh successor keeps the attempt. */
 function redHandoffCarriesOver(ticketId: string, facts: IndexedLog): boolean {
   const launches = facts.launchesByJobId;
@@ -276,9 +304,13 @@ function redHandoffCarriesOver(ticketId: string, facts: IndexedLog): boolean {
   return carriesOver;
 }
 
-/** A fresh build is one attempt past the last; a red handoff's successor, or a builder a review sent back, keeps the last attempt. */
+/**
+ * A fresh build is one attempt past the last; a red handoff's successor, a builder a review sent back, or a builder whose needs are settled
+ * keeps the last attempt.
+ */
 function nextBuildOf(ticket: Pick<PlaybookTicket, 'id' | 'status'>, facts: IndexedLog): { attempt: number; carriesOver: boolean } {
-  const carriesOver = redHandoffCarriesOver(ticket.id, facts) || (ticket.status === 'in-progress' && builderReturnsFromReview(ticket.id, facts));
+  const returnsToTheBuilder = builderReturnsFromReview(ticket.id, facts) || builderReturnsFromItsNeeds(ticket.id, facts);
+  const carriesOver = redHandoffCarriesOver(ticket.id, facts) || (ticket.status === 'in-progress' && returnsToTheBuilder);
   return { attempt: lastBuildAttemptOf(ticket.id, facts) + (carriesOver ? 0 : 1), carriesOver };
 }
 
@@ -439,8 +471,65 @@ function jobLostStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits): P
     }));
 }
 
+/**
+ * The tickets filed for the needs that `ticket` declared: each one it waits on that a job of its own filed. A worker's finding waits on its
+ * finder instead, so it is never one.
+ */
+function needTicketIdsOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): string[] {
+  return (ticket.dependsOn ?? []).filter((dependencyId) => {
+    const filedByJob = facts.ticketById.get(dependencyId)?.filedByJob;
+    return filedByJob !== undefined && (facts.launchesByJobId.get(filedByJob)?.ticketIds.includes(ticket.id) ?? false);
+  });
+}
+
+function ticketIsClosed(ticket: PlaybookTicket): boolean {
+  return TICKET_STATUSES_THAT_CLOSE_A_TICKET.includes(ticket.status);
+}
+
+/**
+ * The rank a ticket launches at. On a pipeline with entities a need's ticket takes the highest priority of itself and every open ticket
+ * that waits on it, also through a need of a need, so raising a waiting ticket raises its needs at the next pass.
+ */
+function launchRankOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): number {
+  const ownRank = PRIORITY_RANK[TicketDefaultsUtil.ticketPriorityOf(ticket)];
+  if (!facts.pipelineHasEntities) return ownRank;
+  const rankedTicketIds = new Set([ticket.id]);
+  const waitersOf = (needTicketId: string): PlaybookTicket[] => facts.tickets.filter((waiter) => !ticketIsClosed(waiter) && !rankedTicketIds.has(waiter.id)
+    && needTicketIdsOf(waiter, facts).includes(needTicketId));
+  let rank = ownRank;
+  let needTicketIds = [ticket.id];
+  while (needTicketIds.length > 0) {
+    const waiters = needTicketIds.flatMap(waitersOf);
+    for (const waiter of waiters) {
+      rankedTicketIds.add(waiter.id);
+      rank = Math.min(rank, PRIORITY_RANK[TicketDefaultsUtil.ticketPriorityOf(waiter)]);
+    }
+    needTicketIds = waiters.map((waiter) => waiter.id);
+  }
+  return rank;
+}
+
+/** On a pipeline with entities a need's ticket abandoned no longer holds the ticket that waits on it: the dependency drops and User decides. */
+function abandonedNeedStepsOf(facts: IndexedPlaybookFacts): PlaybookStep[] {
+  if (!facts.pipelineHasEntities) return [];
+  return facts.tickets.filter((ticket) => !ticketIsClosed(ticket)).flatMap((ticket) => needTicketIdsOf(ticket, facts)
+    .filter((needTicketId) => facts.statusById.get(needTicketId) === 'abandoned')
+    .map((needTicketId): PlaybookStep => ({ kind: 'release-abandoned-need', ticketId: ticket.id, needTicketId })));
+}
+
+/** A need's ticket settles only on the main line: a `reviewed` one is on a group branch at most, so the stage it reruns could not use it. */
+const NEED_SETTLING_STATUS: TicketStatus = 'delivered';
+
+/** On a pipeline with entities: a dependency is unsettled, or a need's ticket is not yet delivered. */
+function waitsOnADependency(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): boolean {
+  if (TicketDependencyUtil.unsettledDependenciesOf(ticket.dependsOn ?? [], facts.statusById).length > 0) return true;
+  return needTicketIdsOf(ticket, facts).some((needTicketId) => facts.statusById.get(needTicketId) !== NEED_SETTLING_STATUS);
+}
+
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
   if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
+  // Today's rule holds a pending ticket alone; on a pipeline with entities a started ticket waits for its needs too.
+  if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;
   const base = targetOf(ticket, facts.observations);
   if (ticket.status === 'in-review') {
     if (!facts.reviewIsSet) return null;
@@ -472,9 +561,14 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
   };
 }
 
-function candidateOrder(facts: PlaybookFacts): (a: Candidate, b: Candidate) => number {
+function candidateOrder(facts: IndexedPlaybookFacts): (a: Candidate, b: Candidate) => number {
   const readinessOf = (candidate: Candidate): number => facts.readinessPositionByTicketId.get(candidate.ticket.id) ?? UNRECORDED_READINESS_POSITION;
-  const rankOf      = (candidate: Candidate): number => PRIORITY_RANK[TicketDefaultsUtil.ticketPriorityOf(candidate.ticket)];
+  const launchRankByTicketId = new Map<string, number>();
+  const rankOf      = (candidate: Candidate): number => {
+    const rank = launchRankByTicketId.get(candidate.ticket.id) ?? launchRankOf(candidate.ticket, facts);
+    launchRankByTicketId.set(candidate.ticket.id, rank);
+    return rank;
+  };
   return (a, b) => (
     rankOf(a) - rankOf(b)
     || WORK_PHASE_RANK[a.phase] - WORK_PHASE_RANK[b.phase]
@@ -539,7 +633,7 @@ function boardDecisionStepOf(kind: Decision['kind']): PlaybookStep {
 }
 
 function ticketIdsOfStep(step: PlaybookStep): readonly string[] {
-  if (step.kind === 'park') return [step.ticketId];
+  if (step.kind === 'park' || step.kind === 'release-abandoned-need') return [step.ticketId];
   return step.kind === 'open-incident' ? step.incident.ticketIds : [];
 }
 
@@ -567,10 +661,11 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));
   steps.push(...waiverAnswerStepsOf(facts));
   if (!assistantIsLive && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
-  const parkSteps    = parkStepsOf(facts, limits);
-  const jobLostSteps = jobLostStepsOf(facts, limits);
-  steps.push(...parkSteps, ...jobLostSteps);
-  const ticketIdsSettledThisPass = new Set([...parkSteps, ...jobLostSteps].flatMap(ticketIdsOfStep));
+  const parkSteps          = parkStepsOf(facts, limits);
+  const jobLostSteps       = jobLostStepsOf(facts, limits);
+  const abandonedNeedSteps = abandonedNeedStepsOf(facts);
+  steps.push(...parkSteps, ...jobLostSteps, ...abandonedNeedSteps);
+  const ticketIdsSettledThisPass = new Set([...parkSteps, ...jobLostSteps, ...abandonedNeedSteps].flatMap(ticketIdsOfStep));
   // Without a review phase the Airlocks queue a ticket in review once its branch HEAD's tree is gated green, so no step queues one.
   if (!newWorkIsHeld) steps.push(...launchStepsOf(facts, ticketIdsSettledThisPass));
   steps.push(...incidentDefaultStepsOf(facts, noAssistantCanComeUp));

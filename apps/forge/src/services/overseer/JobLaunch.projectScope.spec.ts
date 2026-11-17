@@ -1,15 +1,16 @@
 /**
- * The Customs subject a build job's hold builds for a tracker in a folder of its repository, and the V13 check before a launch. What
- * matters: the subject carries the tracker's prefix and the pipeline's `reach`, so V17 refuses a branch that changed a file outside the
- * project's folder and its reach, and passes it once the reach names that file; a tracker at its repository's root, its subject without a
- * scope, passes the same branch to its gates. Before a launch a folder tracker's branch that committed `.claude/` inside the project's
- * folder holds its ticket, while a root tracker, which protects `.claude/` only at the root as always, launches it. On a pipeline with
- * entities, a job of an entity is held to its entity's homes and `reach`, and a change outside them sends its session back on a red
- * handoff to take the change out, where a folder tracker's job fails; that handoff's Baton pass names the paths to take out. A job of an
- * entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds it to exactly those. A job without an
- * entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. A `needs-declared` report
- * never reaches the gates: a job of an entity ends with that outcome, a job without one fails as before. The folders are real,
- * with a `.git` folder above the project so its prefix is read from disk; git answers from recorded scenarios.
+ * The Customs subject a build job's hold builds for a tracker in a folder of its repository, and the V13 check before a launch. What matters: the
+ * subject carries the tracker's prefix and the pipeline's `reach`, so V17 refuses a branch that changed a file outside the project's folder and its
+ * reach, and passes it once the reach names that file; a tracker at its repository's root, its subject without a scope, passes the same branch to its
+ * gates. Before a launch a folder tracker's branch that committed `.claude/` inside the project's folder holds its ticket, while a root tracker, which
+ * protects `.claude/` only at the root as always, launches it. On a pipeline with entities, a job of an entity is held to its entity's homes and
+ * `reach`, and a change outside them sends its session back on a red handoff to take the change out, where a folder tracker's job fails; that handoff's
+ * Baton pass names the paths to take out. A job of an entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds
+ * it to exactly those. A job without an entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. A
+ * `needs-declared` report never reaches the gates: a job of an entity files its kept needs as tickets and ends with that outcome, one that kept none
+ * fails, and a job without an entity fails as before. A session sent back once for V17 whose branch still changed only another entity's files opens
+ * `work-in-other-entity` (E15); one sent back for a red gate gets its V17 resume first. The folders are real, with a `.git` folder above the project so
+ * its prefix is read from disk; git answers from recorded scenarios.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
@@ -38,7 +39,7 @@ import { testWhenGitIsRecorded }                          from '../../testing/To
 import { definitionFileMatcherOf, launchSnapshotOf }      from '../lifecycle/Customs.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
-import { RedHandoff }                                     from './RedHandoff.ts';
+import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
 import { WatcherFleet }                                   from './WatcherFleet.ts';
 
 const AT = '2026-11-16T10:00:00+01:00';
@@ -81,11 +82,17 @@ function launchedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: stri
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: MAIN_LINE, ...(entity === undefined ? {} : { entity, stage: 1 })
   }, AT);
   const context = {
-    workspace:     { rootDirectory, trackerDirectory },
-    mainLine:      MAIN_LINE,
-    branchNames:   branchNamesOf(place === 'in a folder' ? 'example' : null),
-    log:           () => undefined,
-    platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
+    workspace:         { rootDirectory, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    mainLine:          MAIN_LINE,
+    branchNames:       branchNamesOf(place === 'in a folder' ? 'example' : null),
+    log:               () => undefined,
+    platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    decisionWordingOf: () => ({
+      questions: [{
+        question: 'Example decision?', header: 'example', multiSelect: false, options: []
+      }],
+      context: ''
+    }),
   } as unknown as JobLaunchContext;
   const worktree = JobLaunch.worktreeOf(context.workspace, job);
   mkdirSync(worktree, { recursive: true });
@@ -98,14 +105,17 @@ interface VerifiedBuild {
   /** Its failure cause, or its state. */
   readonly whereTheJobWent: string;
   readonly jobFolder:       string;
+  readonly board:           Board;
 }
 
-/** Hands a build job's built report, claiming `claimedGates` on its head, to the hold, which verifies it. */
+/** Hands a build job's built report, claiming `claimedGates` on its head, to the hold, which verifies it; `prepare` runs before the hold. */
 function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, claimedGates: readonly string[] = [],
-  outcome: 'built' | 'needs-declared' = 'built'): VerifiedBuild {
+  outcome: 'built' | 'needs-declared' = 'built', prepare: (build: LaunchedBuild) => void = () => undefined): VerifiedBuild {
+  const launched = launchedBuildOf(place, pipeline, entity);
   const {
     board, job, ticket, context, trackerDirectory, worktree
-  } = launchedBuildOf(place, pipeline, entity);
+  } = launched;
+  prepare(launched);
   enterScenario(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
   const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
@@ -113,7 +123,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
+  JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as TrackerChange, context, [{
     jobId:  job.id,
     setup:  'installed',
     calls:  1,
@@ -135,7 +145,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
     mainMerge:        null,
     conflictReReview: null
   }]);
-  return { whereTheJobWent: whereTheJobWent(board, job.id, jobFolder), jobFolder };
+  return { whereTheJobWent: whereTheJobWent(board, job.id, jobFolder), jobFolder, board };
 }
 
 function verifiedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: string, claimedGates?: readonly string[]): string {
@@ -198,7 +208,7 @@ function pipelineWithEntities(exampleReach?: string[], exampleGates: PipelineEnt
 testWhenGitIsRecorded('a job of an entity that changed a file outside its homes and reach is sent back on a red handoff, not failed', () => {
   const build = verifyBuild('at the root', pipelineWithEntities(), 'example');
   expect(build.whereTheJobWent).toBe('interrupted: V17');
-  expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${FILE_OUTSIDE_THE_PROJECT}`);
+  expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-only-outside-home-and-reach\n${FILE_OUTSIDE_THE_PROJECT}`);
 });
 
 describe('a job of an entity with a gate', () => {
@@ -255,8 +265,57 @@ testWhenGitIsRecorded('before a launch, a root tracker with entities holds a bra
   expect(JobLaunch.ticketIdsTouchingAgentConfigOf(context, [job], pipelineWithEntities())).toEqual(['001']);
 });
 
-testWhenGitIsRecorded('a job of an entity whose report declares needs ends needs-declared and never reaches its gates', () => {
-  expect(verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared').whereTheJobWent).toBe('needs-declared: ');
+const NEED_BODY = '## Acceptance\n\nA1. The example app reads the basket total.\n\n## Brief\n\nAlex Example needs the total.\n';
+
+function declareANeed({ board, job }: LaunchedBuild): void {
+  board.declareNeed(job.id, { entity: 'shared', title: 'Export the basket total', body: NEED_BODY }, () => []);
+}
+
+testWhenGitIsRecorded('a job of an entity whose report declares needs files them, ends needs-declared and never reaches its gates', () => {
+  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared', declareANeed);
+  const needTicket = build.board.tickets().find((ticket) => ticket.frontmatter.filedByJob === 'J1');
+  expect(build.whereTheJobWent).toBe('needs-declared: ');
+  expect(needTicket?.frontmatter).toMatchObject({ entity: 'shared', title: 'Export the basket total', status: 'ready-for-review' });
+  expect(build.board.tickets().find((ticket) => ticket.frontmatter.id === '001')?.frontmatter.dependsOn).toEqual([needTicket?.frontmatter.id ?? 'no need ticket']);
+  expect(build.board.needs()).toEqual([]);
+});
+
+testWhenGitIsRecorded('a job of an entity whose needs-declared report kept no need fails without a report', () => {
+  expect(verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared').whereTheJobWent).toBe('failed: no-report');
+});
+
+/** The red handoff an earlier refusal left: after one of V17 the session verified now is the one sent back to take its change out. */
+function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string): (build: LaunchedBuild) => void {
+  return ({ context, job }) => {
+    const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
+    mkdirSync(jobFolder, { recursive: true });
+    RedHandoff.writeRedHandoff(jobFolder, {
+      kind,
+      name,
+      command:             null,
+      fixCommand:          null,
+      commit:              SCENARIO_COMMITS['<head>'],
+      exitCode:            null,
+      batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+      fullLogPath:         null,
+      resume:              1,
+      resumesAllowed:      2,
+      interruptedInstance: 1,
+      callBudget:          50,
+    }, `${name} went red`);
+  };
+}
+
+testWhenGitIsRecorded('a session sent back once whose branch still changed only another entity\'s files opens work-in-other-entity and fails', () => {
+  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('customs', 'V17'));
+  expect(build.whereTheJobWent).toBe('failed: changed-only-outside-home-and-reach');
+  expect(build.board.decisions().map((decision) => [decision.kind, decision.ticketIds, decision.context])).toEqual([['work-in-other-entity', ['001'], FILE_OUTSIDE_THE_PROJECT]]);
+});
+
+testWhenGitIsRecorded('a session sent back for a red gate whose branch then changed only another entity\'s files gets its one V17 resume', () => {
+  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('gate', 'unit'));
+  expect(build.whereTheJobWent).toBe('interrupted: V17');
+  expect(build.board.decisions()).toEqual([]);
 });
 
 testWhenGitIsRecorded('a job without an entity whose report declares needs fails as it did before, without a report', () => {
