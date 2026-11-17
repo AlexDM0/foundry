@@ -1,7 +1,8 @@
 /**
  * How an interrupted job comes back, design section 3.6: its next Watcher instance runs `--resume <id>` alone in the same working directory,
  * told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the fresh job
- * after a `replaced` one is told that an earlier session's uncommitted changes are its work.
+ * after a `replaced` one is told that an earlier session's uncommitted changes are its work. A job carries on only a session of its own
+ * entity and stage (E29).
  */
 import {
   existsSync,
@@ -31,6 +32,23 @@ import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandof
 import { WatcherFleet }                                        from './WatcherFleet.ts';
 
 const FIRST_WATCHER_INSTANCE = 1;
+
+/** The entity and stage a job runs, as its launch logged them; both absent on a forge without entities, where every job shares them. */
+type SessionScope = Readonly<Pick<Job, 'entity' | 'stage'>>;
+
+function sessionScopeOf(fields: SessionScope): SessionScope {
+  return { ...(fields.entity === undefined ? {} : { entity: fields.entity }), ...(fields.stage === undefined ? {} : { stage: fields.stage }) };
+}
+
+/** Whether a job may carry on a session launched in `sessionScope`: only one of its own entity and stage. `null` is a launch never logged. */
+function runsTheSameEntityAndStage(sessionScope: SessionScope | null | undefined, jobScope: SessionScope): boolean {
+  return sessionScope !== null && sessionScope !== undefined && sessionScope.entity === jobScope.entity && sessionScope.stage === jobScope.stage;
+}
+
+function launchScopeOf(logRecords: readonly LogRecord[], jobId: string): SessionScope | null {
+  const launch = logRecords.find((record) => record.kind === 'job-launched' && record.jobId === jobId);
+  return launch?.kind === 'job-launched' ? sessionScopeOf(launch.fields) : null;
+}
 
 /** A session that passed its gates and ended: a stale green its ticket's gates turned red after it is the next session's red handoff. */
 const STALE_GREEN_TAKING_OUTCOMES: readonly string[] = ['reviewed', 'built'];
@@ -107,25 +125,31 @@ interface EndedPredecessor {
   outcome:      string;
   cause:        string | null;
   interruption: InterruptionCause | null;
+  /** The entity and stage its launch logged. */
+  scope:        SessionScope;
   /** The same-work job that ended before this one. */
   previous:     EndedPredecessor | null;
 }
 
 /** The newest earlier job of the same kind on the job's tickets that ended, with its outcome, its cause and the cause of its last interruption. */
 function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<Job>): EndedPredecessor | null {
-  const sameWorkJobIds = new Set<string>();
+  const sameWorkScopeByJobId = new Map<string, SessionScope>();
   const interruptionByJobId = new Map<string, InterruptionCause>();
   let predecessor: EndedPredecessor | null = null;
   const sharesTheWork = (kind: JobKind, ticketIds: readonly string[]): boolean => kind === job.kind && ticketIds.some((ticketId) => job.ticketIds.includes(ticketId));
   for (const record of logRecords) {
-    if (record.kind === 'job-launched' && record.jobId !== job.id && sharesTheWork(record.fields.kind, record.fields.ticketIds)) sameWorkJobIds.add(record.jobId);
+    if (record.kind === 'job-launched' && record.jobId !== job.id && sharesTheWork(record.fields.kind, record.fields.ticketIds)) {
+      sameWorkScopeByJobId.set(record.jobId, sessionScopeOf(record.fields));
+    }
     if (record.kind === 'job-interrupted') interruptionByJobId.set(record.jobId, record.fields.cause);
-    if (record.kind === 'job-ended' && sameWorkJobIds.has(record.jobId)) {
+    const scope = record.kind === 'job-ended' ? sameWorkScopeByJobId.get(record.jobId) : undefined;
+    if (record.kind === 'job-ended' && scope !== undefined) {
       predecessor = {
         jobId:        record.jobId,
         outcome:      record.fields.outcome,
         cause:        record.fields.cause ?? null,
         interruption: interruptionByJobId.get(record.jobId) ?? null,
+        scope,
         previous:     predecessor,
       };
     }
@@ -148,22 +172,30 @@ function failedStaleGreenResume(trackerDirectory: string, predecessor: Readonly<
   return staleGreenHandoffOf(trackerDirectory, predecessor.previous) !== null;
 }
 
+/** The fields a session owner is read from: the job's own entity and stage decide whose session it may carry on. */
+type SessionOwnerSubject = Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId' | 'entity' | 'stage'>>;
+
 /**
- * The job whose session a build job carries on: a build of the same attempt after one that ended `built` was sent back by its review, and resumes that
- * builder's session (itself perhaps carried on from an earlier one) with the review's findings. The job itself for every other job.
+ * The job whose session a build job carries on: a build of the same attempt, entity and stage after one that ended `built` was sent back by
+ * its review, and resumes that builder's session (itself perhaps carried on from an earlier one) with the review's findings. The job itself
+ * for every other job.
  */
-function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string {
   if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);
   if (job.kind !== 'build') return job.id;
   const sessionOwnerByJobId = new Map<string, string>();
   const attemptByJobId = new Map<string, number>();
+  const scopeByJobId = new Map<string, SessionScope>();
   let newestEnded: { jobId: string; outcome: string } | null = null;
   for (const record of logRecords) {
     if (record.kind === 'job-launched' && record.fields.kind === 'build' && record.fields.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId))) {
+      const scope = sessionScopeOf(record.fields);
       const sameAttempt = newestEnded !== null && attemptByJobId.get(newestEnded.jobId) === record.fields.attempt;
-      const carriesOn = sameAttempt && newestEnded?.outcome === 'built' ? sessionOwnerByJobId.get(newestEnded.jobId) : undefined;
+      const sameScope = newestEnded !== null && runsTheSameEntityAndStage(scopeByJobId.get(newestEnded.jobId), scope);
+      const carriesOn = sameAttempt && sameScope && newestEnded?.outcome === 'built' ? sessionOwnerByJobId.get(newestEnded.jobId) : undefined;
       sessionOwnerByJobId.set(record.jobId, carriesOn ?? record.jobId);
       attemptByJobId.set(record.jobId, record.fields.attempt);
+      scopeByJobId.set(record.jobId, scope);
     }
     if (record.kind === 'job-ended' && sessionOwnerByJobId.has(record.jobId)) newestEnded = { jobId: record.jobId, outcome: record.fields.outcome };
   }
@@ -202,7 +234,8 @@ interface AirlockAgentPredecessors {
   siblingWasReplaced: boolean;
 }
 
-function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): AirlockAgentPredecessors {
+/** A last worker of another entity or stage than the Airlock agent's is no worker it stands in for. */
+function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Omit<SessionOwnerSubject, 'kind'>): AirlockAgentPredecessors {
   const ownLaunchIndex         = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
   const recordsBeforeOwnLaunch = ownLaunchIndex === -1 ? logRecords : logRecords.slice(0, ownLaunchIndex);
   const siblingJobIds = new Set<string>();
@@ -212,7 +245,8 @@ function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Reado
     if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
   }
   const [ticketId] = job.ticketIds;
-  const newestWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(recordsBeforeOwnLaunch, ticketId);
+  const lastWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(recordsBeforeOwnLaunch, ticketId);
+  const newestWorker = lastWorker !== null && runsTheSameEntityAndStage(launchScopeOf(recordsBeforeOwnLaunch, lastWorker.jobId), job) ? lastWorker : null;
   return { newestWorker, siblingWasReplaced };
 }
 
@@ -220,16 +254,16 @@ function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Reado
  * An Airlock agent carries on the session of its ticket's last worker: the reviewer's, or the builder's (itself perhaps carried on). After
  * an Airlock agent of the same merge job ended `replaced`, with no last worker, or as a conflict re-reviewer, it is a fresh session of its own.
  */
-function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'role' | 'ticketIds' | 'parentJobId'>>): string {
+function airlockSessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: Omit<SessionOwnerSubject, 'kind'>): string {
   const { newestWorker, siblingWasReplaced } = airlockAgentPredecessorsOf(logRecords, job);
   if (siblingWasReplaced || newestWorker === null) return job.id;
   return sessionOwnerJobIdOf(logRecords, {
-    id: newestWorker.jobId, kind: newestWorker.kind, role: newestWorker.role, ticketIds: job.ticketIds, parentJobId: null
+    id: newestWorker.jobId, kind: newestWorker.kind, role: newestWorker.role, ticketIds: job.ticketIds, parentJobId: null, ...sessionScopeOf(job)
   });
 }
 
 /** The last worker an Airlock agent stands in for, whose launch pair it takes, even as a fresh session; `null` for every other job. */
-function lastWorkerJobIdOf(logRecords: readonly LogRecord[], job: Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds' | 'parentJobId'>>): string | null {
+function lastWorkerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string | null {
   return job.kind === 'merge-agent' ? airlockAgentPredecessorsOf(logRecords, job).newestWorker?.jobId ?? null : null;
 }
 
@@ -289,9 +323,9 @@ function recordStaleGreenSessionOwner(trackerDirectory: string, job: Readonly<Jo
 
 /**
  * The ended session a fresh job resumes to fix a stale green that turned red: the session of the newest predecessor that left the stale-green
- * handoff, when its job folder shows that session started. `null` for every other job, and a fresh session takes the handoff over. Once the
- * first instance recorded its answer, every instance answers the same, so an interrupted stale-green resume resumes that session again, never
- * one of its own, though another same-work job ended in between.
+ * handoff, when its job folder shows that session started and it ran the job's entity and stage. `null` for every other job, and a fresh
+ * session takes the handoff over. Once the first instance recorded its answer, every instance answers the same, so an interrupted
+ * stale-green resume resumes that session again, never one of its own, though another same-work job ended in between.
  */
 function staleGreenSessionOwnerOf(
   trackerDirectory: string,
@@ -303,7 +337,7 @@ function staleGreenSessionOwnerOf(
   const recorded = recordedStaleGreenSessionOwnerOf(trackerDirectory, job.id);
   if (recorded !== undefined) return recorded;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
-  if (predecessor === null || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
+  if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
   if (!instanceSessionStarted(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
 }

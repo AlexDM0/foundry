@@ -4,7 +4,10 @@
  * project tracker's patterns and ticket naming read from its folder, its protected names hold at any depth, its branch may change only
  * its folder and its reach, and V14 watches only its own refs, so a sibling's branch, a person's commit, a stash or a tag fails no job
  * and a sibling's journaled landing passes. The ref cases replay the two-tracker answer set; the reach check replays a merge of the main
- * line, so a sibling's change it brought in is never the branch's own.
+ * line, so a sibling's change it brought in is never the branch's own. On a top-level forge with entities, the data folder and agent
+ * configuration are protected at the root and in every entity home, and a job of an entity may change only its homes and its reach: a
+ * path a deeper home of another entity holds is that entity's (E2), and the root entity owns every path no other home holds. Without entity
+ * homes or writable folders every check reads as before.
  */
 import { join, posix } from 'node:path';
 
@@ -48,9 +51,11 @@ import {
   type ProjectScope,
   type RefMovesAllowed,
   refMovesAllowedOf,
+  pathsOutsideWritableFoldersOf,
   type VerificationCheck,
   watchedRefsOf,
-  type WatchedRefs
+  type WatchedRefs,
+  type WritableFolders
 } from './Customs.ts';
 
 const { FORGE, GAIA } = TWO_TRACKER_PROJECTS;
@@ -161,6 +166,54 @@ describe('a project tracker judges paths from its own folder', () => {
   test('its data folder is protected at any depth and in any case, and a folder merely named like it is not', () => {
     const changed = [`${DATA_FOLDER}/progress.json`, `${GAIA.folder}/${DATA_FOLDER.toUpperCase()}/progress.json`, `${GAIA.folder}/${DATA_FOLDER}-notes/example.md`];
     expect(dataFolderPathsAmong(changed, GAIA.folder)).toEqual(changed.slice(0, 2));
+  });
+});
+
+describe('a top-level forge with entities', () => {
+  const ENTITY_HOMES = ['/', '/apps/forge', '/packages/shared/'];
+  const FORGE_STAGE: WritableFolders = { homes: ['/apps/forge'], reach: ['/bun.lock', '/packages/shared/generated/'], otherHomes: ['/', '/packages/shared', '/apps/forge/vendor'] };
+  const ROOT_STAGE: WritableFolders = { homes: ['/', '/scripts/root-tools'], reach: [], otherHomes: ['/apps/forge', '/packages/shared', '/scripts'] };
+
+  test('a job of an entity may change its homes and its reach, a reach path inside another home among them, and nothing else', () => {
+    const changed = [
+      'apps/forge/src/Example.ts',
+      'bun.lock',
+      'packages/shared/generated/Example.ts',
+      'packages/shared/src/Example.ts',
+      'apps/forge/vendor/Example.ts',
+      'apps/forge-extra/Example.ts',
+      'package.json',
+    ];
+    expect(pathsOutsideWritableFoldersOf(changed, FORGE_STAGE))
+      .toEqual(['packages/shared/src/Example.ts', 'apps/forge/vendor/Example.ts', 'apps/forge-extra/Example.ts', 'package.json']);
+  });
+
+  test('the root entity owns every path no other home holds, its own home inside another one too, and no other entity\'s path', () => {
+    const changed = ['package.json', 'docs/Example.md', 'scripts/root-tools/Example.ts', 'scripts/Example.ts', 'apps/forge/src/Example.ts', 'packages/shared/Example.ts'];
+    expect(pathsOutsideWritableFoldersOf(changed, ROOT_STAGE)).toEqual(['scripts/Example.ts', 'apps/forge/src/Example.ts', 'packages/shared/Example.ts']);
+  });
+
+  test('the data folder is protected at the root and in every entity home, in any case, and nowhere deeper', () => {
+    const changed = [
+      `${DATA_FOLDER}/progress.json`,
+      `apps/forge/${DATA_FOLDER.toUpperCase()}/progress.json`,
+      `packages/shared/${DATA_FOLDER}/example.json`,
+      `apps/forge/src/${DATA_FOLDER}/example.json`,
+    ];
+    expect(dataFolderPathsAmong(changed, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
+    expect(dataFolderPathsAmong(changed, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
+  });
+
+  test('.claude/ and .mcp.json are protected at the root and in every entity home, in any case, and nowhere deeper', () => {
+    const changed = [
+      '.claude/settings.json',
+      'apps/forge/.Claude/agents/example.md',
+      'packages/shared/.MCP.json',
+      'apps/forge/src/.claude/settings.json',
+      'apps/forge/.mcp.json.example',
+    ];
+    expect(agentConfigPathsAmong(changed, null, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
+    expect(agentConfigPathsAmong(changed, null, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
   });
 });
 
@@ -334,6 +387,15 @@ describeWhenGitIsRecorded('V17: a branch changes only its project and its reach'
     expect(factsOf('V17', builderWithScope(exampleProjectWithFeature, 'main'))).toBeNull();
     expect(factsOf('V17', builderWithScope({ projectPrefix: 'apps/example', reach: [] }, 'main'))).toEqual(['feature.ts']);
     expect(factsOf('V17', builderWithScope(exampleProjectWithFeature)), 'with no target every path in range counts').toEqual(['example-constitution.md']);
+  });
+
+  test('a job of an entity is held to its homes and reach, judged on its own changes past the target, and the root entity owns the file', () => {
+    enter(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED);
+    const exampleStage: WritableFolders = { homes: ['/apps/example'], reach: [], otherHomes: ['/'] };
+
+    expect(factsOf('V17', builderWithScope({ ...ROOT_SCOPE, writableFolders: exampleStage }, 'main'))).toEqual(['feature.ts']);
+    expect(factsOf('V17', builderWithScope({ ...ROOT_SCOPE, writableFolders: { ...exampleStage, reach: ['/feature.ts'] } }, 'main'))).toBeNull();
+    expect(factsOf('V17', builderWithScope({ ...ROOT_SCOPE, writableFolders: { homes: ['/'], reach: [], otherHomes: ['/apps/example'] } }, 'main'))).toBeNull();
   });
 
   test('the branch\'s own change after the merge refuses, and the same branch passes a tracker at the root', () => {

@@ -1558,11 +1558,20 @@ must pass. A builder ends by reporting; it never edits its ticket file.
 [Customs](glossary.md#customs) verifies the report, the gates run, and when they pass the Overseer replaces the ticket's
 `## Handoff` with the report's handoff and Acceptance evidence and moves the ticket `in-review`.
 
+On a forge with entities, Customs protects `.claude/`, `.mcp.json` and `<data>/` at the repository root and in every
+entity home. A job of an entity installs with its entity's prepare steps, runs its entity's gates from the entity's
+first home and stamps that entity's phase hash. Its session is told these gates, and Customs V15 holds it to them. A
+gate's `definedBy` pattern without a leading `/` names a file of the entity's first home. The job may change only its
+entity's homes and `reach`: a path that a deeper home of another entity holds is that entity's, and the root entity
+owns every path that no other home holds. Customs V17 refuses any other change and sends the session back on a red
+handoff, whose `gate-failure.md` names each path to take out. A job carries on only a session of its own entity and
+stage. A job without an entity keeps the checks it always had.
+
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
 | worktree creation, the install line or a gating prepare step fails, or a gating prepare step changes a tracked file | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |
 | the session exits without a valid report, the report says `cannot-build`, a commit carries an attribution trailer, or Customs refuses for any reason the next row does not name | a [failed pass](glossary.md#failed-pass), `job-ended` `failed` with its cause; an attribution trailer also shows the `attribution-found` notice, and a V13 refusal also opens the `branch-touches-agent-config` decision | none: the next attempt is automatic, up to the bound; answer the decision where one opened |
-| a gate fails, Customs refuses V3 (no commit), V4 (a dirty worktree) or V15 (missing or stale gate claims), or a session working off a red handoff spends its call budget and grace | a [red handoff](glossary.md#red-handoff): the same session resumes on `gate-failure.md`, the red-handoff note, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, then the ticket parks `parked:red-resumes-spent` with a `parked` decision | `ticket unhold` for a fresh attempt |
+| a gate fails, Customs refuses V3 (no commit), V4 (a dirty worktree), V15 (missing or stale gate claims) or, for a job of an entity, V17 (a change outside its entity's homes and reach), or a session working off a red handoff spends its call budget and grace | a [red handoff](glossary.md#red-handoff): the same session resumes on `gate-failure.md`, the red-handoff note, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, then the ticket parks `parked:red-resumes-spent` with a `parked` decision | `ticket unhold` for a fresh attempt |
 | the report says `blocked` | incident `blocked`; the job ends `blocked` | `job fresh`, `worktree repair`, `ticket park` |
 | the report says `wound-down`, or a session not working off a red handoff spends its call budget and grace | incident `out-of-calls` | `job fresh`, `ticket park` |
 | a gate exits 126 or 127, or a signal kills it | incident `gate-cannot-run`; the job ends `stopped` | `gate retry`, `worktree repair`, `ticket park` |

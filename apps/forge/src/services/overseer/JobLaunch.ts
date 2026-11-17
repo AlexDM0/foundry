@@ -32,13 +32,19 @@ import type {
   JobKind,
   JobState
 } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord, LogRecordFieldsOf }                                                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline, PipelineGate, PipelineStep }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { LogRecord, LogRecordFieldsOf } from '../../lib/tracker-model/@types/LogRecord.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineGate,
+  PipelineStep
+} from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
 import { GATE_CACHE_REPORTS }                                                                     from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
+import { EntityOwnershipUtil, type PipelineEntities }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
@@ -49,6 +55,8 @@ import { WorktreesFolder }                                                      
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
 import { LIFECYCLE_LIMITS }                                                                       from '../../shared/constants/LifecycleLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS, WIND_DOWN_GRACE_CALLS } from '../../shared/constants/OverseerLimits.ts';
+import { EntityFoldersUtil }                                                                      from '../../shared/utils/EntityFoldersUtil.ts';
+import { ProjectPathsUtil }                                                                       from '../../shared/utils/ProjectPathsUtil.ts';
 import {
   agentConfigTouchedBeforeLaunch,
   type CustomsSubject,
@@ -59,7 +67,10 @@ import {
   refMovesAllowedOf,
   retriedFailedBuildJobIdOf,
   sharedRepositoryRefsOf,
+  type CustomsVerdict,
+  type VerificationCheck,
   watchedRefsOf,
+  type WritableFolders,
   CUSTOMS_CHECKS,
   clearCustoms
 } from '../lifecycle/Customs.ts';
@@ -394,9 +405,96 @@ function projectLocationOfContext(context: Pick<JobLaunchContext, 'workspace'>):
   return projectLocationOf(context.workspace.rootDirectory);
 }
 
-/** Absent for a tracker at its repository's root, so its subject, and every git call Customs makes for it, stays as it always was. */
-function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null): ProjectScope | null {
-  return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
+const REPOSITORY_ROOT_FOLDER = '/';
+
+/** Every entity's home; none on a pipeline without entities. */
+function entityHomesOf(pipeline: Readonly<Pipeline> | null): string[] {
+  return Object.values(pipeline?.entities ?? {}).flatMap((entity) => entity.home);
+}
+
+/** What a job of `entityKey` may change: its homes, with the repository root for the root entity, and its `reach`. */
+function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey): WritableFolders {
+  const entity = Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+  const rootFolders = entityKey === EntityOwnershipUtil.rootEntityKeyOf(entities) ? [REPOSITORY_ROOT_FOLDER] : [];
+  return {
+    homes:      [...rootFolders, ...entity?.home ?? []],
+    reach:      entity?.reach ?? [],
+    otherHomes: Object.entries(entities).flatMap(([otherKey, other]) => (otherKey === entityKey ? [] : other.home)),
+  };
+}
+
+/**
+ * Absent for a tracker at its repository's root whose pipeline has no entities, so its subject, and every git call Customs makes for it,
+ * stays as it always was. On a pipeline with entities it names every entity home, and for a job of an entity what the job may change.
+ */
+function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity'>>): ProjectScope | null {
+  const entities = pipeline?.entities;
+  if (entities === undefined) return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
+  return {
+    projectPrefix,
+    reach:       pipeline?.reach ?? [],
+    entityHomes: entityHomesOf(pipeline),
+    ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity) }),
+  };
+}
+
+/**
+ * A `definedBy` pattern of an entity gate from the repository root: one read from the project's folder is read from the entity's first home,
+ * and one without an inner `/` still names its file at any depth below that home.
+ */
+function rootedDefinitionPatternOf(firstHome: string, pattern: string): string {
+  const homeFolder = EntityOwnershipUtil.homeFolderOf(firstHome).replace(/^\/+/u, '');
+  if (homeFolder === '' || pattern.startsWith(REPOSITORY_ROOT_FOLDER)) return pattern;
+  const namesAnyDepth = !pattern.replace(/\/+$/u, '').includes(REPOSITORY_ROOT_FOLDER);
+  return `${REPOSITORY_ROOT_FOLDER}${homeFolder}${REPOSITORY_ROOT_FOLDER}${namesAnyDepth ? '**/' : ''}${pattern}`;
+}
+
+function entityGateOf(gate: Readonly<PipelineGate>, firstHome: string): PipelineGate {
+  const rootedGate = EntityFoldersUtil.rootedGateOf(gate, firstHome);
+  if (gate.definedBy === undefined) return rootedGate;
+  return { ...rootedGate, definedBy: gate.definedBy.map((pattern) => rootedDefinitionPatternOf(firstHome, pattern)) };
+}
+
+/**
+ * The prepare steps and gates a job runs: its entity's on a pipeline with entities, each folder and `definedBy` pattern read from the entity's
+ * first home; the pipeline's own for a job without an entity. `null` when the pipeline no longer holds the job's entity, so none of its gates
+ * can run.
+ */
+function stepsPipelineOf(pipeline: Readonly<Pipeline>, job: Readonly<Pick<Job, 'entity'>>): Readonly<Pipeline> | null {
+  if (job.entity === undefined || pipeline.entities === undefined) return pipeline;
+  const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, job.entity);
+  if (entityPipeline === null) return null;
+  const firstHome = (Object.hasOwn(pipeline.entities, job.entity) ? pipeline.entities[job.entity]?.home[0] : undefined) ?? REPOSITORY_ROOT_FOLDER;
+  return {
+    ...entityPipeline,
+    prepare: EntityFoldersUtil.rootedStepsOf(entityPipeline.prepare, firstHome),
+    gates:   entityPipeline.gates.map((gate) => entityGateOf(gate, firstHome)),
+  };
+}
+
+/**
+ * The gates a job's session is told, the ones Customs judges it by; none once the pipeline no longer holds the job's entity. An entity gate's
+ * folder is given back from the project's folder, the repository root of a forge with entities, as a session reads it.
+ */
+function sessionGatesOf(pipeline: Readonly<Pipeline>, job: Readonly<Pick<Job, 'entity'>>): readonly Readonly<PipelineGate>[] {
+  if (job.entity === undefined || pipeline.entities === undefined) return pipeline.gates;
+  return (stepsPipelineOf(pipeline, job)?.gates ?? []).map((gate) => {
+    const projectFolder = ProjectPathsUtil.toRepositoryPath('', gate.in ?? '');
+    const sessionGate: PipelineGate = { ...gate };
+    delete sessionGate.in;
+    return projectFolder === '' ? sessionGate : { ...sessionGate, in: projectFolder };
+  });
+}
+
+/** The prepare steps that install the job's worktree; none without a pipeline or once the pipeline no longer holds the job's entity. */
+function installStepsOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'entity'>>): readonly PipelineStep[] {
+  return pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.prepare ?? [];
+}
+
+/** What a run of the job's gates records: on a pipeline with entities, the phase hash of the job's entity beside the forge's own. */
+function jobGateRunStampOf(pipeline: Readonly<Pipeline>, job: Readonly<Pick<Job, 'entity'>>, phase: GatePhase): GateRunStamp {
+  if (job.entity === undefined || pipeline.entities === undefined) return PipelineUtil.gateRunStampOf(pipeline, phase);
+  return PipelineUtil.entitiesGateRunStampOf(pipeline, phase, [job.entity]);
 }
 
 function branchOf(context: Pick<JobLaunchContext, 'branchNames'>, job: Readonly<Job>): string {
@@ -497,8 +595,11 @@ function gateRunManifestFileOf(place: GateRunPlace): string {
   return `${place.folderPrefix}${GATE_RUN_MANIFEST_NAME}${instanceSuffixOf(place.watcherInstance)}${GATE_RUN_MANIFEST_EXTENSION}`;
 }
 
-function manifestOf(pipeline: Readonly<Pipeline>, phase: GatePhase): GateRunManifest {
-  return { ...PipelineUtil.gateRunStampOf(pipeline, phase), prepare: [...pipeline.prepare], gates: PipelineUtil.gatesOfPhase(pipeline, phase) };
+/** `null` when the pipeline no longer holds the job's entity. */
+function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: GatePhase): GateRunManifest | null {
+  const stepsPipeline = stepsPipelineOf(pipeline, job);
+  if (stepsPipeline === null) return null;
+  return { ...jobGateRunStampOf(pipeline, job, phase), prepare: [...stepsPipeline.prepare], gates: PipelineUtil.gatesOfPhase(stepsPipeline, phase) };
 }
 
 function isNamedLine(value: unknown): boolean {
@@ -518,16 +619,23 @@ function isStoredGate(value: unknown): boolean {
     && (overseerOnly === undefined || overseerOnly === true);
 }
 
+function isAbsentOrTextRecord(value: unknown): boolean {
+  return value === undefined || (typeof value === 'object' && value !== null && !Array.isArray(value)
+    && Object.values(value).every((entry) => typeof entry === 'string'));
+}
+
 function isGateRunManifestOf(value: unknown, phase: GatePhase): value is GateRunManifest {
   const prepare = reportFieldOf(value, 'prepare');
   const gates   = reportFieldOf(value, 'gates');
   return reportFieldOf(value, 'phase') === phase && typeof reportFieldOf(value, 'phaseHash') === 'string'
+    && isAbsentOrTextRecord(reportFieldOf(value, 'entityPhaseHashes'))
     && Array.isArray(prepare) && prepare.every(isNamedLine) && Array.isArray(gates) && gates.every(isStoredGate);
 }
 
 /**
  * The run's manifest. A run with none has not started: the manifest is written atomically from `pipeline` before its first step runs, and
- * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced.
+ * never rewritten, so every later read of the run reads the same steps. One that cannot be read is never replaced; one that cannot be
+ * written, since the pipeline no longer holds the job's entity, reads as unreadable.
  */
 function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>): GateRunManifest | 'unreadable' {
   const manifestPath = join(jobFolderOf(context.workspace, job), gateRunManifestFileOf(place));
@@ -535,7 +643,8 @@ function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place:
     const stored = readJsonFile<unknown>(manifestPath);
     return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
   }
-  const manifest = manifestOf(pipeline, place.phase);
+  const manifest = manifestOf(pipeline, job, place.phase);
+  if (manifest === null) return 'unreadable';
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;
@@ -690,7 +799,7 @@ function gateRunProgressOf(
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
   return jobs.filter(isWorktreeJob).map((job) => {
     const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
-    const setup = job.state === 'preparing' ? setupProgressOf(context, job, pipeline?.prepare ?? []) : 'installed';
+    const setup = job.state === 'preparing' ? setupProgressOf(context, job, installStepsOf(pipeline, job)) : 'installed';
     return {
       jobId:            job.id,
       setup,
@@ -926,7 +1035,8 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
   const retriedStart = retriedJobId === null ? null : readJobStart(WatcherFleet.jobFolderOf(hold.context.workspace.trackerDirectory, retriedJobId));
   const { projectPrefix } = projectLocationOfContext(hold.context);
-  const projectScope = projectScopeOf(projectPrefix, board.pipeline());
+  const pipeline = board.pipeline();
+  const projectScope = projectScopeOf(projectPrefix, pipeline, job);
   const subject: CustomsSubject = {
     role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
     worktreePath:     worktreeOf(hold.context.workspace, job),
@@ -939,8 +1049,8 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     logRecords:       board.logRecordsSoFar(),
     launchSnapshot:   start.launchSnapshot,
     refMovesAllowed:  refMovesAllowedFor(hold.context, board, job),
-    gates:            board.pipeline()?.gates ?? [],
-    instructionFiles: InstructionFiles.trackedInstructionPathsOf(board.pipeline(), projectPrefix),
+    gates:            pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.gates ?? [],
+    instructionFiles: InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
     target:           job.target ?? hold.context.mainLine,
     pathStyle:        hold.context.platformPorts.dataFolders,
     ...(projectScope === null ? {} : { projectScope }),
@@ -967,9 +1077,9 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   }
   const verdict = clearCustoms(subject);
   if (verdict.verdict === 'refused') {
-    if (RESUMABLE_CUSTOMS_CHECKS.includes(verdict.check)) {
+    if (resumableCustomsChecksOf(job).includes(verdict.check)) {
       interruptOnRedHandoff(hold, job, {
-        kind: 'customs', name: verdict.check, command: null, fixCommand: null, exitCode: null, fullLogPath: null, output: verdict.reason
+        kind: 'customs', name: verdict.check, command: null, fixCommand: null, exitCode: null, fullLogPath: null, output: customsOutputOf(verdict)
       });
       return;
     }
@@ -1026,14 +1136,17 @@ function agentConfigHitIsSettled(board: Board, ticketId: string): boolean {
 
 /**
  * V13 before every launch on a branch, resumes included: the tickets of live worktree jobs whose branch past its target, or whose worktree,
- * changes agent configuration, and those with the decision still open. Read outside the lock.
+ * changes agent configuration, and those with the decision still open. On a pipeline with entities, every entity home is protected too.
+ * Read outside the lock.
  */
-function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[]): string[] {
+function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null = null): string[] {
   const { projectPrefix } = projectLocationOfContext(context);
+  const entityHomes = entityHomesOf(pipeline);
   return jobs.filter(isWorktreeJob).filter((job) => {
     const worktree = worktreeOf(context.workspace, job);
     if (!existsSync(worktree)) return false;
-    return agentConfigTouchedBeforeLaunch(worktree, job.target ?? context.mainLine, context.platformPorts.dataFolders, projectPrefix).verdict === 'refused';
+    const target = job.target ?? context.mainLine;
+    return agentConfigTouchedBeforeLaunch(worktree, target, context.platformPorts.dataFolders, projectPrefix, entityHomes).verdict === 'refused';
   }).map(ticketIdOf);
 }
 
@@ -1097,7 +1210,20 @@ function redHandoffCauseOf(context: Pick<JobLaunchContext, 'workspace'>, job: Re
 }
 
 /** The Customs checks a resumed session can put right in its own worktree: a dirty worktree, no commit, missing or stale gate claims. */
-const RESUMABLE_CUSTOMS_CHECKS: readonly string[] = ['V3', 'V4', 'V15'];
+const RESUMABLE_CUSTOMS_CHECKS: readonly VerificationCheck[] = ['V3', 'V4', 'V15'];
+
+/** V17, the scope check: a job of an entity is resumed to take a change outside its stage's folders back out (E11). */
+const SCOPE_CHECK: VerificationCheck = 'V17';
+
+/** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */
+function resumableCustomsChecksOf(job: Readonly<Pick<Job, 'entity'>>): readonly VerificationCheck[] {
+  return job.entity === undefined ? RESUMABLE_CUSTOMS_CHECKS : [...RESUMABLE_CUSTOMS_CHECKS, SCOPE_CHECK];
+}
+
+/** A refused scope check names the paths to take back out after its reason; every other check's output stays its reason. */
+function customsOutputOf(verdict: Readonly<Extract<CustomsVerdict, { verdict: 'refused' }>>): string {
+  return verdict.check === SCOPE_CHECK ? [verdict.reason, ...verdict.facts].join('\n') : verdict.reason;
+}
 
 /** The phase whose gates judge a job's worktree: a review job's are the review phase's, a build job's the build phase's. */
 function gatePhaseOfJob(job: Readonly<Job>): GatePhase {
@@ -1185,7 +1311,9 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     return;
   }
   // A run stamps the manifest it ran under; a review that ran nothing keeps the green the hold just found current.
-  if (!settleJudgedGate(hold, job, gate, gate.ran ? gate.manifest : board.gateRunStampOf(phase))) return;
+  const pipeline = board.pipeline();
+  const keptStamp = pipeline === null ? null : jobGateRunStampOf(pipeline, job, phase);
+  if (!settleJudgedGate(hold, job, gate, gate.ran ? gate.manifest : keptStamp)) return;
   const headCommit = String(reportFieldOf(observation.report, 'headCommit'));
   if (job.kind === REVIEW_JOB_KIND) {
     if (reviewPassIsSettled(board, job)) {
@@ -1818,7 +1946,7 @@ function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: 
 
 /** After the hold: what a prepared review job's catch-up asks of git and the Watchers, read afresh like a gate step. */
 function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
-  if (job.kind !== REVIEW_JOB_KIND || setupProgressOf(context, job, pipeline.prepare) !== 'installed') return;
+  if (job.kind !== REVIEW_JOB_KIND || setupProgressOf(context, job, installStepsOf(pipeline, job)) !== 'installed') return;
   const catchUp = targetCatchUpOf(context, job, pipeline);
   const jobFolder = jobFolderOf(context.workspace, job);
   const recordPath = join(jobFolder, JOB_FILES.targetMerge);
@@ -1958,11 +2086,16 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
   }
 }
 
-/** Spawns the first prepare step whose Watcher was never claimed, once every step before it exited 0; a running or failed step spawns none. */
+/**
+ * Spawns the first prepare step whose Watcher was never claimed, once every step before it exited 0; a running or failed step spawns none.
+ * A job of an entity installs with its entity's prepare steps.
+ */
 function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
   const jobFolder = jobFolderOf(context.workspace, job);
-  const confinement = GateRun.prepareConfinementOf(pipeline.gates);
-  for (const [stepIndex, step] of pipeline.prepare.entries()) {
+  const stepsPipeline = stepsPipelineOf(pipeline, job);
+  if (stepsPipeline === null) return;
+  const confinement = GateRun.prepareConfinementOf(stepsPipeline.gates);
+  for (const [stepIndex, step] of stepsPipeline.prepare.entries()) {
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
     const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
     if (liveness.verdict === 'unclaimed') {
@@ -2085,6 +2218,7 @@ export const JobLaunch = Object.freeze({
   treeStopAtEndOf,
   ticketIdsTouchingAgentConfigOf,
   holdAgentConfigHits,
+  sessionGatesOf,
   sessionReadingOf,
   callBudgetOf,
   bodyWithHandoffOf,

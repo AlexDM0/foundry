@@ -2,7 +2,8 @@
  * The model and effort each role's session launches on. What matters: every role reads its own pipeline step and falls back field by field
  * to its default, the pipeline agent defaulting to opus and high; every value of both vocabularies reaches the launch unchanged; and an
  * Airlock agent takes the pair its last worker recorded, its own role's only when none was recorded, while a conflict re-reviewer reads its
- * own step. That a resume keeps the recorded pair is held by `cli/overseer/OverseerBuildJob.spec.ts`.
+ * own step. A job of an entity reads its entity's step, and the forge's for the roles a forge sets once; a job of an entity the pipeline
+ * no longer holds takes its role's default. That a resume keeps the recorded pair is held by `cli/overseer/OverseerBuildJob.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -91,5 +92,29 @@ describe('an Airlock agent', () => {
   test('as a conflict re-reviewer reads its own step, never its last worker\'s pair', () => {
     expect(LaunchSettings.launchSettingsOf(PIPELINE_WITH_EVERY_STEP, { kind: 'merge-agent', role: 'conflict-re-reviewer' }, LAST_WORKER_SETTINGS))
       .toEqual({ model: 'haiku', effort: 'xhigh' });
+  });
+});
+
+describe('a job of an entity', () => {
+  const PIPELINE_WITH_ENTITIES: Pipeline = {
+    ...pipelineWith({ productOwner: { model: 'sonnet', effort: 'low' }, builder: { model: 'fable', effort: 'max' } }),
+    entities: {
+      'example-app': {
+        kind: 'app', home: ['/apps/example'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, agents: { builder: { model: 'haiku', effort: 'high' } }
+      },
+    },
+  };
+
+  test('launches on its entity\'s step, not the forge\'s', () => {
+    expect(LaunchSettings.launchSettingsOf(PIPELINE_WITH_ENTITIES, { kind: 'build', role: 'builder', entity: 'example-app' }, null)).toEqual({ model: 'haiku', effort: 'high' });
+  });
+
+  test('reads the forge\'s step for a role the forge sets once', () => {
+    expect(LaunchSettings.launchSettingsOf(PIPELINE_WITH_ENTITIES, { kind: 'product-owner', role: 'product-owner', entity: 'example-app' }, null))
+      .toEqual({ model: 'sonnet', effort: 'low' });
+  });
+
+  test('of an entity the pipeline no longer holds takes its role\'s default', () => {
+    expect(LaunchSettings.launchSettingsOf(PIPELINE_WITH_ENTITIES, { kind: 'build', role: 'builder', entity: 'retired' }, null)).toEqual({ model: 'opus', effort: 'medium' });
   });
 });

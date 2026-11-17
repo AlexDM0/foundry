@@ -456,7 +456,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
   const answeredWaiverTrees = JobLaunch.answeredWaiverTreesOf(jobLaunchContext, jobs, progress.decisions ?? []);
-  const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs);
+  const ticketIdsTouchingAgentConfig = JobLaunch.ticketIdsTouchingAgentConfigOf(jobLaunchContext, jobs, pipeline);
   const usageMarker = UsageMarkerFile.read(request.monitorFolder);
   if (usageMarker.verdict === 'malformed') {
     request.log(`The usage marker ${UsageMarkerFile.pathIn(request.monitorFolder)} is malformed (${usageMarker.reason}); no limit is held by it.`);
@@ -753,8 +753,9 @@ function launchFactsOf(
 ): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
   const { instructions, airlock, place } = launch;
-  const storedGates = board.pipeline()?.gates ?? null;
-  const gates = storedGates === null ? null : SessionPlaces.gatesFromStartOf(place, storedGates);
+  const pipeline = board.pipeline();
+  const jobGates = pipeline === null ? null : JobLaunch.sessionGatesOf(pipeline, job);
+  const gates = jobGates === null ? null : SessionPlaces.gatesFromStartOf(place, jobGates);
   return {
     instructions,
     confinement: sessionConfinementOf(request.platformPorts),

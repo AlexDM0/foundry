@@ -25,6 +25,7 @@ import { GitArgumentsUtil }                                                     
 import type { JobOutcome }                                                            from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                                             from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil }                                                        from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketBodyHashUtil }                                                         from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                                              from '../../shared/constants/ProductNames.ts';
@@ -121,14 +122,31 @@ export interface SharedRepositoryRefs {
 const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], watchedRefs: null };
 
 /**
+ * What a job of an entity may change (E2, E11). A path belongs to the deepest home that holds it, so a path that a deeper home of another
+ * entity holds is that entity's, though one of `homes` holds it too. A `reach` path stays writable inside another entity's home.
+ */
+export interface WritableFolders {
+  /** The stage entity's homes, repository folders leading with `/`; `/` among them for the root entity, which owns every path no home holds. */
+  homes:      readonly string[];
+  /** The stage entity's `reach`: repository paths outside its homes, each leading with `/`. */
+  reach:      readonly string[];
+  /** The homes of every other entity of the pipeline. */
+  otherHomes: readonly string[];
+}
+
+/**
  * Where the tracker's project lies in its repository, and what a branch may change besides it. With the prefix `''` the whole repository
- * is the project, and every check judges it as it always has.
+ * is the project, and every check judges it as it always has, unless the pipeline has entities.
  */
 export interface ProjectScope {
   /** `ProjectLocation.projectPrefix`: the project's folder from the repository root, `/`-separated, `''` at the root. */
-  projectPrefix: string;
+  projectPrefix:    string;
   /** The pipeline's `reach`: the repository paths besides the project a branch may change, each leading with `/`. */
-  reach:         readonly string[];
+  reach:            readonly string[];
+  /** On a pipeline with entities: every entity's home, leading with `/`. V5 and V13 protect each of them as they protect the root. */
+  entityHomes?:     readonly string[];
+  /** A job of an entity: V17 holds its branch to these folders, in place of the project's folder and `reach`. */
+  writableFolders?: WritableFolders;
 }
 
 /** How the Overseer names the refs around its landings, which the log records only by ticket and target. */
@@ -183,7 +201,10 @@ export interface CustomsSubject {
   refMovesAllowed?:  RefMovesAllowed;
   /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
   pathStyle?:        GitPathStyle;
-  /** V5, V11, V13 and V17; absent for a tracker at its repository's root. `worktreePath` is the worktree's root either way. */
+  /**
+   * V5, V11, V13 and V17; absent for a tracker at its repository's root whose pipeline has no entities. `worktreePath` is the worktree's
+   * root either way.
+   */
   projectScope?:     ProjectScope;
 }
 
@@ -209,6 +230,15 @@ const GIT_SEPARATOR = '/';
 
 function projectPrefixOf(subject: Pick<CustomsSubject, 'projectScope'>): string {
   return subject.projectScope?.projectPrefix ?? '';
+}
+
+function entityHomesOf(subject: Pick<CustomsSubject, 'projectScope'>): readonly string[] {
+  return subject.projectScope?.entityHomes ?? [];
+}
+
+/** Each entity home as a git path in its protected form, without its leading and trailing `/`; a home at the root is left out, as `''`. */
+function protectedHomeFoldersOf(entityHomes: readonly string[]): string[] {
+  return entityHomes.map((home) => protectedFormOf(EntityOwnershipUtil.homeFolderOf(home).replace(/^\/+/u, ''))).filter((home) => home !== '');
 }
 
 const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
@@ -335,21 +365,24 @@ function worktreeIsClean(subject: CustomsSubject): CheckVerdict {
 }
 
 /**
- * The git paths among `gitPaths` in a data folder: at the root for a tracker at the root, as always; at any depth for a project tracker,
- * whose own data folder and every sibling's lie below the root.
+ * The git paths among `gitPaths` in a data folder: at the root for a tracker at the root, as always, and directly in each of `entityHomes`
+ * on a pipeline with entities; at any depth for a project tracker, whose own data folder and every sibling's lie below the root.
  */
-export function dataFolderPathsAmong(gitPaths: readonly string[], projectPrefix: string): string[] {
+export function dataFolderPathsAmong(gitPaths: readonly string[], projectPrefix: string, entityHomes: readonly string[] = []): string[] {
   const dataFolder = protectedFormOf(PRODUCT_NAMES.DATA_FOLDER);
+  const homeDataFolders = protectedHomeFoldersOf(entityHomes).map((home) => `${home}${GIT_SEPARATOR}${dataFolder}${GIT_SEPARATOR}`);
   return gitPaths.filter((gitPath) => {
-    const segments = protectedFormOf(gitPath).split(GIT_SEPARATOR);
-    return projectPrefix === '' ? segments[0] === dataFolder : segments.includes(dataFolder);
+    const protectedForm = protectedFormOf(gitPath);
+    const segments = protectedForm.split(GIT_SEPARATOR);
+    if (projectPrefix !== '') return segments.includes(dataFolder);
+    return segments[0] === dataFolder || homeDataFolders.some((homeDataFolder) => protectedForm.startsWith(homeDataFolder));
   });
 }
 
 function dataFolderUntouched(subject: CustomsSubject): CheckVerdict {
   const paths = pathsChangedInRange(subject);
   if (paths === null) return refused('git-failed', [rangeOf(subject)]);
-  const touched = dataFolderPathsAmong(paths, projectPrefixOf(subject));
+  const touched = dataFolderPathsAmong(paths, projectPrefixOf(subject), entityHomesOf(subject));
   return touched.length === 0 ? PASSED : refused('data-folder-touched', touched);
 }
 
@@ -511,16 +544,38 @@ export function pathsOutsideHomeAndReachOf(gitPaths: readonly string[], projectS
   return gitPaths.filter((gitPath) => !allowedPaths.some((allowed) => gitPath === allowed || gitPath.startsWith(`${allowed}${GIT_SEPARATOR}`)));
 }
 
+/** The length of the deepest of `folders` that holds `repositoryPath`, or the path itself; `-1` when none does. */
+function deepestFolderHolding(folders: readonly string[], repositoryPath: string): number {
+  return folders.map(EntityOwnershipUtil.homeFolderOf)
+    .filter((folder) => repositoryPath === folder || repositoryPath.startsWith(`${folder}${GIT_SEPARATOR}`))
+    .reduce((deepest, folder) => Math.max(deepest, folder.length), -1);
+}
+
+/**
+ * The git paths among `gitPaths` that a job of an entity may not change: outside its `reach`, and outside its homes or held by a deeper home
+ * of another entity.
+ */
+export function pathsOutsideWritableFoldersOf(gitPaths: readonly string[], writableFolders: WritableFolders): string[] {
+  return gitPaths.filter((gitPath) => {
+    const repositoryPath = `${REPOSITORY_ROOT_MARKER}${gitPath}`;
+    if (deepestFolderHolding(writableFolders.reach, repositoryPath) >= 0) return false;
+    const ownHomeDepth = deepestFolderHolding(writableFolders.homes, repositoryPath);
+    return ownHomeDepth < 0 || deepestFolderHolding(writableFolders.otherHomes, repositoryPath) > ownHomeDepth;
+  });
+}
+
 /**
  * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
- * tracker at the root asks git nothing here.
+ * tracker at the root asks git nothing here, unless the job is a job of an entity.
  */
 function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const { projectScope } = subject;
-  if (projectScope === undefined || projectScope.projectPrefix === '') return PASSED;
+  if (projectScope === undefined) return PASSED;
+  const { writableFolders } = projectScope;
+  if (writableFolders === undefined && projectScope.projectPrefix === '') return PASSED;
   const paths = subject.target === undefined ? pathsChangedInRange(subject) : pathsTheBranchChangedPast(subject, subject.target);
   if (paths === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
-  const outside = pathsOutsideHomeAndReachOf(paths, projectScope);
+  const outside = writableFolders === undefined ? pathsOutsideHomeAndReachOf(paths, projectScope) : pathsOutsideWritableFoldersOf(paths, writableFolders);
   return outside.length === 0 ? PASSED : refused('changed-outside-home-and-reach', outside);
 }
 
@@ -629,16 +684,26 @@ function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
   }
 }
 
+/** The agent configuration directly in an entity home, as the root's patterns name it there; lower case, matched against a protected form. */
+function agentConfigInAnEntityHome(protectedForm: string, protectedHomeFolders: readonly string[]): boolean {
+  return protectedHomeFolders.some((home) => {
+    const inHome = protectedForm.startsWith(`${home}${GIT_SEPARATOR}`) ? protectedForm.slice(home.length + 1) : null;
+    return inHome !== null && AGENT_CONFIG_PATTERNS_AT_THE_ROOT.some((pattern) => pattern.test(inHome));
+  });
+}
+
 /**
  * The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case
- * matches. The first two are protected at the root for a tracker at the root, as always, and at any depth for a project tracker.
+ * matches. The first two are protected at the root for a tracker at the root, as always, and also in each of `entityHomes` on a pipeline
+ * with entities; at any depth for a project tracker.
  */
-export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null, projectPrefix = ''): string[] {
+export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null, projectPrefix = '', entityHomes: readonly string[] = []): string[] {
   const hooksFolder = hooksFolderGitPath === null ? null : protectedFormOf(hooksFolderGitPath);
   const patterns = projectPrefix === '' ? AGENT_CONFIG_PATTERNS_AT_THE_ROOT : AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH;
+  const protectedHomeFolders = projectPrefix === '' ? protectedHomeFoldersOf(entityHomes) : [];
   return gitPaths.filter((gitPath) => {
     const protectedForm = protectedFormOf(gitPath);
-    if (patterns.some((pattern) => pattern.test(protectedForm))) return true;
+    if (patterns.some((pattern) => pattern.test(protectedForm)) || agentConfigInAnEntityHome(protectedForm, protectedHomeFolders)) return true;
     return hooksFolder !== null && (protectedForm === hooksFolder || protectedForm.startsWith(`${hooksFolder}/`));
   });
 }
@@ -647,18 +712,21 @@ export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGi
 function agentConfigPathsTouched(
   style: GitPathStyle,
   worktreePath: string,
-  since: { commit: string; projectPrefix: string; merge?: MergeUnderVerification | undefined }
+  since: { commit: string; projectPrefix: string; entityHomes: readonly string[]; merge?: MergeUnderVerification | undefined }
 ): string[] | null {
   const paths = pathsChangedInRange({ worktreePath, startCommit: since.commit, ...(since.merge === undefined ? {} : { merge: since.merge }) });
   const status = gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
   if (paths === null || status === null) return null;
   const worktreePaths = status.map((entry) => entry.slice('XY '.length));
-  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolderInsideWorktree(style, worktreePath), since.projectPrefix).sort();
+  const hooksFolder = hooksFolderInsideWorktree(style, worktreePath);
+  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolder, since.projectPrefix, since.entityHomes).sort();
 }
 
 function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
   const style = subject.pathStyle ?? HOST_PATH_STYLE;
-  const touched = agentConfigPathsTouched(style, subject.worktreePath, { commit: subject.startCommit, projectPrefix: projectPrefixOf(subject), merge: subject.merge });
+  const touched = agentConfigPathsTouched(style, subject.worktreePath, {
+    commit: subject.startCommit, projectPrefix: projectPrefixOf(subject), entityHomes: entityHomesOf(subject), merge: subject.merge
+  });
   if (touched === null) return refused('git-failed', [rangeOf(subject)]);
   const hooksFolderReading = subject.launchSnapshot === undefined || hooksFolderInsideWorktree(style, subject.worktreePath) !== null
     ? null
@@ -851,11 +919,16 @@ export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly Verification
   'pipeline-agent': ['V16', 'V4', 'V5', 'V13', 'V14'],
 };
 
-/** V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. */
-export function agentConfigTouchedBeforeLaunch(worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE, projectPrefix = ''): CheckVerdict {
+/**
+ * V13 before a launch on the branch, resumes included: the branch's own commits past its target, and the worktree as it stands. On a
+ * pipeline with entities, `entityHomes` names every entity home.
+ */
+export function agentConfigTouchedBeforeLaunch(
+  worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE, projectPrefix = '', entityHomes: readonly string[] = []
+): CheckVerdict {
   const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
   if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
-  const touched = agentConfigPathsTouched(style, worktreePath, { commit: base.standardOutput.trim(), projectPrefix });
+  const touched = agentConfigPathsTouched(style, worktreePath, { commit: base.standardOutput.trim(), projectPrefix, entityHomes });
   if (touched === null) return refused('git-failed', [target]);
   return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
 }

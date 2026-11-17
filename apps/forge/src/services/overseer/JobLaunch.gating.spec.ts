@@ -7,7 +7,9 @@
  * pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and the settlement
  * stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first gate's red.
  * Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version 1's words,
- * or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase.
+ * or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase. A job of an entity installs
+ * with its entity's prepare steps and runs its entity's gates, each folder read from the entity's first home, under a stamp that names
+ * the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates.
  * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
@@ -434,5 +436,70 @@ describe('a gate\'s cache report', () => {
     expect(records.find((record) => record.kind === 'gate-ran')?.fields).toEqual({
       tree: EXAMPLE_TREE, outcome: 'passed', cached: false, cacheReports: { phase: 'build', gates: cacheReports }
     });
+  });
+});
+
+/** A forge with entities: the `forge` app installs and gates in its home, one gate at the repository root and one in a folder of the home. */
+const PIPELINE_WITH_ENTITIES: Pipeline = {
+  version:  3,
+  prepare:  [],
+  gates:    [],
+  phases:   { build: [], review: [], merge: [] },
+  entities: {
+    root: {
+      kind: 'root', home: ['/'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    },
+    forge: {
+      kind:    'app',
+      home:    ['/apps/forge/', '/apps/forge-tools'],
+      prepare: [{ name: 'install', run: 'bun install' }],
+      gates:   [{ name: 'tests', run: 'bun test' }, { name: 'workspace-lint', run: 'bun run lint', in: '/' }, { name: 'docs', run: 'bun run docs', in: 'docs' }],
+      phases:  { build: ['tests', 'workspace-lint', 'docs'], review: ['tests'], merge: ['tests'] },
+    },
+  },
+};
+
+describe('a job of an entity', () => {
+  function entityGateOf(scene: GatingScene, entity: string): Promise<unknown> {
+    const job = { ...scene.jobOf('build'), entity, stage: 1 } as Job;
+    return recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.gate));
+  }
+
+  testWhenGitIsRecorded('runs its entity\'s steps and gates from its first home, under a stamp that names its entity\'s phase hash', async () => {
+    const scene = gatingScene();
+    expect(await entityGateOf(scene, 'forge')).toMatchObject({ verdict: 'running', stepIndex: 0 });
+
+    expect(JSON.parse(readFileSync(jobFileOf(scene, 'gate-run.json'), 'utf8'))).toEqual({
+      phase:             'build',
+      phaseHash:         PipelineUtil.phaseHashOf(PIPELINE_WITH_ENTITIES, 'build'),
+      entityPhaseHashes: { forge: PipelineUtil.entityPhaseHashOf(PIPELINE_WITH_ENTITIES, 'forge', 'build') },
+      prepare:           [{ name: 'install', run: 'bun install', in: '/apps/forge' }],
+      gates:             [
+        { name: 'tests', run: 'bun test', in: '/apps/forge' },
+        { name: 'workspace-lint', run: 'bun run lint', in: '/' },
+        { name: 'docs', run: 'bun run docs', in: '/apps/forge/docs' },
+      ],
+    });
+  });
+
+  testWhenGitIsRecorded('installs with its entity\'s prepare steps', async () => {
+    const scene = gatingScene();
+    const job = {
+      ...scene.jobOf('build'), state: 'preparing', entity: 'forge', stage: 1
+    } as Job;
+    const setup = (): Promise<unknown> => recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.setup));
+    expect(await setup()).toBe('installing');
+
+    endStepWatcher(scene, 'install', 0);
+    expect(await setup()).toBe('installed');
+  });
+
+  testWhenGitIsRecorded('of an entity the pipeline no longer holds cannot run its gates, and no manifest is written', async () => {
+    const scene = gatingScene();
+
+    expect(await entityGateOf(scene, 'retired')).toMatchObject({
+      verdict: 'judged', outcome: 'cannot-run', step: 'gate-run.json', manifest: null
+    });
+    expect(existsSync(jobFileOf(scene, 'gate-run.json'))).toBe(false);
   });
 });
