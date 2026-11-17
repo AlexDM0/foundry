@@ -45,13 +45,14 @@ function listOf(items: JsonSchema): JsonSchema {
 /**
  * `blocked` stays for a session that cannot continue at all, with a reason; a question is asked live, so there is no `blockedOn`. `gates`
  * claims each gate the agent ran green and the commit it passed on: never trusted, only held against HEAD before any gate runs.
+ * `needs-declared` ends a stage that declared a need on another entity; its branch and commits stay.
  */
 export const BUILDER_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
   title:   'builder report',
   ...closedObject({
     role:       { const: 'builder' },
-    outcome:    { enum: ['built', 'blocked', 'cannot-build', 'wound-down'] },
+    outcome:    { enum: ['built', 'blocked', 'cannot-build', 'wound-down', 'needs-declared'] },
     headCommit: COMMIT_SHA,
     acceptance: listOf(closedObject({
       item:         ACCEPTANCE_LABEL,

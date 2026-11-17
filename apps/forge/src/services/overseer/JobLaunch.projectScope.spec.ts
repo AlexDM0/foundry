@@ -7,7 +7,8 @@
  * entities, a job of an entity is held to its entity's homes and `reach`, and a change outside them sends its session back on a red
  * handoff to take the change out, where a folder tracker's job fails; that handoff's Baton pass names the paths to take out. A job of an
  * entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds it to exactly those. A job without an
- * entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. The folders are real,
+ * entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. A `needs-declared` report
+ * never reaches the gates: a job of an entity ends with that outcome, a job without one fails as before. The folders are real,
  * with a `.git` folder above the project so its prefix is read from disk; git answers from recorded scenarios.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -100,7 +101,8 @@ interface VerifiedBuild {
 }
 
 /** Hands a build job's built report, claiming `claimedGates` on its head, to the hold, which verifies it. */
-function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, claimedGates: readonly string[] = []): VerifiedBuild {
+function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, claimedGates: readonly string[] = [],
+  outcome: 'built' | 'needs-declared' = 'built'): VerifiedBuild {
   const {
     board, job, ticket, context, trackerDirectory, worktree
   } = launchedBuildOf(place, pipeline, entity);
@@ -117,7 +119,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
     calls:  1,
     report: {
       role:              'builder',
-      outcome:           'built',
+      outcome,
       headCommit,
       acceptance:        [{ item: 'A1', state: 'met', evidence: 'ExamplePage.spec.ts' }],
       alsoFixed:         [],
@@ -251,4 +253,12 @@ testWhenGitIsRecorded('before a launch, a root tracker with entities holds a bra
   const { job, context, worktree } = launchedBuildOf('at the root', pipelineWithEntities(), 'example');
   enterScenario(GIT_SCENARIOS.TICKET_BRANCH_NESTS_AGENT_CONFIG, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
   expect(JobLaunch.ticketIdsTouchingAgentConfigOf(context, [job], pipelineWithEntities())).toEqual(['001']);
+});
+
+testWhenGitIsRecorded('a job of an entity whose report declares needs ends needs-declared and never reaches its gates', () => {
+  expect(verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared').whereTheJobWent).toBe('needs-declared: ');
+});
+
+testWhenGitIsRecorded('a job without an entity whose report declares needs fails as it did before, without a report', () => {
+  expect(verifyBuild('at the root', undefined, undefined, [], 'needs-declared').whereTheJobWent).toBe('failed: no-report');
 });

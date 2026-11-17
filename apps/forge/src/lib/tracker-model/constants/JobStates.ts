@@ -60,6 +60,7 @@ export const JOB_OUTCOMES = [
   'refreshed',
   'committed',
   'wound-down',
+  'needs-declared',
   'failed',
   'blocked',
   'replaced',

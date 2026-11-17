@@ -1,7 +1,8 @@
 /**
  * One table of reports, each with the verdict its schema must give: the validator and the draft-07 document are one source, so the table
  * holds both. The cases that matter are the shapes the design removed or constrained: no `blockedOn`, a `blocked` report needing its
- * reason, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only beside `cannot-resolve`.
+ * reason, a `needs-declared` builder outcome, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only
+ * beside `cannot-resolve`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -47,6 +48,8 @@ const ITEM_NAMED_BY_ITS_TEXT = { ...BUILT, acceptance: [{ item: 'A1. The palette
 const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unknown, valid: boolean]> = [
   ['a built builder report', BUILDER_REPORT_SCHEMA, BUILT, true],
   ['a blocked builder report with its reason', BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'blocked', blockedReason: 'The worktree is gone.' }, true],
+  ['a builder report declaring needs', BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'needs-declared' }, true],
+  ['a builder report with an outcome outside the vocabulary', BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'needs' }, false],
   ['a blocked builder report without a reason', BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'blocked' }, false],
   ['a builder report carrying blockedOn', BUILDER_REPORT_SCHEMA, { ...BUILT, blockedOn: 'Which currency?' }, false],
   ['a builder report with a short head commit', BUILDER_REPORT_SCHEMA, { ...BUILT, headCommit: 'abc123' }, false],

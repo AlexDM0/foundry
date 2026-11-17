@@ -62,6 +62,8 @@ export type JobOutcome =
   /** A constitution commit landed on the main line. */
   | 'committed'
   | 'wound-down'
+  /** A stage declared a need on another entity; its branch and commits stay. */
+  | 'needs-declared'
   | 'failed'
   | 'blocked'
   | 'replaced'

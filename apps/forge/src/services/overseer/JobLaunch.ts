@@ -1075,6 +1075,10 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.cannotBuild });
     return;
   }
+  if (outcome === 'needs-declared') {
+    endJob(hold, job, job.entity === undefined ? { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport } : { outcome: 'needs-declared' });
+    return;
+  }
   const verdict = clearCustoms(subject);
   if (verdict.verdict === 'refused') {
     if (resumableCustomsChecksOf(job).includes(verdict.check)) {
