@@ -2,17 +2,25 @@
  * The live flow's activity, pure: what stands on each node now (a ticket, or a filing draft being written) as a chip linking to its
  * detail, the panel head's status and the board's builds at a time, the "Now" rows of the activity panel in the facts' order, each with
  * a meter only on a step an agent runs, and the "Earlier" lines worded from the newest pipeline records. A record kind with no line here
- * is left out of the list.
+ * is left out of the list. On a forge over entities a row names the level of its occupant, each gate profile under way at any entity is a
+ * row naming its entity, and the head counts jobs over every entity.
  */
-import type { LogRecord }                                             from '../../../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineFlowFacts, PipelineFlowNode, PipelineOccupant } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineSetupMode }                                     from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { DetailRoute, type DetailItem }                               from '../../../shell/DetailRoute.ts';
-import { HashRouter }                                                 from '../../../shell/HashRouter.ts';
-import { ElapsedTimeUtil }                                            from '../../../utils/ElapsedTimeUtil.ts';
-import { TimeUtil, type TimestampSlices }                             from '../../../utils/TimeUtil.ts';
-import type { PanelStatus }                                           from '../PipelinePanel.tsx';
-import { PipelineFlowModel, type FlowMeterView }                      from '../flow/PipelineFlowModel.ts';
+import type { LogRecord } from '../../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type {
+  GateProfileRunFacts,
+  GateProfileRunState,
+  PipelineFlowFacts,
+  PipelineFlowNode,
+  PipelineOccupant
+} from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetupMode }                from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { DetailRoute, type DetailItem }          from '../../../shell/DetailRoute.ts';
+import { HashRouter }                            from '../../../shell/HashRouter.ts';
+import { ElapsedTimeUtil }                       from '../../../utils/ElapsedTimeUtil.ts';
+import { TimeUtil, type TimestampSlices }        from '../../../utils/TimeUtil.ts';
+import type { PanelStatus }                      from '../PipelinePanel.tsx';
+import { FORGE_LEVEL, PipelineLevelModel }       from '../entities/PipelineLevelModel.ts';
+import { PipelineFlowModel, type FlowMeterView } from '../flow/PipelineFlowModel.ts';
 
 /** The board tab a chip or a row opens the detail panel over. */
 const DETAIL_TAB = 'kanban';
@@ -108,21 +116,65 @@ function stepTextOf(node: PipelineFlowNode, efforts: readonly string[]): string 
   return node.phase === null ? title : `${title} · ${node.phase}`;
 }
 
-/** One row per occupant, in the facts' order; an occupant on a node the flow does not draw is left out. */
-function activityRowsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>, efforts: readonly string[], now: Date): ActivityRowView[] {
+/** The name of the level an occupant is at on a forge over entities ("web", "Forge"); null when it names none. */
+export type OccupantLevelNamer = (occupant: PipelineOccupant, node: PipelineFlowNode) => string | null;
+
+/**
+ * One row per occupant, in the facts' order; an occupant on a node the flow does not draw is left out. On a forge over entities each row
+ * leads its step with the level the namer gives ("web · Builder").
+ */
+function activityRowsOf(
+  flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>,
+  efforts: readonly string[],
+  now: Date,
+  levelNameOf: OccupantLevelNamer | null = null,
+): ActivityRowView[] {
   return flow.occupants.flatMap((occupant) => {
     const node = flow.nodes.find((candidate) => candidate.nodeId === occupant.nodeId);
     if (node === undefined) return [];
     const runByAgent = node.role !== null;
+    const levelName = levelNameOf === null ? null : levelNameOf(occupant, node);
+    const stepText = stepTextOf(node, efforts);
     return [{
       key:      `${occupant.occupantKind}-${occupant.occupantId}`,
       href:     occupantHrefOf(occupant),
       status:   runByAgent ? 'step' : 'check',
       idText:   occupant.occupantId,
-      stepText: stepTextOf(node, efforts),
+      stepText: levelName === null ? stepText : `${levelName} · ${stepText}`,
       meter:    runByAgent ? PipelineFlowModel.nodeViewOf(node, efforts).meter : null,
       elapsed:  ElapsedTimeUtil.ageSinceText(occupant.since, now) ?? '',
     }];
+  });
+}
+
+const UNDER_WAY_PROFILE_STATES: readonly GateProfileRunState[] = ['queued', 'running'];
+
+/** A profile run that is queued or running. */
+function profileRunIsUnderWay(profileRun: Pick<GateProfileRunFacts, 'state'>): boolean {
+  return UNDER_WAY_PROFILE_STATES.includes(profileRun.state);
+}
+
+/** The id a profile run's row shows in place of a ticket's. */
+const PROFILE_ROW_ID_TEXT = 'Profile';
+
+/**
+ * One row per gate profile that is queued or running, in the facts' order: "web · profiling typecheck · Build phase", linking to the
+ * level of the run's entity, with the time the run recorded.
+ */
+function profileActivityRowsOf(profileRuns: readonly GateProfileRunFacts[]): ActivityRowView[] {
+  return profileRuns.filter((profileRun) => profileRunIsUnderWay(profileRun)).map((profileRun) => {
+    const phaseText = `${profileRun.phase.charAt(0).toUpperCase()}${profileRun.phase.slice(1)} phase`;
+    const profilingText = `profiling ${profileRun.gateName} · ${phaseText}`;
+    const runLevel = profileRun.entity === undefined ? FORGE_LEVEL : PipelineLevelModel.entityLevelOf(profileRun.entity);
+    return {
+      key:      `profile-${profileRun.profileRunId}`,
+      href:     PipelineLevelModel.fragmentAtLevel(runLevel, null),
+      status:   'check',
+      idText:   PROFILE_ROW_ID_TEXT,
+      stepText: profileRun.entity === undefined ? profilingText : `${profileRun.entity} · ${profilingText}`,
+      meter:    null,
+      elapsed:  profileRun.elapsedMilliseconds === null ? '' : ElapsedTimeUtil.formatElapsed(profileRun.elapsedMilliseconds),
+    };
   });
 }
 
@@ -139,6 +191,11 @@ function flowStatusOf(rowCount: number): PanelStatus {
 /** "2 builds at a time", from the board's concurrency limit. */
 function buildsAtATimeTextOf(concurrencyLimit: number): string {
   return `${concurrencyLimit} ${concurrencyLimit === 1 ? 'build' : 'builds'} at a time`;
+}
+
+/** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity (C20). */
+function everyEntityHeadTextOf(concurrencyLimit: number | null): string {
+  return concurrencyLimit === null ? 'Every entity' : `Every entity · ${concurrencyLimit} ${concurrencyLimit === 1 ? 'job' : 'jobs'} at a time`;
 }
 
 function historyTextOf(record: LogRecord): string | null {
@@ -184,8 +241,11 @@ export const FlowActivityPanelModel = Object.freeze({
   occupantChipsOf,
   inFlightChipsOf,
   activityRowsOf,
+  profileRunIsUnderWay,
+  profileActivityRowsOf,
   nowHeadingOf,
   flowStatusOf,
   buildsAtATimeTextOf,
+  everyEntityHeadTextOf,
   historyLinesOf,
 });

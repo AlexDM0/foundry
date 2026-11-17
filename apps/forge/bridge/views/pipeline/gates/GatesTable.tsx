@@ -4,7 +4,8 @@
  * takes it out, both as draft edits through the open phase's sender. "Add gate", and "Add prepare step" in the Build phase, ask for an
  * empty Gate dialog; both hide on a live board, whose head names the tickets in the phase's gates now, once for the phase, since the facts
  * place a ticket in the phase's gates and not in one gate. A phase with no gates says so beside "Add <phase> gate". At an entity's level of
- * a monorepo screen, a profile measures that entity's gate, and the head may lead with the copy of the phase's gates to another entity.
+ * a monorepo screen, a profile measures that entity's gate, and the head may lead with the copy of the phase's gates to another entity;
+ * on a live board there, the head's line also names the entity's gate profiles of the phase under way (MonoLive).
  */
 import { Button }          from 'design-system/Button';
 import { ReorderableList } from 'design-system/ReorderableList';
@@ -20,6 +21,7 @@ import { entityKeyOfScope, useMonorepoLevelScope }   from '../entities/MonorepoL
 import { FlowGlyph }                                 from '../flow/FlowGlyph.tsx';
 import type { PipelineFlowEditSender }               from '../flow/PipelineFlowEditSender.ts';
 import type { OccupantChipView }                     from '../live/FlowActivityPanelModel.ts';
+import { LivePipelineModel }                         from '../live/LivePipelineModel.ts';
 
 import { GateRow }                               from './GateRow.tsx';
 import { GatesAreaModel, type GatesOpenRequest } from './GatesAreaModel.ts';
@@ -61,14 +63,21 @@ function ColumnHeads() {
   );
 }
 
-/** "Now: 12" or "Now: Idle" in a live table's head. */
-function NowTickets({ tickets }: { readonly tickets: readonly OccupantChipView[] }) {
+interface NowTicketsProps {
+  readonly tickets:      readonly OccupantChipView[];
+  /** "test being profiled", at an entity's level only. */
+  readonly profileTexts: readonly string[];
+}
+
+/** "Now: 12", "Now: test being profiled" or "Now: Idle" in a live table's head. */
+function NowTickets({ tickets, profileTexts }: NowTicketsProps) {
   return (
     <Row centerY gap="seven" wrap>
       <Text typeRole="tab" muted>{NOW_LEAD_TEXT}</Text>
-      {tickets.length === 0
+      {tickets.length === 0 && profileTexts.length === 0
         ? <Text typeRole="small" subtle>{IDLE_TEXT}</Text>
         : tickets.map((ticket) => <Tag key={ticket.key} text={ticket.text} {...StateToneUtil.tagLookOf(ticket.state)} dot href={ticket.href} />)}
+      {profileTexts.map((text) => <Tag key={text} text={text} tone="state" stateTone="accent" busy />)}
     </Row>
   );
 }
@@ -78,8 +87,9 @@ export function GatesTable({
 }: GatesTableProps) {
   const profileEntity = entityKeyOfScope(useMonorepoLevelScope());
   const views = GatesAreaModel.rowViewsOf(rows, phase, profileRuns);
+  const profileTexts = profileEntity === null ? [] : LivePipelineModel.profilesUnderWayTextsOf(profileRuns, phase);
   const headEnd = nowTickets !== null
-    ? <NowTickets tickets={nowTickets} />
+    ? <NowTickets tickets={nowTickets} profileTexts={profileTexts} />
     : (
       <Row gap="eight">
         {headStart}

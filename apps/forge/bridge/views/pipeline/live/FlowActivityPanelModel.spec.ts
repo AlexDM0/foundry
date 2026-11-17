@@ -2,8 +2,8 @@
  * The live flow's activity model. What matters: a node's chips are exactly the occupants the facts place on it, each linking to its
  * ticket or draft detail, a draft read as drafting and a ticket on the merge before review as catching up; the "Now" rows equal the
  * occupants in the facts' order, with a meter only on a step an agent runs; the panel head counts the working rows; a ticket in flight is a
- * chip linking to its detail; the "Earlier" lines keep the facts' order, cut the stamp only when the page carries the slices, and leave out
- * a record kind they have no line for.
+ * chip linking to its detail; a gate profile is a row only while queued or running, naming its entity when it has one; the "Earlier"
+ * lines keep the facts' order, cut the stamp only when the page carries the slices, and leave out a record kind they have no line for.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -103,5 +103,29 @@ describe('historyLinesOf', () => {
 
   test('with no stamp slices a line shows no clock', () => {
     expect(FlowActivityPanelModel.historyLinesOf(records, null).every((line) => line.clock === null)).toBe(true);
+  });
+});
+
+describe('profileActivityRowsOf', () => {
+  test('only a queued or running profile is a row, naming its entity and linking to its level', () => {
+    const runs = [
+      {
+        profileRunId: 'P1', entity: 'web', gateName: 'typecheck', phase: 'build', state: 'running', elapsedMilliseconds: 6000, cacheReport: null,
+      },
+      {
+        profileRunId: 'P2', gateName: 'lint', phase: 'review', state: 'queued', elapsedMilliseconds: null, cacheReport: null,
+      },
+      {
+        profileRunId: 'P3', entity: 'web', gateName: 'test', phase: 'build', state: 'passed', elapsedMilliseconds: 9000, cacheReport: 'miss',
+      },
+    ] as const;
+    expect(FlowActivityPanelModel.profileActivityRowsOf(runs)).toEqual([
+      {
+        key: 'profile-P1', href: '#pipeline/entity/web', status: 'check', idText: 'Profile', stepText: 'web · profiling typecheck · Build phase', meter: null, elapsed: '6s',
+      },
+      {
+        key: 'profile-P2', href: '#pipeline/forge', status: 'check', idText: 'Profile', stepText: 'profiling lint · Review phase', meter: null, elapsed: '',
+      },
+    ]);
   });
 });

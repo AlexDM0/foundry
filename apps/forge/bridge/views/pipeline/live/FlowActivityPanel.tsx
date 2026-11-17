@@ -3,7 +3,8 @@
  * then the newest pipeline records; the Pipeline agent tab says that no agent runs until one is asked. On the smallest pipeline, the About
  * tab comes first. The head names the selected tab, with how many work and the builds at a time on the flow tab. Under every tab, Ask the
  * pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab; the advise session it opens then shows as an edit of the
- * pipeline.
+ * pipeline. On a forge over entities (MonoLive) the flow tab lists every entity's work, each row naming its entity or the forge, then
+ * every entity's gate profiles under way, and the agent's tab and Ask name the level shown, whose entity the advise command carries.
  */
 
 import { ActivityRow }              from 'design-system/ActivityRow';
@@ -21,25 +22,28 @@ import {
   PipelinePanelFoot,
   type PanelStatus
 } from '../PipelinePanel.tsx';
-import type { PipelineViewFacts } from '../PipelineViewModel.ts';
+import { PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
 import {
   FlowActivityPanelModel,
   type ActivityRowView,
   type HistoryLineView,
+  type OccupantLevelNamer,
   type StampFormat
 } from './FlowActivityPanelModel.ts';
-import { LivePipelineModel }                       from './LivePipelineModel.ts';
-import { ABOUT_PANEL_TITLE, MinimalPipelineAbout } from './MinimalPipelineNote.tsx';
-import { MinimalPipelineNoteModel }                from './MinimalPipelineNoteModel.ts';
+import { LivePipelineModel, type LivePipelineFacts } from './LivePipelineModel.ts';
+import { ABOUT_PANEL_TITLE, MinimalPipelineAbout }   from './MinimalPipelineNote.tsx';
+import { MinimalPipelineNoteModel }                  from './MinimalPipelineNoteModel.ts';
 
 type ActivityTab = 'about' | 'flow' | 'agent';
 
 const AGENT_NOT_RUNNING: PanelStatus = { tone: 'idle', text: 'Not running' };
 
 export interface FlowActivityPanelProps {
-  readonly facts:       PipelineViewFacts;
+  readonly facts:       LivePipelineFacts;
   readonly stampFormat: StampFormat | null;
   readonly clock:       BridgeClock;
+  /** The level shown on a forge over entities; absent in single mode. */
+  readonly level?:      PipelineLevel | null;
 }
 
 function NowRows({ rows }: { readonly rows: readonly ActivityRowView[] }) {
@@ -92,20 +96,34 @@ function EarlierLines({ lines }: { readonly lines: readonly HistoryLineView[] })
   );
 }
 
-export function FlowActivityPanel({ facts, stampFormat, clock }: FlowActivityPanelProps) {
+export function FlowActivityPanel({
+  facts, stampFormat, clock, level = null
+}: FlowActivityPanelProps) {
   const flow = facts.pipelineFlow ?? null;
-  const showsAbout = flow !== null && MinimalPipelineNoteModel.noteIsShownFor(flow);
+  // The forge's own flow of a monorepo holds no review or gates by design: it is no smallest pipeline to explain.
+  const showsAbout = level === null && flow !== null && MinimalPipelineNoteModel.noteIsShownFor(flow);
   const [activityTab, setActivityTab] = useState<ActivityTab>(showsAbout ? 'about' : 'flow');
   const occupantCount = flow?.occupants.length ?? 0;
   const now = useTickingNow(clock, occupantCount > 0);
-  const rows = flow === null ? [] : FlowActivityPanelModel.activityRowsOf(flow, facts.pipelineChoices?.efforts ?? [], now);
+  const jobs = facts.jobs ?? [];
+  const levelNameOf: OccupantLevelNamer | null = level === null
+    ? null
+    : (occupant, node) => {
+      const occupantLevel = LivePipelineModel.occupantLevelOf(occupant, node, jobs);
+      return occupantLevel === null ? null : PipelineLevelModel.levelNameOf(occupantLevel);
+    };
+  const occupantRows = flow === null ? [] : FlowActivityPanelModel.activityRowsOf(flow, facts.pipelineChoices?.efforts ?? [], now, levelNameOf);
+  const rows = level === null ? occupantRows : [...occupantRows, ...FlowActivityPanelModel.profileActivityRowsOf(facts.profileRuns ?? [])];
   const historyLines = FlowActivityPanelModel.historyLinesOf(facts.pipelineHistory ?? [], stampFormat);
   const concurrencyLimit = facts.concurrency?.limit ?? null;
   const tabItems: TabItem<ActivityTab>[] = [
     ...(showsAbout ? [{ key: 'about' as const, label: 'About' }] : []),
     { key: 'flow', label: 'On the flow' },
-    { key: 'agent', label: 'Pipeline agent' },
+    { key: 'agent', label: LivePipelineModel.agentTabLabelOf(level) },
   ];
+  const flowHeadText = level === null
+    ? (concurrencyLimit === null ? null : FlowActivityPanelModel.buildsAtATimeTextOf(concurrencyLimit))
+    : FlowActivityPanelModel.everyEntityHeadTextOf(concurrencyLimit);
   const tabParts: Readonly<Record<ActivityTab, { title: string; status: PanelStatus | null; headEnd: ReactNode; body: ReactNode }>> = {
     about: {
       title: ABOUT_PANEL_TITLE, status: null, headEnd: null, body: flow === null ? null : <MinimalPipelineAbout flow={flow} />
@@ -113,7 +131,7 @@ export function FlowActivityPanel({ facts, stampFormat, clock }: FlowActivityPan
     flow: {
       title:   'On the flow',
       status:  FlowActivityPanelModel.flowStatusOf(rows.length),
-      headEnd: concurrencyLimit === null ? null : <Text typeRole="small" subtle>{FlowActivityPanelModel.buildsAtATimeTextOf(concurrencyLimit)}</Text>,
+      headEnd: flowHeadText === null ? null : <Text typeRole="small" subtle>{flowHeadText}</Text>,
       body:    (
         <>
           <MicroCapsLabel text={FlowActivityPanelModel.nowHeadingOf(rows.length)} element="h4" />
@@ -123,7 +141,7 @@ export function FlowActivityPanel({ facts, stampFormat, clock }: FlowActivityPan
       ),
     },
     agent: {
-      title:   'Pipeline agent',
+      title:   LivePipelineModel.agentTabLabelOf(level),
       status:  AGENT_NOT_RUNNING,
       headEnd: null,
       body:    (
@@ -145,7 +163,11 @@ export function FlowActivityPanel({ facts, stampFormat, clock }: FlowActivityPan
     >
       <PipelinePanelBody>{selected.body}</PipelinePanelBody>
       <PipelinePanelFoot>
-        <CommandButton label="Ask the pipeline agent" command={LivePipelineModel.adviseCommand} onApplied={() => setActivityTab('agent')} />
+        <CommandButton
+          label={LivePipelineModel.askLabelOf(level)}
+          command={level === null ? LivePipelineModel.adviseCommand : LivePipelineModel.adviseCommandOf(level)}
+          onApplied={() => setActivityTab('agent')}
+        />
       </PipelinePanelFoot>
     </PipelinePanel>
   );

@@ -9,6 +9,10 @@
  * time: a step dialog closes the Apply dialog and Apply closes the step dialog, and an Apply sent in one update never opens by itself in
  * the next. A Gates step marks each gate whose newest run in its phase, a job's or a profile's, reported a full or partial cache hit, and
  * no gate whose run reported a miss, reported nothing, or reported only in another phase.
+ * A live monorepo pipeline (MonoLive) shows the level the route names, with the rail and the breadcrumb: an entity's steps carry only its
+ * own tickets, its gates head names its profile under way, the activity names each row's entity or the forge and lists every entity's
+ * profile under way, and Ask carries the entity;
+ * the forge's level lists the merge train and the board's jobs in place of the phases.
  */
 import {
   act,
@@ -307,5 +311,80 @@ describe('the profile log', () => {
     act(() => deliver([{ lineNumber: 1, text: 'Running 12 tests' }]));
     const tail = within(screen.getByRole('dialog')).getByRole('list', { name: 'Profile output' });
     expect([...tail.children].map((line) => line.textContent)).toEqual(['Running 12 tests']);
+  });
+});
+
+describe('a live monorepo pipeline', () => {
+  function renderAt(item: string) {
+    const controls = fakeControls();
+    controls.render(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item }} {...pipelineViewServicesOf()} />);
+    return controls;
+  }
+
+  function ticketsOnBuilder(): string {
+    return document.querySelector('[data-step-node-id="builder"]')?.textContent ?? '';
+  }
+
+  test('an entity\'s level shows the rail, its breadcrumb and only its own tickets on its steps', () => {
+    const { unmount } = render(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item: 'entity/web' }} {...pipelineViewServicesOf()} />);
+    expect(screen.getByRole('navigation', { name: 'Pipeline levels' })).toBeDefined();
+    expect(screen.getByRole('navigation', { name: 'Level' }).textContent).toContain('web');
+    expect(screen.getByRole('heading', { name: 'web' })).toBeDefined();
+    expect(ticketsOnBuilder()).toContain('21');
+    expect(ticketsOnBuilder()).not.toContain('22');
+    unmount();
+    render(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item: 'entity/design-system' }} {...pipelineViewServicesOf()} />);
+    expect(ticketsOnBuilder()).toContain('22');
+    expect(ticketsOnBuilder()).not.toContain('21');
+  });
+
+  test('an entity\'s live gates head names its own profile under way', () => {
+    renderAt('entity/web');
+    const buildGates = screen.getByRole('region', { name: 'Build gates' });
+    expect(within(buildGates).getByText('typecheck being profiled')).toBeDefined();
+  });
+
+  test('the activity lists every entity\'s work, each row naming its entity or the forge', () => {
+    renderAt('entity/web');
+    const rows = [...document.querySelectorAll('.design-system-activity-row')].map((row) => [
+      row.querySelector('.design-system-activity-row-id')?.textContent,
+      row.querySelector('.design-system-activity-row-step')?.textContent,
+    ]);
+    expect(rows.map(([idText]) => idText)).toEqual(['D3', '21', '22', '19', '23', 'Profile']);
+    expect(rows.find(([idText]) => idText === '21')?.[1]).toStartWith('web · ');
+    expect(rows.find(([idText]) => idText === '22')?.[1]).toStartWith('design-system · ');
+    expect(rows.find(([idText]) => idText === 'D3')?.[1]).toStartWith('Forge · ');
+    expect(rows.find(([idText]) => idText === '19')?.[1]).toStartWith('Forge · ');
+    expect(rows.find(([idText]) => idText === '23')?.[1]).not.toMatch(/^(Forge|web|design-system) · /);
+    expect(screen.getByText('Every entity · 2 jobs at a time')).toBeDefined();
+  });
+
+  test('the activity lists every entity\'s gate profile under way as a row naming its entity, at every level', () => {
+    for (const item of ['entity/design-system', 'forge']) {
+      const { unmount } = render(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item }} {...pipelineViewServicesOf()} />);
+      const profileSteps = [...document.querySelectorAll('.design-system-activity-row')]
+        .filter((row) => row.querySelector('.design-system-activity-row-id')?.textContent === 'Profile')
+        .map((row) => row.querySelector('.design-system-activity-row-step')?.textContent);
+      expect(profileSteps).toEqual(['web · profiling typecheck · Build phase']);
+      unmount();
+    }
+  });
+
+  test('Ask the pipeline agent at an entity carries the entity, and its tab names the level', async () => {
+    const controls = renderAt('entity/web');
+    expect(screen.getByRole('tab', { name: 'Pipeline agent · web' })).toBeDefined();
+    await clickSettled(screen.getByRole('button', { name: 'Ask the pipeline agent about web' }));
+    expect(controls.sent).toEqual([{ kind: 'pipeline-agent-advise', entity: 'web' }]);
+  });
+
+  test('the forge\'s level lists the merge train and the board\'s jobs in place of the phases', () => {
+    renderAt('forge');
+    expect(screen.getByRole('heading', { name: 'Forge' })).toBeDefined();
+    expect(screen.queryByRole('group', { name: 'Pipeline phases' })).toBeNull();
+    const train = screen.getByRole('table', { name: 'Merge train' });
+    expect(within(train).getByRole('link', { name: 'Open ticket 19' }).getAttribute('href')).toBe('#kanban/ticket/19');
+    expect(within(train).getByText('Waiting for the Airlock')).toBeDefined();
+    expect(screen.getByText('Board: 0 of 2 jobs running')).toBeDefined();
+    expect(document.querySelector('[data-step-node-id="ticket-creation"]')?.textContent).toContain('D3');
   });
 });

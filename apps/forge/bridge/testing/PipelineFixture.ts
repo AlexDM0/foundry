@@ -45,6 +45,7 @@ import type { BoardStateDocument, PageTicketDocument, UsageDocument } from '../@
 
 import type { TranscriptFollower } from '../conversation/TranscriptLog.tsx';
 import type { BridgeClock }        from '../shell/BridgeClock.ts';
+import type { AgentJobDocument }   from '../views/agents/AgentJobDocument.ts';
 import type { ProfileLogFollower } from '../views/pipeline/dialogs/ProfileBox.tsx';
 
 import { boardStateFixture, exampleAgentJob } from './BoardStateFixture.ts';
@@ -899,10 +900,10 @@ function entityFlowsOf(stage: PipelineFlowStage, mark: PipelineNodeMark, applied
 }
 
 /** The forge's flow, which holds no gate, with each entity's flow beside it. */
-function monorepoFlowOf(stage: PipelineFlowStage, mark: PipelineNodeMark, applied: boolean): PipelineFlowFacts {
+function monorepoFlowOf(stage: PipelineFlowStage, mark: PipelineNodeMark, applied: boolean, changes: Partial<PipelineFlowFacts> = {}): PipelineFlowFacts {
   return flowOf({
     pipeline: MONOREPO_PIPELINE, stage, mark, humanCodeReview: false, applied,
-  }, { entityFlows: entityFlowsOf(stage, mark, applied) });
+  }, { entityFlows: entityFlowsOf(stage, mark, applied), ...changes });
 }
 
 const MONOREPO_APPLIED_PIPELINE: AppliedPipelineFacts = {
@@ -989,12 +990,47 @@ function monorepoDesignState(): BoardStateDocument {
   return setupState(record, { entities }, { pipelineFlow: { ...flow, ...(entityFlows === undefined ? {} : { entityFlows }) } });
 }
 
+/** The product owner's draft, a builder in web and one in the design system, web's ticket in the Airlock, and a ticket queued with no job. */
+const MONOREPO_LIVE_OCCUPANTS: readonly PipelineOccupant[] = [
+  {
+    occupantKind: 'draft', occupantId: 'D3', nodeId: 'ticket-creation', jobId: 'J7', since: '2026-11-12T11:40:00',
+  },
+  {
+    occupantKind: 'ticket', occupantId: '21', nodeId: 'builder', jobId: 'J21', since: '2026-11-12T11:20:00',
+  },
+  {
+    occupantKind: 'ticket', occupantId: '22', nodeId: 'builder', jobId: 'J22', since: '2026-11-12T11:50:00',
+  },
+  {
+    occupantKind: 'ticket', occupantId: '19', nodeId: 'merge-in-airlock', jobId: 'J19', since: '2026-11-12T11:58:00',
+  },
+  {
+    occupantKind: 'ticket', occupantId: '23', nodeId: 'ready-for-airlock', jobId: null, since: '2026-11-12T11:55:00',
+  },
+];
+
+/** Each job of a live monorepo with the entity the Overseer set at its launch; the product owner's job names none. */
+const MONOREPO_LIVE_JOBS: readonly (AgentJobDocument & { readonly entity?: EntityKey })[] = [
+  exampleAgentJob({
+    id: 'J7', kind: 'product-owner', role: 'product-owner', ticketIds: [],
+  }),
+  { ...exampleAgentJob({ id: 'J21', ticketIds: ['21'] }), entity: 'web' },
+  { ...exampleAgentJob({ id: 'J22', ticketIds: ['22'] }), entity: 'design-system' },
+  {
+    ...exampleAgentJob({
+      id: 'J19', kind: 'merge', role: null, ticketIds: ['19'],
+    }),
+    entity: 'web'
+  },
+];
+
 function monorepoLiveState(): BoardStateDocument {
   return pipelineBoardState({
     pipeline:       MONOREPO_APPLIED_PIPELINE,
-    pipelineFlow:   monorepoFlowOf('live', 'unchanged', true),
+    pipelineFlow:   monorepoFlowOf('live', 'unchanged', true, { occupants: [...MONOREPO_LIVE_OCCUPANTS], ticketIdsInFlight: ['21', '22', '19'] }),
     profileRuns:    [...MONOREPO_PROFILE_RUNS],
     gateCacheMarks: [...MONOREPO_CACHE_MARKS],
+    jobs:           [...MONOREPO_LIVE_JOBS],
   });
 }
 
