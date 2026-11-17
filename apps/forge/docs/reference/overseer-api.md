@@ -634,7 +634,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.14` and `0.0`: 1.1 adds
+moment the server answers, while the Overseer starts too. This forge answers `1.15` and `0.0`: 1.1 adds
 [Flint's brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and
 crosses, the entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity`
 command, a ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields
@@ -658,7 +658,8 @@ with `refusedReason`, the `package-refused`, `second-return` and `dependent-brok
 `seal-set`, `seal-lifted` and `package-return` records and a crossing ticket's Handoff parts per stage, 1.13 accepts a
 non-empty whitelist in the pipeline and the setup draft, so the `whitelist-not-supported` refusal is no longer sent, 1.14 adds the
 monitor snapshot's `entities` and `openTickets` and a job's `entity` and `stage`, the `work-outside-entity` refusal and the
-`hook stage-edits` command, each minor only adds, and version 0.0 stands for every forge released before
+`hook stage-edits` command, 1.15 adds a ticket's `entity` and `stage` to the board state document's `boardFacts`,
+each minor only adds, and version 0.0 stands for every forge released before
 system versions.
 
 The system version is set by interoperability, never by a package's version:
