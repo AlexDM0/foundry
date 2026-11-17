@@ -129,20 +129,28 @@ function filePackageChangeNeed(
   return fileNeed(change, declaringJob, need, decisionWordingOf);
 }
 
-/** The ticket's newest ended build job when it ended `needs-declared`; a replaced session in between is the same stage taken over. */
+/**
+ * The job whose needs the ticket waited on: its newest ended build job when it ended `needs-declared`, or the job that a package change
+ * User turned into a need was filed by after the ticket's newest ended build (E19, E22). A replaced session in between is the same stage
+ * taken over.
+ */
 function declaringJobIdOf(logRecords: readonly LogRecord[], ticketId: string): string | null {
   const buildJobIds = new Set<string>();
-  let newestEnded: { jobId: string; outcome: string } | null = null;
+  let declaringJobId: string | null = null;
   for (const record of logRecords) {
     if (record.kind === 'job-launched' && record.fields.kind === 'build' && record.fields.ticketIds.includes(ticketId)) buildJobIds.add(record.jobId);
+    if (record.kind === 'need-declared' && record.ticketId === ticketId) declaringJobId = record.fields.byJob;
     if (record.kind === 'job-ended' && buildJobIds.has(record.jobId) && record.fields.outcome !== 'replaced') {
-      newestEnded = { jobId: record.jobId, outcome: record.fields.outcome };
+      declaringJobId = record.fields.outcome === 'needs-declared' ? record.jobId : null;
     }
   }
-  return newestEnded?.outcome === 'needs-declared' ? newestEnded.jobId : null;
+  return declaringJobId;
 }
 
-/** `null` for every job but a build whose ticket's last build declared needs; each need as its `need-declared` record logged it. */
+/**
+ * `null` for every job but a build whose ticket's last build declared needs, or whose package change became a need since (E19, E22); each
+ * need as its `need-declared` record logged it.
+ */
 function needsSettledOf(board: Board, job: Readonly<Job>, launch: Pick<NeedsSettledFacts, 'mainLine' | 'resumesSession'>): NeedsSettledFacts | null {
   const [ticketId] = job.ticketIds;
   if (job.kind !== 'build' || ticketId === undefined) return null;

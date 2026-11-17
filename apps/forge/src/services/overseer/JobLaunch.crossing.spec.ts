@@ -14,19 +14,20 @@
  * and one that does not hold sends the package build back with its Review, kept in its job folder since the ticket holds none (E34); one
  * that holds seals the ticket's own change to the package, a lockfile change of its stages among it (E3), and runs the home review when the
  * build stated no change of what the package exposes and the review confirmed it, else `adapt` (E40), and must confirm or correct the
- * statement. A later stage whose branch no longer holds the sealed change is sent back once, then fails (E33); `adapt` that kept the seal
- * reaches its gates and hands over to the home review. The `## Handoff` holds one part per stage that built, each stage writing only its
- * own, and a package build that refuses the change ends `refused` with a `package-refused` decision about the package that holds the
- * ticket, its reason kept in its job folder for stage 1 (E22). An adapt build that needs more of the package ends `package-return`: the
- * seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and the reason waits for the package
- * builder, while the adapt branch holds no change of the package (E42); a second return opens `second-return` and keeps `adapt` (E45). A
- * home review that does not hold goes back to `adapt` and in progress, after an adapt that ran and after a skipped one (E51), and for a
- * cause in the package `adapt`'s return reaches the package build (E52). With merge approval on, a package review that holds moves on to
- * the next stage, and only the home review waits in `merging-main`, once per ticket (E36). A red home gate interrupts stage 1 and `adapt`
- * on a red handoff that resumes the same job, gated by the home's gates alone, and starts no package build (E16, E44). A package without
- * gates runs none of its own in its build and review, which still settle and seal (E27). A review catch-up that merges main, advanced in
- * the package on lines the ticket did not touch, keeps the seal, and the home review passes Customs with it (E35). A home review's fix in
- * the admin app is sent back, one in the shop's files passes (E50).
+ * statement; a package stage 1 changed that the whitelist no longer names is the next package build, which opens
+ * `whitelist-removed-mid-crossing` (E19). A later stage whose branch no longer holds the sealed change is sent back once, then fails
+ * (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `## Handoff` holds one part per stage that
+ * built, each stage writing only its own, and a package build that refuses the change ends `refused` with a `package-refused` decision
+ * about the package that holds the ticket, its reason kept in its job folder for stage 1 (E22). An adapt build that needs more of the
+ * package ends `package-return`: the seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and
+ * the reason waits for the package builder, while the adapt branch holds no change of the package (E42); a second return opens
+ * `second-return` and keeps `adapt` (E45). A home review that does not hold goes back to `adapt` and in progress, after an adapt that ran
+ * and after a skipped one (E51), and for a cause in the package `adapt`'s return reaches the package build (E52). With merge approval on,
+ * a package review that holds moves on to the next stage, and only the home review waits in `merging-main`, once per ticket (E36). A red
+ * home gate interrupts stage 1 and `adapt` on a red handoff that resumes the same job, gated by the home's gates alone, and starts no
+ * package build (E16, E44). A package without gates runs none of its own in its build and review, which still settle and seal (E27). A
+ * review catch-up that merges main, advanced in the package on lines the ticket did not touch, keeps the seal, and the home review passes
+ * Customs with it (E35). A home review's fix in the admin app is sent back, one in the shop's files passes (E50).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -62,6 +63,7 @@ import { describeWhenGitIsRecorded }                        from '../../testing/
 import { sealOf }                                           from '../lifecycle/Customs.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
 import { DependentFixTickets }                              from './DependentFixTickets.ts';
+import { EntityDecisionAnswers }                            from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                 from './JobLaunch.ts';
 import { RedHandoff }                                       from './RedHandoff.ts';
 import { WatcherFleet }                                     from './WatcherFleet.ts';
@@ -459,6 +461,20 @@ function pipelineWithPackage(packageFields: Record<string, unknown>): Pipeline {
   return { ...CROSSING_PIPELINE, entities: { ...entities, [UI_KIT.key]: { ...uiKit, ...packageFields } } };
 }
 
+/** A second package that owns the lockfile and consumes `ui-kit`, so it runs after it; the shop does not whitelist it. */
+const LOCKFILE_PACKAGE = 'example-lockfile';
+
+/** The fixture's pipeline with the lockfile package beside `ui-kit`, as once the shop's whitelist no longer names it. */
+function pipelineWithAPackageLeftOutOfTheWhitelist(): Pipeline {
+  const entities = CROSSING_PIPELINE.entities ?? {};
+  const uiKit = entities[UI_KIT.key];
+  if (uiKit === undefined) throw new Error('The fixture names ui-kit.');
+  return {
+    ...CROSSING_PIPELINE,
+    entities: { ...entities, [LOCKFILE_PACKAGE]: { ...uiKit, home: [`/${ENTITY_FORGE_LOCK_FILE}`], dependsOn: [UI_KIT.key] } },
+  };
+}
+
 function reviewsRecordedOf(board: Board): number[] {
   return board.logRecordsSoFar().flatMap((record) => (record.kind === 'review-recorded' && record.ticketId === SHOP_TICKET.id ? [record.fields.round] : []));
 }
@@ -505,6 +521,18 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
 
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(HOME_REVIEW);
     expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-review');
+  });
+
+  test('E19: once it seals, a package stage 1 changed that the whitelist no longer names is the next package build, which opens whitelist-removed-mid-crossing', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD, pipeline: pipelineWithAPackageLeftOutOfTheWhitelist() });
+
+    expect(reviewedPackageOf(ticket, false, { exposedSurfaceConfirmed: true })).toBe('reviewed: ');
+    expect(Object.keys(ticket.board.ticketSealsOf(SHOP_TICKET.id))).toEqual([UI_KIT.key]);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual({ name: 'package-build', entity: LOCKFILE_PACKAGE });
+
+    EntityDecisionAnswers.openWhitelistRemovedDecisions(ticket.board, () => WORDING, AT);
+    expect(ticket.board.decisions().map(({ kind, ticketIds, context }) => ({ kind, ticketIds, context })))
+      .toEqual([{ kind: 'whitelist-removed-mid-crossing', ticketIds: [SHOP_TICKET.id], context: LOCKFILE_PACKAGE }]);
   });
 
   test.each([

@@ -421,6 +421,20 @@ function packagesRemovedMidCrossingOf(board: Board, ticketId: string, homeEntity
 }
 
 /**
+ * The packages the branch crosses into once a package review sealed one: those the ticket may cross into, and each package its stage 1
+ * changed that the home's whitelist no longer names, since its package build had not started. That proposal is no longer crossable, so the
+ * package's build opens `whitelist-removed-mid-crossing` as for a crossed package (E19). A package whose build refused the change stays out.
+ */
+function packagesCrossedAfterAPackageReviewOf(board: Board, ticketId: string, homeEntity: EntityKey, changedPaths: readonly string[]): EntityKey[] {
+  const refusedPackages = refusedPackagesOf(board.logRecordsSoFar(), ticketId);
+  const packageKeys = Object.entries(entitiesOf(board.pipeline()))
+    .filter(([entityKey, entity]) => entity.kind === 'package' && entityKey !== homeEntity && !refusedPackages.includes(entityKey))
+    .map(([entityKey]) => entityKey);
+  const crossablePackages = [...new Set([...ticketWhitelistOf(board, ticketId, homeEntity), ...packageKeys])];
+  return crossedPackagesOf(board.pipeline(), homeEntity, changedPaths, crossablePackages);
+}
+
+/**
  * What a build or review job of an entity is told of its stage; `null` for a job without an entity or stage, and for a stage 1 build of
  * an entity that whitelists nothing, which is told what any build of an entity is told.
  */
@@ -497,5 +511,6 @@ export const CrossingStages = Object.freeze({
   finishesUnderTheOldWhitelist,
   ticketWhitelistOf,
   packagesRemovedMidCrossingOf,
+  packagesCrossedAfterAPackageReviewOf,
   crossingStageFactsOf,
 });

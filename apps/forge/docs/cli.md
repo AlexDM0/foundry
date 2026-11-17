@@ -1744,8 +1744,9 @@ ticket starts a stage again; review rounds are kept when the ticket returns to a
   homes for this ticket, so V17 sends back a stage 1 that still changes it, and its branch no longer crosses into it. A
   stage 1 whose branch then stays in its entity settles as any build, and the row's `stage` is cleared. A need does the
   same and files the change as a ticket of the package, by the refused job, with the reason and the ticket's change of
-  the package's homes past its target, which the crossing ticket waits on as on a declared need. `Abandon` abandons the
-  ticket.
+  the package's homes past its target, which the crossing ticket waits on as on a declared need. Once that ticket is
+  delivered, stage 1 runs again and is told the settled need and to merge the main line first, as a build that ended
+  `needs-declared` is. `Abandon` abandons the ticket.
 - **Package review (stage 3).** Its report must also give `exposedSurfaceConfirmed`, true when the build's statement is
   right. It settles its round as any review: its record and findings, and a further round when its fixes pass the
   package's own `review.reReview` threshold, rounds counted in this stage only. It writes no `## Review` section and
@@ -1776,7 +1777,10 @@ ticket and, in its `context`, the packages (E19). It holds the ticket. `Finish u
 stages continue, the crossing keeping those packages until the ticket goes back to `build` or changes entity.
 `Turn the package change into a need` lifts each such package's seal (`seal-lifted`), moves the ticket `in-progress`
 when it was `in-review`, moves the row back to `build`, and files each package's change as a need as for
-`package-refused`.
+`package-refused`, whose delivery runs stage 1 again as there. A package that stage 1 changed but whose package build
+had not started when the whitelist dropped it stays in the crossing, since its proposal is no longer crossable: once the
+package review before it seals, the row moves to its `package-build`, which opens the decision as for a crossed
+package.
 
 From the package build on, a job whose branch no longer holds a sealed change is refused V17
 `sealed-change-altered`, which sends the session back once, as any other V17 refusal of a job of an entity. The
@@ -1799,8 +1803,10 @@ a package review whose conflict is only in its package's files back to its `pack
 `adapt` when no sealed package's file conflicts, and back to the package when only that package's files conflict, a
 second return opening `second-return`. A catch-up that conflicts in a package's and the home's files, or a package
 review's catch-up that conflicts in home files, parks the ticket `parked:conflict-without-one-owner` with a `parked`
-decision whose `context` lists the conflicted files, at its stage. A group's landing gates only the entities it changes;
-the entities that consume them are gated when the release lands on the main line.
+decision whose `context` lists the conflicted files, at its stage. This park is the handling of a catch-up conflict with
+no single owner, kept on purpose (E66): no one entity's stage can resolve the conflict, so User resolves it. A group's
+landing gates only the entities it changes; the entities that consume them are gated when the release lands on the main
+line.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |

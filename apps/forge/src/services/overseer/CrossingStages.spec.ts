@@ -1,8 +1,10 @@
 /**
  * The Overseer's view of a crossing ticket's stages on the entity-forge fixture's pipeline where the shop whitelists `ui-kit`. What
  * matters: only stage 1 of an entity with a whitelist may write a proposal; the branch's paths are sorted by owner and only whitelisted
- * owners are crossed, a package before the packages that consume it; a seal covers a package's homes but not a deeper home of another
- * entity (E2), and the `reach` paths its package stages changed (E3), which Customs judges every later job on; `adapt` is skipped only when
+ * owners are crossed, a package before the packages that consume it; after a package review, a package stage 1 changed that the
+ * whitelist no longer names stays crossed, so its build opens `whitelist-removed-mid-crossing`, but not one whose build refused (E19); a
+ * seal covers a package's homes but not a deeper home of another entity (E2), and the `reach` paths its package stages changed (E3),
+ * which Customs judges every later job on; `adapt` is skipped only when
  * every crossed package's build stated no change of what it exposes and its review confirmed it, a missing statement counting as a change
  * (E40); each stage's session is told its stage, the package review the build's statement, `adapt` each package's confirmed statement
  * and review, the home review each package's review (E32); a stage's run starts at its first job, a retry after a failed one included, and
@@ -80,6 +82,24 @@ describe('a proposal and a crossing', () => {
     expect(CrossingStages.crossedPackagesOf(pipeline, SHOP.key, changedPaths)).toEqual(['example-icons', UI_KIT.key]);
     expect(CrossingStages.sealPathspecsOf(pipeline, UI_KIT.key)).toEqual([UI_KIT.homeFolder, `:(exclude)${UI_KIT.homeFolder}/icons`]);
     expect(CrossingStages.sealPathspecsOf(pipeline, 'example-icons')).toEqual([`${UI_KIT.homeFolder}/icons`]);
+  });
+
+  test('E19: after a package review, a package stage 1 changed that the whitelist no longer names stays crossed; a refused one does not', () => {
+    const twoPackages = pipelineWithTwoPackages();
+    const shop = twoPackages.entities?.[SHOP.key];
+    if (shop === undefined) throw new Error('The fixture names the shop.');
+    const pipeline: Pipeline = { ...twoPackages, entities: { ...twoPackages.entities, [SHOP.key]: { ...shop, whitelist: ['example-icons'] } } };
+    const { board } = boardFixture({ pipeline, tickets: [ticketFixture({ id: '001', status: 'in-progress', entity: SHOP.key })] });
+    const changedPaths = [`${SHOP.homeFolder}/src/Example.ts`, `${UI_KIT.homeFolder}/src/Example.ts`, `${UI_KIT.homeFolder}/icons/Example.ts`];
+
+    expect(CrossingStages.crossedPackagesOf(pipeline, SHOP.key, changedPaths, CrossingStages.ticketWhitelistOf(board, '001', SHOP.key))).toEqual(['example-icons']);
+    expect(CrossingStages.packagesCrossedAfterAPackageReviewOf(board, '001', SHOP.key, changedPaths)).toEqual(['example-icons', UI_KIT.key]);
+
+    const refused = board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main', entity: UI_KIT.key, stage: 2
+    }, AT).job;
+    board.endJob(refused.id, { outcome: 'refused' }, AT);
+    expect(CrossingStages.packagesCrossedAfterAPackageReviewOf(board, '001', SHOP.key, changedPaths)).toEqual(['example-icons']);
   });
 
   test('a seal also covers the `reach` paths its package stages changed (E3)', () => {

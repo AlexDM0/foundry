@@ -4,11 +4,13 @@
  * its row's stage and seals, and its next build is a fresh attempt of stage 1 of the new entity, never back through ticket review, whose
  * launch drops the old branch and worktree once; answered with abandoning, the ticket is abandoned (E15). `package-refused` answered with
  * dropping the change sends the ticket back to stage 1 of its home, which is told the reason and may no longer write a proposal in the
- * package; with a need, it also files the change, reason and proposal as a ticket of the package that the crossing ticket waits on; with
+ * package; with a need, it also files the change, reason and proposal as a ticket of the package that the crossing ticket waits on, and
+ * once that ticket is delivered stage 1 runs again told the settled need and to merge the main line first, which a drop tells it not; with
  * abandoning, the ticket is abandoned (E22). A crossing ticket whose package left its home's whitelist opens
  * `whitelist-removed-mid-crossing` before its next stage, once, which holds it; finishing under the old whitelist lets the stored stages
  * continue with the package kept in the ticket's crossing, and a need lifts the package's seal, sends the ticket back to stage 1 in progress
- * and files the change as a ticket of the package (E19). `dependent-broken` answered with a fix puts a crossing ticket in no group into the
+ * and files the change as a ticket of the package, whose delivery runs stage 1 again told the settled need; a row at the build of a package
+ * the whitelist no longer names opens the decision too (E19). `dependent-broken` answered with a fix puts a crossing ticket in no group into the
  * group `ticket-<id>` and files a ticket of the dependent in its group that waits on it, submitted at once and in the group's release, whose
  * bundle then holds both, so the release gates the dependent with them; the ticket's next package build launches; a release ticket of the
  * group waits on the fix, a crossing ticket that released the group hands its mark to the fix, a dependent already fixed in the group gets
@@ -51,6 +53,7 @@ import type { TrackerChange }                                                   
 import { CrossingStages }                                                                 from './CrossingStages.ts';
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
+import { type NeedsSettledFacts, NeedTickets }                                            from './NeedTickets.ts';
 import { WatcherFleet }                                                                   from './WatcherFleet.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
@@ -203,6 +206,25 @@ function shopJobOf(board: Board): Readonly<Job> {
 
 function shopTicketOf(board: Board) {
   return board.tickets().find((ticket) => ticket.frontmatter.id === SHOP_TICKET.id)?.frontmatter;
+}
+
+/** The need's ticket readied by User and delivered: the shop's next launch is its stage 1 again, and what that build is told of its needs. */
+function stageOneAfterTheNeedIsDeliveredOf(forge: Forge) {
+  forge.board.readyDraftTickets([NEED_TICKET.id], () => [], AT, ['ready-for-review']);
+  forge.board.moveTicket(NEED_TICKET.id, 'delivered', { checksLegality: false }, AT);
+  const launches = launchesOf(followThePlaybook(forge.board)).filter((launch) => launch.includes(`#${SHOP_TICKET.id} `));
+  return { launches, needsSettled: NeedTickets.needsSettledOf(forge.board, shopJobOf(forge.board), { mainLine: ENTITY_FORGE_MAIN_LINE, resumesSession: false }) };
+}
+
+/** What the stage 1 build is told once the package change, filed as a need of `ui-kit`, is delivered. */
+function settledPackageNeedFacts(): NeedsSettledFacts {
+  return {
+    needs: [{
+      entity: UI_KIT.key, title: `Change ${UI_KIT.key} for #${SHOP_TICKET.id}`, ticketId: NEED_TICKET.id, status: 'delivered'
+    }],
+    mainLine:       ENTITY_FORGE_MAIN_LINE,
+    resumesSession: false,
+  };
 }
 
 function moveAlong(board: Board, stages: readonly TicketStage[]): void {
@@ -375,6 +397,24 @@ describe('package-refused, answered', () => {
     expect(launchesOf(followThePlaybook(forge.board)).filter((launch) => launch.includes(`#${SHOP_TICKET.id} `))).toEqual([]);
   });
 
+  test('E22: once the need is delivered, stage 1 runs again told the settled need and to merge the main line first', () => {
+    const { forge, decision, refusedJobId } = refusedPackageChange();
+    answer(forge, decision, ENTITY_DECISION_ANSWERS.turnItIntoANeed);
+    const rerun = stageOneAfterTheNeedIsDeliveredOf(forge);
+
+    expect(rerun.launches.map((launch) => launch.replace(/ attempt \d+$/u, ''))).toEqual([`launch-build #${SHOP_TICKET.id} ${SHOP.key} stage 1`]);
+    expect(rerun.needsSettled).toEqual(settledPackageNeedFacts());
+    expect(forge.board.tickets().find((ticket) => ticket.frontmatter.id === NEED_TICKET.id)?.frontmatter.filedByJob).toBe(refusedJobId);
+  });
+
+  test('E22: dropping the change tells the stage 1 build of no settled need', () => {
+    const { forge, decision } = refusedPackageChange();
+    answer(forge, decision, ENTITY_DECISION_ANSWERS.dropThePackageChange);
+    followThePlaybook(forge.board);
+
+    expect(NeedTickets.needsSettledOf(forge.board, shopJobOf(forge.board), { mainLine: ENTITY_FORGE_MAIN_LINE, resumesSession: false })).toBeNull();
+  });
+
   test('E22: abandoning abandons the ticket', () => {
     const { forge, decision } = refusedPackageChange();
     answer(forge, decision, ENTITY_DECISION_ANSWERS.abandon);
@@ -441,6 +481,31 @@ describe('a package that left the whitelist mid-crossing', () => {
     expect(forge.needs.map(({ cause, packageEntity, refusedReason }) => ({ cause, packageEntity, refusedReason })))
       .toEqual([{ cause: 'whitelist-removed', packageEntity: UI_KIT.key, refusedReason: null }]);
     expect(forge.board.tickets().find((ticket) => ticket.frontmatter.id === NEED_TICKET.id)?.frontmatter.entity).toBe(UI_KIT.key);
+  });
+
+  test('E19: once the need is delivered, stage 1 runs again told the settled need and to merge the main line first', () => {
+    const forge = crossingAfterTheWhitelistChanged();
+    const packageReviewJobId = forge.board.logRecordsSoFar().findLast((record) => record.kind === 'job-launched')?.jobId ?? '';
+    answer(forge, openedDecisionOf(forge), ENTITY_DECISION_ANSWERS.turnThePackageChangeIntoANeed);
+    const rerun = stageOneAfterTheNeedIsDeliveredOf(forge);
+
+    expect(rerun.launches.map((launch) => launch.replace(/ attempt \d+$/u, ''))).toEqual([`launch-build #${SHOP_TICKET.id} ${SHOP.key} stage 1`]);
+    expect(rerun.needsSettled).toEqual(settledPackageNeedFacts());
+    expect(forge.board.tickets().find((ticket) => ticket.frontmatter.id === NEED_TICKET.id)?.frontmatter.filedByJob).toBe(packageReviewJobId);
+  });
+
+  test('E19: a row at the build of a package the whitelist no longer names opens the decision, and a need sends stage 1 back', () => {
+    const forge = forgeWith('strict-isolation');
+    endedJobOf(forge, SHOP.key, TicketStagesUnderTest.build, 'built');
+    moveAlong(forge.board, [PACKAGE_BUILD]);
+    const decision = openedDecisionOf(forge);
+
+    expect(decision.context).toBe(UI_KIT.key);
+    expect(launchesOf(followThePlaybook(forge.board))).toEqual([]);
+
+    answer(forge, decision, ENTITY_DECISION_ANSWERS.turnThePackageChangeIntoANeed);
+    expect(forge.board.ticketStageOf(SHOP_TICKET.id)).toEqual({ name: 'build', entity: SHOP.key });
+    expect(shopTicketOf(forge.board)?.dependsOn).toEqual([NEED_TICKET.id]);
   });
 });
 

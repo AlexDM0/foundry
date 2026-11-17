@@ -1573,14 +1573,18 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
+/** The paths the job's branch changed past its target, as git spells them; `null` when git cannot tell. */
+function branchChangedPathsOf(hold: HoldContext, job: Readonly<Job>): string[] | null {
+  const start = readJobStart(jobFolderOf(hold.context.workspace, job));
+  if (start === null) return null;
+  return pathsTheBranchChangedPastTargetOf(worktreeOf(hold.context.workspace, job), start.startCommit, job.target ?? hold.context.mainLine);
+}
+
 /**
  * The branch changed by stage 1, sorted by owner, among the packages the ticket may cross into (E19, E22); `null` when git cannot tell.
  */
 function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey): EntityKey[] | null {
-  const start = readJobStart(jobFolderOf(hold.context.workspace, job));
-  if (start === null) return null;
-  const target = job.target ?? hold.context.mainLine;
-  const changedPaths = pathsTheBranchChangedPastTargetOf(worktreeOf(hold.context.workspace, job), start.startCommit, target);
+  const changedPaths = branchChangedPathsOf(hold, job);
   const { board } = hold.change;
   if (changedPaths === null) return null;
   return CrossingStages.crossedPackagesOf(board.pipeline(), homeEntity, changedPaths, CrossingStages.ticketWhitelistOf(board, ticketIdOf(job), homeEntity));
@@ -1693,7 +1697,8 @@ function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report
       const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target);
       const pathspecs = sealedReachPaths === null ? null : CrossingStages.sealPathspecsOf(board.pipeline(), packageKey, sealedReachPaths);
       const seal = pathspecs === null ? null : sealOf(worktreeOf(hold.context.workspace, job), target, pathspecs);
-      const crossedPackages = seal === null ? null : crossedPackagesAfterStageOneOf(hold, job, homeEntity);
+      const changedPaths = seal === null ? null : branchChangedPathsOf(hold, job);
+      const crossedPackages = changedPaths === null ? null : CrossingStages.packagesCrossedAfterAPackageReviewOf(board, ticketId, homeEntity, changedPaths);
       if (sealedReachPaths === null || seal === null || crossedPackages === null) {
         logged.push(...board.endJob(job.id, { outcome: 'failed', cause: 'git-failed' }, at).logged);
         return logged;
