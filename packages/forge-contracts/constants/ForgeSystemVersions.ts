@@ -16,12 +16,13 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * refusal, a pipeline with entities in the Overseer's documents and the board, and the changed-outside-home-and-reach job-ended cause; 1.9 adds a
  * progress row's stage, seals, package returns and stage counters, the entity-named-by-tickets and entities-while-tickets-in-flight refusals and
  * apply reasons, the entity on the constitution-moved refusal, the entities to assign on the job-launched record and the board's entity
- * assignment. Each minor only adds.
+ * assignment; 1.10 adds a stage on a review bar's progress row, the whole-batch flag on the pipeline-draft-undo command and the
+ * draft-batch-undone setup message. Each minor only adds.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 9 },
+  current:          { major: 1, minor: 10 },
   minimumSupported: { major: 0, minor: 0 },
 };
