@@ -173,6 +173,8 @@ export interface JobLaunch {
   attempt:     number;
   target:      string | null;
   intake?:     JobIntake;
+  entity?:     EntityKey;
+  stage?:      number;
 }
 
 export interface JobEnding {

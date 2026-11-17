@@ -94,6 +94,12 @@ export function launchedRecord(jobId: string, kind: JobKind, ticketIds: readonly
   };
 }
 
+/** A launch on a forge with entities: the job runs `stage` of its ticket in `entity`. */
+export function stagedLaunchedRecord(jobId: string, kind: JobKind, ticketId: string, entity: string, stage: number, attempt: number = 1): LogRecord {
+  const launched = launchedRecord(jobId, kind, [ticketId], attempt);
+  return launched.kind === 'job-launched' ? { ...launched, fields: { ...launched.fields, entity, stage } } : launched;
+}
+
 export function endedRecord(jobId: string, outcome: JobOutcome): LogRecord {
   return {
     kind: 'job-ended', jobId, fields: { outcome, deniedPermissions: [] }, at: FIXTURE_AT,

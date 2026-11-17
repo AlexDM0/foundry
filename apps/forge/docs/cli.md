@@ -2474,7 +2474,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 
 | kind | ids | fields |
 |---|---|---|
-| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
+| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures; on a forge with entities only, `entity` and `stage`: the entity and the ticket's stage the job runs, which scope its red handoffs and failed passes. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
 | `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |

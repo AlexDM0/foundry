@@ -109,6 +109,8 @@ export class Jobs {
       answeredRequestIds: [],
       crashResumes:       0,
       ...(launch.intake === undefined ? {} : { intake: { ...launch.intake } }),
+      ...(launch.entity === undefined ? {} : { entity: launch.entity }),
+      ...(launch.stage === undefined ? {} : { stage: launch.stage }),
     };
     this.liveJobRecords().push(job);
     const logged = this.records.logger.log({
@@ -123,6 +125,8 @@ export class Jobs {
         parentJobId: job.parentJobId,
         ...(job.intake === undefined ? {} : { intakeText: job.intake.text }),
         ...(job.intake?.pictures === undefined ? {} : { intakePictures: picturesCopyOf(job.intake.pictures) }),
+        ...(job.entity === undefined ? {} : { entity: job.entity }),
+        ...(job.stage === undefined ? {} : { stage: job.stage }),
       },
     }, at);
     return { job, logged: [logged] };
@@ -230,6 +234,8 @@ export class Jobs {
       answeredRequestIds: [],
       crashResumes:       0,
       ...(reopening.intake === undefined ? {} : { intake: { ...reopening.intake } }),
+      ...(launched.fields.entity === undefined ? {} : { entity: launched.fields.entity }),
+      ...(launched.fields.stage === undefined ? {} : { stage: launched.fields.stage }),
     };
     this.liveJobRecords().push(job);
     const fields = {

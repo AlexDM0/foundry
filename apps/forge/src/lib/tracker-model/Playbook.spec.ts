@@ -26,6 +26,7 @@ import {
   jobFixture,
   launchedRecord,
   launchedTicketIdsOf,
+  stagedLaunchedRecord,
   stepKindsOf,
   ticketOf,
   ticketRecord
@@ -120,6 +121,56 @@ const WAIVER_OPENED_AND_ANSWERED: LogRecord[] = [
     kind: 'decision-answered', decisionId: 'E1', fields: { answer: { 'Waive the proposed items?': 'Grant' } }, at: FIXTURE_AT
   },
 ];
+
+/** One failed pass in stage 1, a stage 2 between, and one more after the return to stage 1: a stage that starts again counts from zero. */
+const FAILED_PASSES_IN_TWO_ENTRIES_OF_A_STAGE: LogRecord[] = [
+  stagedLaunchedRecord('J1', 'build', '001', 'shop', 1),
+  endedRecord('J1', 'failed'),
+  stagedLaunchedRecord('J2', 'build', '001', 'ui', 2),
+  endedRecord('J2', 'built'),
+  stagedLaunchedRecord('J3', 'build', '001', 'shop', 1, 2),
+  endedRecord('J3', 'failed'),
+];
+
+/** Two entities of one stage each failed once. */
+const FAILED_PASSES_IN_TWO_ENTITIES_OF_A_STAGE: LogRecord[] = [
+  stagedLaunchedRecord('J1', 'build', '001', 'ui', 2),
+  stagedLaunchedRecord('J2', 'build', '001', 'theme', 2),
+  endedRecord('J1', 'failed'),
+  endedRecord('J2', 'failed'),
+];
+
+function redHandoffResumedRecord(jobId: string, watcherInstance: number): LogRecord {
+  return {
+    kind: 'job-resumed', jobId, fields: { watcherInstance, cause: 'handoff-red' }, at: FIXTURE_AT,
+  };
+}
+
+/** A stage 1 build spent its red resumes and built; the stage 2 build of the same attempt went red once. */
+const RED_HANDOFFS_IN_AN_EARLIER_STAGE: LogRecord[] = [
+  stagedLaunchedRecord('J1', 'build', '001', 'shop', 1),
+  interruptedRecord('J1', 'handoff-red'),
+  redHandoffResumedRecord('J1', 2),
+  interruptedRecord('J1', 'handoff-red'),
+  redHandoffResumedRecord('J1', 3),
+  endedRecord('J1', 'built'),
+  stagedLaunchedRecord('J2', 'build', '001', 'ui', 2),
+  interruptedRecord('J2', 'handoff-red'),
+];
+
+/** A stage 1 build of `shop`, then three reviews that did not hold, each but the last followed by a `shop` rebuild that built. */
+const STAGED_BUILD_SENT_BACK_BY_THREE_REVIEWS: LogRecord[] = [
+  stagedLaunchedRecord('J1', 'build', '001', 'shop', 1),
+  endedRecord('J1', 'built'),
+  ...[1, 2, 3].flatMap((review): LogRecord[] => [
+    ...finishedJobRecords(`R${review}`, 'review', '001', 'does-not-hold', review),
+    ...(review < 3 ? [stagedLaunchedRecord(`B${review}`, 'build', '001', 'shop', 1), endedRecord(`B${review}`, 'built')] : []),
+  ]),
+];
+
+const RED_INTERRUPTED_STAGE_TWO_BUILD = jobFixture({
+  id: 'J2', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', entity: 'ui', stage: 2
+});
 
 const USAGE_LIMIT_AHEAD: LifecycleLimits = { ...FIXTURE_LIMITS, usageResetsAt: '2026-10-28T11:00:00+01:00' };
 
@@ -349,7 +400,35 @@ const CLAIMS: PolicyClaim[] = [
     name:   'unholding a ticket starts its failed passes again, so it rebuilds',
     facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: [...TWO_FAILED_PASSES_WITH_REWORK_BETWEEN, ticketRecord('ticket-unheld', '001')] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'launch-build',
-    mutant: { modulePath: FAILED_PASS_MODULE, find: '    if (record.kind === \'ticket-unheld\') failedPasses = 0;\n', replace: '' },
+    mutant: { modulePath: FAILED_PASS_MODULE, find: '    if (record.kind === \'ticket-unheld\') failedPassesByStage.clear();\n', replace: '' },
+  },
+  {
+    name:   'a stage that starts again counts its failed passes from zero',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: FAILED_PASSES_IN_TWO_ENTRIES_OF_A_STAGE }),
+    holds:  (steps) => !stepKindsOf(steps).includes('park'),
+    mutant: {
+      modulePath: FAILED_PASS_MODULE,
+      find:       '      if (record.fields.stage !== undefined && record.fields.stage !== currentStage) failedPassesByStage.clear();\n',
+      replace:    '',
+    },
+  },
+  {
+    name:   'two entities of one stage count their failed passes apart',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: FAILED_PASSES_IN_TWO_ENTITIES_OF_A_STAGE }),
+    holds:  (steps) => !stepKindsOf(steps).includes('park'),
+    mutant: { modulePath: FAILED_PASS_MODULE, find: ' ? \'\' : `${launch.entity ?? \'\'}/${launch.stage ?? \'\'}`', replace: ' ? \'\' : \'\'' },
+  },
+  {
+    name:   'a red handoff counts only the resumes of its own entity and stage',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, RED_INTERRUPTED_STAGE_TWO_BUILD], logRecords: RED_HANDOFFS_IN_AN_EARLIER_STAGE }),
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
+    mutant: policyLine('\n      && FailedPassUtil.stageKeyOf(launch) === FailedPassUtil.stageKeyOf(cycle);', ';'),
+  },
+  {
+    name:   'a staged build sent back by reviews past its red resumes parks red-resumes-spent',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: STAGED_BUILD_SENT_BACK_BY_THREE_REVIEWS }),
+    holds:  (steps) => JSON.stringify(steps) === JSON.stringify([{ kind: 'park', ticketId: '001', cause: 'red-resumes-spent' }]),
+    mutant: policyLine('    ...(newestBuild?.entity === undefined ? {} : { entity: newestBuild.entity }),\n', ''),
   },
   {
     name:   'a ticket parked in this pass does not launch in it',

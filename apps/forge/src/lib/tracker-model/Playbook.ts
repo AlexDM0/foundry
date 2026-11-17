@@ -81,6 +81,8 @@ interface JobLaunch {
   kind:      JobKind;
   ticketIds: readonly string[];
   attempt:   number;
+  entity?:   string;
+  stage?:    number;
 }
 
 type JobLaunchesByJobId = ReadonlyMap<string, JobLaunch>;
@@ -110,7 +112,13 @@ function isCrash(cause: InterruptionCause | undefined): boolean {
 function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): JobLaunchesByJobId {
   const launches = new Map<string, JobLaunch>();
   for (const record of logRecords) {
-    if (record.kind === 'job-launched') launches.set(record.jobId, { kind: record.fields.kind, ticketIds: record.fields.ticketIds, attempt: record.fields.attempt });
+    if (record.kind !== 'job-launched') continue;
+    const {
+      kind, ticketIds, attempt, entity, stage
+    } = record.fields;
+    launches.set(record.jobId, {
+      kind, ticketIds, attempt, ...(entity === undefined ? {} : { entity }), ...(stage === undefined ? {} : { stage })
+    });
   }
   return launches;
 }
@@ -185,6 +193,11 @@ function nextReviewRoundOf(ticketId: string, facts: IndexedLog): number {
   return grantedRounds + 1;
 }
 
+/** The ticket's newest build launch, whose entity and stage a returning builder's cycle runs in. */
+function newestBuildLaunchOf(ticketId: string, facts: IndexedLog): JobLaunch | undefined {
+  return [...facts.launchesByJobId.values()].findLast((launch) => launch.kind === 'build' && launch.ticketIds.includes(ticketId));
+}
+
 /** Zero for a ticket no build job was launched for. */
 function lastBuildAttemptOf(ticketId: string, facts: IndexedLog): number {
   const buildAttempts = [...facts.launchesByJobId.values()]
@@ -197,10 +210,12 @@ interface HandoffCycle {
   kind:      JobKind;
   ticketIds: readonly string[];
   attempt:   number;
+  entity?:   string;
+  stage?:    number;
 }
 
 /**
- * The resumes of a handoff cycle, every job of its kind, tickets and attempt, so a fresh session that took over a session the vendor
+ * The resumes of a handoff cycle, every job of its kind, tickets, attempt, entity and stage, so a fresh session that took over a session the vendor
  * could not resume carries on the same count: its red-handoff resumes, and for a build cycle each review of its tickets that did not
  * hold after the cycle began, since the builder is resumed with that review's findings.
  */
@@ -212,7 +227,8 @@ function handoffCycleResumesWith(cycle: HandoffCycle, logRecords: readonly LogRe
   const ticketKey = [...cycle.ticketIds].sort().join(',');
   const inTheCycle = (jobId: string): boolean => {
     const launch = launches.get(jobId);
-    return launch !== undefined && launch.kind === cycle.kind && launch.attempt === cycle.attempt && [...launch.ticketIds].sort().join(',') === ticketKey;
+    return launch !== undefined && launch.kind === cycle.kind && launch.attempt === cycle.attempt && [...launch.ticketIds].sort().join(',') === ticketKey
+      && FailedPassUtil.stageKeyOf(launch) === FailedPassUtil.stageKeyOf(cycle);
   };
   let cycleBegan = false;
   let resumes = 0;
@@ -391,7 +407,14 @@ function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits,
 /** A builder a review sent back past its cycle's resumes is never resumed again: the review that did not hold is one past the last. */
 function reviewResumesAreSpent(ticket: PlaybookTicket, facts: IndexedPlaybookFacts, limits: LifecycleLimits): boolean {
   if (ticket.status !== 'in-progress' || !builderReturnsFromReview(ticket.id, facts)) return false;
-  const cycle: HandoffCycle = { kind: 'build', ticketIds: [ticket.id], attempt: lastBuildAttemptOf(ticket.id, facts) };
+  const newestBuild = newestBuildLaunchOf(ticket.id, facts);
+  const cycle: HandoffCycle = {
+    kind:      'build',
+    ticketIds: [ticket.id],
+    attempt:   lastBuildAttemptOf(ticket.id, facts),
+    ...(newestBuild?.entity === undefined ? {} : { entity: newestBuild.entity }),
+    ...(newestBuild?.stage === undefined ? {} : { stage: newestBuild.stage }),
+  };
   return handoffCycleResumesWith(cycle, facts.logRecords, facts.launchesByJobId) > limits.RED_HANDOFF_RESUMES_BEFORE_PARKING;
 }
 

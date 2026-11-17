@@ -1,8 +1,8 @@
 /**
  * The log is read strictly, like progress.json: a missing file is an empty log, never an unreadable one; blank lines are no records;
  * and any other line that is not a well-formed record makes the whole file unreadable, naming the file, its 1-based line and the field,
- * because a person repairs it by hand from that reason alone. A field added later as optional, such as `job-launched`'s `intakeText`, leaves
- * a line stored before it readable.
+ * because a person repairs it by hand from that reason alone. A field added later as optional, such as `job-launched`'s `intakeText`,
+ * `entity` or `stage`, leaves a line stored before it readable.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -109,4 +109,27 @@ test('a product-owner launch stored before intakeText existed still reads, and o
   };
   const { reading } = readBack('log-intake-text', `${JSON.stringify(older)}\n${JSON.stringify(withText)}\n`);
   expect(reading).toEqual({ verdict: 'readable', records: [older, withText] });
+});
+
+test('a launch stored without entity and stage reads back without them, and one stored with them reads them back', () => {
+  const fields = {
+    kind: 'build', role: 'builder', ticketIds: ['001'], attempt: 1, target: 'main', parentJobId: null
+  } as const;
+  const withoutStage: LogRecord = {
+    at: STARTED_AT, kind: 'job-launched', jobId: 'J4', fields: { ...fields, ticketIds: ['001'] }
+  };
+  const withStage: LogRecord = {
+    at:     STARTED_AT,
+    kind:   'job-launched',
+    jobId:  'J5',
+    fields: {
+      ...fields, ticketIds: ['001'], entity: 'shop', stage: 1
+    }
+  };
+  const text = `${JSON.stringify(withoutStage)}\n${JSON.stringify(withStage)}\n`;
+  const { logFilePath, reading } = readBack('log-launch-stage', text);
+  expect(reading).toEqual({ verdict: 'readable', records: [withoutStage, withStage] });
+  expect(readFileSync(logFilePath, 'utf8')).toBe(text);
+  const firstFields = reading.verdict === 'readable' ? reading.records[0]?.fields : undefined;
+  expect(Object.keys(firstFields ?? {})).toEqual(['kind', 'role', 'ticketIds', 'attempt', 'target', 'parentJobId']);
 });

@@ -121,6 +121,18 @@ describe('a launch', () => {
   });
 });
 
+describe('a launch\'s entity and stage', () => {
+  test('a launch without them logs and stores no such keys; a launch with them logs and stores both', () => {
+    const { board, records } = boardWithTicket();
+    const plain  = board.launchJob(BUILD_LAUNCH, AT).job;
+    const staged = board.launchJob({ ...BUILD_LAUNCH, entity: 'shop', stage: 1 }, AT).job;
+
+    expect(['entity', 'stage'].some((key) => Object.hasOwn(plain, key) || Object.hasOwn(records[0]?.fields ?? {}, key))).toBe(false);
+    expect(staged).toMatchObject({ entity: 'shop', stage: 1 });
+    expect(records[1]).toMatchObject({ kind: 'job-launched', jobId: 'J2', fields: { entity: 'shop', stage: 1 } });
+  });
+});
+
 describe('an intake\'s request and title', () => {
   test('a product-owner launch logs User\'s request as intakeText; a launch with no intake logs no such key', () => {
     const { board, records } = boardWithTicket();

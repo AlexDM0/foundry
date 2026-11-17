@@ -2,6 +2,7 @@
  * A ticket's failed passes as a log reading: its jobs ended `failed` or `does-not-hold` since it was last started from `pending` or unheld.
  * Clock-free and restart-proof; an interruption, a resume, `replaced`, `stopped` or a usage limit is never a failed pass, and neither is a
  * review that does not hold while the ticket's newest build was `built`: that review resumes the builder, counted against its cycle's resumes.
+ * On a forge with entities the passes count per entity and stage, from zero when a stage starts.
  */
 import type { JobKind, JobOutcome }      from '../@types/Job.ts';
 import type { LogRecord, LogRecordKind } from '../@types/LogRecord.ts';
@@ -24,31 +25,56 @@ function outcomeIsAFailedPass(outcome: JobOutcome): boolean {
   return FAILED_PASS_OUTCOMES.includes(outcome);
 }
 
-/** A start from `in-review` is rework, which keeps the count; a start from anywhere else begins it again. */
-function failedPassesOf(ticketId: string, logRecords: readonly LogRecord[]): number {
+/** The entity and stage a launch names; a launch without them, on a forge without entities, has the empty key. */
+function stageKeyOf(launch: Readonly<{ entity?: string; stage?: number }>): string {
+  return launch.entity === undefined && launch.stage === undefined ? '' : `${launch.entity ?? ''}/${launch.stage ?? ''}`;
+}
+
+/**
+ * The ticket's failed passes per entity and stage, keyed as `stageKeyOf` keys a launch. A launch into another stage number starts the stage
+ * with no counts; a start from `in-review` is rework, which keeps them; a start from anywhere else begins them again.
+ */
+function failedPassesByStageOf(ticketId: string, logRecords: readonly LogRecord[]): ReadonlyMap<string, number> {
+  const stageKeyByJobId     = new Map<string, string>();
   const jobKindsOfTheTicket = new Map<string, JobKind>();
+  const failedPassesByStage = new Map<string, number>();
+  let currentStage: number | undefined;
   let ticketIsInReview      = false;
   let newestBuildWasBuilt   = false;
-  let failedPasses          = 0;
   for (const record of logRecords) {
-    if (record.kind === 'tracker-cleared') failedPasses = 0;
-    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId)) jobKindsOfTheTicket.set(record.jobId, record.fields.kind);
+    if (record.kind === 'tracker-cleared') failedPassesByStage.clear();
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId)) {
+      jobKindsOfTheTicket.set(record.jobId, record.fields.kind);
+      stageKeyByJobId.set(record.jobId, stageKeyOf(record.fields));
+      if (record.fields.stage !== undefined && record.fields.stage !== currentStage) failedPassesByStage.clear();
+      if (record.fields.stage !== undefined) currentStage = record.fields.stage;
+    }
     const endedJobKind = record.kind === 'job-ended' ? jobKindsOfTheTicket.get(record.jobId) : undefined;
     if (record.kind === 'job-ended' && endedJobKind !== undefined) {
       const reviewResumesTheBuilder = endedJobKind === 'review' && record.fields.outcome === 'does-not-hold' && newestBuildWasBuilt;
-      if (outcomeIsAFailedPass(record.fields.outcome) && !reviewResumesTheBuilder) failedPasses += 1;
+      if (outcomeIsAFailedPass(record.fields.outcome) && !reviewResumesTheBuilder) {
+        const stageKey = stageKeyByJobId.get(record.jobId) ?? '';
+        failedPassesByStage.set(stageKey, (failedPassesByStage.get(stageKey) ?? 0) + 1);
+      }
       if (endedJobKind === 'build') newestBuildWasBuilt = record.fields.outcome === 'built';
     }
     if (!('ticketId' in record) || record.ticketId !== ticketId) continue;
-    if (record.kind === 'ticket-unheld') failedPasses = 0;
+    if (record.kind === 'ticket-unheld') failedPassesByStage.clear();
     if (record.kind === 'ticket-unheld') newestBuildWasBuilt = false;
-    if (record.kind === 'ticket-started' && !ticketIsInReview) failedPasses = 0;
+    if (record.kind === 'ticket-started' && !ticketIsInReview) failedPassesByStage.clear();
     if (STATUS_MOVE_KINDS.includes(record.kind)) ticketIsInReview = record.kind === 'ticket-finished';
   }
-  return failedPasses;
+  return failedPassesByStage;
+}
+
+/** The most failed passes of any entity in the ticket's current stage; a forge without entities has the one count it always had. */
+function failedPassesOf(ticketId: string, logRecords: readonly LogRecord[]): number {
+  return Math.max(0, ...failedPassesByStageOf(ticketId, logRecords).values());
 }
 
 export const FailedPassUtil = {
   outcomeIsAFailedPass,
+  stageKeyOf,
+  failedPassesByStageOf,
   failedPassesOf,
 } as const;

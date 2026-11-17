@@ -35,6 +35,7 @@ export type LogFieldShape =
   | 'dispatcher-run-id'
   | 'check-command'
   | 'count'
+  | 'optional-count'
   | 'review-bar-round'
   | 'review-verdict'
   | 'review-claims'
@@ -302,6 +303,9 @@ export const LOG_RECORD_SCHEMA = {
       intakeText:     'optional-text',
       // Set only when the request came with pictures.
       intakePictures: 'optional-pictures',
+      // Set only on a forge with entities: the entity and the stage the job runs, which scope its red handoffs and failed passes.
+      entity:         'optional-text',
+      stage:          'optional-count',
     },
   },
   'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', watcherInstance: 'watcher-instance' } },

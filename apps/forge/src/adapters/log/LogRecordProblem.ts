@@ -141,6 +141,10 @@ function overseerStateProblem(value: unknown, path: string): string | null {
   return BoardSettingsUtil.overseerStateIsKnown(value) ? null : `${path} is ${JSON.stringify(value)}, which is not one of ${OVERSEER_STATES.join(', ')}`;
 }
 
+function countProblem(value: unknown, path: string): string | null {
+  return StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? null : `${path} is not a whole number of at least 0`;
+}
+
 function retiredDispatcherRunIdProblem(value: unknown, path: string): string | null {
   return value === null || (typeof value === 'string' && value.trim() !== '') ? null : `${path} is neither null nor a run id`;
 }
@@ -164,7 +168,8 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'dispatcher-state':         (value, path) => vocabularyProblem(value, path, RETIRED_DISPATCHER_STATES),
   'dispatcher-run-id':        retiredDispatcherRunIdProblem,
   'check-command':            checkCommandProblem,
-  'count':                    (value, path) => (StoredValueUtil.wholeNumberIsAtLeast(value, 0) ? null : `${path} is not a whole number of at least 0`),
+  'count':                    countProblem,
+  'optional-count':           (value, path) => (value === undefined ? null : countProblem(value, path)),
   'review-bar-round':         reviewBarRoundProblem,
   'review-verdict':           ReviewRecordFieldsUtil.verdictProblem,
   'review-claims':            ReviewRecordFieldsUtil.claimsProblem,

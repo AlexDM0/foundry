@@ -67,6 +67,7 @@ interface ValueOfFieldShape {
   'dispatcher-run-id':        string | null;
   'check-command':            string | null;
   'count':                    number;
+  'optional-count':           number;
   'review-bar-round':         number;
   'review-verdict':           ReviewVerdict;
   'review-claims':            readonly ReviewClaim[];
@@ -120,6 +121,7 @@ type FieldShapes = Readonly<Record<string, LogFieldShape>>;
 type OptionalFieldShape =
   | 'optional-text'
   | 'optional-size'
+  | 'optional-count'
   | 'optional-flag'
   | 'optional-cost-usd'
   | 'optional-pictures'

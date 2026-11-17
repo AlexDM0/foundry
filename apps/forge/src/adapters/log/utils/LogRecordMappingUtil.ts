@@ -69,6 +69,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'dispatcher-run-id':        sameValue,
   'check-command':            sameValue,
   'count':                    sameValue,
+  'optional-count':           sameValue,
   'review-bar-round':         sameValue,
   'review-verdict':           sameValue,
   'review-claims':            ReviewRecordFieldsUtil.claimsCopyOf,
@@ -116,6 +117,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
 const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = [
   'optional-text',
   'optional-size',
+  'optional-count',
   'optional-flag',
   'optional-cost-usd',
   'optional-pictures',
