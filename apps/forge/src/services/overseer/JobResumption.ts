@@ -178,10 +178,22 @@ type SessionOwnerSubject = Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketId
 /** A build of the same attempt, entity and stage carries on the session of a build that ended so: sent back by its review, or its needs settled. */
 const SESSION_CARRYING_OUTCOMES: readonly string[] = ['built', 'needs-declared'];
 
+/** A crossing ticket's `adapt` (stage 4) carries on the home builder's session of `build` (stage 1) when it exists (A2). */
+const ADAPT_STAGE_NUMBER = 4;
+
+const BUILD_STAGE_NUMBER = 1;
+
+/** Whether a session of `sessionScope` is the home builder's session an `adapt` job of `jobScope` takes up after the package stages. */
+function adaptTakesUp(sessionScope: SessionScope | undefined, jobScope: SessionScope): boolean {
+  return jobScope.stage === ADAPT_STAGE_NUMBER && sessionScope !== undefined && sessionScope.entity === jobScope.entity
+    && (sessionScope.stage === BUILD_STAGE_NUMBER || sessionScope.stage === ADAPT_STAGE_NUMBER);
+}
+
 /**
  * The job whose session a build job carries on: a build of the same attempt, entity and stage after one that ended `built` was sent back by
  * its review, or after one that ended `needs-declared` once its needs are settled, and resumes that builder's session (itself perhaps carried
- * on from an earlier one). The job itself for every other job.
+ * on from an earlier one). An `adapt` job after the package stages carries on the newest home build of stage 1 or 4 that ended so, whatever
+ * its attempt (A2); with none it starts fresh (E43). The job itself for every other job.
  */
 function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string {
   if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);
@@ -190,6 +202,7 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwner
   const attemptByJobId = new Map<string, number>();
   const scopeByJobId = new Map<string, SessionScope>();
   let newestEnded: { jobId: string; outcome: string } | null = null;
+  let newestHomeBuildForAdapt: string | null = null;
   for (const record of logRecords) {
     if (record.kind === 'job-launched' && record.fields.kind === 'build' && record.fields.ticketIds.some((ticketId) => job.ticketIds.includes(ticketId))) {
       const scope = sessionScopeOf(record.fields);
@@ -198,11 +211,18 @@ function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwner
       const carriesOn = newestEnded !== null && sameAttempt && sameScope && SESSION_CARRYING_OUTCOMES.includes(newestEnded.outcome)
         ? sessionOwnerByJobId.get(newestEnded.jobId)
         : undefined;
-      sessionOwnerByJobId.set(record.jobId, carriesOn ?? record.jobId);
+      const afterThePackageStages = newestEnded !== null && !sameScope && newestHomeBuildForAdapt !== null && adaptTakesUp(scopeByJobId.get(newestHomeBuildForAdapt), scope);
+      const takesUp = afterThePackageStages && newestHomeBuildForAdapt !== null ? sessionOwnerByJobId.get(newestHomeBuildForAdapt) : undefined;
+      sessionOwnerByJobId.set(record.jobId, carriesOn ?? takesUp ?? record.jobId);
       attemptByJobId.set(record.jobId, record.fields.attempt);
       scopeByJobId.set(record.jobId, scope);
     }
-    if (record.kind === 'job-ended' && sessionOwnerByJobId.has(record.jobId)) newestEnded = { jobId: record.jobId, outcome: record.fields.outcome };
+    if (record.kind === 'job-ended' && sessionOwnerByJobId.has(record.jobId)) {
+      newestEnded = { jobId: record.jobId, outcome: record.fields.outcome };
+      const endedScope = scopeByJobId.get(record.jobId);
+      const endedAHomeBuild = endedScope?.stage === BUILD_STAGE_NUMBER || endedScope?.stage === ADAPT_STAGE_NUMBER;
+      if (endedAHomeBuild && SESSION_CARRYING_OUTCOMES.includes(record.fields.outcome)) newestHomeBuildForAdapt = record.jobId;
+    }
   }
   return sessionOwnerByJobId.get(job.id) ?? job.id;
 }

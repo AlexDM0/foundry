@@ -12,12 +12,13 @@
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                                      from '../../src/lib/tracker-model/@types/Job.ts';
-import type { NeedsSettledFacts }                        from '../../src/services/overseer/NeedTickets.ts';
-import { resourceFilePathOf }                            from '../../src/shared/ResourceFilePath.ts';
-import { PRODUCT_NAMES }                                 from '../../src/shared/constants/ProductNames.ts';
-import type { CrossingStageFacts, StagedJobLaunchFacts } from './OverseerWording.ts';
-import { OverseerWording }                               from './OverseerWording.ts';
+import type { Job }                from '../../src/lib/tracker-model/@types/Job.ts';
+import type { CrossingStageFacts } from '../../src/services/overseer/CrossingStages.ts';
+import type { JobLaunchFacts }     from '../../src/services/overseer/DrivePass.ts';
+import type { NeedsSettledFacts }  from '../../src/services/overseer/NeedTickets.ts';
+import { resourceFilePathOf }      from '../../src/shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
+import { OverseerWording }         from './OverseerWording.ts';
 
 const BUILD_PROMPT  = readFileSync(resourceFilePathOf('prompts', 'BuildPrompt.md'), 'utf8');
 const REVIEW_PROMPT = readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8');
@@ -44,7 +45,7 @@ interface ExtraLaunchFacts {
 function messageOf(
   kind: 'build' | 'review', entity: string | undefined, crossingStage: CrossingStageFacts | null = null, extraFacts: ExtraLaunchFacts = {}
 ): string {
-  const facts: StagedJobLaunchFacts = {
+  const facts: JobLaunchFacts = {
     confinement: 'confined',
     tickets:     [{
       id: '014', title: 'Example basket export', body: '## Acceptance\nA1. Example basket exports.\n', branch: 'ticket-014'
@@ -195,9 +196,19 @@ describe('a reviewer of an entity', () => {
   });
 
   test('in stage 5, is told the crossed packages are sealed', () => {
-    const message = messageOf('review', 'web', { stage: 'review', crossedPackages: ['shared'] });
+    const message = messageOf('review', 'web', { stage: 'review', crossedPackages: [{ entity: 'shared', reviewText: '' }] });
 
     expect(message).toContain('This review is stage 5 of the ticket: the review of `web`.');
     expect(message).toContain('The change of the ticket in `shared` is sealed.');
+    expect(message).toContain('The reviewer of `shared` wrote no review text.');
+  });
+
+  test('in stage 5, gets the package review\'s text, which names problems in the home\'s files (E32)', () => {
+    const reviewText = 'The basket page reads the old example name.\nUse the new example name.';
+    const message = messageOf('review', 'web', { stage: 'review', crossedPackages: [{ entity: 'shared', reviewText }] });
+
+    expect(message).toContain('The reviewer of `shared` wrote this review. Examine each problem that it gives in the files of `web`:\n\n'
+      + '  The basket page reads the old example name.\n  Use the new example name.');
+    expect(message).not.toMatch(PLACEHOLDER);
   });
 });

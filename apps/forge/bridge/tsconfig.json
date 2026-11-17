@@ -89,6 +89,7 @@
     "../src/lib/tracker-model/TicketLinks.ts",
     "../src/lib/tracker-model/TicketMoves.ts",
     "../src/lib/tracker-model/TicketSettings.ts",
+    "../src/lib/tracker-model/TicketStageRows.ts",
     "../src/lib/tracker-model/TokenCredits.ts",
     "../src/lib/tracker-model/TrackerChanges.ts",
     "../src/lib/tracker-model/constants/AgentSettings.ts",

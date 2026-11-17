@@ -1650,6 +1650,42 @@ red handoff, whose `gate-failure.md` names each path to take out; a second V17 r
 branch still changed nothing in its own entity also opens `work-in-other-entity` (see [`need declare`](#need-declare)).
 A job carries on only a session of its own entity and stage. A job without an entity keeps the checks it always had.
 
+A ticket of an entity whose `whitelist` names a package can cross into it by stages. Its stage 1 build may also write
+a proposal in the homes of the whitelisted packages; V17 still refuses a branch that changed only those files
+(`changed-only-outside-home-and-reach`). Once its gates pass, the paths the branch changed past its target are sorted
+by owner. With no whitelisted package among the owners, the build settles as above. Otherwise its `## Handoff` is
+written, it ends `built`, the ticket stays `in-progress`, and the row's `stage` moves to the `package-build` of the
+first package, a package before the packages that consume it:
+
+- **Package build (stage 2).** The package's builder answers for the commits since the first job of its stage, so a
+  retry after a refused job still answers for that job's commits, under the package's homes and `reach`. Commits that
+  all lie outside them are refused `changed-outside-home-and-reach`, never as work of another entity. It may commit
+  nothing (no V3), and no package stage accounts for the ticket's Acceptance (no V8). Its report must also state
+  `exposedSurfaceChanged`, else it fails `no-report`. Its gate run checks the package's gates, then the gates of each
+  entity that consumes the package but the home entity, each from its own first home and named `<entity>: <gate>`; a
+  red one is the package builder's red handoff. Gated green, it ends `built`, keeps the statement in its job folder as
+  `stage-statement.json`, and the row moves to the `package-review`.
+- **Package review (stage 3).** Its report must also give `exposedSurfaceConfirmed`, true when the build's statement is
+  right. It settles its round as any review: its record and findings, and a further round when its fixes pass the
+  package's own `review.reReview` threshold, rounds counted in this stage only. It writes no `## Review` section and
+  proposes no waiver. A claim `does-not-hold` ends it `does-not-hold` and the row goes back to the `package-build`.
+  Otherwise its confirmation, `reviewText` and `sealedReachPaths` go to `stage-statement.json`, the row's `seals` gains
+  the package's seal, the job ends `reviewed` and its bar closes. The seal is a SHA-256 of the ticket's own change past
+  the newest commit of the target the branch holds, without hunk line numbers or blob ids, on the package's homes, a
+  deeper home of another entity left out, and on `sealedReachPaths`: the package's `reach` paths that its stages
+  changed since its first package build. The next crossed package's build follows; after the last, the home `review`
+  when every package's build stated no change and its review confirmed it, with the ticket moved `in-review`, else
+  `adapt`.
+- **Adapt (stage 4).** The home builder resumes its stage 1 session; when that session cannot resume, a fresh one
+  starts on the branch. It answers only for its own commits. Gated green it settles as a build above, and the row moves
+  to the home `review`.
+- **Review (stage 5).** The reviewer gets each package review's `reviewText`. A review that does not hold moves the row
+  back to `adapt`.
+
+From the package build on, a job whose branch no longer holds a sealed change is refused V17
+`sealed-change-altered`, which sends the session back once, as any other V17 refusal of a job of an entity. The
+Airlock's merge and conflict work are exempt.
+
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
 | worktree creation, the install line or a gating prepare step fails, or a gating prepare step changes a tracked file | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |

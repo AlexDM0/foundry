@@ -140,7 +140,12 @@ import type {
   PlaybookObservations,
   PlaybookStep
 }                                              from './@types/PlaybookStep.ts';
-import type { DisplayState, Task, TaskStatus } from './@types/Task.ts';
+import type {
+  DisplayState,
+  Task,
+  TaskStatus,
+  TicketStage
+} from './@types/Task.ts';
 import type {
   ReadinessGap,
   ReadyTicket,
@@ -198,6 +203,7 @@ import { TicketForecasts }                             from './TicketForecasts.t
 import { TicketLinks }                                 from './TicketLinks.ts';
 import { TicketMoves }                                 from './TicketMoves.ts';
 import { TicketSettings }                              from './TicketSettings.ts';
+import { TicketStageRows }                             from './TicketStageRows.ts';
 import { TokenCredits }                                from './TokenCredits.ts';
 import { TrackerChanges }                              from './TrackerChanges.ts';
 import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
@@ -274,6 +280,8 @@ export class Board {
 
   private readonly mergeQueueMarks: MergeQueueMarks;
 
+  private readonly ticketStageRows: TicketStageRows;
+
   private readonly airlockClaims: AirlockClaims;
 
   private readonly decisionRules: Decisions;
@@ -315,6 +323,7 @@ export class Board {
     this.gateProfiles       = new GateProfiles(this.records);
     this.jobRules           = new Jobs(this.records);
     this.mergeQueueMarks    = new MergeQueueMarks(this.records);
+    this.ticketStageRows    = new TicketStageRows(this.records, this.reviewBars);
     this.airlockClaims    = new AirlockClaims(this.records, this.jobRules, this.mergeQueueMarks);
     this.decisionRules      = new Decisions(this.records);
     this.pipelineSetups     = new PipelineSetups(this.records, this.trackerChanges, this.decisionRules);
@@ -517,6 +526,26 @@ export class Board {
 
   ticketIsMergeQueued(ticketId: string): boolean {
     return this.mergeQueueMarks.ticketIsMergeQueued(ticketId);
+  }
+
+  ticketStageOf(ticketId: string): TicketStage | null {
+    return this.ticketStageRows.ticketStageOf(ticketId);
+  }
+
+  ticketSealsOf(ticketId: string): Readonly<Record<string, string>> {
+    return this.ticketStageRows.ticketSealsOf(ticketId);
+  }
+
+  moveTicketStage(ticketId: string, stage: TicketStage, at: string): Readonly<Task> {
+    return this.ticketStageRows.moveTicketStage(ticketId, stage, at);
+  }
+
+  sealTicketPackage(ticketId: string, packageEntity: string, seal: string, at: string): Readonly<Task> {
+    return this.ticketStageRows.sealTicketPackage(ticketId, packageEntity, seal, at);
+  }
+
+  closeStageReviewBars(ticketId: string, at: string): Logged {
+    return this.ticketStageRows.closeStageReviewBars(ticketId, at);
   }
 
   greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null, entitiesItMustName: readonly EntityKey[] = []): boolean {

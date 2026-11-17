@@ -13,23 +13,30 @@ import {
 } from 'node:fs';
 import path, { join, relative, resolve } from 'node:path';
 
-import { AIRLOCK_AGENT_REPORT_SCHEMA, BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
-import { reportVerdictOf, type JsonSchema }                                           from '../../adapters/reports/ReportValidation.ts';
-import { TicketAcceptanceUtil }                                                       from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { type GitPathStyle, GitPaths }                                                from '../../lib/git/GitPaths.ts';
-import { type GitHookPolicy, type GitRun, GitProcess }                                from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                                               from '../../lib/git/GitWorktrees.ts';
-import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings }    from '../../lib/git/RepositoryLandings.ts';
-import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                           from '../../lib/git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                                           from '../../lib/git/utils/GitArgumentsUtil.ts';
-import type { JobOutcome }                                                            from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { PipelineGate }                                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import { EntityOwnershipUtil }                                                        from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketBodyHashUtil }                                                         from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                                                              from '../../shared/constants/ProductNames.ts';
-import { ProjectPathsUtil }                                                           from '../../shared/utils/ProjectPathsUtil.ts';
+import {
+  AIRLOCK_AGENT_REPORT_SCHEMA,
+  BUILDER_REPORT_SCHEMA,
+  PACKAGE_BUILDER_REPORT_SCHEMA,
+  PACKAGE_REVIEWER_REPORT_SCHEMA,
+  REVIEWER_REPORT_SCHEMA
+} from '../../adapters/reports/ReportSchemas.ts';
+import { reportVerdictOf, type JsonSchema }                                        from '../../adapters/reports/ReportValidation.ts';
+import { TicketAcceptanceUtil }                                                    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { type GitPathStyle, GitPaths }                                             from '../../lib/git/GitPaths.ts';
+import { type GitHookPolicy, type GitRun, GitProcess }                             from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
+import { type RepositoryLanding, type RepositoryLandingFiles, RepositoryLandings } from '../../lib/git/RepositoryLandings.ts';
+import { GIT_PATHSPEC_ARGUMENT_CHARACTERS }                                        from '../../lib/git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                                        from '../../lib/git/utils/GitArgumentsUtil.ts';
+import type { JobOutcome }                                                         from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                                          from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { PipelineGate }                                                       from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { TicketStageName }                                                    from '../../lib/tracker-model/@types/Task.ts';
+import { EntityOwnershipUtil }                                                     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketBodyHashUtil }                                                      from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import type { BranchNames }                                                        from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                                           from '../../shared/constants/ProductNames.ts';
+import { ProjectPathsUtil }                                                        from '../../shared/utils/ProjectPathsUtil.ts';
 
 /** A fixer is a builder one attempt on, and is verified as one. */
 /**
@@ -59,6 +66,7 @@ export type VerificationRefusalReason =
   | 'checks-definition-changed'
   | 'changed-outside-home-and-reach'
   | 'changed-only-outside-home-and-reach'
+  | 'sealed-change-altered'
   | 'instruction-file-changed'
   | 'finding-not-filed-by-job'
   | 'branch-touches-agent-config'
@@ -128,11 +136,43 @@ const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], w
  */
 export interface WritableFolders {
   /** The stage entity's homes, repository folders leading with `/`; `/` among them for the root entity, which owns every path no home holds. */
-  homes:      readonly string[];
+  homes:          readonly string[];
   /** The stage entity's `reach`: repository paths outside its homes, each leading with `/`. */
-  reach:      readonly string[];
+  reach:          readonly string[];
   /** The homes of every other entity of the pipeline. */
-  otherHomes: readonly string[];
+  otherHomes:     readonly string[];
+  /**
+   * In stage 1 of an entity with a `whitelist`: the homes of its whitelisted packages, where the builder may write a proposal. A branch
+   * that changed nothing in the entity's own homes and `reach` is still refused apart (E15).
+   */
+  proposalHomes?: readonly string[];
+}
+
+/** A crossed package's sealed change (E33): the pathspecs the seal covers and the hash its package review stored. */
+export interface SealedChange {
+  /** The package entity's key. */
+  entity:    string;
+  /**
+   * Git pathspecs from the repository root: the package's homes, each deeper home of another entity excluded (E2), and the `reach` paths
+   * its package stages changed (E3).
+   */
+  pathspecs: readonly string[];
+  seal:      string;
+}
+
+/**
+ * A job of a ticket whose row stores a stage, so the ticket crosses into whitelisted packages (strategy 4.2). The branch holds the earlier
+ * stages' change, so every stage but `build` is judged on its own commits; a later job may not alter a sealed change.
+ */
+export interface CrossingStageScope {
+  stageName:         TicketStageName;
+  /** The seals of the crossed packages so far; the Airlock's merge and conflict work are exempt. */
+  seals:             readonly SealedChange[];
+  /**
+   * The start of the first job of this run of the stage: a later stage answers for every commit since, so a retry after a refused job still
+   * answers for that job's commits. The job's own start when absent.
+   */
+  stageStartCommit?: string;
 }
 
 /**
@@ -207,6 +247,8 @@ export interface CustomsSubject {
    * root either way.
    */
   projectScope?:     ProjectScope;
+  /** A job of a ticket that crosses into whitelisted packages, once its row stores a stage; absent for every other job. */
+  crossingStage?:    CrossingStageScope;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -249,6 +291,25 @@ const REPORT_SCHEMA_OF_ROLE: Readonly<Record<ReportingRole, JsonSchema>> = {
   'reviewer':      REVIEWER_REPORT_SCHEMA,
   'airlock-agent': AIRLOCK_AGENT_REPORT_SCHEMA,
 };
+
+/** The package stages of a crossing ticket: their reports state and confirm what the package exposes, and the Acceptance is not theirs. */
+const PACKAGE_STAGE_NAMES: readonly TicketStageName[] = ['package-build', 'package-review'];
+
+function crossingStageNameOf(subject: Pick<CustomsSubject, 'crossingStage'>): TicketStageName | null {
+  return subject.crossingStage?.stageName ?? null;
+}
+
+function inAPackageStage(subject: Pick<CustomsSubject, 'crossingStage'>): boolean {
+  const stageName = crossingStageNameOf(subject);
+  return stageName !== null && PACKAGE_STAGE_NAMES.includes(stageName);
+}
+
+/** A package stage's report carries the statement of what the package exposes (A1): the package builder states it, its reviewer confirms it. */
+function reportSchemaOf(role: ReportingRole, stageName: TicketStageName | null): JsonSchema {
+  if (role === 'builder' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
+  if (role === 'reviewer' && stageName === 'package-review') return PACKAGE_REVIEWER_REPORT_SCHEMA;
+  return REPORT_SCHEMA_OF_ROLE[role];
+}
 
 function refused(reason: VerificationRefusalReason, facts: readonly string[] = []): CheckVerdict {
   return { verdict: 'refused', reason, facts };
@@ -323,7 +384,7 @@ function reportListOf(report: unknown, field: string): Record<string, unknown>[]
 
 function reportIsValidWithItsHead(subject: CustomsSubject): CheckVerdict {
   if (subject.role === 'pipeline-agent') return refused('report-invalid', ['no report']);
-  const verdict = reportVerdictOf(REPORT_SCHEMA_OF_ROLE[subject.role], subject.report);
+  const verdict = reportVerdictOf(reportSchemaOf(subject.role, crossingStageNameOf(subject)), subject.report);
   if (verdict.verdict === 'invalid') return refused('report-invalid', verdict.problems);
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
@@ -336,9 +397,13 @@ function headDescendsFromTheStart(subject: CustomsSubject): CheckVerdict {
   return GitProcess.succeeded(run) ? PASSED : refused('history-rewritten', [subject.startCommit]);
 }
 
-/** A builder owes a commit only when it reports `built`; a reviewer and a resolution reviewer never do. */
+/**
+ * A builder owes a commit only when it reports `built`; a reviewer and a resolution reviewer never do, nor a package builder that accepts the
+ * proposal as it is (E20).
+ */
 function aCommitSinceTheStart(subject: CustomsSubject): CheckVerdict {
   if (subject.role === 'builder' && reportFieldOf(subject.report, 'outcome') !== 'built') return PASSED;
+  if (crossingStageNameOf(subject) === 'package-build') return PASSED;
   const measured = { ...subject, startCommit: subject.workStartCommit ?? subject.startCommit };
   const commits = gitLines(subject.worktreePath, ['rev-list', ...rangeArgumentsOf(measured)]);
   if (commits === null) return refused('git-failed', [rangeOf(measured)]);
@@ -402,8 +467,12 @@ function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
   return attributed.length === 0 ? PASSED : refused('ai-attribution-in-range', attributed);
 }
 
-/** A builder accounts for each item with evidence or a waiver proposal; a reviewer with a claim. An item the Acceptance waives needs neither. */
+/**
+ * A builder accounts for each item with evidence or a waiver proposal; a reviewer with a claim. An item the Acceptance waives needs neither,
+ * and a package stage accounts for none: the home stages own the evidence for the ticket's Acceptance.
+ */
 function everyAcceptanceItemAccountedFor(subject: CustomsSubject): CheckVerdict {
+  if (inAPackageStage(subject)) return PASSED;
   const labels  = TicketAcceptanceUtil.acceptanceItemsOf(subject.ticketBody).filter(({ waivedReason }) => waivedReason === null).map(({ label }) => label);
   const covered = subject.role === 'reviewer'
     ? reportListOf(subject.report, 'claims').map((claim) => String(claim['item']).trim())
@@ -503,6 +572,33 @@ function pathsTheBranchChangedPast(subject: RangeSubject, target: string): strin
   return [...new Set([...pathsOfOwnCommits, ...pathsAgainstTarget])];
 }
 
+/**
+ * The paths the branch changed itself past `target`, as the scope check judges a branch from its start: what the crossing after stage 1
+ * sorts by owner. `null` when git cannot tell.
+ */
+export function pathsTheBranchChangedPastTargetOf(worktreePath: string, startCommit: string, target: string): string[] | null {
+  return pathsTheBranchChangedPast({ worktreePath, startCommit }, target);
+}
+
+/** The difference a seal hashes, with no context lines, so a change of the target near the package change leaves it as it was. */
+const SEAL_DIFFERENCE_ARGUMENTS: readonly string[] = ['diff', '--no-color', '--no-ext-diff', '--binary', '--no-renames', '-U0'];
+
+/** What a merge of the target moves in that difference: each hunk's line numbers and each blob id. */
+const LINES_A_TARGET_MERGE_MOVES: readonly string[] = ['@@', 'index '];
+
+/**
+ * A package's seal (strategy 4.2): a hash of the ticket's own change on `pathspecs`, the difference between the newest commit of `target`
+ * that the branch holds and HEAD. A merge of the main line never breaks it (E35). `null` when git cannot tell.
+ */
+export function sealOf(worktreePath: string, target: string, pathspecs: readonly string[]): string | null {
+  const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
+  if (!GitProcess.succeeded(base)) return null;
+  const difference = worktreeGitRun(worktreePath, [...SEAL_DIFFERENCE_ARGUMENTS, base.standardOutput.trim(), 'HEAD', '--', ...pathspecs]);
+  if (!GitProcess.succeeded(difference)) return null;
+  const sealedLines = difference.standardOutput.split('\n').filter((line) => !LINES_A_TARGET_MERGE_MOVES.some((prefix) => line.startsWith(prefix)));
+  return createHash('sha256').update(sealedLines.join('\n')).digest('hex');
+}
+
 /** The instruction files of `changed` that the branch changed itself; all of them when the subject names no target. */
 function instructionFilesChangedByTheBranch(subject: CustomsSubject, changed: readonly string[]): readonly string[] | null {
   if (changed.length === 0 || subject.target === undefined) return changed;
@@ -565,22 +661,80 @@ export function pathsOutsideWritableFoldersOf(gitPaths: readonly string[], writa
   });
 }
 
+/** The paths of the job's own commits past its target: a later stage of a crossing ticket answers only for these. */
+function pathsOfOwnCommitsPast(subject: RangeSubject, target: string): string[] | null {
+  return gitLines(subject.worktreePath, ['log', '--name-only', '--no-renames', '--format=', ...rangeArgumentsOf(subject), `^${target}`, '--']);
+}
+
+/**
+ * The paths in `reach` that the commits from `startCommit` to HEAD changed past `target`: the `reach` paths a package's stages changed, which
+ * join its seal (E3). `null` when git cannot tell.
+ */
+export function reachPathsChangedSinceOf(worktreePath: string, startCommit: string, target: string, reach: readonly string[]): string[] | null {
+  const paths = pathsOfOwnCommitsPast({ worktreePath, startCommit }, target);
+  if (paths === null) return null;
+  return [...new Set(paths.filter((gitPath) => deepestFolderHolding(reach, `${REPOSITORY_ROOT_MARKER}${gitPath}`) >= 0))];
+}
+
+/**
+ * What the scope check judges: in a later stage of a crossing, the commits since the stage's run began, so a retry still answers for the
+ * commits of the job it retries; else what the branch changed itself past its target.
+ */
+function pathsTheScopeJudges(subject: CustomsSubject): string[] | null {
+  if (subject.target === undefined) return pathsChangedInRange(subject);
+  const stageName = crossingStageNameOf(subject);
+  if (stageName === null || stageName === 'build') return pathsTheBranchChangedPast(subject, subject.target);
+  return pathsOfOwnCommitsPast({ ...subject, startCommit: subject.crossingStage?.stageStartCommit ?? subject.startCommit }, subject.target);
+}
+
+/**
+ * In stage 1 a path in a whitelisted package's home is a proposal; the paths outside both, else the branch's paths outside the entity's own
+ * homes and `reach` when it changed nothing there (E15), else none.
+ */
+function pathsOutsideTheStageOf(paths: readonly string[], writableFolders: WritableFolders): { outside: string[]; onlyOutside: boolean } {
+  const outsideOwnFolders = pathsOutsideWritableFoldersOf(paths, writableFolders);
+  const proposalHomes = writableFolders.proposalHomes ?? [];
+  if (proposalHomes.length === 0) return { outside: outsideOwnFolders, onlyOutside: outsideOwnFolders.length === paths.length };
+  const outside = pathsOutsideWritableFoldersOf(paths, { ...writableFolders, homes: [...writableFolders.homes, ...proposalHomes] });
+  if (outside.length > 0) return { outside, onlyOutside: outsideOwnFolders.length === paths.length };
+  return outsideOwnFolders.length === paths.length && paths.length > 0 ? { outside: outsideOwnFolders, onlyOutside: true } : { outside: [], onlyOutside: false };
+}
+
+/** The first sealed change the branch no longer holds as sealed; the Airlock's merge and conflict work never alter a seal. */
+function sealedChangesHeld(subject: CustomsSubject): CheckVerdict {
+  const seals = subject.crossingStage?.seals ?? [];
+  if (subject.role === 'airlock-agent' || seals.length === 0) return PASSED;
+  const target = subject.target ?? subject.startCommit;
+  for (const sealed of seals) {
+    const seal = sealOf(subject.worktreePath, target, sealed.pathspecs);
+    if (seal === null) return refused('git-failed', [target]);
+    if (seal !== sealed.seal) return refused('sealed-change-altered', [sealed.entity]);
+  }
+  return PASSED;
+}
+
 /**
  * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
  * tracker at the root asks git nothing here, unless the job is a job of an entity, whose branch that changed nothing in its own folders is
- * refused apart: all its work belongs to another entity.
+ * refused apart: all its work belongs to another entity (E15, stage 1 only; a later stage's change outside its folders is an ordinary
+ * refusal, E23). A later job of a crossing ticket may not alter a sealed change (E33).
  */
 function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const { projectScope } = subject;
   if (projectScope === undefined) return PASSED;
   const { writableFolders } = projectScope;
   if (writableFolders === undefined && projectScope.projectPrefix === '') return PASSED;
-  const paths = subject.target === undefined ? pathsChangedInRange(subject) : pathsTheBranchChangedPast(subject, subject.target);
+  const paths = pathsTheScopeJudges(subject);
   if (paths === null) return refused('git-failed', [subject.target ?? rangeOf(subject)]);
-  const outside = writableFolders === undefined ? pathsOutsideHomeAndReachOf(paths, projectScope) : pathsOutsideWritableFoldersOf(paths, writableFolders);
-  if (outside.length === 0) return PASSED;
-  const onlyOutside = writableFolders !== undefined && outside.length === paths.length;
-  return refused(onlyOutside ? 'changed-only-outside-home-and-reach' : 'changed-outside-home-and-reach', outside);
+  if (writableFolders === undefined) {
+    const outside = pathsOutsideHomeAndReachOf(paths, projectScope);
+    return outside.length === 0 ? PASSED : refused('changed-outside-home-and-reach', outside);
+  }
+  const { outside, onlyOutside } = pathsOutsideTheStageOf(paths, writableFolders);
+  const stageName = crossingStageNameOf(subject);
+  const allWorkInAnotherEntityCounts = stageName === null || stageName === 'build';
+  if (outside.length > 0) return refused(onlyOutside && allWorkInAnotherEntityCounts ? 'changed-only-outside-home-and-reach' : 'changed-outside-home-and-reach', outside);
+  return sealedChangesHeld(subject);
 }
 
 /** Every gate but an `overseerOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */

@@ -140,6 +140,10 @@ describeWhenGitIsRecorded('the entity-forge answer set', () => {
     [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN, [SHOP.key, ADMIN.key]],
     [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN, [ADMIN.key]],
     [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, [SHOP.key, ROOT.key, UI_KIT.key]],
+    [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT, [UI_KIT.key]],
+    [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED, [SHOP.key, ROOT.key, UI_KIT.key]],
+    [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED, [SHOP.key, ROOT.key, UI_KIT.key]],
+    [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED, [SHOP.key, ROOT.key, UI_KIT.key]],
     [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED, [SHOP.key]],
   ] as const)('in "%s", the shop ticket\'s change is owned by %p', (scenario, owners) => {
     expect(Object.keys(ownersOfTheShopTicketChange(scenario)).sort()).toEqual([...owners].sort());

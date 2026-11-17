@@ -17,7 +17,9 @@ import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@ty
 import type { ReviewClaim, ReviewFinding }     from '../../lib/tracker-model/@types/ReviewRecord.ts';
 import type { RoundLimits }                    from '../../lib/tracker-model/@types/ReviewRound.ts';
 import type { Board }                          from '../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { RoundVerdictUtil }                    from '../../lib/tracker-model/utils/RoundVerdictUtil.ts';
+import { TicketStageUtil }                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { TICKET_SECTION_PATTERNS }             from '../../shared/constants/TicketSectionPatterns.ts';
 import { ReworkCountUtil }                     from '../../shared/rework/utils/ReworkCountUtil.ts';
 import { ticketIdFiledByRequest }              from './Customs.ts';
@@ -37,6 +39,20 @@ export interface ReviewPassRequest {
   /** The fallback thresholds: the board's pipeline sets the rework threshold (`RoundVerdictUtil.roundLimitsOf`). */
   limits:            RoundLimits;
   decisionWordingOf: (draft: DecisionDraft) => DecisionWording;
+  /** Present only for the package review of a crossing ticket (stage 3), which settles its verdict through it. */
+  packageReview?:    PackageReviewSettlement;
+}
+
+/**
+ * The package review of a crossing ticket (E30, E31): its rounds and its record as any review's, but it moves neither the ticket's status
+ * nor its merge queue. It writes no `## Review`, since the home stages read its text from its job folder (E32), and it proposes no waiver,
+ * since no package stage accounts for the ticket's Acceptance.
+ */
+export interface PackageReviewSettlement {
+  /** The review does not hold: the package build runs again (E34). Called after the job ended `does-not-hold`; returns its records. */
+  sendBackToThePackageBuild: () => readonly LogRecord[];
+  /** The review holds: the seal, the statement, the job's end and the next stage; returns their records. */
+  sealAndMoveOn:             (headCommit: string) => readonly LogRecord[];
 }
 
 export type ReviewPassMove = 'fixer' | 'fresh-reviewer' | 'waiver' | 'merge-queued';
@@ -140,11 +156,27 @@ function appendSection(body: string, section: string): string {
   return `${body.replace(/\n*$/, '')}\n\n${section}`;
 }
 
-/** The ticket's earlier rounds as the round verdict reads them: every review recorded on the board for it. */
-function recordedRoundsOf(records: readonly LogRecord[], ticketId: string): { round: number; findings: { class: string; file: string }[] }[] {
-  return records.flatMap((record) => (record.kind === 'review-recorded' && record.ticketId === ticketId
+/**
+ * The ticket's earlier rounds as the round verdict reads them: every review recorded on the board for it, and for a ticket that crosses
+ * into a package only those of the job's own stage, whose bar carries it (strategy 4.2).
+ */
+function recordedRoundsOf(board: Board, job: Readonly<Job>): { round: number; findings: { class: string; file: string }[] }[] {
+  const ticketId = ticketIdOf(job);
+  const jobStage = board.ticketStageOf(ticketId) === null ? null : TicketStageUtil.stageOfJob(job);
+  const stageBarIds = jobStage === null ? null : new Set(board.tasks()
+    .filter((task) => task.reviewOf === ticketId && task.stage?.name === jobStage.name && task.stage.entity === jobStage.entity)
+    .map((task) => task.id));
+  return board.logRecordsSoFar().flatMap((record) => (record.kind === 'review-recorded' && record.ticketId === ticketId && (stageBarIds?.has(record.taskId) ?? true)
     ? [{ round: record.fields.round, findings: record.fields.findings.map((finding) => ({ class: finding.class, file: finding.file })) }]
     : []));
+}
+
+/** The pipeline whose review sets the rework threshold: for a ticket that crosses into a package, the reviewing entity's (E31). */
+function reviewingPipelineOf(board: Board, job: Readonly<Job>): Readonly<Pipeline> | null {
+  const pipeline = board.pipeline();
+  const jobStage = board.ticketStageOf(ticketIdOf(job)) === null ? null : TicketStageUtil.stageOfJob(job);
+  if (pipeline === null || jobStage === null) return pipeline;
+  return PipelineUtil.pipelineOfEntity(pipeline, jobStage.entity) ?? pipeline;
 }
 
 function waiverProposalsPathOf(jobFolder: string): string {
@@ -183,16 +215,19 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   const records = board.logRecordsSoFar();
   const claims = claimsOf(report);
   const findings = findingsOf(report, filedTicketIdResolver(records, job.id));
-  const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
-  const bodyWithReview = appendSection(ticket?.body ?? '', reviewSectionOf(round, report, claims, findings));
-  logged.push(...board.editTicket(ticketId, { body: { text: bodyWithReview, appends: false }, allowsPastPending: true }, at).logged);
+  const { packageReview } = request;
+  if (packageReview === undefined) {
+    const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
+    const bodyWithReview = appendSection(ticket?.body ?? '', reviewSectionOf(round, report, claims, findings));
+    logged.push(...board.editTicket(ticketId, { body: { text: bodyWithReview, appends: false }, allowsPastPending: true }, at).logged);
+  }
 
   const failed = claims.some((claim) => claim.result === 'does-not-hold');
-  const proposals = listOf(report, 'claims')
+  const proposals = packageReview !== undefined ? [] : listOf(report, 'claims')
     .filter((claim) => claim['result'] === 'waiver-proposed')
     .map((claim) => ({ item: String(claim['item']).trim(), reason: String(claim['note'] ?? '').trim() }));
-  const roundLimits = RoundVerdictUtil.roundLimitsOf(board.pipeline(), request.limits);
-  const verdict = failed ? null : RoundVerdictUtil.nextRoundVerdictOf(recordedRoundsOf(records, ticketId), { round, findings, reworkedLines }, roundLimits);
+  const roundLimits = RoundVerdictUtil.roundLimitsOf(reviewingPipelineOf(board, job), request.limits);
+  const verdict = failed ? null : RoundVerdictUtil.nextRoundVerdictOf(recordedRoundsOf(board, job), { round, findings, reworkedLines }, roundLimits);
   const move: ReviewPassMove = failed ? 'fixer' : verdict?.granted === true ? 'fresh-reviewer' : proposals.length > 0 ? 'waiver' : 'merge-queued';
   const recordedVerdict = {
     'fixer': 'does-not-hold', 'fresh-reviewer': 'round-requested', 'waiver': 'not-released', 'merge-queued': 'released'
@@ -213,6 +248,17 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
     findings,
   }, at).logged);
 
+  if (packageReview !== undefined && move !== 'fresh-reviewer') {
+    if (move === 'fixer') {
+      logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', commit: headCommit }, at).logged);
+      logged.push(...packageReview.sendBackToThePackageBuild());
+    } else {
+      logged.push(...packageReview.sealAndMoveOn(headCommit));
+    }
+    return {
+      move, reworkedLines, headCommit, logged
+    };
+  }
   switch (move) {
     case 'fixer':
       logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', commit: headCommit }, at).logged);

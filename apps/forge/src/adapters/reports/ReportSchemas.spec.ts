@@ -2,12 +2,18 @@
  * One table of reports, each with the verdict its schema must give: the validator and the draft-07 document are one source, so the table
  * holds both. The cases that matter are the shapes the design removed or constrained: no `blockedOn`, a `blocked` report needing its
  * reason, a `needs-declared` builder outcome, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only
- * beside `cannot-resolve`.
+ * beside `cannot-resolve`; a package stage's report states, and confirms or corrects, what the package exposes, and no other report does.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { AIRLOCK_AGENT_REPORT_SCHEMA, BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from './ReportSchemas.ts';
-import { reportVerdictOf, type JsonSchema }                                           from './ReportValidation.ts';
+import {
+  AIRLOCK_AGENT_REPORT_SCHEMA,
+  BUILDER_REPORT_SCHEMA,
+  PACKAGE_BUILDER_REPORT_SCHEMA,
+  PACKAGE_REVIEWER_REPORT_SCHEMA,
+  REVIEWER_REPORT_SCHEMA
+} from './ReportSchemas.ts';
+import { reportVerdictOf, type JsonSchema } from './ReportValidation.ts';
 
 const HEAD = 'a'.repeat(40);
 
@@ -92,6 +98,13 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
   ['a reviewer in the Airlock that cannot resolve, with no kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, outcome: 'cannot-resolve' }, true],
   ['a resolved report carrying a report kind', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, reportKind: 'system-blocker' }, false],
   ['an Airlock agent report of the pipeline agent role', AIRLOCK_AGENT_REPORT_SCHEMA, { ...RESOLVED, role: 'pipeline-agent' }, false],
+  ['a package builder report stating what the package exposes', PACKAGE_BUILDER_REPORT_SCHEMA, { ...BUILT, exposedSurfaceChanged: false }, true],
+  ['a package builder report that states nothing of what the package exposes (E40)', PACKAGE_BUILDER_REPORT_SCHEMA, BUILT, false],
+  ['a package builder report stating it as text', PACKAGE_BUILDER_REPORT_SCHEMA, { ...BUILT, exposedSurfaceChanged: 'no' }, false],
+  ['a builder report of any other stage stating it', BUILDER_REPORT_SCHEMA, { ...BUILT, exposedSurfaceChanged: false }, false],
+  ['a package reviewer report confirming the statement', PACKAGE_REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, true],
+  ['a package reviewer report that neither confirms nor corrects it (E40)', PACKAGE_REVIEWER_REPORT_SCHEMA, REVIEWED, false],
+  ['a reviewer report of any other stage confirming it', REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, false],
 ];
 
 describe('the report table', () => {
@@ -100,7 +113,7 @@ describe('the report table', () => {
   });
 
   test('each schema is a draft-07 document that survives JSON unchanged, as the command line receives it', () => {
-    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA]) {
+    for (const schema of [BUILDER_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, PACKAGE_BUILDER_REPORT_SCHEMA, PACKAGE_REVIEWER_REPORT_SCHEMA]) {
       expect(schema.$schema).toBe('http://json-schema.org/draft-07/schema#');
       expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);
     }

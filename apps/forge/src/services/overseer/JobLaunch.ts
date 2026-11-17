@@ -61,13 +61,17 @@ import { EntityFoldersUtil }                                                    
 import { ProjectPathsUtil }                                                                       from '../../shared/utils/ProjectPathsUtil.ts';
 import {
   agentConfigTouchedBeforeLaunch,
+  type CrossingStageScope,
   type CustomsSubject,
   launchSnapshotOf,
   type LaunchSnapshot,
+  pathsTheBranchChangedPastTargetOf,
   type ProjectScope,
+  reachPathsChangedSinceOf,
   type RefMovesAllowed,
   refMovesAllowedOf,
   retriedFailedBuildJobIdOf,
+  sealOf,
   sharedRepositoryRefsOf,
   type CustomsVerdict,
   type VerificationCheck,
@@ -84,11 +88,12 @@ import {
   type ReReviewVerdict,
   type TargetMergeSettlement
 } from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                                               from '../lifecycle/ReviewOutcome.ts';
+import { type PackageReviewSettlement, ReviewOutcome }                 from '../lifecycle/ReviewOutcome.ts';
 import { type ProjectLocation, projectLocationOf }                     from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
 import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
+import { CrossingStages }                                              from './CrossingStages.ts';
 import type { GateRunSlots }                                           from './GateRunSlots.ts';
 import { GroupWorktrees }                                              from './GroupWorktrees.ts';
 import { GuardCommand }                                                from './GuardCommand.ts';
@@ -371,7 +376,7 @@ const WORK_IN_OTHER_ENTITY_DECISION = 'work-in-other-entity';
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
 /** The scope check's refusals of a branch that changed another entity's files; a `git-failed` V17 stays an ordinary red handoff. */
-const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY];
+const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY, 'sealed-change-altered'];
 
 function callBudgetOf(job: Readonly<Job>): number {
   return job.kind === REVIEW_JOB_KIND || job.role === CONFLICT_RE_REVIEWER_ROLE ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
@@ -401,6 +406,8 @@ interface JobStart {
   startCommit:      string;
   bodyHashAtLaunch: string;
   launchSnapshot:   LaunchSnapshot;
+  /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
+  homeEntity?:      EntityKey;
 }
 
 function ticketIdOf(job: Readonly<Job>): string {
@@ -423,14 +430,18 @@ function entityHomesOf(pipeline: Readonly<Pipeline> | null): string[] {
   return Object.values(pipeline?.entities ?? {}).flatMap((entity) => entity.home);
 }
 
-/** What a job of `entityKey` may change: its homes, with the repository root for the root entity, and its `reach`. */
-function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey): WritableFolders {
+/**
+ * What a job of `entityKey` may change: its homes, with the repository root for the root entity, and its `reach`; in stage 1 also a
+ * proposal in the homes of the packages its entity whitelists.
+ */
+function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey, proposalHomes: readonly string[]): WritableFolders {
   const entity = Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
   const rootFolders = entityKey === EntityOwnershipUtil.rootEntityKeyOf(entities) ? [REPOSITORY_ROOT_FOLDER] : [];
   return {
     homes:      [...rootFolders, ...entity?.home ?? []],
     reach:      entity?.reach ?? [],
     otherHomes: Object.entries(entities).flatMap(([otherKey, other]) => (otherKey === entityKey ? [] : other.home)),
+    ...(proposalHomes.length === 0 ? {} : { proposalHomes }),
   };
 }
 
@@ -438,14 +449,14 @@ function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey): Wr
  * Absent for a tracker at its repository's root whose pipeline has no entities, so its subject, and every git call Customs makes for it,
  * stays as it always was. On a pipeline with entities it names every entity home, and for a job of an entity what the job may change.
  */
-function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity'>>): ProjectScope | null {
+function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>): ProjectScope | null {
   const entities = pipeline?.entities;
   if (entities === undefined) return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
   return {
     projectPrefix,
     reach:       pipeline?.reach ?? [],
     entityHomes: entityHomesOf(pipeline),
-    ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity) }),
+    ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity, CrossingStages.proposalHomesOf(pipeline, job)) }),
   };
 }
 
@@ -606,11 +617,42 @@ function gateRunManifestFileOf(place: GateRunPlace): string {
   return `${place.folderPrefix}${GATE_RUN_MANIFEST_NAME}${instanceSuffixOf(place.watcherInstance)}${GATE_RUN_MANIFEST_EXTENSION}`;
 }
 
-/** `null` when the pipeline no longer holds the job's entity. */
-function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: GatePhase): GateRunManifest | null {
+/**
+ * The entities a package build's gate run checks after the package's own (E25, E26): the package's dependents but its home entity, whose
+ * app the adapt stage brings in line. None for every other job.
+ */
+function dependentsGatedOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, homeEntity: EntityKey | undefined): EntityKey[] {
+  if (pipeline.entities === undefined || job.entity === undefined || TicketStageUtil.stageOfJob(job)?.name !== 'package-build') return [];
+  return EntityOwnershipUtil.dependentsOf(pipeline.entities, [job.entity]).filter((entityKey) => entityKey !== homeEntity);
+}
+
+/** A dependent's gate, named for its entity, so a red one tells the package builder whose gate it is. */
+function dependentGateOf(entityKey: EntityKey, gate: Readonly<PipelineGate>): PipelineGate {
+  return { ...gate, name: `${entityKey}: ${gate.name}` };
+}
+
+/**
+ * `null` when the pipeline no longer holds the job's entity. A package build runs the package's steps, then each gated dependent's, each
+ * from its own first home.
+ */
+function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: GatePhase, homeEntity: EntityKey | undefined): GateRunManifest | null {
   const stepsPipeline = stepsPipelineOf(pipeline, job);
   if (stepsPipeline === null) return null;
-  return { ...jobGateRunStampOf(pipeline, job, phase), prepare: [...stepsPipeline.prepare], gates: PipelineUtil.gatesOfPhase(stepsPipeline, phase) };
+  const manifest = { ...jobGateRunStampOf(pipeline, job, phase), prepare: [...stepsPipeline.prepare], gates: PipelineUtil.gatesOfPhase(stepsPipeline, phase) };
+  const dependents = dependentsGatedOf(pipeline, job, homeEntity);
+  if (dependents.length === 0 || job.entity === undefined) return manifest;
+  const dependentPipelines = dependents.flatMap((entityKey) => {
+    const dependentPipeline = stepsPipelineOf(pipeline, { entity: entityKey });
+    return dependentPipeline === null ? [] : [{ entityKey, dependentPipeline }];
+  });
+  return {
+    ...PipelineUtil.entitiesGateRunStampOf(pipeline, phase, [job.entity, ...dependentPipelines.map(({ entityKey }) => entityKey)]),
+    prepare: [...manifest.prepare, ...dependentPipelines.flatMap(({ dependentPipeline }) => dependentPipeline.prepare)],
+    gates:   [
+      ...manifest.gates,
+      ...dependentPipelines.flatMap(({ entityKey, dependentPipeline }) => PipelineUtil.gatesOfPhase(dependentPipeline, phase).map((gate) => dependentGateOf(entityKey, gate))),
+    ],
+  };
 }
 
 function isNamedLine(value: unknown): boolean {
@@ -654,7 +696,7 @@ function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place:
     const stored = readJsonFile<unknown>(manifestPath);
     return isGateRunManifestOf(stored, place.phase) ? stored : 'unreadable';
   }
-  const manifest = manifestOf(pipeline, job, place.phase);
+  const manifest = manifestOf(pipeline, job, place.phase, readJobStart(jobFolderOf(context.workspace, job))?.homeEntity);
   if (manifest === null) return 'unreadable';
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileAtomically(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
@@ -1035,6 +1077,17 @@ function endJob(hold: HoldContext, job: Readonly<Job>, ending: Parameters<Board[
   hold.logged.push(...hold.change.board.endJob(job.id, ending, hold.change.at).logged);
 }
 
+/** Customs' view of a job of a crossing ticket, measured from the start of its stage's run; `null` for every other job. */
+function crossingStageScopeOfJob(hold: HoldContext, job: Readonly<Job>): CrossingStageScope | null {
+  const { board } = hold.change;
+  const { trackerDirectory } = hold.context.workspace;
+  const crossingStage = CrossingStages.crossingStageScopeOf(board, trackerDirectory, job);
+  if (crossingStage === null) return null;
+  const runStartJobId = CrossingStages.stageRunStartJobIdOf(board.logRecordsSoFar(), job);
+  const runStart = runStartJobId === job.id ? null : readJobStart(WatcherFleet.jobFolderOf(trackerDirectory, runStartJobId));
+  return runStart === null ? crossingStage : { ...crossingStage, stageStartCommit: runStart.startCommit };
+}
+
 function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
@@ -1048,6 +1101,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const { projectPrefix } = projectLocationOfContext(hold.context);
   const pipeline = board.pipeline();
   const projectScope = projectScopeOf(projectPrefix, pipeline, job);
+  const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
     role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
     worktreePath:     worktreeOf(hold.context.workspace, job),
@@ -1065,6 +1119,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     target:           job.target ?? hold.context.mainLine,
     pathStyle:        hold.context.platformPorts.dataFolders,
     ...(projectScope === null ? {} : { projectScope }),
+    ...(crossingStage === null ? {} : { crossingStage }),
   };
   const reportVerdict = CUSTOMS_CHECKS.V1(subject);
   if (reportVerdict.verdict === 'refused') {
@@ -1363,6 +1418,129 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
 
+/** The branch changed by stage 1, sorted by owner; `null` when git cannot tell. */
+function crossedPackagesAfterStageOneOf(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey): EntityKey[] | null {
+  const start = readJobStart(jobFolderOf(hold.context.workspace, job));
+  if (start === null) return null;
+  const target = job.target ?? hold.context.mainLine;
+  const changedPaths = pathsTheBranchChangedPastTargetOf(worktreeOf(hold.context.workspace, job), start.startCommit, target);
+  return changedPaths === null ? null : CrossingStages.crossedPackagesOf(hold.change.board.pipeline(), homeEntity, changedPaths);
+}
+
+/**
+ * A verified, gated build of an entity settles by its stage (strategy 4.2). After stage 1, the paths the branch changed past its target are
+ * sorted by owner: a whitelisted package among them starts its package build, the ticket staying in progress. A package build hands over
+ * to its package review with the statement of what the package exposes; `adapt` hands over to the home review as any build hands over to
+ * review. Returns whether the build was settled here; a build that stayed in its entity settles as it always has.
+ */
+function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string): boolean {
+  const { board, at } = hold.change;
+  const jobStage = TicketStageUtil.stageOfJob(job);
+  const ticketId = ticketIdOf(job);
+  if (jobStage === null) return false;
+  if (jobStage.name === 'package-build') {
+    const exposedSurfaceChanged = reportFieldOf(report, 'exposedSurfaceChanged') !== false;
+    CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-build', exposedSurfaceChanged });
+    endJob(hold, job, { outcome: 'built', commit: headCommit });
+    board.moveTicketStage(ticketId, { name: 'package-review', entity: jobStage.entity }, at);
+    return true;
+  }
+  if (jobStage.name === 'adapt') {
+    board.moveTicketStage(ticketId, { name: 'review', entity: jobStage.entity }, at);
+    return false;
+  }
+  if (jobStage.name !== 'build' || CrossingStages.proposalHomesOf(board.pipeline(), job).length === 0) return false;
+  const crossedPackages = crossedPackagesAfterStageOneOf(hold, job, jobStage.entity);
+  if (crossedPackages === null) {
+    endJob(hold, job, { outcome: 'failed', cause: 'git-failed' });
+    return true;
+  }
+  const [firstPackage] = crossedPackages;
+  if (firstPackage === undefined) return false;
+  const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
+  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(report)), appends: false }, allowsPastPending: true }, at).logged);
+  endJob(hold, job, { outcome: 'built', commit: headCommit });
+  board.moveTicketStage(ticketId, { name: 'package-build', entity: firstPackage }, at);
+  return true;
+}
+
+/**
+ * The stage after the last package review: the home review when `adapt` is skipped (C15), with the ticket moved to review as a build moves
+ * it; `adapt` otherwise.
+ */
+function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, headCommit: string): readonly LogRecord[] {
+  const { board, at } = hold.change;
+  const ticketId = ticketIdOf(job);
+  const statements = CrossingStages.sealedPackagesOf(board, ticketId)
+    .map((packageKey) => CrossingStages.packageStageStatementsOf(hold.context.workspace.trackerDirectory, board.logRecordsSoFar(), ticketId, packageKey));
+  if (!CrossingStages.adaptIsSkipped(statements)) {
+    board.moveTicketStage(ticketId, { name: 'adapt', entity: homeEntity }, at);
+    return [];
+  }
+  board.moveTicketStage(ticketId, { name: 'review', entity: homeEntity }, at);
+  return board.moveTicket(ticketId, 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged;
+}
+
+/**
+ * The `reach` paths the package stages of the reviewed package changed since the first job of their run, with those an earlier review of
+ * the package sealed, so a lockfile change joins the seal (E3). `null` when git cannot tell.
+ */
+function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string): string[] | null {
+  const { board } = hold.change;
+  const { trackerDirectory } = hold.context.workspace;
+  const runStart = readJobStart(WatcherFleet.jobFolderOf(trackerDirectory, CrossingStages.packageRunStartJobIdOf(board.logRecordsSoFar(), job)));
+  if (runStart === null) return null;
+  const changed = reachPathsChangedSinceOf(worktreeOf(hold.context.workspace, job), runStart.startCommit, target, CrossingStages.reachOf(board.pipeline(), packageKey));
+  if (changed === null) return null;
+  const sealedBefore = CrossingStages.packageStageStatementsOf(trackerDirectory, board.logRecordsSoFar(), ticketIdOf(job), packageKey).sealedReachPaths;
+  return [...new Set([...sealedBefore, ...changed])];
+}
+
+/**
+ * A gated package review (stage 3) settles its rounds and record as any review (E30, E31) but moves neither the ticket's status nor its
+ * merge queue: one that does not hold sends the package build back (E34). One that holds seals the ticket's own change to the package and
+ * keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed package's build runs, or the stage after
+ * the package stages. Its bar is closed here, since no status move closes it.
+ */
+function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown): PackageReviewSettlement {
+  const { board, at } = hold.change;
+  const ticketId = ticketIdOf(job);
+  const packageKey = job.entity ?? '';
+  const homeEntity = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter.entity ?? '';
+  return {
+    sendBackToThePackageBuild: () => {
+      const { logged } = board.closeStageReviewBars(ticketId, at);
+      board.moveTicketStage(ticketId, { name: 'package-build', entity: packageKey }, at);
+      return logged;
+    },
+    sealAndMoveOn: (headCommit) => {
+      const logged: LogRecord[] = [...board.closeStageReviewBars(ticketId, at).logged];
+      const target = job.target ?? hold.context.mainLine;
+      const sealedReachPaths = sealedReachPathsOf(hold, job, packageKey, target);
+      const pathspecs = sealedReachPaths === null ? null : CrossingStages.sealPathspecsOf(board.pipeline(), packageKey, sealedReachPaths);
+      const seal = pathspecs === null ? null : sealOf(worktreeOf(hold.context.workspace, job), target, pathspecs);
+      const crossedPackages = seal === null ? null : crossedPackagesAfterStageOneOf(hold, job, homeEntity);
+      if (sealedReachPaths === null || seal === null || crossedPackages === null) {
+        logged.push(...board.endJob(job.id, { outcome: 'failed', cause: 'git-failed' }, at).logged);
+        return logged;
+      }
+      board.sealTicketPackage(ticketId, packageKey, seal, at);
+      CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, {
+        stage:                   'package-review',
+        exposedSurfaceConfirmed: reportFieldOf(report, 'exposedSurfaceConfirmed') === true,
+        reviewText:              String(reportFieldOf(report, 'reviewText') ?? ''),
+        sealedReachPaths,
+      });
+      logged.push(...board.endJob(job.id, { outcome: 'reviewed', commit: headCommit }, at).logged);
+      const sealedPackages = CrossingStages.sealedPackagesOf(board, ticketId);
+      const nextPackage = crossedPackages.find((crossedPackage) => !sealedPackages.includes(crossedPackage));
+      if (nextPackage === undefined) logged.push(...moveOnFromThePackageStages(hold, job, homeEntity, headCommit));
+      else board.moveTicketStage(ticketId, { name: 'package-build', entity: nextPackage }, at);
+      return logged;
+    },
+  };
+}
+
 function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
   const { gate } = observation;
   if (gate.verdict !== 'judged' || !hold.pipelineStored) return;
@@ -1384,8 +1562,12 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
       hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
       return;
     }
+    const crossingStage = board.ticketStageOf(ticketIdOf(job));
+    const packageReview = crossingStage !== null && TicketStageUtil.stageOfJob(job)?.name === 'package-review'
+      ? packageReviewSettlementOf(hold, job, observation.report)
+      : undefined;
     const start = readJobStart(jobFolderOf(hold.context.workspace, job));
-    hold.logged.push(...ReviewOutcome.settleReviewPass({
+    const settled = ReviewOutcome.settleReviewPass({
       board,
       at,
       job,
@@ -1396,9 +1578,15 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
       jobFolder:         jobFolderOf(hold.context.workspace, job),
       limits:            LIFECYCLE_LIMITS,
       decisionWordingOf: hold.context.decisionWordingOf,
-    }).logged);
+      ...(packageReview === undefined ? {} : { packageReview }),
+    });
+    hold.logged.push(...settled.logged);
+    if (packageReview !== undefined) return;
+    // A home review that does not hold sends the ticket back to `adapt`, also when `adapt` was skipped (E51, E52).
+    if (crossingStage !== null && settled.move === 'fixer' && job.entity !== undefined) board.moveTicketStage(ticketIdOf(job), { name: 'adapt', entity: job.entity }, at);
     return;
   }
+  if (settledAsAStage(hold, job, observation.report, headCommit)) return;
   if (buildMergesMainFirst(board)) {
     hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
     return;
@@ -2229,7 +2417,10 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   const startCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD', GitWorktrees.ceilingOf(worktree));
   const launchSnapshot = launchSnapshotOf(worktree);
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
-  const start: JobStart = { startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot };
+  const homeEntity = TicketStageUtil.stageOfJob(job)?.name === 'package-build' ? ticket.frontmatter.entity : undefined;
+  const start: JobStart = {
+    startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot, ...(homeEntity === undefined ? {} : { homeEntity })
+  };
   mkdirSync(dirname(startPath), { recursive: true });
   writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);
 }
@@ -2268,6 +2459,7 @@ function mainMergeConflictOf(trackerDirectory: string, job: Readonly<Job>): Main
 }
 
 export const JobLaunch = Object.freeze({
+  manifestOf,
   recordInstructionsRead,
   recordLaunchSettings,
   recordedLaunchSettingsOf,

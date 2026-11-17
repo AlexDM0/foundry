@@ -42,6 +42,28 @@ function listOf(items: JsonSchema): JsonSchema {
   return { type: 'array', items };
 }
 
+const BUILDER_REPORT_PROPERTIES: Readonly<Record<string, JsonSchema>> = {
+  role:       { const: 'builder' },
+  outcome:    { enum: ['built', 'blocked', 'cannot-build', 'wound-down', 'needs-declared'] },
+  headCommit: COMMIT_SHA,
+  acceptance: listOf(closedObject({
+    item:         ACCEPTANCE_LABEL,
+    state:        { enum: ['met', 'waiver-proposed'] },
+    evidence:     SHORT_NOTE,
+    waiverReason: TEXT,
+  }, ['item', 'state', 'evidence'])),
+  alsoFixed:         listOf(closedObject({ summary: TEXT, files: listOf(TEXT), evidence: TEXT })),
+  gates:             listOf(closedObject({ name: TEXT, commit: COMMIT_SHA })),
+  handoff:           TEXT,
+  blockedReason:     NULLABLE_TEXT,
+  cannotBuildReason: NULLABLE_TEXT,
+};
+
+const BLOCKED_NEEDS_ITS_REASON: JsonSchema = {
+  if:   { properties: { outcome: { const: 'blocked' } } },
+  then: { properties: { blockedReason: { type: 'string', minLength: 1 } } },
+};
+
 /**
  * `blocked` stays for a session that cannot continue at all, with a reason; a question is asked live, so there is no `blockedOn`. `gates`
  * claims each gate the agent ran green and the commit it passed on: never trusted, only held against HEAD before any gate runs.
@@ -50,24 +72,19 @@ function listOf(items: JsonSchema): JsonSchema {
 export const BUILDER_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
   title:   'builder report',
-  ...closedObject({
-    role:       { const: 'builder' },
-    outcome:    { enum: ['built', 'blocked', 'cannot-build', 'wound-down', 'needs-declared'] },
-    headCommit: COMMIT_SHA,
-    acceptance: listOf(closedObject({
-      item:         ACCEPTANCE_LABEL,
-      state:        { enum: ['met', 'waiver-proposed'] },
-      evidence:     SHORT_NOTE,
-      waiverReason: TEXT,
-    }, ['item', 'state', 'evidence'])),
-    alsoFixed:         listOf(closedObject({ summary: TEXT, files: listOf(TEXT), evidence: TEXT })),
-    gates:             listOf(closedObject({ name: TEXT, commit: COMMIT_SHA })),
-    handoff:           TEXT,
-    blockedReason:     NULLABLE_TEXT,
-    cannotBuildReason: NULLABLE_TEXT,
-  }),
-  if:   { properties: { outcome: { const: 'blocked' } } },
-  then: { properties: { blockedReason: { type: 'string', minLength: 1 } } },
+  ...closedObject(BUILDER_REPORT_PROPERTIES),
+  ...BLOCKED_NEEDS_ITS_REASON,
+};
+
+/**
+ * Stage 2 of a crossing ticket, the package build: a builder report that also states whether what the package exposes changed from the
+ * stage 1 proposal (A1). The statement and the package reviewer's confirmation decide whether the adapt stage runs (C15).
+ */
+export const PACKAGE_BUILDER_REPORT_SCHEMA: JsonSchema = {
+  $schema: DRAFT_07,
+  title:   'package builder report',
+  ...closedObject({ ...BUILDER_REPORT_PROPERTIES, exposedSurfaceChanged: { type: 'boolean' } }),
+  ...BLOCKED_NEEDS_ITS_REASON,
 };
 
 const FINDING_DESCRIPTION: Readonly<Record<string, JsonSchema>> = {
@@ -91,19 +108,28 @@ const FILED_FINDING: JsonSchema = {
   ],
 };
 
+const REVIEWER_REPORT_PROPERTIES: Readonly<Record<string, JsonSchema>> = {
+  role:       { const: 'reviewer' },
+  headCommit: COMMIT_SHA,
+  claims:     listOf(closedObject({
+    item: ACCEPTANCE_LABEL, result: { enum: REVIEW_CLAIM_RESULTS }, handoffContradicted: { type: 'boolean' }, note: SHORT_NOTE
+  })),
+  findings:   listOf({ oneOf: [FIXED_FINDING, FILED_FINDING] }),
+  reviewText: TEXT,
+};
+
 /** There is no `file-ticket` outcome: a reviewer files its own out-of-scope findings through the Hatch. */
 export const REVIEWER_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
   title:   'reviewer report',
-  ...closedObject({
-    role:       { const: 'reviewer' },
-    headCommit: COMMIT_SHA,
-    claims:     listOf(closedObject({
-      item: ACCEPTANCE_LABEL, result: { enum: REVIEW_CLAIM_RESULTS }, handoffContradicted: { type: 'boolean' }, note: SHORT_NOTE
-    })),
-    findings:   listOf({ oneOf: [FIXED_FINDING, FILED_FINDING] }),
-    reviewText: TEXT,
-  }),
+  ...closedObject(REVIEWER_REPORT_PROPERTIES),
+};
+
+/** Stage 3 of a crossing ticket, the package review: a reviewer report that confirms or corrects the package builder's statement (A1, C15). */
+export const PACKAGE_REVIEWER_REPORT_SCHEMA: JsonSchema = {
+  $schema: DRAFT_07,
+  title:   'package reviewer report',
+  ...closedObject({ ...REVIEWER_REPORT_PROPERTIES, exposedSurfaceConfirmed: { type: 'boolean' } }),
 };
 
 /** A builder's or reviewer's report from the Airlock, on a conflict or a red merged tree: `reportKind` is non-null only with `cannot-resolve`. */

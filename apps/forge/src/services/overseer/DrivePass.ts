@@ -7,36 +7,44 @@ import { createHash }              from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { basename, join }          from 'node:path';
 
-import { PipelineFile }                                                               from '../../adapters/pipeline/PipelineFile.ts';
-import { BUILDER_REPORT_SCHEMA, AIRLOCK_AGENT_REPORT_SCHEMA, REVIEWER_REPORT_SCHEMA } from '../../adapters/reports/ReportSchemas.ts';
-import type { JsonSchema }                                                            from '../../adapters/reports/ReportValidation.ts';
-import { type UsageMarkerReading, UsageMarkerFile }                                   from '../../adapters/usage-marker/UsageMarkerFile.ts';
-import type { UsageWindowObservation }                                                from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter }                                                          from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentConfinement, AgentLaunchRequest }                                  from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { WorkerProfile }                                                         from '../../lib/agent-launch/WorkerProfile.ts';
-import type { ExecutableRefusalCause }                                                from '../../lib/executable-resolver/ExecutableResolver.ts';
-import { type ConfinedLine, confinedLineOf }                                          from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                                                 from '../../lib/git/GitProcess.ts';
-import type { PlatformPorts }                                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                                       from '../../lib/process-identity/ProcessIdentity.ts';
-import type { ShellLine }                                                             from '../../lib/shell-line/ShellLine.ts';
-import type { DecisionAnswer }                                                        from '../../lib/tracker-model/@types/Decision.ts';
-import type { IncidentDefaultCause, IncidentMove }                                    from '../../lib/tracker-model/@types/Incident.ts';
-import type { InterruptionCause, Job, JobKind }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate }                                                from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording, PlaybookStep }                          from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { Board }                                                                 from '../../lib/tracker-model/Board.ts';
-import { Playbook }                                                                   from '../../lib/tracker-model/Playbook.ts';
-import { FORCED_STOP_REFUSED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
-import { LaunchSlotUtil }                                                             from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
-import type { EventLogEntry }                                                         from '../../lib/watcher/EventLog.ts';
-import type { SetupMessage }                                                          from '../../shared/@types/ControlContext.ts';
-import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }                                  from '../../shared/Environment.ts';
-import { WorktreesFolder }                                                            from '../../shared/WorktreesFolder.ts';
-import { AIRLOCK_LIMITS }                                                             from '../../shared/constants/AirlockLimits.ts';
-import { LIFECYCLE_LIMITS }                                                           from '../../shared/constants/LifecycleLimits.ts';
+import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
+import {
+  AIRLOCK_AGENT_REPORT_SCHEMA,
+  BUILDER_REPORT_SCHEMA,
+  PACKAGE_BUILDER_REPORT_SCHEMA,
+  PACKAGE_REVIEWER_REPORT_SCHEMA,
+  REVIEWER_REPORT_SCHEMA
+} from '../../adapters/reports/ReportSchemas.ts';
+import type { JsonSchema }                                   from '../../adapters/reports/ReportValidation.ts';
+import { type UsageMarkerReading, UsageMarkerFile }          from '../../adapters/usage-marker/UsageMarkerFile.ts';
+import type { UsageWindowObservation }                       from '../../adapters/usage-marker/UsageWindowsFile.ts';
+import type { AgentAdapter }                                 from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentConfinement, AgentLaunchRequest }         from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { WorkerProfile }                                from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
+import { type ConfinedLine, confinedLineOf }                 from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                              from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
+import type { DecisionAnswer }                               from '../../lib/tracker-model/@types/Decision.ts';
+import type { IncidentDefaultCause, IncidentMove }           from '../../lib/tracker-model/@types/Incident.ts';
+import type { InterruptionCause, Job, JobKind }              from '../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineGate }            from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { Playbook }                                          from '../../lib/tracker-model/Playbook.ts';
+import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../lib/tracker-model/constants/JobStates.ts';
+import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
+import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { EventLogEntry }                                from '../../lib/watcher/EventLog.ts';
+import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
+import type { BranchNames }                                  from '../../shared/BranchNames.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
+import { WorktreesFolder }                                   from '../../shared/WorktreesFolder.ts';
+import { AIRLOCK_LIMITS }                                    from '../../shared/constants/AirlockLimits.ts';
+import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
 import {
   GATE_RUNS_AT_ONCE,
   GATE_SLOT_RETRY_MILLISECONDS,
@@ -66,6 +74,7 @@ import { type ApiBilling, ApiBillingStops, type StoppedSession }            from
 import { AssistantBoot, type AssistantFacts }                               from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession } from './AssistantSession.ts';
 import { Baton }                                                            from './Baton.ts';
+import { CrossingStages, type CrossingStageFacts }                          from './CrossingStages.ts';
 import { EndedJobTokens }                                                   from './EndedJobTokens.ts';
 import { GateProfiling }                                                    from './GateProfiling.ts';
 import { GateRunSlots }                                                     from './GateRunSlots.ts';
@@ -129,6 +138,10 @@ export interface JobLaunchFacts {
   reviewFindings?:        ReviewFindingsFacts | null;
   /** What a build that runs its stage again after the needs it declared are settled is told; `null` for every other job. */
   needsSettled?:          NeedsSettledFacts | null;
+  /** What a job of an entity is told of the stage of a ticket that crosses into whitelisted packages; absent or `null` for every other job. */
+  crossingStage?:         CrossingStageFacts | null;
+  /** The key of the pipeline's root entity, on a pipeline with entities; absent where it is the default key. */
+  rootEntityKey?:         EntityKey;
   /** A product owner's request, and what a fresh one takes over from the session it replaces; `null` for every other job. */
   intake:                 IntakeFacts | null;
   /** What a merge-gate fixer or a resolution reviewer is told of its Airlock; `null` for every other job. */
@@ -373,9 +386,15 @@ function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhas
   return phase === 'fixing' || phase === 're-reviewing' ? phase : 'resolving';
 }
 
-/** A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. */
+/**
+ * A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. A package
+ * stage's report also states what the package exposes (A1): the package builder states it, the package reviewer confirms it.
+ */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   if (job.kind === 'merge-agent' && airlockAgentPhaseOf(board, job) === 're-reviewing') return REVIEWER_REPORT_SCHEMA;
+  const stageName = TicketStageUtil.stageOfJob(job)?.name;
+  if (job.kind === 'build' && stageName === 'package-build') return PACKAGE_BUILDER_REPORT_SCHEMA;
+  if (job.kind === 'review' && stageName === 'package-review') return PACKAGE_REVIEWER_REPORT_SCHEMA;
   return REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null;
 }
 
@@ -761,6 +780,8 @@ function launchFactsOf(
   const gates = jobGates === null ? null : SessionPlaces.gatesFromStartOf(place, jobGates);
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
+  const crossingStage = CrossingStages.crossingStageFactsOf(board, trackerDirectory, job, resumesSession);
+  const rootEntityKey = pipeline?.entities === undefined ? ROOT_ENTITY_KEY : EntityOwnershipUtil.rootEntityKeyOf(pipeline.entities);
   return {
     instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
     confinement:  sessionConfinementOf(request.platformPorts),
@@ -778,6 +799,8 @@ function launchFactsOf(
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
     reviewFindings:         needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job) : null,
     needsSettled,
+    ...(crossingStage === null ? {} : { crossingStage }),
+    ...(rootEntityKey === ROOT_ENTITY_KEY ? {} : { rootEntityKey }),
     intake:                 IntakeSessions.intakeFactsOf(board, job),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar, request.workspace.rootDirectory),

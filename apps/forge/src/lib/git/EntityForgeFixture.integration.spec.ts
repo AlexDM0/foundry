@@ -86,6 +86,16 @@ function needDeliveredIn(directory: string, startCommit: string): Record<string,
   return { '<shop ticket tip>': shopTicketTip, '<need ticket tip>': needTicketTip };
 }
 
+/** The shop's ticket crossed into the package, then a later stage of it changed `changedPaths` in one more commit. */
+function crossedThenChanging(changedPaths: readonly string[]): (directory: string, startCommit: string) => Record<string, string> {
+  return (directory, startCommit) => {
+    const shopTicketTip = ticketBuiltIn(directory, startCommit, SHOP_TICKET, [sourceFileOf(SHOP), sourceFileOf(UI_KIT), ENTITY_FORGE_LOCK_FILE]);
+    const worktreeDirectory = join(directory, ticketWorktreeFolderOf(SHOP_TICKET));
+    for (const path of changedPaths) writeFileSync(join(worktreeDirectory, path), 'export const changedByALaterStage = 3;\n');
+    return { '<shop ticket tip>': shopTicketTip, '<stage tip>': commitAll(worktreeDirectory, 'Change ticket 001 in a later stage') };
+  };
+}
+
 /** Each scenario and how it changes the fixture repository, naming the commits beside the start. */
 const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: string, startCommit: string) => Record<string, string>])[] = [
   [ENTITY_FORGE_SCENARIOS.AT_REST, () => ({})],
@@ -94,6 +104,10 @@ const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: stri
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN, shopTicketChanging([sourceFileOf(ADMIN)])],
   [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED, needDeliveredIn],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, shopTicketChanging([sourceFileOf(SHOP), sourceFileOf(UI_KIT), ENTITY_FORGE_LOCK_FILE])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT, shopTicketChanging([sourceFileOf(UI_KIT)])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED, crossedThenChanging([sourceFileOf(SHOP)])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED, crossedThenChanging([sourceFileOf(UI_KIT)])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED, crossedThenChanging([sourceFileOf(UI_KIT), ENTITY_FORGE_LOCK_FILE])],
 ];
 
 /** Runs every call of the scenario at each of its places, and records each answer under the scenario with the placeholders put back. */

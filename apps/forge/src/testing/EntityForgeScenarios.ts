@@ -8,6 +8,8 @@ import { join } from 'node:path';
 
 import { PRODUCT_NAMES }   from '../shared/constants/ProductNames.ts';
 import {
+  ENTITY_FORGE_ENTITIES,
+  ENTITY_FORGE_LOCK_FILE,
   ENTITY_FORGE_MAIN_LINE,
   ENTITY_FORGE_TICKETS,
   entityForgePlaces,
@@ -19,34 +21,46 @@ import type { GitHookPolicyName }          from './RecordedGitFlow.ts';
 import { SCENARIO_REPOSITORY_PLACEHOLDER } from './RecordedGitScenarios.ts';
 
 export const ENTITY_FORGE_SCENARIOS = {
-  AT_REST:                 'a top-level forge over apps/shop, apps/admin and packages/ui-kit, main at <start>',
-  SHOP_TICKET_AT_HOME:     'a top-level forge, ticket-001 of shop off <start>, apps/shop changed at <shop ticket tip>',
-  SHOP_TICKET_INTO_ADMIN:  'a top-level forge, ticket-001 of shop off <start>, apps/shop and apps/admin changed at <shop ticket tip>',
-  SHOP_TICKET_ONLY_ADMIN:  'a top-level forge, ticket-001 of shop off <start>, only apps/admin changed at <shop ticket tip>',
-  NEED_DELIVERED:          'a top-level forge, ticket-001 of shop at <shop ticket tip>, main fast-forwarded to ticket-002 of admin at <need ticket tip>',
-  SHOP_TICKET_INTO_UI_KIT: 'a top-level forge, ticket-001 of shop off <start>, apps/shop, packages/ui-kit and bun.lock changed at <shop ticket tip>',
+  AT_REST:                      'a top-level forge over apps/shop, apps/admin and packages/ui-kit, main at <start>',
+  SHOP_TICKET_AT_HOME:          'a top-level forge, ticket-001 of shop off <start>, apps/shop changed at <shop ticket tip>',
+  SHOP_TICKET_INTO_ADMIN:       'a top-level forge, ticket-001 of shop off <start>, apps/shop and apps/admin changed at <shop ticket tip>',
+  SHOP_TICKET_ONLY_ADMIN:       'a top-level forge, ticket-001 of shop off <start>, only apps/admin changed at <shop ticket tip>',
+  NEED_DELIVERED:               'a top-level forge, ticket-001 of shop at <shop ticket tip>, main fast-forwarded to ticket-002 of admin at <need ticket tip>',
+  SHOP_TICKET_INTO_UI_KIT:      'a top-level forge, ticket-001 of shop off <start>, apps/shop, packages/ui-kit and bun.lock changed at <shop ticket tip>',
+  SHOP_TICKET_ONLY_UI_KIT:      'a top-level forge, ticket-001 of shop off <start>, only packages/ui-kit changed at <shop ticket tip>',
+  SHOP_TICKET_ADAPTED:          'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/shop adapted at <stage tip>',
+  SHOP_TICKET_PACKAGE_RESHAPED: 'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit reshaped at <stage tip>',
+  SHOP_TICKET_LOCKFILE_SEALED:  'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit and bun.lock changed at <stage tip>',
 } as const;
 
 export type EntityForgeScenario = typeof ENTITY_FORGE_SCENARIOS[keyof typeof ENTITY_FORGE_SCENARIOS];
 
 /** The commits each scenario names, which a replaying spec gives values to. */
 export const ENTITY_FORGE_SCENARIO_COMMITS: Readonly<Record<EntityForgeScenario, readonly string[]>> = {
-  [ENTITY_FORGE_SCENARIOS.AT_REST]:                 ['<start>'],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_AT_HOME]:     ['<start>', '<shop ticket tip>'],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN]:  ['<start>', '<shop ticket tip>'],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN]:  ['<start>', '<shop ticket tip>'],
-  [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED]:          ['<start>', '<shop ticket tip>', '<need ticket tip>'],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT]: ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.AT_REST]:                      ['<start>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_AT_HOME]:          ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN]:       ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN]:       ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED]:               ['<start>', '<shop ticket tip>', '<need ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT]:      ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT]:      ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED]:          ['<start>', '<shop ticket tip>', '<stage tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED]: ['<start>', '<shop ticket tip>', '<stage tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  ['<start>', '<shop ticket tip>', '<stage tip>'],
 };
 
 /** The tickets whose worktree each scenario made. */
 export const ENTITY_FORGE_SCENARIO_TICKETS: Readonly<Record<EntityForgeScenario, readonly EntityForgeTicket[]>> = {
-  [ENTITY_FORGE_SCENARIOS.AT_REST]:                 [],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_AT_HOME]:     [ENTITY_FORGE_TICKETS.SHOP_TICKET],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
-  [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED]:          [ENTITY_FORGE_TICKETS.SHOP_TICKET, ENTITY_FORGE_TICKETS.NEED_TICKET],
-  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.AT_REST]:                      [],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_AT_HOME]:          [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN]:       [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN]:       [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.NEED_DELIVERED]:               [ENTITY_FORGE_TICKETS.SHOP_TICKET, ENTITY_FORGE_TICKETS.NEED_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT]:      [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT]:      [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED]:          [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
 };
 
 export interface EntityForgeCall {
@@ -79,25 +93,86 @@ const TICKET_WORK_READS: readonly EntityForgeCall[] = [
   { gitArguments: ['merge-base', '--is-ancestor', ENTITY_FORGE_MAIN_LINE, 'HEAD'] },
 ];
 
+/** Each commit a ticket worktree's branch may hold, whose message V7 reads. */
+const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>'];
+
 /**
- * What Customs asks a ticket worktree when it verifies a build of the ticket against the main line: the worktree's state, the commits since
- * the start with each one's message, and what the branch changed itself past the main line. Each ticket's branch holds one commit, its tip.
+ * What Customs asks a ticket worktree when it verifies a job of the ticket that started at `startCommit` against the main line: the
+ * worktree's state, the commits since the start with each one's message, and what the branch changed itself past the main line. A stage of
+ * a crossing ticket starts at the tip the stage before it left.
  */
+function ticketCustomsReadsFrom(startCommit: string): readonly EntityForgeCall[] {
+  return [
+    { gitArguments: ['merge-base', '--is-ancestor', startCommit, 'HEAD'] },
+    { gitArguments: ['log', '--name-only', '--no-renames', '-z', '--format=', `${startCommit}..HEAD`, '--'] },
+    { gitArguments: ['log', '--name-only', '--no-renames', '--format=', `${startCommit}..HEAD`, `^${ENTITY_FORGE_MAIN_LINE}`, '--'] },
+    { gitArguments: ['rev-list', `${startCommit}..HEAD`] },
+    { gitArguments: ['rev-list', '--merges', `${startCommit}..HEAD`] },
+    { gitArguments: ['rev-list', '--merges', '--reverse', `${startCommit}..HEAD`] },
+  ];
+}
+
+/** Customs' reads that name no start: the worktree's state, the branch past the main line, and each commit's message. */
 const TICKET_CUSTOMS_READS: readonly EntityForgeCall[] = [
   { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all'] },
   { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'] },
   { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'] },
   { gitArguments: ['ls-files', '-u'] },
-  { gitArguments: ['merge-base', '--is-ancestor', '<start>', 'HEAD'] },
   { gitArguments: ['merge-base', ENTITY_FORGE_MAIN_LINE, 'HEAD'] },
-  { gitArguments: ['log', '--name-only', '--no-renames', '-z', '--format=', '<start>..HEAD', '--'] },
-  { gitArguments: ['log', '--name-only', '--no-renames', '--format=', '<start>..HEAD', `^${ENTITY_FORGE_MAIN_LINE}`, '--'] },
   { gitArguments: ['diff', '--name-only', '--no-renames', '<start>', 'HEAD', '--'] },
-  { gitArguments: ['rev-list', '<start>..HEAD'] },
-  { gitArguments: ['rev-list', '--merges', '<start>..HEAD'] },
-  { gitArguments: ['rev-list', '--merges', '--reverse', '<start>..HEAD'] },
-  { gitArguments: ['log', '-1', '--format=%B', '<shop ticket tip>'] },
-  { gitArguments: ['log', '-1', '--format=%B', '<need ticket tip>'] },
+  ...ticketCustomsReadsFrom('<start>'),
+  ...ticketCustomsReadsFrom('<shop ticket tip>'),
+  ...ticketCustomsReadsFrom('<stage tip>'),
+  { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<shop ticket tip>', 'HEAD', '--'] },
+  { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<stage tip>', 'HEAD', '--'] },
+  ...TICKET_COMMITS.map((commit): EntityForgeCall => ({ gitArguments: ['log', '-1', '--format=%B', commit] })),
+];
+
+/**
+ * What a review's settlement asks of a later stage that started at the crossed tip and fixed at the stage tip: the rework of its fixes and
+ * the size of the change it reviewed.
+ */
+const TICKET_REVIEW_SETTLEMENT_READS: readonly EntityForgeCall[] = [
+  { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', '<shop ticket tip>^{commit}'] },
+  { gitArguments: ['merge-base', '--is-ancestor', '<shop ticket tip>', '<stage tip>'] },
+  { gitArguments: ['rev-list', '--merges', '<shop ticket tip>..<stage tip>'] },
+  { gitArguments: ['rev-list', '--reverse', '<shop ticket tip>..<stage tip>'] },
+  {
+    gitArguments: [
+      'log',
+      '--patch',
+      '--format=',
+      '--no-show-signature',
+      '--no-color',
+      '--no-ext-diff',
+      '--no-textconv',
+      '--no-relative',
+      '--submodule=short',
+      '--src-prefix=a/',
+      '--dst-prefix=b/',
+      '--find-renames',
+      '--diff-algorithm=myers',
+      '--indent-heuristic',
+      '--unified=25',
+      '<shop ticket tip>..<stage tip>',
+    ],
+  },
+  {
+    gitArguments: [
+      'diff', '--shortstat', '--no-color', '--no-ext-diff', '--no-textconv', '--no-relative', '--find-renames', `${ENTITY_FORGE_MAIN_LINE}...<shop ticket tip>`,
+    ],
+  },
+];
+
+const SEAL_DIFFERENCE: readonly string[] = ['diff', '--no-color', '--no-ext-diff', '--binary', '--no-renames', '-U0', '<start>', 'HEAD', '--'];
+
+/**
+ * What the seal of the package hashes: the ticket's own change to it, past the newest commit of the main line the branch holds, with the
+ * lockfile when a package stage changed it.
+ */
+const TICKET_SEAL_READS: readonly EntityForgeCall[] = [
+  { gitArguments: [...SEAL_DIFFERENCE, ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder] },
+  { gitArguments: [...SEAL_DIFFERENCE, ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder, ENTITY_FORGE_LOCK_FILE] },
 ];
 
 /** What a landing asks at the main checkout: the paths a fast-forward to each ticket would change, and whether it is one. */
@@ -116,7 +191,7 @@ function callsAt(place: EntityForgePlace): readonly EntityForgeCall[] {
   return [
     ...LOCATION_READS,
     ...(placeIsAToplevel(place) ? TOPLEVEL_READS : []),
-    ...(place.kind === 'ticket worktree' ? [...TICKET_WORK_READS, ...TICKET_CUSTOMS_READS] : []),
+    ...(place.kind === 'ticket worktree' ? [...TICKET_WORK_READS, ...TICKET_CUSTOMS_READS, ...TICKET_REVIEW_SETTLEMENT_READS, ...TICKET_SEAL_READS] : []),
     ...(place.kind === 'main checkout' ? [...LANDING_READS, ...TRACKER_IGNORE_READS] : []),
   ];
 }
