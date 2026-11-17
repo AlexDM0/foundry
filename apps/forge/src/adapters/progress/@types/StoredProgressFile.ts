@@ -90,6 +90,8 @@ export interface StoredJob {
   intake?:             JobIntake;
   pendingOptionNotes?: StoredQuestionOptionNotes[];
   outcome?:            JobOutcome;
+  entity?:             string;
+  stage?:              number;
 }
 
 export interface StoredProgressFile {

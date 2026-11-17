@@ -2,7 +2,8 @@
  * The jobs, the job counter and the merge-queue mark in progress.json. What matters: each is written only once set, so a file without them
  * stays byte-identical; a file with them round-trips byte for byte; and a key the tool does not know on a job, its cursor or its slot keeps
  * its place, through a change the Board makes to the job in place. An intake's title is written only once the product owner gave one, and
- * a job's option notes only while some wait.
+ * a job's option notes only while some wait. A job's entity and stage are written only once set: a job without them round-trips byte for
+ * byte with neither key, one with them reads back, and a malformed one is refused.
  */
 import { expect, test } from 'bun:test';
 
@@ -170,4 +171,58 @@ test('a job with option notes is written back byte for byte, and one whose notes
   });
   board.takeQuestionOptionNotes('J1', ['Which basket?']);
   expect(Object.hasOwn(ProgressFileMappingUtil.storedDocumentOf(read).jobs?.[0] ?? {}, 'pendingOptionNotes')).toBe(false);
+});
+
+function storedTextWithBuildJob(entityAndStage: Readonly<Record<string, unknown>>): string {
+  const progress = emptyProgress();
+  return JsonTextUtil.storedFileTextOf({
+    version:    2,
+    trackerId:  progress.trackerId,
+    project:    progress.project,
+    startedAt:  progress.startedAt,
+    view:       progress.view,
+    nextTaskId: progress.nextTaskId,
+    nextJobId:  2,
+    jobs:       [{
+      id:                 'J1',
+      kind:               'build',
+      role:               'builder',
+      ticketIds:          ['001'],
+      parentJobId:        null,
+      attempt:            1,
+      target:             'main',
+      state:              'running',
+      watcherInstance:    1,
+      eventCursor:        { instance: 1, sequence: 0 },
+      answeredRequestIds: [],
+      crashResumes:       0,
+      ...entityAndStage,
+    }],
+    tasks: [],
+  });
+}
+
+test('a job without an entity or a stage is written back byte for byte with neither key', () => {
+  const text   = storedTextWithBuildJob({});
+  const stored = ProgressFileMappingUtil.storedDocumentOf(ProgressFileMappingUtil.progressOf(storedDocumentOf(text)));
+  expect(JsonTextUtil.storedFileTextOf(stored)).toBe(text);
+  expect(Object.hasOwn(stored.jobs?.[0] ?? {}, 'entity')).toBe(false);
+  expect(Object.hasOwn(stored.jobs?.[0] ?? {}, 'stage')).toBe(false);
+});
+
+test('a job with an entity and a stage reads them back and is written back byte for byte', () => {
+  const text       = storedTextWithBuildJob({ entity: 'design-system', stage: 2 });
+  const read       = ProgressFileMappingUtil.progressOf(storedDocumentOf(text));
+  const [readJob]  = read.jobs ?? [];
+  expect(readJob?.entity).toBe('design-system');
+  expect(readJob?.stage).toBe(2);
+  expect(JsonTextUtil.storedFileTextOf(ProgressFileMappingUtil.storedDocumentOf(read))).toBe(text);
+});
+
+test('a job with a blank entity or a stage below one is refused, naming the field', () => {
+  for (const [entityAndStage, field] of [[{ entity: ' ' }, 'jobs[0].entity'], [{ stage: 0 }, 'jobs[0].stage'], [{ stage: 1.5 }, 'jobs[0].stage']] as const) {
+    const reading = ProgressFileValidationUtil.readingOf(JSON.parse(storedTextWithBuildJob(entityAndStage)));
+    expect(reading.verdict).toBe('unreadable');
+    expect(reading.verdict === 'unreadable' ? reading.reason : '').toContain(field);
+  }
 });

@@ -5,6 +5,7 @@
 
 import type { GatePhase }           from './GatePhase.ts';
 import type { QuestionOptionNotes } from './OptionConsequences.ts';
+import type { EntityKey }           from './Pipeline.ts';
 
 /**
  * `pipeline-agent` reads the repository and proposes its pipeline, or advises on the one it has; it never touches a ticket.
@@ -158,6 +159,10 @@ export interface Job {
   pendingOptionNotes?: QuestionOptionNotes[];
   /** Set only on the record `job-ended` hands back: an ended job leaves the board in the same hold. */
   outcome?:            JobOutcome;
+  /** Set by the Overseer at launch on a forge with entities: the entity whose stage the job runs. Absent on a forge without entities. */
+  entity?:             EntityKey;
+  /** The stage of the ticket the job runs, from 1; set with `entity`. */
+  stage?:              number;
 }
 
 export interface JobLaunch {

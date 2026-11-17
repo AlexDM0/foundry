@@ -1997,6 +1997,8 @@ The board's state. The example shows the shape; the tables below give each key's
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 | `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
+| `entity` | yes | The entity whose stage the job runs, written by the Overseer at launch only on a forge with entities. |
+| `stage` | yes | The ticket's stage the job runs, from 1, written with `entity`. |
 
 </details>
 

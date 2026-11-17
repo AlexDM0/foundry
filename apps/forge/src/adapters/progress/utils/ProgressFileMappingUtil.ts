@@ -75,6 +75,8 @@ const KNOWN_JOB_KEYS = {
   intake:             true,
   pendingOptionNotes: true,
   outcome:            true,
+  entity:             true,
+  stage:              true,
 } as const satisfies Record<keyof Job | keyof StoredJob, true>;
 
 function intakeCopyOf(intake: JobIntake): JobIntake {
@@ -304,6 +306,8 @@ function jobOf(stored: StoredJob): Job {
     ...(stored.intake === undefined ? {} : { intake: intakeCopyOf(stored.intake) }),
     ...(stored.pendingOptionNotes === undefined ? {} : { pendingOptionNotes: optionNotesCopyOf(stored.pendingOptionNotes) }),
     ...(stored.outcome === undefined ? {} : { outcome: stored.outcome }),
+    ...(stored.entity === undefined ? {} : { entity: stored.entity }),
+    ...(stored.stage === undefined ? {} : { stage: stored.stage }),
   });
 }
 
@@ -429,6 +433,8 @@ function storedJobOf(job: Job): StoredJob {
     ...(job.intake === undefined ? {} : { intake: intakeCopyOf(job.intake) }),
     ...(job.pendingOptionNotes === undefined ? {} : { pendingOptionNotes: optionNotesCopyOf(job.pendingOptionNotes) }),
     ...(job.outcome === undefined ? {} : { outcome: job.outcome }),
+    ...(job.entity === undefined ? {} : { entity: job.entity }),
+    ...(job.stage === undefined ? {} : { stage: job.stage }),
   });
 }
 

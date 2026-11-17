@@ -20,6 +20,8 @@ const FIRST_ATTEMPT = 1;
 
 const FIRST_EVENT_SEQUENCE = 0;
 
+const FIRST_STAGE = 1;
+
 function vocabularyProblem(value: unknown, path: string, vocabulary: readonly string[]): string | null {
   if (typeof value === 'string' && vocabulary.includes(value)) return null;
   return `${path} is ${JSON.stringify(value)}, which is not one of ${vocabulary.join(', ')}`;
@@ -83,6 +85,15 @@ function pendingOptionNotesProblem(value: unknown, path: string): string | null 
   return null;
 }
 
+function entityAndStageProblem(job: Record<string, unknown>, path: string): string | null {
+  const { entity, stage } = job;
+  if (entity !== undefined && (typeof entity !== 'string' || entity.trim() === '')) return `${path}.entity is present but not an entity key`;
+  if (stage !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(stage, FIRST_STAGE)) {
+    return `${path}.stage is present but not a whole number of at least ${FIRST_STAGE}`;
+  }
+  return null;
+}
+
 function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): string | null {
   if (job['interruption'] !== undefined) {
     const problem = vocabularyProblem(job['interruption'], `${path}.interruption`, INTERRUPTION_CAUSES);
@@ -104,7 +115,11 @@ function jobOptionalFieldsProblem(job: Record<string, unknown>, path: string): s
     const problem = pendingOptionNotesProblem(job['pendingOptionNotes'], `${path}.pendingOptionNotes`);
     if (problem !== null) return problem;
   }
-  return job['outcome'] === undefined ? null : vocabularyProblem(job['outcome'], `${path}.outcome`, JOB_OUTCOMES);
+  if (job['outcome'] !== undefined) {
+    const problem = vocabularyProblem(job['outcome'], `${path}.outcome`, JOB_OUTCOMES);
+    if (problem !== null) return problem;
+  }
+  return entityAndStageProblem(job, path);
 }
 
 function jobProblem(value: unknown, index: number): string | null {
