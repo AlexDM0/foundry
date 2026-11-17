@@ -2076,7 +2076,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) or `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets). |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets), `need-for-root` (a declared need is for the `root` entity and `root` has no gates; the owner makes the change or declines), `need-closes-circle` (a declared need would close a circle in `dependsOn`; it is refused), `need-abandoned` (the ticket filed for a need was abandoned; the waiting ticket continues without it or is abandoned), `work-in-other-entity` (all the work of a ticket belongs to another entity; the ticket moves there or is abandoned) or `whitelist-removed-mid-crossing` (a package left the whitelist while a ticket crossed into it; the ticket finishes under the old whitelist or the package change becomes a need). |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `quiet-job` or `setup-snapshot-touched`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
@@ -2439,6 +2439,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-epics-set` | `ticketId` | `epics`: epic keys |
 | `ticket-network-set` | `ticketId` | `domains`: empty when the line was cleared |
 | `entity-assigned` | `ticketId` | `entity`: the entity key; `reason`; `by`: `product-owner` or `user` |
+| `need-declared` | `ticketId` | `entity`: the entity key of the needed work; `title`; `byJob`: the id of the declaring job |
 | `ticket-release-marked` | `ticketId` | `group` |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
 

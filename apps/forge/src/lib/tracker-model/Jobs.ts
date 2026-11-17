@@ -332,6 +332,12 @@ export class Jobs {
     return { logged: [this.records.logger.log({ kind: 'usage-limit-hit', jobId, fields: { window: limit.window, resetsAt: limit.resetsAt } }, at)] };
   }
 
+  recordNeedDeclared(ticketId: string, need: LogRecordFieldsOf<'need-declared'>, at: string): Logged {
+    this.records.requireTicket(ticketId);
+    const fields = { entity: need.entity, title: need.title, byJob: need.byJob };
+    return { logged: [this.records.logger.log({ kind: 'need-declared', ticketId, fields }, at)] };
+  }
+
   recordHatchApplied(jobId: string, applied: LogRecordFieldsOf<'hatch-applied'>, at: string): Logged {
     const fields = {
       requestId:   applied.requestId,

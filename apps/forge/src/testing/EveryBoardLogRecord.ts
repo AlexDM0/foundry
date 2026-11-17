@@ -262,6 +262,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordHatchApplied('J1', {
     requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done', ticketIds: ['001']
   }, at);
+  board.recordNeedDeclared('002', { entity: 'api', title: 'Example cart total endpoint', byJob: 'J1' }, at);
   logEverySetupRecordKind(board, at);
   logEveryGateProfileRecordKind(board, at);
   board.clearTracker({ ticketsSurvive: true }, at);

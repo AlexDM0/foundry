@@ -135,6 +135,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"baton-pass-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"build-bundles",'
     + '"error":"Example bundle error"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"hatch-applied","jobId":"J1","fields":{"requestId":"request-5","commandKind":"ticket-add","outcome":"done","ticketIds":["001"]}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"need-declared","ticketId":"002","fields":{"entity":"api","title":"Example cart total endpoint","byJob":"J1"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-opened","setupId":"S1","fields":{"mode":"setup","replacesUnreadablePipeline":false}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-setup-billing-set","setupId":"S1","fields":{"mode":"api","maxBudgetUsd":5}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-finding-recorded","setupId":"S1","fields":{"findingId":"F1","topic":"scripts"}}',

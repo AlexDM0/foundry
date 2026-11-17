@@ -20,7 +20,7 @@ const {
  * a `ticket` or `task` verb, `range`, `concurrency`, `dispatcher`, `clear --yes`), and copy its text from the `log` in progress.json.
  * Rows no command reaches easily (a hold or abandon without a reason, two dependencies at once) are read from the wording in
  * bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. A kind newer than bc42604, such as
- * `entity-assigned`, was taken from `LogUtil` when it was added.
+ * `entity-assigned` or `need-declared`, was taken from `LogUtil` when it was added.
  */
 const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [{ kind: 'note', fields: { text: 'Example note from the orchestrator' } }, 'Example note from the orchestrator'],
@@ -55,6 +55,10 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [
     { kind: 'entity-assigned', ticketId: '001', fields: { entity: 'web', reason: 'The basket page lives in the web app', by: 'product-owner' } },
     'Ticket #001 belongs to entity web: The basket page lives in the web app',
+  ],
+  [
+    { kind: 'need-declared', ticketId: '001', fields: { entity: 'api', title: 'Example basket total endpoint', byJob: 'J3' } },
+    'Ticket #001 needs work in entity api, declared by job J3: Example basket total endpoint',
   ],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: 'waiting on design' } }, 'Ticket #001 held: waiting on design'],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: '' } }, 'Ticket #001 held'],
@@ -132,7 +136,7 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   ],
 ];
 
-const RECORD_KIND_COUNT = 33;
+const RECORD_KIND_COUNT = 34;
 
 test('every kind of record reads as the sentence the log held before there were records', () => {
   expect(new Set(SENTENCE_FOR_RECORD.map(([record]) => record.kind)).size, 'the table covers every kind').toBe(RECORD_KIND_COUNT);
@@ -275,6 +279,10 @@ describe('the entry the page reads', () => {
       [{ kind: 'ticket-held', ticketId: '003', fields: { reason: 'waits on #005' } }, { taskIds: [], ticketIds: ['003'] }],
       [
         { kind: 'entity-assigned', ticketId: '003', fields: { entity: 'web', reason: 'like #005', by: 'user' } },
+        { taskIds: [], ticketIds: ['003'] },
+      ],
+      [
+        { kind: 'need-declared', ticketId: '003', fields: { entity: 'api', title: 'Like #005', byJob: 'J3' } },
         { taskIds: [], ticketIds: ['003'] },
       ],
       [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, { taskIds: [], ticketIds: ['001'] }],

@@ -18,6 +18,11 @@ export const DECISION_KINDS = [
   'api-key-not-set',
   'api-authentication-failed',
   'budget-reached',
+  'need-for-root',
+  'need-closes-circle',
+  'need-abandoned',
+  'work-in-other-entity',
+  'whitelist-removed-mid-crossing',
 ] as const satisfies readonly DecisionKind[];
 
 /** Who opens a decision beside an agent of a job role. */

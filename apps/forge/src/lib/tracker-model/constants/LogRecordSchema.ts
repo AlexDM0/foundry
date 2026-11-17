@@ -146,6 +146,8 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-network-set':              { subject: 'ticket', fields: { domains: 'network-domains' } },
   // The reason is kept here alone, never on the ticket.
   'entity-assigned':                 { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
+  // A build stage's job of the ticket declared work it needs in another entity; the Overseer files that work as its own ticket.
+  'need-declared':                   { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
   'ticket-check-command-restamped':  { subject: 'ticket', fields: { command: 'check-command' } },
   'epic-added':                      { subject: 'epic', fields: { title: 'text' } },
   'epic-edited':                     { subject: 'epic', fields: { title: 'text' } },

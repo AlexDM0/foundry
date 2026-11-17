@@ -487,6 +487,10 @@ export class Board {
     return this.jobRules.recordHatchApplied(jobId, applied, at);
   }
 
+  recordNeedDeclared(ticketId: string, need: LogRecordFieldsOf<'need-declared'>, at: string): Logged {
+    return this.jobRules.recordNeedDeclared(ticketId, need, at);
+  }
+
   hatchAppliedRecordOf(requestId: string): HatchAppliedRecord | null {
     return this.jobRules.hatchAppliedRecordOf(requestId);
   }

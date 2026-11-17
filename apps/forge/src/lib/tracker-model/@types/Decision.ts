@@ -21,7 +21,12 @@ export type DecisionKind =
   | 'pipeline-proposal'
   | 'api-key-not-set'
   | 'api-authentication-failed'
-  | 'budget-reached';
+  | 'budget-reached'
+  | 'need-for-root'
+  | 'need-closes-circle'
+  | 'need-abandoned'
+  | 'work-in-other-entity'
+  | 'whitelist-removed-mid-crossing';
 
 /** The consequences only once the asking agent noted them with `question options`. */
 export interface DecisionQuestionOption extends OptionConsequences {
