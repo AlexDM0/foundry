@@ -2149,6 +2149,10 @@ The board's state. The example shows the shape; the tables below give each key's
 | `pipelineHashes` | yes | On a forge with entities: the phase hash of each entity whose gates that run ran, by entity key ([the pipeline hashes](#the-pipeline-hashes)). Written with `pipelineHash` by a run of entities' gates, removed by any other; a forge without entities never writes it. |
 | `greenPhase` | yes | `build`, `review` or `merge`: the phase of that gate run, written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green and is gated again; a read adds none. |
 | `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash` in `greenPhase`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
+| `stage` | yes | On a forge with entities, once the ticket crosses into a whitelisted package: `{ name, entity }`, the stage it is in (`build`, `package-build`, `package-review`, `adapt` or `review`) and the key of the entity whose agent runs it. A ticket that stays in one entity, and every row of a forge without entities, has none. |
+| `seals` | yes | The seal of each crossed package that a package review sealed, by package entity key: a hash of the ticket's own change to that package. |
+| `packageReturns` | yes | How many times the ticket went back from `adapt` or `review` to a package build, from 1; written at the first return. |
+| `stageCounters` | yes | What each stage the ticket ran counted, by stage key (`entity/number`, as a job launch is keyed): `{ redHandoffs, failedPasses, reviewRounds }`, each from 0. Red handoffs and failed passes start again at 0 when the stage starts again; review rounds are kept when the ticket returns to the stage. Written with `stage`. |
 
 </details>
 

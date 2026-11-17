@@ -15,7 +15,7 @@ import type {
   JobStopMode,
   AirlockPhase
 }                                             from '../../../lib/tracker-model/@types/Job.ts';
-import type { TaskStatus }                    from '../../../lib/tracker-model/@types/Task.ts';
+import type { TaskStatus, TicketStageName }   from '../../../lib/tracker-model/@types/Task.ts';
 import type { OverseerState, ViewRange }      from '../../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { CURRENT_PROGRESS_FILE_VERSION } from '../constants/ProgressFileVersions.ts';
 
@@ -46,6 +46,21 @@ export interface StoredTask {
   greenTree?:      string;
   mergeQueued?:    true;
   mergeAccepted?:  true;
+  stage?:          StoredTicketStage;
+  seals?:          Record<string, string>;
+  packageReturns?: number;
+  stageCounters?:  Record<string, StoredTaskStageCounters>;
+}
+
+export interface StoredTicketStage {
+  name:   TicketStageName;
+  entity: string;
+}
+
+export interface StoredTaskStageCounters {
+  redHandoffs:  number;
+  failedPasses: number;
+  reviewRounds: number;
 }
 
 export interface StoredJobEventCursor {

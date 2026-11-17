@@ -112,6 +112,7 @@
     "../src/lib/tracker-model/constants/TaskIds.ts",
     "../src/lib/tracker-model/constants/TicketFields.ts",
     "../src/lib/tracker-model/constants/TicketMoveLegality.ts",
+    "../src/lib/tracker-model/constants/TicketStages.ts",
     "../src/lib/tracker-model/utils/BoardSettingsUtil.ts",
     "../src/lib/tracker-model/utils/ConcurrencyUtil.ts",
     "../src/lib/tracker-model/utils/DraftIdUtil.ts",
@@ -139,6 +140,7 @@
     "../src/lib/tracker-model/utils/TicketDependencyUtil.ts",
     "../src/lib/tracker-model/utils/TicketIdUtil.ts",
     "../src/lib/tracker-model/utils/TicketMoveUtil.ts",
+    "../src/lib/tracker-model/utils/TicketStageUtil.ts",
     "../src/lib/tracker-model/utils/VocabularyUtil.ts"
   ],
   // The specs, the DOM specs and the test-only helpers stay out, so this program's surface is the Bridge that ships.

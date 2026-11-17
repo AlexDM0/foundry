@@ -8,7 +8,9 @@ import { FIRST_SETUP_NUMBER }                                from '../../../lib/
 import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../../lib/tracker-model/constants/ReviewRounds.ts';
 import { TASK_STATUSES }                                     from '../../../lib/tracker-model/constants/Statuses.ts';
 import { FIRST_TASK_ID }                                     from '../../../lib/tracker-model/constants/TaskIds.ts';
+import { TICKET_STAGE_NAMES }                                from '../../../lib/tracker-model/constants/TicketStages.ts';
 import { BoardSettingsUtil }                                 from '../../../lib/tracker-model/utils/BoardSettingsUtil.ts';
+import { TicketStageUtil }                                   from '../../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                    from '../../../lib/tracker-model/utils/VocabularyUtil.ts';
 import { BranchNamespaceUtil }                               from '../../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                     from '../../../shared/constants/ProductNames.ts';
@@ -50,6 +52,22 @@ function gatePhaseIsKnown(value: unknown): boolean {
 
 function entityHashesAreWellFormed(value: unknown): value is Record<string, string> {
   return JsonRecordUtil.valueIsAPlainObject(value) && Object.values(value).every((entityPhaseHash) => typeof entityPhaseHash === 'string');
+}
+
+function ticketStageIsWellFormed(value: unknown): boolean {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return false;
+  const { name, entity } = value;
+  return typeof name === 'string' && TicketStageUtil.stageNameIsKnown(name) && typeof entity === 'string' && entity !== '';
+}
+
+function stageCountersAreWellFormed(value: unknown): boolean {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return false;
+  return [value['redHandoffs'], value['failedPasses'], value['reviewRounds']].every((count) => StoredValueUtil.wholeNumberIsAtLeast(count, 0));
+}
+
+function stageCountersByStageKeyAreWellFormed(value: unknown): boolean {
+  return JsonRecordUtil.valueIsAPlainObject(value)
+    && Object.entries(value).every(([stageKey, counters]) => stageKey !== '' && stageCountersAreWellFormed(counters));
 }
 
 function taskStatusIsKnown(value: unknown): boolean {
@@ -105,6 +123,18 @@ function taskProblem(value: unknown, index: number): string | null {
   if (task['greenTree'] !== undefined && !textFieldIsPresent(task, 'greenTree')) return `tasks[${index}].greenTree is present and is not a tree`;
   if (task['mergeQueued'] !== undefined && task['mergeQueued'] !== true) return `tasks[${index}].mergeQueued is present and is not true`;
   if (task['mergeAccepted'] !== undefined && task['mergeAccepted'] !== true) return `tasks[${index}].mergeAccepted is present and is not true`;
+  if (task['stage'] !== undefined && !ticketStageIsWellFormed(task['stage'])) {
+    return `tasks[${index}].stage is present and is not a stage name, one of ${TICKET_STAGE_NAMES.join(', ')}, with the key of the entity that runs it`;
+  }
+  if (task['seals'] !== undefined && !entityHashesAreWellFormed(task['seals'])) {
+    return `tasks[${index}].seals is present and is not a record of a seal for each package entity key`;
+  }
+  if (task['packageReturns'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(task['packageReturns'], 1)) {
+    return `tasks[${index}].packageReturns is present and is not a whole number of at least 1`;
+  }
+  if (task['stageCounters'] !== undefined && !stageCountersByStageKeyAreWellFormed(task['stageCounters'])) {
+    return `tasks[${index}].stageCounters is present and is not, for each stage key, a whole count of at least 0 for each of redHandoffs, failedPasses and reviewRounds`;
+  }
   return null;
 }
 

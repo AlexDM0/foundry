@@ -12,6 +12,25 @@ export type TaskStatus = 'pending' | 'in-progress' | 'paused' | 'in-review' | 'r
  */
 export type DisplayState = TaskStatus | 'reviewing' | 'draft' | 'ready-for-review';
 
+/** The stages of a ticket that crosses into a whitelisted package, in the order a crossing first runs them. */
+export type TicketStageName = 'build' | 'package-build' | 'package-review' | 'adapt' | 'review';
+
+export interface TicketStage {
+  name:   TicketStageName;
+  /** The key of the entity whose agent runs the stage: the ticket's home entity, or the crossed package for a package stage. */
+  entity: string;
+}
+
+/**
+ * What one stage of one entity counted. Red handoffs and failed passes start at zero each time the stage starts; review rounds are kept when
+ * the ticket comes back to the stage, so today's bound on rounds holds across a return.
+ */
+export interface TaskStageCounters {
+  redHandoffs:  number;
+  failedPasses: number;
+  reviewRounds: number;
+}
+
 /** One status a row actually reached, and when. A correction never files one: a correction is not something that happened. */
 export interface TaskPhase {
   status: TaskStatus;
@@ -69,4 +88,15 @@ export interface Task {
   mergeQueued?:    true;
   /** With merge approval on: User accepted the queued ticket for its Airlock. Cleared with `mergeQueued`, and by a conflicting merge-in. */
   mergeAccepted?:  true;
+  /**
+   * On a forge with entities, once the ticket crosses into a whitelisted package: the stage it is in. Absent on a ticket that stays in one
+   * entity and on every row of a forge without entities.
+   */
+  stage?:          TicketStage;
+  /** The seal of each crossed package whose change a package review sealed, by package entity key: a hash of the ticket's own change to it. */
+  seals?:          Record<string, string>;
+  /** How many times the ticket returned to a package build from `adapt` or `review`; written at the first return. */
+  packageReturns?: number;
+  /** The counts of each stage the ticket ran, by stage key (`entity/number`, as a job launch is keyed); written with `stage`. */
+  stageCounters?:  Record<string, TaskStageCounters>;
 }
