@@ -79,6 +79,27 @@ const TICKET_WORK_READS: readonly EntityForgeCall[] = [
   { gitArguments: ['merge-base', '--is-ancestor', ENTITY_FORGE_MAIN_LINE, 'HEAD'] },
 ];
 
+/**
+ * What Customs asks a ticket worktree when it verifies a build of the ticket against the main line: the worktree's state, the commits since
+ * the start with each one's message, and what the branch changed itself past the main line. Each ticket's branch holds one commit, its tip.
+ */
+const TICKET_CUSTOMS_READS: readonly EntityForgeCall[] = [
+  { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all'] },
+  { gitArguments: ['status', '--porcelain=v1', '--untracked-files=all', '--no-renames'] },
+  { gitArguments: ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames'] },
+  { gitArguments: ['ls-files', '-u'] },
+  { gitArguments: ['merge-base', '--is-ancestor', '<start>', 'HEAD'] },
+  { gitArguments: ['merge-base', ENTITY_FORGE_MAIN_LINE, 'HEAD'] },
+  { gitArguments: ['log', '--name-only', '--no-renames', '-z', '--format=', '<start>..HEAD', '--'] },
+  { gitArguments: ['log', '--name-only', '--no-renames', '--format=', '<start>..HEAD', `^${ENTITY_FORGE_MAIN_LINE}`, '--'] },
+  { gitArguments: ['diff', '--name-only', '--no-renames', '<start>', 'HEAD', '--'] },
+  { gitArguments: ['rev-list', '<start>..HEAD'] },
+  { gitArguments: ['rev-list', '--merges', '<start>..HEAD'] },
+  { gitArguments: ['rev-list', '--merges', '--reverse', '<start>..HEAD'] },
+  { gitArguments: ['log', '-1', '--format=%B', '<shop ticket tip>'] },
+  { gitArguments: ['log', '-1', '--format=%B', '<need ticket tip>'] },
+];
+
 /** What a landing asks at the main checkout: the paths a fast-forward to each ticket would change, and whether it is one. */
 const LANDING_READS: readonly EntityForgeCall[] = ['<shop ticket tip>', '<need ticket tip>'].flatMap((ticketTip) => [
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', ticketTip, '--'] },
@@ -95,7 +116,7 @@ function callsAt(place: EntityForgePlace): readonly EntityForgeCall[] {
   return [
     ...LOCATION_READS,
     ...(placeIsAToplevel(place) ? TOPLEVEL_READS : []),
-    ...(place.kind === 'ticket worktree' ? TICKET_WORK_READS : []),
+    ...(place.kind === 'ticket worktree' ? [...TICKET_WORK_READS, ...TICKET_CUSTOMS_READS] : []),
     ...(place.kind === 'main checkout' ? [...LANDING_READS, ...TRACKER_IGNORE_READS] : []),
   ];
 }

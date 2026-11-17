@@ -368,6 +368,9 @@ const WORK_IN_OTHER_ENTITY_DECISION = 'work-in-other-entity';
 /** The scope check's refusal of a job of an entity whose branch changed nothing in its own folders. */
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
+/** The scope check's refusals of a branch that changed another entity's files; a `git-failed` V17 stays an ordinary red handoff. */
+const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY];
+
 function callBudgetOf(job: Readonly<Job>): number {
   return job.kind === REVIEW_JOB_KIND || job.role === CONFLICT_RE_REVIEWER_ROLE ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
 }
@@ -1086,15 +1089,22 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     return;
   }
   const verdict = clearCustoms(subject);
-  if (verdict.verdict === 'refused' && verdict.reason === ONLY_OUTSIDE_THE_ENTITY && job.entity !== undefined && workingOffAScopeHandoff(hold.context, job)) {
-    openWorkInOtherEntityDecision(hold, job, verdict.facts);
+  if (verdict.verdict === 'refused' && SCOPE_REFUSALS.includes(verdict.reason) && job.entity !== undefined && scopeResumeSpent(hold.context, job)) {
+    if (verdict.reason === ONLY_OUTSIDE_THE_ENTITY) openWorkInOtherEntityDecision(hold, job, verdict.facts);
     endJob(hold, job, { outcome: 'failed', cause: verdict.reason });
     return;
   }
   if (verdict.verdict === 'refused') {
     if (resumableCustomsChecksOf(job).includes(verdict.check)) {
       interruptOnRedHandoff(hold, job, {
-        kind: 'customs', name: verdict.check, command: null, fixCommand: null, exitCode: null, fullLogPath: null, output: customsOutputOf(verdict)
+        kind:        'customs',
+        name:        verdict.check,
+        command:     null,
+        fixCommand:  null,
+        exitCode:    null,
+        fullLogPath: null,
+        output:      customsOutputOf(verdict),
+        ...(SCOPE_REFUSALS.includes(verdict.reason) ? { scopeResumed: true as const } : {}),
       });
       return;
     }
@@ -1209,7 +1219,7 @@ function holdAgentConfigHits(change: TrackerChange, context: JobLaunchContext, t
   return { held: [...held].sort(), logged: hold.logged };
 }
 
-interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'command' | 'fixCommand' | 'exitCode' | 'fullLogPath' | 'mergedTip'> {
+interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'command' | 'fixCommand' | 'exitCode' | 'fullLogPath' | 'mergedTip' | 'scopeResumed'> {
   output: string;
 }
 
@@ -1220,8 +1230,9 @@ interface RedHandoffCause extends Pick<RedHandoffFacts, 'kind' | 'name' | 'comma
 function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: RedHandoffCause): void {
   const jobFolder = jobFolderOf(hold.context.workspace, job);
   const earlier = RedHandoff.redHandoffFactsOf(jobFolder);
-  const { output, ...named } = cause;
+  const { output, scopeResumed: sentBackForScope, ...named } = cause;
   mkdirSync(jobFolder, { recursive: true });
+  const scopeResumed = sentBackForScope === true || scopeResumeSpent(hold.context, job);
   RedHandoff.writeRedHandoff(jobFolder, {
     ...named,
     commit:              GitProcess.resolvedCommitOf(worktreeOf(hold.context.workspace, job), 'HEAD', GitWorktrees.ceilingOf(worktreeOf(hold.context.workspace, job))) ?? '',
@@ -1230,6 +1241,7 @@ function interruptOnRedHandoff(hold: HoldContext, job: Readonly<Job>, cause: Red
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
     interruptedInstance: job.watcherInstance,
+    ...(scopeResumed ? { scopeResumed: true as const } : {}),
   }, output);
   hold.logged.push(...hold.change.board.interruptJob(job.id, HANDOFF_RED_INTERRUPTION, hold.change.at).logged);
 }
@@ -1257,10 +1269,12 @@ const RESUMABLE_CUSTOMS_CHECKS: readonly VerificationCheck[] = ['V3', 'V4', 'V15
 /** V17, the scope check: a job of an entity is resumed to take a change outside its stage's folders back out (E11). */
 const SCOPE_CHECK: VerificationCheck = 'V17';
 
-/** The job's last red handoff sent it back for V17: a red gate or another Customs check before it leaves the one V17 resume unspent. */
-function workingOffAScopeHandoff(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
-  const facts = RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job));
-  return facts?.kind === 'customs' && facts.name === SCOPE_CHECK;
+/**
+ * A red handoff of the job sent it back for a scope refusal before: its one V17 resume is spent, also when a red gate or another check came
+ * after. A `git-failed` V17 spends nothing.
+ */
+function scopeResumeSpent(context: Pick<JobLaunchContext, 'workspace'>, job: Readonly<Job>): boolean {
+  return RedHandoff.redHandoffFactsOf(jobFolderOf(context.workspace, job))?.scopeResumed === true;
 }
 
 /** A job without an entity, on a folder tracker too, keeps the checks it always had: there V17 fails the job. */

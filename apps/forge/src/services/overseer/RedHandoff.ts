@@ -47,6 +47,8 @@ export interface RedHandoffFacts {
   callBudget:          number;
   /** On a `merge-conflict` only: the target tip the session merges in again. */
   mergedTip?:          string;
+  /** Once a job of an entity was sent back for Customs V17, kept on every later red handoff of the job: V17 resumes it only once (E11). */
+  scopeResumed?:       true;
 }
 
 const OMISSION_MARK = (omittedLines: number): string => `[… ${omittedLines} lines omitted …]`;

@@ -11,6 +11,7 @@ import type { EntityKey, Pipeline }            from '../../lib/tracker-model/@ty
 import type { DecisionDraft, DecisionWording } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { TicketStatus }                   from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                          from '../../lib/tracker-model/Board.ts';
+import { EntityOwnershipUtil }                 from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketDependencyUtil }                from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
 import { createTicket }                        from '../tracker/TicketStore.ts';
 import type { TrackerChange }                  from '../tracker/TrackerPipeline.ts';
@@ -56,6 +57,16 @@ function openNeedDecision(
   }, change.at).logged;
 }
 
+/**
+ * The declaring entity would consume the need's entity, which already consumes it, directly or through another: the need would close a circle
+ * in the entities' `dependsOn` (E13). Every entity consumes the root entity, so any need of the root entity's own job closes one.
+ */
+function needClosesAnEntityCircle(pipeline: Readonly<Pipeline> | null, declaringEntityKey: EntityKey | undefined, needEntityKey: EntityKey): boolean {
+  const entities = pipeline?.entities;
+  if (entities === undefined || declaringEntityKey === undefined) return false;
+  return EntityOwnershipUtil.dependentsOf(entities, [declaringEntityKey]).includes(needEntityKey);
+}
+
 /** Refused as `ticket depends` refuses a circle (E13); a ticket filed fresh waits on nothing, so it guards the rule rather than meets it. */
 function dependencyClosesACircle(board: Board, waitingTicketId: string, needTicketId: string): boolean {
   const dependsOnById = new Map(board.tickets().map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.dependsOn ?? []]));
@@ -74,6 +85,9 @@ function fileNeed(change: TrackerChange, job: Readonly<Job>, need: Readonly<Decl
   const needContext = `${need.entity}: ${need.title}`;
   if (rootEntityHasNoGates(board.pipeline(), need.entity)) {
     return [...declared, ...openNeedDecision(change, 'need-for-root', waitingTicketIds, needContext, decisionWordingOf)];
+  }
+  if (needClosesAnEntityCircle(board.pipeline(), job.entity, need.entity)) {
+    return [...declared, ...openNeedDecision(change, 'need-closes-circle', waitingTicketIds, needContext, decisionWordingOf)];
   }
   const ticket = createTicket(change.workspace, board, {
     title: need.title, type: 'ticket', bodyFor: () => need.body, at

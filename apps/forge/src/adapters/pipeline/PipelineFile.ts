@@ -1,7 +1,7 @@
 /**
  * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in version
  * 2, 3 or 4. A file that cannot be read whole is `malformed` with the reason, and one below version 2 is `older`, never a throw. Version 4
- * holds entities, which this build maps and validates in full and then refuses as not yet supported.
+ * holds entities, which this build maps and validates in full; an entity that whitelists a package is refused as not yet supported.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -38,7 +38,7 @@ import { storedFileTextOf }                         from '../StoredFileText.ts';
 import { StoredValueUtil }                          from '../utils/StoredValueUtil.ts';
 
 /** Entities that are sound as stored but that this build or this tracker cannot hold, which a refusal names instead of a repair. */
-export type UnsupportedEntities = { kind: 'entities-not-supported' } | { kind: 'entities-in-a-folder'; projectPrefix: string };
+export type UnsupportedEntities = { kind: 'whitelist-not-supported'; entityKeys: readonly EntityKey[] } | { kind: 'entities-in-a-folder'; projectPrefix: string };
 
 export type PipelineReading =
   | { verdict: 'absent' }
@@ -584,17 +584,25 @@ function mappedReadingOf(document: unknown): PipelineReading {
   return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
 }
 
-/** A pipeline with entities maps whole, so every refusal of its entities shows, and is then refused: no forge runs entities yet. */
+/** The entities whose `whitelist` names a package; an empty whitelist names none. */
+function whitelistingEntityKeysOf(pipeline: Readonly<Pipeline>): EntityKey[] {
+  return Object.entries(pipeline.entities ?? {}).filter(([, entity]) => (entity.whitelist ?? []).length > 0).map(([entityKey]) => entityKey);
+}
+
+/**
+ * A pipeline with entities maps whole, so every refusal of its entities shows. One whose entity whitelists a package is then refused: no
+ * forge runs the stages of a ticket that crosses into a package yet.
+ */
 function documentReadingOf(document: unknown): PipelineReading {
   const reading = mappedReadingOf(document);
-  if (reading.verdict === 'readable' && reading.pipeline.entities !== undefined) {
-    return {
-      verdict:             'malformed',
-      reason:              'it holds entities, which this build does not support yet (entities-not-supported)',
-      unsupportedEntities: { kind: 'entities-not-supported' },
-    };
-  }
-  return reading;
+  if (reading.verdict !== 'readable') return reading;
+  const entityKeys = whitelistingEntityKeysOf(reading.pipeline);
+  if (entityKeys.length === 0) return reading;
+  return {
+    verdict:             'malformed',
+    reason:              `the entities ${entityKeys.join(', ')} whitelist a package, which this build does not support yet (whitelist-not-supported)`,
+    unsupportedEntities: { kind: 'whitelist-not-supported', entityKeys },
+  };
 }
 
 /** A stored pipeline with entities in a tracker in a folder, which the board cannot use, as any malformed one. */

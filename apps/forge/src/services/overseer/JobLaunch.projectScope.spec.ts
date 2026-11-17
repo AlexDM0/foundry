@@ -284,8 +284,8 @@ testWhenGitIsRecorded('a job of an entity whose needs-declared report kept no ne
   expect(verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'needs-declared').whereTheJobWent).toBe('failed: no-report');
 });
 
-/** The red handoff an earlier refusal left: after one of V17 the session verified now is the one sent back to take its change out. */
-function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string): (build: LaunchedBuild) => void {
+/** The red handoff an earlier refusal left: after a V17 scope refusal the session verified now is the one sent back to take its change out. */
+function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string, scopeResumed: boolean): (build: LaunchedBuild) => void {
   return ({ context, job }) => {
     const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
     mkdirSync(jobFolder, { recursive: true });
@@ -302,18 +302,19 @@ function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string): (build: 
       resumesAllowed:      2,
       interruptedInstance: 1,
       callBudget:          50,
+      ...(scopeResumed ? { scopeResumed: true as const } : {}),
     }, `${name} went red`);
   };
 }
 
 testWhenGitIsRecorded('a session sent back once whose branch still changed only another entity\'s files opens work-in-other-entity and fails', () => {
-  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('customs', 'V17'));
+  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('customs', 'V17', true));
   expect(build.whereTheJobWent).toBe('failed: changed-only-outside-home-and-reach');
   expect(build.board.decisions().map((decision) => [decision.kind, decision.ticketIds, decision.context])).toEqual([['work-in-other-entity', ['001'], FILE_OUTSIDE_THE_PROJECT]]);
 });
 
 testWhenGitIsRecorded('a session sent back for a red gate whose branch then changed only another entity\'s files gets its one V17 resume', () => {
-  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('gate', 'unit'));
+  const build = verifyBuild('at the root', pipelineWithEntities(), 'example', [], 'built', leaveARedHandoff('gate', 'unit', false));
   expect(build.whereTheJobWent).toBe('interrupted: V17');
   expect(build.board.decisions()).toEqual([]);
 });

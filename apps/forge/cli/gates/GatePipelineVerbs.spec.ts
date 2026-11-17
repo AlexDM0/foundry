@@ -48,8 +48,6 @@ const ENTITY_PIPELINE_WRITES: readonly (readonly string[])[] = [
   ['gate', 'reach', '/bun.lock'],
 ];
 
-const entityPipelinesAreRead = PipelineFile.documentReadingOf(JSON.parse(entityForgePipelineTextOf('strict-isolation'))).verdict === 'readable';
-
 let repositoryDirectory = '';
 
 const pipelineFilePath = (): string => workspacePathsFor(repositoryDirectory).pipelineFilePath;
@@ -267,21 +265,19 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     }
   });
 
-  // Until the reader accepts entities its refusal comes first, for every write and gate approval too; with it, only the writes are refused.
-  test('each such write is refused as set per entity once the reader accepts entities, and gate approval is then accepted', async () => {
+  // Gate approval is not set per entity, so it stays writable.
+  test('each such write is refused as set per entity, and gate approval is accepted', async () => {
     writeFileSync(pipelineFilePath(), entityForgePipelineTextOf('strict-isolation'));
-    const before          = storedFiles();
-    const expectedWording = entityPipelinesAreRead ? 'each entity has its own prepare steps, gates and reach' : 'holds entities, which this forge does not run yet';
+    const before = storedFiles();
     for (const write of ENTITY_PIPELINE_WRITES) {
       const refused = await runWithExitCode(write);
-      expect(refused.context.errorText(), write.join(' ')).toContain(expectedWording);
+      expect(refused.context.errorText(), write.join(' ')).toContain('each entity has its own prepare steps, gates and reach');
     }
     expect(storedFiles()).toEqual(before);
 
     const approval = await runWithExitCode(['gate', 'approval', 'merge', 'on']);
-    expect(approval.exitCode).toBe(entityPipelinesAreRead ? 0 : 1);
-    if (entityPipelinesAreRead) expect(PipelineFile.read(pipelineFilePath())).toMatchObject({ verdict: 'readable', pipeline: { approvals: { merge: true } } });
-    else expect(storedFiles()).toEqual(before);
+    expect(approval.exitCode).toBe(0);
+    expect(PipelineFile.read(pipelineFilePath())).toMatchObject({ verdict: 'readable', pipeline: { approvals: { merge: true } } });
   });
 
   test.each([

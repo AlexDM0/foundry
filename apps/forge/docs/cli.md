@@ -1451,7 +1451,10 @@ same hold the Overseer files each need it kept, in declaring order, and takes it
   ticket. Every ticket of the job gets it in `dependsOn`; the need's ticket waits on none of them. Each waiting ticket
   logs `need-declared`.
 - A need for the root entity when that entity has no gates is no ticket: it opens `need-for-root` on the waiting
-  tickets. A need whose ticket would close a circle in `dependsOn` is not added there and opens `need-closes-circle`.
+  tickets. A need for an entity that consumes the job's entity, directly or through another entity's `dependsOn`, would
+  close a circle: it is no ticket and opens `need-closes-circle` on the waiting tickets. Every entity consumes the root
+  entity, so each need of a root entity's job opens it. A need whose ticket would close a circle in the tickets'
+  `dependsOn` is not added there and opens `need-closes-circle`.
 - A job that reports `needs-declared` with no need kept, or a job without an entity, fails `no-report`.
 
 On a pipeline with entities the Playbook then:
@@ -1467,9 +1470,11 @@ On a pipeline with entities the Playbook then:
 - drops a need's ticket that was abandoned from the waiting ticket's `dependsOn` and opens `need-abandoned` on it.
 
 An open `need-for-root`, `need-closes-circle`, `need-abandoned` or `work-in-other-entity` decision holds the tickets it
-names. `work-in-other-entity` opens when a build whose last red handoff was for V17 again changed nothing in its own
-entity's folders: Customs refuses it `changed-only-outside-home-and-reach`, and the job fails. A build whose last red
-handoff was for anything else gets the one V17 resume first.
+names. A build of an entity gets one V17 resume: once a red handoff of the job was for a change outside its entity, a
+second such V17 refusal fails the job with its reason, also after a red gate in between. When that build again changed
+nothing in its own entity's folders, Customs refuses it `changed-only-outside-home-and-reach`, the job fails and
+`work-in-other-entity` opens. A build that was never sent back for V17 gets its one V17 resume first. A V17 whose git
+failed (`git-failed`) is an ordinary red handoff and spends no V17 resume.
 
 ### Jobs and sessions
 
@@ -1616,16 +1621,16 @@ entity home. A job of an entity installs with its entity's prepare steps, runs i
 first home and stamps that entity's phase hash. Its session is told these gates, and Customs V15 holds it to them. A
 gate's `definedBy` pattern without a leading `/` names a file of the entity's first home. The job may change only its
 entity's homes and `reach`: a path that a deeper home of another entity holds is that entity's, and the root entity
-owns every path that no other home holds. Customs V17 refuses any other change and sends the session back on a red
-handoff, whose `gate-failure.md` names each path to take out; a session sent back so whose branch still changed
-nothing in its own entity fails and opens `work-in-other-entity` (see [`need declare`](#need-declare)). A job carries on
-only a session of its own entity and stage. A job without an entity keeps the checks it always had.
+owns every path that no other home holds. Customs V17 refuses any other change and sends the session back once on a
+red handoff, whose `gate-failure.md` names each path to take out; a second V17 refusal fails the job, and one whose
+branch still changed nothing in its own entity also opens `work-in-other-entity` (see [`need declare`](#need-declare)).
+A job carries on only a session of its own entity and stage. A job without an entity keeps the checks it always had.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
 | worktree creation, the install line or a gating prepare step fails, or a gating prepare step changes a tracked file | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |
 | the session exits without a valid report, the report says `cannot-build`, a commit carries an attribution trailer, or Customs refuses for any reason the next row does not name | a [failed pass](glossary.md#failed-pass), `job-ended` `failed` with its cause; an attribution trailer also shows the `attribution-found` notice, and a V13 refusal also opens the `branch-touches-agent-config` decision | none: the next attempt is automatic, up to the bound; answer the decision where one opened |
-| a gate fails, Customs refuses V3 (no commit), V4 (a dirty worktree), V15 (missing or stale gate claims) or, for a job of an entity, V17 (a change outside its entity's homes and reach), or a session working off a red handoff spends its call budget and grace | a [red handoff](glossary.md#red-handoff): the same session resumes on `gate-failure.md`, the red-handoff note, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, then the ticket parks `parked:red-resumes-spent` with a `parked` decision | `ticket unhold` for a fresh attempt |
+| a gate fails, Customs refuses V3 (no commit), V4 (a dirty worktree), V15 (missing or stale gate claims) or, for a job of an entity, V17 once (a change outside its entity's homes and reach), or a session working off a red handoff spends its call budget and grace | a [red handoff](glossary.md#red-handoff): the same session resumes on `gate-failure.md`, the red-handoff note, up to `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) times, then the ticket parks `parked:red-resumes-spent` with a `parked` decision | `ticket unhold` for a fresh attempt |
 | the report says `blocked` | incident `blocked`; the job ends `blocked` | `job fresh`, `worktree repair`, `ticket park` |
 | the report says `wound-down`, or a session not working off a red handoff spends its call budget and grace | incident `out-of-calls` | `job fresh`, `ticket park` |
 | a gate exits 126 or 127, or a signal kills it | incident `gate-cannot-run`; the job ends `stopped` | `gate retry`, `worktree repair`, `ticket park` |
@@ -2206,7 +2211,8 @@ lives in [`pipeline.json`](#datapipelinejson).
 The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
 [Apply](#apply) write it through the lock, in format version 2 unless it holds a prepare step's `in`, a gate `in` that
 starts with `/` or a `reach`, which only version 3 has: a release that reads only version 2 then refuses the file
-rather than misread it. This build reads both.
+rather than misread it. A pipeline with `entities` is version 4, which only a tracker at its repository's root holds.
+This build reads all three.
 
 ```json
 {
@@ -2231,7 +2237,7 @@ rather than misread it. This build reads both.
 
 | key | required | value |
 |---|---|---|
-| `version` | yes | `2`, or `3` for a pipeline that holds a prepare step's `in`, a gate `in` that starts with `/` or a `reach`; written first |
+| `version` | yes | `2`, `3` for a pipeline that holds a prepare step's `in`, a gate `in` that starts with `/` or a `reach`, or `4` for one with `entities`; written first |
 | `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in` (version 3), the folder it runs in as a gate's `in` names one |
 | `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root (version 3); it holds no `..`, drive or backslash. A version 2 file keeps any `in` that version 2 wrote |
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
@@ -2242,6 +2248,7 @@ rather than misread it. This build reads both.
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 | `reach` | no | version 3: the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
+| `entities` | no | version 4: each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. An entity whose `whitelist` names a package is refused as not yet supported (`whitelist-not-supported`): this build runs no stages of a ticket that crosses into a package. |
 
 A file with no `version`, or a version below 2, is older: an earlier release wrote it, and no release converts it. The
 board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1 (`older-pipeline`); set the
