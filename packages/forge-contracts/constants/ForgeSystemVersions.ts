@@ -22,12 +22,13 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * parked:second-return hold, a merge agent's entity and stage on the job-launched record, the refused job outcome, the package-refused,
  * second-return and dependent-broken decision kinds, the stage-started, seal-set, seal-lifted and package-return records and a crossing
  * ticket's Handoff parts per stage; 1.13 accepts a non-empty whitelist in the pipeline and the setup draft, so the whitelist-not-supported
- * refusal is no longer sent. Each minor only adds.
+ * refusal is no longer sent; 1.14 adds the monitor snapshot's entities and open tickets' entity and stage, a job's entity and stage, the
+ * work-outside-entity board refusal and the hook stage-edits command. Each minor only adds.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 13 },
+  current:          { major: 1, minor: 14 },
   minimumSupported: { major: 0, minor: 0 },
 };
