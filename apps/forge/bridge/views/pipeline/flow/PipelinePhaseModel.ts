@@ -1,7 +1,8 @@
 /**
  * The Focus layout's model, pure: which of the four phases (Ticket, Build, Review, Merge) holds each node and add slot of the facts, the
  * stepper's tab of each phase with its sub-line and pill, the open phase's header words, the step a live card is in, and the Ticket
- * phase's readiness lines. The Merge header stands for the merge train's frame and its end, so those nodes get no step card.
+ * phase's readiness lines. The Merge header stands for the merge train's frame and its end, so those nodes get no step card. An entity of a
+ * monorepo draws three phases: its tickets are made at the forge, so the Ticket phase is the forge's.
  */
 import type { GatePhase } from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type {
@@ -16,6 +17,9 @@ import { PipelineFlowModel, type FlowSlotPlace, type StepKind } from './Pipeline
 export type PipelinePhase = 'ticket' | 'build' | 'review' | 'merge';
 
 export const PIPELINE_PHASES: readonly PipelinePhase[] = Object.freeze(['ticket', 'build', 'review', 'merge']);
+
+/** An entity's phases: Build, Review and Merge. */
+export const ENTITY_PHASES: readonly PipelinePhase[] = Object.freeze(['build', 'review', 'merge']);
 
 /** A card in the open phase's step row: a node's step, or an add card where the facts name a missing step. */
 export type PhaseStepItem =
@@ -54,6 +58,8 @@ export interface PhaseTabContext {
   readonly stage:           PipelineFlowStage;
   readonly minimal:         boolean;
   readonly openQuestionIds: readonly string[];
+  /** The phases drawn, in order; absent draws all four. */
+  readonly phases?:         readonly PipelinePhase[];
 }
 
 export interface ReadinessLine {
@@ -199,7 +205,7 @@ function pillOf(flow: PipelineFlowFacts, phase: PipelinePhase, context: PhaseTab
 }
 
 function tabViewsOf(flow: PipelineFlowFacts, context: PhaseTabContext): PhaseTabView[] {
-  return PIPELINE_PHASES.map((phase) => ({
+  return (context.phases ?? PIPELINE_PHASES).map((phase) => ({
     phase,
     name:       PHASE_NAMES[phase],
     subText:    subTextOf(flow, phase, context.stage),
@@ -208,8 +214,8 @@ function tabViewsOf(flow: PipelineFlowFacts, context: PhaseTabContext): PhaseTab
   }));
 }
 
-function nextPhaseOf(phase: PipelinePhase): PipelinePhase | null {
-  return PIPELINE_PHASES[PIPELINE_PHASES.indexOf(phase) + 1] ?? null;
+function nextPhaseOf(phase: PipelinePhase, phases: readonly PipelinePhase[]): PipelinePhase | null {
+  return phases[phases.indexOf(phase) + 1] ?? null;
 }
 
 function buildHeaderOf(flow: PipelineFlowFacts): Pick<PhaseHeaderView, 'purpose' | 'endText'> {
@@ -224,9 +230,9 @@ function reviewPurposeOf(flow: PipelineFlowFacts): string {
 }
 
 /** The open phase's header; a phase with no step that runs is skipped, and the Merge phase ends on main. */
-function headerOf(flow: PipelineFlowFacts, phase: PipelinePhase): PhaseHeaderView {
-  const number = PIPELINE_PHASES.indexOf(phase) + 1;
-  const shared = { numberText: `Phase ${number} of ${PIPELINE_PHASES.length}`, name: PHASE_NAMES[phase], nextPhase: nextPhaseOf(phase) };
+function headerOf(flow: PipelineFlowFacts, phase: PipelinePhase, phases: readonly PipelinePhase[] = PIPELINE_PHASES): PhaseHeaderView {
+  const number = phases.indexOf(phase) + 1;
+  const shared = { numberText: `Phase ${number} of ${phases.length}`, name: PHASE_NAMES[phase], nextPhase: nextPhaseOf(phase, phases) };
   if (phase === 'merge') {
     return {
       ...shared, purpose: 'The merge train. The Airlock lets one ticket onto main at a time.', endLead: 'Ends', endText: 'on main, by fast-forward',
@@ -257,9 +263,9 @@ function phaseNameOf(phase: PipelinePhase): string {
   return PHASE_NAMES[phase];
 }
 
-/** "Phase 2: Build", the open phase's accessible name. */
-function phaseLabelOf(phase: PipelinePhase): string {
-  return `Phase ${PIPELINE_PHASES.indexOf(phase) + 1}: ${PHASE_NAMES[phase]}`;
+/** "Phase 2: Build", the open phase's accessible name; "Phase 1: Build" among an entity's three. */
+function phaseLabelOf(phase: PipelinePhase, phases: readonly PipelinePhase[] = PIPELINE_PHASES): string {
+  return `Phase ${phases.indexOf(phase) + 1}: ${PHASE_NAMES[phase]}`;
 }
 
 /** A live step's state word: an agent's or a merge's tickets are worked on, gates run, and User's step waits. */

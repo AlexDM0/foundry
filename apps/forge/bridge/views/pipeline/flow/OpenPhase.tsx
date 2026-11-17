@@ -2,7 +2,9 @@
  * The open phase: its header (its number, name and purpose, when it leaves and the Next button, or for Merge the end on main and, on a
  * live board, the tickets in the merge train), its steps from left to right with an add card wherever the facts name a missing step, and
  * under them the phase's gates table, or for the Ticket phase what makes a draft ready. Its switches, add choices and gate edits go
- * through one draft edit sender, which opens an update first on a live board.
+ * through one draft edit sender, which opens an update first on a live board. At an entity's level of a monorepo screen the phases are
+ * three, a switch the forge sets links there in place of the switch, an add choice the forge would set is not offered, and the gates table
+ * offers to copy the phase's gates to another entity.
  */
 
 import { Button }         from 'design-system/Button';
@@ -11,20 +13,29 @@ import { Tag }            from 'design-system/Tag';
 import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
 
-import type { PipelineFlowFacts }                        from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { StateToneUtil }                                 from '../../../utils/StateToneUtil.ts';
-import type { PipelineViewFacts }                        from '../PipelineViewModel.ts';
-import { PipelineAgentPanelModel }                       from '../agent-panel/PipelineAgentPanelModel.ts';
-import { GatesTable }                                    from '../gates/GatesTable.tsx';
-import { FlowActivityPanelModel, type OccupantChipView } from '../live/FlowActivityPanelModel.ts';
+import type { PipelineFlowFacts }                                           from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { StateToneUtil }                                                    from '../../../utils/StateToneUtil.ts';
+import type { PipelineViewFacts }                                           from '../PipelineViewModel.ts';
+import { PipelineAgentPanelModel }                                          from '../agent-panel/PipelineAgentPanelModel.ts';
+import { EntityLevelFactsModel }                                            from '../entities/EntityLevelFactsModel.ts';
+import { entityKeyOfScope, useMonorepoLevelScope, type MonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
+import { CopyToEntityMenu }                                                 from '../gates/CopyToEntityMenu.tsx';
+import { GatesTable }                                                       from '../gates/GatesTable.tsx';
+import { FlowActivityPanelModel, type OccupantChipView }                    from '../live/FlowActivityPanelModel.ts';
 
 import { FlowGlyph }                                                      from './FlowGlyph.tsx';
 import { selectedGateRowKeyOf, selectedStepNodeIdOf, type FlowSelection } from './FlowSelection.ts';
 import { InsertSlot }                                                     from './InsertSlot.tsx';
 import { usePipelineFlowEditSender }                                      from './PipelineFlowEditSender.ts';
-import { PipelineFlowModel }                                              from './PipelineFlowModel.ts';
-import { PipelinePhaseModel, type PhaseStepItem, type PipelinePhase }     from './PipelinePhaseModel.ts';
-import { StepCard }                                                       from './StepCard.tsx';
+import { PipelineFlowModel, type FlowSlotView }                           from './PipelineFlowModel.ts';
+import {
+  ENTITY_PHASES,
+  PIPELINE_PHASES,
+  PipelinePhaseModel,
+  type PhaseStepItem,
+  type PipelinePhase
+} from './PipelinePhaseModel.ts';
+import { StepCard } from './StepCard.tsx';
 
 export interface OpenPhaseProps {
   readonly facts:     PipelineViewFacts;
@@ -70,11 +81,14 @@ function MergeTrainLines({ flow }: { readonly flow: PipelineFlowFacts }) {
 interface PhaseHeadProps {
   readonly flow:   PipelineFlowFacts;
   readonly phase:  PipelinePhase;
+  readonly phases: readonly PipelinePhase[];
   readonly onOpen: (phase: PipelinePhase) => void;
 }
 
-function PhaseHead({ flow, phase, onOpen }: PhaseHeadProps) {
-  const header = PipelinePhaseModel.headerOf(flow, phase);
+function PhaseHead({
+  flow, phase, phases, onOpen
+}: PhaseHeadProps) {
+  const header = PipelinePhaseModel.headerOf(flow, phase, phases);
   const { nextPhase } = header;
   return (
     <header className="bridge-pipeline-phase-head">
@@ -120,7 +134,19 @@ function TicketReadiness() {
   );
 }
 
+/** At an entity, the add choices that would set what the forge sets for every entity are left out. */
+function slotViewAtLevelOf(slot: FlowSlotView, scope: MonorepoLevelScope | null): FlowSlotView {
+  if (scope?.level.kind !== 'entity') return slot;
+  return {
+    ...slot,
+    choices: slot.choices.filter((choice) => choice.action.kind !== 'edit' || !choice.action.edits.some((edit) => EntityLevelFactsModel.fieldIsSetAtTheForge(edit.field))),
+  };
+}
+
 export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
+  const scope = useMonorepoLevelScope();
+  const entityKey = entityKeyOfScope(scope);
+  const phases = entityKey === null ? PIPELINE_PHASES : ENTITY_PHASES;
   const record = facts.pipelineSetup?.record ?? null;
   const live = flow.toolbarStage === 'live';
   const editTarget = record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision };
@@ -135,10 +161,12 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
 
   const cardOf = (item: PhaseStepItem): ReactNode => {
     if (item.kind === 'add') {
+      const slot = slotViewAtLevelOf(PipelineFlowModel.slotViewOf(item.slot, item.place, draft), scope);
+      if (slot.choices.length === 0) return null;
       return (
         <InsertSlot
           key={`add-${item.slot.slotId}`}
-          slot={PipelineFlowModel.slotViewOf(item.slot, item.place, draft)}
+          slot={slot}
           disabled={!editSender.enabled}
           onEdits={editSender.sendEdits}
           onNewGate={(newGatePhase) => selection.open({ kind: 'new-gate', phase: newGatePhase })}
@@ -157,6 +185,7 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
         editable={editSender.enabled}
         onOpen={selection.open}
         onEdits={editSender.sendEdits}
+        {...(scope === null || entityKey === null ? {} : { setAtTheForgeHref: scope.forgeLevelHref })}
       />
     );
   };
@@ -168,8 +197,8 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
   }, []);
 
   return (
-    <section className="bridge-pipeline-phase" aria-label={PipelinePhaseModel.phaseLabelOf(phase)} data-phase={phase} data-stage={flow.toolbarStage}>
-      <PhaseHead flow={flow} phase={phase} onOpen={selection.openPhaseOf} />
+    <section className="bridge-pipeline-phase" aria-label={PipelinePhaseModel.phaseLabelOf(phase, phases)} data-phase={phase} data-stage={flow.toolbarStage}>
+      <PhaseHead flow={flow} phase={phase} phases={phases} onOpen={selection.openPhaseOf} />
       {editSender.refusal === null ? null : <span className="bridge-refusal" role="status">{editSender.refusal}</span>}
       {stepRow.length === 0 ? null : <div className="bridge-pipeline-phase-steps">{stepRow}</div>}
       {gatePhase === null
@@ -185,6 +214,9 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
             selectedRowKey={selectedGateRowKeyOf(selection)}
             editSender={editSender}
             onOpen={selection.open}
+            headStart={entityKey !== null && !live && editTarget !== null && scope !== null && scope.wholeDraft !== null
+              ? <CopyToEntityMenu phase={gatePhase} fromEntityKey={entityKey} wholeDraft={scope.wholeDraft} target={editTarget} />
+              : null}
           />
         )}
     </section>

@@ -9,7 +9,8 @@
  * with its conversation when a stop closed it, while a record with no agent,
  * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
  * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
- * agent which. Git answers from the recordings of `src/testing/RecordedGit.ts`.
+ * agent which; a copy's edits are stored under one `batch`, the first of their edit ids, and no other edit gets one. Git answers from
+ * the recordings of `src/testing/RecordedGit.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -146,6 +147,9 @@ const MALFORMED_COMMANDS: readonly [string, Record<string, unknown>][] = [
   ['edits[0].value', {
     kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: 'on' }]
   }],
+  ['isACopy', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }], isACopy: 'yes'
+  }],
   ['editId', { kind: 'pipeline-draft-undo', setupId: 'S1' }],
   ['setupId', { kind: 'pipeline-draft-discard', setupId: '  ' }],
   ['draftRevision', { kind: 'pipeline-apply', setupId: 'S1', resumesBoard: false }],
@@ -223,6 +227,26 @@ describe('a draft edit', () => {
     expect(setup?.edits.map((edit) => [edit.editId, edit.by, edit.field])).toEqual([
       ['E1', 'user', 'gate:test'], ['E2', 'user', 'phase-order:build'], ['E3', 'user', 'approval:merge'],
     ]);
+  });
+
+  test('stores a copy\'s edits under one batch, the first edit id, and an edit that is no copy under none', () => {
+    const fixture = boardAtDesign();
+
+    apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }]
+    });
+    apply(fixture, {
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: 1,
+      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:build', value: ['test'] }],
+      isACopy:       true,
+    });
+
+    expect(fixture.board.pipelineSetup()?.edits.map((edit) => [edit.editId, edit.batch])).toEqual([
+      ['E1', undefined], ['E2', 'E2'], ['E3', 'E2'],
+    ]);
+    expect(Object.hasOwn(fixture.board.pipelineSetup()?.edits[0] ?? {}, 'batch')).toBe(false);
   });
 
   test('refuses pipeline-draft-invalid with the validator\'s reason when the draft it leaves cannot be stored', () => {

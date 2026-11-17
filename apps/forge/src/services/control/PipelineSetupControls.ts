@@ -151,6 +151,14 @@ function entityKeysOfParts(setup: Readonly<PipelineSetup>): EntityKey[] {
   return Object.keys(setup.entities ?? {});
 }
 
+/** Absent or `true`: a copy's edits are stored under one `batch`; any other value is malformed. */
+function copyFlagFieldOf(command: SentCommand): { isACopy?: true } {
+  const value = fieldOf(command, 'isACopy');
+  if (value === undefined) return {};
+  if (value !== true) refuseMalformedSetupCommand(command.kind, 'isACopy');
+  return { isACopy: true };
+}
+
 /**
  * The record's pipeline agent hears User's move in the same hold, so the next turn starts from it: a live one gets the message, and one a
  * stop closed opens again with its conversation. A record with no agent, an agent whose input is closing, or one that ended otherwise gets
@@ -450,8 +458,11 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
   const setupId  = textFieldOf(command, 'setupId');
   const revision = revisionFieldOf(command, 'draftRevision');
   const edits    = draftEditsFieldOf(command).map((edit) => ({ edit, summary: '' }));
+  const copyFlag = copyFlagFieldOf(command);
   const before   = workingDraftOf(change.board);
-  const request  = { by: 'user' as const, revision, edits };
+  const request  = {
+    by: 'user' as const, revision, edits, ...copyFlag
+  };
   requireStorableDraft(setupId, change.board.draftAfterEdits(setupId, request));
   const changed  = change.board.editDraft(setupId, request, change.at);
   const newEdits = changed.setup.edits.slice(-edits.length);

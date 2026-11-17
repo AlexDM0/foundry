@@ -6,6 +6,7 @@
 import { ReorderIndexUtil } from 'design-system/ReorderIndexUtil';
 
 import type { GatePhase }                            from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { EntityKey }                            from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { FlowChange, FlowDraftEdit }            from '../flow/PipelineFlowModel.ts';
 import { GateCacheMarkModel }                        from './GateCacheMarkModel.ts';
@@ -243,10 +244,10 @@ function openRequestOf(row: PipelineGateRow, phase: GatePhase): GatesOpenRequest
   return row.rowKind === 'prepare' ? { kind: 'prepare-step', name: row.name } : { kind: 'gate', gateName: row.name, phase };
 }
 
-/** `setupId` is the open record's, null on a live board: a profile of the applied gate. */
-function profileStartCommandOf(setupId: string | null, gateName: string, phase: GatePhase) {
+/** `setupId` is the open record's, null on a live board: a profile of the applied gate; `entity` names an entity's gate in monorepo mode. */
+function profileStartCommandOf(setupId: string | null, gateName: string, phase: GatePhase, entity: EntityKey | null = null) {
   return {
-    kind: 'gate-profile-start', setupId, gateName, phase
+    kind: 'gate-profile-start', setupId, gateName, phase, ...(entity === null ? {} : { entity })
   };
 }
 

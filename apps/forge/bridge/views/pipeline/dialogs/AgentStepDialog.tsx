@@ -2,6 +2,7 @@
  * The agent step dialog (A3Inspector) of Ticket creation and the Builder: the model beside the effort, every value the board offers, the
  * meter in the head following the form, the brief, when the step runs and what it fixes, and the foot. The form is local until Save,
  * which sends the role's one edit; Reset to default fills the form with the defaults and sends nothing; Esc, × and Cancel send nothing.
+ * At the forge level of a monorepo, the product owner's dialog says it also names each ticket's entity.
  */
 
 import { Button }           from 'design-system/Button';
@@ -31,14 +32,16 @@ export interface PipelineAgentAsker {
 }
 
 export interface AgentStepDialogProps {
-  readonly role:         AgentStepRole;
-  readonly node:         PipelineFlowNode;
-  readonly draft:        Pipeline | null;
-  readonly choices:      PipelineChoices;
-  readonly constitution: ConstitutionPlace;
-  readonly editSender:   PipelineFlowEditSender;
-  readonly asker:        PipelineAgentAsker;
-  readonly onClose:      () => void;
+  readonly role:          AgentStepRole;
+  readonly node:          PipelineFlowNode;
+  readonly draft:         Pipeline | null;
+  readonly choices:       PipelineChoices;
+  readonly constitution:  ConstitutionPlace;
+  readonly editSender:    PipelineFlowEditSender;
+  readonly asker:         PipelineAgentAsker;
+  readonly onClose:       () => void;
+  /** The forge holds entities, so the product owner also routes each ticket to one. */
+  readonly overEntities?: boolean;
 }
 
 interface StepFactProps {
@@ -57,10 +60,10 @@ function StepFact({ term, description }: StepFactProps) {
 }
 
 export function AgentStepDialog({
-  role, node, draft, choices, constitution, editSender, asker, onClose
+  role, node, draft, choices, constitution, editSender, asker, onClose, overEntities = false
 }: AgentStepDialogProps) {
   const [form, setForm] = useState<AgentStepForm>(() => AgentStepDialogModel.formOf(role, draft, node.settings));
-  const words = AgentStepDialogModel.wordsOf(role);
+  const words = AgentStepDialogModel.wordsOf(role, overEntities);
   const meter = (
     <ModelEffortMeter
       model={form.model}

@@ -2,7 +2,8 @@
  * The page of every pipeline stage that draws the flow (the proposal, live, editing and the smallest pipeline), in the Focus layout of
  * `PipelinePage`: the page's title row over the phase stepper and the one open phase, the stage's panel in the right column, the stage's
  * footer bar under both; and the dialog a step, a gate row or an add choice opens. With no flow yet, the title row, the panel and the footer still stand.
- * In monorepo mode the level rail stands left of the page and the level's breadcrumb over the title; single mode passes neither.
+ * In monorepo mode the level rail stands left of the page and the level's breadcrumb over the title; single mode passes neither. An
+ * entity's level draws its three phases, and the forge's level draws its own page in place of the phases.
  */
 
 import { useEffect, useRef, type ReactNode } from 'react';
@@ -13,10 +14,11 @@ import type { PipelineViewFacts }            from './PipelineViewModel.ts';
 import { useProfileLogFollower }             from './ProfileLogFollowerContext.ts';
 import { PipelineAgentPanelModel }           from './agent-panel/PipelineAgentPanelModel.ts';
 import { PipelineDialogs }                   from './dialogs/PipelineDialogs.tsx';
+import { useMonorepoLevelScope }             from './entities/MonorepoLevelContext.ts';
 import type { FlowSelection, FlowShownItem } from './flow/FlowSelection.ts';
 import { OpenPhase }                         from './flow/OpenPhase.tsx';
 import { PhaseStepper }                      from './flow/PhaseStepper.tsx';
-import { PipelinePhaseModel }                from './flow/PipelinePhaseModel.ts';
+import { ENTITY_PHASES, PipelinePhaseModel } from './flow/PipelinePhaseModel.ts';
 import { MinimalPipelineNoteModel }          from './live/MinimalPipelineNoteModel.ts';
 
 export interface FlowWorkspaceProps {
@@ -34,6 +36,8 @@ export interface FlowWorkspaceProps {
   readonly rail?:       ReactNode;
   /** Monorepo mode's level, over the title. */
   readonly breadcrumb?: ReactNode;
+  /** The forge level's page, drawn in place of the phase stepper and the open phase. */
+  readonly levelPage?:  ReactNode;
 }
 
 /** The element that stands for a shown item: a step card, a gate row or the open phase's gates table. */
@@ -47,8 +51,9 @@ function elementOf(layout: HTMLElement | null, item: FlowShownItem): HTMLElement
 }
 
 export function FlowWorkspace({
-  facts, selection, title, lead, notice = null, aside, footer, rail = null, breadcrumb = null
+  facts, selection, title, lead, notice = null, aside, footer, rail = null, breadcrumb = null, levelPage = null
 }: FlowWorkspaceProps) {
+  const scope = useMonorepoLevelScope();
   const followProfileLog = useProfileLogFollower();
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const { scrollRequest } = selection;
@@ -63,7 +68,7 @@ export function FlowWorkspace({
       {breadcrumb}
       <ViewTitle title={title} lead={lead} />
       {notice}
-      {flow === null
+      {levelPage ?? (flow === null
         ? null
         : (
           <>
@@ -72,13 +77,14 @@ export function FlowWorkspace({
                 stage:           flow.toolbarStage,
                 minimal:         MinimalPipelineNoteModel.noteIsShownFor(flow),
                 openQuestionIds: PipelineAgentPanelModel.openQuestionIdsOf(record?.questions ?? []),
+                ...(scope?.level.kind === 'entity' ? { phases: ENTITY_PHASES } : {}),
               })}
               openPhase={selection.openPhase}
               onOpen={selection.openPhaseOf}
             />
             <OpenPhase facts={facts} flow={flow} selection={selection} />
           </>
-        )}
+        ))}
     </>
   );
   return (

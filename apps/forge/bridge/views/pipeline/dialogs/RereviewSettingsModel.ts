@@ -11,6 +11,9 @@ import { AgentStepDialogModel, type AgentStepForm } from './AgentStepDialogModel
 /** After the review's fixes (the reviewer's step), or after a conflict merge (the merge step). */
 export type ReReviewPlace = 'review' | 'merge';
 
+/** Which part of the card a monorepo level sets: the forge the merge train's switch and threshold, an entity its conflict re-reviewer. */
+export type ReReviewLevelPart = 'whole' | 'merge-train' | 'conflict-re-reviewer';
+
 export interface ReReviewForm {
   readonly isOn:           boolean;
   readonly thresholdLines: number;

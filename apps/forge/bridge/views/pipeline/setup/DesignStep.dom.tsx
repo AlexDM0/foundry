@@ -7,6 +7,10 @@
  * profile, only a time chip press does; the agent's newest change opens its phase, selects its gate row and undoes it; Discard
  * proposal sends `pipeline-draft-discard`; before a draft a line over the phases and the agent strip say the agent is designing; the
  * agent's panel opens on the Conversation, and its strip, beside the one Flint slot, waits while a design question is open and is ready once proposed.
+ * In monorepo mode: an entity's level draws its three phases, its own gates and its own chat, its edits and profiles name the entity, and
+ * what the forge sets links there; the rail moves to another level on the same screen, with its flow, chat and changes; the forge's level
+ * draws its page and no gates, its switches and the Airlock edit the forge's fields, and a question in any entity holds Apply; a copy of a
+ * phase's gates to another entity goes as one copy of the edits that change something.
  */
 import {
   act,
@@ -205,5 +209,143 @@ describe('profiling', () => {
     expect(controls.sent).toEqual([{
       kind: 'gate-profile-start', setupId: 'S1', gateName: 'lint', phase: 'build'
     }]);
+  });
+});
+
+describe('monorepo mode', () => {
+  const entityRoute = (key: string): BridgeRoute => ({ tab: 'pipeline', item: `entity/${key}/setup/design` });
+  const FORGE_ROUTE: BridgeRoute = { tab: 'pipeline', item: 'forge/setup/design' };
+
+  function renderLevel(route: BridgeRoute) {
+    const controls = fakeControls();
+    let showRoute: (next: BridgeRoute) => void = () => undefined;
+
+    function Host() {
+      const [shownRoute, setShownRoute] = useState(route);
+      showRoute = setShownRoute;
+      return <PipelineView facts={pipelineBoardStateOf('mono-design')} route={shownRoute} {...pipelineViewServicesOf()} />;
+    }
+    controls.render(<Host />);
+    return { controls, moveTo: (next: BridgeRoute) => act(() => showRoute(next)) };
+  }
+
+  function phaseTabNames(): string[] {
+    return within(screen.getByRole('group', { name: 'Pipeline phases' })).getAllByRole('button').map((tab) => tab.getAttribute('data-phase') ?? '');
+  }
+
+  function gateNamesShown(): string[] {
+    return [...document.querySelectorAll<HTMLElement>('[data-gate-row-key]')].map((row) => row.dataset['gateRowKey'] ?? '');
+  }
+
+  test('an entity draws its three phases, its own gates and its own chat under its breadcrumb', () => {
+    renderLevel(entityRoute('web'));
+    expect(screen.getByRole('navigation', { name: 'Level' }).textContent).toBe('Pipeline›web');
+    expect(screen.getByRole('heading', { level: 2, name: 'Design web’s pipeline' })).toBeDefined();
+    expect(phaseTabNames()).toEqual(['build', 'review', 'merge']);
+    expect(screen.getByRole('region', { name: 'Phase 1: Build' })).toBeDefined();
+    expect(gateNamesShown()).toEqual(['prepare:install', 'gate:typecheck', 'gate:unit-tests']);
+    expect(within(screen.getByRole('complementary', { name: 'Pipeline agent' })).getByRole('heading', { name: 'Pipeline agent · web' })).toBeDefined();
+  });
+
+  test('a press on the rail keeps the screen and moves the level; the flow, the chat and the changes follow it', async () => {
+    const { moveTo } = renderLevel(entityRoute('web'));
+    await clickSettled(within(screen.getByRole('navigation', { name: 'Pipeline levels' })).getByRole('button', { name: /^design-system,/u }));
+    expect(window.location.hash).toBe('#pipeline/entity/design-system/setup/design');
+    moveTo(entityRoute('design-system'));
+    expect(gateNamesShown()).toEqual(['gate:typecheck']);
+    const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
+    expect(within(panel).getByRole('heading', { name: 'Pipeline agent · design-system' })).toBeDefined();
+    expect(within(panel).getByText('1 question in another entity')).toBeDefined();
+    await clickSettled(within(panel).getByRole('tab', { name: /^Changes/u }));
+    expect(within(panel).getByText('No changes at this level yet.')).toBeDefined();
+  });
+
+  test('a dialog\'s Save at an entity edits the entity\'s own field', async () => {
+    const { controls } = renderLevel(entityRoute('web'));
+    fireEvent.doubleClick(stepOf('builder'));
+    await clickSettled(within(screen.getByRole('dialog', { name: 'Builder' })).getByRole('button', { name: 'Save' }));
+    expect(controls.sent).toHaveLength(1);
+    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', setupId: 'S1', edits: [{ field: 'entity:web/role:builder' }] });
+  });
+
+  test('a profile at an entity names the entity', async () => {
+    const { controls } = renderLevel(entityRoute('web'));
+    const typecheckRow = screen.getByRole('group', { name: /^Open the typecheck / });
+    await clickSettled(within(typecheckRow).getByRole('button', { name: /not measured/ }));
+    expect(controls.sent).toEqual([{
+      kind: 'gate-profile-start', setupId: 'S1', gateName: 'typecheck', phase: 'build', entity: 'web'
+    }]);
+  });
+
+  test('at an entity, Human code review is set at the forge, and the merge step saves only the entity\'s conflict re-reviewer', async () => {
+    const { controls } = renderLevel(entityRoute('web'));
+    await clickSettled(phaseTab(/^Review/));
+    const codeReview = stepOf('human-code-review');
+    expect(within(codeReview).queryByRole('switch')).toBeNull();
+    expect(within(codeReview).getByRole('link', { name: 'Set at the Forge level' }).getAttribute('href')).toBe('#pipeline/forge/setup/design');
+    await clickSettled(phaseTab(/^Merge/));
+    fireEvent.doubleClick(stepOf('merge-in-airlock'));
+    const dialog = screen.getByRole('dialog', { name: 'Merge main into the tree' });
+    expect(within(dialog).getByRole<HTMLButtonElement>('switch').disabled).toBe(true);
+    await clickSettled(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(controls.sent).toHaveLength(1);
+    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'entity:web/role:conflictReReviewer' }] });
+  });
+
+  test('the forge draws its page and no gates; its switches and the Airlock edit the forge\'s own fields', async () => {
+    const { controls } = renderLevel(FORGE_ROUTE);
+    expect(screen.getByRole('heading', { level: 2, name: 'Design the Forge level' })).toBeDefined();
+    expect(screen.queryByRole('group', { name: 'Pipeline phases' })).toBeNull();
+    expect(document.querySelector('[data-gates-table]')).toBeNull();
+    expect(screen.getByText('No gates at the Forge level.')).toBeDefined();
+    const entities = screen.getByRole('table', { name: 'Entities' });
+    expect(within(entities).getByRole('link', { name: 'Open web' }).getAttribute('href')).toBe('#pipeline/entity/web/setup/design');
+    expect(within(entities).getByText('1 question')).toBeDefined();
+
+    await clickSettled(screen.getByRole('switch', { name: 'Human code review' }));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: expect.any(Number), edits: [{ field: 'approval:merge', value: true }]
+    }]);
+    await clickSettled(screen.getByRole('button', { name: 'Change the conflict re-review' }));
+    const airlock = screen.getByRole('dialog', { name: 'The Airlock' });
+    expect(within(airlock).queryByRole('combobox')).toBeNull();
+    await clickSettled(within(airlock).getByRole('button', { name: 'Save' }));
+    expect(controls.sent.at(-1)).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'airlock' }] });
+  });
+
+  test('the board limit is the board\'s own control, sent at once in jobs', async () => {
+    const { controls } = renderLevel(FORGE_ROUTE);
+    const limit = screen.getByRole('region', { name: 'Board limit' });
+    expect(within(limit).getByText('2 jobs at once')).toBeDefined();
+    await clickSettled(within(limit).getByRole('button', { name: 'More jobs at once' }));
+    await clickSettled(within(limit).getByRole('button', { name: 'Set now' }));
+    expect(controls.sent).toEqual([{ kind: 'concurrency-set', limit: 3 }]);
+  });
+
+  test('a question in an entity holds Apply at every level', () => {
+    renderLevel(FORGE_ROUTE);
+    expect(applyButton().disabled).toBe(true);
+    expect(within(footer()).getByText('Answer the open question to apply')).toBeDefined();
+    expect(within(footer()).getByText('3 entities · 3 gates')).toBeDefined();
+  });
+
+  test('a copy of a phase\'s gates to another entity sends one copy of the edits that change something', async () => {
+    const { controls } = renderLevel(entityRoute('web'));
+    const table = screen.getByRole('region', { name: 'Build gates' });
+    await clickSettled(within(table).getByRole('button', { name: 'Copy to another entity' }));
+    const menu = screen.getByRole('dialog', { name: 'Copy web’s build gates to' });
+    await clickSettled(within(menu).getByRole('checkbox', { name: /^design-system/u }));
+    await clickSettled(within(menu).getByRole('button', { name: 'Copy 2 gates' }));
+    expect(controls.sent).toEqual([{
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: expect.any(Number),
+      edits:         [
+        { field: 'entity:design-system/gate:unit-tests', value: { name: 'unit-tests', run: 'bun test' } },
+        { field: 'entity:design-system/phase-order:build', value: ['typecheck', 'unit-tests'] },
+      ],
+      isACopy: true,
+    }]);
+    expect(screen.getByText('Copied to design-system · 2 edits in Changes')).toBeDefined();
   });
 });

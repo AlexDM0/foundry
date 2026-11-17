@@ -2,7 +2,7 @@
  * The gate dialog (A2bGateModal): a gate's command, fix command, folder, phases and network, with its profile box; the same dialog empty
  * adds a gate, its phase ticked; and its prepare variant edits or adds a prepare step, a command alone. Save sends the definition and the
  * phase orders it changes; Remove gate takes the gate out of every phase, Remove prepare step drops the step. Nothing is sent on Esc, × or
- * Cancel, and a gate with no phase ticked cannot be saved.
+ * Cancel, and a gate with no phase ticked cannot be saved. At an entity's level of a monorepo screen, its profile measures that entity's gate.
  */
 
 import { Button }          from 'design-system/Button';
@@ -15,7 +15,9 @@ import { useId, useState } from 'react';
 import { GATE_PHASES }                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { Pipeline }                              from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { entityKeyOfScope, useMonorepoLevelScope }    from '../entities/MonorepoLevelContext.ts';
 import type { PipelineFlowEditSender }                from '../flow/PipelineFlowEditSender.ts';
+import { GatesAreaModel }                             from '../gates/GatesAreaModel.ts';
 
 import { GateDialogModel, type GateDialogSubject, type GateForm } from './GateDialogModel.ts';
 import { ProfileBox, type ProfileLogFollower }                    from './ProfileBox.tsx';
@@ -70,6 +72,7 @@ export function GateDialog({
   subject, draft, mark, profileRuns, setupId, editSender, followLog, onClose
 }: GateDialogProps) {
   const [form, setForm] = useState<GateForm>(() => GateDialogModel.formOf(subject, draft));
+  const profileEntity = entityKeyOfScope(useMonorepoLevelScope());
   const networkLabelId = useId();
   const isPrepare = subject.rowKind === 'prepare';
   const isNew = subject.name === null;
@@ -154,9 +157,7 @@ export function GateDialog({
                   <ProfileBox
                     view={GateDialogModel.profileBoxViewOf(subject.name, subject.phase, profileRuns)}
                     lead={GateDialogModel.profileLeadOf(subject.phase)}
-                    startCommand={{
-                      kind: 'gate-profile-start', setupId, gateName: subject.name, phase: subject.phase,
-                    }}
+                    startCommand={GatesAreaModel.profileStartCommandOf(setupId, subject.name, subject.phase, profileEntity)}
                     {...(followLog === undefined ? {} : { followLog })}
                   />
                 )}

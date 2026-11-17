@@ -2,15 +2,19 @@
  * The design step's model, pure: the agent's state and the panel head's status, the footer's count of the proposed steps and gates, whether Apply
  * may open while a question is open, the Changes tab's name, and the agent's newest change with the step it shows on the flow and the
  * Undo it sends. Every count comes from the facts; Apply's state reads the open question count, and the Overseer's refusal stays the
- * authority.
+ * authority. In monorepo mode the page is one level's: its title row, its newest agent change, and the open questions of every level,
+ * since a question in any entity holds Apply as one question does in single mode.
  */
 import { GATE_PHASES }                                                      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { PipelineFlowFacts, PipelineSetupFacts, PipelineSetupSummary } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineDraftField, SetupEdit }                               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { EntityDraftField, PipelineDraftField, SetupEdit }             from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                                          from '../../../api/CommandClient.ts';
 import { ChatTurnWordingUtil }                                              from '../../../conversation/ChatTurnWordingUtil.ts';
 import type { PanelStatus }                                                 from '../PipelinePanel.tsx';
+import type { FlowPageWords }                                               from '../PipelineViewModel.ts';
 import { ChangeListModel }                                                  from '../apply/ChangeListModel.ts';
+import { PipelineLevelModel }                                               from '../entities/PipelineLevelModel.ts';
+import type { PipelineLevel }                                               from '../entities/PipelineLevelModel.ts';
 import type { FlowShowTarget }                                              from '../flow/FlowSelection.ts';
 import { PipelinePhaseModel }                                               from '../flow/PipelinePhaseModel.ts';
 
@@ -46,7 +50,7 @@ function panelStatusOf(setup: PipelineSetupFacts): PanelStatus {
 }
 
 /** "1 prepare step · 3 build gates · 3 review gates · 3 merge gates", from the facts' summary. */
-function footerSummaryOf(summary: PipelineSetupSummary): string {
+function footerSummaryOf(summary: Pick<PipelineSetupSummary, 'prepareStepCount' | 'gateCountByPhase'>): string {
   const gates = GATE_PHASES.map((phase) => ChatTurnWordingUtil.countTextOf(summary.gateCountByPhase[phase], `${phase} gate`, `${phase} gates`));
   return [ChatTurnWordingUtil.countTextOf(summary.prepareStepCount, 'prepare step', 'prepare steps'), ...gates].join(' · ');
 }
@@ -84,7 +88,7 @@ function gateRowTargetOf(flow: PipelineFlowFacts, rowKind: 'gate' | 'prepare', n
  * Where a field stands on the flow: a gate or prepare step's row, a phase's gates table for an order, or the card of an agent step, a
  * switch or the merge train's merge, each in the phase that holds it.
  */
-function flowTargetOf(field: PipelineDraftField, flow: PipelineFlowFacts): FlowShowTarget | null {
+function flowTargetOf(field: PipelineDraftField | EntityDraftField, flow: PipelineFlowFacts): FlowShowTarget | null {
   if (field.startsWith(GATE_PREFIX)) return gateRowTargetOf(flow, 'gate', field.slice(GATE_PREFIX.length));
   if (field.startsWith(PREPARE_PREFIX)) return gateRowTargetOf(flow, 'prepare', field.slice(PREPARE_PREFIX.length));
   const orderedPhase = GATE_PHASES.find((phase) => field === `phase-order:${phase}`) ?? (field === 'prepare-order' ? 'build' : undefined);
@@ -104,7 +108,44 @@ function showLinkTextOf(field: PipelineDraftField): string {
   return `Show ${ChangeListModel.fieldWordsOf(field).title} on the flow`;
 }
 
+/** The newest agent edit of the level shown; an entity's as the field inside it, so its step shows on the entity's flow. */
+function newestAgentEditAtLevelOf(edits: readonly SetupEdit[], level: PipelineLevel): SetupEdit | null {
+  const levelEdits = edits.filter((edit) => PipelineLevelModel.levelsAreEqual(PipelineLevelModel.levelOfField(edit.field), level));
+  return newestAgentEditOf(levelEdits);
+}
+
+/**
+ * Where an edit of the level stands on the level's flow, as `flowTargetOf` finds it in single mode; the forge's page draws no flow, and the
+ * fields only an entity has stand on none.
+ */
+function flowTargetAtLevelOf(field: PipelineDraftField, flow: PipelineFlowFacts, level: PipelineLevel | null): FlowShowTarget | null {
+  if (level === null) return flowTargetOf(field, flow);
+  if (PipelineLevelModel.isForgeLevel(level)) return null;
+  const fieldWithinEntity = PipelineLevelModel.fieldWithinEntityOf(field);
+  return fieldWithinEntity === null ? null : flowTargetOf(fieldWithinEntity, flow);
+}
+
+/** Every open question, the record's and each entity's: any one of them holds Apply. */
+function openQuestionCountOfEveryLevel(setup: Pick<PipelineSetupFacts, 'openQuestionCount' | 'entities'>): number {
+  return Object.values(setup.entities ?? {}).reduce((sum, entity) => sum + entity.openQuestionCount, setup.openQuestionCount);
+}
+
+/** "Design web's pipeline" and its three phases, or "Design the Forge level" and what every entity shares. */
+function levelPageWordsOf(level: PipelineLevel): FlowPageWords {
+  if (level.kind !== 'entity') {
+    return { title: 'Design the Forge level', lead: 'What every entity shares: who files tickets, your approvals, the merge train and how many jobs run at once.' };
+  }
+  return {
+    title: `Design ${level.key}’s pipeline`,
+    lead:  `Every ticket of ${level.key} goes through three phases. ${level.key}’s gates, prepare steps, review and agents are set here.`,
+  };
+}
+
 export const DesignStepModel = Object.freeze({
+  newestAgentEditAtLevelOf,
+  flowTargetAtLevelOf,
+  openQuestionCountOfEveryLevel,
+  levelPageWordsOf,
   agentStateOf,
   panelStatusOf,
   footerSummaryOf,

@@ -93,6 +93,12 @@
  *                           -batch-edits list)
  *   .bridge-other-level-questions the line over a level's chat counting the other levels' open questions: its -links of -link, the
  *                           -note
+ *   .bridge-forge-level      the forge level's page in place of the phases (MonoDesignForge): each -section, the product owner's
+ *                           -step, the -no-gates note, and the .bridge-entity-overview-name cell of the entities table with its
+ *                           -link; the design step's -design-copy line and -design-level-no-change line at a level
+ *   .bridge-pipeline-copy-menu the copy of a phase's gates to another entity in an entity's gates head: the -done status and the
+ *                           popover's -actions; .bridge-pipeline-copy-dialog the copy between entities: its -foot and the -preview
+ *                           of -preview-line lines
  *   .bridge-pipeline-activity-rows the live flow's panel (A5Live): its "Now" rows and the -activity-history of
  *                           -activity-history-line entries with their -activity-history-clock; the .bridge-pipeline-toast holder of
  *                           the toast after an Apply
@@ -2962,3 +2968,30 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 /* Flint's home corner and the drop target of a carried Flint; Flint draws itself, and only its body takes pointer input. */
 .bridge-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 56px; pointer-events: none; }
 [data-sprite-habitat][data-sprite-drop-target] { outline: 2px dashed var(--flint-body); outline-offset: 2px; }
+
+/* The forge level of a monorepo's design, in place of the phases: what every entity shares, then the table of the entities. */
+.bridge-forge-level { display: flex; flex-direction: column; gap: var(--sp-3); padding-bottom: var(--sp-3); }
+.bridge-forge-level-section {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-3);
+  background: var(--surface);
+}
+.bridge-forge-level-step { display: flex; max-width: 360px; }
+.bridge-forge-level-no-gates {
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border: 1px dashed var(--line-strong); border-radius: var(--r-2);
+}
+.bridge-entity-overview-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.bridge-entity-overview-link { display: inline-flex; color: var(--link); }
+.bridge-entity-overview-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-pipeline-design-copy { display: flex; justify-content: flex-end; }
+.bridge-pipeline-design-level-no-change { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* The copy of an entity's settings to other entities: the gates head's popover, and the dialog with its preview. */
+.bridge-pipeline-copy-menu { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); }
+.bridge-pipeline-copy-menu-done { display: inline-flex; }
+.bridge-pipeline-copy-menu-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+.bridge-pipeline-copy-dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+.bridge-pipeline-copy-dialog-preview {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-2);
+  background: var(--wash);
+}
+.bridge-pipeline-copy-dialog-preview-line { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }

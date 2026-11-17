@@ -3,11 +3,14 @@
  * gesture first sends `pipeline-update-start` and holds its edits; they go once the facts show the update record the start opened, and
  * never when the start was refused. Both commands go through `useControlCommand`, so either refusal is kept verbatim. A gesture's edits go
  * with the draft revision its rows came from, and no gesture is taken while the one before it is held or on its way, so an edit built on
- * old rows is refused as stale instead of undoing the edit before it.
+ * old rows is refused as stale instead of undoing the edit before it. At an entity's level of a monorepo screen, each field goes scoped to
+ * that entity, but a field the forge sets for every entity.
  */
 import { useEffect, useRef, useState } from 'react';
 
-import { useControlCommand } from '../../../shell/ControlCommandSender.ts';
+import { useControlCommand }                       from '../../../shell/ControlCommandSender.ts';
+import { EntityLevelFactsModel }                   from '../entities/EntityLevelFactsModel.ts';
+import { entityKeyOfScope, useMonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
 
 import { PipelineFlowModel, type DraftEditTarget, type FlowDraftEdit } from './PipelineFlowModel.ts';
 
@@ -37,8 +40,10 @@ export function usePipelineFlowEditSender(target: DraftEditTarget | null, onEdit
   const [heldEdits, setHeldEdits] = useState<HeldEdits | null>(null);
   const [settledGestureNumber, setSettledGestureNumber] = useState(0);
   const sentGestureNumber = useRef(0);
+  const entityKey = entityKeyOfScope(useMonorepoLevelScope());
   const editTarget = heldEdits?.seenTarget ?? target;
-  const editCommand = heldEdits === null || editTarget === null ? null : PipelineFlowModel.draftEditCommandOf(editTarget, heldEdits.edits);
+  const scopedEdits = heldEdits === null || entityKey === null ? heldEdits?.edits ?? [] : EntityLevelFactsModel.editsScopedTo(heldEdits.edits, entityKey);
+  const editCommand = heldEdits === null || editTarget === null ? null : PipelineFlowModel.draftEditCommandOf(editTarget, scopedEdits);
   const editSender = useControlCommand(editCommand, onEditsApplied === undefined ? {} : { onApplied: onEditsApplied });
   const updateStartSender = useControlCommand(UPDATE_START_COMMAND);
   const startWasRefused = updateStartSender.refusal !== null && heldEdits?.seenTarget === null;

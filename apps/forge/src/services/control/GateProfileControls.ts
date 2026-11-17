@@ -21,8 +21,7 @@ import type { TrackerChange }                       from '../tracker/TrackerPipe
 import { refuseMalformedSetupCommand, textFieldOf } from './PipelineSetupControls.ts';
 import { requireReadablePipeline }                  from './SettingControls.ts';
 
-/** A start of an entity's gate names the entity; the command's contract gains the key with the Bridge's level switch. */
-type GateProfileStartCommand = CommandOf<'gate-profile-start'> & { entity?: EntityKey };
+type GateProfileStartCommand = CommandOf<'gate-profile-start'>;
 
 /** The pipeline a gate is read from, and the first home of its entity; `null` for a pipeline without entities. */
 interface GateSource {

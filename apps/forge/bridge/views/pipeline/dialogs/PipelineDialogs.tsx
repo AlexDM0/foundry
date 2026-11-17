@@ -2,13 +2,16 @@
  * The dialog an open request names, over the pipeline the board is designing or running: the agent step, review step, merge step or gate
  * dialog, or the open question a node waits on. Its Saves go to the open setup record; on a live board the first one opens an update
  * (`pipeline-update-start`) and its edits go once the record shows. A dialog closes once its edits are applied, and stays open showing
- * the refusal when they are not.
+ * the refusal when they are not. At a monorepo level the constitution's link opens that level's, the merge step dialog sets only the
+ * level's part of the merge train's re-review, and the product owner's dialog at the forge says it routes each ticket to an entity.
  */
 import { GATE_PHASES, type GatePhase }                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { PipelineFlowFacts, PipelineFlowNode, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineViewFacts }                                     from '../PipelineViewModel.ts';
 import { PipelineViewModel }                                          from '../PipelineViewModel.ts';
 import { PipelineAgentPanelModel }                                    from '../agent-panel/PipelineAgentPanelModel.ts';
+import { useMonorepoLevelScope }                                      from '../entities/MonorepoLevelContext.ts';
+import { PipelineLevelModel }                                         from '../entities/PipelineLevelModel.ts';
 import { usePipelineFlowEditSender }                                  from '../flow/PipelineFlowEditSender.ts';
 import type { FlowOpenRequest }                                       from '../flow/PipelineFlowModel.ts';
 import { PipelineFlowModel }                                          from '../flow/PipelineFlowModel.ts';
@@ -20,6 +23,7 @@ import { GateDialog }                     from './GateDialog.tsx';
 import type { GateDialogSubject }         from './GateDialogModel.ts';
 import { InstructionsEditorModel }        from './InstructionsEditorModel.ts';
 import { MergeStepDialog }                from './MergeStepDialog.tsx';
+import { MergeStepDialogModel }           from './MergeStepDialogModel.ts';
 import { NodeQuestionDialog }             from './NodeQuestionDialog.tsx';
 import { usePipelineAgentQuestionSender } from './PipelineAgentQuestionSender.ts';
 import type { ProfileLogFollower }        from './ProfileBox.tsx';
@@ -83,7 +87,8 @@ export function PipelineDialogs({
   const editSender = usePipelineFlowEditSender(record === null ? null : { setupId: record.setupId, draftRevision: record.draftRevision }, onClose);
   const asker = usePipelineAgentQuestionSender(record?.agentJobId ?? null, onClose);
   const choices = facts.pipelineChoices ?? { models: [], efforts: [] };
-  const constitution = InstructionsEditorModel.constitutionPlaceOf(draft, PipelineViewModel.constitutionFragmentOf(record?.mode ?? null));
+  const scope = useMonorepoLevelScope();
+  const constitution = InstructionsEditorModel.constitutionPlaceOf(draft, PipelineViewModel.constitutionFragmentOf(record?.mode ?? null, scope?.level ?? null));
   if (request === null || flow === null) return null;
 
   // A dialog opened on another subject starts from a fresh form.
@@ -129,6 +134,7 @@ export function PipelineDialogs({
         editSender={editSender}
         asker={asker}
         onClose={onClose}
+        overEntities={scope !== null && PipelineLevelModel.isForgeLevel(scope.level)}
       />
     );
   }
@@ -162,6 +168,8 @@ export function PipelineDialogs({
       focusesReReview={focusesReReview}
       editSender={editSender}
       onClose={onClose}
+      levelPart={MergeStepDialogModel.levelPartOf(scope?.level ?? null)}
+      {...(scope?.level.kind === 'entity' ? { forgeLevelHref: scope.forgeLevelHref } : {})}
     />
   );
 }

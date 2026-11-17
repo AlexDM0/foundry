@@ -2,7 +2,7 @@
  * One step of the open phase: its kind word with its mark, a Conditional pill on a re-review, the pills that say what it waits on or how
  * it changed (each pops in), User's switch on a "You" step, then its title, its gate pills, its sentence, the tickets on it on a live
  * board, and an agent's model, effort and brief files. A double-click or Enter asks for what the step opens, or for the question it waits
- * on; a press inside a control stays that control's.
+ * on; a press inside a control stays that control's. At an entity of a monorepo, a switch the forge sets is a link to the forge level.
  */
 
 import { Card }                               from 'design-system/Card';
@@ -11,6 +11,7 @@ import { Row }                                from 'design-system/Row';
 import { Switch }                             from 'design-system/Switch';
 import { Tag }                                from 'design-system/Tag';
 import { Text }                               from 'design-system/Text';
+import { TextButton }                         from 'design-system/TextButton';
 import { View }                               from 'design-system/View';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 
@@ -33,17 +34,21 @@ const KIND_WORDS: Readonly<Record<StepKind, string>> = Object.freeze({
 
 const NO_TICKET_TEXT = 'No ticket here now';
 
+const SET_AT_THE_FORGE_TEXT = 'Set at the Forge level';
+
 /** The tickets on a live step; null on a board that is not live. */
 export type LiveOccupants = readonly OccupantChipView[] | null;
 
 export interface StepCardProps {
-  readonly view:          FlowNodeView;
-  readonly occupants:     LiveOccupants;
-  readonly questionCount: number;
-  readonly selected:      boolean;
-  readonly editable:      boolean;
-  readonly onOpen:        (request: FlowOpenRequest) => void;
-  readonly onEdits:       (edits: readonly FlowDraftEdit[]) => void;
+  readonly view:               FlowNodeView;
+  readonly occupants:          LiveOccupants;
+  readonly questionCount:      number;
+  readonly selected:           boolean;
+  readonly editable:           boolean;
+  readonly onOpen:             (request: FlowOpenRequest) => void;
+  readonly onEdits:            (edits: readonly FlowDraftEdit[]) => void;
+  /** Where the forge sets this step's switch, shown in its place; absent shows the switch. */
+  readonly setAtTheForgeHref?: string;
 }
 
 /** A step waiting on a question opens on the question; any other step opens what its facts name, if anything. */
@@ -76,7 +81,7 @@ function LiveTickets({ occupants }: { readonly occupants: readonly OccupantChipV
 }
 
 export function StepCard({
-  view, occupants, questionCount, selected, editable, onOpen, onEdits
+  view, occupants, questionCount, selected, editable, onOpen, onEdits, setAtTheForgeHref
 }: StepCardProps) {
   const openRequest = openRequestOf(view, questionCount);
   const liveStateText = occupants === null ? null : PipelinePhaseModel.liveStateTextOf(view.kind, occupants.length);
@@ -125,7 +130,8 @@ export function StepCard({
               : null}
             {liveStateText === null ? null : <Tag text={liveStateText} tone="warn" pops />}
             <ChangeMarker view={view} />
-            {switchView === null
+            {switchView !== null && setAtTheForgeHref !== undefined ? <TextButton label={SET_AT_THE_FORGE_TEXT} href={setAtTheForgeHref} /> : null}
+            {switchView === null || setAtTheForgeHref !== undefined
               ? null
               : (
                 <Switch

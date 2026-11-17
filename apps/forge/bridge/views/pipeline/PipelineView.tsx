@@ -181,13 +181,14 @@ function FlowScreen({
 interface ScreenContentProps {
   readonly facts:            PipelineViewFacts;
   readonly screen:           PipelineScreen;
+  readonly route:            BridgeRoute;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
   readonly onApplySent:      (resumesBoard: boolean) => void;
 }
 
 function ScreenContent({
-  facts, screen, followTranscript, clock, onApplySent
+  facts, screen, route, followTranscript, clock, onApplySent
 }: ScreenContentProps) {
   const setup = facts.pipelineSetup ?? null;
   if (screen.screen === 'setup-landing') {
@@ -212,7 +213,7 @@ function ScreenContent({
   if (screen.screen === 'setup-resume' && setup !== null) return <ResumeSummary setup={setup} />;
   if (screen.screen === 'setup-step' && screen.step === 'design' && setup !== null) {
     return (
-      <DesignStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} />
+      <DesignStep facts={facts} setup={setup} followTranscript={followTranscript} clock={clock} onApplySent={onApplySent} route={route} />
     );
   }
   if (screen.screen !== 'flow') return <h2 className="bridge-pipeline-title">{PipelineViewModel.screenTitleOf(screen)}</h2>;
@@ -258,6 +259,7 @@ export function PipelineView({
         <ScreenContent
           facts={facts}
           screen={screen}
+          route={route}
           followTranscript={followTranscript}
           clock={clock}
           onApplySent={appliedToast.awaitApply}

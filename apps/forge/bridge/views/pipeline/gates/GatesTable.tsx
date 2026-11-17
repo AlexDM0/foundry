@@ -3,17 +3,20 @@
  * reorderable list, prepare steps first. A reorder sends the phase's run order (or the prepare steps' order) and Delete on a focused row
  * takes it out, both as draft edits through the open phase's sender. "Add gate", and "Add prepare step" in the Build phase, ask for an
  * empty Gate dialog; both hide on a live board, whose head names the tickets in the phase's gates now, once for the phase, since the facts
- * place a ticket in the phase's gates and not in one gate. A phase with no gates says so beside "Add <phase> gate".
+ * place a ticket in the phase's gates and not in one gate. A phase with no gates says so beside "Add <phase> gate". At an entity's level of
+ * a monorepo screen, a profile measures that entity's gate, and the head may lead with the copy of the phase's gates to another entity.
  */
 import { Button }          from 'design-system/Button';
 import { ReorderableList } from 'design-system/ReorderableList';
 import { Row }             from 'design-system/Row';
 import { Tag }             from 'design-system/Tag';
 import { Text }            from 'design-system/Text';
+import type { ReactNode }  from 'react';
 
 import type { GatePhase }                            from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import { StateToneUtil }                             from '../../../utils/StateToneUtil.ts';
+import { entityKeyOfScope, useMonorepoLevelScope }   from '../entities/MonorepoLevelContext.ts';
 import { FlowGlyph }                                 from '../flow/FlowGlyph.tsx';
 import type { PipelineFlowEditSender }               from '../flow/PipelineFlowEditSender.ts';
 import type { OccupantChipView }                     from '../live/FlowActivityPanelModel.ts';
@@ -41,6 +44,8 @@ export interface GatesTableProps {
   readonly selectedRowKey: string | null;
   readonly editSender:     PipelineFlowEditSender;
   readonly onOpen:         (request: GatesOpenRequest) => void;
+  /** A control before the add buttons, such as the copy of the phase's gates to another entity. */
+  readonly headStart?:     ReactNode;
 }
 
 function ColumnHeads() {
@@ -69,13 +74,15 @@ function NowTickets({ tickets }: { readonly tickets: readonly OccupantChipView[]
 }
 
 export function GatesTable({
-  phase, rows, profileRuns, profileSetupId, reviewRuns, nowTickets, selectedRowKey, editSender, onOpen
+  phase, rows, profileRuns, profileSetupId, reviewRuns, nowTickets, selectedRowKey, editSender, onOpen, headStart = null
 }: GatesTableProps) {
+  const profileEntity = entityKeyOfScope(useMonorepoLevelScope());
   const views = GatesAreaModel.rowViewsOf(rows, phase, profileRuns);
   const headEnd = nowTickets !== null
     ? <NowTickets tickets={nowTickets} />
     : (
       <Row gap="eight">
+        {headStart}
         <Button
           compact
           leading={<FlowGlyph glyph="plus" />}
@@ -123,7 +130,7 @@ export function GatesTable({
                   content:   (
                     <GateRow
                       view={view}
-                      profileCommand={GatesAreaModel.profileStartCommandOf(profileSetupId, view.name, phase)}
+                      profileCommand={GatesAreaModel.profileStartCommandOf(profileSetupId, view.name, phase, profileEntity)}
                       selected={selectedRowKey === view.key}
                       onOpen={openRequest === null ? null : () => onOpen(openRequest)}
                       onDelete={deleteEdits.length === 0 || !editSender.enabled ? null : () => editSender.sendEdits(deleteEdits)}

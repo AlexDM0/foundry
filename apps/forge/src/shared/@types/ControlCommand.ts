@@ -194,11 +194,15 @@ export type ControlCommand =
   }
   /** Opens an update record on the stored pipeline; `entity` names the level it opens at, an entity of that pipeline; absent is the forge. */
   | { kind: 'pipeline-update-start'; entity?: EntityKey }
-  | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[] }
+  /** `isACopy`: the edits copy one entity's settings to others, and the set is stored under one `batch` that can be undone at once. */
+  | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[]; isACopy?: true }
   | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
   | { kind: 'pipeline-draft-discard'; setupId: string }
-  /** User's press: one gate in one phase, from the open setup's draft, or with `setupId` `null` from the stored pipeline. */
-  | { kind: 'gate-profile-start'; setupId: string | null; gateName: string; phase: GatePhase }
+  /**
+   * User's press: one gate in one phase, from the open setup's draft, or with `setupId` `null` from the stored pipeline; on a forge over
+   * entities, the gate of the `entity` named.
+   */
+  | { kind: 'gate-profile-start'; setupId: string | null; gateName: string; phase: GatePhase; entity?: EntityKey }
   | { kind: 'gate-profile-stop'; profileRunId: string }
   /** Stage 1 of an Apply of the draft at `draftRevision`; `resumesBoard` resumes a paused board once the pipeline is stored. */
   | { kind: 'pipeline-apply'; setupId: string; draftRevision: number; resumesBoard: boolean }

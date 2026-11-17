@@ -91,8 +91,13 @@ function meterNameOf(title: string, form: Pick<AgentStepForm, 'model' | 'effort'
   return `${title}: ${form.model}, effort ${form.effort}`;
 }
 
-function wordsOf(role: AgentStepRole): AgentStepWords {
-  return AGENT_STEP_WORDS[role];
+/** Over entities, the product owner also names the entity each draft ticket belongs to. */
+const PRODUCT_OWNER_OVER_ENTITIES_DESCRIPTION
+  = 'Turns what User reports into draft tickets, each with a numbered Acceptance and a Brief, and names the entity each ticket belongs to.';
+
+function wordsOf(role: AgentStepRole, overEntities = false): AgentStepWords {
+  const words = AGENT_STEP_WORDS[role];
+  return overEntities && role === 'productOwner' ? { ...words, description: PRODUCT_OWNER_OVER_ENTITIES_DESCRIPTION } : words;
 }
 
 function kickerOf(role: AgentStepRole): string {
