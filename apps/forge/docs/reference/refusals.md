@@ -123,6 +123,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and no move returns a ticket to draft` | `move-to-draft` | A move targeted `draft`. Filing is the only way in. | Run `ticket hold` to keep it from being built. | |
 | `is a draft ticket, so it was not moved` | `move-of-a-draft` | A move other than abandon named a draft ticket. | Run `ticket ready` first. | |
 | `not a draft ticket, so nothing was readied` | `ready-of-a-ticket-not-in-draft` | `ticket ready` named a ticket past `draft`. | Nothing. A ticket past `draft` needs no readying; an abandoned one is settled. | |
+| `has no entity, and each ticket builds in the pipeline of its entity` | `ticket-without-entity` | In a forge with entities, `ticket ready` named a ticket with no `entity`, or `ticket submit`, `intake close` or a worker's finding would make one `pending` with ticket review off. | Give it one with `ticket entity`, then ready it again. | [cli.md](../cli.md#ticket-ready) |
 | `Nothing was readied: ticket #<ticket> is incomplete` | `incomplete-tickets` | The body lacks a numbered Acceptance or a `## Brief`. The sentence names `acceptance-unnumbered` or `brief-missing`. | Number items `A1.`, write the Brief, ready again. | [cli.md](../cli.md) |
 | `was not moved: abandon needs --reason` | `abandon-without-reason` | `ticket abandon` had no reason, or a blank one. | Pass `--reason`. | |
 | `has no row, so --tokens has nowhere to be recorded` | `tokens-without-a-row` | `--tokens` on a move of a ticket with no row, as a draft ticket being abandoned. | Drop `--tokens`. | |
@@ -152,6 +153,10 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and its network line was not changed: it is set only while` | `network-of-a-ticket-past-pending` | `ticket network` past `pending`. | Abandon and refile, or leave it. | |
 | `is not a public domain` | `network-domain-not-public` | A loopback name, a `.local` name or a private address. The plural reads `are not public domains`. | Name a public domain. | |
 | `network line was not changed: it already reads` | `network-unchanged` | The line holds those domains. | Nothing. | |
+| `was not given the entity <key>: the pipeline names` | `unknown-entity` | `ticket entity` or `ticket add --entity` named a key the pipeline's entities do not have, or the forge has no entities. | Name a key the sentence lists. | [cli.md](../cli.md#ticket-entity) |
+| `and its entity was not changed: it is set only while` | `entity-of-a-ticket-past-pending` | `ticket entity` past `pending`. | Leave it, or abandon and refile. | |
+| `entity was not changed: it already is` | `entity-unchanged` | The ticket has that entity. | Nothing. | |
+| `entity was not changed: it needs --reason` | `entity-without-reason` | `ticket entity` with a blank reason. | Say why the ticket belongs to that entity. | |
 | `and its agents were not changed: no agent will work it again` | `agents-of-a-settled-ticket` | `ticket agent` on a `delivered` or `abandoned` ticket. | Nothing. | |
 | `and its agents were not changed: they already run on` | `agents-unchanged` | The ticket has that model and effort. | Nothing. | |
 | `so there is nothing to <hold or unhold>` | `hold-of-a-settled-ticket` | `ticket hold` or `unhold` on a `delivered` or `abandoned` ticket. | Nothing. | |
@@ -437,6 +442,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `a worker files only a low finding` | `worker-filing-flag` | A worker's filing with flags a finding may not take. | A worker files with `--priority low` and the allowed flags; the Overseer adds the finder dependency and group. | |
 | `this job has already filed as many findings as one job may` | `worker-filing-limit` | `WORKER_FILINGS_PER_JOB` (10) reached. | Put the rest in the Handoff. | |
 | `it changes only a draft ticket this job filed` | `not-own-draft` | A product owner reached for a ticket it did not file, or one past `draft`. | Touch only its own draft tickets. | |
+| `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `pending`. | Assign only its own draft tickets and tickets ready for review or pending. | |
 | `this job is the agent of no open pipeline setup record` | `job-serves-no-setup` | A pipeline agent relayed a setup move while no open record names its job as the agent. | Nothing to do from the job: the record was started over or applied. | |
 | `it is legal only as a move the named delivered incident allows` | `incident-move-not-allowed` | The incident was not delivered to this Assistant, or does not allow the move. A terminal move under `--incident` prints it too, and so do `incident answer`, `incident note` and `incident escalate` on a kind that does not list them, with no `--incident` flag involved. Some listed moves cannot succeed. | Use a move the incident allows. | |
 | `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | A pipeline agent's request names a `setupId`; the Overseer stamps the record the agent serves. A `jobId`, `role` or `admission` never gets here: the Hatch format check below catches these fields first. | Send the verb with no setup id under the job. | |

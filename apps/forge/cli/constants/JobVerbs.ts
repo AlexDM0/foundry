@@ -58,6 +58,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'incident-note':               'incident note',
   'incident-escalate':           'incident escalate',
   'ticket-network':              'ticket network',
+  'ticket-entity':               'ticket entity',
   'ticket-hold':                 'ticket hold',
   'ticket-unhold':               'ticket unhold',
   'epic-add':                    'epic add',

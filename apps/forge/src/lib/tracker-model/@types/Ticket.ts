@@ -83,6 +83,9 @@ export interface Ticket {
   storedType?: RetiredTicketType;
 }
 
+/** Who assigned a ticket's entity: a product owner's job through its Hatch, or User's own command. */
+export type EntityAssigner = 'product-owner' | 'user';
+
 /** What keeps a draft from being readied: no numbered Acceptance item, or no `## Brief` with a non-blank line. */
 export type ReadinessGap = 'acceptance-unnumbered' | 'brief-missing';
 

@@ -35,6 +35,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'move-of-a-ticket-ready-for-review':               { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'pending' },
   'ready-of-a-ticket-not-in-draft':                  { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'pending' },
   'incomplete-tickets':                              { reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps: ['acceptance-unnumbered', 'brief-missing'] }] },
+  'ticket-without-entity':                           { reason: 'ticket-without-entity', ticketIds: ['004', '005'] },
   'abandon-without-reason':                          { reason: 'abandon-without-reason', ticketId: '004' },
   'tokens-without-a-row':                            { reason: 'tokens-without-a-row', ticketId: '004' },
   'rereview-outside-review':                         { reason: 'rereview-outside-review', ticketId: '004', status: 'reviewed' },
@@ -75,8 +76,14 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'network-of-a-ticket-past-pending':      { reason: 'network-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
   'network-domain-not-public':             { reason: 'network-domain-not-public', ticketId: '004', domains: ['localhost'] },
   'network-unchanged':                     { reason: 'network-unchanged', ticketId: '004', domains: ['example.com'] },
-  'agents-of-a-settled-ticket':            { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
-  'agents-unchanged':                      {
+  'unknown-entity':                        {
+    reason: 'unknown-entity', ticketId: '004', entity: 'shop', entityKeys: ['root', 'web']
+  },
+  'entity-of-a-ticket-past-pending': { reason: 'entity-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
+  'entity-unchanged':                { reason: 'entity-unchanged', ticketId: '004', entity: 'web' },
+  'entity-without-reason':           { reason: 'entity-without-reason', ticketId: '004' },
+  'agents-of-a-settled-ticket':      { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
+  'agents-unchanged':                {
     reason: 'agents-unchanged', ticketId: '004', status: 'pending', agents: { model: 'opus', effort: 'medium' }
   },
   'hold-of-a-settled-ticket': {

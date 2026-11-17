@@ -19,7 +19,8 @@ const {
  * in a worktree, run `bun run <worktree>/agent-progress.ts init` in a scratch git repository, then the command that logs the row (`log`,
  * a `ticket` or `task` verb, `range`, `concurrency`, `dispatcher`, `clear --yes`), and copy its text from the `log` in progress.json.
  * Rows no command reaches easily (a hold or abandon without a reason, two dependencies at once) are read from the wording in
- * bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts.
+ * bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. A kind newer than bc42604, such as
+ * `entity-assigned`, was taken from `LogUtil` when it was added.
  */
 const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [{ kind: 'note', fields: { text: 'Example note from the orchestrator' } }, 'Example note from the orchestrator'],
@@ -51,6 +52,10 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   ],
   [{ kind: 'ticket-size-changed', ticketId: '001', fields: { to: 'M' } }, 'Ticket #001 sized M'],
   [{ kind: 'ticket-size-changed', ticketId: '001', fields: { from: 'M', to: 'XL' } }, 'Ticket #001 size M → XL'],
+  [
+    { kind: 'entity-assigned', ticketId: '001', fields: { entity: 'web', reason: 'The basket page lives in the web app', by: 'product-owner' } },
+    'Ticket #001 belongs to entity web: The basket page lives in the web app',
+  ],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: 'waiting on design' } }, 'Ticket #001 held: waiting on design'],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: '' } }, 'Ticket #001 held'],
   [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, 'Ticket #001 unheld'],
@@ -127,7 +132,7 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   ],
 ];
 
-const RECORD_KIND_COUNT = 32;
+const RECORD_KIND_COUNT = 33;
 
 test('every kind of record reads as the sentence the log held before there were records', () => {
   expect(new Set(SENTENCE_FOR_RECORD.map(([record]) => record.kind)).size, 'the table covers every kind').toBe(RECORD_KIND_COUNT);
@@ -268,6 +273,10 @@ describe('the entry the page reads', () => {
       ],
       [{ kind: 'ticket-size-changed', ticketId: '003', fields: { to: 'S' } }, { taskIds: [], ticketIds: ['003'] }],
       [{ kind: 'ticket-held', ticketId: '003', fields: { reason: 'waits on #005' } }, { taskIds: [], ticketIds: ['003'] }],
+      [
+        { kind: 'entity-assigned', ticketId: '003', fields: { entity: 'web', reason: 'like #005', by: 'user' } },
+        { taskIds: [], ticketIds: ['003'] },
+      ],
       [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, { taskIds: [], ticketIds: ['001'] }],
       [{ kind: 'ticket-release-marked', ticketId: '007', fields: { group: 'release #002' } }, { taskIds: [], ticketIds: ['007'] }],
       [{ kind: 'ticket-release-cleared', ticketId: '007', fields: {} }, { taskIds: [], ticketIds: ['007'] }],

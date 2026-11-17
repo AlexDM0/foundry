@@ -6,6 +6,7 @@
 import type {
   AgentChoice,
   AgentStopRecorded,
+  EntityAssignment,
   ConcurrencyLimitSet,
   DraftChanged,
   DraftClaimChanged,
@@ -1167,6 +1168,15 @@ export class Board {
 
   setTicketNetwork(ticketId: string, domains: readonly string[], at: string): TicketChanged {
     return this.ticketSettings.setTicketNetwork(ticketId, domains, at);
+  }
+
+  /** Judged before a filing names the entity, since the Board keeps no undo of the filing. */
+  refuseAnUnknownEntity(ticketId: string, entity: string): void {
+    this.ticketSettings.refuseAnUnknownEntity(ticketId, entity);
+  }
+
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string): TicketChanged {
+    return this.ticketSettings.setTicketEntity(ticketId, assignment, at);
   }
 
   holdTicket(ticketId: string, reason: string, at: string): TicketChanged {

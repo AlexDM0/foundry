@@ -1,5 +1,8 @@
-/** What a ticket is set to run with, outside its moves: its priority, which gives or takes its row, its agent pair, and its hold. */
-import type { AgentChoice, TicketChanged } from './@types/BoardChanges.ts';
+/**
+ * What a ticket is set to run with, outside its moves: its priority, which gives or takes its row, its agent pair, its network, the entity
+ * it is built in, and its hold.
+ */
+import type { AgentChoice, EntityAssignment, TicketChanged } from './@types/BoardChanges.ts';
 import type {
   AgentPair,
   Ticket,
@@ -105,6 +108,30 @@ export class TicketSettings {
     else frontmatter.network = requestedDomains;
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-network-set', ticketId, fields: { domains: requestedDomains } }, at)], ticket };
+  }
+
+  /** A key the pipeline's entities do not name is refused, and so is any key when the pipeline names no entity. */
+  refuseAnUnknownEntity(ticketId: string, entity: string): void {
+    const entityKeys = Object.keys(this.records.pipeline?.entities ?? {});
+    if (!entityKeys.includes(entity)) throw new BoardRefusal({
+      reason: 'unknown-entity', ticketId, entity, entityKeys
+    });
+  }
+
+  /** Set only while no agent has claimed the ticket, as its network is; `updated` is not stamped, and the reason is logged, never stored. */
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string): TicketChanged {
+    const ticket          = this.records.requireTicket(ticketId);
+    const { frontmatter } = ticket;
+    const { status }      = frontmatter;
+    this.refuseAnUnknownEntity(ticketId, assignment.entity);
+    if (!TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) throw new BoardRefusal({ reason: 'entity-of-a-ticket-past-pending', ticketId, status });
+    if (frontmatter.entity === assignment.entity) throw new BoardRefusal({ reason: 'entity-unchanged', ticketId, entity: assignment.entity });
+    if (assignment.reason.trim() === '') throw new BoardRefusal({ reason: 'entity-without-reason', ticketId });
+
+    frontmatter.entity = assignment.entity;
+    this.records.markChanged(ticket);
+    const fields = { entity: assignment.entity, reason: assignment.reason, by: assignment.by };
+    return { logged: [this.records.logger.log({ kind: 'entity-assigned', ticketId, fields }, at)], ticket };
   }
 
   /** An empty reason still holds: the hold is the key's presence, not its text. */

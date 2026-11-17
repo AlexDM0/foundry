@@ -16,13 +16,15 @@ import { ALLOWED_MOVES_BY_INCIDENT_KIND }                            from './con
  * delivered.
  */
 export interface RelayingJob {
-  id:                 string;
-  role:               JobRole | null;
-  ticketIds:          readonly string[];
-  filedTickets:       ReadonlyArray<{ id: string; status: TicketStatus }>;
-  deliveredIncidents: ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
+  id:                               string;
+  role:                             JobRole | null;
+  ticketIds:                        readonly string[];
+  filedTickets:                     ReadonlyArray<{ id: string; status: TicketStatus }>;
+  deliveredIncidents:               ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
+  /** The board's tickets in `ready-for-review` or `pending`, whatever job filed them, since a product owner assigns the entity of each. */
+  ticketIdsReadyForReviewOrPending: readonly string[];
   /** For a pipeline agent: the open setup record whose agent this job is; null when it serves none. */
-  setupId:            string | null;
+  setupId:                          string | null;
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -95,7 +97,7 @@ function fieldOf(command: ControlCommand, field: string): unknown {
   return Object.hasOwn(command, field) ? (command as unknown as Record<string, unknown>)[field] : undefined;
 }
 
-/** A worker's one filing is a low finding: only `--priority low`, `--type`, `--size`, the body and the two ticket links. */
+/** A worker's one filing is a low finding: only `--priority low`, `--type`, `--size`, the body and the two ticket links, and no entity. */
 function workerFilingIsShaped(command: ControlCommandOf<'ticket-add'>): boolean {
   return command.priority === 'low'
     && command.model === undefined
@@ -103,7 +105,8 @@ function workerFilingIsShaped(command: ControlCommandOf<'ticket-add'>): boolean 
     && command.group === undefined
     && command.dependsOn.length === 0
     && command.epics.length === 0
-    && command.network.length === 0;
+    && command.network.length === 0
+    && command.entity === undefined;
 }
 
 /** Builders, reviewers and product owners ask User questions, so each may note the options of its own next question. */
@@ -119,16 +122,33 @@ function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerd
   return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id, finderTicketIds: [...job.ticketIds] } } };
 }
 
+function namedTicketIdOf(command: ControlCommand): string | null {
+  const ticketReference = fieldOf(command, 'ticketReference');
+  return typeof ticketReference === 'string' ? TicketIdUtil.parseTicketReference(ticketReference) : null;
+}
+
+function isOwnDraft(job: RelayingJob, ticketId: string | null): boolean {
+  return job.filedTickets.some((filed) => filed.id === ticketId && filed.status === 'draft');
+}
+
+/**
+ * Its own draft at intake, and any ticket in `ready-for-review` or `pending` after its close or a first Apply; stamped with its job, so the
+ * log names the product owner.
+ */
+function entityAssignmentVerdictOf(job: RelayingJob, command: ControlCommandOf<'ticket-entity'>): BouncerVerdict {
+  const ticketId = namedTicketIdOf(command);
+  const reaches  = isOwnDraft(job, ticketId) || (ticketId !== null && job.ticketIdsReadyForReviewOrPending.includes(ticketId));
+  return reaches ? { verdict: 'admitted', command: { ...command, jobId: job.id } } : refused('not-own-draft-or-unclaimed-ticket');
+}
+
 function productOwnerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'ticket-add') return { verdict: 'admitted', command: { ...command, admission: { filedByJob: job.id } } };
   if (command.kind === 'intake-close' || command.kind === 'intake-title') return { verdict: 'admitted', command: { ...command, jobId: job.id } };
   if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
+  if (command.kind === 'ticket-entity') return entityAssignmentVerdictOf(job, command);
   if (PRODUCT_OWNER_KINDS.has(command.kind)) return { verdict: 'admitted', command };
   if (!PRODUCT_OWNER_OWN_DRAFT_KINDS.has(command.kind)) return refused('command-not-allowed-for-role');
-  const ticketReference = fieldOf(command, 'ticketReference');
-  const ticketId        = typeof ticketReference === 'string' ? TicketIdUtil.parseTicketReference(ticketReference) : null;
-  const ownDraft        = job.filedTickets.some((filed) => filed.id === ticketId && filed.status === 'draft');
-  return ownDraft ? { verdict: 'admitted', command } : refused('not-own-draft');
+  return isOwnDraft(job, namedTicketIdOf(command)) ? { verdict: 'admitted', command } : refused('not-own-draft');
 }
 
 function pipelineAgentVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {

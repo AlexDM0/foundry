@@ -74,6 +74,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'incident-note':              ['incident', 'note', 'I1', '--', 'Seen twice'],
   'incident-escalate':          ['incident', 'escalate', 'I1'],
   'ticket-network':             ['ticket', 'network', '1', 'api.example.com'],
+  'ticket-entity':              ['ticket', 'entity', '1', 'web', '--reason', 'The basket page is the web app\'s'],
   'ticket-hold':                ['ticket', 'hold', '1', '--reason', 'waiting on Alex Example'],
   'ticket-unhold':              ['ticket', 'unhold', '1'],
   'epic-add':                   ['epic', 'add', 'search', 'Search'],
@@ -366,7 +367,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
     const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(requestsWritten()[0]));
     if (reading.verdict !== 'read') throw new Error(`the request did not read back: ${reading.reason}`);
     const verdict = Bouncer.verdictOf({
-      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: [], setupId: null
+      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrPending: [], setupId: null
     }, reading.command);
     if (verdict.verdict !== 'admitted') throw new Error(`the filing was refused: ${verdict.reason}`);
 

@@ -128,6 +128,16 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'incomplete-tickets':
       return `Nothing was readied: ${detail.incompleteTickets.map(incompleteTicketText).join('; ')}. `
         + `Number every Acceptance item as \`A1.\` at the start of a line and write a \`## Brief\`, then ready ${detail.incompleteTickets.length === 1 ? 'it' : 'them'} again.`;
+    case 'ticket-without-entity': {
+      const single = detail.ticketIds.length === 1;
+      return `Nothing was readied: ${detail.ticketIds.map((ticketId) => `ticket #${ticketId}`).join(', ')} ${single ? 'has' : 'have'} no entity, `
+        + 'and each ticket builds in the pipeline of its entity. '
+        + adviceFor(
+          channel,
+          `Give ${single ? 'it' : 'each'} one with \`${PRODUCT_NAMES.PROGRAM} ticket entity <id> <key> --reason <text>\`, then ready ${single ? 'it' : 'them'} again.`,
+          `The product owner gives each ticket its entity; then ready ${single ? 'it' : 'them'} again.`
+        );
+    }
     case 'abandon-without-reason':
       return adviceFor(
         channel,
@@ -395,6 +405,19 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'network-unchanged':
       return `Ticket #${detail.ticketId}'s network line was not changed: it already reads `
         + `${detail.domains.length === 0 ? 'no domain' : detail.domains.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
+    case 'unknown-entity':
+      return detail.entityKeys.length === 0
+        ? `Ticket #${detail.ticketId} was not given the entity ${detail.entity}: the pipeline names no entity. ${NOTHING_WAS_WRITTEN}`
+        : `Ticket #${detail.ticketId} was not given the entity ${detail.entity}: the pipeline names no such entity, only `
+          + `${detail.entityKeys.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
+    case 'entity-of-a-ticket-past-pending':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its entity was not changed: `
+        + `it is set only while the ticket is draft, ready for review or pending. ${NOTHING_WAS_WRITTEN}`;
+    case 'entity-unchanged':
+      return `Ticket #${detail.ticketId}'s entity was not changed: it already is ${detail.entity}. ${NOTHING_WAS_WRITTEN}`;
+    case 'entity-without-reason':
+      return `Ticket #${detail.ticketId}'s entity was not changed: ${adviceFor(channel, 'it needs --reason', 'it needs a reason')}. `
+        + `Say why the ticket belongs to that entity. ${NOTHING_WAS_WRITTEN}`;
     case 'agents-of-a-settled-ticket':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `and its agents were not changed: no agent will work it again. ${NOTHING_WAS_WRITTEN}`;
@@ -780,14 +803,15 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
 }
 
 const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, string>> = {
-  'hatch-identity-mismatch':      'a request may not name a job, a role or an admission; the Hatch folder says who sent it',
-  'command-not-allowed-for-role': 'this job\'s role may not run it',
-  'worker-filing-flag':           'a worker files only a low finding, with --priority low and the flags a finding takes, and no group or dependency',
-  'worker-filing-limit':          'this job has already filed as many findings as one job may',
-  'not-own-draft':                'it changes only a draft ticket this job filed',
-  'incident-move-not-allowed':    'it is legal only as a move the named delivered incident allows',
-  'incident-target-mismatch':     'the named incident is about another job or ticket',
-  'job-serves-no-setup':          'this job is the agent of no open pipeline setup record',
+  'hatch-identity-mismatch':           'a request may not name a job, a role or an admission; the Hatch folder says who sent it',
+  'command-not-allowed-for-role':      'this job\'s role may not run it',
+  'worker-filing-flag':                'a worker files only a low finding, with --priority low and the flags a finding takes, and no group or dependency',
+  'worker-filing-limit':               'this job has already filed as many findings as one job may',
+  'not-own-draft':                     'it changes only a draft ticket this job filed',
+  'not-own-draft-or-unclaimed-ticket': 'it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending',
+  'incident-move-not-allowed':         'it is legal only as a move the named delivered incident allows',
+  'incident-target-mismatch':          'the named incident is about another job or ticket',
+  'job-serves-no-setup':               'this job is the agent of no open pipeline setup record',
 };
 
 /** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

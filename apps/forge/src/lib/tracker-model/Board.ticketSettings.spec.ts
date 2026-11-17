@@ -1,17 +1,20 @@
 /**
  * A link never leaves two tickets naming one row, an agent change is judged on the resolved pair, and a hold or unhold that would change
- * nothing is refused. Refusals are asserted by reason code, before anything changed.
+ * nothing is refused. An entity is set only to a key the pipeline names, only before an agent claims the ticket, and with a reason the log
+ * keeps and the ticket does not. Refusals are asserted by reason code, before anything changed.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardFixture } from '../../testing/BoardFixtures.ts';
 import {
   boardFixture,
+  entityPipelineFixture,
   refusalDetailOf,
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
 import type { BoardRefusalDetail } from './BoardRefusal.ts';
+import { PipelineUtil }            from './utils/PipelineUtil.ts';
 
 const CHANGED_AT = '2026-09-18T15:00:00+02:00';
 
@@ -177,6 +180,64 @@ describe('setTicketNetwork', () => {
     const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', network: ['api.example.com'] }), ticketFixture({ id: '002' })] });
     expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketNetwork('001', ['API.example.com'], CHANGED_AT), 'network-unchanged');
     expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketNetwork('002', [], CHANGED_AT), 'network-unchanged');
+  });
+});
+
+describe('setTicketEntity', () => {
+  const ASSIGNMENT = { entity: 'web', reason: 'The basket page lives in the web app', by: 'product-owner' } as const;
+
+  test.each(['draft', 'ready-for-review', 'pending'] as const)('a %s ticket takes a key the pipeline names, the reason and its author logged only', (status) => {
+    const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', status })], pipeline: entityPipelineFixture() });
+    const changed = board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT);
+    expect(tickets[0]?.frontmatter.entity).toBe('web');
+    expect(tickets[0]?.frontmatter.updated).toBe(ticketFixture({ id: '001' }).frontmatter.updated);
+    expect(records).toEqual([
+      {
+        at: CHANGED_AT, kind: 'entity-assigned', ticketId: '001', fields: { entity: 'web', reason: 'The basket page lives in the web app', by: 'product-owner' }
+      },
+    ]);
+    expect(board.changedTickets()).toEqual([changed.ticket]);
+  });
+
+  test('a ticket moves to another entity, User\'s assignment logged as User\'s', () => {
+    const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', entity: 'web' })], pipeline: entityPipelineFixture() });
+    board.setTicketEntity('001', { entity: 'design-system', reason: 'Only the button changes', by: 'user' }, CHANGED_AT);
+    expect(tickets[0]?.frontmatter.entity).toBe('design-system');
+    expect(records[0]?.fields).toEqual({ entity: 'design-system', reason: 'Only the button changes', by: 'user' });
+  });
+
+  test('a forge without entities refuses any key, naming no entity, with nothing written', () => {
+    for (const pipeline of [undefined, PipelineUtil.minimalPipelineOf()]) {
+      const fixture = boardFixture({ tickets: [ticketFixture({ id: '001' })], ...(pipeline === undefined ? {} : { pipeline }) });
+      const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT), 'unknown-entity');
+      expect(detail).toEqual({
+        reason: 'unknown-entity', ticketId: '001', entity: 'web', entityKeys: []
+      });
+    }
+  });
+
+  test('a key the pipeline does not name is refused, naming the keys it does', () => {
+    const fixture = boardFixture({ tickets: [ticketFixture({ id: '001' })], pipeline: entityPipelineFixture() });
+    const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketEntity('001', { ...ASSIGNMENT, entity: 'shop' }, CHANGED_AT), 'unknown-entity');
+    expect(detail).toEqual({
+      reason: 'unknown-entity', ticketId: '001', entity: 'shop', entityKeys: ['root', 'web', 'design-system']
+    });
+  });
+
+  test.each(['in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const)('a ticket %s is refused, with nothing written', (status) => {
+    const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status })], pipeline: entityPipelineFixture() });
+    const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT), 'entity-of-a-ticket-past-pending');
+    expect(detail).toEqual({ reason: 'entity-of-a-ticket-past-pending', ticketId: '001', status });
+  });
+
+  test('the entity the ticket already has is refused as unchanged, and a blank reason as missing, each with nothing written', () => {
+    const unchanged = boardFixture({ tickets: [ticketFixture({ id: '001', entity: 'web' })], pipeline: entityPipelineFixture() });
+    expect(expectRefusedWithNothingChanged(unchanged, () => unchanged.board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT), 'entity-unchanged'))
+      .toEqual({ reason: 'entity-unchanged', ticketId: '001', entity: 'web' });
+
+    const blank = boardFixture({ tickets: [ticketFixture({ id: '001' })], pipeline: entityPipelineFixture() });
+    expect(expectRefusedWithNothingChanged(blank, () => blank.board.setTicketEntity('001', { ...ASSIGNMENT, reason: '  ' }, CHANGED_AT), 'entity-without-reason'))
+      .toEqual({ reason: 'entity-without-reason', ticketId: '001' });
   });
 });
 

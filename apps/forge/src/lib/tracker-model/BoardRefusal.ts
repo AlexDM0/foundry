@@ -28,6 +28,8 @@ export type BoardRefusalDetail =
   | { reason: 'move-of-a-ticket-ready-for-review'; ticketId: string; targetStatus: RowedTicketStatus }
   | { reason: 'ready-of-a-ticket-not-in-draft'; ticketId: string; status: TicketStatus }
   | { reason: 'incomplete-tickets'; incompleteTickets: readonly IncompleteTicket[] }
+  /** In a forge with entities: the tickets named to ready that have none. */
+  | { reason: 'ticket-without-entity'; ticketIds: readonly string[] }
   | { reason: 'abandon-without-reason'; ticketId: string }
   | { reason: 'tokens-without-a-row'; ticketId: string }
   | { reason: 'rereview-outside-review'; ticketId: string; status: TicketStatus }
@@ -56,6 +58,11 @@ export type BoardRefusalDetail =
   | { reason: 'network-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
   | { reason: 'network-domain-not-public'; ticketId: string; domains: readonly string[] }
   | { reason: 'network-unchanged'; ticketId: string; domains: readonly string[] }
+  /** `entityKeys` is empty when the pipeline names no entity. */
+  | { reason: 'unknown-entity'; ticketId: string; entity: string; entityKeys: readonly string[] }
+  | { reason: 'entity-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
+  | { reason: 'entity-unchanged'; ticketId: string; entity: string }
+  | { reason: 'entity-without-reason'; ticketId: string }
   | { reason: 'agents-of-a-settled-ticket'; ticketId: string; status: TicketStatus }
   | { reason: 'agents-unchanged'; ticketId: string; status: TicketStatus; agents: AgentPair }
   | { reason: 'hold-of-a-settled-ticket'; ticketId: string; status: TicketStatus; action: 'hold' | 'unhold' }

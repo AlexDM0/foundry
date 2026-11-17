@@ -116,6 +116,15 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
     }),
     'Job J3 has several open incidents that allow job-fresh (I1, I2); name one. Nothing was written.',
   ],
+  [
+    boardRefusal({ reason: 'ticket-without-entity', ticketIds: ['004', '005'] }),
+    'Nothing was readied: ticket #004, ticket #005 have no entity, and each ticket builds in the pipeline of its entity. '
+      + 'The product owner gives each ticket its entity; then ready them again.',
+  ],
+  [
+    boardRefusal({ reason: 'entity-without-reason', ticketId: '004' }),
+    'Ticket #004\'s entity was not changed: it needs a reason. Say why the ticket belongs to that entity. Nothing was written.',
+  ],
 ];
 
 describe('OperationRefusalWordingUtil.apiMessageOf', () => {

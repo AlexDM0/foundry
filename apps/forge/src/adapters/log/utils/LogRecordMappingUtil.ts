@@ -110,6 +110,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'gate-profile-ending':      sameValue,
   'flint-brain-starter':      sameValue,
   'flint-brain-ended-reason': sameValue,
+  'entity-assigner':          sameValue,
 };
 
 const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = [

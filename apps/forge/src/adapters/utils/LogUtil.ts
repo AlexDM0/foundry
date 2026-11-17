@@ -137,6 +137,8 @@ function sentenceOf(record: LogRecordContent): string {
       return record.fields.domains.length === 0
         ? `Ticket #${record.ticketId} needs no network`
         : `Ticket #${record.ticketId} network: ${record.fields.domains.join(', ')}`;
+    case 'entity-assigned':
+      return `Ticket #${record.ticketId} belongs to entity ${record.fields.entity}: ${record.fields.reason}`;
     case 'ticket-check-command-restamped':
       return record.fields.command === null
         ? `Ticket #${record.ticketId} restamped with no check command`

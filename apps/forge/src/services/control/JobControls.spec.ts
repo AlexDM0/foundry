@@ -1,13 +1,14 @@
 /**
- * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters:
- * a stop or wind-down holds the job's ticket in the same hold, before any Watcher exists too, and logs its mode; a message to a finished job
+ * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters: a
+ * stop or wind-down holds the job's ticket in the same hold, before any Watcher exists too, and logs its mode; a message to a finished job
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
- * `ready-for-review` while ticket review is on and to `pending` while it is off, and ends the job once no Watcher is live; only User's own
- * `ticket ready` moves a ticket on from `ready-for-review`; a stopped product owner's questions are withdrawn; and past the crash bound a
- * product owner waits on its open question, then a fresh one takes the answers over. An intake title names its job, which User's request
- * must name and a relayed one has stamped. A command's pictures must be in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`,
- * checked before the Board; only a product owner takes them, and a blank request is refused `intake-empty` unless a picture carries it.
- * Option notes, like a title, name their job; their fields reach the Board as untrusted JSON, which refuses a malformed note in words.
+ * `ready-for-review` while ticket review is on and to `pending` while it is off, and in a forge with entities refuses one without an
+ * entity, and ends the job once no Watcher is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
+ * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
+ * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
+ * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
+ * request is refused `intake-empty` unless a picture carries it. Option notes, like a title, name their job; their fields reach the Board
+ * as untrusted JSON, which refuses a malformed note in words.
  */
 import {
   afterEach,
@@ -16,14 +17,19 @@ import {
   test
 } from 'bun:test';
 
-import { TicketAcceptanceUtil }                           from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
-import { OperationRefusalWordingUtil }                    from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
-import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
-import { PICTURES_PER_MESSAGE_LIMIT }                     from '../../shared/constants/OverseerLimits.ts';
-import { boardFixture, refusalDetailOf, ticketFixture }   from '../../testing/BoardFixtures.ts';
+import { TicketAcceptanceUtil }                  from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import { OperationRefusalWordingUtil }           from '../../adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Ticket }                           from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                            from '../../lib/tracker-model/Board.ts';
+import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
+import { PICTURES_PER_MESSAGE_LIMIT }            from '../../shared/constants/OverseerLimits.ts';
+import {
+  boardFixture,
+  entityPipelineFixture,
+  refusalDetailOf,
+  ticketFixture
+} from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
@@ -245,6 +251,17 @@ describe('intake', () => {
     expect(loggedKindsOf(closed)).toEqual(['ticket-readied']);
     expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'draft', 'draft']);
     expect(progress.tasks.map((task) => task.ticket)).toEqual(['004']);
+  });
+
+  test('with ticket review off in a forge with entities, intake-close refuses a complete draft without an entity and readies nothing', () => {
+    const draftWithAnEntity = draftFiledBy('004', 'J1');
+    draftWithAnEntity.frontmatter.entity = 'web';
+    const { board } = boardFixture({ pipeline: { ...entityPipelineFixture(), approvals: { tickets: false } }, tickets: [draftWithAnEntity, draftFiledBy('005', 'J1')] });
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+
+    expect(refusalDetailOf(() => apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] })))
+      .toEqual({ reason: 'ticket-without-entity', ticketIds: ['005'] });
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['draft', 'draft']);
   });
 
   test('User\'s ticket ready moves a ticket ready for review to pending; a draft-only ready refuses it', () => {

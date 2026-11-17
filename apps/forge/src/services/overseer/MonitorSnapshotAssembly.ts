@@ -95,6 +95,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'ticket-release-cleared':          null,
   'ticket-epics-set':                null,
   'ticket-network-set':              null,
+  'entity-assigned':                 null,
   'ticket-check-command-restamped':  null,
   'epic-added':                      null,
   'epic-edited':                     null,

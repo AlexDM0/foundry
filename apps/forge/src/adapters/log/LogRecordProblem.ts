@@ -36,7 +36,7 @@ import {
   PIPELINE_SETUP_STEPS
 } from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../lib/tracker-model/constants/ReviewRounds.ts';
-import { TICKET_PRIORITIES, TICKET_SIZES }                   from '../../lib/tracker-model/constants/TicketFields.ts';
+import { ENTITY_ASSIGNERS, TICKET_PRIORITIES, TICKET_SIZES } from '../../lib/tracker-model/constants/TicketFields.ts';
 import { BoardSettingsUtil }                                 from '../../lib/tracker-model/utils/BoardSettingsUtil.ts';
 import { VocabularyUtil }                                    from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import { StoredValueUtil }                                   from '../utils/StoredValueUtil.ts';
@@ -206,6 +206,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'gate-profile-ending':      (value, path) => vocabularyProblem(value, path, GATE_PROFILE_RUN_ENDINGS),
   'flint-brain-starter':      (value, path) => vocabularyProblem(value, path, FLINT_BRAIN_STARTERS),
   'flint-brain-ended-reason': (value, path) => vocabularyProblem(value, path, FLINT_BRAIN_ENDED_REASONS),
+  'entity-assigner':          (value, path) => vocabularyProblem(value, path, ENTITY_ASSIGNERS),
 };
 
 function kindIsKnown(kind: unknown): kind is LogRecordKind {

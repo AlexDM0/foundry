@@ -41,6 +41,8 @@ releasesGroup: true
 dependsOn: "001, 002"
 epics: "loyalty-programme, checkout-redesign"
 network: "api.example.com, cdn.example.com"
+entity: "web"
+crosses: "design-system"
 filedByJob: "J12"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
@@ -63,6 +65,8 @@ owner: Alex Example
 | `dependsOn` | when non-empty | ticket ids, written `"001, 002"`, read from any mix of commas and spaces with or without `#` or padding. Set it with `ticket depends`, which refuses a missing id or a circle; bare ids replace the list, `--add` and `--remove` change it. |
 | `epics` | when non-empty | epic keys, written `"loyalty-programme, checkout-redesign"` and read like `dependsOn`, in order: the first is the primary epic. A part that is not an epic key makes the file malformed; a key whose epic is gone is kept. Set it with `ticket epic`, which refuses an epic that does not exist. |
 | `network` | only once set | the public domains the ticket's agents may reach, written `"api.example.com, cdn.example.com"` and read like `epics`, lower case, in order. A domain that is not public makes the file malformed. Set it with `ticket add --network` or `ticket network`, only while the ticket is a draft or pending; `--clear` removes it. |
+| `entity` | only once assigned | the key of the entity whose pipeline builds the ticket, in a forge with entities, written `"web"`; a blank one makes the file malformed. Set it with `ticket add --entity` or `ticket entity`, only while the ticket is a draft, ready for review or pending; the reason goes to the `entity-assigned` log record, never the file. In a forge with entities a ticket without one never becomes `pending`. |
+| `crosses` | only once set | the keys of the whitelisted packages intake expects the ticket to cross into, written `"design-system, contracts"` and read like `epics`: a forecast for the board, never what decides the stages. No verb sets it. |
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
@@ -142,9 +146,9 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity`; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | `ticket submit`, `intake close` with ticket review on | draft, each complete one; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
-| `ticket submit`, `intake close` with ticket review off | draft, each complete one; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` in a forge with entities; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |

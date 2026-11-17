@@ -572,15 +572,16 @@ model and effort are stored and shown, and no launch reads them.
 
 | command | what it does |
 |---|---|
-| `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `pending` and files its row. [Its options and refusals](#ticket-add) are below. |
+| `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--entity <key>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `pending` and files its row. [Its options and refusals](#ticket-add) are below. |
 | `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--force] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or `pending` ticket is edited unless `--force`; [the rules](#ticket-edit) are below. |
 | `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `pending` with a `pending` row at any priority, and one `ticket-readied` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
-| `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `pending` with its row (`ticket-readied`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
+| `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `pending` with its row (`ticket-readied`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
 | `ticket priority <id> low\|normal\|high [--at <when>]` | Change a ticket's priority, with one log line. Lowering to low is refused unless the ticket is a draft ticket or pending, and keeps its row: priority only orders the ready tickets. A draft ticket has none at any priority; raising a low ticket that has no row gives it one at once. A low ticket with no row gets its row when it starts, and keeps it; abandoning a low ticket that has none creates none. |
 | `ticket size <id> XS\|S\|M\|L\|XL\|XXL [--at <when>]` | Change a ticket's size, in any status, with one `ticket-size-changed` log line. A size outside the list, in capitals only, and an unchanged size are refused at exit 1 with nothing written. |
 | `ticket network <id> <domain>... \| --clear [--at <when>] [--json]` | Set the public domains the ticket's agents may reach, comma- or space-separated, stored lower case and once each as the frontmatter key `network`; `--clear` removes the key. One `ticket-network-set` log line, `updated` not stamped; [its refusals](#ticket-network) are below. |
+| `ticket entity <id> <key> --reason <text> [--at <when>] [--json]` | In a forge with entities, name the entity whose pipeline builds the ticket, stored as the frontmatter key `entity`, and say why. One `entity-assigned` log line holds the reason and who assigned it; `updated` is not stamped. [Who runs it and its refusals](#ticket-entity) are below. |
 | `ticket hold <id> [--reason <text>] [--at <when>]` | Pause a ticket between build and review, or between review rounds, without pausing the Overseer. While the frontmatter's `hold` key is set (to the reason, empty without one) the Overseer launches no builder or reviewer for it, and `status --json` lists it in `concurrency.heldTicketIds` and marks its `readyTickets` entry `held: true`. An agent already running is never interrupted. One log line; refused at exit 1 on a delivered or abandoned ticket and on one already held. |
 | `ticket unhold <id> [--at <when>]` | Lift the hold, with one log line; the step it held starts at the Overseer's next [Pass](glossary.md#pass). On a ticket in progress whose row is paused, a last line says to resume it with `task start <row>`, since the Overseer never takes a paused row over. Refused at exit 1 on a delivered or abandoned ticket and on one not held. |
 | `ticket release-of <id> [--clear] [--at <when>] [--json]` | Mark a ticket as its group's release ticket, the one whose release takes the group's work to the main line, or with `--clear` remove the mark. [The rules](#ticket-release-of) are below. |
@@ -613,6 +614,9 @@ model and effort are stored and shown, and no launch reads them.
   written when that ticket does not exist.
 - `--network api.example.com,cdn.example.com` sets the `network` line as `ticket network` does, logged after the filing
   and refused the same way.
+- `--entity web` files it in that entity of a forge with entities, with no `entity-assigned` line and no reason. A key
+  the pipeline does not name, and any key in a forge without entities, is refused at exit 1 with nothing written
+  (`unknown-entity`).
 - `--size M` stores `size`, the expected change in code lines, comments and docs not counted: XS ≤ 20, S ≤ 100, M ≤ 300,
   L ≤ 750, XL ≤ 1500, XXL beyond.
 - A worker's low finding relayed under a job gets the tickets of that job in `dependsOn` and, when one of them has a
@@ -651,6 +655,11 @@ naming its status), or when any is incomplete (`incomplete-tickets`, naming each
 - `acceptance-unnumbered` when its `## Acceptance` holds no numbered item, read as a landing reads it;
 - `brief-missing` when it has no `## Brief` holding a non-blank line.
 
+In a forge with entities, a draft or a ticket in `ready-for-review` with no `entity` is refused at exit 1 with nothing
+written (`ticket-without-entity`, naming each such ticket), since each ticket builds in the pipeline of its entity. The
+Board refuses it on every way to `pending`: `ticket submit` and `intake close` with ticket review off, and a worker's
+finding, refuse it too. A forge without entities readies as before.
+
 No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`, `ticket submit`,
 `intake close` or `ticket abandon`. It also readies a ticket in `ready-for-review`: that is User's ticket review, and
 no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through `ticket ready` or
@@ -668,6 +677,22 @@ nothing written:
   outside global unicast, a single label or malformed text;
 - the same list, or a clear of a ticket with none (`network-unchanged`);
 - domains beside `--clear`.
+
+#### `ticket entity`
+
+The product owner runs it: under its job on its own draft ticket at intake, or on any ticket ready for review or
+pending, its job stamped by the Overseer; any other role is refused, and a request naming a job is refused
+`hatch-identity-mismatch`. Outside a job, User's own command line runs it. No Bridge control sends it. The log line
+reads `Ticket #003 belongs to entity web: <reason>`, its record `{entity, reason, by}` with `by` `product-owner` or
+`user`. Refused at exit 1 with nothing written:
+
+- a key the pipeline's entities do not name, naming the keys it does, or any key in a forge without entities
+  (`unknown-entity`);
+- a ticket that is not a draft ticket, ready for review or pending (`entity-of-a-ticket-past-pending`);
+- the entity the ticket already has (`entity-unchanged`);
+- a blank reason (`entity-without-reason`); no `--reason` at all is refused by the usage;
+- under a product owner's job, a ticket that is neither its own draft ticket nor ready for review or pending
+  (`not-own-draft-or-unclaimed-ticket`).
 
 #### `ticket release-of`
 
@@ -1441,8 +1466,9 @@ runs, and is told to propose edits of the record's draft and to file no ticket; 
 
 In the same hold it submits every draft ticket it (and any session it took over from) filed, as `ticket submit` does:
 with ticket review off each complete one becomes `pending` with its row, with it on each becomes `ready-for-review`
-for User's `ticket ready`, and an incomplete one stays a draft. `--set` is stored on the job and decides nothing. Once
-no Watcher of it is live the Overseer ends it `closed`.
+for User's `ticket ready`, and an incomplete one stays a draft. With ticket review off in a forge with entities, a
+complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`). `--set` is stored on
+the job and decides nothing. Once no Watcher of it is live the Overseer ends it `closed`.
 
 A product owner interrupted by a reboot resumes by id once its question is answered. One past the crash bound with a
 question open waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the
@@ -1738,8 +1764,9 @@ variables](#environment-variables)).
 tickets of the filing job (the finders) in its `dependsOn` and, when a finder has a group, the finding in that group;
 the worker cannot set either. The filing is then submitted as `ticket submit` does: with ticket review off a complete
 finding is `pending` and builds only once its finders are `reviewed` or `delivered`; with it on it is
-`ready-for-review`. When a finder is abandoned, each of its findings that did not start moves to `ready-for-review` and
-loses that dependency in the same hold, whatever the switch says.
+`ready-for-review`. A worker names no entity, so with ticket review off in a forge with entities its finding is refused
+`ticket-without-entity`. When a finder is abandoned, each of its findings that did not start moves to `ready-for-review`
+and loses that dependency in the same hold, whatever the switch says.
 
 ## Platforms
 
@@ -2335,6 +2362,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-introduced-by-set` | `ticketId` | `introducedBy`: the cause's ticket id, absent when it was cleared |
 | `ticket-epics-set` | `ticketId` | `epics`: epic keys |
 | `ticket-network-set` | `ticketId` | `domains`: empty when the line was cleared |
+| `entity-assigned` | `ticketId` | `entity`: the entity key; `reason`; `by`: `product-owner` or `user` |
 | `ticket-release-marked` | `ticketId` | `group` |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
 
@@ -2691,6 +2719,8 @@ releasesGroup: true
 dependsOn: "001, 002"
 epics: "loyalty-programme, checkout-redesign"
 network: "api.example.com, cdn.example.com"
+entity: "web"
+crosses: "design-system"
 filedByJob: "J12"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
@@ -2713,6 +2743,8 @@ owner: Alex Example
 | `dependsOn` | when non-empty | ticket ids, written `"001, 002"`, read from any mix of commas and spaces with or without `#` or padding. Set it with `ticket depends`, which refuses a missing id or a circle; bare ids replace the list, `--add` and `--remove` change it. |
 | `epics` | when non-empty | epic keys, written `"loyalty-programme, checkout-redesign"` and read like `dependsOn`, in order: the first is the primary epic. A part that is not an epic key makes the file malformed; a key whose epic is gone is kept. Set it with `ticket epic`, which refuses an epic that does not exist. |
 | `network` | only once set | the public domains the ticket's agents may reach, written `"api.example.com, cdn.example.com"` and read like `epics`, lower case, in order. A domain that is not public makes the file malformed. Set it with `ticket add --network` or `ticket network`, only while the ticket is a draft or pending; `--clear` removes it. |
+| `entity` | only once assigned | the key of the entity whose pipeline builds the ticket, in a forge with entities, written `"web"`; a blank one makes the file malformed. Set it with `ticket add --entity` or `ticket entity`, only while the ticket is a draft, ready for review or pending; the reason goes to the `entity-assigned` log record, never the file. In a forge with entities a ticket without one never becomes `pending`. |
+| `crosses` | only once set | the keys of the whitelisted packages intake expects the ticket to cross into, written `"design-system, contracts"` and read like `epics`: a forecast for the board, never what decides the stages. No verb sets it. |
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
@@ -2837,9 +2869,9 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance` and a `## Brief` holding a non-blank line; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity`; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | `ticket submit`, `intake close` with ticket review on | draft, each complete one; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
-| `ticket submit`, `intake close` with ticket review off | draft, each complete one; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` in a forge with entities; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |

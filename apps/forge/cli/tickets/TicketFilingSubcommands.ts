@@ -17,7 +17,22 @@ import { TICKET_USAGE }                          from './constants/TicketUsage.t
 import { TicketArgumentUtil }                    from './utils/TicketArgumentUtil.ts';
 
 const ADD_OPTION_NAMES = [
-  'type', 'priority', 'size', 'model', 'effort', 'group', 'depends-on', 'epic', 'network', 'introduced-by', 'found-in-review', 'body', 'body-file', 'at', 'json',
+  'type',
+  'priority',
+  'size',
+  'model',
+  'effort',
+  'group',
+  'depends-on',
+  'epic',
+  'network',
+  'entity',
+  'introduced-by',
+  'found-in-review',
+  'body',
+  'body-file',
+  'at',
+  'json',
 ];
 
 function draftFilingNoteOf(ticketId: string): string {
@@ -47,6 +62,7 @@ async function addOneTicket(commandArguments: ArgumentParser, context: CommandCo
   const dependsOn = TicketArgumentUtil.dependencyListFrom([commandArguments.option('depends-on') ?? '']);
   const epics     = TicketArgumentUtil.epicKeyListFrom([commandArguments.option('epic') ?? '']);
   const network   = TicketArgumentUtil.networkDomainListFrom([commandArguments.option('network') ?? '']);
+  const entity    = commandArguments.option('entity');
   const introducedBy  = TicketArgumentUtil.linkedTicketIdFrom(commandArguments.option('introduced-by'));
   const foundInReview = TicketArgumentUtil.linkedTicketIdFrom(commandArguments.option('found-in-review'));
 
@@ -68,6 +84,7 @@ async function addOneTicket(commandArguments: ArgumentParser, context: CommandCo
     network,
     introducedBy,
     foundInReview,
+    ...(entity === undefined ? {} : { entity }),
     bodyText: suppliedBody ?? null,
   };
   await hatchWhenUnderJob(context, command);

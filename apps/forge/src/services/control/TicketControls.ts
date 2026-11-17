@@ -64,6 +64,10 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   if (command.effort !== undefined) ticket.frontmatter.effort = command.effort;
   if (command.admission !== undefined) ticket.frontmatter.filedByJob = command.admission.filedByJob;
   if (command.network.length > 0) refuseANetworkTheFilingCannotSet(ticket.frontmatter.id, command.network);
+  if (command.entity !== undefined) {
+    change.board.refuseAnUnknownEntity(ticket.frontmatter.id, command.entity);
+    ticket.frontmatter.entity = command.entity;
+  }
   const filing     = change.board.fileTicket(ticket, change.at);
   const networkSet = command.network.length === 0 ? [] : change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at).logged;
   const submitted  = finderTicketIds.length === 0 || ticket.frontmatter.status !== 'draft'
@@ -76,6 +80,15 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
 function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
   const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
   return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES);
+}
+
+/** A stamped `jobId` is the product owner's job, which only the role policy writes; without one the command is User's own. */
+function setEntity(command: CommandOf<'ticket-entity'>, change: TrackerChange) {
+  return change.board.setTicketEntity(ticketIdOfReference(change, command.ticketReference), {
+    entity: command.entity,
+    reason: command.reason,
+    by:     command.jobId === undefined ? 'user' : 'product-owner',
+  }, change.at);
 }
 
 function editTicket(command: CommandOf<'ticket-edit'>, change: TrackerChange) {
@@ -150,7 +163,8 @@ export const TICKET_CONTROLS = {
     command.domains,
     change.at,
   ),
-  'ticket-hold': (command: CommandOf<'ticket-hold'>, change: TrackerChange) => change.board.holdTicket(
+  'ticket-entity': setEntity,
+  'ticket-hold':   (command: CommandOf<'ticket-hold'>, change: TrackerChange) => change.board.holdTicket(
     ticketIdOfReference(change, command.ticketReference),
     command.reason,
     change.at,

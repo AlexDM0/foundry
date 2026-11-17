@@ -213,6 +213,7 @@ never carries it.
       [--depends-on <ids>]    the template, from --body, or from --body-file (\`-\` reads standard
       [--epic <keys>]         input); an empty body falls back to the template, and afterwards the
       [--network <domains>]
+      [--entity <key>]
       [--introduced-by <id>]  body is preserved byte for byte, so an agent may edit everything
       [--found-in-review <id>]
       [--body <markdown>]     below the frontmatter freely. --depends-on files it already waiting
@@ -222,7 +223,9 @@ never carries it.
                               delivered ticket whose change introduced a bug, as
                               \`ticket introduced-by\` does; --found-in-review names the ticket
                               whose review found this one, a ticket that must exist. --network
-                              sets its network line, as \`ticket network\` does. A worker's
+                              sets its network line, as \`ticket network\` does. --entity files it
+                              in an entity the pipeline names, as \`ticket entity\` does, logging
+                              no reason. A worker's
                               relayed low finding waits on the worker's ticket and joins its
                               group, and is submitted at once, as \`ticket submit\` does. --priority
                               defaults to normal and only orders the ready tickets, low last.
@@ -310,6 +313,17 @@ never carries it.
                               name or a loopback or private IP address (network-domain-not-public),
                               and when nothing would change.
 
+  ticket entity <id> <key> --reason <text> [--at <when>] [--json]
+                              Where the pipeline names entities, name the entity that builds a
+                              ticket, and why: the key is stored as \`entity\`, the reason only in
+                              the log line, which also names who assigned it. The product owner
+                              runs it under its job, on its own draft ticket or on any ticket
+                              ready for review or pending.
+                              Refused at exit 1, writing nothing, on a key the pipeline does not
+                              name (every key when it names no entity), unless the ticket is
+                              a draft ticket, ready for review or pending, with a blank reason,
+                              and when nothing would change.
+
   ticket ready <id> [<id>...] [--at <when>] [--json]
                               Ready draft tickets to build, all or nothing: each becomes pending
                               with a pending row at any priority, one log line each. Refused at
@@ -319,13 +333,17 @@ never carries it.
                               non-blank line, each ticket named. \`ticket add\` files every ticket
                               as a draft ticket, with no row; no move returns a ticket there.
                               It also readies a ticket in ready-for-review; only User does that.
+                              Where the pipeline names entities, a ticket with no entity is refused
+                              (\`ticket-without-entity\`), each ticket named.
   ticket submit <id> [<id>...] [--at <when>] [--json]
                               The filer's close of its draft tickets. With ticket review off, each
                               complete draft becomes pending with its row (ticket-readied); with
                               it on, each becomes ready-for-review with no row
                               (ticket-submitted-for-review) and waits for User's ticket ready.
                               An incomplete draft stays a draft and is named with its gaps.
-                              Refused at exit 1 when a ticket named is not a draft ticket.
+                              Refused at exit 1 when a ticket named is not a draft ticket, and,
+                              with ticket review off where the pipeline names entities, when a
+                              complete draft has no entity (\`ticket-without-entity\`).
   ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]
                               Hold the ticket parked:<incident kind> (parked:user with none) and
                               open a parked decision to User; under a question incident it stops

@@ -75,7 +75,8 @@ export type LogFieldShape =
   | 'draft-fields'
   | 'gate-profile-ending'
   | 'flint-brain-starter'
-  | 'flint-brain-ended-reason';
+  | 'flint-brain-ended-reason'
+  | 'entity-assigner';
 
 export interface LogRecordKindSchema {
   subject: LogRecordSubject;
@@ -142,6 +143,8 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-epics-set':                { subject: 'ticket', fields: { epics: 'epic-keys' } },
   // An empty `domains` cleared the line.
   'ticket-network-set':              { subject: 'ticket', fields: { domains: 'network-domains' } },
+  // The reason is kept here alone, never on the ticket.
+  'entity-assigned':                 { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
   'ticket-check-command-restamped':  { subject: 'ticket', fields: { command: 'check-command' } },
   'epic-added':                      { subject: 'epic', fields: { title: 'text' } },
   'epic-edited':                     { subject: 'epic', fields: { title: 'text' } },

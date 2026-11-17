@@ -78,6 +78,8 @@ export type ControlCommand =
     network:       string[];
     introducedBy:  string | null;
     foundInReview: string | null;
+    /** The key of the entity whose pipeline builds the ticket, in a forge with entities; absent files it with none. */
+    entity?:       string;
     /** Null files the ticket template's body. */
     bodyText:      string | null;
     /** Set only by `Bouncer`'s admission of a relayed filing, never by a request: a request carrying it is refused. */
@@ -112,6 +114,11 @@ export type ControlCommand =
   | { kind: 'incident-note'; incidentId: string; text: string }
   | { kind: 'incident-escalate'; incidentId: string }
   | { kind: 'ticket-network'; ticketReference: string; domains: string[] }
+  /**
+   * The entity a ticket is built in, with why. Relayed by a product owner without `jobId`: the role policy stamps its own job, and the log
+   * names the product owner as the one who assigned it; without one it is User's own command.
+   */
+  | { kind: 'ticket-entity'; ticketReference: string; entity: string; reason: string; jobId?: string }
   | { kind: 'ticket-hold'; ticketReference: string; reason: string }
   | { kind: 'ticket-unhold'; ticketReference: string }
   | { kind: 'epic-add'; key: string; title: string; bodyText: string }

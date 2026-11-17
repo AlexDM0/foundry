@@ -1,6 +1,7 @@
 /**
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
- * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, the own-job stamp on the `question-options` of every
+ * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, its entity rule (its own draft or any ticket ready for
+ * review or pending, stamped with its job), the own-job stamp on the `question-options` of every
  * role that asks User, the pipeline agent's setup moves stamped with its job and its setup (every other kind refused), the Assistant's
  * incident moves, and the planted
  * forgeries (a `role`, a `jobId` or an admission in the command).
@@ -8,18 +9,18 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { IncidentKind, IncidentMove }       from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobRole }                          from '../../lib/tracker-model/@types/Job.ts';
-import { INCIDENT_KINDS }                        from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import { WORKER_FILINGS_PER_JOB }                from '../../shared/constants/OverseerLimits.ts';
-import { Bouncer, type RelayingJob }             from './Bouncer.ts';
-import { CONTROL_COMMAND_KINDS }                 from './ControlService.ts';
-import { ALLOWED_MOVES_BY_INCIDENT_KIND }        from './constants/AllowedMovesByIncidentKind.ts';
+import type { IncidentKind, IncidentMove }                from '../../lib/tracker-model/@types/Incident.ts';
+import type { JobRole }                                   from '../../lib/tracker-model/@types/Job.ts';
+import { INCIDENT_KINDS }                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
+import { WORKER_FILINGS_PER_JOB }                         from '../../shared/constants/OverseerLimits.ts';
+import { Bouncer, type BouncerVerdict, type RelayingJob } from './Bouncer.ts';
+import { CONTROL_COMMAND_KINDS }                          from './ControlService.ts';
+import { ALLOWED_MOVES_BY_INCIDENT_KIND }                 from './constants/AllowedMovesByIncidentKind.ts';
 
 function jobOf(role: JobRole | null, overrides: Partial<RelayingJob> = {}): RelayingJob {
   return {
-    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], setupId: null, ...overrides
+    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrPending: [], setupId: null, ...overrides
   };
 }
 
@@ -67,6 +68,7 @@ describe('builder and reviewer', () => {
     ['dependencies', { dependsOn: ['004'] }],
     ['epics', { epics: ['checkout'] }],
     ['network', { network: ['example.com'] }],
+    ['an entity', { entity: 'web' }],
   ] as const)('a filing with %s is refused worker-filing-flag', (caseName, overrides) => {
     // Every case but the priority ones keeps `--priority low`, so the flag alone is what refuses it.
     const { priority: _lowPriority, ...withoutPriority } = lowFinding();
@@ -145,6 +147,35 @@ describe('product-owner', () => {
 
   test.each(['builder', 'reviewer', 'assistant'] as const)('a %s\'s intake-title is refused', (role) => {
     expect(Bouncer.verdictOf(jobOf(role), { kind: 'intake-title', title: 'Example basket' }).verdict).toBe('refused');
+  });
+});
+
+describe('ticket entity', () => {
+  const ASSIGNMENT_OF_TICKET_7: ControlCommandOf<'ticket-entity'> = {
+    kind: 'ticket-entity', ticketReference: '#7', entity: 'web', reason: 'The basket page lives in the web app'
+  };
+
+  test('a product owner assigns the entity of its own draft and of any ticket ready for review or pending, stamped with its own job', () => {
+    const admitted: BouncerVerdict = { verdict: 'admitted', command: { ...ASSIGNMENT_OF_TICKET_7, jobId: 'J12' } };
+    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'draft' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(admitted);
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['005', '007'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(admitted);
+  });
+
+  test('a draft another job filed, and a ticket neither its own draft nor ready for review or pending, are refused not-own-draft-or-unclaimed-ticket', () => {
+    const refusedVerdict: BouncerVerdict = { verdict: 'refused', reason: 'not-own-draft-or-unclaimed-ticket' };
+    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '008', status: 'draft' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
+    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'in-progress' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['008'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
+  });
+
+  test('an assignment naming a job of its own choosing is refused hatch-identity-mismatch, so no session words itself the product owner', () => {
+    const forged = { ...ASSIGNMENT_OF_TICKET_7, jobId: 'J1' };
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['007'] }), forged)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+  });
+
+  test.each(['builder', 'reviewer', 'assistant', 'pipeline-agent'] as const)('a %s is refused it, whatever the ticket', (role) => {
+    const job = jobOf(role, { filedTickets: [{ id: '007', status: 'draft' }], ticketIdsReadyForReviewOrPending: ['007'], setupId: 'S2' });
+    expect(Bouncer.verdictOf(job, ASSIGNMENT_OF_TICKET_7).verdict).toBe('refused');
   });
 });
 

@@ -27,8 +27,13 @@ import type {
 import type { PipelineBilling }                                              from './Pipeline.ts';
 import type { PipelineSetupMode, PipelineSetupStep, PipelineSetupStepState } from './PipelineSetup.ts';
 import type { ReviewClaim, ReviewFinding, ReviewVerdict }                    from './ReviewRecord.ts';
-import type { AgentPair, TicketPriority, TicketSize }                        from './Ticket.ts';
-import type { OverseerState, ViewRange }                                     from './TrackerProgress.ts';
+import type {
+  AgentPair,
+  EntityAssigner,
+  TicketPriority,
+  TicketSize
+}                                                                            from './Ticket.ts';
+import type { OverseerState, ViewRange } from './TrackerProgress.ts';
 
 export type HatchRefusalStatus = (typeof HATCH_REFUSAL_STATUSES)[number];
 
@@ -103,6 +108,7 @@ interface ValueOfFieldShape {
   'gate-profile-ending':      GateProfileRunEnding;
   'flint-brain-starter':      FlintBrainStarter;
   'flint-brain-ended-reason': FlintBrainEndedReason;
+  'entity-assigner':          EntityAssigner;
 }
 
 type Schema = typeof LOG_RECORD_SCHEMA;

@@ -51,9 +51,12 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'incident-note':     { kind: 'incident-note', incidentId: 'I1', text: 'Seen twice' },
   'incident-escalate': { kind: 'incident-escalate', incidentId: 'I1' },
   'ticket-network':    { kind: 'ticket-network', ticketReference: '3', domains: [] },
-  'ticket-hold':       { kind: 'ticket-hold', ticketReference: '3', reason: '' },
-  'ticket-unhold':     { kind: 'ticket-unhold', ticketReference: '3' },
-  'epic-add':          {
+  'ticket-entity':     {
+    kind: 'ticket-entity', ticketReference: '3', entity: 'web', reason: 'The basket page is the web app\'s'
+  },
+  'ticket-hold':   { kind: 'ticket-hold', ticketReference: '3', reason: '' },
+  'ticket-unhold': { kind: 'ticket-unhold', ticketReference: '3' },
+  'epic-add':      {
     kind: 'epic-add', key: 'checkout-redesign', title: 'Checkout redesign', bodyText: ''
   },
   'draft-open': {

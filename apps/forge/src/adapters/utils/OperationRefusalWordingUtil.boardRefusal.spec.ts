@@ -25,7 +25,7 @@ function namingThisProgram(message: string): string {
  * standard error. Rows no command reaches easily (the singular limit, a ticket-owned row sent to re-review) are read from the wording in
  * bc42604:cli/task/TaskCommand.ts, bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. The two review-record
  * reasons are newer than bc42604, and their rows were taken from the wording util when they were added, as were the four draft reasons, the
- * lowering row's "draft or pending", the three network reasons and the already-filed ticket id.
+ * lowering row's "draft or pending", the three network reasons, the five entity reasons and the already-filed ticket id.
  */
 const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = [
   [{ reason: 'unknown-task', taskId: 99 }, 'There is no task #99. Run `agent-progress status` to see the rows this tracker holds.'],
@@ -164,6 +164,28 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Ticket #002\'s network line was not changed: it already reads no domain. Nothing was written.',
   ],
   [
+    {
+      reason: 'unknown-entity', ticketId: '002', entity: 'web', entityKeys: []
+    },
+    'Ticket #002 was not given the entity web: the pipeline names no entity. Nothing was written.',
+  ],
+  [
+    {
+      reason: 'unknown-entity', ticketId: '002', entity: 'shop', entityKeys: ['root', 'web']
+    },
+    'Ticket #002 was not given the entity shop: the pipeline names no such entity, only root, web. Nothing was written.',
+  ],
+  [
+    { reason: 'entity-of-a-ticket-past-pending', ticketId: '006', status: 'in-progress' },
+    'Ticket #006 is in-progress, and its entity was not changed: it is set only while the ticket is draft, ready for review or pending. '
+      + 'Nothing was written.',
+  ],
+  [{ reason: 'entity-unchanged', ticketId: '002', entity: 'web' }, 'Ticket #002\'s entity was not changed: it already is web. Nothing was written.'],
+  [
+    { reason: 'entity-without-reason', ticketId: '002' },
+    'Ticket #002\'s entity was not changed: it needs --reason. Say why the ticket belongs to that entity. Nothing was written.',
+  ],
+  [
     { reason: 'claim-under-review', ticketId: '004', reviewBarTaskId: 7 },
     'Ticket #004 is under review: its review row #7 is in progress. Nothing was written.',
   ],
@@ -248,6 +270,16 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Nothing was readied: ticket #003 is incomplete: its `## Acceptance` holds no numbered item (acceptance-unnumbered); '
     + 'ticket #004 is incomplete: its `## Acceptance` holds no numbered item (acceptance-unnumbered), and it has no `## Brief` with a non-blank line (brief-missing). '
     + 'Number every Acceptance item as `A1.` at the start of a line and write a `## Brief`, then ready them again.',
+  ],
+  [
+    { reason: 'ticket-without-entity', ticketIds: ['003'] },
+    'Nothing was readied: ticket #003 has no entity, and each ticket builds in the pipeline of its entity. '
+    + 'Give it one with `agent-progress ticket entity <id> <key> --reason <text>`, then ready it again.',
+  ],
+  [
+    { reason: 'ticket-without-entity', ticketIds: ['003', '004'] },
+    'Nothing was readied: ticket #003, ticket #004 have no entity, and each ticket builds in the pipeline of its entity. '
+    + 'Give each one with `agent-progress ticket entity <id> <key> --reason <text>`, then ready them again.',
   ],
   [
     { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
@@ -384,7 +416,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 49;
+const REFUSAL_REASON_COUNT = 54;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

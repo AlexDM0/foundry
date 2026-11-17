@@ -108,8 +108,9 @@ export class TicketMoves {
   }
 
   /**
-   * Every named draft moves to `pending` with a row at any priority, or none does: a ticket not in `draft` is refused first, then
-   * every ticket the reading finds gaps in, all named at once. Only User's own `ticket ready` passes `ready-for-review` as readiable.
+   * Every named draft moves to `pending` with a row at any priority, or none does: a ticket not in `draft` is refused first, then, in a
+   * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `pending`
+   * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable.
    */
   readyDraftTickets(
     ticketIds: readonly string[],
@@ -121,6 +122,10 @@ export class TicketMoves {
     const notADraft      = readiedTickets.find((ticket) => !readiableStatuses.includes(ticket.frontmatter.status));
     if (notADraft !== undefined) {
       throw new BoardRefusal({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: notADraft.frontmatter.id, status: notADraft.frontmatter.status });
+    }
+    if (this.records.pipeline?.entities !== undefined) {
+      const ticketIdsWithoutAnEntity = readiedTickets.filter((ticket) => ticket.frontmatter.entity === undefined).map((ticket) => ticket.frontmatter.id);
+      if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
     }
     const incompleteTickets = readiedTickets.flatMap((ticket) => {
       const gaps = readinessGapsOf(ticket.body);

@@ -6,7 +6,7 @@ import type { Draft }                                            from '../lib/tr
 import type { Epic, EpicFrontmatter }                            from '../lib/tracker-model/@types/Epic.ts';
 import type { GateProfilesReading }                              from '../lib/tracker-model/@types/GateProfile.ts';
 import type { LogRecord }                                        from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                         from '../lib/tracker-model/@types/Pipeline.ts';
+import type { Pipeline, PipelineEntity }                         from '../lib/tracker-model/@types/Pipeline.ts';
 import type { ConstitutionSourcesReading, PipelineSetupReading } from '../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Task }                                             from '../lib/tracker-model/@types/Task.ts';
 import type { Ticket, TicketFrontmatter }                        from '../lib/tracker-model/@types/Ticket.ts';
@@ -15,6 +15,7 @@ import { Board }                                                 from '../lib/tr
 import type { BoardRefusalDetail }                               from '../lib/tracker-model/BoardRefusal.ts';
 import { refusalIsBoardRefusal }                                 from '../lib/tracker-model/BoardRefusal.ts';
 import { createLogger }                                          from '../lib/tracker-model/Logger.ts';
+import { PipelineUtil }                                          from '../lib/tracker-model/utils/PipelineUtil.ts';
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
@@ -72,6 +73,24 @@ export function epicFixture(overrides: Partial<EpicFrontmatter> = {}): Epic {
     ...overrides,
   };
   return { frontmatter, body: '', filePath: `${FIXTURE_EPICS_DIRECTORY}/${frontmatter.key}.md` };
+}
+
+function entityFixture(kind: PipelineEntity['kind'], home: string): PipelineEntity {
+  return {
+    kind, home: [home], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  };
+}
+
+/** A forge at the repository's root over the root entity, the app `web` and the package `design-system`, with no gate anywhere. */
+export function entityPipelineFixture(): Pipeline {
+  return {
+    ...PipelineUtil.minimalPipelineOf(),
+    entities: {
+      'root':          entityFixture('root', '/'),
+      'web':           entityFixture('app', '/apps/web'),
+      'design-system': entityFixture('package', '/packages/design-system'),
+    },
+  };
 }
 
 /** The next task id is one past the highest row handed in, as a tracker that filed those rows itself would hold. */

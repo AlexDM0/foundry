@@ -14,6 +14,7 @@ import type { Task, TaskStatus }             from './Task.ts';
 import type {
   AgentEffort,
   AgentModel,
+  EntityAssigner,
   IncompleteTicket,
   Ticket
 } from './Ticket.ts';
@@ -22,6 +23,13 @@ import type { OverseerState } from './TrackerProgress.ts';
 export interface AgentChoice {
   model?:  AgentModel;
   effort?: AgentEffort;
+}
+
+/** The entity a ticket is built in, why, and who chose it: a product owner's job, or User's own command. */
+export interface EntityAssignment {
+  entity: string;
+  reason: string;
+  by:     EntityAssigner;
 }
 
 export interface AgentAssignment {

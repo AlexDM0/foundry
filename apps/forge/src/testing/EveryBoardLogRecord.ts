@@ -2,10 +2,10 @@
  * One record of every kind, as the Board's own changes log them, so a spec pinning what log.jsonl stores reads the Board's key order rather
  * than a hand-written copy of it. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { LogRecord }                          from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                              from '../lib/tracker-model/Board.ts';
-import { boardFixture, ticketFixture }             from './BoardFixtures.ts';
-import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
+import type { LogRecord }                                     from '../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                                         from '../lib/tracker-model/Board.ts';
+import { boardFixture, entityPipelineFixture, ticketFixture } from './BoardFixtures.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }            from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
@@ -72,6 +72,13 @@ function logEveryGateProfileRecordKind(board: Board, at: string): void {
   board.stopGateProfile(board.queueGateProfile(request, at).run.profileRunId, at);
 }
 
+/** A ticket's entity is set only on a board whose pipeline names entities, which the main scenario's board does not have. */
+function entityAssignedRecordsOf(at: string): LogRecord[] {
+  const { board, records } = boardFixture({ tickets: [ticketFixture({ id: '003', status: 'draft' })], pipeline: entityPipelineFixture() });
+  board.setTicketEntity('003', { entity: 'web', reason: 'The search page lives in the web app', by: 'product-owner' }, at);
+  return records;
+}
+
 export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   const { board, records } = boardFixture({
     tickets: [
@@ -84,6 +91,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.fileTicket(ticketFixture({ id: '003', title: 'Example search page', status: 'draft' }), at);
   board.editTicket('003', { title: 'Example search results page' }, at);
   board.setTicketNetwork('003', ['api.example.com'], at);
+  records.push(...entityAssignedRecordsOf(at));
   board.submitDraftTickets(['003'], () => [], at);
   board.readyDraftTickets(['003'], () => [], at, ['ready-for-review']);
   board.setTicketPriority('001', 'high', at);

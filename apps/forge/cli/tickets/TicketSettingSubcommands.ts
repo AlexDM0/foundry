@@ -13,6 +13,7 @@ import { OptionValueUtil }                                              from '..
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import type { TicketSubcommandHandler }                                 from './@types/TicketSubcommandHandler.ts';
 import { setTicketDependencies }                                        from './TicketDepends.ts';
+import { setTicketEntity }                                              from './TicketEntity.ts';
 import { setTicketEpics }                                               from './TicketEpic.ts';
 import { holdOrUnholdTicket }                                           from './TicketHold.ts';
 import { setTicketIntroducedBy }                                        from './TicketIntroducedBy.ts';
@@ -132,6 +133,7 @@ async function setTicketNetwork(commandArguments: ArgumentParser, context: Comma
 
 export const TICKET_SETTING_SUBCOMMANDS: Readonly<Record<string, TicketSubcommandHandler>> = {
   network:         setTicketNetwork,
+  entity:          setTicketEntity,
   link:            linkOneTicket,
   depends:         setTicketDependencies,
   epic:            setTicketEpics,

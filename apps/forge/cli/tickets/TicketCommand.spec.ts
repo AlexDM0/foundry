@@ -877,6 +877,7 @@ describeWhenGitIsRecorded('the subcommand groups', () => {
       'agent',
       'deliver',
       'depends',
+      'entity',
       'epic',
       'hold',
       'introduced-by',

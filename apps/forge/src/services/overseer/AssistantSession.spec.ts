@@ -264,7 +264,7 @@ describe('the Hatch refuses the Assistant everything but its incident moves (A8)
     id: 'I4', kind: 'blocked' as const, ticketIds: ['011'], jobId: 'J2'
   };
   const assistant = {
-    id: ASSISTANT_ID, role: 'assistant' as const, ticketIds: [], filedTickets: [], deliveredIncidents: [blocked], setupId: null
+    id: ASSISTANT_ID, role: 'assistant' as const, ticketIds: [], filedTickets: [], deliveredIncidents: [blocked], ticketIdsReadyForReviewOrPending: [], setupId: null
   };
   const refused: readonly [string, ControlCommand][] = [
     ['filing', {

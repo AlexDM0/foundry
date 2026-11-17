@@ -5,6 +5,7 @@ export type RoleCommandRefusalReason =
   | 'worker-filing-flag'
   | 'worker-filing-limit'
   | 'not-own-draft'
+  | 'not-own-draft-or-unclaimed-ticket'
   | 'incident-move-not-allowed'
   | 'incident-target-mismatch'
   | 'job-serves-no-setup';
