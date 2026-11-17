@@ -53,6 +53,10 @@ export interface Draft {
   /** Stored and never wound back, so a dropped item's number is never handed to a new one. */
   nextNoteNumber:     number;
   nextQuestionNumber: number;
+  /** The key of the entity the draft's tickets are filed for in a forge with entities; absent until the filing session names one. */
+  entity?:            string;
+  /** The keys of the whitelisted packages the draft's tickets are expected to cross into; absent when none. */
+  crosses?:           string[];
   /** Every stored key the model does not own, in stored order, so a rewrite does not eat it. */
   extra:              Array<[key: string, value: unknown]>;
 }

@@ -56,6 +56,9 @@ const TICKET_LINK_KEYS = ['introducedBy', 'foundInReview'] as const;
 
 const FILED_BY_JOB_KEY = 'filedByJob';
 
+const ENTITY_KEY  = 'entity';
+const CROSSES_KEY = 'crosses';
+
 const KNOWN_KEYS = new Set<string>([
   'id',
   'title',
@@ -77,6 +80,8 @@ const KNOWN_KEYS = new Set<string>([
   'dependsOn',
   'epics',
   'network',
+  ENTITY_KEY,
+  CROSSES_KEY,
   ...TICKET_LINK_KEYS,
   FILED_BY_JOB_KEY,
   CLAIMED_BODY_HASH_KEY,
@@ -212,6 +217,14 @@ function ticketDocumentTextOf(frontmatter: TicketFrontmatter, body: string, line
 
   if (frontmatter.network !== undefined && frontmatter.network.length > 0) {
     lines.push(`network: ${JSON.stringify(frontmatter.network.join(FRONTMATTER_LIST_JOINER))}`);
+  }
+
+  if (frontmatter.entity !== undefined) {
+    lines.push(`${ENTITY_KEY}: ${JSON.stringify(frontmatter.entity)}`);
+  }
+
+  if (frontmatter.crosses !== undefined && frontmatter.crosses.length > 0) {
+    lines.push(`${CROSSES_KEY}: ${JSON.stringify(frontmatter.crosses.join(FRONTMATTER_LIST_JOINER))}`);
   }
 
   for (const key of TICKET_LINK_KEYS) {
@@ -391,6 +404,7 @@ function frontmatterFrom(
     ...dependencyField(knownValues),
     ...epicsField(knownValues),
     ...networkField(knownValues),
+    ...entityFields(knownValues),
     ...ticketLinkFields(knownValues),
     ...findingFields(knownValues),
     ...claimedBodyHashField(knownValues),
@@ -557,6 +571,30 @@ function networkField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmat
     throw new FrontmatterProblem(`\`network\` names something that is not a public domain: ${nonPublicDomain}`, found.line);
   }
   return network.length === 0 ? {} : { network };
+}
+
+/**
+ * Absent or `null` stays absent like `priority`. `entity` is one key and a blank one is malformed; `crosses` is written
+ * `"design-system, contracts"` and read like `epics`. Whether a key names an entity of the pipeline is not the file's to say.
+ */
+function entityFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter, 'entity' | 'crosses'> {
+  const fields: Pick<TicketFrontmatter, 'entity' | 'crosses'> = {};
+  const entity  = knownValues.get(ENTITY_KEY);
+  const crosses = knownValues.get(CROSSES_KEY);
+
+  if (entity !== undefined && entity.value !== null) {
+    const entityKey = textOf(entity, ENTITY_KEY);
+    if (entityKey.trim() === '') throw new FrontmatterProblem(`\`${ENTITY_KEY}\` is blank, and it has to name an entity`, entity.line);
+    fields.entity = entityKey;
+  }
+  if (crosses !== undefined && crosses.value !== null) {
+    const crossedEntityKeys: string[] = [];
+    for (const crossedEntityKey of String(crosses.value).split(FRONTMATTER_LIST_SEPARATOR_PATTERN).filter((part) => part !== '')) {
+      if (!crossedEntityKeys.includes(crossedEntityKey)) crossedEntityKeys.push(crossedEntityKey);
+    }
+    if (crossedEntityKeys.length > 0) fields.crosses = crossedEntityKeys;
+  }
+  return fields;
 }
 
 /** Absent or `null` stays absent like `priority`. */

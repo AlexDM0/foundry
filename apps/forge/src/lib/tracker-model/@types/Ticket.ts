@@ -56,6 +56,10 @@ export interface TicketFrontmatter {
   epics?:           string[];
   /** The public domains the ticket's agents may reach, lower case, in the order written; absent when its work needs no network. */
   network?:         string[];
+  /** The key of the entity whose pipeline builds the ticket in a forge with entities; absent until the product owner assigns one. */
+  entity?:          string;
+  /** The keys of the whitelisted packages intake expects the ticket to cross into, in the order written; a forecast only. */
+  crosses?:         string[];
   /** On a bug only: the padded id of the delivered ticket whose change introduced it; absent when none was named. */
   introducedBy?:    string;
   /** The padded id of the ticket whose review found this one; absent on a ticket no review filed. */

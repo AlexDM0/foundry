@@ -16,7 +16,9 @@ export type DraftDocumentParsing =
   | { verdict: 'parsed'; draft: Draft }
   | { verdict: 'malformed'; reason: string };
 
-const OWNED_KEYS = ['version', 'id', 'title', 'request', 'openedAt', 'claim', 'notes', 'questions', 'nextNoteNumber', 'nextQuestionNumber'] as const;
+const OWNED_KEYS = [
+  'version', 'id', 'title', 'request', 'openedAt', 'claim', 'notes', 'questions', 'nextNoteNumber', 'nextQuestionNumber', 'entity', 'crosses'
+] as const;
 
 const INDENTATION_SPACES = 2;
 
@@ -31,6 +33,24 @@ function claimOf(value: unknown): DraftClaim | null | undefined {
   const { owner, claimedAt } = claim;
   if (typeof owner !== 'string' || owner.trim() === '' || typeof claimedAt !== 'string') return undefined;
   return { owner, claimedAt };
+}
+
+/** Absent stays absent, so a draft stored before entities existed writes back byte for byte. */
+function entityFieldsOf(document: Record<string, unknown>): Pick<Draft, 'entity' | 'crosses'> | string {
+  const fields: Pick<Draft, 'entity' | 'crosses'> = {};
+  if (Object.hasOwn(document, 'entity')) {
+    const { entity } = document;
+    if (typeof entity !== 'string' || entity.trim() === '') return 'entity is not an entity key that is not blank';
+    fields.entity = entity;
+  }
+  if (Object.hasOwn(document, 'crosses')) {
+    const { crosses } = document;
+    if (!Array.isArray(crosses) || !crosses.every((crossedEntityKey) => typeof crossedEntityKey === 'string' && crossedEntityKey.trim() !== '')) {
+      return 'crosses is not a list of entity keys that are not blank';
+    }
+    fields.crosses = crosses;
+  }
+  return fields;
 }
 
 function malformed(reason: string): DraftDocumentParsing {
@@ -65,12 +85,15 @@ function parsedDraftDocumentOf(text: string): DraftDocumentParsing {
     return malformed(`nextNoteNumber and nextQuestionNumber have to be whole numbers of at least ${FIRST_DRAFT_ITEM_NUMBER}`);
   }
 
+  const entityFields = entityFieldsOf(document);
+  if (typeof entityFields === 'string') return malformed(entityFields);
+
   const ownedKeys: readonly string[] = OWNED_KEYS;
   const extra = Object.entries(document).filter(([key]) => !ownedKeys.includes(key));
   return {
     verdict: 'parsed',
     draft:   {
-      id, title, request, openedAt, claim, notes, questions, nextNoteNumber, nextQuestionNumber, extra
+      id, title, request, openedAt, claim, notes, questions, nextNoteNumber, nextQuestionNumber, ...entityFields, extra
     },
   };
 }
@@ -89,6 +112,8 @@ function draftDocumentOf(draft: Readonly<Draft>): Record<string, unknown> {
     ['questions', draft.questions],
     ['nextNoteNumber', draft.nextNoteNumber],
     ['nextQuestionNumber', draft.nextQuestionNumber],
+    ...(draft.entity === undefined ? [] : [['entity', draft.entity]]),
+    ...(draft.crosses === undefined ? [] : [['crosses', draft.crosses]]),
     ...draft.extra,
   ]);
 }

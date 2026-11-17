@@ -1,6 +1,7 @@
 /**
  * What `src/adapters/tickets/utils/TicketDocumentUtil.ts` must survive from outside the CLI — unknown keys, comments, CRLF,
- * a byte order mark, `---` inside the body — and the verdicts a malformed ticket comes back as.
+ * a byte order mark, `---` inside the body — and the verdicts a malformed ticket comes back as. A ticket without a key added later, such
+ * as `entity` or `crosses`, writes back byte for byte, so a forge that never sets one never changes a ticket file.
  */
 
 import { describe, expect, test }                                from 'bun:test';
@@ -608,6 +609,54 @@ describe('network', () => {
     expect(TicketDocumentUtil.parsedTicketDocumentOf(withNetwork('"api.example.com, localhost"'))).toMatchObject({
       verdict: 'malformed',
       reason:  '`network` names something that is not a public domain: localhost',
+    });
+  });
+});
+
+describe('entity and crosses', () => {
+  const ENTITY_TICKET = FULL_TICKET.replace('task: 17\n', 'entity: "checkout-app"\ncrosses: "design-system, contracts"\ntask: 17\n');
+
+  test('a ticket without the keys reads neither and writes back byte for byte', () => {
+    const { frontmatter, body, lineEnding } = parsedDocument(FULL_TICKET);
+
+    expect(Object.hasOwn(frontmatter, 'entity')).toBe(false);
+    expect(Object.hasOwn(frontmatter, 'crosses')).toBe(false);
+    expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body, lineEnding)).toBe(FULL_TICKET);
+  });
+
+  test('a ticket with the keys reads them back in order and writes back byte for byte', () => {
+    const { frontmatter, body, lineEnding } = parsedDocument(ENTITY_TICKET);
+
+    expect(frontmatter.entity).toBe('checkout-app');
+    expect(frontmatter.crosses).toEqual(['design-system', 'contracts']);
+    expect(frontmatter.extra).toEqual([]);
+    expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body, lineEnding)).toBe(ENTITY_TICKET);
+  });
+
+  test('the keys are written after the network, and clearing them leaves the file as one that never had them', () => {
+    const { frontmatter, body } = parsedDocument(FULL_TICKET);
+    frontmatter.network         = ['api.example.com'];
+    frontmatter.entity          = 'checkout-app';
+    frontmatter.crosses         = ['design-system'];
+
+    const written = TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body);
+
+    expect(written).toContain('network: "api.example.com"\nentity: "checkout-app"\ncrosses: "design-system"\ntask: 17');
+    delete frontmatter.network;
+    delete frontmatter.entity;
+    frontmatter.crosses = [];
+    expect(TicketDocumentUtil.ticketDocumentTextOf(frontmatter, body)).toBe(FULL_TICKET);
+  });
+
+  test('null reads as absent, a hand-written list reads a repeat once, and a blank entity is malformed at its line', () => {
+    const withLines = (lines: string): string => FULL_TICKET.replace('task: 17\n', `${lines}\ntask: 17\n`);
+
+    expect(parsedDocument(withLines('entity: null\ncrosses: null')).frontmatter).not.toHaveProperty('entity');
+    expect(parsedDocument(withLines('crosses: design-system,contracts  design-system')).frontmatter.crosses).toEqual(['design-system', 'contracts']);
+    expect(TicketDocumentUtil.parsedTicketDocumentOf(withLines('entity: ""'))).toEqual({
+      verdict: 'malformed',
+      reason:  '`entity` is blank, and it has to name an entity',
+      line:    14,
     });
   });
 });
