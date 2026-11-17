@@ -75,6 +75,7 @@
     "./MultipleChoiceQuestion": "./organisms/MultipleChoiceQuestion.tsx",
     "./Pane": "./organisms/Pane.tsx",
     "./ReorderableList": "./organisms/ReorderableList.tsx",
+    "./SelectionRail": "./organisms/SelectionRail.tsx",
     "./SidePanel": "./organisms/SidePanel.tsx",
     "./Tabs": "./organisms/Tabs.tsx",
     "./design-system.css": "./styles/design-system.css",

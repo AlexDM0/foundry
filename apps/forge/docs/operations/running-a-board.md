@@ -157,6 +157,9 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | a marked card | it is new, or its state moved, on the latest board update; the mark lasts a moment |
 | an outlined lane | the header figure you followed points at it; the outline lasts a moment |
 | a dashed card | a ticket waiting: paused or awaiting review; in the draft colours, a [draft ticket](../glossary.md#draft-ticket), a [filing draft](../glossary.md#filing-draft) or a ticket ready for review |
+| `web`, on a card | on a forge with entities, the entity the ticket belongs to |
+| five small bars and `Package review in example-ui, stage 3 of 5` | a ticket that crosses into a package: its stages, done filled, the current one in the accent colour, the package's stages dashed |
+| `web 2` under a lane head | on a forge with entities, a swimlane: the lane's tickets of that entity; `No entity yet` holds the tickets the product owner has not given one |
 
 | You can | How |
 | --- | --- |
@@ -165,8 +168,10 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | Hold or lift a hold | open its card; Hold… is under Other moves, and Unhold leads for a held ticket |
 | Change a priority | open a pending ticket's card; Priority… under Other moves opens the other priorities |
 | Filter by [epic](../glossary.md#epic) | tick its row under Epic in the filter line's menu; the filter line names it, and the choice is kept in the browser |
-| See the Ready order by [wave](../glossary.md#wave) | filed or by wave under Order Ready in the same menu, offered once any ticket has a dependency |
-| Clear the filters | Reset filters in that menu: every epic row, the Ready order and the finished-work window go back |
+| See the Ready order by [wave](../glossary.md#wave) | filed or by wave under Order Ready in the same menu, offered once any ticket has a dependency; by wave wins over the swimlanes in the Ready lane |
+| Filter by entity | on a forge with entities, press an entity in the rail beside the lanes; a package also shows the crossing tickets whose package stage runs in it, and All entities shows every ticket again |
+| Turn the swimlanes off | none under Swimlanes in the filter line's menu, offered on a forge with entities |
+| Clear the filters | Reset filters in that menu: every epic row, the Ready order, the entity, the swimlanes and the finished-work window go back |
 | Page the closed lanes | Show more on Done and Abandoned; Abandoned starts folded to a strip |
 | Show older closed work | Done and Abandoned follow the filter line; show all under a lane widens it |
 
@@ -704,7 +709,7 @@ Agents tab.
 | Kept across tabs and reloads, in the browser | Lost on a tab change |
 | --- | --- |
 | Last tab, theme | Tickets search, chips and sort |
-| Kanban epic filter, Ready order, closed-lane pages, Abandoned fold | Half-picked answers, half-typed messages and reasons |
+| Kanban epic and entity filter, Ready order, swimlanes, closed-lane pages, Abandoned fold | Half-picked answers, half-typed messages and reasons |
 | Chart range, folds, row options, finished-work span | Agents' open transcripts, replayed from history when reopened |
 | Tickets grouping | |
 

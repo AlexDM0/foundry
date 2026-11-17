@@ -42,11 +42,11 @@ import { ChangeGroup }                                         from '../entities
 import { ChangeGroupModel }                                    from '../entities/ChangeGroupModel.ts';
 import { EntityLevelBreadcrumb }                               from '../entities/EntityLevelBreadcrumb.tsx';
 import { EntityLevelFactsModel }                               from '../entities/EntityLevelFactsModel.ts';
-import { EntityRail }                                          from '../entities/EntityRail.tsx';
 import { ForgeLevelPage }                                      from '../entities/ForgeLevelPage.tsx';
 import { ForgeLevelPageModel }                                 from '../entities/ForgeLevelPageModel.ts';
 import { MonorepoLevelContext, type MonorepoLevelScope }       from '../entities/MonorepoLevelContext.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
+import { PipelineLevelRail }                                   from '../entities/PipelineLevelRail.tsx';
 import { FlowGlyph }                                           from '../flow/FlowGlyph.tsx';
 import { useFlowSelection, type FlowSelection }                from '../flow/FlowSelection.ts';
 import { BillingStepModel }                                    from './BillingStepModel.ts';
@@ -250,7 +250,7 @@ function DesignPage({
       {...(shown === null
         ? {}
         : {
-          rail:       <EntityRail facts={facts} level={shown.level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(shown.route, target))} />,
+          rail:       <PipelineLevelRail facts={facts} level={shown.level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(shown.route, target))} />,
           breadcrumb: <EntityLevelBreadcrumb level={shown.level} forgeLevelHref={hrefOf(FORGE_LEVEL)} />,
           levelPage:  PipelineLevelModel.isForgeLevel(shown.level)
             ? <ForgeLevelPage facts={facts} selection={selection} entityHrefOf={(key) => hrefOf(PipelineLevelModel.entityLevelOf(key))} />

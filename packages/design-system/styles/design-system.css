@@ -64,5 +64,6 @@
 @import "../organisms/MultipleChoiceQuestion.css";
 @import "../organisms/Pane.css";
 @import "../organisms/ReorderableList.css";
+@import "../organisms/SelectionRail.css";
 @import "../organisms/SidePanel.css";
 @import "../organisms/Tabs.css";

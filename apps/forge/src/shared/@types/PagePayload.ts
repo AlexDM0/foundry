@@ -2,7 +2,7 @@
 
 import type { DraftSummary }                   from '../../lib/tracker-model/@types/Draft.ts';
 import type { EpicRollup }                     from '../../lib/tracker-model/@types/Epic.ts';
-import type { DisplayState }                   from '../../lib/tracker-model/@types/Task.ts';
+import type { DisplayState, TicketStage }      from '../../lib/tracker-model/@types/Task.ts';
 import type { ReadyTicket, TicketFrontmatter } from '../../lib/tracker-model/@types/Ticket.ts';
 import type { IdentifiedLogEntry }             from './WordedLogEntry.ts';
 import type { WordedProgressDocument }         from './WordedProgressDocument.ts';
@@ -49,6 +49,10 @@ export interface PageTicketFacts {
   displayState:       DisplayState;
   /** Empty for a closed ticket and for one whose dependencies are all settled. */
   waitingOnTicketIds: string[];
+  /** On a forge with entities, once the ticket names its entity; absent on every ticket of a forge without entities. */
+  entity?:            string;
+  /** The stage a crossing ticket is in, from its own row; absent on a ticket that crosses into no package. */
+  stage?:             TicketStage;
 }
 
 /** The Board's answers the progress island carries as its last key. */

@@ -31,13 +31,20 @@ export function boardFactsOf(board: Board): PageBoardFacts {
     ownRowPositionOfReviewedTicket: ownRowPositionByBar.get(task) ?? null,
   }));
 
-  const tickets = board.tickets().map((ticket): PageTicketFacts => ({
-    ticketId:           ticket.frontmatter.id,
-    ownRowPosition:     positionOf(board.ownRowOf(ticket.frontmatter.id), rowPositions),
-    reviewBarPositions: board.reviewBarsOf(ticket.frontmatter.id).flatMap((bar) => positionOf(bar, rowPositions) ?? []),
-    displayState:       board.ticketDisplayStateOf(ticket),
-    waitingOnTicketIds: board.waitingOnOf(ticket),
-  }));
+  const tickets = board.tickets().map((ticket): PageTicketFacts => {
+    const ownRow = board.ownRowOf(ticket.frontmatter.id);
+    const { entity } = ticket.frontmatter;
+    const stage = ownRow?.stage;
+    return {
+      ticketId:           ticket.frontmatter.id,
+      ownRowPosition:     positionOf(ownRow, rowPositions),
+      reviewBarPositions: board.reviewBarsOf(ticket.frontmatter.id).flatMap((bar) => positionOf(bar, rowPositions) ?? []),
+      displayState:       board.ticketDisplayStateOf(ticket),
+      waitingOnTicketIds: board.waitingOnOf(ticket),
+      ...entity === undefined ? {} : { entity },
+      ...stage === undefined ? {} : { stage: { ...stage } },
+    };
+  });
 
   return {
     rows, tickets, epics: board.epicRollups(), readyTickets: board.readyTicketEntries(), drafts: board.openDraftSummaries()

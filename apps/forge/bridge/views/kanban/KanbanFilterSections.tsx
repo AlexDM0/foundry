@@ -1,6 +1,6 @@
 /**
- * The filter menu's two Kanban sections: Epic, one checkable row per epic holding open work (each pressed epic's roll-up under its row),
- * and Order Ready, filed or by wave, shown only on a board with dependencies.
+ * The filter menu's Kanban sections: Epic, one checkable row per epic holding open work (each pressed epic's roll-up under its row),
+ * Order Ready, filed or by wave, shown only on a board with dependencies, and Swimlanes, by entity or none, shown only in monorepo mode.
  */
 
 import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
@@ -14,6 +14,7 @@ import type { EpicRollupDocument }                                            fr
 import { DetailRoute }                                                        from '../../shell/DetailRoute.ts';
 import { HashRouter }                                                         from '../../shell/HashRouter.ts';
 import { EpicRollupUtil }                                                     from '../../utils/EpicRollupUtil.ts';
+import { KANBAN_SWIMLANES, type KanbanSwimlanes }                             from './KanbanEntityFilterModel.ts';
 import type { KanbanFilterChoices }                                           from './KanbanFilterChoices.ts';
 import { KANBAN_READY_ORDERS, type KanbanFilterModel, type KanbanReadyOrder } from './KanbanModel.ts';
 
@@ -25,6 +26,8 @@ export interface KanbanFilterSectionsProps {
 }
 
 const READY_ORDER_LABEL: Readonly<Record<KanbanReadyOrder, string>> = { 'filed': 'filed', 'by-wave': 'by wave' };
+
+const SWIMLANES_LABEL: Readonly<Record<KanbanSwimlanes, string>> = { 'by-entity': 'by entity', 'none': 'none' };
 
 const HELD_COUNT_HINT = '↦ N on a card: tickets that wait on it, directly or further down the chain.';
 
@@ -41,6 +44,7 @@ function EpicStripRollup({ epic }: { readonly epic: EpicRollupDocument }) {
 export function KanbanFilterSections({ filters, choices, epicRollups }: KanbanFilterSectionsProps) {
   const epicLabelId = useId();
   const orderLabelId = useId();
+  const swimlanesLabelId = useId();
   const rollupByKey = new Map(epicRollups.map((epic) => [epic.key, epic]));
   return (
     <>
@@ -97,6 +101,22 @@ export function KanbanFilterSections({ filters, choices, epicRollups }: KanbanFi
           </section>
         )
         : null}
+      {filters.entityFilter === null
+        ? null
+        : (
+          <section className="bridge-filter-section">
+            <div className="bridge-filter-section-head">
+              <MicroCapsLabel text="Swimlanes" id={swimlanesLabelId} />
+              <span className="bridge-filter-scope">Kanban</span>
+            </div>
+            <SegmentedControl
+              labelledBy={swimlanesLabelId}
+              options={KANBAN_SWIMLANES.map((swimlanes) => ({ value: swimlanes, label: SWIMLANES_LABEL[swimlanes] }))}
+              selected={filters.entityFilter.swimlanes}
+              onSelect={choices.chooseSwimlanes}
+            />
+          </section>
+        )}
     </>
   );
 }

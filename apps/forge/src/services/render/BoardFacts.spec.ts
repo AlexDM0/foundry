@@ -2,6 +2,7 @@
  * The mapping's contract only, not the Board's rules, which `Board.displayQueries.spec.ts` pins: one row fact per row at its index, each fact
  * the Board query's answer for that very record, and every position an index into `board.tasks()`. Duplicated ids, bars of a ticket
  * with no file and rows naming a missing ticket are the cases a hand edit produces, so each is pinned not to shift or break the mapping.
+ * A ticket's entity and its crossing stage are added keys: a ticket without them gets neither, so a forge without entities keeps its facts.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -174,6 +175,34 @@ describe('boardFactsOf', () => {
 
     expect(readyTickets).toEqual(board.readyTicketEntries());
     expect(readyTickets.map((entry) => [entry.id, entry.held ?? false])).toEqual([['001', true], ['003', false], ['002', false]]);
+  });
+
+  test('gives a ticket\'s entity from its frontmatter and its crossing stage from its own row, and neither key where none is set', () => {
+    const { board } = boardFixture({
+      tasks: [
+        taskFixture({
+          id: 1, status: 'in-progress', ticket: '001', stage: { name: 'package-review', entity: 'example-ui' }
+        }),
+        taskFixture({ id: 2, status: 'in-progress', ticket: '002' }),
+      ],
+      tickets: [
+        ticketFixture({
+          id: '001', status: 'in-progress', task: 1, entity: 'web'
+        }),
+        ticketFixture({
+          id: '002', status: 'in-progress', task: 2, entity: 'web'
+        }),
+        ticketFixture({ id: '003' }),
+      ],
+    });
+
+    const [crossing, staying, single] = boardFactsOf(board).tickets;
+
+    expect(crossing?.entity).toBe('web');
+    expect(crossing?.stage).toEqual({ name: 'package-review', entity: 'example-ui' });
+    expect(staying?.entity).toBe('web');
+    expect(staying !== undefined && Object.hasOwn(staying, 'stage')).toBe(false);
+    expect(single !== undefined && (Object.hasOwn(single, 'entity') || Object.hasOwn(single, 'stage'))).toBe(false);
   });
 
   test('gives empty lists for an empty Board', () => {

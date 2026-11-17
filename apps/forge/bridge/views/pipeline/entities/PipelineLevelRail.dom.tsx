@@ -1,5 +1,5 @@
 /**
- * The entity rail in a happy-dom document. What matters: the forge row leads and the entities follow in their labelled groups, each a
+ * The level rail in a happy-dom document. What matters: the forge row leads and the entities follow in their labelled groups, each a
  * real button named by its key, kind, mark and counts; the selected row is the current one with the selection look and the one tab stop;
  * a press moves to that row's level; the arrow keys, Home and End move the focus between rows, wrapping, without moving the level; the
  * filter field narrows the entities and says when none matches; the attention line and the note show only while an entity needs a look.
@@ -19,17 +19,17 @@ import {
 } from 'bun:test';
 
 import { pipelineBoardStateOf }                                from '../../../testing/PipelineFixture.ts';
-import { EntityRail }                                          from './EntityRail.tsx';
-import type { EntityRailFacts }                                from './EntityRailModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
+import { PipelineLevelRail }                                   from './PipelineLevelRail.tsx';
+import type { PipelineLevelRailFacts }                         from './PipelineLevelRailModel.ts';
 
 afterEach(cleanup);
 
 const WEB_LEVEL = PipelineLevelModel.entityLevelOf('web');
 
-function renderRail(facts: EntityRailFacts, level: PipelineLevel = WEB_LEVEL) {
+function renderRail(facts: PipelineLevelRailFacts, level: PipelineLevel = WEB_LEVEL) {
   const selected: PipelineLevel[] = [];
-  render(<EntityRail facts={facts} level={level} onSelect={(next) => selected.push(next)} />);
+  render(<PipelineLevelRail facts={facts} level={level} onSelect={(next) => selected.push(next)} />);
   return { selected };
 }
 
@@ -37,7 +37,7 @@ function rowButtons(): HTMLElement[] {
   return within(screen.getByRole('navigation', { name: 'Pipeline levels' })).getAllByRole('button');
 }
 
-describe('the entity rail', () => {
+describe('the pipeline level rail', () => {
   test('the forge row leads, and each entity is a button in its group, named by its key, kind and mark', () => {
     renderRail(pipelineBoardStateOf('mono-design'));
     expect(rowButtons().map((button) => button.getAttribute('aria-label'))).toEqual([

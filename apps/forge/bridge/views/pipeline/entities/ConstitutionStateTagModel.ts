@@ -6,7 +6,7 @@
  */
 import type { EntityKey, PipelineEntity }             from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup, PipelineSetupStepState } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { EntityRailMarkTexts }                   from './EntityRailModel.ts';
+import type { PipelineLevelRailMarkTexts }            from './PipelineLevelRailModel.ts';
 
 export type ConstitutionState = 'adopted' | 'drafted' | 'default' | 'not-started' | 'kept-for-a-person';
 
@@ -96,7 +96,7 @@ function stateInListOf(constitutions: readonly EntityConstitution<ConstitutionSt
 }
 
 /** The rail's word for each entity's state and its attention line. */
-function railMarkTextsOf(constitutions: readonly EntityConstitution<ConstitutionStateEntity>[]): EntityRailMarkTexts {
+function railMarkTextsOf(constitutions: readonly EntityConstitution<ConstitutionStateEntity>[]): PipelineLevelRailMarkTexts {
   return {
     textOf:        (entityKey) => textOf(stateInListOf(constitutions, entityKey)),
     attentionText: attentionTextOf(constitutions.map((constitution) => constitution.state)),

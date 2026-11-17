@@ -2,7 +2,9 @@
  * The filter menu's Kanban sections, composed as the shell composes them: the choices hook, the filter line and menu, and the board. What
  * matters: an Epic row narrows the board, stores the pressed rows under their key, shows the pressed epic's roll-up under its row and names
  * it in the filter line; the no-epic row reads "no epic"; Order Ready shows only on a board with dependencies, with its hint, orders the
- * Ready lane by wave and stores that; and "Reset filters" releases every row and files the Ready lane again, clearing both keys.
+ * Ready lane by wave and stores that; Swimlanes shows only in monorepo mode, turns the entity heads off and stores that; the entity rail
+ * stores the chosen entity; and "Reset filters" releases every row, files the Ready lane again, shows every entity and puts the swimlanes
+ * back by entity, clearing every key.
  */
 import {
   act,
@@ -36,6 +38,15 @@ import { KanbanView }                                   from './KanbanView.tsx';
 
 const EPICS_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-epics`;
 const ORDER_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-todo-order`;
+const ENTITY_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-entity`;
+const SWIMLANES_KEY = `${PRODUCT_NAMES.STORAGE_PREFIX}:example-tracker:kanban-swimlanes`;
+
+const MONOREPO_BOARD = exampleBoard({
+  filingDrafts: [],
+  tickets:      [exampleTicket('001'), exampleTicket('002')],
+  entities:     { 'web': { kind: 'app' }, 'example-ui': { kind: 'package' } },
+  entityById:   { '001': 'web', '002': 'example-ui' },
+});
 
 const BOARD = exampleBoard({
   filingDrafts: [],
@@ -61,8 +72,13 @@ function storeOver(storage: Map<string, string>): PreferenceStore {
 function KanbanWithFilters({ board, store }: { readonly board: KanbanBoardState; readonly store: PreferenceStore }) {
   const [choice, choose] = useFinishedWorkChoice(store);
   const choices = useKanbanFilterChoices(store);
-  const { storedPressedChips, storedReadyOrder } = choices;
-  const filters = useMemo(() => KanbanModel.kanbanFilterModelOf(board, storedPressedChips, storedReadyOrder), [board, storedPressedChips, storedReadyOrder]);
+  const {
+    storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes
+  } = choices;
+  const filters = useMemo(
+    () => KanbanModel.kanbanFilterModelOf(board, storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes),
+    [board, storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes],
+  );
   return (
     <>
       <FinishedWorkFilter
@@ -85,6 +101,7 @@ function KanbanWithFilters({ board, store }: { readonly board: KanbanBoardState;
           streamIsLive
           mergeQueueHref="#kanban/merge-queue"
           onShowAllFinished={() => undefined}
+          onChooseEntity={choices.chooseEntity}
         />
       )).element}
     </>
@@ -142,6 +159,21 @@ describe('the Order Ready section', () => {
   });
 });
 
+describe('the Swimlanes section', () => {
+  test('a board without entities has no Swimlanes section', () => {
+    renderKanbanWithFilters();
+    expect(screen.queryByRole('group', { name: 'Swimlanes' })).toBeNull();
+  });
+
+  test('in monorepo mode, turns the entity heads off and stores that', () => {
+    const storage = renderKanbanWithFilters(MONOREPO_BOARD);
+    expect(document.querySelectorAll('[data-swimlane]').length).toBe(2);
+    clicked(within(screen.getByRole('group', { name: 'Swimlanes' })).getByRole('button', { name: 'none' }));
+    expect(document.querySelectorAll('[data-swimlane]').length).toBe(0);
+    expect(storage.get(SWIMLANES_KEY)).toBe('none');
+  });
+});
+
 describe('Reset filters', () => {
   test('releases every epic row and files the Ready lane again, clearing both keys', () => {
     const storage = renderKanbanWithFilters();
@@ -151,5 +183,15 @@ describe('Reset filters', () => {
     expect([storage.has(EPICS_KEY), storage.has(ORDER_KEY)]).toEqual([false, false]);
     expect(readyCardIds()).toEqual(['#001', '#002', '#003']);
     expect(document.querySelector('.bridge-filter-epic')).toBeNull();
+  });
+
+  test('in monorepo mode, also shows every entity and puts the swimlanes back by entity, clearing their keys', () => {
+    const storage = renderKanbanWithFilters(MONOREPO_BOARD);
+    clicked(within(screen.getByRole('region', { name: 'Kanban entities' })).getByRole('button', { name: /^web,/u }));
+    clicked(within(screen.getByRole('group', { name: 'Swimlanes' })).getByRole('button', { name: 'none' }));
+    expect([storage.get(ENTITY_KEY), readyCardIds()]).toEqual(['web', ['#001']]);
+    clicked(screen.getByRole('button', { name: 'Reset filters' }));
+    expect([storage.has(ENTITY_KEY), storage.has(SWIMLANES_KEY)]).toEqual([false, false]);
+    expect(readyCardIds()).toEqual(['#001', '#002']);
   });
 });

@@ -1,8 +1,10 @@
 /** Small synthetic `BoardState`s holding exactly what the Kanban reads, for its view-model specs and its DOM spec. */
-import type { KanbanBoardState, KanbanTaskDocument, KanbanTicketDocument } from '../@types/KanbanBoardState.ts';
-import { TimeUtil }                                                        from '../utils/TimeUtil.ts';
-import type { KanbanSurroundings }                                         from '../views/kanban/KanbanModel.ts';
-import { EXAMPLE_PAGE_LIMITS }                                             from './TimestampSlicesFixture.ts';
+import type { TicketStage }                              from '../../src/lib/tracker-model/@types/Task.ts';
+import type { KanbanBoardState, KanbanEntityDocument }   from '../@types/KanbanBoardState.ts';
+import type { KanbanTaskDocument, KanbanTicketDocument } from '../@types/KanbanBoardState.ts';
+import { TimeUtil }                                      from '../utils/TimeUtil.ts';
+import type { KanbanSurroundings }                       from '../views/kanban/KanbanModel.ts';
+import { EXAMPLE_PAGE_LIMITS }                           from './TimestampSlicesFixture.ts';
 
 /** Every example ticket was filed at this moment unless a spec says otherwise. */
 export const EXAMPLE_FILED_STAMP = '2026-10-01T09:00:00+02:00';
@@ -55,6 +57,12 @@ export interface ExampleBoardFields {
   readonly displayStateById?:          Readonly<Record<string, KanbanBoardState['page']['payload']['boardFacts']['tickets'][number]['displayState']>>;
   /** The open decisions, in the board's order; none when not given. */
   readonly decisions?:                 KanbanBoardState['decisions'];
+  /** The stored pipeline's entities: given, the board is in monorepo mode; absent, it has no pipeline facts at all. */
+  readonly entities?:                  Readonly<Record<string, KanbanEntityDocument>>;
+  /** Each ticket's entity in the Board's facts. */
+  readonly entityById?:                Readonly<Record<string, string>>;
+  /** Each crossing ticket's stage in the Board's facts. */
+  readonly stageById?:                 Readonly<Record<string, TicketStage>>;
 }
 
 const EMPTY_ROW: KanbanTaskDocument = { start: null, end: null };
@@ -71,6 +79,7 @@ export function exampleBoard(fields: ExampleBoardFields): KanbanBoardState {
   const tasks = [...ownRows.map((row) => row.task), ...reviewRows.map((row) => row.task)];
   return {
     decisions: fields.decisions ?? [],
+    ...fields.entities === undefined ? {} : { pipeline: { readingVerdict: 'readable', pipeline: { entities: fields.entities } } },
     page:      {
       tickets: fields.tickets,
       payload: {
@@ -87,6 +96,8 @@ export function exampleBoard(fields: ExampleBoardFields): KanbanBoardState {
               reviewBarPositions: reviewRows.flatMap((row, index) => (row.ticketId === ticket.id ? [ownRows.length + index] : [])),
               displayState:       fields.displayStateById?.[ticket.id] ?? ticket.status,
               waitingOnTicketIds: fields.waitingOn?.[ticket.id] ?? [],
+              ...fields.entityById?.[ticket.id] === undefined ? {} : { entity: fields.entityById[ticket.id] },
+              ...fields.stageById?.[ticket.id] === undefined ? {} : { stage: fields.stageById[ticket.id] },
             };
           }),
           epics:        [{ key: 'checkout', title: 'Example checkout', slot: 2 }, { key: 'billing', title: 'Example billing', slot: 4 }],

@@ -4,7 +4,7 @@
  * of the detail panel in place, and its asks pill the question panel at the decision naming it; while either panel is open the board gains
  * scroll room the width of what it covers. A card whose state moved since the previous board is marked for a moment, as is a lane a header
  * figure points at; hovering a card draws arrows from the cards it depends on. The closed lanes' pages and the Abandoned fold are kept per
- * board.
+ * board. In monorepo mode the entity rail sits beside the lanes, each card names its entity, and a crossing ticket's card shows its stages.
  * The Kanban is the tickets habitat of Flint (`bridge/flint/UseTicketsHabitat.ts`).
  */
 
@@ -43,6 +43,8 @@ import { ViewTitle }                                                      from '
 import { KanbanChangeHighlightModel }                                     from './KanbanChangeHighlightModel.ts';
 import { KanbanDependencyArrowUtil }                                      from './KanbanDependencyArrowUtil.ts';
 import type { ArrowCardBox, DependencyArrow }                             from './KanbanDependencyArrowUtil.ts';
+import type { KanbanCrossing }                                            from './KanbanEntityFilterModel.ts';
+import { KanbanEntityRail }                                               from './KanbanEntityRail.tsx';
 import { KanbanModel }                                                    from './KanbanModel.ts';
 import {
   ABANDONED_LANE_CLOSED_CHOICE,
@@ -84,6 +86,8 @@ export interface KanbanViewProps {
   readonly laneHighlight?:        KanbanLaneHighlightRequest | null;
   /** The view took `laneHighlight`, so a later visit to the tab does not outline the lane again. */
   readonly onLaneHighlightTaken?: () => void;
+  /** The entity rail's press, in monorepo mode: `null` shows every entity. */
+  readonly onChooseEntity?:       (entityKey: string | null) => void;
 }
 
 const NOTHING_CHANGED: ReadonlySet<string> = new Set();
@@ -110,6 +114,26 @@ const KANBAN_LEAD = 'Every ticket by where it stands. Click a card to open it. H
 function detailItemOf(card: KanbanCardModel): DetailItem | null {
   if (card.ticketId !== null) return { form: 'ticket', ticketId: card.ticketId };
   return card.filingDraftId === null ? null : { form: 'draft', draftId: card.filingDraftId };
+}
+
+/** A crossing ticket's five stages in a row, a package's stages dashed, then where it is in words. */
+function CrossingStages({ crossing }: { readonly crossing: KanbanCrossing }) {
+  return (
+    <div className="bridge-kanban-crossing">
+      <ol className="bridge-kanban-crossing-stages" aria-hidden="true">
+        {crossing.stages.map((stage) => (
+          <li
+            key={stage.name}
+            className="bridge-kanban-crossing-stage"
+            data-owner={stage.owner}
+            data-status={stage.status}
+            title={stage.entityKey === null ? stage.label : `${stage.label} · ${stage.entityKey}`}
+          />
+        ))}
+      </ol>
+      <span className="bridge-kanban-crossing-text">{crossing.text}</span>
+    </div>
+  );
 }
 
 interface KanbanCardProps {
@@ -179,6 +203,7 @@ function KanbanCard({
           {card.size === null ? null : <span className="bridge-kanban-size" data-size={card.size} title={`Size ${card.size}`}>{card.size}</span>}
           {card.priority === null ? null : <PriorityMark priority={card.priority} />}
           {card.ticketType === null ? null : <TypeMark type={card.ticketType} />}
+          {card.entityKey === undefined ? null : <span className="bridge-kanban-entity">{card.entityKey}</span>}
           {card.hasNeededFirst ? <span className="bridge-kanban-needed-first" aria-hidden="true">needed first</span> : null}
           {heldCount === null && card.tokensText === null
             ? null
@@ -205,6 +230,7 @@ function KanbanCard({
             </Row>
           )
           : null}
+        {card.crossing === undefined ? null : <CrossingStages crossing={card.crossing} />}
         {card.note === null ? null : <p className="bridge-kanban-note">{card.note}</p>}
         <Row between centerY gap="eight">
           <div className="bridge-kanban-state">
@@ -304,6 +330,14 @@ function groupHeadOf(group: KanbanCardGroupModel) {
       return <div className="bridge-lane-group" data-state-group={group.stateGroup}>{group.title} <span className="bridge-lane-group-count">{group.count}</span></div>;
     case 'wave':
       return <div className="bridge-lane-group">{group.label} <span className="bridge-lane-group-note">{group.note}</span></div>;
+    case 'entity':
+      return (
+        <div className="bridge-lane-group" data-swimlane={group.entityKey === null ? 'none' : 'entity'}>
+          <span className="bridge-lane-swimlane-title">{group.title}</span>
+          {' '}
+          <span className="bridge-lane-group-count">{group.count}</span>
+        </div>
+      );
   }
 }
 
@@ -479,7 +513,7 @@ function panelRoomStyleOf(panelRoom: PanelRoom): CSSProperties {
 }
 
 export function KanbanView({
-  boardState, filters, boardStore, streamIsLive, mergeQueueHref, onShowAllFinished, laneHighlight = null, onLaneHighlightTaken
+  boardState, filters, boardStore, streamIsLive, mergeQueueHref, onShowAllFinished, laneHighlight = null, onLaneHighlightTaken, onChooseEntity
 }: KanbanViewProps) {
   const clock = useBridgeClock();
   const routing = useDetailRouting();
@@ -645,52 +679,63 @@ export function KanbanView({
     if (shownArrows !== null) drawArrows(shownArrows.hoveredTicketId, false);
   };
 
+  const frame = (
+    <div
+      className="bridge-kanban-frame"
+      ref={frameReference}
+      data-overflow={overflowDirections ?? undefined}
+      style={panelRoom === null ? undefined : { '--panel-cover': `${panelRoom.coverPixels}px` } as CSSProperties}
+      onMouseOver={hoverCard}
+      onMouseLeave={() => setShownArrows(null)}
+    >
+      <div
+        className="bridge-kanban-lanes"
+        ref={lanesReference}
+        data-panel-room={panelRoom === null ? undefined : ''}
+        style={panelRoom === null ? undefined : panelRoomStyleOf(panelRoom)}
+        onScroll={scrollLanes}
+      >
+        {model.lanes.map((lane) => (
+          <KanbanLane
+            key={lane.key}
+            lane={lane}
+            changedCardKeys={changedCardKeys}
+            neededFirstCardKeys={neededFirstCardKeys}
+            onFollow={followToCard}
+            highlightEdge={shownLaneHighlight?.laneKey === lane.key ? shownLaneHighlight.edge : null}
+            mergeQueueHref={mergeQueueHref}
+            onToggleCollapse={toggleAbandonedLane}
+            onShowCount={showCount}
+            onShowAllFinished={onShowAllFinished}
+          />
+        ))}
+      </div>
+      {shownArrows === null || shownArrows.arrows.length === 0
+        ? null
+        : (
+          <svg className="bridge-kanban-arrows" aria-hidden="true" data-still={shownArrows.drawsIn ? undefined : ''}>
+            {shownArrows.arrows.map((arrow, index) => (
+              <g key={arrow.linePath} data-route={arrow.route} style={{ '--arrow-delay': `${index * ARROW_STAGGER_MILLISECONDS}ms` } as CSSProperties}>
+                <path className="bridge-kanban-arrow-line" pathLength={1} d={arrow.linePath} />
+                <path className="bridge-kanban-arrow-head" d={arrow.headPath} />
+              </g>
+            ))}
+          </svg>
+        )}
+    </div>
+  );
+
   return (
     <section className="bridge-kanban" aria-label="Kanban" ref={viewElement} data-flint-workplace="">
       <ViewTitle title="Kanban" lead={KANBAN_LEAD} />
-      <div
-        className="bridge-kanban-frame"
-        ref={frameReference}
-        data-overflow={overflowDirections ?? undefined}
-        style={panelRoom === null ? undefined : { '--panel-cover': `${panelRoom.coverPixels}px` } as CSSProperties}
-        onMouseOver={hoverCard}
-        onMouseLeave={() => setShownArrows(null)}
-      >
-        <div
-          className="bridge-kanban-lanes"
-          ref={lanesReference}
-          data-panel-room={panelRoom === null ? undefined : ''}
-          style={panelRoom === null ? undefined : panelRoomStyleOf(panelRoom)}
-          onScroll={scrollLanes}
-        >
-          {model.lanes.map((lane) => (
-            <KanbanLane
-              key={lane.key}
-              lane={lane}
-              changedCardKeys={changedCardKeys}
-              neededFirstCardKeys={neededFirstCardKeys}
-              onFollow={followToCard}
-              highlightEdge={shownLaneHighlight?.laneKey === lane.key ? shownLaneHighlight.edge : null}
-              mergeQueueHref={mergeQueueHref}
-              onToggleCollapse={toggleAbandonedLane}
-              onShowCount={showCount}
-              onShowAllFinished={onShowAllFinished}
-            />
-          ))}
-        </div>
-        {shownArrows === null || shownArrows.arrows.length === 0
-          ? null
-          : (
-            <svg className="bridge-kanban-arrows" aria-hidden="true" data-still={shownArrows.drawsIn ? undefined : ''}>
-              {shownArrows.arrows.map((arrow, index) => (
-                <g key={arrow.linePath} data-route={arrow.route} style={{ '--arrow-delay': `${index * ARROW_STAGGER_MILLISECONDS}ms` } as CSSProperties}>
-                  <path className="bridge-kanban-arrow-line" pathLength={1} d={arrow.linePath} />
-                  <path className="bridge-kanban-arrow-head" d={arrow.headPath} />
-                </g>
-              ))}
-            </svg>
-          )}
-      </div>
+      {filters.entityFilter === null
+        ? frame
+        : (
+          <div className="bridge-kanban-body">
+            <KanbanEntityRail filter={filters.entityFilter} onChoose={(entityKey) => onChooseEntity?.(entityKey)} />
+            {frame}
+          </div>
+        )}
     </section>
   );
 }

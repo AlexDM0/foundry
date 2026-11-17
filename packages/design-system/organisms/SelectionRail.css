@@ -1,0 +1,27 @@
+/* A narrow column of rows to choose one from: the filter field, the attention line, the rows in their labelled groups, each a button
+   with its mark, title, subtitle and end, and a note at the foot. The selected row has a filled neutral ground and a 1 px border, never
+   an orange edge. */
+.design-system-selection-rail {
+  display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-10); min-height: 0; overflow-y: auto;
+}
+.design-system-selection-rail-attention { padding: 0 var(--space-4); }
+.design-system-selection-rail-rows { display: flex; flex-direction: column; gap: var(--space-2); }
+.design-system-selection-rail-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.design-system-selection-rail-group-label { padding: var(--space-8) var(--space-10) var(--space-2); }
+.design-system-selection-rail-row {
+  display: flex; align-items: center; gap: var(--sp-2); box-sizing: border-box; width: 100%; min-height: 44px; padding: var(--space-5) var(--space-10);
+  border: 1px solid transparent; border-radius: var(--r-2); background: transparent; color: var(--ink); font: inherit; text-align: left;
+  cursor: pointer;
+}
+.design-system-selection-rail-row:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+.design-system-selection-rail-row:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.design-system-selection-rail-row[data-selected] { border-color: var(--line-strong); background: var(--surface-selected); }
+.design-system-selection-rail-mark { display: inline-flex; flex: none; color: var(--ink); }
+.design-system-selection-rail-row-text { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+.design-system-selection-rail-subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.design-system-selection-rail-row-end { display: inline-flex; flex: none; align-items: center; gap: var(--space-6); }
+.design-system-selection-rail-no-match { margin: 0; padding: var(--space-4) var(--space-10); font-size: var(--fs-small); color: var(--ink-muted); }
+.design-system-selection-rail-note {
+  margin: auto 0 0; padding: var(--space-12) var(--space-10) 0; border-top: 1px solid var(--line); font-size: var(--fs-small); line-height: 17px;
+  color: var(--ink-muted);
+}

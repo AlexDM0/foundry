@@ -320,10 +320,14 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
 
   const bridgeClock = useMemo((): BridgeClock => ({ ...BROWSER_BRIDGE_CLOCK, now: services.now }), [services]);
   const kanbanBoardState = useMemo(() => KanbanModel.kanbanBoardStateOf(boardState), [boardState]);
-  const { storedPressedChips, storedReadyOrder } = kanbanFilterChoices;
+  const {
+    storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes
+  } = kanbanFilterChoices;
   const kanbanFilters = useMemo(
-    () => (kanbanBoardState === null ? null : KanbanModel.kanbanFilterModelOf(kanbanBoardState, storedPressedChips, storedReadyOrder)),
-    [kanbanBoardState, storedPressedChips, storedReadyOrder],
+    () => (kanbanBoardState === null
+      ? null
+      : KanbanModel.kanbanFilterModelOf(kanbanBoardState, storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes)),
+    [kanbanBoardState, storedPressedChips, storedReadyOrder, storedEntity, storedSwimlanes],
   );
   const [markedSeenIncidentIds, setMarkedSeenIncidentIds] = useState<readonly string[] | null>(null);
   const seenIncidentIds = useMemo(
@@ -413,6 +417,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
             onShowAllFinished={() => chooseFinishedWork('all')}
             laneHighlight={laneHighlight}
             onLaneHighlightTaken={takeLaneHighlight}
+            onChooseEntity={kanbanFilterChoices.chooseEntity}
           />
         )
         : null}

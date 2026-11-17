@@ -15,8 +15,8 @@ import { fakeControls }                    from '../../testing/FakeControls.ts';
 import { pipelineBoardStateOf }            from '../../testing/PipelineFixture.ts';
 import { FlowWorkspace }                   from './FlowWorkspace.tsx';
 import { EntityLevelBreadcrumb }           from './entities/EntityLevelBreadcrumb.tsx';
-import { EntityRail }                      from './entities/EntityRail.tsx';
 import { FORGE_LEVEL, PipelineLevelModel } from './entities/PipelineLevelModel.ts';
+import { PipelineLevelRail }               from './entities/PipelineLevelRail.tsx';
 import type { FlowSelection }              from './flow/FlowSelection.ts';
 
 afterEach(cleanup);
@@ -61,7 +61,7 @@ describe('the flow workspace\'s monorepo slots', () => {
         lead="Example lead."
         aside={null}
         footer={null}
-        rail={<EntityRail facts={facts} level={webLevel} onSelect={() => undefined} />}
+        rail={<PipelineLevelRail facts={facts} level={webLevel} onSelect={() => undefined} />}
         breadcrumb={<EntityLevelBreadcrumb level={webLevel} forgeLevelHref={PipelineLevelModel.fragmentAtLevel(FORGE_LEVEL, null)} />}
       />
     );

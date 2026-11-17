@@ -43,10 +43,10 @@ import { EditingAside }                                                   from '
 import { PipelineEditingModel }                                           from './editing/PipelineEditingModel.ts';
 import { EntityLevelBreadcrumb }                                          from './entities/EntityLevelBreadcrumb.tsx';
 import { EntityLevelFactsModel }                                          from './entities/EntityLevelFactsModel.ts';
-import { EntityRail }                                                     from './entities/EntityRail.tsx';
 import { ForgeLevelPage }                                                 from './entities/ForgeLevelPage.tsx';
 import { MonorepoLevelContext }                                           from './entities/MonorepoLevelContext.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }            from './entities/PipelineLevelModel.ts';
+import { PipelineLevelRail }                                              from './entities/PipelineLevelRail.tsx';
 import { useFlowSelection }                                               from './flow/FlowSelection.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
 import { FlowActivityPanel }                                              from './live/FlowActivityPanel.tsx';
@@ -168,7 +168,7 @@ function MonorepoLiveFlow({
         lead={words.lead}
         aside={<FlowActivityPanel facts={facts} stampFormat={stampFormat} clock={clock} level={level} />}
         footer={footer === null ? null : <LiveFooter footer={footer} />}
-        rail={<EntityRail facts={facts} level={level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))} />}
+        rail={<PipelineLevelRail facts={facts} level={level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))} />}
         breadcrumb={<EntityLevelBreadcrumb level={level} forgeLevelHref={hrefOf(FORGE_LEVEL)} />}
         levelPage={PipelineLevelModel.isForgeLevel(level) ? <ForgeLevelLive facts={facts} selection={selection} now={now} /> : null}
       />
@@ -225,7 +225,7 @@ function MonorepoEditingFlow({
               byLevel
             />
           )}
-          rail={<EntityRail facts={facts} level={level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))} />}
+          rail={<PipelineLevelRail facts={facts} level={level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))} />}
           breadcrumb={<EntityLevelBreadcrumb level={level} forgeLevelHref={hrefOf(FORGE_LEVEL)} />}
           levelPage={PipelineLevelModel.isForgeLevel(level)
             ? <ForgeLevelPage facts={facts} selection={selection} entityHrefOf={(key) => hrefOf(PipelineLevelModel.entityLevelOf(key))} />

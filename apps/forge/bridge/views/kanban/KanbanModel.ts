@@ -2,7 +2,8 @@
  * The Kanban as lanes of card models, from the Overseer's `BoardState` and the filter menu's Kanban sections (the pressed epics, the Ready
  * order), which it also models. Which lane a ticket sits in follows its stored status and the merge queue's facts; which ready tickets
  * come first follows the Board's `readyTickets`, so no rule is copied here. What waits on User leads its lane: the tickets for User's
- * review and the drafts lead Ready, and the tickets waiting for User's merge accept lead the Merge queue.
+ * review and the drafts lead Ready, and the tickets waiting for User's merge accept lead the Merge queue. In monorepo mode the entity
+ * filter narrows the board and the swimlanes divide each lane by entity (`KanbanEntityFilterModel`).
  */
 import { TokenCountUtil }                               from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { DisplayState }                            from '../../../src/lib/tracker-model/@types/Task.ts';
@@ -22,6 +23,13 @@ import { FinishedWorkUtil }                             from '../../utils/Finish
 import { HeldCountUtil }                                from '../../utils/HeldCountUtil.ts';
 import type { KanbanCardStamp, KanbanCardTextFormat }   from './KanbanCardTextUtil.ts';
 import { KanbanCardTextUtil }                           from './KanbanCardTextUtil.ts';
+import {
+  DEFAULT_KANBAN_SWIMLANES,
+  KanbanEntityFilterModel,
+  type KanbanCrossing,
+  type KanbanEntityFilter,
+  type KanbanSwimlanes
+} from './KanbanEntityFilterModel.ts';
 
 export const KANBAN_LANES = ['ready', 'building', 'in-review', 'merge-queue', 'done', 'abandoned'] as const;
 
@@ -162,6 +170,10 @@ export interface KanbanCardModel {
   readonly dependsOnTicketIds: readonly string[];
   /** The first open decision naming the ticket, in the order User answers them: the card's asks pill opens the question panel at it. */
   readonly asksDecisionId:     string | null;
+  /** The ticket's entity in monorepo mode; absent in single mode, on a ticket with no entity yet and on a filing draft. */
+  readonly entityKey?:         string;
+  /** The stages of a ticket that crosses into a package; absent on every other card. */
+  readonly crossing?:          KanbanCrossing;
 }
 
 /**
@@ -193,6 +205,15 @@ export type KanbanCardGroupModel =
     readonly title:      string;
     readonly count:      number;
     readonly cards:      readonly KanbanCardModel[];
+  }
+  | {
+    readonly kind:      'entity';
+    readonly key:       string;
+    /** `null` for the tickets with no entity yet. */
+    readonly entityKey: string | null;
+    readonly title:     string;
+    readonly count:     number;
+    readonly cards:     readonly KanbanCardModel[];
   }
   | {
     readonly kind:     'wave';
@@ -326,6 +347,8 @@ export interface KanbanFilterModel {
   /** `filed` on a board without dependencies, whatever was stored. */
   readonly readyOrder:           KanbanReadyOrder;
   readonly lineEpic:             KanbanFilterLineEpic | null;
+  /** The entity filter and the swimlanes in monorepo mode; `null` in single mode. */
+  readonly entityFilter:         KanbanEntityFilter | null;
 }
 
 /** Within one pixel the board counts as scrolled to that edge, so rounding never leaves a fade over a card. */
@@ -403,6 +426,11 @@ function displayStateOf(ticket: KanbanTicketDocument, sources: CardSources): Dis
   return sources.factsById.get(ticket.id)?.displayState ?? ticket.status;
 }
 
+function ariaLabelOf(ticket: KanbanTicketDocument, displayState: DisplayState, readinessState: DisplayState | null, reviewRound: number): string {
+  if (readinessState !== null) return `#${ticket.id} ${ticket.title}, ${readinessState === 'draft' ? 'draft ticket' : wordOf(readinessState)}`;
+  return `#${ticket.id} ${ticket.title}, ${DisplayStateWordingUtil.stateLabelOf(displayState, reviewRound)}, ${priorityOf(ticket)} priority`;
+}
+
 function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources: CardSources): KanbanCardModel {
   const facts         = sources.factsById.get(ticket.id);
   const ownRowPosition = facts?.ownRowPosition ?? null;
@@ -414,6 +442,7 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
   const textSource    = {
     ticket, displayState, ownRow, reviewRows: (facts?.reviewBarPositions ?? []).flatMap((position) => sources.rowAt(position) ?? [])
   };
+  const crossing      = KanbanEntityFilterModel.crossingOf(facts?.stage, facts?.entity ?? null, ticket.crosses ?? []);
   return {
     key:           `ticket:${ticket.id}`,
     ticketId:      ticket.id,
@@ -440,13 +469,15 @@ function ticketCardOf(ticket: KanbanTicketDocument, lane: KanbanLaneKey, sources
       ? KanbanCardTextUtil.reviewedTitleOf(ownRow, sources.textFormat)
       : null,
     stamp:     KanbanCardTextUtil.cardStampOf(textSource, sources.textFormat, lane === 'merge-queue'),
-    ariaLabel: readinessState === null
-      ? `#${ticket.id} ${ticket.title}, ${DisplayStateWordingUtil.stateLabelOf(displayState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND)}, ${priority} priority`
-      : `#${ticket.id} ${ticket.title}, ${readinessState === 'draft' ? 'draft ticket' : wordOf(readinessState)}`,
+    ariaLabel: crossing === null
+      ? ariaLabelOf(ticket, displayState, readinessState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND)
+      : `${ariaLabelOf(ticket, displayState, readinessState, ownRow?.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND)}, ${crossing.text}`,
     hasNeededFirst:     sources.dependedOnTicketIds.has(ticket.id),
     heldCount:          heldCountOf(ticket.id, lane, sources.graph),
     dependsOnTicketIds: ticket.dependsOn ?? [],
     asksDecisionId:     sources.asksDecisionIdOf(ticket.id),
+    ...facts?.entity === undefined ? {} : { entityKey: facts.entity },
+    ...crossing === null ? {} : { crossing },
   };
 }
 
@@ -625,6 +656,18 @@ function stateGroupsOf(cards: readonly KanbanCardModel[]): KanbanCardGroupModel[
   return groups;
 }
 
+/** Each entity's cards under its swimlane head, in the lane's order, counted; then the tickets with no entity yet. */
+function swimlaneGroupsOf(cards: readonly KanbanCardModel[], entityFilter: KanbanEntityFilter): KanbanCardGroupModel[] {
+  return KanbanEntityFilterModel.swimlanesOf(cards, (card) => card.entityKey ?? null, entityFilter).map((swimlane): KanbanCardGroupModel => ({
+    kind:      'entity',
+    key:       `entity-${swimlane.entityKey ?? 'none'}`,
+    entityKey: swimlane.entityKey,
+    title:     swimlane.title,
+    count:     swimlane.cards.length,
+    cards:     swimlane.cards,
+  }));
+}
+
 /** Ready and the merge queue divide by priority, but only while they hold more than one. */
 function laneIsDividedByPriority(lane: KanbanLaneKey, cards: readonly KanbanCardModel[]): boolean {
   return (lane === 'ready' || lane === 'merge-queue') && new Set(cards.map((card) => card.priority)).size > 1;
@@ -714,7 +757,13 @@ function filterLineEpicOf(epicChips: readonly KanbanFilterChipModel[], pressedCh
 }
 
 /** The filter menu's Kanban sections and the filter line's epic part, from the stored pressed rows and the stored Ready order. */
-function kanbanFilterModelOf(state: KanbanBoardState, storedPressedChips: readonly string[], storedReadyOrder: KanbanReadyOrder): KanbanFilterModel {
+function kanbanFilterModelOf(
+  state: KanbanBoardState,
+  storedPressedChips: readonly string[],
+  storedReadyOrder: KanbanReadyOrder,
+  storedEntity: string | null = null,
+  storedSwimlanes: KanbanSwimlanes = DEFAULT_KANBAN_SWIMLANES,
+): KanbanFilterModel {
   const epicChips    = epicChipModelsOf(state);
   const pressedChips = ChipFilterUtil.knownPressedChips(storedPressedChips, new Set(epicChips.map((chip) => chip.value)));
   const epicFilter   = { pressed: pressedChips, chipsOf: epicChipsOf };
@@ -722,10 +771,11 @@ function kanbanFilterModelOf(state: KanbanBoardState, storedPressedChips: readon
   return {
     epicChips,
     pressedChips,
-    countByChip: ChipFilterUtil.chipCountsOf(state.page.tickets, () => true, [epicFilter], epicFilter, epicChips.map((chip) => chip.value)),
+    countByChip:  ChipFilterUtil.chipCountsOf(state.page.tickets, () => true, [epicFilter], epicFilter, epicChips.map((chip) => chip.value)),
     boardHasDependencies,
-    readyOrder:  boardHasDependencies ? storedReadyOrder : DEFAULT_KANBAN_READY_ORDER,
-    lineEpic:    filterLineEpicOf(epicChips, pressedChips),
+    readyOrder:   boardHasDependencies ? storedReadyOrder : DEFAULT_KANBAN_READY_ORDER,
+    lineEpic:     filterLineEpicOf(epicChips, pressedChips),
+    entityFilter: KanbanEntityFilterModel.entityFilterOf(state, storedEntity, storedSwimlanes),
   };
 }
 
@@ -736,15 +786,20 @@ function finishedWorkIsShown(ticket: KanbanTicketDocument, cutoffEpochMillisecon
 
 function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layout: KanbanLayoutChoices, surroundings: KanbanSurroundings): KanbanViewModel {
   const { boardFacts, progress, limits } = state.page.payload;
-  const { pressedChips, readyOrder } = filters;
+  const { pressedChips, readyOrder, entityFilter } = filters;
   const epicFilter   = { pressed: pressedChips, chipsOf: epicChipsOf };
-  const shownTickets = state.page.tickets.filter((ticket) => ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
+  const chosenEntity = entityFilter?.chosenEntity ?? null;
+  const factsById    = new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts]));
+  const isInChosenEntity = (ticket: KanbanTicketDocument): boolean => chosenEntity === null
+    || KanbanEntityFilterModel.ticketIsInEntity(factsById.get(ticket.id), chosenEntity);
+  const shownTickets = state.page.tickets.filter((ticket) => isInChosenEntity(ticket) && ChipFilterUtil.itemMatches(ticket, () => true, [epicFilter]));
+  const isBySwimlane = entityFilter !== null && entityFilter.swimlanes === 'by-entity' && chosenEntity === null;
   const queuedTicketIds = new Set(state.mergeQueue.queuedTicketIds);
   const rowAt = (position: number | null): KanbanTaskDocument | null => (position === null ? null : progress.tasks[position] ?? null);
   const answeringDecisions = OpenDecisionsUtil.answeringOrderOf(state.decisions);
   const sources: CardSources = {
     epicByKey:           new Map(boardFacts.epics.map((epic) => [epic.key, epic])),
-    factsById:           new Map(boardFacts.tickets.map((facts) => [facts.ticketId, facts])),
+    factsById,
     rowAt,
     rowCountsAsReviewed: (position) => (position === null ? false : boardFacts.rows[position]?.deliveredRowCountsAsReviewed === true),
     graph:               dependencyGraphOf(state),
@@ -765,7 +820,10 @@ function kanbanModelOf(state: KanbanBoardState, filters: KanbanFilterModel, layo
     const leadingCardKeys = new Set(leadingGroups.flatMap((group) => group.cards.map((card) => card.key)));
     const otherCards = ticketCards.filter((card) => !leadingCardKeys.has(card.key));
     const isByWave = lane === 'ready' && readyOrder === 'by-wave';
-    const otherGroups = isByWave ? waveGroupsOf(otherCards, sources.graph, readyTicketIds) : cardGroupsOf(lane, otherCards);
+    // Ready by wave is a choice User makes on purpose, so it wins over the swimlanes, which are on by default.
+    const otherGroups = isByWave
+      ? waveGroupsOf(otherCards, sources.graph, readyTicketIds)
+      : entityFilter !== null && isBySwimlane ? swimlaneGroupsOf(otherCards, entityFilter) : cardGroupsOf(lane, otherCards);
     const groups = [...leadingGroups, ...otherGroups];
     const readyByWave = isByWave ? { readyCount: otherCards.filter((card) => readyTicketIds.has(card.ticketId ?? '')).length } : null;
     const subtitleParts = [...leadingCountsTextOf(leadingGroups), ...laneSubtitlePartsOf(lane, otherCards, readyByWave)];

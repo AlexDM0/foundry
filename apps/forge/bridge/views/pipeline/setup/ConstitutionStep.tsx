@@ -35,8 +35,8 @@ import { ConstitutionStateTag }                                                 
 import { CONSTITUTION_STATE_MEANINGS, ConstitutionStateTagModel, type EntityConstitution } from '../entities/ConstitutionStateTagModel.ts';
 import { EntityLevelBreadcrumb }                                                           from '../entities/EntityLevelBreadcrumb.tsx';
 import { EntityLevelFactsModel }                                                           from '../entities/EntityLevelFactsModel.ts';
-import { EntityRail, type EntityRailMarks }                                                from '../entities/EntityRail.tsx';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }                             from '../entities/PipelineLevelModel.ts';
+import { PipelineLevelRail, type PipelineLevelRailMarks }                                  from '../entities/PipelineLevelRail.tsx';
 import { BillingStepModel }                                                                from './BillingStepModel.ts';
 import { ConstitutionEditor }                                                              from './ConstitutionEditor.tsx';
 import { ConstitutionStepModel }                                                           from './ConstitutionStepModel.ts';
@@ -197,7 +197,7 @@ interface MonorepoStepProps extends ConstitutionStepProps {
   readonly shown: LevelShown;
 }
 
-function railMarksOf(constitutions: readonly EntityConstitution<PipelineEntity>[]): EntityRailMarks {
+function railMarksOf(constitutions: readonly EntityConstitution<PipelineEntity>[]): PipelineLevelRailMarks {
   return {
     ...ConstitutionStateTagModel.railMarkTextsOf(constitutions),
     markOf: (entityKey) => <ConstitutionStateTag state={ConstitutionStateTagModel.stateInListOf(constitutions, entityKey)} />,
@@ -288,7 +288,7 @@ function MonorepoConstitutionStep({
   const hrefOf = (target: PipelineLevel): string => HashRouter.fragmentOf(PipelineLevelModel.routeMovedTo(shown.route, target));
   const constitutions = ConstitutionStateTagModel.entityConstitutionsOf(setup.record, PipelineViewModel.entitiesShownOf(facts));
   const rail = (
-    <EntityRail
+    <PipelineLevelRail
       facts={facts}
       level={level}
       onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(shown.route, target))}
