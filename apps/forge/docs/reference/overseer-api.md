@@ -634,7 +634,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.10` and `0.0`: 1.1 adds
+moment the server answers, while the Overseer starts too. This forge answers `1.11` and `0.0`: 1.1 adds
 [Flint's brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and
 crosses, the entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity`
 command, a ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields
@@ -650,7 +650,9 @@ pipeline with entities in the Overseer's documents and the board, and the `chang
 progress row's `stage`, `seals`, `packageReturns` and `stageCounters`, the `entity-named-by-tickets` and `entities-while-tickets-in-flight`
 refusals and apply reasons, the entity on the `constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's
 `entityAssignment`, 1.10 adds a `stage` on a review bar's progress row, `wholeBatch` on `pipeline-draft-undo` and the
-`draft-batch-undone` setup message, each minor only adds, and version 0.0 stands for every forge released before
+`draft-batch-undone` setup message, 1.11 adds the `sealed-change-altered` refusal and job-ended cause, the package
+builder's `exposedSurfaceChanged` and package reviewer's `exposedSurfaceConfirmed` reports and a package stage job's
+`stage-statement.json`, each minor only adds, and version 0.0 stands for every forge released before
 system versions.
 
 The system version is set by interoperability, never by a package's version:
