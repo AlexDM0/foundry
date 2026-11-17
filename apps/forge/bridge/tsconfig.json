@@ -114,6 +114,8 @@
     "../src/lib/tracker-model/utils/ConcurrencyUtil.ts",
     "../src/lib/tracker-model/utils/DraftIdUtil.ts",
     "../src/lib/tracker-model/utils/DraftQuestionTreeUtil.ts",
+    "../src/lib/tracker-model/utils/EntityOwnershipUtil.ts",
+    "../src/lib/tracker-model/utils/EntityValidationUtil.ts",
     "../src/lib/tracker-model/utils/EpicUtil.ts",
     "../src/lib/tracker-model/utils/FailedPassUtil.ts",
     "../src/lib/tracker-model/utils/GroupNameUtil.ts",
