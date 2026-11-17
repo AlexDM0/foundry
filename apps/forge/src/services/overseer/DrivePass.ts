@@ -762,10 +762,10 @@ function launchFactsOf(
   const resumesSession = JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) !== job.id;
   const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
   return {
-    instructions,
-    confinement: sessionConfinementOf(request.platformPorts),
+    instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
+    confinement:  sessionConfinementOf(request.platformPorts),
     airlock,
-    tickets:     board.tickets()
+    tickets:      board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
       .map((ticket) => ({
         id: ticket.frontmatter.id, title: ticket.frontmatter.title, body: ticket.body, branch: request.branchNames.ticketBranchOf(ticket.frontmatter.id)

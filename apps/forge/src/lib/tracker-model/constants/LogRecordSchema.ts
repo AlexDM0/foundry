@@ -295,19 +295,21 @@ export const LOG_RECORD_SCHEMA = {
   'job-launched':      {
     subject: 'job',
     fields:  {
-      kind:           'job-kind',
-      role:           'job-role',
-      ticketIds:      'ticket-ids',
-      attempt:        'count',
-      target:         'nullable-text',
-      parentJobId:    'nullable-text',
+      kind:             'job-kind',
+      role:             'job-role',
+      ticketIds:        'ticket-ids',
+      attempt:          'count',
+      target:           'nullable-text',
+      parentJobId:      'nullable-text',
       // Set only on a product-owner launch: User's request, kept after the job leaves the board.
-      intakeText:     'optional-text',
+      intakeText:       'optional-text',
       // Set only when the request came with pictures.
-      intakePictures: 'optional-pictures',
+      intakePictures:   'optional-pictures',
       // Set only on a forge with entities: the entity and the stage the job runs, which scope its red handoffs and failed passes.
-      entity:         'optional-text',
-      stage:          'optional-count',
+      entity:           'optional-text',
+      stage:            'optional-count',
+      // Set only on the product owner the first Apply over entities starts: the pending tickets it gives an entity.
+      entitiesToAssign: 'optional-ticket-ids',
     },
   },
   'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', watcherInstance: 'watcher-instance' } },

@@ -19,6 +19,8 @@ const EVERY_REASON: readonly ApplyRequestReason[] = [
   'constitution-commit-unexpected-paths',
   'constitution-moved',
   'pipeline-moved',
+  'entity-named-by-tickets',
+  'entities-while-tickets-in-flight',
 ];
 
 function applyState(changes: Partial<ApplyStateFacts> & Pick<ApplyStateFacts, 'state'>): ApplyStateFacts {

@@ -9,5 +9,5 @@ import { OverseerWording }     from './overseer/OverseerWording.ts';
 
 export const COMMAND_CONTROL_CONTEXT: ControlContext = Object.freeze({
   setupMessageWordingOf: OverseerWording.setupMessageWordingOf,
-  mainConstitutionOf:    (rootDirectory: string) => InstructionFiles.mainConstitutionOf(rootDirectory, mainLineOf(rootDirectory)),
+  mainConstitutionOf:    (rootDirectory: string, constitutionPath?: string) => InstructionFiles.mainConstitutionOf(rootDirectory, mainLineOf(rootDirectory), constitutionPath),
 });

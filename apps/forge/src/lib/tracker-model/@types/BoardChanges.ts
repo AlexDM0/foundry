@@ -245,8 +245,10 @@ export interface GateProfileChanged extends Logged {
  * `already-applied` with no record, when an earlier Apply of the same revision already closed it.
  */
 export interface PipelineApplyChanged extends Logged {
-  outcome: 'committing' | 'applied' | 'already-applied';
-  setup:   Readonly<PipelineSetup> | null;
+  outcome:                'committing' | 'applied' | 'already-applied';
+  setup:                  Readonly<PipelineSetup> | null;
+  /** Set only by the first Apply that stores entities: the pending tickets without one, which the product owner gives one. */
+  ticketsAwaitingEntity?: readonly string[];
 }
 
 export interface TrackerCleared extends Logged {

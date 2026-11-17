@@ -399,7 +399,10 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - A review row belongs to its ticket by `reviewOf` alone. The Bridge reads which rows are bars from the Board facts,
   and a bar's name only to order a ticket's bars.
 - Apply commits the constitutions to the main line through an Airlock job of kind `constitution-commit`, in one commit:
-  `CONSTITUTION.md`, and on a forge with entities each entity's constitution the job lists beside it. It is the one
-  tracked write of the product to a tracked repository's main line outside a ticket's landing. The commit runs no gates,
-  because it changes only these documents. A commit that changes a path outside its list never lands; a forge without
-  entities lists `CONSTITUTION.md` alone (`docs/cli.md`, "The constitution commit").
+  `CONSTITUTION.md` on a forge without entities, and on a forge with entities each drafted constitution of an entity.
+  It is the one tracked write of the product to a tracked repository's main line outside a ticket's landing. The commit
+  runs no gates, because it changes only these documents. A commit that changes a path outside its list never lands; a
+  forge without entities lists `CONSTITUTION.md` alone (`docs/cli.md`, "The constitution commit"). An entity with no
+  draft keeps the file that main holds, byte for byte. Apply refuses to remove an entity that a ticket names (E91), and
+  refuses to change a pipeline into entities while a ticket is in progress, in review or reviewed (E94). The first Apply
+  that stores entities starts a `product-owner` job, which gives each pending ticket without an entity one.

@@ -342,8 +342,30 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `The stored pipeline changed since pipeline setup ${detail.setupId} opened (content hash ${detail.contentHash ?? 'none'}, not `
         + `${detail.baseContentHash ?? 'none'}), so the Apply would overwrite that change. ${NOTHING_WAS_WRITTEN} Start the update again.`;
     case 'constitution-moved':
+      if (detail.entity !== undefined) {
+        return `The constitution of entity ${detail.entity} on the main line changed since the Apply of pipeline setup ${detail.setupId} `
+          + `read it (blob ${detail.mainBlob ?? 'none'}, not ${detail.baseBlob ?? 'none'}), so the Apply would overwrite that change. `
+          + `${NOTHING_WAS_WRITTEN} Apply again.`;
+      }
       return `CONSTITUTION.md on the main line changed since pipeline setup ${detail.setupId} opened (blob ${detail.mainBlob ?? 'none'}, not `
         + `${detail.baseBlob ?? 'none'}), so the Apply would overwrite that change. ${NOTHING_WAS_WRITTEN} Start the update again.`;
+    case 'entity-named-by-tickets': {
+      const single  = detail.ticketIds.length === 1;
+      const tickets = `${single ? 'ticket' : 'tickets'} ${TicketPhraseUtil.ticketReferencesText(detail.ticketIds)}`;
+      return `The Apply would remove or rename entity ${detail.entity}, and ${tickets} ${single ? 'names' : 'name'} it. ${NOTHING_WAS_WRITTEN} `
+        + adviceFor(
+          channel,
+          `Give ${single ? 'it' : 'each'} another entity with \`${PRODUCT_NAMES.PROGRAM} ticket entity <id> <key> --reason <text>\`, `
+            + `or let ${single ? 'it' : 'them'} land, then apply again.`,
+          `The product owner gives ${single ? 'it' : 'each'} another entity, or ${single ? 'it lands' : 'they land'}; then apply again.`
+        );
+    }
+    case 'entities-while-tickets-in-flight': {
+      const single  = detail.ticketIds.length === 1;
+      const tickets = `${single ? 'ticket' : 'tickets'} ${TicketPhraseUtil.ticketReferencesText(detail.ticketIds)}`;
+      return `This pipeline cannot turn into entities yet: ${tickets} ${single ? 'is' : 'are'} in progress, in review `
+        + `or reviewed under the pipeline without entities. ${NOTHING_WAS_WRITTEN} Apply once ${single ? 'it lands' : 'they land'}.`;
+    }
     case 'billing-cap-not-positive':
       return `A budget cap of ${detail.maxBudgetUsd} USD is not above 0: give a positive cap, or none. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-not-current':

@@ -1135,8 +1135,12 @@ with no commit yet holds none, so it is not refused); another revision while an 
 (`setup-question-open`, naming the questions); a step before Apply that needs a recheck (`setup-step-needs-recheck`); a
 snapshot a turn end found touched (`setup-snapshot-touched`); a `CONSTITUTION.md` on main that is not the one the record
 opened on (`constitution-moved`), unless main already holds the draft's text; a draft with no constitution text while
-main holds one (`constitution-empty`); and a stored pipeline whose content hash is neither the record's
-`baseContentHash` nor this draft's as applied (`pipeline-moved`). Then:
+main holds one (`constitution-empty`); on a stored pipeline with entities, a draft that removes or renames an entity
+that a ticket names, a ticket that is neither delivered nor abandoned (`entity-named-by-tickets`, naming the entity and
+the tickets: first give those tickets another entity, or let them land); on a stored pipeline without entities, a draft
+that holds entities while a ticket is in progress, in review or reviewed (`entities-while-tickets-in-flight`, naming
+them: apply once they land); and a stored pipeline whose content hash is neither the record's `baseContentHash` nor
+this draft's as applied (`pipeline-moved`). Then:
 
 - When main already holds the draft's text byte for byte as `CONSTITUTION.md`, or the draft has no text and main no
   file, stage 2 runs in the same hold and no commit is made.
@@ -1156,7 +1160,27 @@ with the changed, new and removed field names and the constitution commit, or `n
 `pipeline-setup.json`. The same hold asks each live pipeline agent of the record, the forge's and every entity's, to
 stop, logged `job-stop-requested` (one with no session ends `closed` at once), and once no pipeline agent is left the
 Overseer removes the snapshot under `<worktrees>/pipeline-agent/`. Nothing is written under `<data>/briefs/defaults/`,
-and nothing but the commit's fast-forward writes `CONSTITUTION.md` in the main checkout.
+and nothing but the commit's fast-forward writes `CONSTITUTION.md` in the main checkout. Nothing stops a ticket from
+starting, or from taking an entity, while the request waits, so stage 2 refuses `entity-named-by-tickets` and
+`entities-while-tickets-in-flight` again; the Airlock checks both before the commit lands and refuses the request with
+that reason.
+
+On a draft with entities the forge has no constitution of its own, so its draft is neither asked for nor committed,
+and `constitution-moved` and `constitution-empty` do not refuse for it. Each entity's constitution is the file its
+`constitution.path` names, else `CONSTITUTION.md` in its first home. Stage 1 reads each entity's file on main (a read
+git cannot answer refuses `main-constitution-unreadable`), and each entity whose part of the record holds a drafted text
+takes main's blob of its file as its `baseBlob`. Stage 2 runs at once when main holds every drafted text; else the
+request waits for one commit of every drafted constitution. In stage 2 an entity with a drafted text names its file,
+and an entity with no drafted text whose file main holds adopts it byte for byte: the pipeline names its path, and
+nothing is committed for it. An entity with neither keeps the installed default. Stage 2 refuses an entity's drafted
+text main does not hold (`constitution-moved`, naming the entity). No `constitution-sources.json` is written.
+
+The first Apply that stores entities over a pipeline that had none, or over no pipeline, also starts a job of kind
+`product-owner` in the same hold, when `pending` tickets without an `entity` exist: an intake of the request in
+`resources/prompts/EntityAssignmentRequest.md`, naming those tickets, whose `job-launched` record lists them as
+`entitiesToAssign`. The product owner gives each one its entity with `ticket entity --reason`, and asks User where it
+cannot tell. The Bridge reads its progress per ticket, and each reason from the ticket's `entity-assigned` record, from
+the board state's `entityAssignment`.
 
 Apply is idempotent by setup and revision. A pipeline this draft already stored is no one else's move, so a retried
 Apply finishes what is missing and never refuses `pipeline-moved`; the same revision while its request waits answers
@@ -1694,7 +1718,8 @@ the main line outside a ticket's landing. The job runs no gate of any phase, tak
 land.
 
 - **Allocation.** Each sweep, while a request waits (`committing` with no live job, or `held`) and no job holds the
-  main line's slot, the Airlock reads main's `CONSTITUTION.md` first. Main already holding the draft's text finishes
+  main line's slot, the Airlock reads main's `CONSTITUTION.md` first, or on a draft with entities each entity's
+  constitution file, whose drafted text the job lists. Main already holding every listed text finishes
   Apply at once, with no job and no commit. Otherwise the job is claimed on main's tip, before any ticket candidate,
   also while the board is paused, and the request becomes `committing` under it. While a ticket holds the slot, or the
   main line is held, the request waits, and so does every ticket of the main line.
@@ -1708,8 +1733,9 @@ land.
   configuration. The subject is `Add the repository constitution` when main had no such file, else
   `Update the repository constitution`, with no body. No call overrides `commit.gpgsign`. The commit may change only
   the paths it lists against the tip; a forge without entities lists `CONSTITUTION.md` alone, so its commit changes
-  exactly that path. A list of several, each entity's constitution beside `CONSTITUTION.md`, is checked blob by blob,
-  staged in one `git add --` and committed under `Update the constitutions`.
+  exactly that path. A list on a forge with entities, each entity's drafted constitution, is checked blob by blob
+  against each entity's `baseBlob`, staged in one `git add --` and committed under `Update the constitutions`, also
+  when it lists one file.
 - **Landing.** The same compare-and-swap fast-forward of the main checkout a ticket's landing uses, with no Acceptance
   check. The landing's hold runs Apply's stage 2. The worktree is removed after the hold, and after every end of the
   job.
@@ -1721,6 +1747,7 @@ land.
 | git cannot make the commit otherwise | the same, `git-failed` | Apply again |
 | the commit changes any other path | the job ends `failed` before landing; the request is `refused`, `constitution-commit-unexpected-paths` | Apply again |
 | the stored pipeline changed by hand while the commit waited | the job ends `failed` before landing; the request is `refused`, `pipeline-moved` | start the update again |
+| a ticket started while the commit waited and the draft turns the pipeline into entities, or a ticket took an entity the draft removes | the job ends `failed` before landing; the request is `refused`, `entities-while-tickets-in-flight` (E94) or `entity-named-by-tickets` (E91) | wait for the ticket, or give it another entity, then Apply again |
 | the main checkout is off the main line, holds a change to `CONSTITUTION.md` that stops the fast-forward, holds a file open, or git fails | the main line is held under its notice, the job ends `stopped` (`target-held`), and the request is `held` with the reason, logged `pipeline-apply-held` with the blocking files; it is never refused for this | clean the main checkout: the next sweep commits again |
 | main moved past the slot's tip | the job ends `stopped` with the landing's reason, and the next allocation commits again on the new tip | none |
 | the request no longer names the job: User cancelled it | the job ends `stopped` (`apply-cancelled`) before it lands | none |
@@ -2360,8 +2387,9 @@ the lock, atomically; a start over removes it. This is format version 1.
 - `applyRequest` is [Apply](#apply)'s stage 1: `draftRevision`, `resumesBoard`, `commitJobId` (the Airlock's commit
   job, or `null`), `state` (`committing`, `held` or `refused`) and `reason`, a stored code while `held` or `refused`:
   `not-on-target-branch`, `dirty-checkout`, `target-file-held`, `git-failed`, `constitution-commit-unsigned`,
-  `constitution-commit-unexpected-paths`, `constitution-moved` or `pipeline-moved` (the stored pipeline changed by hand
-  while the commit waited). A constitution commit job's claim sets `commitJobId` and `committing`, a held one too; its
+  `constitution-commit-unexpected-paths`, `constitution-moved`, `pipeline-moved` (the stored pipeline changed by hand
+  while the commit waited), `entity-named-by-tickets` or `entities-while-tickets-in-flight` (E91 or E94 while the commit
+  waited). A constitution commit job's claim sets `commitJobId` and `committing`, a held one too; its
   end without a landing sets `commitJobId` back to `null`. A refused request leaves the record editable, and a new Apply
   replaces it. Apply's stage 2 removes the file.
 - `check` is absent until User first asks for a [check](#pipeline-checks), and then holds the newest one:
@@ -2578,7 +2606,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 
 | kind | ids | fields |
 |---|---|---|
-| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures; on a forge with entities only, `entity` and `stage`: the entity and the ticket's stage the job runs, which scope its red handoffs and failed passes. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
+| `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures; on a forge with entities only, `entity` and `stage`: the entity and the ticket's stage the job runs, which scope its red handoffs and failed passes; and only on the product owner the first Apply over entities starts, `entitiesToAssign`: the pending tickets it gives an entity. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
 | `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |

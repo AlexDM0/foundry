@@ -119,6 +119,16 @@ export class JobControls {
   }
 
   /**
+   * The product owner the first Apply over entities starts, as an intake of `request`: it gives each of the pending tickets without an
+   * entity one. The launch record names those tickets, so their progress can be shown.
+   */
+  startEntityAssignment(request: string, ticketIds: readonly string[], at: string): JobChanged {
+    return this.jobRules.launchJob({
+      kind: PRODUCT_OWNER_KIND, role: PRODUCT_OWNER_KIND, ticketIds: [], parentJobId: null, attempt: 1, target: null, intake: { text: request }, entitiesToAssign: ticketIds,
+    }, at);
+  }
+
+  /**
    * Recorded `launching` with no ticket, target or build slot, on User's command alone: a setup's start or `advise`. A session of one
    * entity is stamped with its key.
    */

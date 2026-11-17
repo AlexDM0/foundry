@@ -110,7 +110,10 @@ export interface ConstitutionDraft {
   markdown:    string;
   annotations: SourceAnnotation[];
   draftedFrom: ConstitutionSources;
-  /** Main's blob of `CONSTITUTION.md` when the record opened; null when main had no such file. */
+  /**
+   * Main's blob of `CONSTITUTION.md` when the record opened; null when main had no such file. An entity's draft takes main's blob of its
+   * file at each Apply request, which its commit must find.
+   */
   baseBlob:    string | null;
   revision:    number;
 }
@@ -160,6 +163,9 @@ export interface SetupEdit {
 
 export type ApplyRequestState = 'committing' | 'held' | 'refused';
 
+/** E91 and E94, which stage 2 gives again when a ticket started or took an entity while the request waited. */
+export type EntityChangeRefusalReason = 'entity-named-by-tickets' | 'entities-while-tickets-in-flight';
+
 /**
  * Why the constitution commit holds or was refused: stored codes, worded only for display. `pipeline-moved`: the stored pipeline changed
  * by hand while the commit waited, so the commit does not land.
@@ -172,7 +178,8 @@ export type ApplyRequestReason =
   | 'constitution-commit-unsigned'
   | 'constitution-commit-unexpected-paths'
   | 'constitution-moved'
-  | 'pipeline-moved';
+  | 'pipeline-moved'
+  | EntityChangeRefusalReason;
 
 /** Why the main line holds the constitution commit: the reason and the files of the main checkout that stop the fast-forward. */
 export interface ApplyHolding {
@@ -325,19 +332,32 @@ export type MainConstitutionReading =
   | { verdict: 'read'; constitution: MainConstitution }
   | { verdict: 'unreadable'; reason: string };
 
-/** Stage 1 of an Apply: the draft revision User saw, whether the board resumes, and main's constitution as the caller read it. */
-export interface ApplyRequesting {
-  draftRevision:    number;
-  resumesBoard:     boolean;
+/** Each entity's constitution file on main as the caller read it, by entity key; null where main holds no such file. */
+export type EntityConstitutionsOnMain = Readonly<Record<EntityKey, MainConstitution | null>>;
+
+/** What main holds when an Apply reads it: the forge's `CONSTITUTION.md` and, on a draft over entities, each entity's file. */
+export interface ApplyMainReading {
   /** Null when main holds no `CONSTITUTION.md`. */
-  mainConstitution: MainConstitution | null;
+  mainConstitution:           MainConstitution | null;
+  /** Absent on a draft without entities; on a draft over entities, the file at each entity's constitution path. */
+  entityConstitutions?:       EntityConstitutionsOnMain;
+  /**
+   * The words of the request that the product owner gets after the first Apply over entities, for the pending tickets without an
+   * entity; absent, no product owner starts.
+   */
+  entityAssignmentRequestOf?: (ticketIds: readonly string[]) => string;
 }
 
-/** Stage 2 of an Apply: what main holds once the constitution is there, and the commit that put it there, null when none was made. */
-export interface ApplyFinishing {
+/** Stage 1 of an Apply: the draft revision User saw, whether the board resumes, and main as the caller read it. */
+export interface ApplyRequesting extends ApplyMainReading {
+  draftRevision: number;
+  resumesBoard:  boolean;
+}
+
+/** Stage 2 of an Apply: what main holds once the constitutions are there, and the commit that put them there, null when none was made. */
+export interface ApplyFinishing extends ApplyMainReading {
   draftRevision:      number;
   resumesBoard:       boolean;
-  mainConstitution:   MainConstitution | null;
   constitutionCommit: string | null;
 }
 

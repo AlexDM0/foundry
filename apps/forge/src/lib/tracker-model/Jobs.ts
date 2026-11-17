@@ -128,6 +128,7 @@ export class Jobs {
         ...(job.intake?.pictures === undefined ? {} : { intakePictures: picturesCopyOf(job.intake.pictures) }),
         ...(job.entity === undefined ? {} : { entity: job.entity }),
         ...(job.stage === undefined ? {} : { stage: job.stage }),
+        ...(launch.entitiesToAssign === undefined ? {} : { entitiesToAssign: [...launch.entitiesToAssign] }),
       },
     }, at);
     return { job, logged: [logged] };

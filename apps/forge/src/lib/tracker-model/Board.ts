@@ -112,13 +112,14 @@ import type {
 import type {
   ApplyFinishing,
   ApplyHolding,
+  ApplyMainReading,
   ApplyRefusal,
   ApplyRequesting,
   ConstitutionEdit,
   ConstitutionSetting,
   ConstitutionSourcesReading,
   DraftEditRequest,
-  MainConstitution,
+  EntityChangeRefusalReason,
   PipelineCheckEnding,
   PipelineCheckStart,
   PipelineSetup,
@@ -1076,7 +1077,7 @@ export class Board {
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.requestApply(setupId, requesting, at), at);
+    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.requestApply(setupId, requesting, at), requesting, at);
   }
 
   /**
@@ -1084,21 +1085,21 @@ export class Board {
    * record's pipeline agent is stopped in the same hold.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
-    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.finishApply(setupId, finishing, at), at);
+    return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.finishApply(setupId, finishing, at), finishing, at);
   }
 
   /** At the Overseer's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
-  finishHalfAppliedSetup(mainConstitution: MainConstitution | null, at: string): PipelineApplyChanged | null {
-    const finished = this.pipelineSetups.finishHalfAppliedSetup(mainConstitution, at);
-    return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, at);
+  finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
+    const finished = this.pipelineSetups.finishHalfAppliedSetup(reading, at);
+    return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, reading, at);
   }
 
   /**
    * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
    * over stops them, and the Overseer removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
-   * nothing.
+   * nothing. The first Apply over entities starts the product owner that gives the pending tickets without an entity one, in the same hold.
    */
-  private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, at: string): PipelineApplyChanged {
+  private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
     const setup = changed.outcome === 'applied' ? changed.setup : null;
     if (setup === null) return changed;
     const agentJobIds = [setup.agentJobId, ...Object.values(setup.entities ?? {}).map((entityPart) => entityPart.agentJobId)];
@@ -1106,7 +1107,11 @@ export class Board {
       const agent = agentJobId === null ? undefined : this.jobById(agentJobId);
       return agent === undefined || agent.state === 'stopping' ? [] : this.requestJobStop(agent.id, 'stop', at).logged;
     });
-    return stopped.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...stopped] };
+    const ticketIds = changed.ticketsAwaitingEntity ?? [];
+    const requestOf = reading.entityAssignmentRequestOf;
+    const assignment = ticketIds.length === 0 || requestOf === undefined ? [] : this.jobControls.startEntityAssignment(requestOf(ticketIds), ticketIds, at).logged;
+    const added = [...stopped, ...assignment];
+    return added.length === 0 ? changed : { ...changed, logged: [...changed.logged, ...added] };
   }
 
   holdApply(setupId: string, holding: ApplyHolding, at: string): PipelineSetupChanged {
@@ -1118,8 +1123,13 @@ export class Board {
   }
 
   /** Whether stage 2 would refuse `pipeline-moved`: the stored pipeline is neither the record's base nor its draft as applied. */
-  storedPipelineMovedSince(setupId: string, mainConstitution: MainConstitution | null): boolean {
-    return this.pipelineSetups.storedPipelineMovedSince(setupId, mainConstitution);
+  storedPipelineMovedSince(setupId: string, reading: ApplyMainReading): boolean {
+    return this.pipelineSetups.storedPipelineMovedSince(setupId, reading);
+  }
+
+  /** The E91 or E94 refusal stage 2 would give: a ticket started, or took an entity the draft removes, while the request waited. */
+  entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
+    return this.pipelineSetups.entityChangeRefusalOf(setupId);
   }
 
   /** Clears the record's Apply request, which leaves it editable at the design step; refused `no-apply-pending` with none. */

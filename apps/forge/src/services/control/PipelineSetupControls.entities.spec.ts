@@ -5,20 +5,30 @@
  * that entity's part, whose session a resume opens without one at the forge; a resume opens the level the record opened at and each
  * entity a session served, never an entity whose part only a check made; a level the pipeline has no entity for is refused before
  * anything is written; an answer, a constitution edit, a discard and a check message the session of the level they change and no other;
- * a check covers each entity whose gates the draft touched, with its own gates; and a start over stops every session. A forge without
+ * a check covers each entity whose gates the draft touched, with its own gates; a start over stops every session; and an Apply reads each
+ * entity's constitution path on main and starts the product owner with the request's words. A forge without
  * entities keeps one session, which `PipelineSetupControls.spec.ts` holds.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommand }                                    from '../../shared/@types/ControlCommand.ts';
-import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
-import { ControlService }                                         from './ControlService.ts';
+import type { Pipeline }       from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }  from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Ticket }         from '../../lib/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }        from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext } from '../../shared/@types/ControlContext.ts';
+import { PRODUCT_NAMES }       from '../../shared/constants/ProductNames.ts';
+import {
+  boardFixture,
+  entityPipelineFixture,
+  ticketFixture,
+  type BoardFixture
+} from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }    from '../../testing/EchoedControlContext.ts';
+import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor }         from '../tracker/Workspace.ts';
+import { ControlService }            from './ControlService.ts';
+import { entityAssignmentRequestOf } from './EntityAssignmentRequest.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 
@@ -77,7 +87,7 @@ function withWebTestGate(pipeline: Pipeline): Pipeline {
 }
 
 /** A first setup S1 at the `entities` step whose draft holds the root entity, `web` and `design-system`; its forge session is J1. */
-function boardAtEntitiesStep(): BoardFixture {
+function boardAtEntitiesStep(tickets: Ticket[] = []): BoardFixture {
   const opened = boardFixture();
   apply(opened, { kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
   const setup: PipelineSetup = {
@@ -88,15 +98,15 @@ function boardAtEntitiesStep(): BoardFixture {
     currentStep: 'entities',
     draft:       entityPipelineFixture(),
   };
-  const fixture = boardFixture({ pipelineSetup: { verdict: 'readable', setup } });
+  const fixture = boardFixture({ tickets, pipelineSetup: { verdict: 'readable', setup } });
   fixture.board.startPipelineAgent(CHANGED_AT);
   fixture.records.length = 0;
   return fixture;
 }
 
 /** S1 past the `entities` step: J1 serves the forge, J2 the root entity, J3 `web` and J4 `design-system`. */
-function boardWithEntitySessions(): BoardFixture {
-  const fixture = boardAtEntitiesStep();
+function boardWithEntitySessions(tickets: Ticket[] = []): BoardFixture {
+  const fixture = boardAtEntitiesStep(tickets);
   apply(fixture, {
     kind: 'pipeline-setup-step', setupId: 'S1', step: 'entities', move: 'continue'
   });
@@ -348,5 +358,36 @@ describe('the pipeline check per entity', () => {
     apply(fixture, { kind: 'pipeline-update-start' });
 
     expect(refusalOf(() => apply(fixture, { kind: 'pipeline-check', setupId: 'S1' }))).toEqual({ reason: 'no-gate-to-check', setupId: 'S1' });
+  });
+});
+
+describe('an Apply over entities', () => {
+  test('reads each entity\'s constitution path on main, adopts a file main holds, and starts the product owner with its request', () => {
+    const fixture = boardWithEntitySessions([ticketFixture({ id: '021', status: 'pending' })]);
+    for (const step of ['constitution', 'design'] as const) {
+      apply(fixture, {
+        kind: 'pipeline-setup-step', setupId: 'S1', step, move: 'continue'
+      });
+    }
+    const askedPaths: (string | undefined)[] = [];
+    const designSystemFile = { path: 'packages/design-system/CONSTITUTION.md', markdown: '# Design system\n', blob: 'b'.repeat(40) };
+    const context: ControlContext = {
+      ...ECHOED_CONTROL_CONTEXT,
+      mainConstitutionOf: (_rootDirectory, constitutionPath) => {
+        askedPaths.push(constitutionPath);
+        return constitutionPath === designSystemFile.path ? { verdict: 'read', constitution: designSystemFile } : { verdict: 'absent' };
+      },
+    };
+
+    ControlService.apply({
+      kind: 'pipeline-apply', setupId: 'S1', draftRevision: 0, resumesBoard: false
+    }, changeOf(fixture), context);
+
+    expect(askedPaths).toEqual([undefined, 'CONSTITUTION.md', 'apps/web/CONSTITUTION.md', 'packages/design-system/CONSTITUTION.md']);
+    expect(fixture.board.pipeline()?.entities?.['design-system']?.constitution).toEqual({ path: designSystemFile.path });
+    const productOwner = fixture.board.jobs().find((job) => job.kind === 'product-owner');
+    expect(productOwner?.intake?.text).toBe(entityAssignmentRequestOf(['021']));
+    expect(productOwner?.intake?.text).toContain('#021');
+    expect(productOwner?.intake?.text).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket entity <id> <key> --reason "<reason>"\``);
   });
 });

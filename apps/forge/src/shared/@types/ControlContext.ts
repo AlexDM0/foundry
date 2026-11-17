@@ -48,6 +48,9 @@ export type SetupMessage =
 
 export interface ControlContext {
   setupMessageWordingOf: (message: SetupMessage) => string;
-  /** Main's `CONSTITUTION.md` in the repository at `rootDirectory`, as git answers for it on the main line. */
-  mainConstitutionOf:    (rootDirectory: string) => MainConstitutionReading;
+  /**
+   * Main's `CONSTITUTION.md` in the repository at `rootDirectory`, as git answers for it on the main line; with a project path, that file
+   * instead, an entity's constitution.
+   */
+  mainConstitutionOf:    (rootDirectory: string, constitutionPath?: string) => MainConstitutionReading;
 }

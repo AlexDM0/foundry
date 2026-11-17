@@ -216,8 +216,12 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'constitution-moved': {
     reason: 'constitution-moved', setupId: 'S1', baseBlob: 'blob-example', mainBlob: null
   },
-  'billing-cap-not-positive': { reason: 'billing-cap-not-positive', maxBudgetUsd: 0 },
-  'setup-step-not-current':   {
+  'entity-named-by-tickets': {
+    reason: 'entity-named-by-tickets', setupId: 'S1', entity: 'docs', ticketIds: ['019']
+  },
+  'entities-while-tickets-in-flight': { reason: 'entities-while-tickets-in-flight', setupId: 'S1', ticketIds: ['014'] },
+  'billing-cap-not-positive':         { reason: 'billing-cap-not-positive', maxBudgetUsd: 0 },
+  'setup-step-not-current':           {
     reason: 'setup-step-not-current', setupId: 'S1', step: 'design', currentStep: 'research'
   },
   'setup-step-not-reached':      { reason: 'setup-step-not-reached', setupId: 'S1', step: 'apply' },

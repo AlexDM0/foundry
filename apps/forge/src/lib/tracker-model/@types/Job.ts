@@ -168,15 +168,17 @@ export interface Job {
 }
 
 export interface JobLaunch {
-  kind:        JobKind;
-  role:        JobRole | null;
-  ticketIds:   readonly string[];
-  parentJobId: string | null;
-  attempt:     number;
-  target:      string | null;
-  intake?:     JobIntake;
-  entity?:     EntityKey;
-  stage?:      number;
+  kind:              JobKind;
+  role:              JobRole | null;
+  ticketIds:         readonly string[];
+  parentJobId:       string | null;
+  attempt:           number;
+  target:            string | null;
+  intake?:           JobIntake;
+  entity?:           EntityKey;
+  stage?:            number;
+  /** Only on the launch record, never on the job: the pending tickets a product owner gives an entity after the first Apply over entities. */
+  entitiesToAssign?: readonly string[];
 }
 
 export interface JobEnding {

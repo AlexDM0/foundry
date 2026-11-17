@@ -606,3 +606,36 @@ test.each<[BoardRefusalDetail, string]>([
 ])('the pipeline setup refusal %o words as its sentence', (detail, message) => {
   expect(messageOf(detail)).toBe(message);
 });
+
+const ENTITY_APPLY_REFUSALS: readonly (readonly [BoardRefusalDetail, string, string])[] = [
+  [
+    {
+      reason: 'entity-named-by-tickets', setupId: 'S1', entity: 'docs', ticketIds: ['019']
+    },
+    'The Apply would remove or rename entity docs, and ticket #019 names it. Nothing was written. '
+      + `Give it another entity with \`${PRODUCT_NAMES.PROGRAM} ticket entity <id> <key> --reason <text>\`, or let it land, then apply again.`,
+    'The Apply would remove or rename entity docs, and ticket #019 names it. Nothing was written. '
+      + 'The product owner gives it another entity, or it lands; then apply again.',
+  ],
+  [
+    { reason: 'entities-while-tickets-in-flight', setupId: 'S1', ticketIds: ['014', '015'] },
+    'This pipeline cannot turn into entities yet: tickets #014, #015 are in progress, in review or reviewed under the pipeline without '
+      + 'entities. Nothing was written. Apply once they land.',
+    'This pipeline cannot turn into entities yet: tickets #014, #015 are in progress, in review or reviewed under the pipeline without '
+      + 'entities. Nothing was written. Apply once they land.',
+  ],
+  [
+    {
+      reason: 'constitution-moved', setupId: 'S1', baseBlob: 'a1', mainBlob: 'b2', entity: 'web'
+    },
+    'The constitution of entity web on the main line changed since the Apply of pipeline setup S1 read it (blob b2, not a1), so the Apply '
+      + 'would overwrite that change. Nothing was written. Apply again.',
+    'The constitution of entity web on the main line changed since the Apply of pipeline setup S1 read it (blob b2, not a1), so the Apply '
+      + 'would overwrite that change. Nothing was written. Apply again.',
+  ],
+];
+
+test.each(ENTITY_APPLY_REFUSALS)('the entity Apply refusal %o words as its sentence on the command line and through the API', (detail, message, apiMessage) => {
+  expect(messageOf(detail)).toBe(message);
+  expect(OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: detail }))).toBe(apiMessage);
+});

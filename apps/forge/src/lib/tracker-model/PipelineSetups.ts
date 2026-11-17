@@ -4,7 +4,8 @@
  * `needs-recheck`, whose only exit is Continue. While an Apply request waits for its commit, every move here refuses but Apply's own.
  * Apply has two stages: the request checks the record and, while main lacks the draft's constitution, waits for its commit; the finish
  * stores the pipeline, the constitution's sources and the board's settings, logs, and last closes the record. It is idempotent by setup
- * and draft revision, so a retried Apply never refuses the pipeline it stored itself.
+ * and draft revision, so a retried Apply never refuses the pipeline it stored itself. On a draft over entities the forge has no
+ * constitution of its own: each entity's drafted text is what the commit writes, and an entity with no draft adopts the file main holds.
  */
 import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { LogRecord }                                  from './@types/LogRecord.ts';
@@ -19,6 +20,7 @@ import type {
 import type {
   ApplyFinishing,
   ApplyHolding,
+  ApplyMainReading,
   ApplyRefusal,
   ApplyRequesting,
   ConstitutionDraft,
@@ -26,6 +28,7 @@ import type {
   ConstitutionSetting,
   ConstitutionSources,
   DraftEditRequest,
+  EntityChangeRefusalReason,
   EntityDraftEdit,
   MainConstitution,
   PipelineDraftEdit,
@@ -48,6 +51,7 @@ import type {
   SourceAnnotation,
   SourceAnnotationKind
 } from './@types/PipelineSetup.ts';
+import type { TicketStatus }                from './@types/Ticket.ts';
 import type { BoardRecords }                from './BoardRecords.ts';
 import { BoardRefusal }                     from './BoardRefusal.ts';
 import type { Decisions }                   from './Decisions.ts';
@@ -56,6 +60,7 @@ import { PIPELINE_APPLIED_DECISION_REASON } from './constants/DecisionAndInciden
 import {
   CONSTITUTION_LIMIT_CHARACTERS,
   DEFAULT_CONSTITUTION_SOURCES,
+  ENTITY_CHANGE_REFUSAL_REASONS,
   FINDING_ID_PREFIX,
   FIRST_SETUP_ITEM_NUMBER,
   FIRST_SETUP_NUMBER,
@@ -71,6 +76,11 @@ import {
 import { PipelineChangeUtil }    from './utils/PipelineChangeUtil.ts';
 import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }          from './utils/PipelineUtil.ts';
+
+function isEntityChangeRefusalReason(reason: string): reason is EntityChangeRefusalReason {
+  const reasons: readonly string[] = ENTITY_CHANGE_REFUSAL_REASONS;
+  return reasons.includes(reason);
+}
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
 const UPDATE_STEP_STATES: Readonly<PipelineSetupStepStates> = {
@@ -128,15 +138,56 @@ function billingCopyOf(billing: PipelineBilling): PipelineBilling {
   return { ...billing };
 }
 
+/** A draft's text, or `null` when it holds none, which main matches only by holding no file either. */
+function textOfDraft(constitution: Readonly<ConstitutionDraft> | null | undefined): string | null {
+  const markdown = constitution?.markdown ?? '';
+  return markdown === '' ? null : markdown;
+}
+
 /** The constitution text the draft holds, or `null` when it holds none, which main matches only by holding no file either. */
 function draftConstitutionTextOf(setup: Readonly<PipelineSetup>): string | null {
-  const markdown = setup.constitution?.markdown ?? '';
-  return markdown === '' ? null : markdown;
+  return textOfDraft(setup.constitution);
 }
 
 function mainHoldsTheDraftText(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null): boolean {
   return draftConstitutionTextOf(setup) === (mainConstitution?.markdown ?? null);
 }
+
+/** A draft over entities gives the forge no constitution of its own: each entity has one. */
+function draftHasEntities(setup: Readonly<PipelineSetup>): boolean {
+  return setup.draft?.entities !== undefined;
+}
+
+function entityDraftOf(setup: Readonly<PipelineSetup>, entityKey: EntityKey): ConstitutionDraft | null {
+  const parts = setup.entities ?? {};
+  return Object.hasOwn(parts, entityKey) ? parts[entityKey]?.constitution ?? null : null;
+}
+
+/** The entity's file on main as the caller read it; `null` when main holds none or nothing was read. */
+function entityMainConstitutionOf(reading: ApplyMainReading, entityKey: EntityKey): MainConstitution | null {
+  const readings = reading.entityConstitutions ?? {};
+  return Object.hasOwn(readings, entityKey) ? readings[entityKey] ?? null : null;
+}
+
+/** The entities of the draft whose drafted text main lacks, in the draft's order: the constitutions the commit writes. */
+function entityKeysMainLacksOf(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): EntityKey[] {
+  return Object.keys(setup.draft?.entities ?? {}).filter((entityKey) => {
+    const text = textOfDraft(entityDraftOf(setup, entityKey));
+    return text !== null && text !== (entityMainConstitutionOf(reading, entityKey)?.markdown ?? null);
+  });
+}
+
+/** Main holds every text the Apply writes: the forge's own on a draft without entities, each entity's draft on a draft over them. */
+function mainHoldsEveryDraftText(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): boolean {
+  if (!draftHasEntities(setup)) return mainHoldsTheDraftText(setup, reading.mainConstitution);
+  return entityKeysMainLacksOf(setup, reading).length === 0;
+}
+
+/** A ticket in these statuses names its entity until it lands or is abandoned. */
+const FINISHED_TICKET_STATUSES: ReadonlySet<TicketStatus> = new Set(['delivered', 'abandoned']);
+
+/** A ticket in these statuses has a job or a landing under the stored pipeline, which entities would change under it. */
+const IN_FLIGHT_TICKET_STATUSES: ReadonlySet<TicketStatus> = new Set(['in-progress', 'in-review', 'reviewed']);
 
 /** Where a check is held: the record itself for the forge's own, an entity's part for that entity's. */
 interface CheckHolder {
@@ -614,9 +665,11 @@ export class PipelineSetups {
 
   /**
    * Stage 1. The request of the revision already waiting answers with it, and the revision an earlier Apply closed answers
-   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, a stored pipeline that
-   * moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already holds the draft's text, stage 2 runs at
-   * once, else the request waits for the constitution commit and nothing else is written.
+   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, the removal of an entity
+   * a ticket names (E91), a stored pipeline without entities turning into entities while a ticket is in flight (E94), a stored pipeline
+   * that moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already holds every draft's text, stage 2
+   * runs at once, else the request waits for the constitution commit and nothing else is written. Each entity's draft takes main's blob
+   * of its file as its base, which its commit must find.
    */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
     const reading = this.records.pipelineSetupReading;
@@ -632,11 +685,17 @@ export class PipelineSetups {
       throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
     }
     this.refuseUnappliable(setup, requesting.draftRevision);
-    const mainHoldsText = mainHoldsTheDraftText(setup, requesting.mainConstitution);
-    this.refuseMovedConstitution(setup, requesting.mainConstitution, mainHoldsText);
-    this.refuseMovedPipeline(setup, this.appliedPipelineOf(setup, requesting.mainConstitution));
-    if (mainHoldsText) return this.finishApply(setupId, { ...requesting, constitutionCommit: null }, at);
+    this.refuseEntityChanges(setup);
+    if (!draftHasEntities(setup)) {
+      this.refuseMovedConstitution(setup, requesting.mainConstitution, mainHoldsTheDraftText(setup, requesting.mainConstitution));
+    }
+    this.refuseMovedPipeline(setup, this.appliedPipelineOf(setup, requesting));
+    if (mainHoldsEveryDraftText(setup, requesting)) return this.finishApply(setupId, { ...requesting, constitutionCommit: null }, at);
 
+    for (const entityKey of Object.keys(setup.draft?.entities ?? {})) {
+      const draft = entityDraftOf(setup, entityKey);
+      if (textOfDraft(draft) !== null && draft !== null) draft.baseBlob = entityMainConstitutionOf(requesting, entityKey)?.blob ?? null;
+    }
     setup.applyRequest = {
       draftRevision: requesting.draftRevision, resumesBoard: requesting.resumesBoard, commitJobId: null, state: 'committing', reason: null
     };
@@ -648,7 +707,9 @@ export class PipelineSetups {
   /**
    * Stage 2, in the hold that found main holding the draft's text: the whole pipeline with `constitution.path` on main's file, the
    * constitution's sources keyed by its blob id, the withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied`, and
-   * last the record's close. A pipeline already stored from this draft is no move of anyone else's, so a retry finishes the rest.
+   * last the record's close. A pipeline already stored from this draft is no move of anyone else's, so a retry finishes the rest. E91 and
+   * E94 refuse again, since a ticket can start or take an entity while the request waits. The first Apply that stores entities names the
+   * pending tickets without one, which the product owner then gives one.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
     const setup = this.requireOpenSetup(setupId);
@@ -657,18 +718,17 @@ export class PipelineSetups {
         reason: 'pipeline-draft-stale', setupId, revision: finishing.draftRevision, currentRevision: setup.draftRevision
       });
     }
-    if (!mainHoldsTheDraftText(setup, finishing.mainConstitution)) {
-      throw new BoardRefusal({
-        reason: 'constitution-moved', setupId, baseBlob: setup.constitution?.baseBlob ?? null, mainBlob: finishing.mainConstitution?.blob ?? null
-      });
-    }
-    const applied = this.appliedPipelineOf(setup, finishing.mainConstitution);
+    this.refuseTextMissingOnMain(setup, finishing);
+    this.refuseEntityChanges(setup);
+    const applied = this.appliedPipelineOf(setup, finishing);
     this.refuseMovedPipeline(setup, applied);
 
     const base   = this.records.pipeline ?? PipelineUtil.minimalPipelineOf();
-    const fields = PipelineChangeUtil.changedFieldNamesOf(base, applied, (setup.constitution?.baseBlob ?? null) !== (finishing.mainConstitution?.blob ?? null));
+    const forgeTextChanged = !draftHasEntities(setup) && (setup.constitution?.baseBlob ?? null) !== (finishing.mainConstitution?.blob ?? null);
+    const fields = PipelineChangeUtil.changedFieldNamesOf(base, applied, forgeTextChanged);
+    const ticketsAwaitingEntity = base.entities === undefined && applied.entities !== undefined ? this.pendingTicketIdsWithoutEntity() : [];
     this.trackerChanges.applyPipeline(applied);
-    this.storeConstitutionSources(setup, finishing.mainConstitution);
+    if (!draftHasEntities(setup)) this.storeConstitutionSources(setup, finishing.mainConstitution);
     const logged = this.decisionRules.decisions().filter((decision) => decision.kind === 'checks-not-set')
       .flatMap((decision) => this.decisionRules.withdrawDecision(decision.id, PIPELINE_APPLIED_DECISION_REASON, at).logged);
     if (finishing.resumesBoard) logged.push(...this.trackerChanges.setOverseerState('running', at).logged);
@@ -688,21 +748,23 @@ export class PipelineSetups {
     }
     this.records.pipelineSetupReading = { verdict: 'absent' };
     this.records.pipelineSetupChanged = true;
-    return { logged, outcome: 'applied', setup };
+    return {
+      logged, outcome: 'applied', setup, ...(ticketsAwaitingEntity.length === 0 ? {} : { ticketsAwaitingEntity })
+    };
   }
 
   /**
    * An open record whose draft, as applied, is already the stored pipeline while the record's base is not: an Apply stored it and was cut
    * short before its close. The Overseer's start finishes it, resuming the board only as a stored request asked.
    */
-  finishHalfAppliedSetup(mainConstitution: MainConstitution | null, at: string): PipelineApplyChanged | null {
+  finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
     const setup  = this.openSetupRecord();
     const stored = this.records.pipeline;
-    if (setup === null || stored === null || !mainHoldsTheDraftText(setup, mainConstitution)) return null;
+    if (setup === null || stored === null || !mainHoldsEveryDraftText(setup, reading)) return null;
     const storedHash = PipelineUtil.contentHashOf(stored);
-    if (storedHash === setup.baseContentHash || storedHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, mainConstitution))) return null;
+    if (storedHash === setup.baseContentHash || storedHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, reading))) return null;
     return this.finishApply(setup.setupId, {
-      draftRevision: setup.draftRevision, resumesBoard: setup.applyRequest?.resumesBoard ?? false, mainConstitution, constitutionCommit: null
+      ...reading, draftRevision: setup.draftRevision, resumesBoard: setup.applyRequest?.resumesBoard ?? false, constitutionCommit: null
     }, at);
   }
 
@@ -754,12 +816,23 @@ export class PipelineSetups {
     this.store(setup);
   }
 
-  /** Whether the stored pipeline is neither the record's base nor its draft as applied on `mainConstitution`: stage 2 would refuse it. */
-  storedPipelineMovedSince(setupId: string, mainConstitution: MainConstitution | null): boolean {
+  /** Whether the stored pipeline is neither the record's base nor its draft as applied on what main holds: stage 2 would refuse it. */
+  storedPipelineMovedSince(setupId: string, reading: ApplyMainReading): boolean {
     const setup  = this.requireOpenSetup(setupId);
     const stored = this.records.pipeline;
     const contentHash = stored === null ? null : PipelineUtil.contentHashOf(stored);
-    return contentHash !== setup.baseContentHash && contentHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, mainConstitution));
+    return contentHash !== setup.baseContentHash && contentHash !== PipelineUtil.contentHashOf(this.appliedPipelineOf(setup, reading));
+  }
+
+  /** The E91 or E94 refusal stage 2 would give, as the reason its request is refused with; `null` when it gives neither. */
+  entityChangeRefusalOf(setupId: string): EntityChangeRefusalReason | null {
+    try {
+      this.refuseEntityChanges(this.requireOpenSetup(setupId));
+      return null;
+    } catch (refusal) {
+      if (refusal instanceof BoardRefusal && isEntityChangeRefusalReason(refusal.detail.reason)) return refusal.detail.reason;
+      throw refusal;
+    }
   }
 
   /**
@@ -816,6 +889,55 @@ export class PipelineSetups {
     if (draftConstitutionTextOf(setup) === null) throw new BoardRefusal({ reason: 'constitution-empty' });
   }
 
+  /**
+   * E91: an entity of the stored pipeline that the draft no longer holds, removed or renamed, while a ticket that is not delivered or
+   * abandoned names it. E94: a stored pipeline without entities that the draft turns into entities while a ticket is in flight.
+   */
+  private refuseEntityChanges(setup: Readonly<PipelineSetup>): void {
+    const stored = this.records.pipeline;
+    if (stored === null) return;
+    const { setupId } = setup;
+    const draftEntities = setup.draft?.entities;
+    const openTickets = this.records.ticketRecords.map(({ frontmatter }) => frontmatter).filter((frontmatter) => !FINISHED_TICKET_STATUSES.has(frontmatter.status));
+    for (const entity of Object.keys(stored.entities ?? {})) {
+      if (draftEntities !== undefined && Object.hasOwn(draftEntities, entity)) continue;
+      const ticketIds = openTickets.filter((frontmatter) => frontmatter.entity === entity).map((frontmatter) => frontmatter.id);
+      if (ticketIds.length > 0) throw new BoardRefusal({
+        reason: 'entity-named-by-tickets', setupId, entity, ticketIds
+      });
+    }
+    if (stored.entities !== undefined || draftEntities === undefined) return;
+    const ticketIds = openTickets.filter((frontmatter) => IN_FLIGHT_TICKET_STATUSES.has(frontmatter.status)).map((frontmatter) => frontmatter.id);
+    if (ticketIds.length > 0) throw new BoardRefusal({ reason: 'entities-while-tickets-in-flight', setupId, ticketIds });
+  }
+
+  /** Stage 2 finds every draft's text on main: the forge's own, or each entity's, naming the first entity whose file differs. */
+  private refuseTextMissingOnMain(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): void {
+    const { setupId } = setup;
+    if (!draftHasEntities(setup)) {
+      if (mainHoldsTheDraftText(setup, reading.mainConstitution)) return;
+      throw new BoardRefusal({
+        reason: 'constitution-moved', setupId, baseBlob: setup.constitution?.baseBlob ?? null, mainBlob: reading.mainConstitution?.blob ?? null
+      });
+    }
+    const [entity] = entityKeysMainLacksOf(setup, reading);
+    if (entity === undefined) return;
+    throw new BoardRefusal({
+      reason:   'constitution-moved',
+      setupId,
+      baseBlob: entityDraftOf(setup, entity)?.baseBlob ?? null,
+      mainBlob: entityMainConstitutionOf(reading, entity)?.blob ?? null,
+      entity,
+    });
+  }
+
+  /** The pending tickets that name no entity, which a pipeline over entities does not build until each has one. */
+  private pendingTicketIdsWithoutEntity(): string[] {
+    return this.records.ticketRecords
+      .filter(({ frontmatter }) => frontmatter.status === 'pending' && frontmatter.entity === undefined)
+      .map(({ frontmatter }) => frontmatter.id);
+  }
+
   /** The stored pipeline must be the record's base, or this draft as applied: a `gate` verb since the record opened refuses. */
   private refuseMovedPipeline(setup: Readonly<PipelineSetup>, applied: Readonly<Pipeline>): void {
     const stored      = this.records.pipeline;
@@ -826,10 +948,22 @@ export class PipelineSetups {
     });
   }
 
-  /** The draft, or the base for a record with none, read with main's constitution file once main holds the draft's text. */
-  private appliedPipelineOf(setup: Readonly<PipelineSetup>, mainConstitution: MainConstitution | null): Pipeline {
+  /**
+   * The draft, or the base for a record with none, read with main's constitution file once main holds the draft's text. Over entities,
+   * each entity names its file once main holds its draft's text, or, with no draft, once main holds a file there, adopted as it is.
+   */
+  private appliedPipelineOf(setup: Readonly<PipelineSetup>, reading: ApplyMainReading): Pipeline {
     const applied = structuredClone(setup.draft ?? this.basePipeline()) as Pipeline;
-    if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };
+    const { mainConstitution } = reading;
+    if (!draftHasEntities(setup)) {
+      if (mainConstitution !== null && draftConstitutionTextOf(setup) !== null) applied.constitution = { path: mainConstitution.path };
+      return applied;
+    }
+    for (const [entityKey, entity] of Object.entries(applied.entities ?? {})) {
+      const onMain = entityMainConstitutionOf(reading, entityKey);
+      const text   = textOfDraft(entityDraftOf(setup, entityKey));
+      if (onMain !== null && (text === null || text === onMain.markdown)) entity.constitution = { path: onMain.path };
+    }
     return applied;
   }
 

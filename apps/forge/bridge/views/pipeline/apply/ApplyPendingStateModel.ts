@@ -53,6 +53,10 @@ function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: read
       return `${CONSTITUTION_FILE_NAME} changed on main since the draft started from it.`;
     case 'pipeline-moved':
       return 'The stored pipeline changed by hand while the commit waited, so the commit did not land.';
+    case 'entity-named-by-tickets':
+      return 'A ticket took an entity that the draft removes while the commit waited, so the commit did not land.';
+    case 'entities-while-tickets-in-flight':
+      return 'A ticket started while the commit waited, and the pipeline cannot turn into entities under it, so the commit did not land.';
     case null:
       return 'No reason was recorded.';
   }

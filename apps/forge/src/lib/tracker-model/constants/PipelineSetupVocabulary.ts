@@ -5,6 +5,7 @@ import type {
   ApplyRequestState,
   CheckedGateVerdict,
   ConstitutionSources,
+  EntityChangeRefusalReason,
   GateCandidacy,
   PipelineCheckState,
   PipelineSetupMode,
@@ -49,7 +50,11 @@ export const APPLY_REQUEST_REASONS = [
   'constitution-commit-unexpected-paths',
   'constitution-moved',
   'pipeline-moved',
+  'entity-named-by-tickets',
+  'entities-while-tickets-in-flight',
 ] as const satisfies readonly ApplyRequestReason[];
+
+export const ENTITY_CHANGE_REFUSAL_REASONS = ['entity-named-by-tickets', 'entities-while-tickets-in-flight'] as const satisfies readonly EntityChangeRefusalReason[];
 
 /** While a request is in these states, the revision being committed must not change, so every other move refuses. */
 export const PENDING_APPLY_REQUEST_STATES = ['committing', 'held'] as const satisfies readonly ApplyRequestState[];

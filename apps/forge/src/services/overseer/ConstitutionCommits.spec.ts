@@ -1,10 +1,11 @@
 /**
  * The commit of an Apply's constitutions in its own worktree. What matters: the draft's text is written byte for byte and committed with
- * hooks off, a subject that says whether main had the file and no body; main's blob must be the one the record opened on; a commit git
- * refuses is an unsigned one where the repository signs, carrying git's text; a commit that changes any path outside its list is refused,
- * fail closed, for one `CONSTITUTION.md` as for a forge with entities' list of several; a list that is empty or names a path twice commits
- * nothing; and a tracker below the repository's root commits its own project's file. The folders are real; git answers from the recorded
- * answer sets of `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
+ * hooks off, a subject that says whether main had the file and no body, one entity's file alone the subject a list shares; main's blob
+ * must be the one the record opened on; a commit git refuses is an unsigned one where the repository signs, carrying git's text; a commit
+ * that changes any path outside its list is refused, fail closed, for one `CONSTITUTION.md` as for a forge with entities' list of
+ * several; a list that is empty or names a path twice commits nothing; and a tracker below the repository's root commits its own
+ * project's file. The folders are real; git answers from the recorded answer sets of
+ * `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
  */
 import {
   existsSync,
@@ -132,6 +133,15 @@ describe('a commit', () => {
     expect(readFileSync(join(worktree, 'CONSTITUTION.md'), 'utf8')).toBe(DRAFT_CONSTITUTION_TEXT);
     expect(readFileSync(join(worktree, ENTITY_CONSTITUTION_PATH), 'utf8')).toBe(ENTITY_CONSTITUTION_TEXT);
     expect(recordedGit.flowCalls()).toContainEqual(['add', '--', 'CONSTITUTION.md', ENTITY_CONSTITUTION_PATH]);
+    expect(commitCallsAsked()).toEqual([['commit', '--no-verify', '-q', '-m', SEVERAL_FILES_SUBJECT]]);
+  });
+
+  test('of one entity\'s file alone commits it under the subject a list shares, since it is not the repository constitution', () => {
+    const request = plantedRequest({ constitutions: [{ path: ENTITY_CONSTITUTION_PATH, baseBlob: MAIN_BLOB, markdown: ENTITY_CONSTITUTION_TEXT }] });
+    answering(request, { constitutionPaths: [ENTITY_CONSTITUTION_PATH] });
+
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'committed', commit: COMMITTED_TIP });
+    expect(recordedGit.flowCalls()).toContainEqual(['add', '--', ENTITY_CONSTITUTION_PATH]);
     expect(commitCallsAsked()).toEqual([['commit', '--no-verify', '-q', '-m', SEVERAL_FILES_SUBJECT]]);
   });
 

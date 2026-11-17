@@ -68,9 +68,10 @@ function subjectOf(mainHoldsTheFile: boolean): string {
   return mainHoldsTheFile ? SUBJECT_OF_A_CHANGED_FILE : SUBJECT_OF_A_NEW_FILE;
 }
 
-/** One constitution keeps the subject that says whether main had it; several share one. */
-function subjectOfFiles(mainBlobs: readonly (string | null)[]): string {
-  return mainBlobs.length === 1 ? subjectOf(mainBlobs[0] !== null) : SUBJECT_OF_SEVERAL_FILES;
+/** The project's own `CONSTITUTION.md` alone keeps the subject that says whether main had it; any other list shares one. */
+function subjectOfFiles(constitutions: readonly ConstitutionFileCommit[], mainBlobs: readonly (string | null)[]): string {
+  const [only] = constitutions;
+  return constitutions.length === 1 && only?.path === CONSTITUTION_FILE_PATH ? subjectOf(mainBlobs[0] !== null) : SUBJECT_OF_SEVERAL_FILES;
 }
 
 function constitutionBlobOf(projectDirectory: string, commit: string, constitutionPath = CONSTITUTION_FILE_PATH): ConstitutionBlobReading {
@@ -128,7 +129,7 @@ function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCom
   const stageArguments = ['add', '--', ...listedPaths];
   const staged = GitProcess.run(worktree, stageArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(staged)) return refused('git-failed', GitProcess.failureReasonOf(staged, stageArguments));
-  const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOfFiles(mainBlobs)];
+  const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOfFiles(constitutions, mainBlobs)];
   const committed = GitProcess.run(worktree, commitArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(committed)) {
     return refused(request.signsCommits ? 'constitution-commit-unsigned' : 'git-failed', GitProcess.failureReasonOf(committed, commitArguments));

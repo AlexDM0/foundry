@@ -7,8 +7,9 @@
  * model and effort in order (Q9); and each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order. On a
  * forge over entities: the forge's flow beside each entity's flow, drawn from its single pipeline and marked against the applied entity;
  * each entity's setup facts from its part of the record, a record-only entity included, read by the entity's roles alone; and profile runs
- * and cache marks kept by entity, gate and phase. A forge without entities gets none of these keys. The main line's texts arrive as a
- * parameter, so no case runs git.
+ * and cache marks kept by entity, gate and phase; and the product owner the first Apply over entities started, with its job's state and
+ * each of its tickets' entity and reason from the newest assignment since its launch. A forge without entities gets none of these keys.
+ * The main line's texts arrive as a parameter, so no case runs git.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -814,5 +815,63 @@ describe('a forge over entities', () => {
         entity: 'ui', gateName: 'test', phase: 'build', cacheReport: 'miss'
       },
     ]);
+  });
+});
+
+describe('the product owner\'s entity assignment after the first Apply over entities', () => {
+  const productOwner = jobFixture({
+    id: 'J12', kind: 'product-owner', role: 'product-owner', target: null, state: 'running'
+  });
+  const assigningLaunch: LogRecord = {
+    kind:   'job-launched',
+    at:     '2026-11-17T09:00:00+01:00',
+    jobId:  'J12',
+    fields: {
+      kind:             'product-owner',
+      role:             'product-owner',
+      ticketIds:        [],
+      attempt:          1,
+      target:           null,
+      parentJobId:      null,
+      intakeText:       'Give them an entity.',
+      entitiesToAssign: ['021', '022', '023'],
+    },
+  };
+  const assigned = (ticketId: string, entity: string, reason: string, at: string): LogRecord => ({
+    kind: 'entity-assigned', at, ticketId, fields: { entity, reason, by: 'product-owner' }
+  });
+
+  test('shows the job\'s state and each ticket in the launch\'s order, with its entity and the reason of its newest assignment since the launch', () => {
+    const facts = pipelineFactsOf(inputOf({}, {
+      jobs:       [productOwner],
+      tickets:    [ticketFixture({ id: '021', title: 'Show stock levels' }), ticketFixture({ id: '022', title: 'Add a refund button' })],
+      logRecords: [
+        assigned('022', 'root', 'Assigned before the Apply.', '2026-11-17T08:00:00+01:00'),
+        assigningLaunch,
+        assigned('021', 'admin', 'Touches apps/admin/.', '2026-11-17T09:01:00+01:00'),
+        assigned('021', 'web', 'Touches apps/web/app/product/.', '2026-11-17T09:02:00+01:00'),
+      ],
+    }));
+
+    expect(facts.entityAssignment).toEqual({
+      jobId:    'J12',
+      jobState: 'running',
+      tickets:  [
+        {
+          ticketId: '021', title: 'Show stock levels', entity: 'web', reason: 'Touches apps/web/app/product/.', assignedBy: 'product-owner'
+        },
+        {
+          ticketId: '022', title: 'Add a refund button', entity: null, reason: null, assignedBy: null
+        },
+        {
+          ticketId: '023', title: null, entity: null, reason: null, assignedBy: null
+        },
+      ],
+    });
+  });
+
+  test('reads its job as ended once the job left the board, and a board that never launched one gets no key', () => {
+    expect(pipelineFactsOf(inputOf({}, { logRecords: [assigningLaunch] })).entityAssignment?.jobState).toBeNull();
+    expect('entityAssignment' in pipelineFactsOf(inputOf({}, { jobs: [productOwner], logRecords: [launchedRecordOf(productOwner, AT)] }))).toBe(false);
   });
 });

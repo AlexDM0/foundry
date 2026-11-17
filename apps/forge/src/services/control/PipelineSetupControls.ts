@@ -18,7 +18,9 @@ import { JsonRecordUtil }                                  from '../../lib/json-
 import type { PipelineApplyChanged, PipelineSetupChanged } from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { EntityKey, Pipeline, PipelineBilling }       from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
+  ApplyMainReading,
   ConstitutionSources,
+  EntityConstitutionsOnMain,
   MainConstitution,
   PipelineDraftEdit,
   PipelineDraftField,
@@ -36,8 +38,10 @@ import { PipelineUtil }                                           from '../../li
 import type { ControlCommandKind, ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext, DraftFieldValue, SetupMessage }     from '../../shared/@types/ControlContext.ts';
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
+import { EntityFoldersUtil }                                      from '../../shared/utils/EntityFoldersUtil.ts';
 import { mainLineOf }                                             from '../lifecycle/MergeTargets.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import { entityAssignmentRequestOf }                              from './EntityAssignmentRequest.ts';
 import { requireReadablePipeline }                                from './SettingControls.ts';
 
 interface SentCommand {
@@ -526,15 +530,49 @@ function revisionAndResumeOf(command: CommandOf<'pipeline-apply'>): { draftRevis
   return { draftRevision, resumesBoard };
 }
 
+type EntityConstitutionsReading = { verdict: 'read'; readings: EntityConstitutionsOnMain } | { verdict: 'unreadable'; reason: string };
+
+/**
+ * Each entity's constitution file on main, at the path its draft entity names or in its first home, read only on a draft over entities;
+ * unreadable, with git's reason, when git could not answer one of them.
+ */
+function entityConstitutionsOf(change: TrackerChange, context: ControlContext): EntityConstitutionsReading {
+  const entities = change.board.pipelineSetup()?.draft?.entities ?? {};
+  const readings: Record<EntityKey, MainConstitution | null> = {};
+  for (const [entityKey, entity] of Object.entries(entities)) {
+    const reading = context.mainConstitutionOf(change.workspace.rootDirectory, EntityFoldersUtil.constitutionPathOf(entity));
+    if (reading.verdict === 'unreadable') return reading;
+    readings[entityKey] = reading.verdict === 'read' ? reading.constitution : null;
+  }
+  return { verdict: 'read', readings };
+}
+
+/** What an Apply reads of main: the forge's `CONSTITUTION.md` and, on a draft over entities, each entity's file. */
+function applyMainReadingOf(mainConstitution: MainConstitution | null, entityConstitutions: EntityConstitutionsOnMain | undefined): ApplyMainReading {
+  return { mainConstitution, ...(entityConstitutions === undefined ? {} : { entityConstitutions }), entityAssignmentRequestOf, };
+}
+
+function draftHasEntities(change: TrackerChange): boolean {
+  return change.board.pipelineSetup()?.draft?.entities !== undefined;
+}
+
 /**
  * Stage 1 of an Apply. An unreadable `pipeline.json` is replaced only by a record opened to replace it; main's constitution is read for
- * the Board, which refuses, waits for the constitution commit, or applies at once when main already holds the draft's text.
+ * the Board, and on a draft over entities each entity's file, and the Board refuses, waits for the constitution commit, or applies at
+ * once when main already holds every draft's text.
  */
 function applySetup(command: CommandOf<'pipeline-apply'>, change: TrackerChange, context: ControlContext): PipelineApplyChanged {
   const setupId = textFieldOf(command, 'setupId');
   const { draftRevision, resumesBoard } = revisionAndResumeOf(command);
   if (change.board.pipelineSetup()?.replacesUnreadablePipeline !== true) requireReadablePipeline(change);
-  return change.board.requestApply(setupId, { draftRevision, resumesBoard, mainConstitution: mainConstitutionOf(change, context) }, change.at);
+  const mainConstitution = mainConstitutionOf(change, context);
+  let entityConstitutions: EntityConstitutionsOnMain | undefined;
+  if (change.board.pipelineSetup()?.setupId === setupId && draftHasEntities(change)) {
+    const reading = entityConstitutionsOf(change, context);
+    if (reading.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'main-constitution-unreadable', reason: reading.reason });
+    entityConstitutions = reading.readings;
+  }
+  return change.board.requestApply(setupId, { draftRevision, resumesBoard, ...applyMainReadingOf(mainConstitution, entityConstitutions) }, change.at);
 }
 
 /**
@@ -545,7 +583,9 @@ export function finishHalfAppliedSetup(change: TrackerChange, context: ControlCo
   if (change.board.pipelineSetup() === null || change.board.pipeline() === null) return null;
   const reading = context.mainConstitutionOf(change.workspace.rootDirectory);
   if (reading.verdict === 'unreadable') return null;
-  return change.board.finishHalfAppliedSetup(reading.verdict === 'read' ? reading.constitution : null, change.at);
+  const entityReading = draftHasEntities(change) ? entityConstitutionsOf(change, context) : undefined;
+  if (entityReading?.verdict === 'unreadable') return null;
+  return change.board.finishHalfAppliedSetup(applyMainReadingOf(reading.verdict === 'read' ? reading.constitution : null, entityReading?.readings), change.at);
 }
 
 function cancelApply(command: CommandOf<'pipeline-apply-cancel'>, change: TrackerChange): PipelineSetupChanged {

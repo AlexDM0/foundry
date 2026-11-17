@@ -212,11 +212,11 @@ describe('stage 1 while main lacks the draft\'s text', () => {
     const { board, setupId } = firstSetupAtApply();
     board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT);
     const record = structuredClone(openSetupOf(board)) as PipelineSetup;
-    expect(board.storedPipelineMovedSince(setupId, MAIN_CONSTITUTION)).toBe(false);
+    expect(board.storedPipelineMovedSince(setupId, { mainConstitution: MAIN_CONSTITUTION })).toBe(false);
 
     const { board: reloaded } = boardFixture({ pipeline: STORED_PIPELINE, pipelineSetup: { verdict: 'readable', setup: record } });
 
-    expect(reloaded.storedPipelineMovedSince(setupId, MAIN_CONSTITUTION)).toBe(true);
+    expect(reloaded.storedPipelineMovedSince(setupId, { mainConstitution: MAIN_CONSTITUTION })).toBe(true);
   });
 
   test('cancel clears the request at the design step, in progress and editable, with Apply not reached, and with none pending refuses no-apply-pending', () => {
@@ -355,7 +355,7 @@ describe('the record\'s pipeline agent once Apply lands', () => {
     // The new board numbers its jobs afresh, so the agent the record names is this one, launching with no session yet.
     expect(board.startPipelineAgent(AT).job.id).toBe(job.id);
 
-    board.finishHalfAppliedSetup(MAIN_CONSTITUTION, AT);
+    board.finishHalfAppliedSetup({ mainConstitution: MAIN_CONSTITUTION }, AT);
 
     expect(board.jobById(job.id)).toBeUndefined();
     expect(board.endedJobOutcomeOf(job.id)?.outcome).toBe('closed');
@@ -407,7 +407,7 @@ describe('idempotent by setup and revision', () => {
     const { board } = boardFixture({ pipeline: stored, pipelineSetup: { verdict: 'readable', setup } });
     board.setOverseerState('paused', AT);
 
-    const finished = board.finishHalfAppliedSetup(MAIN_CONSTITUTION, AT);
+    const finished = board.finishHalfAppliedSetup({ mainConstitution: MAIN_CONSTITUTION }, AT);
 
     expect(finished?.outcome).toBe('applied');
     expect(board.overseerState()).toBe('running');
@@ -416,11 +416,11 @@ describe('idempotent by setup and revision', () => {
 
   test('the Overseer\'s start leaves alone a record whose draft is not the stored pipeline, or whose base it still is', () => {
     const { board, setupId } = firstSetupAtApply();
-    expect(board.finishHalfAppliedSetup(MAIN_CONSTITUTION, AT)).toBeNull();
+    expect(board.finishHalfAppliedSetup({ mainConstitution: MAIN_CONSTITUTION }, AT)).toBeNull();
 
     const { board: updateBoard } = boardFixture({ pipeline: STORED_PIPELINE });
     updateBoard.openSetup({ ...FIRST_SETUP, mode: 'update' }, AT);
-    expect(updateBoard.finishHalfAppliedSetup(null, AT)).toBeNull();
+    expect(updateBoard.finishHalfAppliedSetup({ mainConstitution: null }, AT)).toBeNull();
     expect(board.pipelineSetup()?.setupId).toBe(setupId);
   });
 });

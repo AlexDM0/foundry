@@ -1,13 +1,22 @@
 /**
  * The Overseer's side of a product-owner intake (design section 8.4): the session's confinement (skills on, the web through WebFetch and
- * WebSearch only, Bash with no domain), what its first message is filled from and the pictures it carries, and the end of a closed intake.
+ * WebSearch only, Bash with no domain), what its first message is filled from and the pictures it carries, the entity map its brief
+ * receives on a forge with entities, and the end of a closed intake.
  */
-import type { WorkerProfile }         from '../../lib/agent-launch/WorkerProfile.ts';
-import type { Job, PictureReference } from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                 from '../../lib/tracker-model/Board.ts';
-import type { WatcherLiveness }       from './WatcherFleet.ts';
+import { readFileSync } from 'node:fs';
+
+import type { WorkerProfile }             from '../../lib/agent-launch/WorkerProfile.ts';
+import type { Job, PictureReference }     from '../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Board }                     from '../../lib/tracker-model/Board.ts';
+import { filledTemplateOf }               from '../../shared/FilledTemplate.ts';
+import { resourceFilePathOf }             from '../../shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }                  from '../../shared/constants/ProductNames.ts';
+import type { WatcherLiveness }           from './WatcherFleet.ts';
 
 export const PRODUCT_OWNER_KIND = 'product-owner';
+
+const ENTITY_MAP_PLACEHOLDER = '{{entityMap}}';
 
 /** What a product owner's first message is filled from; a fresh session after a replaced one also gets its drafts and answers. */
 export interface IntakeFacts {
@@ -42,6 +51,34 @@ function firstMessagePicturesOf(job: Readonly<Job>): readonly PictureReference[]
   return isIntakeJob(job) ? job.intake?.pictures ?? [] : [];
 }
 
+/** One entity as the map lists it: its key, kind and home folders, and the summary intake routes a ticket by. */
+function entityLineOf(entityKey: EntityKey, entity: Readonly<PipelineEntity>): string {
+  const homes = entity.home.map((home) => `\`${home}\``).join(', ');
+  const summary = entity.summary === undefined ? '' : ` ${entity.summary.replace(/\s+/gu, ' ').trim()}`;
+  return `- \`${entityKey}\` (${entity.kind}): ${homes}.${summary}`;
+}
+
+/** The map of the pipeline's entities that a product owner's brief ends with; empty on a forge without entities. */
+function entityMapOf(board: Board): string {
+  const entities = board.pipeline()?.entities;
+  if (entities === undefined) return '';
+  const template = readFileSync(resourceFilePathOf('prompts', 'ProductOwnerEntityMap.md'), 'utf8');
+  const entityLines = Object.entries(entities).map(([entityKey, entity]) => entityLineOf(entityKey, entity)).join('\n');
+  return `\n\n${filledTemplateOf(template, { entityLines, program: PRODUCT_NAMES.PROGRAM }).trimEnd()}`;
+}
+
+/**
+ * A product owner's instruction files with the entity map in place of their `{{entityMap}}`, which a forge without entities fills with
+ * nothing, so its brief stays as it was. A brief without the placeholder, installed before it or named by the pipeline, ends with the
+ * map. Every other job's are returned as they are.
+ */
+function productOwnerInstructionsOf(board: Board, job: Readonly<Job>, instructions: string): string {
+  if (!isIntakeJob(job)) return instructions;
+  const entityMap = entityMapOf(board);
+  if (instructions.includes(ENTITY_MAP_PLACEHOLDER)) return filledTemplateOf(instructions, { entityMap });
+  return entityMap === '' ? instructions : `${instructions.trimEnd()}${entityMap}\n`;
+}
+
 /**
  * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no Watcher of it is live, a Watcher that never
  * started included.
@@ -54,5 +91,5 @@ function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => Watc
 }
 
 export const IntakeSessions = Object.freeze({
-  isIntakeJob, productOwnerProfileOf, intakeFactsOf, firstMessagePicturesOf, endClosedIntakes
+  isIntakeJob, productOwnerProfileOf, intakeFactsOf, productOwnerInstructionsOf, firstMessagePicturesOf, endClosedIntakes
 });

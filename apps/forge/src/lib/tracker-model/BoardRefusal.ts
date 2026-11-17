@@ -109,7 +109,12 @@ export type BoardRefusalDetail =
   | { reason: 'setup-step-needs-recheck'; setupId: string; steps: readonly PipelineSetupStep[] }
   | { reason: 'setup-snapshot-touched'; setupId: string }
   | { reason: 'pipeline-moved'; setupId: string; baseContentHash: string | null; contentHash: string | null }
-  | { reason: 'constitution-moved'; setupId: string; baseBlob: string | null; mainBlob: string | null }
+  /** `entity` names the entity whose constitution file moved; absent for the forge's own `CONSTITUTION.md`. */
+  | { reason: 'constitution-moved'; setupId: string; baseBlob: string | null; mainBlob: string | null; entity?: string }
+  /** E91: the draft removes or renames an entity that tickets not yet delivered or abandoned name. */
+  | { reason: 'entity-named-by-tickets'; setupId: string; entity: string; ticketIds: readonly string[] }
+  /** E94: the draft turns a stored pipeline without entities into entities while these tickets are in progress, in review or reviewed. */
+  | { reason: 'entities-while-tickets-in-flight'; setupId: string; ticketIds: readonly string[] }
   | { reason: 'billing-cap-not-positive'; maxBudgetUsd: number }
   | { reason: 'setup-step-not-current'; setupId: string; step: PipelineSetupStep; currentStep: PipelineSetupStep }
   | { reason: 'setup-step-not-reached'; setupId: string; step: PipelineSetupStep }

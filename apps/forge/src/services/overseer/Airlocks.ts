@@ -23,30 +23,37 @@ import type {
   Airlock,
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecordFieldsOf }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EntityKey, Pipeline, PipelineGate }                             from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { ApplyRequestReason, MainConstitution, MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }                                from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                   from '../../lib/tracker-model/AirlockClaims.ts';
-import { MERGE_PRIORITY_RANK }                                                from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                                         from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                                       from '../../lib/tracker-model/BoardRefusal.ts';
-import { PARKED_HOLD_PREFIX }                                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HANDOFF_RED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
-import { PENDING_APPLY_REQUEST_STATES }                                       from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { EntityOwnershipUtil, type PipelineEntities }                         from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { MergeQueueUtil, type MergeForecast }                                 from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { PipelineUtil }                                                       from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import type { BranchNames }                                                   from '../../shared/BranchNames.ts';
-import type { AirlockLimits }                                                 from '../../shared/constants/AirlockLimits.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
-import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
-import { MergeRun }                                                           from '../lifecycle/MergeRun.ts';
-import { ConstitutionCommits, type ConstitutionFileCommit }                   from './ConstitutionCommits.ts';
-import { GroupWorktrees }                                                     from './GroupWorktrees.ts';
-import { CONSTITUTION_FILE_PATH }                                             from './InstructionFiles.ts';
-import { JobResumption }                                                      from './JobResumption.ts';
-import { RED_HANDOFF_FILES, RedHandoff }                                      from './RedHandoff.ts';
+import type { LogRecordFieldsOf }                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline, PipelineGate } from '../../lib/tracker-model/@types/Pipeline.ts';
+import type {
+  ApplyMainReading,
+  ApplyRequestReason,
+  MainConstitution,
+  MainConstitutionReading
+} from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { DecisionDraft, DecisionWording }                               from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                  from '../../lib/tracker-model/AirlockClaims.ts';
+import { MERGE_PRIORITY_RANK }                                               from '../../lib/tracker-model/AirlockClaims.ts';
+import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }                                                      from '../../lib/tracker-model/BoardRefusal.ts';
+import { PARKED_HOLD_PREFIX }                                                from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HANDOFF_RED_INTERRUPTION }                                          from '../../lib/tracker-model/constants/JobStates.ts';
+import { PENDING_APPLY_REQUEST_STATES }                                      from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { EntityOwnershipUtil, type PipelineEntities }                        from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { MergeQueueUtil, type MergeForecast }                                from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { PipelineUtil }                                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import type { BranchNames }                                                  from '../../shared/BranchNames.ts';
+import type { AirlockLimits }                                                from '../../shared/constants/AirlockLimits.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET }                                    from '../../shared/constants/OverseerLimits.ts';
+import { EntityFoldersUtil }                                                 from '../../shared/utils/EntityFoldersUtil.ts';
+import { entityAssignmentRequestOf }                                         from '../control/EntityAssignmentRequest.ts';
+import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
+import { MergeRun }                                                          from '../lifecycle/MergeRun.ts';
+import { ConstitutionCommits, type ConstitutionFileCommit }                  from './ConstitutionCommits.ts';
+import { GroupWorktrees }                                                    from './GroupWorktrees.ts';
+import { CONSTITUTION_FILE_PATH, InstructionFiles }                          from './InstructionFiles.ts';
+import { JobResumption }                                                     from './JobResumption.ts';
+import { RED_HANDOFF_FILES, RedHandoff }                                     from './RedHandoff.ts';
 
 export interface AirlockHold {
   board: Board;
@@ -299,14 +306,17 @@ function isConstitutionCommit(job: Readonly<Job>): boolean {
 }
 
 /**
- * What a constitution commit job commits and lands: the open record's Apply request that names it, with each constitution's draft. The
- * record's own `CONSTITUTION.md`, whose text on main the Apply records, comes first; a forge without entities lists it alone.
+ * What a constitution commit job commits and lands: the open record's Apply request that names it, with each constitution's draft. A
+ * forge without entities lists the record's own `CONSTITUTION.md` alone; a draft over entities lists each entity's drafted constitution,
+ * in the draft's order, and names every entity's constitution path, whose file main may hold to be adopted as it is.
  */
 interface ConstitutionCommitRequest {
-  setupId:       string;
-  draftRevision: number;
-  resumesBoard:  boolean;
-  constitutions: readonly [ConstitutionFileCommit, ...ConstitutionFileCommit[]];
+  setupId:                  string;
+  draftRevision:            number;
+  resumesBoard:             boolean;
+  constitutions:            readonly ConstitutionFileCommit[];
+  /** Absent without entities: each entity's constitution path, by key. */
+  entityConstitutionPaths?: Readonly<Record<EntityKey, string>>;
 }
 
 /** The open record's Apply request while it waits for its commit; with `commitJobId`, only while it names that job. */
@@ -316,12 +326,38 @@ function pendingApplyOf(board: Board, commitJobId?: string): ConstitutionCommitR
   const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
   if (setup === null || request === null || !pendingStates.includes(request.state)) return null;
   if (commitJobId !== undefined && request.commitJobId !== commitJobId) return null;
-  return {
-    setupId:       setup.setupId,
-    draftRevision: request.draftRevision,
-    resumesBoard:  request.resumesBoard,
-    constitutions: [{ path: CONSTITUTION_FILE_PATH, markdown: setup.constitution?.markdown ?? '', baseBlob: setup.constitution?.baseBlob ?? null }],
-  };
+  const pending = { setupId: setup.setupId, draftRevision: request.draftRevision, resumesBoard: request.resumesBoard };
+  const entities = setup.draft?.entities;
+  if (entities === undefined) {
+    return {
+      ...pending,
+      constitutions: [{ path: CONSTITUTION_FILE_PATH, markdown: setup.constitution?.markdown ?? '', baseBlob: setup.constitution?.baseBlob ?? null }],
+    };
+  }
+  const entityConstitutionPaths = Object.fromEntries(Object.entries(entities).map(([entityKey, entity]) => [entityKey, EntityFoldersUtil.constitutionPathOf(entity)]));
+  const parts = setup.entities ?? {};
+  const constitutions = Object.entries(entityConstitutionPaths).flatMap(([entityKey, path]): ConstitutionFileCommit[] => {
+    const draft = Object.hasOwn(parts, entityKey) ? parts[entityKey]?.constitution ?? null : null;
+    return draft === null || draft.markdown === '' ? [] : [{ path, markdown: draft.markdown, baseBlob: draft.baseBlob }];
+  });
+  return { ...pending, constitutions, entityConstitutionPaths };
+}
+
+/**
+ * What main holds for the request as the Board reads it: the forge's `CONSTITUTION.md`, or on a draft over entities each entity's file,
+ * by its path in `readingOfPath`.
+ */
+function applyMainReadingOf(request: Readonly<ConstitutionCommitRequest>, readingOfPath: (path: string) => MainConstitution | null): ApplyMainReading {
+  const paths = request.entityConstitutionPaths;
+  if (paths === undefined) return { mainConstitution: readingOfPath(CONSTITUTION_FILE_PATH), entityAssignmentRequestOf };
+  const entityConstitutions = Object.fromEntries(Object.entries(paths).map(([entityKey, path]) => [entityKey, readingOfPath(path)]));
+  return { mainConstitution: null, entityConstitutions, entityAssignmentRequestOf };
+}
+
+/** The paths whose text on main the request reads: the listed constitutions, and on a draft over entities every entity's path. */
+function pathsReadOf(request: Readonly<ConstitutionCommitRequest>): string[] {
+  const paths = request.entityConstitutionPaths === undefined ? request.constitutions.map((constitution) => constitution.path) : Object.values(request.entityConstitutionPaths);
+  return [...new Set(paths)];
 }
 
 /** Main holds the draft's text when it holds the constitution with exactly that text; an empty draft only matches no file at all. */
@@ -1239,14 +1275,15 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const landed = await context.hold((hold) => {
       const request = pendingApplyOf(hold.board, job.id);
       if (request === null) return { verdict: 'cancelled' } as const;
-      const recordedBlob = committedBlobsOf(commit, request, context.repositoryRoot)?.[0];
-      if (recordedBlob === undefined) return { verdict: 'orphaned' } as const;
-      const [recorded] = request.constitutions;
-      const mainConstitution: MainConstitution = { path: recorded.path, markdown: recorded.markdown, blob: recordedBlob };
-      if (hold.board.storedPipelineMovedSince(request.setupId, mainConstitution)) {
-        hold.board.endConstitutionCommitJob(job.id, { outcome: 'failed', cause: 'pipeline-moved' }, hold.at);
-        hold.board.refuseApply(request.setupId, { reason: 'pipeline-moved', gitFailure: null }, hold.at);
-        return { verdict: 'pipeline-moved' } as const;
+      const committedBlobs = committedBlobsOf(commit, request, context.repositoryRoot);
+      if (committedBlobs === null) return { verdict: 'orphaned' } as const;
+      const mainReading = committedReadingOf(commit, request, committedBlobs);
+      if (mainReading === null) return { verdict: 'orphaned' } as const;
+      const stageTwoRefusal = stageTwoRefusalOf(hold, request.setupId, mainReading);
+      if (stageTwoRefusal !== null) {
+        hold.board.endConstitutionCommitJob(job.id, { outcome: 'failed', cause: stageTwoRefusal }, hold.at);
+        hold.board.refuseApply(request.setupId, { reason: stageTwoRefusal, gitFailure: null }, hold.at);
+        return { verdict: 'stage-two-refused' } as const;
       }
       const verdict = Landing.landOnTarget({
         target:            { branch: mainLine, directory: context.repositoryRoot },
@@ -1260,7 +1297,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       hold.board.recordMergeLanded(job.id, { target: mainLine, commit: verdict.commit, kind: 'landed' }, hold.at);
       hold.board.endConstitutionCommitJob(job.id, { outcome: 'committed', commit: verdict.commit }, hold.at);
       hold.board.finishApply(request.setupId, {
-        draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, mainConstitution, constitutionCommit: verdict.commit
+        ...mainReading, draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, constitutionCommit: verdict.commit
       }, hold.at);
       return { verdict: 'landed' } as const;
     });
@@ -1286,14 +1323,45 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
   }
 
-  /** Stage 2 at once, with no commit, when main already holds the draft's text: the commit landed, or User committed the text by hand. */
-  function finishWithoutACommit(hold: AirlockHold, request: ConstitutionCommitRequest, mainConstitution: MainConstitution | null): void {
-    if (hold.board.storedPipelineMovedSince(request.setupId, mainConstitution)) {
-      hold.board.refuseApply(request.setupId, { reason: 'pipeline-moved', gitFailure: null }, hold.at);
+  /**
+   * What the constitution commit holds once it lands: each listed constitution with its recorded text and the blob the commit holds, and
+   * on a draft over entities every other entity's file as the commit holds it; `null` when git cannot tell.
+   */
+  function committedReadingOf(commit: string, request: Readonly<ConstitutionCommitRequest>, committedBlobs: readonly string[]): ApplyMainReading | null {
+    const committedOf = ({ path, markdown }: Readonly<ConstitutionFileCommit>, index: number): MainConstitution => ({ path, markdown, blob: committedBlobs[index] ?? '' });
+    const committed = new Map(request.constitutions.map((constitution, index) => [constitution.path, committedOf(constitution, index)]));
+    const readings = new Map<string, MainConstitution | null>();
+    for (const path of pathsReadOf(request)) {
+      const listed = committed.get(path);
+      if (listed !== undefined) {
+        readings.set(path, listed);
+        continue;
+      }
+      const reading = InstructionFiles.mainConstitutionAt(context.repositoryRoot, commit, path);
+      if (reading.verdict === 'unreadable') return null;
+      readings.set(path, reading.verdict === 'read' ? reading.constitution : null);
+    }
+    return applyMainReadingOf(request, (path) => readings.get(path) ?? null);
+  }
+
+  /**
+   * What stage 2 would refuse, checked before the commit lands so that a refused Apply leaves main as it was: the stored pipeline moved,
+   * or a ticket started or took an entity the draft removes while the request waited (E94, E91).
+   */
+  function stageTwoRefusalOf(hold: AirlockHold, setupId: string, mainReading: ApplyMainReading): ApplyRequestReason | null {
+    if (hold.board.storedPipelineMovedSince(setupId, mainReading)) return 'pipeline-moved';
+    return hold.board.entityChangeRefusalOf(setupId);
+  }
+
+  /** Stage 2 at once, with no commit, when main already holds every draft's text: the commit landed, or User committed it by hand. */
+  function finishWithoutACommit(hold: AirlockHold, request: ConstitutionCommitRequest, mainReading: ApplyMainReading): void {
+    const stageTwoRefusal = stageTwoRefusalOf(hold, request.setupId, mainReading);
+    if (stageTwoRefusal !== null) {
+      hold.board.refuseApply(request.setupId, { reason: stageTwoRefusal, gitFailure: null }, hold.at);
       return;
     }
     hold.board.finishApply(request.setupId, {
-      draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, mainConstitution, constitutionCommit: null
+      ...mainReading, draftRevision: request.draftRevision, resumesBoard: request.resumesBoard, constitutionCommit: null
     }, hold.at);
   }
 
@@ -1310,17 +1378,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (waiting === null) return 'none';
     if (waiting.slotIsHeld) return 'waits';
     const { request } = waiting;
-    const mainConstitutions: (MainConstitution | null)[] = [];
-    for (const constitution of request.constitutions) {
-      const reading = context.mainConstitutionOf(constitution.path);
+    const readings = new Map<string, MainConstitution | null>();
+    for (const path of pathsReadOf(request)) {
+      const reading = context.mainConstitutionOf(path);
       if (reading.verdict === 'unreadable') return 'waits';
-      mainConstitutions.push(reading.verdict === 'read' ? reading.constitution : null);
+      readings.set(path, reading.verdict === 'read' ? reading.constitution : null);
     }
-    const mainHoldsEveryText = request.constitutions.every((constitution, index) => mainHoldsTheText(mainConstitutions[index] ?? null, constitution.markdown));
+    const mainHoldsEveryText = request.constitutions.every((constitution) => mainHoldsTheText(readings.get(constitution.path) ?? null, constitution.markdown));
     if (mainHoldsEveryText) {
-      const recordedMainConstitution = mainConstitutions[0] ?? null;
+      const mainReading = applyMainReadingOf(request, (path) => readings.get(path) ?? null);
       await context.hold((hold) => {
-        if (pendingApplyOf(hold.board)?.setupId === request.setupId) finishWithoutACommit(hold, request, recordedMainConstitution);
+        if (pendingApplyOf(hold.board)?.setupId === request.setupId) finishWithoutACommit(hold, request, mainReading);
       });
       return 'allocated';
     }

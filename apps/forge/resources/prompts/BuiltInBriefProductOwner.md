@@ -6,4 +6,4 @@ basic brief.
 - Each ticket that you file is a draft. Do not run `{{program}} ticket ready`.
 - {{productOwnerBashNetwork}}
 - When a part of the request is not clear, ask User.
-- When the intake is complete, run `{{program}} intake close`.
+- When the intake is complete, run `{{program}} intake close`.{{entityMap}}

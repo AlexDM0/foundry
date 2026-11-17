@@ -73,26 +73,28 @@ export interface AirlocksHarness {
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
   keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
   settings:    {
-    gateOutcome:       MergedTreeGate['outcome'];
+    gateOutcome:             MergedTreeGate['outcome'];
     /** The red gate or the failed step a gate that does not pass names: `tests` unless set. */
-    gateStep:          string;
+    gateStep:                string;
     /** The entity a gate that does not pass names; absent unless set. */
-    gateEntity?:       EntityKey;
+    gateEntity?:             EntityKey;
     /** What the gates reported of their cache; absent unless set, as when no gate reported. */
-    gateCacheReports?: GateRunCacheReports;
-    reading:           MergeAgentReading;
+    gateCacheReports?:       GateRunCacheReports;
+    reading:                 MergeAgentReading;
     /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
-    resolutionLines:   number | null;
-    watcherIsLive:     boolean;
-    refDeniesHold:     boolean;
+    resolutionLines:         number | null;
+    watcherIsLive:           boolean;
+    refDeniesHold:           boolean;
     /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
-    beforeGate:        () => void;
+    beforeGate:              () => void;
     /** Main's `CONSTITUTION.md` as git would answer for the main line's tip; absent unless set. */
-    mainConstitution:  MainConstitutionReading;
+    mainConstitution:        MainConstitutionReading;
+    /** Main's file at another constitution path, an entity's; read from `mainConstitution` unless set. */
+    mainConstitutionAtPath?: (constitutionPath: string) => MainConstitutionReading;
     /** The repository sets `commit.gpgsign`; false unless set. */
-    signsCommits:      boolean;
+    signsCommits:            boolean;
     /** The board is paused: no ticket's slot opens; false unless set. */
-    dispatchIsStopped: boolean;
+    dispatchIsStopped:       boolean;
   };
   worktreeOf:   (ticketId: string) => string;
   tipOf:        (branch: string) => string;
@@ -254,7 +256,7 @@ export function createRecordedAirlocksHarness(
     redHandoffResumes:      2,
     dispatchIsStopped:      () => settings.dispatchIsStopped,
     reportDeclinedCleanup:  (declined) => declinedCleanups.push(declined),
-    mainConstitutionOf:     () => settings.mainConstitution,
+    mainConstitutionOf:     (constitutionPath) => settings.mainConstitutionAtPath?.(constitutionPath) ?? settings.mainConstitution,
     repositorySignsCommits: () => settings.signsCommits,
     ...(sharedRepository === null ? {} : { sharedRepository }),
     ...(projectScope === null ? {} : { projectPrefix: projectScope.projectPrefix }),

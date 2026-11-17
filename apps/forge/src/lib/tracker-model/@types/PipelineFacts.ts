@@ -17,7 +17,12 @@ import type {
   PipelineSetup,
   SourceAnnotation
 } from './PipelineSetup.ts';
-import type { AgentEffort, AgentModel, AgentPair } from './Ticket.ts';
+import type {
+  AgentEffort,
+  AgentModel,
+  AgentPair,
+  EntityAssigner
+} from './Ticket.ts';
 
 export type PipelineReadingVerdict = 'absent' | 'readable' | 'older' | 'malformed';
 
@@ -44,6 +49,25 @@ export type AppliedPipelineFacts =
     /** Null for a pipeline the `gate` verbs alone wrote. */
     application:    PipelineApplication | null;
   };
+
+/** One ticket the product owner gives an entity after the first Apply over entities; `entity`, `reason` and `assignedBy` are null while it waits. */
+export interface EntityAssignmentTicket {
+  ticketId:   string;
+  /** Null when the board no longer holds the ticket. */
+  title:      string | null;
+  entity:     EntityKey | null;
+  /** The reason of the ticket's newest `entity-assigned` record since the job's launch. */
+  reason:     string | null;
+  assignedBy: EntityAssigner | null;
+}
+
+/** The product owner the first Apply over entities started, from its launch record, and each of its tickets in the record's order. */
+export interface EntityAssignmentFacts {
+  jobId:    string;
+  /** The job's state while it is on the board; null once it ended. */
+  jobState: JobState | null;
+  tickets:  EntityAssignmentTicket[];
+}
 
 /** What A0bResume summarises each step with, as counts. */
 export interface PipelineSetupSummary {

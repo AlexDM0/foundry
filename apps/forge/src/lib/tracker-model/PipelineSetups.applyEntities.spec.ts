@@ -1,0 +1,262 @@
+/**
+ * Apply of a draft over entities. What matters: the Apply refuses to remove or rename an entity a ticket that is not delivered or
+ * abandoned names (E91), and refuses to turn a stored pipeline without entities into entities while a ticket is in progress, in review
+ * or reviewed (E94), where a first setup and a pending ticket refuse nothing. The forge has no constitution of its own beside entities,
+ * so its empty draft refuses nothing: each entity's drafted text that main lacks waits for the commit, each drafted entity takes main's
+ * blob of its file as its base, an entity with no draft adopts the file main holds byte for byte, and stage 2 refuses an entity's text
+ * main does not hold, naming the entity. Stage 2 refuses E91 and E94 again, for a ticket that started or took the removed entity while the
+ * request waited. The first Apply that stores entities starts one product owner, as an intake of the words the
+ * caller gives, for the pending tickets without an entity, its launch record naming them; an Apply over a pipeline that already had
+ * entities, or one with no such ticket, starts none.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import {
+  boardFixture,
+  entityPipelineFixture,
+  refusalDetailOf,
+  ticketFixture
+} from '../../testing/BoardFixtures.ts';
+import type { Pipeline } from './@types/Pipeline.ts';
+import type {
+  ApplyMainReading,
+  ConstitutionDraft,
+  MainConstitution,
+  PipelineSetup,
+  PipelineSetupEntity
+} from './@types/PipelineSetup.ts';
+import type { Ticket }  from './@types/Ticket.ts';
+import type { Board }   from './Board.ts';
+import { PipelineUtil } from './utils/PipelineUtil.ts';
+
+const AT = '2026-11-17T10:00:00+01:00';
+
+const SETUP_ID = 'S4';
+
+const WEB_TEXT = '# Web\n\n- Keep the basket page fast.\n';
+
+const WEB_ON_MAIN: MainConstitution = { path: 'apps/web/CONSTITUTION.md', markdown: '# Web\n\n- An older rule.\n', blob: 'a'.repeat(40) };
+
+const DESIGN_SYSTEM_TEXT = '# Design system\n\n- Compose before you add a part.\n';
+
+const DESIGN_SYSTEM_ON_MAIN: MainConstitution = { path: 'packages/design-system/CONSTITUTION.md', markdown: DESIGN_SYSTEM_TEXT, blob: 'b'.repeat(40) };
+
+const SINGLE_PIPELINE: Pipeline = {
+  version: 3,
+  prepare: [],
+  gates:   [{ name: 'test', run: 'bun test' }],
+  phases:  { build: ['test'], review: ['test'], merge: ['test'] },
+};
+
+/** The three entities of the fixture and `docs`, which the draft no longer holds. */
+const STORED_WITH_DOCS: Pipeline = {
+  ...entityPipelineFixture(),
+  entities: {
+    ...entityPipelineFixture().entities,
+    docs: {
+      kind: 'package', home: ['/docs'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    },
+  },
+};
+
+function draftOf(markdown: string): ConstitutionDraft {
+  return {
+    markdown, annotations: [], draftedFrom: { contributing: true, research: true, installedDefault: false }, baseBlob: null, revision: 1
+  };
+}
+
+function partWith(constitution: ConstitutionDraft | null): PipelineSetupEntity {
+  return {
+    agentJobId: null, findings: [], questions: [], constitution
+  };
+}
+
+/** A record at Apply whose draft is the three-entity pipeline: `web` drafted, the others with no draft of their own. */
+function recordOver(stored: Pipeline | null, draft: Pipeline = entityPipelineFixture()): PipelineSetup {
+  return {
+    formatVersion:   1,
+    setupId:         SETUP_ID,
+    mode:            stored === null ? 'setup' : 'update',
+    baseContentHash: stored === null ? null : PipelineUtil.contentHashOf(stored),
+    stepStates:      {
+      billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+    },
+    currentStep:                'design',
+    billing:                    { mode: 'subscription' },
+    agentJobId:                 null,
+    snapshotCommit:             null,
+    readyToContinue:            [],
+    findings:                   [],
+    questions:                  [],
+    constitution:               null,
+    draft,
+    draftRevision:              2,
+    edits:                      [],
+    replacesUnreadablePipeline: false,
+    applyRequest:               null,
+    entities:                   { 'web': partWith(draftOf(WEB_TEXT)), 'design-system': partWith(null) },
+    nextNumbers:                { finding: 1, question: 1, edit: 1 },
+    extra:                      [],
+  };
+}
+
+function boardOver(stored: Pipeline | null, tickets: Ticket[] = [], draft?: Pipeline): Board {
+  return boardFixture({ tickets, ...(stored === null ? {} : { pipeline: stored }), pipelineSetup: { verdict: 'readable', setup: recordOver(stored, draft) } }).board;
+}
+
+function readingWith(entityConstitutions: Readonly<Record<string, MainConstitution | null>>, words?: ApplyMainReading['entityAssignmentRequestOf']): ApplyMainReading {
+  return { mainConstitution: null, entityConstitutions, ...(words === undefined ? {} : { entityAssignmentRequestOf: words }) };
+}
+
+const MAIN_WITHOUT_WEB_TEXT = readingWith({ 'root': null, 'web': WEB_ON_MAIN, 'design-system': DESIGN_SYSTEM_ON_MAIN });
+
+const MAIN_WITH_WEB_TEXT = readingWith({ 'root': null, 'web': { ...WEB_ON_MAIN, markdown: WEB_TEXT, blob: 'c'.repeat(40) }, 'design-system': DESIGN_SYSTEM_ON_MAIN });
+
+function wordsOf(ticketIds: readonly string[]): string {
+  return `Give ${ticketIds.join(' and ')} an entity.`;
+}
+
+describe('stage 1 refuses', () => {
+  test('E91: removing an entity that a ticket not yet landed names, naming the entity and the tickets', () => {
+    const tickets = [ticketFixture({ id: '019', entity: 'docs', status: 'pending' }), ticketFixture({ id: '020', entity: 'docs', status: 'draft' })];
+    const board = boardOver(STORED_WITH_DOCS, tickets);
+
+    expect(refusalDetailOf(() => board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT))).toEqual({
+      reason: 'entity-named-by-tickets', setupId: SETUP_ID, entity: 'docs', ticketIds: ['019', '020']
+    });
+    expect(board.pipelineSetup()?.applyRequest).toBeNull();
+  });
+
+  test('E91 not for a ticket that was delivered or abandoned: the entity goes', () => {
+    const tickets = [ticketFixture({ id: '019', entity: 'docs', status: 'delivered' }), ticketFixture({ id: '020', entity: 'docs', status: 'abandoned' })];
+    const board = boardOver(STORED_WITH_DOCS, tickets);
+
+    expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITH_WEB_TEXT }, AT).outcome).toBe('applied');
+    expect(Object.keys(board.pipeline()?.entities ?? {})).toEqual(['root', 'web', 'design-system']);
+  });
+
+  test('E94: a stored pipeline without entities turning into entities while tickets are in progress, in review or reviewed', () => {
+    const statuses: Ticket['frontmatter']['status'][] = ['in-progress', 'in-review', 'reviewed', 'pending'];
+    const tickets = statuses.map((status, index) => ticketFixture({ id: `01${index}`, status }));
+    const board = boardOver(SINGLE_PIPELINE, tickets);
+
+    const refusal = refusalDetailOf(() => board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT));
+    expect(refusal).toEqual({ reason: 'entities-while-tickets-in-flight', setupId: SETUP_ID, ticketIds: ['010', '011', '012'] });
+  });
+
+  test('E94 not for a first setup, nor for pending tickets alone', () => {
+    const tickets = [ticketFixture({ id: '010', status: 'in-progress' })];
+    expect(boardOver(null, tickets).requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
+    const pendingOnly = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'pending' })]);
+    expect(pendingOnly.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
+  });
+});
+
+describe('stage 2 refuses again', () => {
+  test('E94 when a pending ticket started while the request waited, and the record stays as the request left it', () => {
+    const board = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'pending' })]);
+    expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
+    board.moveTicket('010', 'in-progress', { checksLegality: false }, AT);
+
+    expect(board.entityChangeRefusalOf(SETUP_ID)).toBe('entities-while-tickets-in-flight');
+    expect(refusalDetailOf(() => board.finishApply(SETUP_ID, {
+      draftRevision: 2, resumesBoard: false, constitutionCommit: 'd'.repeat(40), ...MAIN_WITH_WEB_TEXT
+    }, AT))).toEqual({ reason: 'entities-while-tickets-in-flight', setupId: SETUP_ID, ticketIds: ['010'] });
+    expect(board.pipeline()).toEqual(SINGLE_PIPELINE);
+    expect(board.pipelineSetup()?.applyRequest?.state).toBe('committing');
+  });
+
+  test('E91 when a ticket took the entity the draft removes while the request waited', () => {
+    const board = boardOver(STORED_WITH_DOCS, [ticketFixture({ id: '019', entity: 'web', status: 'pending' })]);
+    expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
+    expect(board.entityChangeRefusalOf(SETUP_ID)).toBeNull();
+    board.setTicketEntity('019', { entity: 'docs', reason: 'It changes the guides.', by: 'user' }, AT);
+
+    expect(board.entityChangeRefusalOf(SETUP_ID)).toBe('entity-named-by-tickets');
+    expect(refusalDetailOf(() => board.finishApply(SETUP_ID, {
+      draftRevision: 2, resumesBoard: false, constitutionCommit: 'd'.repeat(40), ...MAIN_WITH_WEB_TEXT
+    }, AT))).toEqual({
+      reason: 'entity-named-by-tickets', setupId: SETUP_ID, entity: 'docs', ticketIds: ['019']
+    });
+    expect(board.pipeline()).toEqual(STORED_WITH_DOCS);
+  });
+});
+
+describe('the constitutions of a draft over entities', () => {
+  test('wait for the commit while main lacks a drafted text, with no forge constitution asked for, each drafted entity based on main\'s blob', () => {
+    const board = boardOver(null);
+
+    const requested = board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT);
+
+    expect(requested.outcome).toBe('committing');
+    expect(board.pipeline()).toBeNull();
+    expect(board.pipelineSetup()?.entities?.['web']?.constitution?.baseBlob).toBe(WEB_ON_MAIN.blob);
+    expect(board.pipelineSetup()?.entities?.['design-system']?.constitution).toBeNull();
+  });
+
+  test('apply at once when main holds every drafted text: each drafted entity names its file and one with no draft adopts the file main holds', () => {
+    const board = boardOver(null);
+
+    expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITH_WEB_TEXT }, AT).outcome).toBe('applied');
+
+    const entities = board.pipeline()?.entities ?? {};
+    expect(entities['web']?.constitution).toEqual({ path: 'apps/web/CONSTITUTION.md' });
+    expect(entities['design-system']?.constitution).toEqual({ path: 'packages/design-system/CONSTITUTION.md' });
+    expect(entities['root']?.constitution).toBeUndefined();
+    expect(board.pipeline()?.constitution).toBeUndefined();
+  });
+
+  test('stage 2 refuses an entity\'s text main does not hold, naming the entity', () => {
+    const board = boardOver(null);
+    board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT);
+
+    expect(refusalDetailOf(() => board.finishApply(SETUP_ID, {
+      draftRevision: 2, resumesBoard: false, constitutionCommit: 'd'.repeat(40), ...MAIN_WITHOUT_WEB_TEXT
+    }, AT))).toEqual({
+      reason: 'constitution-moved', setupId: SETUP_ID, baseBlob: WEB_ON_MAIN.blob, mainBlob: WEB_ON_MAIN.blob, entity: 'web'
+    });
+  });
+
+  test('stage 2 stores the pipeline once the commit landed every drafted text', () => {
+    const board = boardOver(null);
+    board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT);
+
+    const finished = board.finishApply(SETUP_ID, {
+      draftRevision: 2, resumesBoard: false, constitutionCommit: 'd'.repeat(40), ...MAIN_WITH_WEB_TEXT
+    }, AT);
+
+    expect(finished.outcome).toBe('applied');
+    expect(board.pipeline()?.entities?.['web']?.constitution).toEqual({ path: 'apps/web/CONSTITUTION.md' });
+  });
+});
+
+describe('the product owner of the first Apply over entities', () => {
+  test('starts once, as an intake of the caller\'s words, for the pending tickets without an entity, its launch record naming them', () => {
+    const tickets = [
+      ticketFixture({ id: '021', status: 'pending' }),
+      ticketFixture({ id: '022', status: 'pending', entity: 'web' }),
+      ticketFixture({ id: '023', status: 'draft' }),
+      ticketFixture({ id: '024', status: 'pending' }),
+    ];
+    const board = boardOver(SINGLE_PIPELINE, tickets);
+
+    const applied = board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
+
+    const productOwners = board.jobs().filter((job) => job.kind === 'product-owner');
+    expect(productOwners.map((job) => job.intake?.text)).toEqual(['Give 021 and 024 an entity.']);
+    const launched = applied.logged.find((record) => record.kind === 'job-launched');
+    expect(launched?.kind === 'job-launched' ? launched.fields.entitiesToAssign : undefined).toEqual(['021', '024']);
+    expect(applied.ticketsAwaitingEntity).toEqual(['021', '024']);
+  });
+
+  test('starts none over a pipeline that already had entities, nor with no pending ticket without one', () => {
+    const tickets = [ticketFixture({ id: '021', status: 'pending' })];
+    const overEntities = boardOver(entityPipelineFixture(), tickets);
+    overEntities.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
+    expect(overEntities.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
+
+    const noneWaiting = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '021', status: 'pending', entity: 'web' })]);
+    noneWaiting.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
+    expect(noneWaiting.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
+  });
+});

@@ -80,7 +80,10 @@ export interface ConstitutionCommitWalk {
   mainTip:            string;
   /** The constitution's path from the repository's root: `CONSTITUTION.md` unless set, as for a tracker below the root. */
   constitutionPath?:  string;
-  /** Every path the commit writes, from the repository's root: `constitutionPath` alone unless set, as for a forge with entities. */
+  /**
+   * Every path the commit writes, from the repository's root: `constitutionPath` alone unless set, as for a forge with entities, whose
+   * list commits under the subject a list shares.
+   */
   constitutionPaths?: readonly string[];
   committedTip:       string;
   /** Main's blob of `CONSTITUTION.md` at `mainTip`; `MAIN_BLOB` unless set, `null` for no file. */
@@ -163,7 +166,8 @@ function constitutionCommitAnswersOf(walk: ConstitutionCommitWalk): RecordedGitS
   const constitutionPaths = walk.constitutionPaths ?? [constitutionPath];
   const worktree = commitWorktreeOf(repository, jobId, walk.worktreesRoot);
   const singleSubject = mainBlob === null ? 'Add the repository constitution' : UPDATE_SUBJECT;
-  const commitArguments = ['commit', '--no-verify', '-q', '-m', constitutionPaths.length === 1 ? singleSubject : SEVERAL_FILES_SUBJECT];
+  const keepsTheRepositorySubject = constitutionPaths.length === 1 && walk.constitutionPaths === undefined;
+  const commitArguments = ['commit', '--no-verify', '-q', '-m', keepsTheRepositorySubject ? singleSubject : SEVERAL_FILES_SUBJECT];
   const sharedSteps: RecordedGitStep[] = [
     ...constitutionPaths.map((path) => blobRead(mainTip, mainBlob, path)),
     ...constitutionPaths.map((path) => blobRead(committedTip, CONSTITUTION_COMMIT_IDS.COMMITTED_BLOB, path)),

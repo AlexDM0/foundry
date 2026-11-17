@@ -20,6 +20,8 @@ import type {
   AppliedPipelineFacts,
   ApplyStateFacts,
   ConstitutionOutline,
+  EntityAssignmentFacts,
+  EntityAssignmentTicket,
   GateCacheMarkFacts,
   GateProfileRunFacts,
   PipelineChange,
@@ -115,6 +117,8 @@ export interface PipelineFacts {
   pipelineChoices:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them, which the setup steps show. */
   pipelineAgentDefaults: AgentPair;
+  /** Absent until the first Apply over entities started a product owner to give pending tickets an entity: its progress per ticket. */
+  entityAssignment?:     EntityAssignmentFacts;
 }
 
 const NODE_IDS = PIPELINE_FLOW_NODE_IDS;
@@ -561,6 +565,31 @@ function gateCacheMarksOf(logRecords: readonly LogRecord[], profileRuns: readonl
   }]));
 }
 
+/**
+ * The newest product owner launched to give pending tickets an entity, from its launch record, with each ticket's entity and reason from
+ * its newest `entity-assigned` record after that launch; absent when no such product owner was launched.
+ */
+function entityAssignmentOf(input: PipelineFactsInput): Pick<PipelineFacts, 'entityAssignment'> {
+  const { logRecords, board } = input;
+  const launchIndex = logRecords.findLastIndex((record) => record.kind === 'job-launched' && record.fields.entitiesToAssign !== undefined);
+  const launch = logRecords[launchIndex];
+  if (launch?.kind !== 'job-launched' || launch.fields.entitiesToAssign === undefined) return {};
+  const later = logRecords.slice(launchIndex + 1);
+  const tickets = launch.fields.entitiesToAssign.map((ticketId): EntityAssignmentTicket => {
+    const assigned = later.findLast((record) => record.kind === 'entity-assigned' && record.ticketId === ticketId);
+    const title = board.tickets().find(({ frontmatter }) => frontmatter.id === ticketId)?.frontmatter.title ?? null;
+    if (assigned?.kind !== 'entity-assigned') {
+      return {
+        ticketId, title, entity: null, reason: null, assignedBy: null
+      };
+    }
+    return {
+      ticketId, title, entity: assigned.fields.entity, reason: assigned.fields.reason, assignedBy: assigned.fields.by
+    };
+  });
+  return { entityAssignment: { jobId: launch.jobId, jobState: board.jobById(launch.jobId)?.state ?? null, tickets } };
+}
+
 function pipelineHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {
   return logRecords.filter((record) => PIPELINE_HISTORY_KINDS.has(record.kind)).slice(-PIPELINE_HISTORY_RECORDS_SHOWN).reverse();
 }
@@ -577,5 +606,6 @@ export function pipelineFactsOf(input: PipelineFactsInput): PipelineFacts {
     pipelineHistory:       pipelineHistoryOf(input.logRecords),
     pipelineChoices:       { models: [...AGENT_MODELS], efforts: [...AGENT_EFFORTS] },
     pipelineAgentDefaults: input.defaultSettingsOf('pipelineAgent'),
+    ...entityAssignmentOf(input),
   };
 }
