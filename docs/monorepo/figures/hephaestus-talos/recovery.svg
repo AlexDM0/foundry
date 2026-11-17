@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="528" viewBox="0 0 680 528" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>What a start finds, and what follows</title>
+  <desc>Hephaestus starts and reconciles the record. If a stop or a handover is on record as completed, it ended on purpose. If the boot session differs from the presence record, the machine went down. Otherwise the forge crashed, which is a bug: the forge stayed off until the user started it again, and the crash log is kept. In every case work starts again only on the user's instruction.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="526" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">What a start finds, and what follows</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">reconciling is automatic; starting work again waits for an instruction</text>
+
+  <path d="M175,148 L175,176" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M175,236 L175,264" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="184" y="254" font-size="11" fill="#73726c">no</text>
+  <path d="M175,324 L175,352" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="184" y="342" font-size="11" fill="#73726c">no</text>
+  <path d="M175,412 L175,440" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="184" y="430" font-size="11" fill="#73726c">the user started it again</text>
+
+  <path d="M280,208 L406,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="344" y="202" font-size="11" fill="#73726c" text-anchor="middle">yes</text>
+  <path d="M280,296 L406,296" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="344" y="290" font-size="11" fill="#73726c" text-anchor="middle">yes</text>
+
+  <path d="M515,322 L515,440" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M620,208 L634,208 L634,470 L624,470" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="70" y="92" width="210" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="175" y="116" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Hephaestus starts</text>
+  <text x="175" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">reads the store, reconciles</text>
+
+  <rect x="70" y="180" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="175" y="204" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Stop or handover on record?</text>
+  <text x="175" y="222" font-size="12" fill="#185FA5" text-anchor="middle">recorded as completed</text>
+
+  <rect x="410" y="182" width="210" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="515" y="204" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Ended on purpose</text>
+  <text x="515" y="222" font-size="12" fill="#854F0B" text-anchor="middle">after a stop, interrupted tickets wait</text>
+
+  <rect x="70" y="268" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="175" y="292" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Different boot session?</text>
+  <text x="175" y="310" font-size="12" fill="#185FA5" text-anchor="middle">against the presence record</text>
+
+  <rect x="410" y="270" width="210" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="515" y="292" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">The machine went down</text>
+  <text x="515" y="310" font-size="12" fill="#854F0B" text-anchor="middle">interrupted tickets wait</text>
+
+  <rect x="70" y="356" width="210" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="175" y="380" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">The forge crashed: a bug</text>
+  <text x="175" y="398" font-size="12" fill="#A32D2D" text-anchor="middle">stayed off, crash log kept</text>
+
+  <rect x="70" y="444" width="550" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="345" y="468" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Work starts again only on the user's instruction</text>
+  <text x="345" y="486" font-size="12" fill="#5F5E5A" text-anchor="middle">resume, start fresh or park: for one ticket, or for everything interrupted</text>
+</svg>

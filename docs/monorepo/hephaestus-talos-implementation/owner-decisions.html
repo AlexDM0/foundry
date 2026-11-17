@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Owner decisions: Hephaestus, Talos and Gaia</title>
+<style>
+:root { --paper: #FAF9F5; --card: #FFFFFF; --ink: #3D3D3A; --ink-soft: #5F5E5A; --rule: #E6E1D4; --coral: #993C1D; --coral-wash: #FAECE7; --blue: #185FA5; --blue-wash: #E6F1FB; --amber-wash: #FAEEDA; --code: #F1EFE8; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+main { max-width: 900px; margin: 0 auto; padding: 32px 16px 96px; }
+h1 { font-size: 28px; margin: 0 0 8px; font-weight: 600; }
+h2 { font-size: 20px; margin: 0; font-weight: 600; }
+h3 { font-size: 16px; margin: 0; font-weight: 600; }
+p { margin: 8px 0; }
+code { background: var(--code); border-radius: 4px; padding: 1px 4px; font-size: 13px; overflow-wrap: anywhere; }
+.lead { color: var(--ink-soft); max-width: 70ch; }
+.toolbar { position: sticky; top: 0; z-index: 2; background: var(--paper); border-bottom: 1px solid var(--rule); padding: 12px 0; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.toolbar .progress { font-weight: 600; margin-right: auto; }
+button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--rule); background: var(--card); color: var(--ink); cursor: pointer; }
+button:hover { border-color: var(--coral); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button.primary { background: var(--coral); border-color: var(--coral); color: #FFFFFF; }
+.stage { margin-top: 32px; }
+.stage-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+.stage-head h2 { margin-right: auto; }
+.stage-file { font-size: 13px; font-weight: 400; color: var(--ink-soft); }
+.stage-progress { font-size: 14px; color: var(--ink-soft); }
+.decision { background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+.decision[data-answer="default"] { border-left-color: var(--blue); }
+.decision[data-answer="other"] { border-left-color: var(--coral); }
+.decision header { display: flex; gap: 10px; align-items: baseline; }
+.identifier { font-size: 12px; font-weight: 600; color: var(--ink-soft); background: var(--code); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.body { color: var(--ink-soft); font-size: 15px; }
+fieldset { border: 0; padding: 0; margin: 10px 0 6px; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+fieldset label { cursor: pointer; }
+.note-label { display: block; font-size: 14px; color: var(--ink-soft); }
+.note-hint { font-size: 12px; }
+textarea { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
+.note-missing textarea.note { border-color: var(--coral); background: var(--coral-wash); }
+.export { margin-top: 40px; border-top: 1px solid var(--rule); padding-top: 20px; }
+.export textarea { min-height: 160px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.export .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.status { font-size: 14px; color: var(--ink-soft); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+body.only-unanswered .decision:not([data-answer="unanswered"]) { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Owner decisions</h1>
+  <p class="lead">Every decision the implementation plan of Hephaestus, Talos and Gaia leaves to the owner: 71 in 7 stage files. Each has a recommended default. Answer here, then copy the JSON at the bottom. Answers live only in this page until they are copied or downloaded.</p>
+  <p class="lead">The two open items of the design, what follows an ending on a network outage and a time bound for an install line, are asked once, under stages 0 and 1. The 6 later items that only point back at them are left out.</p>
+  <div class="toolbar">
+    <span class="progress" id="progress" aria-live="polite"></span>
+    <label><input type="checkbox" id="only-unanswered"> Show only unanswered</label>
+    <button type="button" id="accept-all" class="primary">Accept every remaining default</button>
+  </div>
+  
+  <section class="stage" data-stage="Stages 0 and 1">
+    <div class="stage-head">
+      <h2>Stages 0 and 1 <span class="stage-file">stage-0-1-trace-and-base.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S0-1.1" data-answer="unanswered">
+      <header><span class="identifier">S0-1.1</span><h3>What the forge does after an agent ended on a network outage</h3></header>
+      <div class="body"><p>Resume by itself, which needs a reachability probe
+on a real-time interval, or wait for an instruction. Recommended default: wait for an instruction, with one
+instruction to resume every job that ended this way, since it matches decision 13 and needs no probe. Stage 2 builds
+what both answers share: the recognised ending, its own end reason and cause, never counted as a crash or a failure.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.1</legend>
+        <label><input type="radio" name="answer-S0-1.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.2" data-answer="unanswered">
+      <header><span class="identifier">S0-1.2</span><h3>Whether an install line gets a time bound</h3></header>
+      <div class="body"><p>Recommended default: yes, 15 minutes of real time, the gate&#39;s bound,
+with the stop and the end reason of a bounded gate. Stage 2 builds the bound as one constant per line kind
+(<code>GATE_TIME_BOUND_MILLISECONDS</code> and <code>INSTALL_LINE_TIME_BOUND_MILLISECONDS</code>, stage 2&#39;s &quot;Interfaces introduced&quot;), so
+either answer is one value: <code>null</code> for no bound, or the number of milliseconds the owner names.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.2</legend>
+        <label><input type="radio" name="answer-S0-1.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.3" data-answer="unanswered">
+      <header><span class="identifier">S0-1.3</span><h3>The packages stage 4 creates</h3></header>
+      <div class="body"><p>Recommended default: <code>tracker-model</code> and <code>board-readings</code> as new packages, with the
+contents in &quot;Interfaces introduced&quot;, item 4.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.3</legend>
+        <label><input type="radio" name="answer-S0-1.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.4" data-answer="unanswered">
+      <header><span class="identifier">S0-1.4</span><h3>Where the board and ticket documents live</h3></header>
+      <div class="body"><p>Recommended default: in <code>forge-contracts</code>, behind the system version,
+as design section 4 says. The cost: <code>forge-contracts</code> then depends on <code>tracker-model</code>, so a change of a model type a
+document names is a change of the contract. The alternative is a third package of document types that copies the
+fields it serves and depends on nothing.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.4</legend>
+        <label><input type="radio" name="answer-S0-1.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.5" data-answer="unanswered">
+      <header><span class="identifier">S0-1.5</span><h3><code>entities/integration</code> (52 commits, 399 files, forge 1.9 to 1.11)</h3></header>
+      <div class="body"><p>Recommended default: land it through its own
+verify before stage 2, then rerun the traces; if it is not ready when stage 1 ends, set it aside until after stage 9
+rather than rebase it through the refactoring.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.5</legend>
+        <label><input type="radio" name="answer-S0-1.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.6" data-answer="unanswered">
+      <header><span class="identifier">S0-1.6</span><h3>The live trackers during stages 2 to 9</h3></header>
+      <div class="body"><p>Recommended default: let the in-flight tickets (forge 001, 005, 008, 009,
+014; Gaia 001) land or stop them, stop both Overseers and remove both login items until stage 9 sets the boards up
+anew; the installed clone <code>~/.forge-program</code> is not pulled meanwhile.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.6</legend>
+        <label><input type="radio" name="answer-S0-1.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.7" data-answer="unanswered">
+      <header><span class="identifier">S0-1.7</span><h3>The uncommitted clock-rule edits in both apps&#39; <code>CLAUDE.md</code></h3></header>
+      <div class="body"><p>Recommended default: commit them before WP1.3, as
+they are the owner&#39;s own rule change.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.7</legend>
+        <label><input type="radio" name="answer-S0-1.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.8" data-answer="unanswered">
+      <header><span class="identifier">S0-1.8</span><h3><code>claude/project-thread-dw1bcu</code></h3></header>
+      <div class="body"><p>Recommended default: delete it; its five commits were taken into monitor 3 in
+P4.0 (<code>migration.md:32-34</code>, <code>:84</code>).</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.8</legend>
+        <label><input type="radio" name="answer-S0-1.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.8"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.9" data-answer="unanswered">
+      <header><span class="identifier">S0-1.9</span><h3>The migration&#39;s open items</h3></header>
+      <div class="body"><p>Recommended defaults: B15 closed as superseded, since Gaia identifies a project by
+its forge through the read API (design section 8); open decision 1 closed, since Gaia supports exactly one forge
+version (<code>apps/gaia/CLAUDE.md:36-38</code>) and nothing has to be kept (decision 32); decision 2 closed as decided
+(<code>apps/forge/CLAUDE.md:281-284</code>); decision 3 closed as built (<code>CodeVersion.ts:3</code>); decision 4 closed since boards are
+set up anew. The owner confirms or ticks the P7 smoke, the copy of Gaia&#39;s old checkout and the Claude Code memory.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.9</legend>
+        <label><input type="radio" name="answer-S0-1.9" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.9" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.9" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.9"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.10" data-answer="unanswered">
+      <header><span class="identifier">S0-1.10</span><h3>Recordings B and C of WP0.3</h3></header>
+      <div class="body"><p>Recommended default: record B (it costs two minutes and tells stage 2 whether the
+retry setting bounds a session); skip C unless the owner wants a 529 pattern before a real one is seen.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.10</legend>
+        <label><input type="radio" name="answer-S0-1.10" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.10" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.10" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.10"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S0-1.11" data-answer="unanswered">
+      <header><span class="identifier">S0-1.11</span><h3>The corrections of WP0.1</h3></header>
+      <div class="body"><p>Recommended default: accept them as written in table A and the conflicts below.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S0-1.11</legend>
+        <label><input type="radio" name="answer-S0-1.11" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S0-1.11" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S0-1.11" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S0-1.11"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stage 2">
+    <div class="stage-head">
+      <h2>Stage 2 <span class="stage-file">stage-2-talos.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S2.3" data-answer="unanswered">
+      <header><span class="identifier">S2.3</span><h3>Whether the 15-minute gate bound counts a sleep</h3></header>
+      <div class="body"><p>Recommended default: no; Talos adds each detected gap to the
+gate&#39;s allowance, so a laptop that slept does not open a <code>gate-cannot-run</code> incident.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.3</legend>
+        <label><input type="radio" name="answer-S2.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.4" data-answer="unanswered">
+      <header><span class="identifier">S2.4</span><h3><code>lease-ended</code> before stage 3</h3></header>
+      <div class="body"><p>Recommended default: resumed by itself like <code>reboot</code>, never counted, until stage 3
+moves both to waiting for an instruction.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.4</legend>
+        <label><input type="radio" name="answer-S2.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.5" data-answer="unanswered">
+      <header><span class="identifier">S2.5</span><h3>The stored cause <code>watcher-lost</code></h3></header>
+      <div class="body"><p>Section 11 of the design renames it in stage 9. Recommended default: keep the
+value here, meaning &quot;Talos was lost while the child ran&quot;.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.5</legend>
+        <label><input type="radio" name="answer-S2.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.6" data-answer="unanswered">
+      <header><span class="identifier">S2.6</span><h3>The identity document&#39;s key and the system version</h3></header>
+      <div class="body"><p><code>watcherProtocolVersion</code> becomes <code>talosProtocolVersion</code>; no
+Gaia code reads the old key (it appears only in Gaia&#39;s recordings). Recommended default: raise
+<code>FORGE_SYSTEM_VERSIONS.current</code> to 1.2 in <code>packages/forge-contracts/constants/ForgeSystemVersions.ts</code>, as a change
+that no supported client needs to see; Gaia&#39;s supported-forge check then warns until Gaia moves.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.6</legend>
+        <label><input type="radio" name="answer-S2.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.7" data-answer="unanswered">
+      <header><span class="identifier">S2.7</span><h3>The lease proves that the Overseer lives, not that it makes progress</h3></header>
+      <div class="body"><p>(design risk 2). The renewal thread renews
+while the process lives, also with a hung main thread. Recommended default: accept for this stage; a check of the
+main thread&#39;s progress in the renewal thread can follow.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.7</legend>
+        <label><input type="radio" name="answer-S2.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.8" data-answer="unanswered">
+      <header><span class="identifier">S2.8</span><h3>The minimum number of retry lines</h3></header>
+      <div class="body"><p>for the outage pattern. Recommended default: the number stage 0&#39;s recording
+shows, and <code>1</code> if it shows none.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.8</legend>
+        <label><input type="radio" name="answer-S2.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.8"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.9" data-answer="unanswered">
+      <header><span class="identifier">S2.9</span><h3>Renaming <code>Job.watcherInstance</code> in this stage</h3></header>
+      <div class="body"><p>(WP2.16, 82 files). Recommended default: yes, as its own package,
+since the design says the Watcher&#39;s name goes with its code.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.9</legend>
+        <label><input type="radio" name="answer-S2.9" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.9" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.9" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.9"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.10" data-answer="unanswered">
+      <header><span class="identifier">S2.10</span><h3>The rest of the agent port&#39;s work</h3></header>
+      <div class="body"><p>(decision 16, design section 5, row &quot;Agent&quot;). This stage puts only the
+vendor&#39;s ending patterns, closing line and quit act behind the adapter. The leaks the design lists stay: the
+Overseer&#39;s own <code>src/services/overseer/ClaudeTranscripts.ts</code> beside the adapter&#39;s
+<code>src/lib/claude-code/ClaudeTranscripts.ts</code>, the install-time hook entry in a repository&#39;s
+<code>.claude/settings.local.json</code>, the <code>bash-domains</code> hook (<code>cli/hooks/BashDomainsHook.ts</code>), and session confinement
+resting on the vendor&#39;s sandbox. No stage of design section 11 carries them, and no plan in this folder does.
+Recommended default: the owner names a stage for them; until then they stay as they are.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.10</legend>
+        <label><input type="radio" name="answer-S2.10" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.10" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.10" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.10"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.11" data-answer="unanswered">
+      <header><span class="identifier">S2.11</span><h3>A Talos just started that answers another protocol version</h3></header>
+      <div class="body"><p>(design decision 6 says &quot;the right one starts&quot;).
+With no pinned bundle, Talos starts from the program on disk, so after a pull the Overseer can start a Talos of
+another protocol, and starting again gives the same one. Built: start once, answer <code>held</code> with
+<code>talos-protocol-differs</code>, and refuse the Overseer&#39;s start (WP2.9 step 2.6, WP2.13 item 1). Recommended default: as
+built; the user restarts the forge with the program on disk, which then starts the matching Talos.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.11</legend>
+        <label><input type="radio" name="answer-S2.11" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.11" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.11" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.11"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.12" data-answer="unanswered">
+      <header><span class="identifier">S2.12</span><h3>When Talos syncs an event log</h3></header>
+      <div class="body"><p>(design section 3.2: &quot;when a client asks for the durable entries and at the
+close&quot;). No production reader asks for history over the socket today: the pass reads the event-log files
+(<code>src/services/overseer/DrivePass.ts:431</code>). Built: no <code>history</code> or <code>message</code> frame; Talos syncs a child&#39;s log at
+its end and at the quit. Recommended default: as built.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.12</legend>
+        <label><input type="radio" name="answer-S2.12" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.12" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.12" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.12"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S2.13" data-answer="unanswered">
+      <header><span class="identifier">S2.13</span><h3>The Overseer&#39;s own gates across its restart</h3></header>
+      <div class="body"><p>(design section 3.3: Talos and its children outlive a restart).
+Merged-tree gates, gate profiles and pipeline checks are awaited by promises of the Overseer that started them, so
+at the next start nothing would read their end. Built: the next Overseer stops those line children at start
+(WP2.14 item 5), while agents and job lines carry on. Recommended default: as built; carrying them across a restart
+needs the pass redesign of design risk 2.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S2.13</legend>
+        <label><input type="radio" name="answer-S2.13" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S2.13" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S2.13" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S2.13"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stage 3">
+    <div class="stage-head">
+      <h2>Stage 3 <span class="stage-file">stage-3-presence-recovery.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S3.3" data-answer="unanswered">
+      <header><span class="identifier">S3.3</span><h3>What a crash suspected before a reboot does</h3></header>
+      <div class="body"><p>Built here: the classification flags it, a crash log is written and
+marked <code>suspected</code>, and the flag is shown. The fork: keep the forge off as after a crash, or serve with a warning.
+Recommended default: serve with the warning, because a sleep that ends in a dead battery reads the same and would
+otherwise keep the forge off after a harmless shutdown.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.3</legend>
+        <label><input type="radio" name="answer-S3.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S3.4" data-answer="unanswered">
+      <header><span class="identifier">S3.4</span><h3>Whether an unexpected error in a pass is a crash</h3></header>
+      <div class="body"><p>Built here: <code>pass-abandoned</code> with the reason
+<code>unexpected-error</code>, retried, counted, and a notice after three in a row. Recommended default: keep it a notice in
+this stage; if the owner wants decision 14 applied to it, the change is to stop after the third and write a crash
+log.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.4</legend>
+        <label><input type="radio" name="answer-S3.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S3.5" data-answer="unanswered">
+      <header><span class="identifier">S3.5</span><h3>What an instructed resume does to the crash count</h3></header>
+      <div class="body"><p>Recommended default: an instruction sets <code>crashResumes</code> to 0,
+so a job the user resumed gets two automatic resumes again before it waits.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.5</legend>
+        <label><input type="radio" name="answer-S3.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S3.6" data-answer="unanswered">
+      <header><span class="identifier">S3.6</span><h3>Whether a retried merge, refresh or constitution commit after a waiting start waits too</h3></header>
+      <div class="body"><p>Built here: all three
+wait after a crash, reboot or stop, and keep today&#39;s retry while the forge stays up. Recommended default: as built,
+adjusted to stage 0&#39;s trace of what an Airlock leaves half done.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.6</legend>
+        <label><input type="radio" name="answer-S3.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S3.7" data-answer="unanswered">
+      <header><span class="identifier">S3.7</span><h3>Whether the verb is <code>resume</code></h3></header>
+      <div class="body"><p>beside <code>oversee resume</code>, which undoes a pause. Recommended default: keep <code>resume</code>
+for interrupted work and keep the pause pair, told apart by help text; stage 9 renames the pair to
+<code>hephaestus pause</code> and <code>hephaestus resume</code> with the rest of the verb (stage 9&#39;s replacement table). The alternative,
+renaming the unpause verb (for example to <code>continue</code>), is a change to stage 9&#39;s table and its command kind
+<code>hephaestus-resume</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.7</legend>
+        <label><input type="radio" name="answer-S3.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S3.8" data-answer="unanswered">
+      <header><span class="identifier">S3.8</span><h3>How Gaia learns that a forge that is down crashed</h3></header>
+      <div class="body"><p>The design has Gaia watch presence (section 8) and run the
+CLI only to start, stop and set up a forge (section 3.4); a down forge serves no API. Built: a <code>presence</code> key in the
+machine registry&#39;s entry, written at a start, a stop, a handover and a refused start (WP3.8), which Gaia reads with
+the rest of the registry. A crash itself writes nothing, so until a start classifies it Gaia sees <code>serving</code> with a
+dead process. Recommended default: as built; stage 6 (WP6.21) reads that as &quot;down&quot;.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S3.8</legend>
+        <label><input type="radio" name="answer-S3.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S3.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S3.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S3.8"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stage 4">
+    <div class="stage-head">
+      <h2>Stage 4 <span class="stage-file">stage-4-packages.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S4.1" data-answer="unanswered">
+      <header><span class="identifier">S4.1</span><h3>The package boundaries</h3></header>
+      <div class="body"><p>Stage 0 recommends <code>tracker-model</code> (the whole model) and <code>board-readings</code>; this plan
+builds that. The measured layering also allows a split that keeps the Board out of Gaia&#39;s reach: <code>@types</code> and
+<code>constants</code> import only each other, <code>utils</code> import only those two, and the Bridge reaches 26 model files, all
+<code>@types</code>, <code>constants</code> and <code>utils/TicketDefaultsUtil.ts</code>. A vocabulary package of <code>@types</code>, <code>constants</code> and that one
+util, with the rest as <code>tracker-model</code>, would cost two moved spec cases (<code>constants/Statuses.spec.ts</code> reads
+<code>utils/VocabularyUtil.ts</code>; <code>constants/TicketMoveLegality.spec.ts</code> reads <code>utils/TicketMoveUtil.ts</code>) and a second
+mapping table in WP4.2&#39;s script. Recommended default: stage 0&#39;s two packages; reconsider before stage 6, where a Gaia
+guard can keep Gaia&#39;s imports from <code>tracker-model</code> to types, constants and <code>TicketDefaultsUtil</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.1</legend>
+        <label><input type="radio" name="answer-S4.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.2" data-answer="unanswered">
+      <header><span class="identifier">S4.2</span><h3>The vendor adapter reads <code>LocalTimeUtil</code>, which moves into <code>board-readings</code></h3></header>
+      <div class="body"><p>Recommended default: a <code>src/lib/</code>
+package may reach a workspace package its main module&#39;s header names (WP4.3 step 4), since the conventions say a
+lib package imports only the packages it declares. Alternatives: keep <code>local-time</code> in <code>apps/forge/src/lib/</code> and let
+the views copy what they need in stage 6; or make <code>local-time</code> a package of its own (a third package, which only the
+owner may add).</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.2</legend>
+        <label><input type="radio" name="answer-S4.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.3" data-answer="unanswered">
+      <header><span class="identifier">S4.3</span><h3><code>TimestampSlices.ts</code> joins <code>board-readings</code></h3></header>
+      <div class="body"><p><code>TodayFigures.ts</code> reads it, so the readings cannot move without it
+or a parameter in its place. Recommended default: move it (it is in the Bridge&#39;s reach today); its other importers
+name the package.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.3</legend>
+        <label><input type="radio" name="answer-S4.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.4" data-answer="unanswered">
+      <header><span class="identifier">S4.4</span><h3>Flint&#39;s brain stays out of the contract&#39;s board document</h3></header>
+      <div class="body"><p>Recommended default: yes, by decision 25; the Bridge
+keeps the field in its own type until stage 8 removes the brain.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.4</legend>
+        <label><input type="radio" name="answer-S4.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.5" data-answer="unanswered">
+      <header><span class="identifier">S4.5</span><h3>Which command kinds join the contract</h3></header>
+      <div class="body"><p>Recommended default: exactly the kinds the Bridge sends today (34 new
+kinds), with the Bridge guard of WP4.5 asking for more as views move. The alternative, all 76 kinds, puts the
+pipeline agent&#39;s and the product owner&#39;s relayed kinds under the contract, which no client sends.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.5</legend>
+        <label><input type="radio" name="answer-S4.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.6" data-answer="unanswered">
+      <header><span class="identifier">S4.6</span><h3>Gaia stays at the forge version stage 3 left</h3></header>
+      <div class="body"><p>and warns in <code>bun run check</code> until stage 6. Recommended default:
+yes; raising it needs Gaia&#39;s forge recordings taken again on a scratch forge, which is stage 6&#39;s work.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.6</legend>
+        <label><input type="radio" name="answer-S4.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.7" data-answer="unanswered">
+      <header><span class="identifier">S4.7</span><h3>The root rules&#39; tracker reach</h3></header>
+      <div class="body"><p><code>CLAUDE.md:27</code> lists forge&#39;s reach by package. Recommended default: WP4.2 and
+WP4.3 add the two packages to the table, and the owner sets the reach in the board&#39;s <code>pipeline.json</code> when the boards
+are set up anew.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.7</legend>
+        <label><input type="radio" name="answer-S4.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S4.8" data-answer="unanswered">
+      <header><span class="identifier">S4.8</span><h3>What the model exports</h3></header>
+      <div class="body"><p>Recommended default: only the modules something outside the package imports (73 today),
+so the modules the Board composes stay private. The alternative, every shipping module, is simpler to guard but
+invites callers past the Board.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S4.8</legend>
+        <label><input type="radio" name="answer-S4.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S4.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S4.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S4.8"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stage 5">
+    <div class="stage-head">
+      <h2>Stage 5 <span class="stage-file">stage-5-store-port.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S5.1" data-answer="unanswered">
+      <header><span class="identifier">S5.1</span><h3>The by-hand verbs become command kinds</h3></header>
+      <div class="body"><p>Recommended default: yes, as WP5.6 and WP5.7 plan, so the CLI needs only
+the command face (decision 22, design section 9, seam 1). The alternative keeps those verbs on the transaction face,
+which leaves the CLI a face a remote adapter cannot serve; WP5.6 and WP5.7 are then skipped and the verbs call
+<code>transactions.transact</code> in WP5.8.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.1</legend>
+        <label><input type="radio" name="answer-S5.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.2" data-answer="unanswered">
+      <header><span class="identifier">S5.2</span><h3>The by-hand kinds stay off the command endpoint</h3></header>
+      <div class="body"><p>Recommended default: yes, so no system version changes and Gaia
+records nothing again in this stage; a view that needs one adds it in stage 6 with a minor version.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.2</legend>
+        <label><input type="radio" name="answer-S5.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.3" data-answer="unanswered">
+      <header><span class="identifier">S5.3</span><h3>A ticket&#39;s and an epic&#39;s <code>filePath</code></h3></header>
+      <div class="body"><p>Recommended default: keep them in the tracker model as values the adapter
+fills, and keep the <code>file:</code> lines and JSON fields. Removing them belongs with ending hand-edits, which the design
+names as a consequence (section 4) but no stage owns; it changes installed files and needs an <code>INSTALL_VERSION</code> bump
+and the rule &quot;Tickets are hand-edited between runs&quot; (<code>CLAUDE.md:376-377</code>) replaced.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.3</legend>
+        <label><input type="radio" name="answer-S5.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.4" data-answer="unanswered">
+      <header><span class="identifier">S5.4</span><h3>The registry&#39;s <code>progressJson</code></h3></header>
+      <div class="body"><p>Recommended default: keep the field, filled from <code>locationOf({ record: &#39;progress&#39; })</code>; no code in <code>apps/gaia/src</code> reads it (only a recording does), so stage 8 may drop it.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.4</legend>
+        <label><input type="radio" name="answer-S5.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.5" data-answer="unanswered">
+      <header><span class="identifier">S5.5</span><h3>Stage 3&#39;s presence, heartbeat, fatal-error and crash files</h3></header>
+      <div class="body"><p>Recommended default: outside the store port, beside
+the Baton under <code>&lt;data&gt;/overseer/</code>: they describe a local process and its boot, which a remote store could not hold
+truthfully. The guard does not name them.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.5</legend>
+        <label><input type="radio" name="answer-S5.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.6" data-answer="unanswered">
+      <header><span class="identifier">S5.6</span><h3>The read side as a third part of the port</h3></header>
+      <div class="body"><p>The design names two faces; the CLI&#39;s reads and the pass&#39;s observation
+need lock-free reads. Recommended default: the read side is shared by both faces, as planned.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.6</legend>
+        <label><input type="radio" name="answer-S5.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S5.7" data-answer="unanswered">
+      <header><span class="identifier">S5.7</span><h3>Pictures</h3></header>
+      <div class="body"><p>Recommended default: they stay outside the port, under the data folder, as today.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S5.7</legend>
+        <label><input type="radio" name="answer-S5.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S5.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S5.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S5.7"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stages 6 and 7">
+    <div class="stage-head">
+      <h2>Stages 6 and 7 <span class="stage-file">stage-6-7-gaia-views.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S6-7.1" data-answer="unanswered">
+      <header><span class="identifier">S6-7.1</span><h3>Specs of the moved views</h3></header>
+      <div class="body"><p>Gaia&#39;s rule 10 says the page&#39;s specs have no document; the Bridge&#39;s views are held by
+67 DOM specs. Recommended default: keep the DOM specs for <code>page/board/</code> under a <code>test:dom</code> task and amend rule 10
+for that folder; Gaia&#39;s own views keep the no-document rule.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.1</legend>
+        <label><input type="radio" name="answer-S6-7.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.2" data-answer="unanswered">
+      <header><span class="identifier">S6-7.2</span><h3>The board&#39;s stylesheets under Gaia&#39;s style contract</h3></header>
+      <div class="body"><p>Gaia defines no keyframe and styles only <code>gaia.css</code>; the
+Bridge has 22 keyframes, 638 classes and 73 tokens of its own. Recommended default: <code>page/styles/board/*.css</code> with
+<code>board-</code> names, held by the Bridge&#39;s four guards plus Gaia&#39;s class and contrast checks in a board section;
+unify with <code>gaia.css</code> later as design work.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.2</legend>
+        <label><input type="radio" name="answer-S6-7.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.3" data-answer="unanswered">
+      <header><span class="identifier">S6-7.3</span><h3>Flint in Gaia</h3></header>
+      <div class="body"><p>Gaia&#39;s rule 12 and the owner&#39;s 2026-11-13 decision say Gaia draws no Flint and Flint shows only
+inside a forge&#39;s framed Bridge; with no frame, Flint either moves into the forge route or goes. Recommended default:
+Flint shows in the forge route only, one per forge, with no brain; Gaia&#39;s fleet pages show none.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.3</legend>
+        <label><input type="radio" name="answer-S6-7.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.4" data-answer="unanswered">
+      <header><span class="identifier">S6-7.4</span><h3>Mapping the board document in Gaia&#39;s server</h3></header>
+      <div class="body"><p>Gaia&#39;s rule maps every forge document into its own model at the
+boundary; the board document is large and its types come from <code>forge-contracts</code> (N3). Recommended default: relay it
+unchanged and let the page read the contract&#39;s types, as a recorded deviation in <code>apps/gaia/CLAUDE.md</code>; Gaia checks
+the forge&#39;s system version, not each field.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.4</legend>
+        <label><input type="radio" name="answer-S6-7.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.5" data-answer="unanswered">
+      <header><span class="identifier">S6-7.5</span><h3><code>forge open</code> and the <code>progress.html</code> stub</h3></header>
+      <div class="body"><p>A forge may not name its interface, and opening Gaia needs Gaia&#39;s own
+session code. This stage leaves both as they are, since the Bridge they open is served until stage 8, and Gaia no
+longer runs <code>forge open</code> (WP6.9, WP6.23). Recommended default: stage 8 retires both (WP8.4, its &quot;Needs the owner&quot;
+item 1). The alternative is a host-neutral record in the monitor folder naming a program the forge runs to show a
+board, which adds a contract and a program-launch path.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.5</legend>
+        <label><input type="radio" name="answer-S6-7.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.7" data-answer="unanswered">
+      <header><span class="identifier">S6-7.7</span><h3>A question&#39;s recommendation as a field</h3></header>
+      <div class="body"><p>Decision 11 says the forge keeps a recommendation; agent questions carry
+it only as a mark on an option&#39;s label (<code>QuestionPanelModel.ts:228</code>). Recommended default: Gaia shows the mark as
+today; a field in the decision document, set by <code>question-options</code>, is a forge change for a later stage.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.7</legend>
+        <label><input type="radio" name="answer-S6-7.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.8" data-answer="unanswered">
+      <header><span class="identifier">S6-7.8</span><h3>The forge route&#39;s header</h3></header>
+      <div class="body"><p>Gaia&#39;s forge bar and the Bridge&#39;s header both offer Overseer controls. Recommended
+default: Gaia&#39;s bar keeps the forge&#39;s controls, versions and alerts; the board header keeps figures, tabs, the setup
+stepper and the waiting-on-user pill, without its own stop and restart. The design canvas is the owner&#39;s to update.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.8</legend>
+        <label><input type="radio" name="answer-S6-7.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.8"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.9" data-answer="unanswered">
+      <header><span class="identifier">S6-7.9</span><h3>When <code>apps/forge/bridge/</code> is deleted</h3></header>
+      <div class="body"><p>Recommended default: stage 8, with the bundle build and the session
+routes, so stage 6 never leaves the forge with an HTML import of a missing page.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.9</legend>
+        <label><input type="radio" name="answer-S6-7.9" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.9" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.9" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.9"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S6-7.10" data-answer="unanswered">
+      <header><span class="identifier">S6-7.10</span><h3>Rule files a person changes</h3></header>
+      <div class="body"><p><code>.claude/rules/bridge.md</code>, <code>skills.md</code>, <code>flint.md</code>, <code>design-system.md</code> and the
+root <code>CLAUDE.md</code> are the owner&#39;s (<code>apps/forge/CLAUDE.md:281-284</code>, root <code>CLAUDE.md</code>). WP6.4 and WP7.2 need them
+changed. Recommended default: the orchestrated session writes the change in the same commit and the owner
+approves it before it lands.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S6-7.10</legend>
+        <label><input type="radio" name="answer-S6-7.10" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S6-7.10" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S6-7.10" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S6-7.10"></textarea>
+      </label>
+    </article>
+  </section>
+
+  <section class="stage" data-stage="Stages 8 and 9">
+    <div class="stage-head">
+      <h2>Stages 8 and 9 <span class="stage-file">stage-8-9-shrink-and-rename.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    
+    <article class="decision" data-identifier="S8-9.1" data-answer="unanswered">
+      <header><span class="identifier">S8-9.1</span><h3><code>forge open</code> and <code>progress.html</code></h3></header>
+      <div class="body"><p>They lose their target and may not name Gaia. Recommended: delete both; the
+CLI&#39;s <code>start --json</code> already gives the API&#39;s URL to a program that asks.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.1</legend>
+        <label><input type="radio" name="answer-S8-9.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.2" data-answer="unanswered">
+      <header><span class="identifier">S8-9.2</span><h3>The Assistant&#39;s switch: where and how</h3></header>
+      <div class="body"><p>Recommended: <code>pipeline.json</code> key <code>assistant: true</code>, command
+<code>pipeline-assistant-set</code>, verb <code>gate assistant on|off</code>, mirroring the approvals. Alternative: a <code>progress.json</code> key
+set by its own verb.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.2</legend>
+        <label><input type="radio" name="answer-S8-9.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.3" data-answer="unanswered">
+      <header><span class="identifier">S8-9.3</span><h3>A live Assistant when the switch goes off</h3></header>
+      <div class="body"><p>Recommended: stop it in the same hold (<code>job-stop</code>, mode <code>stop</code>).
+Alternative: let it finish its turn and boot no new one.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.3</legend>
+        <label><input type="radio" name="answer-S8-9.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.4" data-answer="unanswered">
+      <header><span class="identifier">S8-9.4</span><h3>The cause name</h3></header>
+      <div class="body"><p>Recommended: a new cause <code>assistant-off</code>, so the log says why. Alternative: reuse <code>no-assistant</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.4</legend>
+        <label><input type="radio" name="answer-S8-9.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.5" data-answer="unanswered">
+      <header><span class="identifier">S8-9.5</span><h3>Flint&#39;s brain&#39;s log records</h3></header>
+      <div class="body"><p>The design keeps them readable (section 3.5). Recommended: keep the reader and
+delete the writer, as planned. Alternative, since boards are set up anew: delete the kind and its reader too.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.5</legend>
+        <label><input type="radio" name="answer-S8-9.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.6" data-answer="unanswered">
+      <header><span class="identifier">S8-9.6</span><h3>The vendor records of a brain turn</h3></header>
+      <div class="body"><p>Recommended: keep the stream fixture, the probe and the <code>flint-brain-turn</code>
+scenario of the fake-agent recording; they record the vendor, and removing them needs a recording with a real
+model call. Alternative: remove them and record <code>src/testing/fake-agent</code> again with a real call.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.6</legend>
+        <label><input type="radio" name="answer-S8-9.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.7" data-answer="unanswered">
+      <header><span class="identifier">S8-9.7</span><h3>Raising forge&#39;s and Gaia&#39;s minimum to 2.0</h3></header>
+      <div class="body"><p>Recommended: raise both, delete the <code>compatibility-path</code> entries,
+keep the unversioned routes and the integer keys as the current contract and document why. Alternative: keep the
+minimum at 1.0 and keep <code>session-codes</code> answering 404 behind an entry, which promises what is not served.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.7</legend>
+        <label><input type="radio" name="answer-S8-9.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.8" data-answer="unanswered">
+      <header><span class="identifier">S8-9.8</span><h3>Endpoint versions at 2.0 and 3.0</h3></header>
+      <div class="body"><p>Recommended: raise the version of each endpoint whose document changed, so a
+path in a recording or a log says which shape it carried. Alternative: keep every endpoint at its number, since no
+older client is supported.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.8</legend>
+        <label><input type="radio" name="answer-S8-9.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.8"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.9" data-answer="unanswered">
+      <header><span class="identifier">S8-9.9</span><h3>The word &quot;Bridge&quot; after stage 8</h3></header>
+      <div class="body"><p>Recommended: forge&#39;s wording names a neutral action, the Bridge leaves the
+component list in <code>apps/forge/CLAUDE.md:46-48</code>, and <code>Bridge</code> joins <code>RETIRED_NAMES</code> with <code>docs/research/</code> left
+unscanned (WP8.12 step 5, which first renames <code>board-readings</code>&#39; <code>BridgeFragmentUtil</code>). Alternative: keep the word in
+history documents and add no guard.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.9</legend>
+        <label><input type="radio" name="answer-S8-9.9" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.9" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.9" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.9"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.10" data-answer="unanswered">
+      <header><span class="identifier">S8-9.10</span><h3><code>.readme-graphics/</code> and the Bridge screenshots</h3></header>
+      <div class="body"><p>Recommended: delete both; forge has nothing to shoot, and Gaia
+gets its own if wanted. Alternative: keep the scripts for diagrams only (<code>render-diagrams.py</code>).</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.10</legend>
+        <label><input type="radio" name="answer-S8-9.10" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.10" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.10" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.10"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.11" data-answer="unanswered">
+      <header><span class="identifier">S8-9.11</span><h3>Which tracker reaches <code>design-system</code>, <code>flint</code> and <code>brand</code></h3></header>
+      <div class="body"><p>Recommended: they leave forge&#39;s reach and join
+Gaia&#39;s in the root <code>CLAUDE.md</code>, since only Gaia imports them after stage 8.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.11</legend>
+        <label><input type="radio" name="answer-S8-9.11" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.11" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.11" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.11"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.12" data-answer="unanswered">
+      <header><span class="identifier">S8-9.12</span><h3>The verb&#39;s new name</h3></header>
+      <div class="body"><p>Recommended: <code>hephaestus</code> (<code>forge hephaestus --detach</code>, <code>forge hephaestus stop</code>): it
+names what it runs and greps alone. Alternative: <code>run</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.12</legend>
+        <label><input type="radio" name="answer-S8-9.12" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.12" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.12" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.12"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.13" data-answer="unanswered">
+      <header><span class="identifier">S8-9.13</span><h3>The login item&#39;s label</h3></header>
+      <div class="body"><p>Recommended: <code>com.forge.hephaestus</code>; the released program&#39;s
+<code>com.agent-progress.overseer</code> stays, as a fact about another program.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.13</legend>
+        <label><input type="radio" name="answer-S8-9.13" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.13" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.13" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.13"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.14" data-answer="unanswered">
+      <header><span class="identifier">S8-9.14</span><h3>Stored format versions at stage 9</h3></header>
+      <div class="body"><p>Recommended: raise <code>progress.json</code>, the pipeline format and the registry, so
+an old board or registry is refused rather than misread. For the pipeline, recommended: one format, the new number,
+read and written alone, and the Deviations row on versions 2 and 3 deleted. Alternative: rename keys without a
+version change.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.14</legend>
+        <label><input type="radio" name="answer-S8-9.14" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.14" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.14" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.14"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.15" data-answer="unanswered">
+      <header><span class="identifier">S8-9.15</span><h3>A major version for forge (3.0) and for Gaia in stage 9</h3></header>
+      <div class="body"><p>Recommended: yes; the command kinds and document
+keys Gaia uses change, and a forge of stage 8 may already run from the installed clone.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.15</legend>
+        <label><input type="radio" name="answer-S8-9.15" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.15" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.15" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.15"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.16" data-answer="unanswered">
+      <header><span class="identifier">S8-9.16</span><h3>Historical documents</h3></header>
+      <div class="body"><p>Recommended: leave <code>docs/monorepo/</code> unchanged, as the record of this change, and rename
+everything under <code>apps/</code> and <code>packages/</code>, <code>docs/research/</code> included.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.16</legend>
+        <label><input type="radio" name="answer-S8-9.16" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.16" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.16" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.16"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.17" data-answer="unanswered">
+      <header><span class="identifier">S8-9.17</span><h3>Where Markdown is rendered after stage 8</h3></header>
+      <div class="body"><p>Design section 3.1 moves the rendering out of Hephaestus. Recommended:
+Gaia&#39;s page renders <code>bodyMarkdown</code> and <code>descriptionMarkdown</code> with <code>marked</code>, the library forge drops, at the same
+version, so a body reads as it did. Alternative: Gaia&#39;s server renders and hands the page HTML, which keeps the
+page free of a Markdown library but adds a mapped document field Gaia owns.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.17</legend>
+        <label><input type="radio" name="answer-S8-9.17" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.17" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.17" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.17"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.18" data-answer="unanswered">
+      <header><span class="identifier">S8-9.18</span><h3>Steps on the owner&#39;s machine around stage 9</h3></header>
+      <div class="body"><p>Recommended order: stop every forge, remove every login item with
+the old program (<code>forge login-item</code> before pulling), pull stage 9 into the installed clone, run <code>setup</code>, set each
+board up anew with <code>init</code> (only the owner runs <code>init</code>, <code>update</code> or <code>clear</code>), add the login items again.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.18</legend>
+        <label><input type="radio" name="answer-S8-9.18" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.18" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.18" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.18"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="S8-9.19" data-answer="unanswered">
+      <header><span class="identifier">S8-9.19</span><h3>Rule files a person changes</h3></header>
+      <div class="body"><p>WP8.2 deletes <code>.claude/rules/bridge.md</code> and changes <code>.claude/rules/flint.md</code>,
+<code>.claude/rules/design-system.md</code> and the root <code>CLAUDE.md</code>; WP9.3 renames the Overseer in every <code>.claude/rules/*.md</code>
+and the root <code>CLAUDE.md</code>. These files are the owner&#39;s (<code>apps/forge/CLAUDE.md:281-284</code>, root <code>CLAUDE.md</code>).
+Recommended default, as for stage 6: the orchestrated session writes the change in the same commit and the owner
+approves it before it lands.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for S8-9.19</legend>
+        <label><input type="radio" name="answer-S8-9.19" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-S8-9.19" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-S8-9.19" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for S8-9.19"></textarea>
+      </label>
+    </article>
+  </section>
+  <section class="export" aria-labelledby="export-heading">
+    <h2 id="export-heading">Answers as JSON</h2>
+    <div class="row">
+      <button type="button" id="copy-json" class="primary">Copy JSON</button>
+      <button type="button" id="download-json">Download JSON</button>
+      <span class="status" id="copy-status" aria-live="polite"></span>
+    </div>
+    <textarea id="answers-json" readonly aria-label="Answers as JSON"></textarea>
+    <details>
+      <summary>Load answers from JSON</summary>
+      <textarea id="import-json" aria-label="JSON to load"></textarea>
+      <div class="row"><button type="button" id="load-json">Load</button><span class="status" id="load-status" aria-live="polite"></span></div>
+    </details>
+  </section>
+</main>
+<script type="application/json" id="sheet-data">{"sheet":"docs/monorepo/hephaestus-talos-implementation/owner-decisions.html","sourceVersion":"dd37edd3db8c","decisions":[{"id":"S0-1.1","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":1,"title":"What the forge does after an agent ended on a network outage"},{"id":"S0-1.2","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":2,"title":"Whether an install line gets a time bound"},{"id":"S0-1.3","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":3,"title":"The packages stage 4 creates"},{"id":"S0-1.4","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":4,"title":"Where the board and ticket documents live"},{"id":"S0-1.5","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":5,"title":"entities/integration (52 commits, 399 files, forge 1.9 to 1.11)"},{"id":"S0-1.6","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":6,"title":"The live trackers during stages 2 to 9"},{"id":"S0-1.7","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":7,"title":"The uncommitted clock-rule edits in both apps&#39; CLAUDE.md"},{"id":"S0-1.8","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":8,"title":"claude/project-thread-dw1bcu"},{"id":"S0-1.9","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":9,"title":"The migration&#39;s open items"},{"id":"S0-1.10","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":10,"title":"Recordings B and C of WP0.3"},{"id":"S0-1.11","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":11,"title":"The corrections of WP0.1"},{"id":"S2.3","stage":"Stage 2","file":"stage-2-talos.md","item":3,"title":"Whether the 15-minute gate bound counts a sleep"},{"id":"S2.4","stage":"Stage 2","file":"stage-2-talos.md","item":4,"title":"lease-ended before stage 3"},{"id":"S2.5","stage":"Stage 2","file":"stage-2-talos.md","item":5,"title":"The stored cause watcher-lost"},{"id":"S2.6","stage":"Stage 2","file":"stage-2-talos.md","item":6,"title":"The identity document&#39;s key and the system version"},{"id":"S2.7","stage":"Stage 2","file":"stage-2-talos.md","item":7,"title":"The lease proves that the Overseer lives, not that it makes progress"},{"id":"S2.8","stage":"Stage 2","file":"stage-2-talos.md","item":8,"title":"The minimum number of retry lines"},{"id":"S2.9","stage":"Stage 2","file":"stage-2-talos.md","item":9,"title":"Renaming Job.watcherInstance in this stage"},{"id":"S2.10","stage":"Stage 2","file":"stage-2-talos.md","item":10,"title":"The rest of the agent port&#39;s work"},{"id":"S2.11","stage":"Stage 2","file":"stage-2-talos.md","item":11,"title":"A Talos just started that answers another protocol version"},{"id":"S2.12","stage":"Stage 2","file":"stage-2-talos.md","item":12,"title":"When Talos syncs an event log"},{"id":"S2.13","stage":"Stage 2","file":"stage-2-talos.md","item":13,"title":"The Overseer&#39;s own gates across its restart"},{"id":"S3.3","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":3,"title":"What a crash suspected before a reboot does"},{"id":"S3.4","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":4,"title":"Whether an unexpected error in a pass is a crash"},{"id":"S3.5","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":5,"title":"What an instructed resume does to the crash count"},{"id":"S3.6","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":6,"title":"Whether a retried merge, refresh or constitution commit after a waiting start waits too"},{"id":"S3.7","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":7,"title":"Whether the verb is resume"},{"id":"S3.8","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":8,"title":"How Gaia learns that a forge that is down crashed"},{"id":"S4.1","stage":"Stage 4","file":"stage-4-packages.md","item":1,"title":"The package boundaries"},{"id":"S4.2","stage":"Stage 4","file":"stage-4-packages.md","item":2,"title":"The vendor adapter reads LocalTimeUtil, which moves into board-readings"},{"id":"S4.3","stage":"Stage 4","file":"stage-4-packages.md","item":3,"title":"TimestampSlices.ts joins board-readings"},{"id":"S4.4","stage":"Stage 4","file":"stage-4-packages.md","item":4,"title":"Flint&#39;s brain stays out of the contract&#39;s board document"},{"id":"S4.5","stage":"Stage 4","file":"stage-4-packages.md","item":5,"title":"Which command kinds join the contract"},{"id":"S4.6","stage":"Stage 4","file":"stage-4-packages.md","item":6,"title":"Gaia stays at the forge version stage 3 left"},{"id":"S4.7","stage":"Stage 4","file":"stage-4-packages.md","item":7,"title":"The root rules&#39; tracker reach"},{"id":"S4.8","stage":"Stage 4","file":"stage-4-packages.md","item":8,"title":"What the model exports"},{"id":"S5.1","stage":"Stage 5","file":"stage-5-store-port.md","item":1,"title":"The by-hand verbs become command kinds"},{"id":"S5.2","stage":"Stage 5","file":"stage-5-store-port.md","item":2,"title":"The by-hand kinds stay off the command endpoint"},{"id":"S5.3","stage":"Stage 5","file":"stage-5-store-port.md","item":3,"title":"A ticket&#39;s and an epic&#39;s filePath"},{"id":"S5.4","stage":"Stage 5","file":"stage-5-store-port.md","item":4,"title":"The registry&#39;s progressJson"},{"id":"S5.5","stage":"Stage 5","file":"stage-5-store-port.md","item":5,"title":"Stage 3&#39;s presence, heartbeat, fatal-error and crash files"},{"id":"S5.6","stage":"Stage 5","file":"stage-5-store-port.md","item":6,"title":"The read side as a third part of the port"},{"id":"S5.7","stage":"Stage 5","file":"stage-5-store-port.md","item":7,"title":"Pictures"},{"id":"S6-7.1","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":1,"title":"Specs of the moved views"},{"id":"S6-7.2","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":2,"title":"The board&#39;s stylesheets under Gaia&#39;s style contract"},{"id":"S6-7.3","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":3,"title":"Flint in Gaia"},{"id":"S6-7.4","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":4,"title":"Mapping the board document in Gaia&#39;s server"},{"id":"S6-7.5","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":5,"title":"forge open and the progress.html stub"},{"id":"S6-7.7","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":7,"title":"A question&#39;s recommendation as a field"},{"id":"S6-7.8","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":8,"title":"The forge route&#39;s header"},{"id":"S6-7.9","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":9,"title":"When apps/forge/bridge/ is deleted"},{"id":"S6-7.10","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":10,"title":"Rule files a person changes"},{"id":"S8-9.1","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":1,"title":"forge open and progress.html"},{"id":"S8-9.2","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":2,"title":"The Assistant&#39;s switch: where and how"},{"id":"S8-9.3","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":3,"title":"A live Assistant when the switch goes off"},{"id":"S8-9.4","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":4,"title":"The cause name"},{"id":"S8-9.5","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":5,"title":"Flint&#39;s brain&#39;s log records"},{"id":"S8-9.6","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":6,"title":"The vendor records of a brain turn"},{"id":"S8-9.7","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":7,"title":"Raising forge&#39;s and Gaia&#39;s minimum to 2.0"},{"id":"S8-9.8","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":8,"title":"Endpoint versions at 2.0 and 3.0"},{"id":"S8-9.9","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":9,"title":"The word &quot;Bridge&quot; after stage 8"},{"id":"S8-9.10","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":10,"title":".readme-graphics/ and the Bridge screenshots"},{"id":"S8-9.11","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":11,"title":"Which tracker reaches design-system, flint and brand"},{"id":"S8-9.12","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":12,"title":"The verb&#39;s new name"},{"id":"S8-9.13","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":13,"title":"The login item&#39;s label"},{"id":"S8-9.14","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":14,"title":"Stored format versions at stage 9"},{"id":"S8-9.15","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":15,"title":"A major version for forge (3.0) and for Gaia in stage 9"},{"id":"S8-9.16","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":16,"title":"Historical documents"},{"id":"S8-9.17","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":17,"title":"Where Markdown is rendered after stage 8"},{"id":"S8-9.18","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":18,"title":"Steps on the owner&#39;s machine around stage 9"},{"id":"S8-9.19","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":19,"title":"Rule files a person changes"}]}</script>
+<script>
+const sheetData = JSON.parse(document.getElementById('sheet-data').textContent);
+const decisionCards = [...document.querySelectorAll('.decision')];
+const jsonArea = document.getElementById('answers-json');
+
+function answerOf(card) { return card.querySelector('input[type="radio"]:checked').value; }
+function noteOf(card) { return card.querySelector('.note').value.trim(); }
+
+function exportedAnswers() {
+  return {
+    sheet: sheetData.sheet,
+    sourceVersion: sheetData.sourceVersion,
+    exportedAt: new Date().toISOString(),
+    decisions: decisionCards.map((card) => {
+      const described = sheetData.decisions.find((decision) => decision.id === card.dataset.identifier);
+      return { id: described.id, stage: described.stage, file: described.file, item: described.item, title: described.title, answer: answerOf(card), note: noteOf(card) };
+    }),
+  };
+}
+
+function refresh() {
+  let answeredCount = 0;
+  let missingNoteCount = 0;
+  for (const card of decisionCards) {
+    const answer = answerOf(card);
+    card.dataset.answer = answer;
+    const noteIsMissing = answer === 'other' && noteOf(card) === '';
+    card.classList.toggle('note-missing', noteIsMissing);
+    if (answer !== 'unanswered') answeredCount += 1;
+    if (noteIsMissing) missingNoteCount += 1;
+  }
+  for (const stageSection of document.querySelectorAll('.stage')) {
+    const stageCards = [...stageSection.querySelectorAll('.decision')];
+    const stageAnswered = stageCards.filter((card) => card.dataset.answer !== 'unanswered').length;
+    stageSection.querySelector('.stage-progress').textContent = stageAnswered + ' of ' + stageCards.length + ' answered';
+  }
+  const missingText = missingNoteCount === 0 ? '' : ', ' + missingNoteCount + ' different answer' + (missingNoteCount === 1 ? '' : 's') + ' without a note';
+  document.getElementById('progress').textContent = answeredCount + ' of ' + decisionCards.length + ' answered' + missingText;
+  jsonArea.value = JSON.stringify(exportedAnswers(), null, 2);
+}
+
+function acceptDefaults(cards) {
+  for (const card of cards) {
+    if (answerOf(card) === 'unanswered') card.querySelector('input[value="default"]').checked = true;
+  }
+  refresh();
+}
+
+document.addEventListener('change', refresh);
+document.addEventListener('input', (event) => { if (event.target.classList.contains('note')) refresh(); });
+document.getElementById('accept-all').addEventListener('click', () => acceptDefaults(decisionCards));
+for (const stageButton of document.querySelectorAll('.accept-stage')) {
+  stageButton.addEventListener('click', () => acceptDefaults([...stageButton.closest('.stage').querySelectorAll('.decision')]));
+}
+document.getElementById('only-unanswered').addEventListener('change', (event) => document.body.classList.toggle('only-unanswered', event.target.checked));
+
+document.getElementById('copy-json').addEventListener('click', async () => {
+  const status = document.getElementById('copy-status');
+  try {
+    await navigator.clipboard.writeText(jsonArea.value);
+    status.textContent = 'Copied.';
+  } catch (copyError) {
+    jsonArea.focus();
+    jsonArea.select();
+    status.textContent = 'Copying was refused; the text is selected, copy it by hand.';
+  }
+});
+document.getElementById('download-json').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([jsonArea.value], { type: 'application/json' }));
+  link.download = 'hephaestus-talos-owner-decisions.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
+document.getElementById('load-json').addEventListener('click', () => {
+  const status = document.getElementById('load-status');
+  let loaded;
+  try { loaded = JSON.parse(document.getElementById('import-json').value); } catch (parseError) { status.textContent = 'That is not JSON.'; return; }
+  if (loaded === null || !Array.isArray(loaded.decisions)) { status.textContent = 'That JSON has no decisions.'; return; }
+  let appliedCount = 0;
+  for (const loadedDecision of loaded.decisions) {
+    const card = decisionCards.find((candidate) => candidate.dataset.identifier === loadedDecision.id);
+    const radio = card === undefined ? null : card.querySelector('input[value="' + String(loadedDecision.answer).replace(/[^a-z]/g, '') + '"]');
+    if (card === undefined || radio === null) continue;
+    radio.checked = true;
+    card.querySelector('.note').value = typeof loadedDecision.note === 'string' ? loadedDecision.note : '';
+    appliedCount += 1;
+  }
+  refresh();
+  status.textContent = appliedCount + ' of ' + loaded.decisions.length + ' loaded.';
+});
+window.addEventListener('beforeunload', (event) => {
+  if (decisionCards.some((card) => card.dataset.answer !== 'unanswered' || noteOf(card) !== '')) event.preventDefault();
+});
+refresh();
+</script>
+</body>
+</html>

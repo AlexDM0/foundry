@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="664" viewBox="0 0 680 664" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Inside Hephaestus</title>
+  <desc>Gaia reaches Hephaestus through its API server, and hosted agents reach it through the Hatch inbox, which relays their CLI verbs. Both feed one control service, which applies every command. The pipeline loop runs one pass at a time and drives the job lifecycle, the Airlocks, and presence and recovery. Hephaestus reaches the outside through the operating system port, the agent port, the store port and Talos.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="662" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Inside Hephaestus</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">commands come in at the top, the pipeline runs in the middle, ports reach out below</text>
+
+  <path d="M185,140 L185,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M495,140 L495,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M185,264 L185,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M495,264 L495,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,344 L340,368" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M150,424 L150,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,424 L340,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M530,424 L530,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M124,524 L124,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M268,524 L268,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M412,524 L412,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M556,524 L556,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="60" y="92" width="250" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="185" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Gaia</text>
+  <text x="185" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">reads and commands</text>
+
+  <rect x="370" y="92" width="250" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="495" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Hosted agents</text>
+  <text x="495" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">CLI verbs, relayed</text>
+
+  <rect x="40" y="172" width="600" height="352" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="60" y="198" font-size="14" font-weight="500" fill="#3d3d3a">Hephaestus</text>
+  <text x="620" y="198" font-size="12" fill="#73726c" text-anchor="end">one per board</text>
+
+  <rect x="60" y="212" width="250" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="185" y="234" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">API server</text>
+  <text x="185" y="252" font-size="12" fill="#993C1D" text-anchor="middle">reads, streams, command endpoint</text>
+
+  <rect x="370" y="212" width="250" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="495" y="234" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hatch inbox</text>
+  <text x="495" y="252" font-size="12" fill="#993C1D" text-anchor="middle">agents' commands, judged by role</text>
+
+  <rect x="60" y="292" width="560" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="314" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Control service</text>
+  <text x="340" y="332" font-size="12" fill="#993C1D" text-anchor="middle">one service applies every command</text>
+
+  <rect x="60" y="372" width="560" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="394" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Pipeline loop</text>
+  <text x="340" y="412" font-size="12" fill="#993C1D" text-anchor="middle">one pass at a time, following the Playbook</text>
+
+  <rect x="60" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="150" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Job lifecycle</text>
+  <text x="150" y="492" font-size="12" fill="#993C1D" text-anchor="middle">worktree, Customs, gates</text>
+
+  <rect x="250" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Airlocks</text>
+  <text x="340" y="492" font-size="12" fill="#993C1D" text-anchor="middle">merge, gate, land</text>
+
+  <rect x="440" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="530" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Presence and recovery</text>
+  <text x="530" y="492" font-size="12" fill="#993C1D" text-anchor="middle">Baton, heartbeat, reconcile</text>
+
+  <rect x="60" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="124" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">OS port</text>
+  <text x="124" y="600" font-size="12" fill="#854F0B" text-anchor="middle">macOS first</text>
+
+  <rect x="204" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="268" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Agent port</text>
+  <text x="268" y="600" font-size="12" fill="#854F0B" text-anchor="middle">Claude Code first</text>
+
+  <rect x="348" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="412" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Store port</text>
+  <text x="412" y="600" font-size="12" fill="#854F0B" text-anchor="middle">local files first</text>
+
+  <rect x="492" y="560" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="556" y="582" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Talos</text>
+  <text x="556" y="600" font-size="12" fill="#185FA5" text-anchor="middle">launch plans, lease</text>
+
+  <text x="60" y="640" font-size="12" fill="#73726c">No page, no browser session and no rendered HTML: everything that serves a client lives in Gaia.</text>
+</svg>
