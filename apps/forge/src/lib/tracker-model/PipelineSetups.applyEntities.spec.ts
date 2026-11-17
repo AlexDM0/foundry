@@ -1,13 +1,14 @@
 /**
- * Apply of a draft over entities. What matters: the Apply refuses to remove or rename an entity a ticket that is not delivered or
- * abandoned names (E91), and refuses to turn a stored pipeline without entities into entities while a ticket is in progress, in review
- * or reviewed (E94), where a first setup and a pending ticket refuse nothing. The forge has no constitution of its own beside entities,
- * so its empty draft refuses nothing: each entity's drafted text that main lacks waits for the commit, each drafted entity takes main's
- * blob of its file as its base, an entity with no draft adopts the file main holds byte for byte, and stage 2 refuses an entity's text
- * main does not hold, naming the entity. Stage 2 refuses E91 and E94 again, for a ticket that started or took the removed entity while the
- * request waited. The first Apply that stores entities starts one product owner, as an intake of the words the
- * caller gives, for the pending tickets without an entity, its launch record naming them; an Apply over a pipeline that already had
- * entities, or one with no such ticket, starts none.
+ * Apply of a draft over entities. What matters: the Apply refuses to remove or rename an entity a ticket that is not delivered or abandoned
+ * names (E91), and refuses to turn a stored pipeline without entities into entities while a ticket is in progress, in review or reviewed
+ * (E94), where a first setup and a pending ticket refuse nothing. The forge has no constitution of its own beside entities, so its empty
+ * draft refuses nothing: each entity's drafted text that main lacks waits for the commit, each drafted entity takes main's blob of its file
+ * as its base, an entity with no draft adopts the file main holds byte for byte, and stage 2 refuses an entity's text main does not hold,
+ * naming the entity. Stage 2 refuses E91 and E94 again, for a ticket that started or took the removed entity while the request waited. The
+ * first Apply that stores entities starts one product owner, as an intake of the words the caller gives, for the pending tickets without an
+ * entity, its launch record naming them; an Apply over a pipeline that already had entities, or one with no such ticket, starts none. An
+ * Apply over a pipeline with entities that adds an entity touches no open ticket and starts no product owner (E90), and one that moves an
+ * entity's home keeps the entity's key on its open tickets (E92).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -258,5 +259,50 @@ describe('the product owner of the first Apply over entities', () => {
     const noneWaiting = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '021', status: 'pending', entity: 'web' })]);
     noneWaiting.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
     expect(noneWaiting.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
+  });
+});
+
+describe('an Apply that changes the entities of a stored pipeline with entities', () => {
+  const OPEN_TICKETS = (): Ticket[] => [
+    ticketFixture({ id: '031', status: 'pending', entity: 'web' }),
+    ticketFixture({ id: '032', status: 'in-progress', entity: 'design-system' }),
+  ];
+
+  function entitiesOfTickets(board: Board): Record<string, string | undefined> {
+    return Object.fromEntries(board.tickets().map((ticket) => [ticket.frontmatter.id, ticket.frontmatter.entity]));
+  }
+
+  test('E90: adds an entity and leaves every open ticket\'s entity as it was, starting no product owner', () => {
+    const stored = entityPipelineFixture();
+    const withApi: Pipeline = {
+      ...stored,
+      entities: {
+        ...stored.entities,
+        api: {
+          kind: 'app', home: ['/apps/api'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+        },
+      },
+    };
+    const board = boardOver(stored, OPEN_TICKETS(), withApi);
+
+    const applied = board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith({ ...MAIN_WITH_WEB_TEXT.entityConstitutions, api: null }, wordsOf) }, AT);
+
+    expect(applied.outcome).toBe('applied');
+    expect(Object.keys(board.pipeline()?.entities ?? {})).toContain('api');
+    expect(entitiesOfTickets(board)).toEqual({ '031': 'web', '032': 'design-system' });
+    expect(board.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
+  });
+
+  test('E92: moves an entity\'s home while its tickets are open, and each keeps the entity\'s key', () => {
+    const stored = entityPipelineFixture();
+    const web = stored.entities?.['web'];
+    if (web === undefined) throw new Error('The fixture names web.');
+    const webMoved: Pipeline = { ...stored, entities: { ...stored.entities, web: { ...web, home: ['/apps/storefront'] } } };
+    const tickets = [ticketFixture({ id: '031', status: 'pending', entity: 'web' }), ticketFixture({ id: '033', status: 'in-progress', entity: 'web' })];
+    const board = boardOver(stored, tickets, webMoved);
+
+    expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITH_WEB_TEXT }, AT).outcome).toBe('applied');
+    expect(board.pipeline()?.entities?.['web']?.home).toEqual(['/apps/storefront']);
+    expect(entitiesOfTickets(board)).toEqual({ '031': 'web', '033': 'web' });
   });
 });

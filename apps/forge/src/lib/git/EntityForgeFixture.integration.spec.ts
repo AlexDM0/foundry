@@ -110,6 +110,23 @@ function reshapedThenAdapted(homeReviewFixes: boolean): (directory: string, star
   };
 }
 
+/**
+ * The shop's ticket crossed and the package build reshaped the package; then main changed a file of the package the ticket did not touch,
+ * the review's catch-up merged main into the ticket's branch, and the home review fixed the shop.
+ */
+function caughtUpWithMain(directory: string, startCommit: string): Record<string, string> {
+  const reshaped = crossedThenChanging([sourceFileOf(UI_KIT)])(directory, startCommit);
+  writeFileSync(join(directory, UI_KIT.homeFolder, 'package.json'), `{ "name": "example-${UI_KIT.key}", "private": true, "version": "2.0.0" }\n`);
+  const mainTip = commitAll(directory, 'Advance the package on main');
+  const worktreeDirectory = join(directory, ticketWorktreeFolderOf(SHOP_TICKET));
+  gitOutputIn(worktreeDirectory, [...SCRATCH_COMMIT_IDENTITY_ARGUMENTS, 'merge', '-q', '--no-edit', ENTITY_FORGE_MAIN_LINE]);
+  const catchUpTip = gitOutputIn(worktreeDirectory, ['rev-parse', 'HEAD']);
+  writeFileSync(join(worktreeDirectory, sourceFileOf(SHOP)), 'export const changedByTheHomeReview = 5;\n');
+  return {
+    ...reshaped, '<main tip>': mainTip, '<catch-up tip>': catchUpTip, '<home review tip>': commitAll(worktreeDirectory, 'Fix the shop in the review of ticket 001')
+  };
+}
+
 /** Each scenario and how it changes the fixture repository, naming the commits beside the start. */
 const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: string, startCommit: string) => Record<string, string>])[] = [
   [ENTITY_FORGE_SCENARIOS.AT_REST, () => ({})],
@@ -126,6 +143,8 @@ const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: stri
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED, reshapedThenAdapted(true)],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED, shopTicketChanging([sourceFileOf(SHOP), constitutionFileOf(UI_KIT)])],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, crossedThenChanging([constitutionFileOf(UI_KIT)])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_REVIEW_IN_ADMIN, crossedThenChanging([sourceFileOf(ADMIN)])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_CAUGHT_UP, caughtUpWithMain],
 ];
 
 /** Runs every call of the scenario at each of its places, and records each answer under the scenario with the placeholders put back. */

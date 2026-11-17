@@ -1,9 +1,10 @@
 /**
  * Whose session a job carries on in a forge with entities (E29). What matters: a build carries on the session of the same attempt's built
- * builder only when both run the same entity and stage, so a package's stage 2 never resumes the home builder's stage 1 session; an
- * Airlock agent stands in for the ticket's last worker only when that worker ran its entity and stage, else it is a fresh session and takes
- * its own launch pair; a stale green is resumed only in the session of its own entity and stage; and launches that name no entity, as on
- * a forge without entities, carry on as they always did.
+ * builder only when both run the same entity and stage, so a package's stage 2 never resumes the home builder's stage 1 session; an Airlock
+ * agent stands in for the ticket's last worker only when that worker ran its entity and stage, else it is a fresh session and takes its own
+ * launch pair; a stage job relaunched after it wound down starts a fresh session, as a build after a wind-down does today (E17); a stale
+ * green is resumed only in the session of its own entity and stage; and launches that name no entity, as on a forge without entities, carry
+ * on as they always did.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -49,7 +50,7 @@ function launched(jobId: string, kind: JobKind, role: JobRole, scope: EntityAndS
   };
 }
 
-function ended(jobId: string, outcome: 'built' | 'reviewed'): LogRecord {
+function ended(jobId: string, outcome: 'built' | 'reviewed' | 'wound-down'): LogRecord {
   return {
     at: AT, kind: 'job-ended', jobId, fields: { outcome, deniedPermissions: [] }
   };
@@ -93,6 +94,16 @@ describe('a build after a built builder of the same attempt', () => {
 
   test('carries on as always where no launch names an entity', () => {
     expect(sessionOwnerOf(NO_ENTITY, NO_ENTITY)).toBe('J1');
+  });
+
+  test('E17: after a package build of its stage that wound down, starts a session of its own, as a build after a wind-down does today', () => {
+    const relaunchedOwnerOf = (scope: EntityAndStage): string => JobResumption.sessionOwnerJobIdOf(
+      [launched('J1', 'build', 'builder', scope), ended('J1', 'wound-down'), launched('J2', 'build', 'builder', scope)],
+      jobOf('J2', 'build', 'builder', scope),
+    );
+
+    expect(relaunchedOwnerOf(PACKAGE_STAGE_TWO)).toBe('J2');
+    expect(relaunchedOwnerOf(PACKAGE_STAGE_TWO)).toBe(relaunchedOwnerOf(NO_ENTITY));
   });
 });
 

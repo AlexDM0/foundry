@@ -26,7 +26,7 @@
       "callShape": "branch -d <branch>, the branch merged",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Deleted branch <branch> (was a932611).\n",
+        "standardOutput": "Deleted branch <branch> (was f5cd4f4).\n",
         "standardError": ""
       }
     },
@@ -2314,7 +2314,7 @@
       "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at f9112ff Change CLAUDE.md\n",
+        "standardOutput": "HEAD is now at 3b1cd53 Change CLAUDE.md\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -4154,7 +4154,7 @@
       "callShape": "flow stage \"folder merge conflicted\", in the project ticket worktree: git diff --no-ext-diff HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "diff --git a/apps/example/roles.ts b/apps/example/roles.ts\nindex d54a61c..77346fc 100644\n--- a/apps/example/roles.ts\n+++ b/apps/example/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardOutput": "diff --git a/apps/example/roles.ts b/apps/example/roles.ts\nindex d54a61c..7c03a7c 100644\n--- a/apps/example/roles.ts\n+++ b/apps/example/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
         "standardError": ""
       }
     },
@@ -4866,7 +4866,7 @@
       "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 5f22fa5 Add the project\n",
+        "standardOutput": "HEAD is now at 69383aa Add the project\n",
         "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
       }
     },
@@ -4874,7 +4874,7 @@
       "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 8db21b9 Add the project\n",
+        "standardOutput": "HEAD is now at 0c1e5cd Add the project\n",
         "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
       }
     },
@@ -4882,7 +4882,7 @@
       "callShape": "flow stage \"folder tracker ready\", in the main checkout: git worktree add -b forge/example/ticket-001 <repository>/apps/example/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at b55c9a8 Add the project\n",
+        "standardOutput": "HEAD is now at 17520c3 Add the project\n",
         "standardError": "Preparing worktree (new branch 'forge/example/ticket-001')"
       }
     },
@@ -5642,7 +5642,7 @@
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 58b4f72 Change .gitattributes\n",
+        "standardOutput": "HEAD is now at 8e1ce0f Change .gitattributes\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -6914,7 +6914,7 @@
       "callShape": "flow stage \"merge conflicted\", in the ticket worktree: git diff --no-ext-diff HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..5b7893a 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
+        "standardOutput": "diff --git a/roles.ts b/roles.ts\nindex d54a61c..ef92003 100644\n--- a/roles.ts\n+++ b/roles.ts\n@@ -1 +1,5 @@\n+<<<<<<< HEAD\n export const roles = ['builder'];\n+=======\n+export const roles = ['reviewer'];\n+>>>>>>> <moved main tip>\n",
         "standardError": ""
       }
     },
@@ -8818,7 +8818,7 @@
       "callShape": "flow stage \"tracker ready\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 215bf30 Initial commit\n",
+        "standardOutput": "HEAD is now at e2f3ceb Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-001')"
       }
     },
@@ -11247,7 +11247,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z 175056e0c2bd68e7e14139abef35e11cae714e5e HEAD --",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git diff --name-only --no-renames -z 15ac6fc9d58b31ea67e4d6bf30f31a00fc2dd06f HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "target.ts\u0000",
@@ -11298,7 +11298,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log --name-only --no-renames -z --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "target.ts\u0000target.ts\u0000feature.ts\u0000package.json\u0000",
+        "standardOutput": "target.ts\u0000package.json\u0000target.ts\u0000feature.ts\u0000",
         "standardError": ""
       }
     },
@@ -11327,7 +11327,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B d2e88b29d0c4ce721cca578076f41bc78f5e711a",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B 27a0a101bbeb12faac06b0d65f8aef51dd6901e4",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -11335,7 +11335,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B dd48e97a5244e584189ebb2d8eb8817148e1b774",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git log -1 --format=%B de5729368157735459c53ebfbc5d6f80f01825db",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11394,7 +11394,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "175056e0c2bd68e7e14139abef35e11cae714e5e\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "15ac6fc9d58b31ea67e4d6bf30f31a00fc2dd06f\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -11442,7 +11442,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\nd2e88b29d0c4ce721cca578076f41bc78f5e711a\n",
+        "standardOutput": "<head>\n<target tip>\n27a0a101bbeb12faac06b0d65f8aef51dd6901e4\n",
         "standardError": ""
       }
     },
@@ -11466,7 +11466,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts conflicted and resolved, package.json from the target\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\ndd48e97a5244e584189ebb2d8eb8817148e1b774\nd2e88b29d0c4ce721cca578076f41bc78f5e711a\n",
+        "standardOutput": "<head>\n<target tip>\n27a0a101bbeb12faac06b0d65f8aef51dd6901e4\n<branch tip>\nde5729368157735459c53ebfbc5d6f80f01825db\n",
         "standardError": ""
       }
     },
@@ -11543,18 +11543,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git diff --name-only --no-renames -z 175056e0c2bd68e7e14139abef35e11cae714e5e HEAD --",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "apps/example/.claude/settings.json\u0000target.ts\u0000",
-        "standardError": ""
-      }
-    },
-    {
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git diff --name-only --no-renames -z 27bde8a953653eb805d5370914b2873bcbeb87e1 HEAD --",
       "answer": {
         "exitCode": 0,
         "standardOutput": "apps/example/.claude/settings.json\u0000package.json\u0000target.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git diff --name-only --no-renames -z 62a0b613411918846b480e959eabfbd0e78c280a HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/example/.claude/settings.json\u0000target.ts\u0000",
         "standardError": ""
       }
     },
@@ -11623,7 +11623,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B d2e88b29d0c4ce721cca578076f41bc78f5e711a",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B 0e90224dbf7a32a01c2621d0da42192315e88c9a",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -11631,7 +11631,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B dd48e97a5244e584189ebb2d8eb8817148e1b774",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git log -1 --format=%B 6342a994732cfa665403c12645bf0e1add2568a4",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -11690,7 +11690,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git merge-tree --write-tree --no-messages <branch tip> <target tip>",
       "answer": {
         "exitCode": 1,
-        "standardOutput": "175056e0c2bd68e7e14139abef35e11cae714e5e\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
+        "standardOutput": "62a0b613411918846b480e959eabfbd0e78c280a\n100644 87773d4bb005fd082a3a1577f19e671e526f9e16 2\ttarget.ts\n100644 f4d2006c38226a64358460026cbf312893425629 3\ttarget.ts\n",
         "standardError": ""
       }
     },
@@ -11738,7 +11738,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\nd2e88b29d0c4ce721cca578076f41bc78f5e711a\n",
+        "standardOutput": "<head>\n<target tip>\n0e90224dbf7a32a01c2621d0da42192315e88c9a\n",
         "standardError": ""
       }
     },
@@ -11762,7 +11762,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, target.ts resolved beside apps/example/.claude/settings.json\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\ndd48e97a5244e584189ebb2d8eb8817148e1b774\nd2e88b29d0c4ce721cca578076f41bc78f5e711a\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n6342a994732cfa665403c12645bf0e1add2568a4\n0e90224dbf7a32a01c2621d0da42192315e88c9a\n",
         "standardError": ""
       }
     },
@@ -12199,15 +12199,15 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 25b43bc4ee3bb37f8e115810b32c470f81837139",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 2917985e29817e46f607ea1d8913ac9fe2139388",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change .forge/progress.json\n\n",
+        "standardOutput": "Change package.json\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 7e205293da5a1ca50f64ac885f5810deb42a0263",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B 8d25cb99c76fd7bfea1066ad3bf1b8b1e08b6fb2",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -12215,10 +12215,10 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B dc915b14479ef18bcf986e8098e43d56c6f83500",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git log -1 --format=%B fc570f2a1cb77b39741396d98a6462b3ff7a3828",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change package.json\n\n",
+        "standardOutput": "Change .forge/progress.json\n\n",
         "standardError": ""
       }
     },
@@ -12322,7 +12322,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<target tip>\n7e205293da5a1ca50f64ac885f5810deb42a0263\n25b43bc4ee3bb37f8e115810b32c470f81837139\ndc915b14479ef18bcf986e8098e43d56c6f83500\n",
+        "standardOutput": "<head>\n<target tip>\n8d25cb99c76fd7bfea1066ad3bf1b8b1e08b6fb2\nfc570f2a1cb77b39741396d98a6462b3ff7a3828\n2917985e29817e46f607ea1d8913ac9fe2139388\n",
         "standardError": ""
       }
     },
@@ -12346,7 +12346,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip> at <head>, the target holding package.json, data, config and a trailer\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<branch tip>\n<target tip>\n7e205293da5a1ca50f64ac885f5810deb42a0263\n25b43bc4ee3bb37f8e115810b32c470f81837139\ndc915b14479ef18bcf986e8098e43d56c6f83500\n",
+        "standardOutput": "<head>\n<branch tip>\n<target tip>\n8d25cb99c76fd7bfea1066ad3bf1b8b1e08b6fb2\nfc570f2a1cb77b39741396d98a6462b3ff7a3828\n2917985e29817e46f607ea1d8913ac9fe2139388\n",
         "standardError": ""
       }
     },
@@ -12503,7 +12503,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 05188ce9d46a5d08824168dc936e7aa403fb6f7f",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 1b19b8ffa1c1c905efb8a40ce706c9f45a957d39",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -12511,15 +12511,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 4006b5d156b836150ccbf14a315bb782db04f4b7",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "Merge the example target\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 7d5218d9eac456564f01122709c27a1eea77162e",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 1c0ab6d83f55b1640ffb030c49e248f944cbab45",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -12527,10 +12519,18 @@
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B b09059a8eecc5d003e4e577b079a5609e6df7859",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B 6795871c69250bac459f071dec09b985cf594307",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git log -1 --format=%B e45a483c88f0df4c630be4f8f3057074f7fb7224",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge the example target\n\n",
         "standardError": ""
       }
     },
@@ -12594,7 +12594,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "4006b5d156b836150ccbf14a315bb782db04f4b7\n",
+        "standardOutput": "e45a483c88f0df4c630be4f8f3057074f7fb7224\n",
         "standardError": ""
       }
     },
@@ -12602,7 +12602,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges --reverse <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "4006b5d156b836150ccbf14a315bb782db04f4b7\n",
+        "standardOutput": "e45a483c88f0df4c630be4f8f3057074f7fb7224\n",
         "standardError": ""
       }
     },
@@ -12610,7 +12610,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "4006b5d156b836150ccbf14a315bb782db04f4b7\n",
+        "standardOutput": "e45a483c88f0df4c630be4f8f3057074f7fb7224\n",
         "standardError": ""
       }
     },
@@ -12618,15 +12618,15 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --merges <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "4006b5d156b836150ccbf14a315bb782db04f4b7\n",
+        "standardOutput": "e45a483c88f0df4c630be4f8f3057074f7fb7224\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 4006b5d156b836150ccbf14a315bb782db04f4b7",
+      "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list --parents -n 1 e45a483c88f0df4c630be4f8f3057074f7fb7224",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "4006b5d156b836150ccbf14a315bb782db04f4b7 <branch tip> <target tip>\n",
+        "standardOutput": "e45a483c88f0df4c630be4f8f3057074f7fb7224 <branch tip> <target tip>\n",
         "standardError": ""
       }
     },
@@ -12634,7 +12634,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<start>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n4006b5d156b836150ccbf14a315bb782db04f4b7\n<target tip>\nb09059a8eecc5d003e4e577b079a5609e6df7859\n05188ce9d46a5d08824168dc936e7aa403fb6f7f\n7d5218d9eac456564f01122709c27a1eea77162e\n",
+        "standardOutput": "<head>\ne45a483c88f0df4c630be4f8f3057074f7fb7224\n<target tip>\n6795871c69250bac459f071dec09b985cf594307\n1b19b8ffa1c1c905efb8a40ce706c9f45a957d39\n1c0ab6d83f55b1640ffb030c49e248f944cbab45\n",
         "standardError": ""
       }
     },
@@ -12642,7 +12642,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <branch tip>..HEAD ^<target tip>",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n4006b5d156b836150ccbf14a315bb782db04f4b7\n",
+        "standardOutput": "<head>\ne45a483c88f0df4c630be4f8f3057074f7fb7224\n",
         "standardError": ""
       }
     },
@@ -12658,7 +12658,7 @@
       "callShape": "scenario \"a branch at <branch tip> merging <target tip>, the target holding package.json, a package.json commit at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n4006b5d156b836150ccbf14a315bb782db04f4b7\n<branch tip>\n<target tip>\nb09059a8eecc5d003e4e577b079a5609e6df7859\n05188ce9d46a5d08824168dc936e7aa403fb6f7f\n7d5218d9eac456564f01122709c27a1eea77162e\n",
+        "standardOutput": "<head>\ne45a483c88f0df4c630be4f8f3057074f7fb7224\n<branch tip>\n<target tip>\n6795871c69250bac459f071dec09b985cf594307\n1b19b8ffa1c1c905efb8a40ce706c9f45a957d39\n1c0ab6d83f55b1640ffb030c49e248f944cbab45\n",
         "standardError": ""
       }
     },
@@ -12791,7 +12791,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 1c4fe4b47ebd75582b6d74b7fefe83a39abf5438",
+      "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git log -1 --format=%B 6e87cbb794caa22c016057c4eb27a197e8bc1887",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -12842,7 +12842,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <feature>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1c4fe4b47ebd75582b6d74b7fefe83a39abf5438\n",
+        "standardOutput": "<head>\n6e87cbb794caa22c016057c4eb27a197e8bc1887\n",
         "standardError": ""
       }
     },
@@ -12858,7 +12858,7 @@
       "callShape": "scenario \"a branch built from <start> to <feature>, package.json and then pyproject.toml committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1c4fe4b47ebd75582b6d74b7fefe83a39abf5438\n<feature>\n",
+        "standardOutput": "<head>\n6e87cbb794caa22c016057c4eb27a197e8bc1887\n<feature>\n",
         "standardError": ""
       }
     },
@@ -13415,7 +13415,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 7aa97a04fa8b92874e394cf787d4f9a98ac16892",
+      "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git log -1 --format=%B 20e848dd72c356cce234a328615e20c020ecb1b9",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -13466,7 +13466,7 @@
       "callShape": "scenario \"a branch built from <start>, a commit with an AI attribution trailer at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7aa97a04fa8b92874e394cf787d4f9a98ac16892\n",
+        "standardOutput": "<head>\n20e848dd72c356cce234a328615e20c020ecb1b9\n",
         "standardError": ""
       }
     },
@@ -13575,7 +13575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git log -1 --format=%B 11f1c5622f8b99361d557ea8d765719287221283",
+      "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git log -1 --format=%B ddbb14178ac82231902a080ddf0dd6944e53f14e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -13626,7 +13626,7 @@
       "callShape": "scenario \"a branch built from <start>, a data folder file named with a quote and a tab committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n11f1c5622f8b99361d557ea8d765719287221283\n",
+        "standardOutput": "<head>\nddbb14178ac82231902a080ddf0dd6944e53f14e\n",
         "standardError": ""
       }
     },
@@ -13735,7 +13735,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B 7e4955cd7bd0bae77a54160695a5b2643bfec7be",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git log -1 --format=%B f6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -13786,7 +13786,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7e4955cd7bd0bae77a54160695a5b2643bfec7be\n",
+        "standardOutput": "<head>\nf6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e\n",
         "standardError": ""
       }
     },
@@ -13919,7 +13919,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B 7e4955cd7bd0bae77a54160695a5b2643bfec7be",
+      "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git log -1 --format=%B f6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -13986,7 +13986,7 @@
       "callShape": "scenario \"a branch built from <start>, agents.md committed at <honest start>, Docs/Agents-Example.md at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n<honest start>\n7e4955cd7bd0bae77a54160695a5b2643bfec7be\n",
+        "standardOutput": "<head>\n<honest start>\nf6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e\n",
         "standardError": ""
       }
     },
@@ -14095,7 +14095,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B becde65d9e535c88d80be54acdd816348ca489b4",
+      "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git log -1 --format=%B 99046c11ca0ec98283ae265467ce603a4a0b2931",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14146,7 +14146,7 @@
       "callShape": "scenario \"a branch built from <start>, eslint.config.js committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nbecde65d9e535c88d80be54acdd816348ca489b4\n",
+        "standardOutput": "<head>\n99046c11ca0ec98283ae265467ce603a4a0b2931\n",
         "standardError": ""
       }
     },
@@ -14255,7 +14255,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B becde65d9e535c88d80be54acdd816348ca489b4",
+      "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git log -1 --format=%B 99046c11ca0ec98283ae265467ce603a4a0b2931",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14306,7 +14306,7 @@
       "callShape": "scenario \"a branch built from <start>, example-constitution.md committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nbecde65d9e535c88d80be54acdd816348ca489b4\n",
+        "standardOutput": "<head>\n99046c11ca0ec98283ae265467ce603a4a0b2931\n",
         "standardError": ""
       }
     },
@@ -14415,7 +14415,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B e0d1cde17feca09ab45344972607cbcaed855fdd",
+      "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git log -1 --format=%B a36ab1dcb7950e64594b78104ece4ef22461201f",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14466,7 +14466,7 @@
       "callShape": "scenario \"a branch built from <start>, package.json committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\ne0d1cde17feca09ab45344972607cbcaed855fdd\n",
+        "standardOutput": "<head>\na36ab1dcb7950e64594b78104ece4ef22461201f\n",
         "standardError": ""
       }
     },
@@ -14575,7 +14575,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 1d7c439eed465344a9b6bdf280ee0178bcc274bf",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 91bb2dacac23e6e694c140e15a12539c20877dbd",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change package.json\n\n",
@@ -14583,7 +14583,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 48d9d0d393b6f8ef3cf3186566bd2e9e00b132e6",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B be038ea29f53bb53dc514a66f716f0ce24626aaf",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .forge/progress.json\n\n",
@@ -14591,7 +14591,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B 7e4955cd7bd0bae77a54160695a5b2643bfec7be",
+      "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B f6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14642,7 +14642,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder and package.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n1d7c439eed465344a9b6bdf280ee0178bcc274bf\n48d9d0d393b6f8ef3cf3186566bd2e9e00b132e6\n7e4955cd7bd0bae77a54160695a5b2643bfec7be\n",
+        "standardOutput": "<head>\n91bb2dacac23e6e694c140e15a12539c20877dbd\nbe038ea29f53bb53dc514a66f716f0ce24626aaf\nf6c9f78c8aa27a8c7a8bc0f4ce7285aa0ac1b59e\n",
         "standardError": ""
       }
     },
@@ -14751,7 +14751,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B 11f1c5622f8b99361d557ea8d765719287221283",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git log -1 --format=%B 0d2b772d684e56a2f80716c2e4b963ef5fb5588e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14802,7 +14802,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n11f1c5622f8b99361d557ea8d765719287221283\n",
+        "standardOutput": "<head>\n0d2b772d684e56a2f80716c2e4b963ef5fb5588e\n",
         "standardError": ""
       }
     },
@@ -14911,7 +14911,7 @@
       }
     },
     {
-      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B 11f1c5622f8b99361d557ea8d765719287221283",
+      "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git log -1 --format=%B ddbb14178ac82231902a080ddf0dd6944e53f14e",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -14962,7 +14962,7 @@
       "callShape": "scenario \"a branch built from <start>, the data folder committed in capitals at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n11f1c5622f8b99361d557ea8d765719287221283\n",
+        "standardOutput": "<head>\nddbb14178ac82231902a080ddf0dd6944e53f14e\n",
         "standardError": ""
       }
     },
@@ -16959,6 +16959,854 @@
       }
     },
     {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <shop ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/package.json\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <main tip>\nrefs/heads/ticket-001 <home review tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git merge-base --is-ancestor main <shop ticket tip>",
+      "answer": {
+        "exitCode": 1,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <home review tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <catch-up tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <shop ticket tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/package.json\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <stage tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/package.json\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/package.json\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/package.json\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <main tip> HEAD -- packages/ui-kit",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..eb0c59f 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <main tip> HEAD -- packages/ui-kit bun.lock",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/bun.lock b/bun.lock\nindex 0dd59c2..9d7f872 100644\n--- a/bun.lock\n+++ b/bun.lock\n@@ -1 +1 @@\n-{ \"lockfileVersion\": 1, \"workspaces\": {} }\n+export const changedByTicket001 = 2;\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..eb0c59f 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/package.json b/packages/ui-kit/package.json\nindex 952e517..df851f8 100644\n--- a/packages/ui-kit/package.json\n+++ b/packages/ui-kit/package.json\n@@ -1 +1 @@\n-{ \"name\": \"example-ui-kit\", \"private\": true }\n+{ \"name\": \"example-ui-kit\", \"private\": true, \"version\": \"2.0.0\" }\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..eb0c59f 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit bun.lock",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/bun.lock b/bun.lock\nindex 0dd59c2..9d7f872 100644\n--- a/bun.lock\n+++ b/bun.lock\n@@ -1 +1 @@\n-{ \"lockfileVersion\": 1, \"workspaces\": {} }\n+export const changedByTicket001 = 2;\ndiff --git a/packages/ui-kit/package.json b/packages/ui-kit/package.json\nindex 952e517..df851f8 100644\n--- a/packages/ui-kit/package.json\n+++ b/packages/ui-kit/package.json\n@@ -1 +1 @@\n-{ \"name\": \"example-ui-kit\", \"private\": true }\n+{ \"name\": \"example-ui-kit\", \"private\": true, \"version\": \"2.0.0\" }\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..eb0c59f 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --shortstat --no-color --no-ext-diff --no-textconv --no-relative --find-renames main...<catch-up tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " 3 files changed, 3 insertions(+), 3 deletions(-)\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --shortstat --no-color --no-ext-diff --no-textconv --no-relative --find-renames main...<shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " 3 files changed, 3 insertions(+), 3 deletions(-)\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <main tip>\nrefs/heads/ticket-001 <home review tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <catch-up tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <shop ticket tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <stage tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <start>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\npackages/ui-kit/src/Example.ts\napps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <catch-up tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <shop ticket tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/src/Example.ts\u0000packages/ui-kit/package.json\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <stage tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/package.json\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/src/Example.ts\u0000packages/ui-kit/package.json\u0000apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --patch --format= --no-show-signature --no-color --no-ext-diff --no-textconv --no-relative --submodule=short --src-prefix=a/ --dst-prefix=b/ --find-renames --diff-algorithm=myers --indent-heuristic --unified=25 <catch-up tip>..<home review tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/apps/shop/src/Example.ts b/apps/shop/src/Example.ts\nindex 9d7f872..6acfeca 100644\n--- a/apps/shop/src/Example.ts\n+++ b/apps/shop/src/Example.ts\n@@ -1 +1 @@\n-export const changedByTicket001 = 2;\n+export const changedByTheHomeReview = 5;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log --patch --format= --no-show-signature --no-color --no-ext-diff --no-textconv --no-relative --submodule=short --src-prefix=a/ --dst-prefix=b/ --find-renames --diff-algorithm=myers --indent-heuristic --unified=25 <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex 9d7f872..eb0c59f 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const changedByTicket001 = 2;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <catch-up tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Merge branch 'main' into ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <home review tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Fix the shop in the review of ticket 001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <main tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Advance the package on main\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change apps/shop for ticket 001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change ticket 001 in a later stage\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <catch-up tip> <home review tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <catch-up tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <stage tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <catch-up tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <catch-up tip>..<home review tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <catch-up tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --reverse <catch-up tip>..<home review tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --reverse <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <catch-up tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n<catch-up tip>\n<stage tip>\n<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n<catch-up tip>\n<main tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n<catch-up tip>\n<stage tip>\n<main tip>\n<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options <catch-up tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<catch-up tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options <shop ticket tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<home review tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <home review tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, packages/ui-kit reshaped at <stage tip>, apps/shop adapted at <adapt tip>\", in <repository>: git check-ignore -q .forge",
       "answer": {
         "exitCode": 0,
@@ -18560,6 +19408,710 @@
     },
     {
       "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, reshaped at <stage tip>, adapted at <adapt tip>, fixed at <home review tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <shop ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git merge-base --is-ancestor main <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <stage tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <shop ticket tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <stage tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\u0000apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\napps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..9d7f872 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit bun.lock",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/bun.lock b/bun.lock\nindex 0dd59c2..9d7f872 100644\n--- a/bun.lock\n+++ b/bun.lock\n@@ -1 +1 @@\n-{ \"lockfileVersion\": 1, \"workspaces\": {} }\n+export const changedByTicket001 = 2;\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..9d7f872 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --shortstat --no-color --no-ext-diff --no-textconv --no-relative --find-renames main...<shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " 3 files changed, 3 insertions(+), 3 deletions(-)\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <shop ticket tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <stage tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <start>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\napps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <shop ticket tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <stage tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/src/Example.ts\u0000apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --patch --format= --no-show-signature --no-color --no-ext-diff --no-textconv --no-relative --submodule=short --src-prefix=a/ --dst-prefix=b/ --find-renames --diff-algorithm=myers --indent-heuristic --unified=25 <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/apps/admin/src/Example.ts b/apps/admin/src/Example.ts\nindex 5f0f12d..eb0c59f 100644\n--- a/apps/admin/src/Example.ts\n+++ b/apps/admin/src/Example.ts\n@@ -1 +1 @@\n-export const adminExample = 1;\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change apps/shop for ticket 001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change ticket 001 in a later stage\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <stage tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --reverse <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options <shop ticket tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <stage tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>\n",
@@ -27335,7 +28887,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B b51003ac88588cdd67021d8170723a9b81cc5897",
+      "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git log -1 --format=%B a0878ab01ccdf14e98e2bf0e9f86116ced939696",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change .claude/settings.json\n\n",
@@ -27386,7 +28938,7 @@
       "callShape": "scenario \"main from <start>, .claude/settings.json committed, then removed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nb51003ac88588cdd67021d8170723a9b81cc5897\n",
+        "standardOutput": "<head>\na0878ab01ccdf14e98e2bf0e9f86116ced939696\n",
         "standardError": ""
       }
     },
@@ -27647,7 +29199,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B f9e75d822c40963023b0de29cadca663e8726452",
+      "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git log -1 --format=%B cb95188c893d0264d463ef34b7400251046ac4e2",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change other-hooks/pre-commit\n\n",
@@ -27698,7 +29250,7 @@
       "callShape": "scenario \"main from <start>, core.hooksPath example-hooks, other-hooks/pre-commit and then example-hooks/pre-commit committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nf9e75d822c40963023b0de29cadca663e8726452\n",
+        "standardOutput": "<head>\ncb95188c893d0264d463ef34b7400251046ac4e2\n",
         "standardError": ""
       }
     },
@@ -28111,7 +29663,7 @@
       }
     },
     {
-      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 75ae86f95b879217479cd59ec2d89c88ed06b862",
+      "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git log -1 --format=%B 5b3d4c72d40f0ffb73e26835aa93421361783eb5",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change Src/Example.ts\n\n",
@@ -28162,7 +29714,7 @@
       "callShape": "scenario \"main from <start>, Src/Example.ts and Example.MCP.json committed\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n75ae86f95b879217479cd59ec2d89c88ed06b862\n",
+        "standardOutput": "<head>\n5b3d4c72d40f0ffb73e26835aa93421361783eb5\n",
         "standardError": ""
       }
     },
@@ -28599,7 +30151,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git log -1 --format=%B 7d3751ccb6e89da8d7ae215dcf658f015a8dbee6",
+      "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git log -1 --format=%B d1ad45b2dd019f83d5e96b524633d1c9644f4983",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -28650,7 +30202,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main committing example-constitution.md at <main tip>, merged in at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n7d3751ccb6e89da8d7ae215dcf658f015a8dbee6\n<main tip>\n",
+        "standardOutput": "<head>\nd1ad45b2dd019f83d5e96b524633d1c9644f4983\n<main tip>\n",
         "standardError": ""
       }
     },
@@ -28762,7 +30314,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git log --name-only --no-renames -z --format= <start>..HEAD --",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "feature.ts\u0000example-constitution.md\u0000",
+        "standardOutput": "example-constitution.md\u0000feature.ts\u0000",
         "standardError": ""
       }
     },
@@ -28783,7 +30335,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git log -1 --format=%B 5c318226588b384fdaea6ec9227a197373fe3b2f",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git log -1 --format=%B 5fdcf82b326623f5fc16f485c67d6469f3a90f2d",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change feature.ts\n\n",
@@ -28834,7 +30386,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in at <head> with other text\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\n5c318226588b384fdaea6ec9227a197373fe3b2f\n<main tip>\n",
+        "standardOutput": "<head>\n<main tip>\n5fdcf82b326623f5fc16f485c67d6469f3a90f2d\n",
         "standardError": ""
       }
     },
@@ -28967,18 +30519,18 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B 7d3751ccb6e89da8d7ae215dcf658f015a8dbee6",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B 329c731957bd8fbe8872bd40a2a66949c8306163",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Change feature.ts\n\n",
+        "standardOutput": "Merge the main line\n\n",
         "standardError": ""
       }
     },
     {
-      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B bc2d9cd4710eb9f540b3889a5df292f3a5691edf",
+      "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git log -1 --format=%B 5fdcf82b326623f5fc16f485c67d6469f3a90f2d",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "Merge the main line\n\n",
+        "standardOutput": "Change feature.ts\n\n",
         "standardError": ""
       }
     },
@@ -29026,7 +30578,7 @@
       "callShape": "scenario \"ticket-001 built from <start>, main's example-constitution.md at <main tip> merged in, then changed at <head>\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<head>\nbc2d9cd4710eb9f540b3889a5df292f3a5691edf\n7d3751ccb6e89da8d7ae215dcf658f015a8dbee6\n<main tip>\n",
+        "standardOutput": "<head>\n329c731957bd8fbe8872bd40a2a66949c8306163\n5fdcf82b326623f5fc16f485c67d6469f3a90f2d\n<main tip>\n",
         "standardError": ""
       }
     },
@@ -30807,7 +32359,7 @@
       }
     },
     {
-      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 13707e26a96f0c704ccd1063766b0488b5a80007",
+      "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git log -1 --format=%B 59e5a172977209e844b2e762243b0dfa054d3fc8",
       "answer": {
         "exitCode": 0,
         "standardOutput": "Change built.ts\n\n",
@@ -30858,7 +32410,7 @@
       "callShape": "scenario \"ticket-020 from <start> to <landed>, main moved to <landed>, group-example and ticket-378 deleted\", in <repository>: git rev-list <start>..HEAD",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "<landed>\n13707e26a96f0c704ccd1063766b0488b5a80007\n",
+        "standardOutput": "<landed>\n59e5a172977209e844b2e762243b0dfa054d3fc8\n",
         "standardError": ""
       }
     },
@@ -33154,7 +34706,7 @@
       "callShape": "worktree add -b <branch> <worktree> <start>, the branch new",
       "answer": {
         "exitCode": 0,
-        "standardOutput": "HEAD is now at 215bf30 Initial commit\n",
+        "standardOutput": "HEAD is now at e2f3ceb Initial commit\n",
         "standardError": "Preparing worktree (new branch 'ticket-example')"
       }
     },

@@ -2,7 +2,8 @@
  * The level rail in a happy-dom document. What matters: the forge row leads and the entities follow in their labelled groups, each a
  * real button named by its key, kind, mark and counts; the selected row is the current one with the selection look and the one tab stop;
  * a press moves to that row's level; the arrow keys, Home and End move the focus between rows, wrapping, without moving the level; the
- * filter field narrows the entities and says when none matches; the attention line and the note show only while an entity needs a look.
+ * filter field narrows the entities and says when none matches; the attention line and the note show only while an entity needs a look,
+ * the note saying that an entity without gates lands its tickets unchecked (E27).
  */
 import {
   cleanup,
@@ -96,7 +97,7 @@ describe('the pipeline level rail', () => {
     expect(screen.getByText('No entity matches the filter.')).toBeDefined();
   });
 
-  test('the attention line shows what needs a look, and the note only while an entity has no gates', () => {
+  test('E27: the attention line shows what needs a look, and the note only while an entity has no gates, which lands unchecked', () => {
     renderRail(pipelineBoardStateOf('mono-design'));
     expect(screen.getByText('1 entity has the default constitution')).toBeDefined();
     expect(screen.queryByText('An entity without gates lands its tickets unchecked. It never blocks Apply.')).toBeNull();

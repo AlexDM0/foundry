@@ -21,7 +21,11 @@
  * builder, while the adapt branch holds no change of the package (E42); a second return opens `second-return` and keeps `adapt` (E45). A
  * home review that does not hold goes back to `adapt` and in progress, after an adapt that ran and after a skipped one (E51), and for a
  * cause in the package `adapt`'s return reaches the package build (E52). With merge approval on, a package review that holds moves on to
- * the next stage, and only the home review waits in `merging-main`, once per ticket (E36).
+ * the next stage, and only the home review waits in `merging-main`, once per ticket (E36). A red home gate interrupts stage 1 and `adapt`
+ * on a red handoff that resumes the same job, gated by the home's gates alone, and starts no package build (E16, E44). A package without
+ * gates runs none of its own in its build and review, which still settle and seal (E27). A review catch-up that merges main, advanced in
+ * the package on lines the ticket did not touch, keeps the seal, and the home review passes Customs with it (E35). A home review's fix in
+ * the admin app is sent back, one in the shop's files passes (E50).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -33,15 +37,15 @@ import {
   test
 } from 'bun:test';
 
-import type { Job }                                 from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }                            from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionDraft, DecisionWording }      from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TicketStage }                         from '../../lib/tracker-model/@types/Task.ts';
-import type { Board }                               from '../../lib/tracker-model/Board.ts';
-import { branchNamesOf }                            from '../../shared/BranchNames.ts';
-import { LIFECYCLE_LIMITS }                         from '../../shared/constants/LifecycleLimits.ts';
-import { PRODUCT_NAMES }                            from '../../shared/constants/ProductNames.ts';
-import { boardFixture, taskFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline }                                     from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStage }                                  from '../../lib/tracker-model/@types/Task.ts';
+import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
+import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
+import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
+import { boardFixture, taskFixture, ticketFixture }          from '../../testing/BoardFixtures.ts';
 import {
   ENTITY_FORGE_ENTITIES,
   ENTITY_FORGE_LOCK_FILE,
@@ -192,6 +196,37 @@ describeWhenGitIsRecorded('stage 1 of a shop that whitelists the package', () =>
     expect(runStage(crossingTicketOf(), SHOP_BUILD, {
       scenario: ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT, startCommit: '<start>', reportOf: builtReportOf(), scopeResumed: true
     }).whereTheJobWent).toBe('failed: changed-only-outside-home-and-reach');
+  });
+});
+
+const JOB_STEP_KINDS: readonly PlaybookStep['kind'][] = ['resume-job', 'launch-build', 'launch-review'];
+
+/** The resumes and launches the Playbook takes next on the ticket's board, with nothing else observed. */
+function jobStepsOf(board: Board): readonly PlaybookStep[] {
+  return board.followPlaybook({ ...LIFECYCLE_LIMITS, now: AT, usageResetsAt: null }, {
+    mainLine:                     ENTITY_FORGE_MAIN_LINE,
+    groupTargetPrefix:            'group-',
+    installVersionChanged:        false,
+    targetsHoldingManagedBlock:   [],
+    ticketIdsTouchingAgentConfig: [],
+    closedDeliveryTurns:          [],
+    budgetSpentDeliveryTurns:     [],
+    assistantHasAnswered:         false,
+    assistantBootRetryDue:        false,
+  }, () => WORDING).steps.filter((step) => JOB_STEP_KINDS.includes(step.kind));
+}
+
+describeWhenGitIsRecorded('stage 1 with the proposal, whose home gate is red', () => {
+  test('E16: is interrupted on a red handoff and resumed in its session, gated by the home\'s gates only, and starts no package build', () => {
+    const ticket = crossingTicketOf();
+    const run: StageRun = { ...runOf('SHOP_TICKET_INTO_UI_KIT', '<start>', builtReportOf()), redGate: 'verify' };
+    const { job, whereTheJobWent } = runStage(ticket, SHOP_BUILD, run);
+
+    expect(whereTheJobWent).toBe('interrupted: verify');
+    expect(JobLaunch.manifestOf(CROSSING_PIPELINE, job, 'build', undefined)?.gates.map((gate) => gate.name)).toEqual(['verify']);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toBeNull();
+    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id }]);
+    expect(ticket.board.jobs().filter((launched) => launched.entity === UI_KIT.key)).toEqual([]);
   });
 });
 
@@ -477,6 +512,16 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     expect(shopTicketOf(ticket.board)?.body).toContain(`## Handoff\n\n### Stage 4, adapt of ${SHOP.key}\n\nExample handoff.\n`);
   });
 
+  test('E44: adapt whose home gate is red is interrupted on a red handoff and resumed as the same job, the row kept at adapt', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) } });
+    const run: StageRun = { ...runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', builtReportOf()), redGate: 'verify' };
+    const { job, whereTheJobWent } = runStage(ticket, ADAPT_BUILD, run);
+
+    expect(whereTheJobWent).toBe('interrupted: verify');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id }]);
+  });
+
   test('the home review of a branch that no longer holds the sealed change is sent back once, then fails (E33)', () => {
     const ticket = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: 'an-example-seal-of-another-change' }, status: 'in-review' });
     const run: StageRun = runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', reviewedReportOf());
@@ -486,6 +531,58 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     expect(batonPassOf(ticket, job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
     const sentBack = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: 'an-example-seal-of-another-change' }, status: 'in-review' });
     expect(runStage(sentBack, HOME_REVIEWER, { ...run, scopeResumed: true }).whereTheJobWent).toBe('failed: sealed-change-altered');
+  });
+});
+
+/** The fixture's pipeline with a package that has no gates. */
+const PACKAGE_WITHOUT_GATES = pipelineWithPackage({ gates: [], phases: { build: [], review: [], merge: [] } });
+
+describeWhenGitIsRecorded('a package without gates (E27)', () => {
+  test('E27: the package build runs only its dependents\' gates and the package review none of the package', () => {
+    const packageBuild = { entity: UI_KIT.key, stage: 2 } as unknown as Job;
+    const packageReview = { entity: UI_KIT.key, stage: 3 } as unknown as Job;
+
+    expect(JobLaunch.manifestOf(PACKAGE_WITHOUT_GATES, packageBuild, 'build', SHOP.key)?.gates.map((gate) => gate.name)).toEqual([`${ADMIN.key}: verify`]);
+    expect(JobLaunch.manifestOf(PACKAGE_WITHOUT_GATES, packageReview, 'review', SHOP.key)?.gates).toEqual([]);
+  });
+
+  test('E27: the package build and the package review settle with no gate of the package, and the review seals the change', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD, pipeline: PACKAGE_WITHOUT_GATES });
+    expect(runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', builtReportOf({ exposedSurfaceChanged: false }))).whereTheJobWent)
+      .toBe('built: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_REVIEW);
+
+    const review = runStage(ticket, PACKAGE_REVIEWER, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<shop ticket tip>', reviewedReportOf({ exposedSurfaceConfirmed: true })));
+
+    const seal = sealOf(ticketWorktreeOf(ticket), ENTITY_FORGE_MAIN_LINE, CrossingStages.sealPathspecsOf(PACKAGE_WITHOUT_GATES, UI_KIT.key));
+    expect(review.whereTheJobWent).toBe('reviewed: ');
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: seal ?? '' });
+  });
+});
+
+describeWhenGitIsRecorded('the review catch-up of a crossing ticket (E35)', () => {
+  test('E35: merging main, advanced in the package on lines the ticket did not touch, keeps the seal, and the home review that fixes passes Customs', () => {
+    const storedSeal = sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED);
+    expect(sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_CAUGHT_UP)).toBe(storedSeal);
+
+    const ticket = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: storedSeal }, status: 'in-review' });
+    const { whereTheJobWent } = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_CAUGHT_UP', '<catch-up tip>', reviewedReportOf()));
+
+    expect(whereTheJobWent).toBe('reviewed: ');
+    expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({ [UI_KIT.key]: storedSeal });
+  });
+});
+
+describeWhenGitIsRecorded('stage 5, the home review that fixes (E50)', () => {
+  test('E50: whose fix changes the admin app, which the shop does not whitelist, is sent back; a fix in the shop\'s files passes', () => {
+    const outsideTheHome = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_REVIEW_IN_ADMIN) }, status: 'in-review' });
+    const sentBack = runStage(outsideTheHome, HOME_REVIEWER, runOf('SHOP_TICKET_REVIEW_IN_ADMIN', '<shop ticket tip>', reviewedReportOf()));
+
+    expect(sentBack.whereTheJobWent).toBe('interrupted: V17');
+    expect(batonPassOf(outsideTheHome, sentBack.job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+
+    const atHome = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) }, status: 'in-review' });
+    expect(runStage(atHome, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', reviewedReportOf())).whereTheJobWent).toBe('reviewed: ');
   });
 });
 

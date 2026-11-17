@@ -8,11 +8,12 @@
  * review rounds come between its failed builds; a forge without entities launches exactly as today, a stored stage ignored. The scheduling
  * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
  * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
- * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and a stopped stage job's
- * successor stays in its stage (E75); a usage limit holds a ticket between stages (E76); and an open decision of the package stages
- * (`package-refused`, `second-return`, `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers
- * (E22, E45, E26, E19). A pending ticket without an entity launches nothing on a pipeline with entities until it has one, since its build
- * would read the forge-level pipeline, while a forge without entities launches it as today (E94).
+ * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and the successor of a stage job
+ * that was stopped or replaced by a fresh job stays in its stage (E75), as does that of a package build or adapt that wound down (E17); a
+ * usage limit holds a ticket between stages (E76); and an open decision of the package stages (`package-refused`, `second-return`,
+ * `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers (E22, E45, E26, E19). A pending ticket
+ * without an entity launches nothing on a pipeline with entities until it has one, since its build would read the forge-level pipeline,
+ * while a forge without entities launches it as today (E94).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -343,6 +344,41 @@ const CLAIMS: StageClaim[] = [
       tickets:             [crossingTicket(PACKAGE_BUILD)],
       logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'stopped')],
     }), [packageBuildOf('001', 2)]),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+  },
+  {
+    name:  'E75: a fresh job asked of a stage job, which ends it replaced, launches its successor in the same stage',
+    holds: (policy) => launchesExactly(policy, factsWith({
+      pipelineHasEntities: true,
+      tickets:             [crossingTicket(PACKAGE_BUILD)],
+      logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'replaced')],
+    }), [packageBuildOf('001', 2)]),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+  },
+  {
+    name:  'E17: a package build that wound down at its call budget is relaunched as stage 2 of the package',
+    holds: (policy) => launchesExactly(policy, factsWith({
+      pipelineHasEntities: true,
+      tickets:             [crossingTicket(PACKAGE_BUILD)],
+      logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'wound-down')],
+    }), [packageBuildOf('001', 2)]),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+  },
+  {
+    name:  'E17: an adapt job that wound down at its call budget is relaunched as stage 4 of the home',
+    holds: (policy) => launchesExactly(policy, factsWith({
+      pipelineHasEntities: true,
+      tickets:             [crossingTicket(stageOf('adapt', SHOP.key))],
+      logRecords:          [
+        ...HOME_BUILT,
+        stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2),
+        endedRecord('J2', 'built'),
+        stagedLaunchedRecord('J4', 'build', '001', SHOP.key, 4),
+        endedRecord('J4', 'wound-down'),
+      ],
+    }), [{
+      kind: 'launch-build', ticketId: '001', attempt: 2, base: 'main', entity: SHOP.key, stage: 4
+    }]),
     mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
   },
   ...(['package-refused', 'second-return', 'dependent-broken', 'whitelist-removed-mid-crossing'] as const).map((kind) => ({

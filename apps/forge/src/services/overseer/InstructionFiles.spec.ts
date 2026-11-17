@@ -2,14 +2,14 @@
  * Which instruction files a launch reads, in which order, and what Customs V11 protects. What matters: a role's list is read in entry
  * order; a `constitution` entry is the pipeline's constitution path or the installed default; a `default-brief` entry is that role's
  * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
- * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading;
- * a job of an entity reads its entity's list and constitution, a job without one the forge's own, and a job of an entity the pipeline no
- * longer holds the installed defaults; and V11 protects every tracked path any role's resolved list names, each entity's too, while V17
- * learns which entity owns each entity's constitution. Main's
- * `CONSTITUTION.md`, or an entity's constitution by its path, is read with its blob id from one commit of the main line, absent when that
- * commit holds none or when the main line is checked out with no commit yet, and unreadable, never absent, when any other main line does
- * not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers
- * from the recorded answers of `src/testing/RecordedGit.ts`.
+ * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading; a
+ * job of an entity reads its entity's list and constitution, a job without one the forge's own, a job of an entity with no constitution the
+ * installed default even where the forge sets one (E28), and a job of an entity the pipeline no longer holds the installed defaults; and
+ * V11 protects every tracked path any role's resolved list names, each entity's too, while V17 learns which entity owns each entity's
+ * constitution. Main's `CONSTITUTION.md`, or an entity's constitution by its path, is read with its blob id from one commit of the main
+ * line, absent when that commit holds none or when the main line is checked out with no commit yet, and unreadable, never absent, when any
+ * other main line does not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers from the recorded
+ * answers of `src/testing/RecordedGit.ts`.
  */
 import {
   existsSync,
@@ -224,6 +224,23 @@ describeWhenGitIsRecorded('a job of an entity', () => {
 
     expect(entityPaths).toEqual([ENTITY_CONSTITUTION_PATH, 'apps/gaia/docs/example-notes.md']);
     expect(pathsReadFor(ENTITIES_PIPELINE, jobOf('build', 'builder'))).toEqual([CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('builder')]);
+  });
+
+  test('E28: of an entity with no constitution reads the installed default constitution, not the forge\'s own', () => {
+    const forgeWithAConstitution: Pipeline = {
+      ...ENTITIES_PIPELINE,
+      constitution: { path: 'CONSTITUTION.md' },
+      entities:     {
+        ...ENTITIES_PIPELINE.entities,
+        'example-package': {
+          kind: 'package', home: ['/packages/example-package'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+        },
+      },
+    };
+
+    expect(pathsReadFor(forgeWithAConstitution, jobOf('build', 'builder', 'example-package'))).toEqual([
+      CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('builder'),
+    ]);
   });
 
   test('of an entity the pipeline no longer holds reads the installed defaults', () => {

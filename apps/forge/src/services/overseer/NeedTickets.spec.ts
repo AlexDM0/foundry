@@ -6,7 +6,9 @@
  * with gates is filed; the waiting ticket keeps its status and launches nothing until the need is delivered, a reviewed need not being on the main line
  * yet, then its stage runs again in the same attempt, as stage 1 of its entity, and is told the needs it declared, resuming the session; the need
  * runs at the waiting ticket's priority, also once it is raised later; and an abandoned need drops out of `dependsOn` with a `need-abandoned`
- * decision that holds the ticket.
+ * decision that holds the ticket. A crossing ticket's package build that needs a third entity ends `needs-declared` and keeps the ticket in
+ * stage 2 of the package, which launches nothing until the need is delivered and then runs the package build again; one that needs the
+ * home entity, which consumes the package, opens `need-closes-circle` (E24).
  */
 import {
   afterEach,
@@ -15,17 +17,24 @@ import {
   test
 } from 'bun:test';
 
-import type { JobLaunch }                                     from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                     from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                                      from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { DecisionWording, PlaybookStep }                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { TrackerProgress }                               from '../../lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }                                         from '../../lib/tracker-model/Board.ts';
-import { LIFECYCLE_LIMITS }                                   from '../../shared/constants/LifecycleLimits.ts';
-import { boardFixture, entityPipelineFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
-import { NeedTickets }                                        from './NeedTickets.ts';
+import type { JobLaunch }                     from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                      from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { TicketStage }                   from '../../lib/tracker-model/@types/Task.ts';
+import type { TrackerProgress }               from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { Board }                         from '../../lib/tracker-model/Board.ts';
+import { LIFECYCLE_LIMITS }                   from '../../shared/constants/LifecycleLimits.ts';
+import {
+  boardFixture,
+  entityPipelineFixture,
+  taskFixture,
+  ticketFixture
+} from '../../testing/BoardFixtures.ts';
+import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import { NeedTickets }                                    from './NeedTickets.ts';
 
 const AT = '2026-11-17T12:00:00+01:00';
 
@@ -254,5 +263,90 @@ describe('the waiting ticket', () => {
     expect(ticketOf(declared.board, '001')?.frontmatter.dependsOn).toBeUndefined();
     expect(declared.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['need-abandoned', ['001']]]);
     expect(launchesOf(followThePlaybook(declared.board))).toEqual([]);
+  });
+});
+
+const { SHOP, UI_KIT } = ENTITY_FORGE_ENTITIES;
+
+/** A package that neither the package `ui-kit` nor its consumers consume, so a need of `ui-kit` for it closes no circle. */
+const ICONS = 'icons';
+
+const PACKAGE_BUILD: TicketStage = { name: 'package-build', entity: UI_KIT.key };
+
+/** The entity-forge pipeline, the shop crossing into `ui-kit`, with ticket review off and the package `icons` beside it. */
+function crossingPipelineWithIcons(): Pipeline {
+  const pipeline = withTicketReviewOff(entityForgePipelineOf('shop-crosses-into-ui-kit'));
+  return {
+    ...pipeline,
+    entities: {
+      ...pipeline.entities,
+      [ICONS]: {
+        kind:    'package',
+        home:    ['/packages/icons'],
+        prepare: [],
+        gates:   [{ name: 'verify', run: 'bun run check' }],
+        phases:  { build: ['verify'], review: [], merge: ['verify'] },
+      },
+    },
+  };
+}
+
+/** The shop's ticket 001 in stage 2, its package build J1 of `ui-kit` having declared a need of `needEntity`, filed and ended. */
+function packageBuildThatDeclared(needEntity: string): DeclaredBoard {
+  const fixture = boardFixture({
+    pipeline: crossingPipelineWithIcons(),
+    tasks:    [taskFixture({
+      id: 1, ticket: '001', status: 'in-progress', stage: PACKAGE_BUILD
+    })],
+    tickets: [ticketFixture({
+      id: '001', status: 'in-progress', task: 1, entity: SHOP.key
+    })],
+  });
+  fixture.board.setOverseerState('running', AT);
+  fixture.board.launchJob({
+    kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main', entity: UI_KIT.key, stage: 2
+  }, AT);
+  fixture.board.declareNeed('J1', { ...NEED, entity: needEntity }, () => []);
+  const ticketsDirectory = createScratchDirectory('need-tickets');
+  folders.push(ticketsDirectory);
+  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as TrackerChange;
+  const declared = {
+    board: fixture.board, records: fixture.records, progress: fixture.progress, change
+  };
+  fileAndEnd(declared);
+  return declared;
+}
+
+describe('a need the package build of a crossing ticket declares (E24)', () => {
+  test('E24: for a third entity, files its ticket, which the crossing ticket waits on in stage 2, and the stage runs again once it is delivered', () => {
+    const { board } = packageBuildThatDeclared(ICONS);
+
+    expect(board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === 'J1'))
+      .toMatchObject({ fields: { outcome: 'needs-declared' } });
+    expect(ticketOf(board, '002')?.frontmatter).toMatchObject({ entity: ICONS, filedByJob: 'J1', status: 'pending' });
+    expect(ticketOf(board, '001')?.frontmatter).toMatchObject({ status: 'in-progress', dependsOn: ['002'] });
+    expect(board.ticketStageOf('001')).toEqual(PACKAGE_BUILD);
+    expect(launchesOf(followThePlaybook(board))).toEqual([{
+      kind: 'launch-build', ticketId: '002', attempt: 1, base: 'main', entity: ICONS, stage: 1
+    }]);
+
+    board.endJob(board.jobs().find((job) => job.kind === 'build')?.id ?? '', { outcome: 'stopped' }, AT);
+    expect(launchesOf(followThePlaybook(board)).filter((step) => step.kind === 'launch-build' && step.ticketId === '001')).toEqual([]);
+    board.endJob(board.jobs().find((job) => job.kind === 'build')?.id ?? '', { outcome: 'stopped' }, AT);
+    board.moveTicket('002', 'delivered', { checksLegality: false }, AT);
+
+    expect(launchesOf(followThePlaybook(board))).toEqual([{
+      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main', entity: UI_KIT.key, stage: 2
+    }]);
+    expect(board.ticketStageOf('001')).toEqual(PACKAGE_BUILD);
+  });
+
+  test('E24: for the home entity, which consumes the package, files no ticket and opens need-closes-circle, the row kept in stage 2', () => {
+    const { board } = packageBuildThatDeclared(SHOP.key);
+
+    expect(board.tickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
+    expect(board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['need-closes-circle', ['001']]]);
+    expect(board.ticketStageOf('001')).toEqual(PACKAGE_BUILD);
+    expect(launchesOf(followThePlaybook(board))).toEqual([]);
   });
 });

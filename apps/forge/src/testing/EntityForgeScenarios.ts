@@ -35,6 +35,8 @@ export const ENTITY_FORGE_SCENARIOS = {
   SHOP_TICKET_ADAPTED_REVIEWED: 'a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, reshaped at <stage tip>, adapted at <adapt tip>, fixed at <home review tip>',
   CONSTITUTION_PROPOSED:        'a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>',
   CONSTITUTION_IN_PACKAGE:      'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>',
+  SHOP_TICKET_REVIEW_IN_ADMIN:  'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/admin changed at <stage tip>',
+  SHOP_TICKET_CAUGHT_UP:        'a top-level forge, ticket-001 of shop at <stage tip>, main changed ui-kit at <main tip>, merged at <catch-up tip>, fixed at <home review tip>',
 } as const;
 
 export type EntityForgeScenario = typeof ENTITY_FORGE_SCENARIOS[keyof typeof ENTITY_FORGE_SCENARIOS];
@@ -55,6 +57,8 @@ export const ENTITY_FORGE_SCENARIO_COMMITS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: ['<start>', '<shop ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>'],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED]:        ['<start>', '<shop ticket tip>'],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE]:      ['<start>', '<shop ticket tip>', '<stage tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_REVIEW_IN_ADMIN]:  ['<start>', '<shop ticket tip>', '<stage tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_CAUGHT_UP]:        ['<start>', '<shop ticket tip>', '<stage tip>', '<main tip>', '<catch-up tip>', '<home review tip>'],
 };
 
 /** The tickets whose worktree each scenario made. */
@@ -73,6 +77,8 @@ export const ENTITY_FORGE_SCENARIO_TICKETS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED]:        [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE]:      [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_REVIEW_IN_ADMIN]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_CAUGHT_UP]:        [ENTITY_FORGE_TICKETS.SHOP_TICKET],
 };
 
 export interface EntityForgeCall {
@@ -106,7 +112,7 @@ const TICKET_WORK_READS: readonly EntityForgeCall[] = [
 ];
 
 /** Each commit a ticket worktree's branch may hold, whose message V7 reads. */
-const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>'];
+const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>', '<main tip>', '<catch-up tip>'];
 
 /**
  * What Customs asks a ticket worktree when it verifies a job of the ticket that started at `startCommit` against the main line: the
@@ -136,9 +142,11 @@ const TICKET_CUSTOMS_READS: readonly EntityForgeCall[] = [
   ...ticketCustomsReadsFrom('<shop ticket tip>'),
   ...ticketCustomsReadsFrom('<stage tip>'),
   ...ticketCustomsReadsFrom('<adapt tip>'),
+  ...ticketCustomsReadsFrom('<catch-up tip>'),
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<shop ticket tip>', 'HEAD', '--'] },
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<stage tip>', 'HEAD', '--'] },
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<adapt tip>', 'HEAD', '--'] },
+  { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<catch-up tip>', 'HEAD', '--'] },
   ...TICKET_COMMITS.map((commit): EntityForgeCall => ({ gitArguments: ['log', '-1', '--format=%B', commit] })),
 ];
 
@@ -180,22 +188,28 @@ function ticketReviewSettlementReadsOf(reviewStart: string, fixTip: string): rea
   ];
 }
 
-/** The package review that starts at the crossed tip and fixes at the stage tip, and the home review that fixes after `adapt`. */
+/**
+ * The package review that starts at the crossed tip and fixes at the stage tip, and the home review that fixes after `adapt` or after its
+ * catch-up merge of the main line.
+ */
 const TICKET_REVIEW_SETTLEMENT_READS: readonly EntityForgeCall[] = [
   ...ticketReviewSettlementReadsOf('<shop ticket tip>', '<stage tip>'),
   ...ticketReviewSettlementReadsOf('<adapt tip>', '<home review tip>'),
+  ...ticketReviewSettlementReadsOf('<catch-up tip>', '<home review tip>'),
 ];
 
-const SEAL_DIFFERENCE: readonly string[] = ['diff', '--no-color', '--no-ext-diff', '--binary', '--no-renames', '-U0', '<start>', 'HEAD', '--'];
+function sealDifferenceFrom(mainLineCommit: string): readonly string[] {
+  return ['diff', '--no-color', '--no-ext-diff', '--binary', '--no-renames', '-U0', mainLineCommit, 'HEAD', '--'];
+}
 
 /**
- * What the seal of the package hashes: the ticket's own change to it, past the newest commit of the main line the branch holds, with the
- * lockfile when a package stage changed it.
+ * What the seal of the package hashes: the ticket's own change to it, past the newest commit of the main line the branch holds (the start,
+ * or the main line's tip once merged in), with the lockfile when a package stage changed it.
  */
-const TICKET_SEAL_READS: readonly EntityForgeCall[] = [
-  { gitArguments: [...SEAL_DIFFERENCE, ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder] },
-  { gitArguments: [...SEAL_DIFFERENCE, ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder, ENTITY_FORGE_LOCK_FILE] },
-];
+const TICKET_SEAL_READS: readonly EntityForgeCall[] = ['<start>', '<main tip>'].flatMap((mainLineCommit) => [
+  { gitArguments: [...sealDifferenceFrom(mainLineCommit), ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder] },
+  { gitArguments: [...sealDifferenceFrom(mainLineCommit), ENTITY_FORGE_ENTITIES.UI_KIT.homeFolder, ENTITY_FORGE_LOCK_FILE] },
+]);
 
 /** What a landing asks at the main checkout: the paths a fast-forward to each ticket would change, and whether it is one. */
 const LANDING_READS: readonly EntityForgeCall[] = ['<shop ticket tip>', '<need ticket tip>'].flatMap((ticketTip) => [
