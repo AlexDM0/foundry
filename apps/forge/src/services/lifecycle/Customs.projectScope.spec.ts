@@ -7,7 +7,10 @@
  * line, so a sibling's change it brought in is never the branch's own. On a top-level forge with entities, the data folder and agent
  * configuration are protected at the root and in every entity home, and a job of an entity may change only its homes and its reach: a
  * path a deeper home of another entity holds is that entity's (E2), and the root entity owns every path no other home holds. Without entity
- * homes or writable folders every check reads as before.
+ * homes or writable folders every check reads as before. On the entity-forge fixture: a file the shop's build writes into the package's home,
+ * a generated one among them, is the package's change, a crossing's proposal when the shop whitelists the package and a V17 refusal when it
+ * does not (E9); and a constitution changes only in a job of its own entity's ticket outside a package stage, so the shop's ticket naming
+ * the package's constitution is refused V17 in stage 1 and in the package build, while the package's own ticket naming it passes (E8).
  */
 import { join, posix } from 'node:path';
 
@@ -19,14 +22,27 @@ import {
   test
 } from 'bun:test';
 
-import type { GitPathStyle }                              from '../../lib/git/GitPaths.ts';
-import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
-import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
-import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
+import type { GitPathStyle }                                    from '../../lib/git/GitPaths.ts';
+import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil }                                  from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { TicketBodyHashUtil }                                   from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { branchNamesOf }                                        from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
+import {
+  constitutionFileOf,
+  ENTITY_FORGE_ENTITIES,
+  ENTITY_FORGE_MAIN_LINE,
+  ENTITY_FORGE_TICKETS,
+  entityForgePipelineOf,
+  type EntityForgeWhitelists,
+  sourceFileOf,
+  ticketWorktreeFolderOf as entityForgeTicketWorktreeFolderOf
+} from '../../testing/EntityForgeFixture.ts';
+import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
+import { GIT_SCENARIOS }                                                                   from '../../testing/RecordedGitScenarios.ts';
+import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
 import {
   ticketBranchOfProject,
   ticketWorktreeFolderOf,
@@ -40,6 +56,7 @@ import { TWO_TRACKER_SCENARIOS } from '../../testing/TwoTrackerScenarios.ts';
 import {
   agentConfigPathsAmong,
   CUSTOMS_CHECKS,
+  type ConstitutionOwnership,
   type CustomsSubject,
   dataFolderPathsAmong,
   definitionFileMatcherOf,
@@ -404,5 +421,139 @@ describeWhenGitIsRecorded('V17: a branch changes only its project and its reach'
     expect(CUSTOMS_CHECKS.V17(builderWithScope(exampleProjectWithFeature, 'main')))
       .toEqual({ verdict: 'refused', reason: 'changed-outside-home-and-reach', facts: ['example-constitution.md'] });
     expect(factsOf('V17', builderWithScope(ROOT_SCOPE, 'main'))).toBeNull();
+  });
+});
+
+const { SHOP, UI_KIT } = ENTITY_FORGE_ENTITIES;
+
+/** Each commit of an entity-forge scenario as an example object id. */
+function entityForgeCommitsOf(scenario: EntityForgeScenario): Record<string, string> {
+  return Object.fromEntries(ENTITY_FORGE_SCENARIO_COMMITS[scenario].map((placeholder, i) => [placeholder, `${i + 1}`.repeat(40)]));
+}
+
+/** What a job of `entityKey` may change on the fixture's pipeline, as the Overseer gives it; `proposalHomes` only in stage 1. */
+function entityForgeWritableFoldersOf(pipeline: Pipeline, entityKey: string, proposalHomes: readonly string[] = []): WritableFolders {
+  const entities = pipeline.entities ?? {};
+  return {
+    homes:      entities[entityKey]?.home ?? [],
+    reach:      entities[entityKey]?.reach ?? [],
+    otherHomes: Object.entries(entities).flatMap(([otherKey, other]) => (otherKey === entityKey ? [] : other.home)),
+    ...(proposalHomes.length === 0 ? {} : { proposalHomes }),
+  };
+}
+
+/** Each entity's constitution on the fixture's pipeline, held to the tickets of `ticketEntity`. */
+function entityForgeConstitutionsFor(pipeline: Pipeline, ticketEntity: string): ConstitutionOwnership {
+  return {
+    ticketEntity,
+    constitutions: Object.entries(pipeline.entities ?? {}).flatMap(([entity, definition]) => (
+      definition.constitution === undefined ? [] : [{ entity, gitPath: definition.constitution.path }]
+    )),
+  };
+}
+
+interface EntityForgeJob {
+  /** The entity whose stage the job runs; its writable folders. */
+  jobEntity:     string;
+  ticketEntity:  string;
+  whitelists:    EntityForgeWhitelists;
+  startCommit:   string;
+  ticketBody?:   string;
+  stageName?:    'build' | 'package-build';
+  /** A stage 1 job of an entity that whitelists the package may write a proposal in its home. */
+  proposes?:     boolean;
+  judgedAgainst: 'the main line' | 'its own range';
+}
+
+/** A job of the shop's ticket in its worktree, in `scenario`, judged as the Overseer judges a job of an entity. */
+function entityForgeJobIn(scenario: EntityForgeScenario, job: EntityForgeJob): CustomsSubject {
+  const commits = entityForgeCommitsOf(scenario);
+  enterScenario(scenario, { repositoryDirectory, commits });
+  const pipeline = entityForgePipelineOf(job.whitelists);
+  const constitutions = entityForgeConstitutionsFor(pipeline, job.ticketEntity);
+  const ticketBody = job.ticketBody ?? '';
+  return {
+    role:             'builder',
+    worktreePath:     join(repositoryDirectory, entityForgeTicketWorktreeFolderOf(ENTITY_FORGE_TICKETS.SHOP_TICKET)),
+    startCommit:      commits[job.startCommit] ?? '',
+    report:           {},
+    ticketBody,
+    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketBody),
+    instructionFiles: constitutions.constitutions.map((constitution) => constitution.gitPath),
+    ...(job.judgedAgainst === 'the main line' ? { target: ENTITY_FORGE_MAIN_LINE } : {}),
+    projectScope:     {
+      projectPrefix:   '',
+      reach:           [],
+      entityHomes:     Object.values(pipeline.entities ?? {}).flatMap((entity) => entity.home),
+      writableFolders: entityForgeWritableFoldersOf(pipeline, job.jobEntity, job.proposes === true ? pipeline.entities?.[UI_KIT.key]?.home : []),
+      constitutions,
+    },
+    ...(job.stageName === undefined ? {} : { crossingStage: { stageName: job.stageName, seals: [] } }),
+  };
+}
+
+const NAMES_THE_PACKAGE_CONSTITUTION = `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\` and \`/${sourceFileOf(SHOP)}\`.\n`;
+
+describeWhenGitIsRecorded('E9: a file one entity writes into another entity\'s home is the path owner\'s change', () => {
+  const shopStageOne = {
+    jobEntity: SHOP.key, ticketEntity: SHOP.key, startCommit: '<start>', judgedAgainst: 'the main line'
+  } as const;
+
+  test('E9: the shop\'s file in the package\'s home is the package\'s, a stage 1 proposal when the shop whitelists the package', () => {
+    const subject = entityForgeJobIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, { ...shopStageOne, whitelists: 'shop-crosses-into-ui-kit', proposes: true });
+    const entities = entityForgePipelineOf('shop-crosses-into-ui-kit').entities ?? {};
+
+    expect(EntityOwnershipUtil.ownerOf(entities, `/${sourceFileOf(UI_KIT)}`)).toBe(UI_KIT.key);
+    expect(CUSTOMS_CHECKS.V17(subject)).toEqual({ verdict: 'passed' });
+  });
+
+  test('E9: the same file is refused V17 when the shop whitelists nothing', () => {
+    const subject = entityForgeJobIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, { ...shopStageOne, whitelists: 'strict-isolation' });
+
+    expect(CUSTOMS_CHECKS.V17(subject)).toEqual({ verdict: 'refused', reason: 'changed-outside-home-and-reach', facts: [sourceFileOf(UI_KIT)] });
+  });
+});
+
+describeWhenGitIsRecorded('E8: a constitution changes only in a job of its own entity\'s ticket', () => {
+  test('E8: the shop\'s ticket naming the package\'s constitution passes V11 and is refused V17 in stage 1', () => {
+    const subject = entityForgeJobIn(ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED, {
+      jobEntity:     SHOP.key,
+      ticketEntity:  SHOP.key,
+      whitelists:    'shop-crosses-into-ui-kit',
+      startCommit:   '<start>',
+      ticketBody:    NAMES_THE_PACKAGE_CONSTITUTION,
+      proposes:      true,
+      judgedAgainst: 'the main line',
+    });
+
+    expect(CUSTOMS_CHECKS.V11(subject)).toEqual({ verdict: 'passed' });
+    expect(CUSTOMS_CHECKS.V17(subject)).toEqual({ verdict: 'refused', reason: 'constitution-outside-ticket-entity', facts: [constitutionFileOf(UI_KIT)] });
+  });
+
+  test('E8: the package build of the shop\'s ticket naming the package\'s constitution is refused V17, as is any package stage', () => {
+    const packageBuild = {
+      jobEntity:     UI_KIT.key,
+      whitelists:    'shop-crosses-into-ui-kit',
+      startCommit:   '<shop ticket tip>',
+      ticketBody:    NAMES_THE_PACKAGE_CONSTITUTION,
+      stageName:     'package-build',
+      judgedAgainst: 'the main line',
+    } as const;
+    const refusal = { verdict: 'refused', reason: 'constitution-outside-ticket-entity', facts: [constitutionFileOf(UI_KIT)] } as const;
+
+    expect(CUSTOMS_CHECKS.V17(entityForgeJobIn(ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, { ...packageBuild, ticketEntity: SHOP.key }))).toEqual(refusal);
+    expect(CUSTOMS_CHECKS.V17(entityForgeJobIn(ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, { ...packageBuild, ticketEntity: UI_KIT.key }))).toEqual(refusal);
+  });
+
+  test('E8: a ticket of the package naming its own constitution passes, and the same change in a ticket of the shop is refused', () => {
+    const packageJob = {
+      jobEntity: UI_KIT.key, whitelists: 'strict-isolation', startCommit: '<shop ticket tip>', ticketBody: NAMES_THE_PACKAGE_CONSTITUTION, judgedAgainst: 'its own range'
+    } as const;
+    const packageTicket = entityForgeJobIn(ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, { ...packageJob, ticketEntity: UI_KIT.key });
+
+    expect(CUSTOMS_CHECKS.V11(packageTicket)).toEqual({ verdict: 'passed' });
+    expect(CUSTOMS_CHECKS.V17(packageTicket)).toEqual({ verdict: 'passed' });
+    expect(factsOf('V17', entityForgeJobIn(ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, { ...packageJob, ticketEntity: SHOP.key })))
+      .toEqual([constitutionFileOf(UI_KIT)]);
   });
 });

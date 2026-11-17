@@ -385,7 +385,7 @@ const DEPENDENT_BROKEN_DECISION = 'dependent-broken';
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
 
 /** The scope check's refusals of a branch that changed another entity's files; a `git-failed` V17 stays an ordinary red handoff. */
-const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY, 'sealed-change-altered'];
+const SCOPE_REFUSALS: readonly string[] = ['changed-outside-home-and-reach', ONLY_OUTSIDE_THE_ENTITY, 'sealed-change-altered', 'constitution-outside-ticket-entity'];
 
 function callBudgetOf(job: Readonly<Job>): number {
   return job.kind === REVIEW_JOB_KIND || job.role === CONFLICT_RE_REVIEWER_ROLE ? DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET : DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET;
@@ -456,16 +456,21 @@ function writableFoldersOf(entities: PipelineEntities, entityKey: EntityKey, pro
 
 /**
  * Absent for a tracker at its repository's root whose pipeline has no entities, so its subject, and every git call Customs makes for it,
- * stays as it always was. On a pipeline with entities it names every entity home, and for a job of an entity what the job may change.
+ * stays as it always was. On a pipeline with entities it names every entity home, for a job of an entity what the job may change, and for a
+ * job of a ticket of an entity which constitutions the job may change (E8).
  */
-function projectScopeOf(projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>): ProjectScope | null {
+function projectScopeOf(
+  projectPrefix: string, pipeline: Readonly<Pipeline> | null, job?: Readonly<Pick<Job, 'entity' | 'stage'>>, ticketEntity?: string
+): ProjectScope | null {
   const entities = pipeline?.entities;
   if (entities === undefined) return projectPrefix === '' ? null : { projectPrefix, reach: pipeline?.reach ?? [] };
+  const constitutions = InstructionFiles.entityConstitutionsOf(pipeline, projectPrefix);
   return {
     projectPrefix,
     reach:       pipeline?.reach ?? [],
     entityHomes: entityHomesOf(pipeline),
     ...(job?.entity === undefined ? {} : { writableFolders: writableFoldersOf(entities, job.entity, CrossingStages.proposalHomesOf(pipeline, job)) }),
+    ...(job?.entity === undefined || ticketEntity === undefined ? {} : { constitutions: { ticketEntity, constitutions } }),
   };
 }
 
@@ -1127,7 +1132,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const retriedStart = retriedJobId === null ? null : readJobStart(WatcherFleet.jobFolderOf(hold.context.workspace.trackerDirectory, retriedJobId));
   const { projectPrefix } = projectLocationOfContext(hold.context);
   const pipeline = board.pipeline();
-  const projectScope = projectScopeOf(projectPrefix, pipeline, job);
+  const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity);
   const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
     role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',

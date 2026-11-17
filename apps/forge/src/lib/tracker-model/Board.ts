@@ -1278,6 +1278,11 @@ export class Board {
     this.ticketMoves.refuseWorkOutsideTheEntityOfCompleteTickets(tickets, readinessGapsOf, workFilesOf);
   }
 
+  /** Refuses `ticket-without-entity` for the complete tickets a submit with ticket review off would make `pending`, judged before anything moves. */
+  refuseASubmitWithoutAnEntity(tickets: readonly Readonly<Ticket>[], readinessGapsOf: (body: string) => readonly ReadinessGap[]): void {
+    this.ticketMoves.refuseASubmitWithoutAnEntity(tickets, this.ticketReviewIsOn(), readinessGapsOf);
+  }
+
   /** Without an `approvals.tickets` key, ticket review is on. */
   ticketReviewIsOn(): boolean {
     return this.records.pipeline?.approvals?.tickets !== false;

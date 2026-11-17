@@ -9,13 +9,16 @@
  * with its conversation when a stop closed it, while a record with no agent,
  * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
  * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
- * agent which; a copy's edits are stored under one `batch`, the first of their edit ids, and no other edit gets one, and `wholeBatch` undoes
- * that set at once, the agent hearing every edit of it in one message. Git answers from
+ * agent which; a forge without entities never stores a `batch`: a copy to another entity is refused there and its record file stays byte
+ * for byte, and an edit that is no copy gets none (`PipelineSetupControls.entities.spec.ts` holds a copy's batch). Git answers from
  * the recordings of `src/testing/RecordedGit.ts`.
  */
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+
 import { describe, expect, test } from 'bun:test';
 
 import type { UnreadablePipelineReading }                         from '../../adapters/pipeline/PipelineFile.ts';
+import { PipelineSetupFile }                                      from '../../adapters/pipeline/PipelineSetupFile.ts';
 import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { MainConstitution, PipelineSetup }                   from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
@@ -25,8 +28,10 @@ import { boardFixture, type BoardFixture }                        from '../../te
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }       from '../../testing/EchoedControlContext.ts';
 import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import { writeReadableTracker }                                   from '../../testing/TrackerFileFixtures.ts';
+import { writeTracker, type TrackerChange }                       from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
 import { ControlService }                                         from './ControlService.ts';
 
@@ -70,6 +75,15 @@ function apply(fixture: BoardFixture, command: ControlCommand): unknown {
 function thrownBy(attempt: () => unknown): unknown {
   try {
     attempt();
+  } catch (error) {
+    return error;
+  }
+  throw new Error('the command was not refused');
+}
+
+async function rejectionOf(attempt: () => Promise<unknown>): Promise<unknown> {
+  try {
+    await attempt();
   } catch (error) {
     return error;
   }
@@ -233,59 +247,41 @@ describe('a draft edit', () => {
     ]);
   });
 
-  test('stores a copy\'s edits under one batch, the first edit id, and an edit that is no copy under none', () => {
+  test('a forge without entities never stores a batch: a copy is refused and the record file stays byte for byte', async () => {
+    const workspace = workspacePathsFor(createScratchDirectory('pipeline-setup-copy'));
+    try {
+      mkdirSync(workspace.ticketsDirectory, { recursive: true });
+      writeReadableTracker(workspace);
+      const setup = boardAtDesign().board.pipelineSetup();
+      if (setup === null) throw new Error('no setup record is open');
+      writeFileSync(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setup));
+      const storedRecord = readFileSync(workspace.pipelineSetupFilePath, 'utf8');
+
+      const failure = await rejectionOf(() => writeTracker({
+        workspace,
+        at:     CHANGED_AT,
+        now:    () => new Date(CHANGED_AT),
+        mutate: (change) => ControlService.apply({
+          kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }], isACopy: true
+        }, change, ECHOED_CONTROL_CONTEXT).result,
+      }));
+
+      expect(failure instanceof OperationRefusal ? failure.detail : failure).toEqual({ kind: 'draft-copy-outside-entities', setupId: 'S1', fields: [] });
+      expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe(storedRecord);
+      expect(storedRecord).not.toContain('"batch"');
+    } finally {
+      removeScratchDirectory(workspace.rootDirectory);
+    }
+  });
+
+  test('an edit that is no copy stores no batch', () => {
     const fixture = boardAtDesign();
 
     apply(fixture, {
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }]
     });
-    apply(fixture, {
-      kind:          'pipeline-draft-edit',
-      setupId:       'S1',
-      draftRevision: 1,
-      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:build', value: ['test'] }],
-      isACopy:       true,
-    });
 
-    expect(fixture.board.pipelineSetup()?.edits.map((edit) => [edit.editId, edit.batch])).toEqual([
-      ['E1', undefined], ['E2', 'E2'], ['E3', 'E2'],
-    ]);
     expect(Object.hasOwn(fixture.board.pipelineSetup()?.edits[0] ?? {}, 'batch')).toBe(false);
-  });
-
-  test('undoes a copy\'s whole set at once with wholeBatch, and messages the live agent the set\'s edits with each value now', () => {
-    const fixture = boardAtDesign('J1');
-    fixture.board.startPipelineAgent(CHANGED_AT);
-    apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }]
-    });
-    apply(fixture, {
-      kind:          'pipeline-draft-edit',
-      setupId:       'S1',
-      draftRevision: 1,
-      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:build', value: ['test'] }],
-      isACopy:       true,
-    });
-    fixture.records.length = 0;
-
-    apply(fixture, {
-      kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E2', wholeBatch: true
-    });
-
-    const setup = fixture.board.pipelineSetup();
-    expect(setup?.edits.map((edit) => [edit.editId, edit.undone])).toEqual([['E1', false], ['E2', true], ['E3', true]]);
-    expect(setup?.draftRevision).toBe(3);
-    expect(setup?.draft?.gates).toEqual([]);
-    expect(setup?.draft?.approvals).toEqual({ merge: true });
-    const messaged = fixture.records.filter((record) => record.kind === 'job-messaged');
-    expect(messaged.map((record) => JSON.parse(String((record.fields as { text: string }).text)) as unknown)).toEqual([{
-      kind:          'draft-batch-undone',
-      setupId:       'S1',
-      draftRevision: 3,
-      editIds:       ['E2', 'E3'],
-      fields:        ['gate:test', 'phase-order:build'],
-      changes:       [{ field: 'gate:test', value: null }, { field: 'phase-order:build', value: [] }],
-    }]);
   });
 
   test('refuses pipeline-draft-invalid with the validator\'s reason when the draft it leaves cannot be stored', () => {

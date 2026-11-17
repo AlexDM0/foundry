@@ -35,6 +35,11 @@ export function sourceFileOf(entity: EntityForgeEntity): string {
   return `${entity.homeFolder}/${ENTITY_FORGE_SOURCE_FILE}`;
 }
 
+/** The constitution each entity with a home folder keeps there, which its pipeline names. */
+export function constitutionFileOf(entity: EntityForgeEntity): string {
+  return `${entity.homeFolder}/CONSTITUTION.md`;
+}
+
 /** A repository path as entities name one: leading with `/`. */
 export function entityPathOf(pathBelowTheRepository: string): string {
   return `/${pathBelowTheRepository}`;
@@ -75,7 +80,7 @@ function appEntityOf(entity: EntityForgeEntity, summary: string): PipelineEntity
     kind:         entity.kind,
     home:         [entityPathOf(entity.homeFolder)],
     summary,
-    constitution: { path: `${entity.homeFolder}/CONSTITUTION.md` },
+    constitution: { path: constitutionFileOf(entity) },
     prepare:      [],
     gates:        [{ name: 'verify', run: `bun run gate:${entity.key}`, in: '/' }],
     phases:       { build: ['verify'], review: [], merge: ['verify'] },
@@ -103,7 +108,7 @@ export function entityForgePipelineOf(whitelists: EntityForgeWhitelists): Pipeli
         kind:         UI_KIT.kind,
         home:         [entityPathOf(UI_KIT.homeFolder)],
         summary:      'The example shared parts.\nBoth apps import them.',
-        constitution: { path: `${UI_KIT.homeFolder}/CONSTITUTION.md` },
+        constitution: { path: constitutionFileOf(UI_KIT) },
         prepare:      [],
         gates:        [{ name: 'verify', run: 'bun run check' }],
         phases:       { build: ['verify'], review: [], merge: ['verify'] },
@@ -153,9 +158,9 @@ const EXECUTABLE_FILE_MODE = 0o755;
 
 function homeFilesOf(entity: EntityForgeEntity): Record<string, string> {
   return {
-    [`${entity.homeFolder}/package.json`]:    `{ "name": "example-${entity.key}", "private": true }\n`,
-    [`${entity.homeFolder}/CONSTITUTION.md`]: `# Example ${entity.key} rules\n`,
-    [sourceFileOf(entity)]:                   `export const ${entity.key.replaceAll('-', '')}Example = 1;\n`,
+    [`${entity.homeFolder}/package.json`]: `{ "name": "example-${entity.key}", "private": true }\n`,
+    [constitutionFileOf(entity)]:          `# Example ${entity.key} rules\n`,
+    [sourceFileOf(entity)]:                `export const ${entity.key.replaceAll('-', '')}Example = 1;\n`,
   };
 }
 

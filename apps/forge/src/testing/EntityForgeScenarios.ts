@@ -33,6 +33,8 @@ export const ENTITY_FORGE_SCENARIOS = {
   SHOP_TICKET_LOCKFILE_SEALED:  'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit and bun.lock changed at <stage tip>',
   SHOP_TICKET_RESHAPED_ADAPTED: 'a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, packages/ui-kit reshaped at <stage tip>, apps/shop adapted at <adapt tip>',
   SHOP_TICKET_ADAPTED_REVIEWED: 'a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, reshaped at <stage tip>, adapted at <adapt tip>, fixed at <home review tip>',
+  CONSTITUTION_PROPOSED:        'a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>',
+  CONSTITUTION_IN_PACKAGE:      'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>',
 } as const;
 
 export type EntityForgeScenario = typeof ENTITY_FORGE_SCENARIOS[keyof typeof ENTITY_FORGE_SCENARIOS];
@@ -51,6 +53,8 @@ export const ENTITY_FORGE_SCENARIO_COMMITS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  ['<start>', '<shop ticket tip>', '<stage tip>'],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED]: ['<start>', '<shop ticket tip>', '<stage tip>', '<adapt tip>'],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: ['<start>', '<shop ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>'],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED]:        ['<start>', '<shop ticket tip>'],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE]:      ['<start>', '<shop ticket tip>', '<stage tip>'],
 };
 
 /** The tickets whose worktree each scenario made. */
@@ -67,6 +71,8 @@ export const ENTITY_FORGE_SCENARIO_TICKETS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED]:        [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE]:      [ENTITY_FORGE_TICKETS.SHOP_TICKET],
 };
 
 export interface EntityForgeCall {

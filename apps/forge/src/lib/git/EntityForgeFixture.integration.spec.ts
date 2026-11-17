@@ -14,6 +14,7 @@ import {
   ENTITY_FORGE_LOCK_FILE,
   ENTITY_FORGE_MAIN_LINE,
   ENTITY_FORGE_TICKETS,
+  constitutionFileOf,
   type EntityForgeTicket,
   sourceFileOf,
   ticketBranchOf,
@@ -123,6 +124,8 @@ const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: stri
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED, crossedThenChanging([sourceFileOf(UI_KIT), ENTITY_FORGE_LOCK_FILE])],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED, reshapedThenAdapted(false)],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED, reshapedThenAdapted(true)],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED, shopTicketChanging([sourceFileOf(SHOP), constitutionFileOf(UI_KIT)])],
+  [ENTITY_FORGE_SCENARIOS.CONSTITUTION_IN_PACKAGE, crossedThenChanging([constitutionFileOf(UI_KIT)])],
 ];
 
 /** Runs every call of the scenario at each of its places, and records each answer under the scenario with the placeholders put back. */

@@ -53,6 +53,11 @@ export type OperationRefusalDetail =
   /** A setup command whose `field` is missing or not of its shape; `field` names it as the body does, as `edits[0].value`. */
   | { kind: 'malformed-setup-command'; commandKind: string; field: string }
   | { kind: 'pipeline-draft-invalid'; setupId: string; reason: string }
+  /**
+   * A copy to another entity on a draft that has no entities, or with edits outside an entity: `fields` names those edits' fields, none when
+   * the draft has no entities.
+   */
+  | { kind: 'draft-copy-outside-entities'; setupId: string; fields: readonly string[] }
   /** Git could not tell what main's `CONSTITUTION.md` holds; `reason` is git's own. */
   | { kind: 'main-constitution-unreadable'; reason: string }
   | { kind: 'picture-unknown'; pictureId: string }

@@ -6,18 +6,22 @@
  * entity a session served, never an entity whose part only a check made; a level the pipeline has no entity for is refused before
  * anything is written; an answer, a constitution edit, a discard and a check message the session of the level they change and no other;
  * a check covers each entity whose gates the draft touched, with its own gates; a start over stops every session; an Apply reads each
- * entity's constitution path on main and starts the product owner with the request's words; and a draft edit that whitelists a package
- * with a review is accepted. A forge without entities keeps one session, which `PipelineSetupControls.spec.ts` holds.
+ * entity's constitution path on main and starts the product owner with the request's words; a draft edit that whitelists a package
+ * with a review is accepted; and a copy to another entity stores its edits under one `batch`, the first of their edit ids, which
+ * `wholeBatch` undoes at once with the entity's session hearing every edit of it in one message, while a copy that names a field outside an
+ * entity is refused with the record untouched (A5). A forge without entities keeps one session and stores no batch, which
+ * `PipelineSetupControls.spec.ts` holds.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }       from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }  from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Ticket }         from '../../lib/tracker-model/@types/Ticket.ts';
-import { BoardRefusal }        from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommand } from '../../shared/@types/ControlCommand.ts';
-import type { ControlContext } from '../../shared/@types/ControlContext.ts';
-import { PRODUCT_NAMES }       from '../../shared/constants/ProductNames.ts';
+import type { Pipeline }                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetup }                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Ticket }                            from '../../lib/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }                           from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand, PipelineFieldEdit } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                    from '../../shared/@types/ControlContext.ts';
+import { OperationRefusal }                       from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                          from '../../shared/constants/ProductNames.ts';
 import {
   boardFixture,
   entityPipelineFixture,
@@ -60,6 +64,16 @@ function refusalOf(attempt: () => unknown): unknown {
     attempt();
   } catch (error) {
     if (error instanceof BoardRefusal) return error.detail;
+    throw error;
+  }
+  throw new Error('the command was not refused');
+}
+
+function operationRefusalDetailOf(attempt: () => unknown): unknown {
+  try {
+    attempt();
+  } catch (error) {
+    if (error instanceof OperationRefusal) return error.detail;
     throw error;
   }
   throw new Error('the command was not refused');
@@ -404,5 +418,65 @@ describe('a whitelist in the draft', () => {
     });
 
     expect(setupOf(fixture).draft?.entities?.['web']?.whitelist).toEqual(['design-system']);
+  });
+});
+
+describe('a copy to another entity', () => {
+  const COPIED_GATE_EDITS: PipelineFieldEdit[] = [
+    { field: 'entity:design-system/gate:test', value: WEB_TEST_GATE },
+    { field: 'entity:design-system/phase-order:build', value: ['test'] },
+  ];
+
+  /** S1 past the `entities` step with an approval edited first, then web's test gate copied to the design system as E2 and E3. */
+  function boardWithACopy(): BoardFixture {
+    const fixture = boardWithEntitySessions();
+    apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: [{ field: 'approval:merge', value: true }]
+    });
+    apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: COPIED_GATE_EDITS, isACopy: true
+    });
+    fixture.records.length = 0;
+    return fixture;
+  }
+
+  test('stores the copy\'s edits under one batch, the first edit id, and an edit that is no copy under none', () => {
+    const fixture = boardWithACopy();
+
+    expect(setupOf(fixture).edits.map((edit) => [edit.editId, edit.batch])).toEqual([['E1', undefined], ['E2', 'E2'], ['E3', 'E2']]);
+    expect(Object.hasOwn(setupOf(fixture).edits[0] ?? {}, 'batch')).toBe(false);
+  });
+
+  test('undoes the copy\'s whole set at once with wholeBatch, and messages the entity\'s session the set\'s edits with each value now', () => {
+    const fixture = boardWithACopy();
+
+    apply(fixture, {
+      kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E2', wholeBatch: true
+    });
+
+    expect(setupOf(fixture).edits.map((edit) => [edit.editId, edit.undone])).toEqual([['E1', false], ['E2', true], ['E3', true]]);
+    expect(setupOf(fixture).draft?.entities?.['design-system']?.gates).toEqual([]);
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J4',
+      message: {
+        kind:          'draft-batch-undone',
+        setupId:       'S1',
+        draftRevision: 3,
+        editIds:       ['E2', 'E3'],
+        fields:        ['entity:design-system/gate:test', 'entity:design-system/phase-order:build'],
+        changes:       [{ field: 'entity:design-system/gate:test', value: null }, { field: 'entity:design-system/phase-order:build', value: [] }],
+      },
+    }]);
+  });
+
+  test('a copy that names a field outside an entity is refused, naming it, with the record untouched', () => {
+    const fixture = boardWithEntitySessions();
+    const before = structuredClone(setupOf(fixture));
+
+    expect(operationRefusalDetailOf(() => apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: before.draftRevision, edits: [...COPIED_GATE_EDITS, { field: 'approval:merge', value: true }], isACopy: true
+    }))).toEqual({ kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['approval:merge'] });
+    expect(setupOf(fixture)).toEqual(before);
+    expect(fixture.records).toEqual([]);
   });
 });

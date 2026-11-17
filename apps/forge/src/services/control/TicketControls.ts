@@ -4,6 +4,7 @@ import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAccepta
 
 import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
 import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
@@ -40,8 +41,22 @@ function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly st
 }
 
 /**
+ * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names (E83, E53): their single owner, else
+ * the finder job's entity. Paths of several owners are then judged as work outside that entity (E85).
+ */
+function findingEntityOf(command: CommandOf<'ticket-add'>, change: TrackerChange, body: string): string | undefined {
+  const entities = change.board.pipeline()?.entities;
+  if (entities === undefined || command.admission === undefined) return undefined;
+  const owners = [...new Set(TicketAcceptanceUtil.workFilesOf(body).map((workFile) => EntityOwnershipUtil.ownerOf(entities, workFile)))];
+  const [singleOwner] = owners;
+  if (owners.length === 1 && singleOwner !== undefined) return singleOwner;
+  return change.board.jobById(command.admission.filedByJob)?.entity;
+}
+
+/**
  * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
- * land, against their code. Its Brief's work outside its entity (E85) is refused before it is filed.
+ * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity (E85), or a submit that
+ * would leave it without one, is refused before it is filed.
  */
 function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
@@ -68,8 +83,11 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
     change.board.refuseAnUnknownEntity(ticket.frontmatter.id, command.entity);
     ticket.frontmatter.entity = command.entity;
   }
+  const findingEntity = finderTicketIds.length === 0 ? undefined : findingEntityOf(command, change, ticket.body);
+  if (findingEntity !== undefined) ticket.frontmatter.entity = findingEntity;
   if (finderTicketIds.length > 0 && ticket.frontmatter.status === 'draft') {
     change.board.refuseWorkOutsideTheEntity([ticket], TicketAcceptanceUtil.readinessGapsOf, TicketAcceptanceUtil.workFilesOf);
+    change.board.refuseASubmitWithoutAnEntity([ticket], TicketAcceptanceUtil.readinessGapsOf);
   }
   const filing     = change.board.fileTicket(ticket, change.at);
   const networkSet = command.network.length === 0 ? [] : change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at).logged;

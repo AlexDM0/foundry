@@ -801,6 +801,14 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The ${detail.commandKind} command's ${detail.field} is missing or is not of its shape. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-draft-invalid':
       return `The edit would leave pipeline setup ${detail.setupId}'s draft a pipeline that cannot be stored: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
+    case 'draft-copy-outside-entities':
+      return sentencesOf(
+        detail.fields.length === 0
+          ? `Pipeline setup ${detail.setupId}'s draft has no entities, so an edit of it is no copy to another entity.`
+          : `A copy to another entity changes only the settings of an entity, and ${detail.fields.join(', ')} ${detail.fields.length === 1 ? 'is' : 'are'} not one.`,
+        adviceFor(channel, 'Send the edits without isACopy.', 'Make the change as an ordinary edit.'),
+        NOTHING_WAS_WRITTEN,
+      );
     case 'main-constitution-unreadable':
       return `CONSTITUTION.md on the main line could not be read: ${detail.reason}. ${NOTHING_WAS_WRITTEN}`;
     case 'picture-unknown':

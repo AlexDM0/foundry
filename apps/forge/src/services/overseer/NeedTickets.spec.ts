@@ -232,7 +232,9 @@ describe('the waiting ticket', () => {
     fileAndEnd(declared);
     declared.board.setConcurrencyLimit(1, AT);
     declared.board.setTicketPriority('002', 'low', AT);
-    declared.board.fileTicket(ticketFixture({ id: '003', status: 'pending', priority: 'normal' }), AT);
+    declared.board.fileTicket(ticketFixture({
+      id: '003', status: 'pending', priority: 'normal', entity: 'web'
+    }), AT);
     const launchedTicketIds = (): string[] => launchesOf(followThePlaybook(declared.board)).map((step) => (step.kind === 'launch-build' ? step.ticketId : ''));
     const beforeTheRaise = launchedTicketIds();
     declared.board.endJob(declared.board.jobs().find((job) => job.kind === 'build')?.id ?? '', { outcome: 'stopped' }, AT);

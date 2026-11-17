@@ -13,6 +13,7 @@ import { GitProcess }        from '../../lib/git/GitProcess.ts';
 import type { Job }          from '../../lib/tracker-model/@types/Job.ts';
 import {
   PIPELINE_AGENT_ROLES,
+  type EntityKey,
   type InstructionEntry,
   type Pipeline,
   type PipelineAgentRole
@@ -102,6 +103,19 @@ function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectP
   const named = [pipeline, ...entityPipelines].flatMap((eachPipeline) => namedInstructionPathsOf(eachPipeline));
   const trackedProjectPaths = named.filter((path) => !isDataFolderPath(path));
   return [...new Set(trackedProjectPaths.map((projectPath) => ProjectPathsUtil.toRepositoryPath(projectPrefix, projectPath)))];
+}
+
+/**
+ * Each entity's tracked constitution as a repository path, with the entity whose pipeline names it (`PipelineUtil.pipelineOfEntity`): what
+ * Customs V17 holds to its own entity's tickets (E8). None on a pipeline without entities.
+ */
+function entityConstitutionsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): { entity: EntityKey; gitPath: string }[] {
+  if (pipeline === null) return [];
+  return Object.keys(pipeline.entities ?? {}).flatMap((entityKey) => {
+    const constitutionPath = PipelineUtil.pipelineOfEntity(pipeline, entityKey)?.constitution?.path;
+    if (constitutionPath === undefined || isDataFolderPath(constitutionPath)) return [];
+    return [{ entity: entityKey, gitPath: ProjectPathsUtil.toRepositoryPath(projectPrefix, constitutionPath) }];
+  });
 }
 
 type InstructionFileText = { verdict: 'read'; text: string } | { verdict: 'missing' } | { verdict: 'unreadable' };
@@ -205,6 +219,7 @@ export const InstructionFiles = Object.freeze({
   pipelineOfJob,
   readingFor,
   trackedInstructionPathsOf,
+  entityConstitutionsOf,
   instructionRoleOf,
   instructionPathOf,
   projectFileOf,

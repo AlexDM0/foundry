@@ -658,7 +658,8 @@ naming its status), or when any is incomplete (`incomplete-tickets`, naming each
 In a forge with entities, a draft or a ticket in `ready-for-review` with no `entity` is refused at exit 1 with nothing
 written (`ticket-without-entity`, naming each such ticket), since each ticket builds in the pipeline of its entity. The
 Board refuses it on every way to `pending`: `ticket submit` and `intake close` with ticket review off, and a worker's
-finding, refuse it too. A forge without entities readies as before.
+finding, refuse it too. A forge without entities readies as before. The Playbook launches no pending ticket without an
+entity on a pipeline with entities (E94).
 
 In a forge with entities, a draft whose `## Brief` names work outside its entity is refused at exit 1 with nothing
 written (`work-outside-entity`, naming each such ticket and path). The work is each path with a folder on the Brief's
@@ -1679,7 +1680,10 @@ entity's homes and `reach`: a path that a deeper home of another entity holds is
 owns every path that no other home holds. Customs V17 refuses any other change and sends the session back once on a
 red handoff, whose `gate-failure.md` names each path to take out; a second V17 refusal fails the job, and one whose
 branch still changed nothing in its own entity also opens `work-in-other-entity` (see [`need declare`](#need-declare)).
-A job carries on only a session of its own entity and stage. A job without an entity keeps the checks it always had.
+An entity's constitution changes only in a job of a ticket of that entity: V17 refuses a change of another entity's
+constitution, and any constitution change in a package stage, as `constitution-outside-ticket-entity`, also when the
+ticket body names the file, and sends the session back once like any other V17 refusal. A job carries on only a session
+of its own entity and stage. A job without an entity keeps the checks it always had.
 
 A ticket of an entity whose `whitelist` names a package can cross into it by stages. Its stage 1 build may also write
 a proposal in the homes of the whitelisted packages; V17 still refuses a branch that changed only those files
@@ -1985,9 +1989,13 @@ variables](#environment-variables)).
 tickets of the filing job (the finders) in its `dependsOn` and, when a finder has a group, the finding in that group;
 the worker cannot set either. The filing is then submitted as `ticket submit` does: with ticket review off a complete
 finding is `pending` and builds only once its finders are `reviewed` or `delivered`; with it on it is
-`ready-for-review`. A worker names no entity, so with ticket review off in a forge with entities its finding is refused
-`ticket-without-entity`. When a finder is abandoned, each of its findings that did not start moves to `ready-for-review`
-and loses that dependency in the same hold, whatever the switch says.
+`ready-for-review`. A worker names no entity: in a forge with entities the Overseer files its finding for the entity
+that owns every path its Brief's `Work belongs in:` line names, so a builder's or a reviewer's finding about a package's
+file is that package's (E83, E53). A line that names no path, or paths of several entities, leaves the finding in the
+entity of the job that filed it, and paths outside that entity are then refused `work-outside-entity`. A finding that
+would still reach `pending` without an entity is refused `ticket-without-entity`; both refusals come before the finding
+is filed, so no draft stays behind. When a finder is abandoned, each of its findings that did not start moves to
+`ready-for-review` and loses that dependency in the same hold, whatever the switch says.
 
 ## Platforms
 

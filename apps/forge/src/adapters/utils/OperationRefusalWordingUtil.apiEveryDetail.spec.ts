@@ -336,6 +336,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'older-pipeline':                 { kind: 'older-pipeline', filePath: '/example/pipeline.json' },
   'malformed-setup-command':        { kind: 'malformed-setup-command', commandKind: 'pipeline-setup-answer', field: 'letters' },
   'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', reason: 'Example reason' },
+  'draft-copy-outside-entities':    { kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['gate:test'] },
   'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', reason: 'Example reason' },
 };
 

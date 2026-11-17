@@ -4,7 +4,8 @@
  * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
  * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading;
  * a job of an entity reads its entity's list and constitution, a job without one the forge's own, and a job of an entity the pipeline no
- * longer holds the installed defaults; and V11 protects every tracked path any role's resolved list names, each entity's too. Main's
+ * longer holds the installed defaults; and V11 protects every tracked path any role's resolved list names, each entity's too, while V17
+ * learns which entity owns each entity's constitution. Main's
  * `CONSTITUTION.md`, or an entity's constitution by its path, is read with its blob id from one commit of the main line, absent when that
  * commit holds none or when the main line is checked out with no commit yet, and unreadable, never absent, when any other main line does
  * not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers
@@ -321,5 +322,11 @@ describe('the tracked files Customs V11 protects', () => {
 
   test('each entity\'s constitution and listed files beside the forge\'s own', () => {
     expect(InstructionFiles.trackedInstructionPathsOf(ENTITIES_PIPELINE).sort()).toEqual([ENTITY_CONSTITUTION_PATH, 'apps/gaia/docs/example-notes.md']);
+  });
+
+  test('names each entity\'s constitution with the entity whose pipeline names it, and none on a pipeline without entities (E8)', () => {
+    expect(InstructionFiles.entityConstitutionsOf(ENTITIES_PIPELINE)).toEqual([{ entity: 'gaia', gitPath: ENTITY_CONSTITUTION_PATH }]);
+    expect(InstructionFiles.entityConstitutionsOf({ ...MINIMAL_PIPELINE, constitution: { path: 'CONSTITUTION.md' } })).toEqual([]);
+    expect(InstructionFiles.entityConstitutionsOf(null)).toEqual([]);
   });
 });

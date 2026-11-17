@@ -163,6 +163,13 @@ function copyFlagFieldOf(command: SentCommand): { isACopy?: true } {
   return { isACopy: true };
 }
 
+/** A copy goes from one entity to others: only a draft with entities takes one, and only with edits of fields inside an entity (A5). */
+function refuseACopyOutsideEntities(setupId: string, setup: Readonly<PipelineSetup> | null, edits: readonly PipelineDraftEdit[]): void {
+  if (setup?.draft?.entities === undefined) throw new OperationRefusal('refused', { kind: 'draft-copy-outside-entities', setupId, fields: [] });
+  const fieldsOutside = edits.map(PipelineDraftEditUtil.fieldOf).filter((field) => levelOfField(field) === undefined);
+  if (fieldsOutside.length > 0) throw new OperationRefusal('refused', { kind: 'draft-copy-outside-entities', setupId, fields: fieldsOutside });
+}
+
 /**
  * The record's pipeline agent hears User's move in the same hold, so the next turn starts from it: a live one gets the message, and one a
  * stop closed opens again with its conversation. A record with no agent, an agent whose input is closing, or one that ended otherwise gets
@@ -468,6 +475,7 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
     by: 'user' as const, revision, edits, ...copyFlag
   };
   requireStorableDraft(setupId, change.board.draftAfterEdits(setupId, request));
+  if (copyFlag.isACopy === true) refuseACopyOutsideEntities(setupId, change.board.pipelineSetup(), edits.map(({ edit }) => edit));
   const changed  = change.board.editDraft(setupId, request, change.at);
   const newEdits = changed.setup.edits.slice(-edits.length);
   const changes  = draftChangesOf(before, changed);

@@ -20679,6 +20679,710 @@
       }
     },
     {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <shop ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git merge-base --is-ancestor main <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <stage tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <shop ticket tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/CONSTITUTION.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <stage tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/CONSTITUTION.md\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/CONSTITUTION.md\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/CONSTITUTION.md b/packages/ui-kit/CONSTITUTION.md\nindex aff667b..eb0c59f 100644\n--- a/packages/ui-kit/CONSTITUTION.md\n+++ b/packages/ui-kit/CONSTITUTION.md\n@@ -1 +1 @@\n-# Example ui-kit rules\n+export const changedByALaterStage = 3;\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..9d7f872 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit bun.lock",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/bun.lock b/bun.lock\nindex 0dd59c2..9d7f872 100644\n--- a/bun.lock\n+++ b/bun.lock\n@@ -1 +1 @@\n-{ \"lockfileVersion\": 1, \"workspaces\": {} }\n+export const changedByTicket001 = 2;\ndiff --git a/packages/ui-kit/CONSTITUTION.md b/packages/ui-kit/CONSTITUTION.md\nindex aff667b..eb0c59f 100644\n--- a/packages/ui-kit/CONSTITUTION.md\n+++ b/packages/ui-kit/CONSTITUTION.md\n@@ -1 +1 @@\n-# Example ui-kit rules\n+export const changedByALaterStage = 3;\ndiff --git a/packages/ui-kit/src/Example.ts b/packages/ui-kit/src/Example.ts\nindex bb7e285..9d7f872 100644\n--- a/packages/ui-kit/src/Example.ts\n+++ b/packages/ui-kit/src/Example.ts\n@@ -1 +1 @@\n-export const uikitExample = 1;\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --shortstat --no-color --no-ext-diff --no-textconv --no-relative --find-renames main...<shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " 3 files changed, 3 insertions(+), 3 deletions(-)\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <shop ticket tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/CONSTITUTION.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <stage tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <start>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/CONSTITUTION.md\napps/shop/src/Example.ts\nbun.lock\npackages/ui-kit/src/Example.ts\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <shop ticket tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/CONSTITUTION.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <stage tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/CONSTITUTION.md\u0000apps/shop/src/Example.ts\u0000bun.lock\u0000packages/ui-kit/src/Example.ts\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log --patch --format= --no-show-signature --no-color --no-ext-diff --no-textconv --no-relative --submodule=short --src-prefix=a/ --dst-prefix=b/ --find-renames --diff-algorithm=myers --indent-heuristic --unified=25 <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/CONSTITUTION.md b/packages/ui-kit/CONSTITUTION.md\nindex aff667b..eb0c59f 100644\n--- a/packages/ui-kit/CONSTITUTION.md\n+++ b/packages/ui-kit/CONSTITUTION.md\n@@ -1 +1 @@\n-# Example ui-kit rules\n+export const changedByALaterStage = 3;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change apps/shop for ticket 001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change ticket 001 in a later stage\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> <stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <stage tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --reverse <shop ticket tip>..<stage tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <stage tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options <shop ticket tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<stage tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <stage tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit/CONSTITUTION.md changed at <stage tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
       "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and apps/admin changed at <shop ticket tip>\", in <repository>: git check-ignore -q .forge",
       "answer": {
         "exitCode": 0,
@@ -21280,6 +21984,614 @@
     },
     {
       "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and apps/admin changed at <shop ticket tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git check-ignore -q .forge",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git check-ignore -q .forge-worktrees",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git diff --name-only --no-renames -z HEAD <shop ticket tip> --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/CONSTITUTION.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git merge-base --is-ancestor main <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "main\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <shop ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git config --get core.hooksPath",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": ".githooks\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <shop ticket tip> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames -z <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/CONSTITUTION.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --name-only --no-renames <start> HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\npackages/ui-kit/CONSTITUTION.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/CONSTITUTION.md b/packages/ui-kit/CONSTITUTION.md\nindex aff667b..9d7f872 100644\n--- a/packages/ui-kit/CONSTITUTION.md\n+++ b/packages/ui-kit/CONSTITUTION.md\n@@ -1 +1 @@\n-# Example ui-kit rules\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --no-color --no-ext-diff --binary --no-renames -U0 <start> HEAD -- packages/ui-kit bun.lock",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "diff --git a/packages/ui-kit/CONSTITUTION.md b/packages/ui-kit/CONSTITUTION.md\nindex aff667b..9d7f872 100644\n--- a/packages/ui-kit/CONSTITUTION.md\n+++ b/packages/ui-kit/CONSTITUTION.md\n@@ -1 +1 @@\n-# Example ui-kit rules\n+export const changedByTicket001 = 2;\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git diff --shortstat --no-color --no-ext-diff --no-textconv --no-relative --find-renames main...<shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": " 2 files changed, 2 insertions(+), 2 deletions(-)\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git for-each-ref --format=%(refname) %(objectname)",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "refs/heads/main <start>\nrefs/heads/ticket-001 <shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <shop ticket tip>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames --format= <start>..HEAD ^main --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\npackages/ui-kit/CONSTITUTION.md\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <shop ticket tip>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git log --name-only --no-renames -z --format= <start>..HEAD --",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/src/Example.ts\u0000packages/ui-kit/CONSTITUTION.md\u0000",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git log -1 --format=%B <shop ticket tip>",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "Change apps/shop for ticket 001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git ls-files -u",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <shop ticket tip> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor <start> HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base --is-ancestor main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git merge-base main HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<start>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges --reverse <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list --merges <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <shop ticket tip>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-list <start>..HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options <shop ticket tip>^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<shop ticket tip>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 --untracked-files=no",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git status --porcelain=v1 -z --untracked-files=all --no-renames",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git symbolic-ref --quiet --short HEAD",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001: git worktree list --porcelain",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "worktree <repository>\nHEAD <start>\nbranch refs/heads/main\n\nworktree <repository>/.forge-worktrees/ticket-001\nHEAD <shop ticket tip>\nbranch refs/heads/ticket-001\n\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/.forge-worktrees/ticket-001/packages/ui-kit: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.forge-worktrees/ticket-001\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/admin: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/admin: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/admin: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/admin/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/admin: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/shop: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/shop: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/shop: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "apps/shop/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/apps/shop: git rev-parse --show-toplevel",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/packages/ui-kit: git rev-parse --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "../../.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/packages/ui-kit: git rev-parse --path-format=absolute --git-common-dir",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "<repository>/.git\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/packages/ui-kit: git rev-parse --show-prefix",
+      "answer": {
+        "exitCode": 0,
+        "standardOutput": "packages/ui-kit/\n",
+        "standardError": ""
+      }
+    },
+    {
+      "callShape": "scenario \"a top-level forge, ticket-001 of shop off <start>, apps/shop and packages/ui-kit/CONSTITUTION.md changed at <shop ticket tip>\", in <repository>/packages/ui-kit: git rev-parse --show-toplevel",
       "answer": {
         "exitCode": 0,
         "standardOutput": "<repository>\n",

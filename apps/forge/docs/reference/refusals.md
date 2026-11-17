@@ -359,6 +359,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `has profile <id> in the <phase> phase not ended yet` | `gate-profile-running` | A second profile press on a gate and phase whose run is `queued` or `running`. | Wait for the run, or stop it. | [Gate profiles](../cli.md#gate-profiles) |
 | `There is no gate profile <id>` | `unknown-profile-run` | A Stop named a run `gate-profiles.json` does not hold. | Read the runs again. | [gate-profiles.json](../cli.md#datagate-profilesjson) |
 | `draft a pipeline that cannot be stored` | `pipeline-draft-invalid` | A draft edit, the pipeline agent's proposal or an Undo would leave a draft that `pipeline.json`'s validator refuses, such as a gate that runs in no phase. The tail is the validator's reason. | Send the edits that belong together in one move, as a gate with its phase order. | [Pipeline setup](../cli.md#pipeline-setup) |
+| `is no copy to another entity`, `changes only the settings of an entity` | `draft-copy-outside-entities` | A draft edit sent as a copy to another entity (`isACopy`) on a draft without entities, or with an edit of a field outside an entity. Only a copy stores its edits as one set, so a forge without entities never stores one. | Make the change as an ordinary edit. | [pipeline-setup.json](../cli.md#datapipeline-setupjson) |
 
 </details>
 

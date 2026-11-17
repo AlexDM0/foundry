@@ -578,7 +578,7 @@ function waitsOnADependency(ticket: PlaybookTicket, facts: IndexedPlaybookFacts)
 
 /**
  * The stage a launch of a ticket that crosses into no package runs: its own entity's build (stage 1) or review (stage 5). Nothing on a forge
- * without entities or for a ticket without an entity, whose launch names no stage.
+ * without entities, whose launch names no stage.
  */
 function ownEntityLaunchStageOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts, stageName: 'build' | 'review'): Partial<LaunchStage> {
   if (!facts.pipelineHasEntities || ticket.entity === undefined) return {};
@@ -613,7 +613,8 @@ function stageCandidateOf(ticket: PlaybookTicket, stage: TicketStage, facts: Ind
 
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
   if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
-  // Today's rule holds a pending ticket alone; on a pipeline with entities a started ticket waits for its needs too.
+  // On a pipeline with entities a ticket builds only in its entity's pipeline (E94), and a started one also waits for its dependencies and needs.
+  if (facts.pipelineHasEntities && ticket.entity === undefined) return null;
   if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;
   if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'pending') return stageCandidateOf(ticket, ticket.stage, facts);
   const base = targetOf(ticket, facts.observations);

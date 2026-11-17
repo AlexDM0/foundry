@@ -130,10 +130,7 @@ export class TicketMoves {
     if (notADraft !== undefined) {
       throw new BoardRefusal({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: notADraft.frontmatter.id, status: notADraft.frontmatter.status });
     }
-    if (this.records.pipeline?.entities !== undefined) {
-      const ticketIdsWithoutAnEntity = readiedTickets.filter((ticket) => ticket.frontmatter.entity === undefined).map((ticket) => ticket.frontmatter.id);
-      if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
-    }
+    this.refuseTicketsWithoutAnEntity(readiedTickets);
     this.refuseWorkOutsideTheEntity(readiedTickets, workFilesOf);
     const incompleteTickets = readiedTickets.flatMap((ticket) => {
       const gaps = readinessGapsOf(ticket.body);
@@ -193,6 +190,25 @@ export class TicketMoves {
     workFilesOf: WorkFilesOf,
   ): void {
     this.refuseWorkOutsideTheEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0), workFilesOf);
+  }
+
+  /**
+   * The `ticket-without-entity` judgement of a submit with ticket review off, run before anything it would undo moves: a complete ticket
+   * without an entity, which that submit would make `pending`. A ticket not yet filed may be judged too.
+   */
+  refuseASubmitWithoutAnEntity(
+    tickets: readonly Readonly<Ticket>[],
+    ticketReviewIsOn: boolean,
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+  ): void {
+    if (!ticketReviewIsOn) this.refuseTicketsWithoutAnEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0));
+  }
+
+  /** In a forge with entities, every ticket without one, all named at once: each ticket builds in the pipeline of its entity. */
+  private refuseTicketsWithoutAnEntity(tickets: readonly Readonly<Ticket>[]): void {
+    if (this.records.pipeline?.entities === undefined) return;
+    const ticketIdsWithoutAnEntity = tickets.filter((ticket) => ticket.frontmatter.entity === undefined).map((ticket) => ticket.frontmatter.id);
+    if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
   }
 
   /** On a forge with entities, every ticket with an entity whose Brief names work outside it, all named at once (E85). */

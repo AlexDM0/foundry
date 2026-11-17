@@ -45,10 +45,10 @@ function launchesExactly(ticketIds: readonly string[]): (steps: readonly Playboo
 /** Ticket 001's build J1 of `web` declared a need, filed as ticket 002 of `design-system`, and ended `needs-declared`. */
 const NEED_DECLARED: LogRecord[] = [stagedLaunchedRecord('J1', 'build', '001', 'web', 1), endedRecord('J1', 'needs-declared')];
 
-const WAITING_TICKET = ticketOf('001', 'in-progress', { dependsOn: ['002'] });
+const WAITING_TICKET = ticketOf('001', 'in-progress', { dependsOn: ['002'], entity: 'web' });
 
 function needTicket(status: Parameters<typeof ticketOf>[1], overrides: Parameters<typeof ticketOf>[2] = {}) {
-  return ticketOf('002', status, { filedByJob: 'J1', ...overrides });
+  return ticketOf('002', status, { filedByJob: 'J1', entity: 'design-system', ...overrides });
 }
 
 function needDecision(kind: Decision['kind']): Decision {
@@ -65,8 +65,12 @@ const CLAIMS: NeedClaim[] = [
     mutant: policyLine('  if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;\n', ''),
   },
   {
-    name:   'on a pipeline with entities a ticket in review with an unsettled dependency gets no review',
-    facts:  factsWith({ pipelineHasEntities: true, tickets: [ticketOf('001', 'in-review', { dependsOn: ['002'] }), ticketOf('002', 'pending')], concurrencyLimit: 1 }),
+    name:  'on a pipeline with entities a ticket in review with an unsettled dependency gets no review',
+    facts: factsWith({
+      pipelineHasEntities: true,
+      tickets:             [ticketOf('001', 'in-review', { dependsOn: ['002'], entity: 'web' }), ticketOf('002', 'pending', { entity: 'design-system' })],
+      concurrencyLimit:    1,
+    }),
     holds:  launchesExactly(['002']),
     mutant: policyLine('  if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;\n', ''),
   },
@@ -89,7 +93,7 @@ const CLAIMS: NeedClaim[] = [
     name:  'once its need is delivered the stage that declared it runs again in the same attempt',
     facts: factsWith({ pipelineHasEntities: true, tickets: [WAITING_TICKET, needTicket('delivered')], logRecords: NEED_DECLARED }),
     holds: (steps) => JSON.stringify(steps) === JSON.stringify([{
-      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main'
+      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main', entity: 'web', stage: 1
     }]),
     mutant: policyLine('returns = record.fields.outcome === \'needs-declared\';', 'returns = false;'),
   },
@@ -97,7 +101,7 @@ const CLAIMS: NeedClaim[] = [
     name:  'a need\'s ticket runs at the highest priority of the tickets that wait on it',
     facts: factsWith({
       pipelineHasEntities: true,
-      tickets:             [{ ...WAITING_TICKET, priority: 'high' }, needTicket('pending', { priority: 'low' }), ticketOf('003', 'pending')],
+      tickets:             [{ ...WAITING_TICKET, priority: 'high' }, needTicket('pending', { priority: 'low' }), ticketOf('003', 'pending', { entity: 'web' })],
       logRecords:          NEED_DECLARED,
       concurrencyLimit:    1,
     }),
@@ -111,8 +115,8 @@ const CLAIMS: NeedClaim[] = [
       tickets:             [
         { ...WAITING_TICKET, priority: 'high' },
         needTicket('in-progress', { dependsOn: ['004'] }),
-        ticketOf('003', 'pending'),
-        ticketOf('004', 'pending', { filedByJob: 'J2', priority: 'low' }),
+        ticketOf('003', 'pending', { entity: 'web' }),
+        ticketOf('004', 'pending', { filedByJob: 'J2', priority: 'low', entity: 'design-tokens' }),
       ],
       logRecords:       [...NEED_DECLARED, stagedLaunchedRecord('J2', 'build', '002', 'design-system', 1), endedRecord('J2', 'needs-declared')],
       concurrencyLimit: 1,
@@ -125,9 +129,11 @@ const CLAIMS: NeedClaim[] = [
     facts: factsWith({
       pipelineHasEntities: true,
       tickets:             [
-        ticketOf('001', 'in-review', { priority: 'high' }),
-        ticketOf('002', 'pending', { filedByJob: 'J1', priority: 'low', dependsOn: [] }),
-        ticketOf('003', 'pending'),
+        ticketOf('001', 'in-review', { priority: 'high', entity: 'web' }),
+        ticketOf('002', 'pending', {
+          filedByJob: 'J1', priority: 'low', dependsOn: [], entity: 'web'
+        }),
+        ticketOf('003', 'pending', { entity: 'web' }),
       ],
       logRecords:       finishedJobRecords('J1', 'build', '001', 'built'),
       concurrencyLimit: 2,
@@ -150,7 +156,7 @@ const CLAIMS: NeedClaim[] = [
   {
     name:  'an open need decision holds the ticket it names',
     facts: factsWith({
-      pipelineHasEntities: true, tickets: [ticketOf('001', 'in-progress')], logRecords: NEED_DECLARED, decisions: [needDecision('need-for-root')]
+      pipelineHasEntities: true, tickets: [ticketOf('001', 'in-progress', { entity: 'web' })], logRecords: NEED_DECLARED, decisions: [needDecision('need-for-root')]
     }),
     holds:  launchesExactly([]),
     mutant: policyLine('\'budget-reached\', \'need-for-root\', ', '\'budget-reached\', '),

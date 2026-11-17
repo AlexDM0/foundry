@@ -393,9 +393,11 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   release, which stay `group`'s.
 - In a forge with entities, `ticket add --entity` and `ticket entity` set a ticket's `entity`. The product owner sets it
   on its own draft ticket or on a ticket in `ready-for-review` or `pending`, and User sets it on the command line. No
-  Bridge control sets it. The reason goes on the `entity-assigned` log record, not on the ticket. The Board refuses to
-  move a ticket without an entity to `pending` (`ticket-without-entity`), so `ticket ready`, `ticket submit`,
-  `intake close` and a worker's finding all refuse it.
+  Bridge control sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
+  entity. The Overseer gives a worker's finding the entity that owns the paths of its Brief's `Work belongs in:` line.
+  When the line names no path, or paths of more than one entity, the finding gets the entity of the job that found it
+  (E83, E53). The Board refuses to move a ticket without an entity to `pending` (`ticket-without-entity`), so
+  `ticket ready`, `ticket submit`, `intake close` and a worker's finding all refuse it, a finding before it is filed.
 - In a forge with entities, these filer's moves also refuse a draft when its Brief's `Work belongs in:` line names a
   path outside its entity, the packages that it whitelists and its `reach` (`work-outside-entity`, E85). A need's ticket
   does not get this check. The Playbook launches no job for an entity that has its `concurrency` count of build and

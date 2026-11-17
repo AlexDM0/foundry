@@ -9,7 +9,9 @@
  * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
  * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and a stopped stage job's
  * successor stays in its stage (E75); a usage limit holds a ticket between stages (E76); and an open decision of the package stages
- * (`package-refused`, `second-return`, `dependent-broken`) holds the ticket it names until User answers (E22, E45, E26).
+ * (`package-refused`, `second-return`, `dependent-broken`) holds the ticket it names until User answers (E22, E45, E26). A pending ticket
+ * without an entity launches nothing on a pipeline with entities until it has one, since its build would read the forge-level pipeline,
+ * while a forge without entities launches it as today (E94).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -314,6 +316,20 @@ const CLAIMS: StageClaim[] = [
     holds:  (policy: typeof Playbook) => launchesExactly(policy, entityFacts({ tickets: [crossingTicket(PACKAGE_BUILD)], decisions: [openDecisionOf(kind)] }), []),
     mutant: policyLine('[\'package-refused\', \'second-return\', \'dependent-broken\']', '[]'),
   })),
+  {
+    name:  'E94: a pending ticket without an entity launches nothing on a pipeline with entities until it has one',
+    holds: (policy) => {
+      const withoutAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'pending')] });
+      const withAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'pending', SHOP_TICKET)] });
+      return launchedTicketIdsOf(policy.nextStepsOf(withoutAnEntity, FIXTURE_LIMITS)).length === 0
+        && Bun.deepEquals(launchedTicketIdsOf(policy.nextStepsOf(withAnEntity, FIXTURE_LIMITS)), ['002'], true);
+    },
+    mutant: policyLine('if (facts.pipelineHasEntities && ticket.entity === undefined) return null;', ''),
+  },
+  {
+    name:  'E94: a forge without entities still launches a pending ticket without an entity',
+    holds: (policy) => Bun.deepEquals(launchedTicketIdsOf(policy.nextStepsOf(factsWith({ tickets: [ticketOf('002', 'pending')] }), FIXTURE_LIMITS)), ['002'], true),
+  },
   {
     name:  'E76: a usage limit holds a ticket between stages, with no stage rule of its own',
     holds: (policy) => {

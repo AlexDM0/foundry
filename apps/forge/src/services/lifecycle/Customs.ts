@@ -67,6 +67,7 @@ export type VerificationRefusalReason =
   | 'changed-outside-home-and-reach'
   | 'changed-only-outside-home-and-reach'
   | 'sealed-change-altered'
+  | 'constitution-outside-ticket-entity'
   | 'instruction-file-changed'
   | 'finding-not-filed-by-job'
   | 'branch-touches-agent-config'
@@ -175,6 +176,21 @@ export interface CrossingStageScope {
   stageStartCommit?: string;
 }
 
+/** An entity's constitution as a git path from the repository root, and the entity whose pipeline names it. */
+export interface EntityConstitution {
+  entity:  string;
+  gitPath: string;
+}
+
+/**
+ * Who may change a constitution on a pipeline with entities (E8): only a job of a ticket of the constitution's own entity, and never a job of
+ * a package stage, even where the ticket body names the file.
+ */
+export interface ConstitutionOwnership {
+  ticketEntity:  string;
+  constitutions: readonly EntityConstitution[];
+}
+
 /**
  * Where the tracker's project lies in its repository, and what a branch may change besides it. With the prefix `''` the whole repository
  * is the project, and every check judges it as it always has, unless the pipeline has entities.
@@ -188,6 +204,8 @@ export interface ProjectScope {
   entityHomes?:     readonly string[];
   /** A job of an entity: V17 holds its branch to these folders, in place of the project's folder and `reach`. */
   writableFolders?: WritableFolders;
+  /** A job of a ticket of an entity: V17 also refuses its change of a constitution its ticket's entity does not own (E8). */
+  constitutions?:   ConstitutionOwnership;
 }
 
 /** How the Overseer names the refs around its landings, which the log records only by ticket and target. */
@@ -299,9 +317,12 @@ function crossingStageNameOf(subject: Pick<CustomsSubject, 'crossingStage'>): Ti
   return subject.crossingStage?.stageName ?? null;
 }
 
-function inAPackageStage(subject: Pick<CustomsSubject, 'crossingStage'>): boolean {
-  const stageName = crossingStageNameOf(subject);
+function isAPackageStage(stageName: TicketStageName | null): boolean {
   return stageName !== null && PACKAGE_STAGE_NAMES.includes(stageName);
+}
+
+function inAPackageStage(subject: Pick<CustomsSubject, 'crossingStage'>): boolean {
+  return isAPackageStage(crossingStageNameOf(subject));
 }
 
 /** A package stage's report carries the statement of what the package exposes (A1): the package builder states it, its reviewer confirms it. */
@@ -700,6 +721,20 @@ function pathsOutsideTheStageOf(paths: readonly string[], writableFolders: Writa
   return outsideOwnFolders.length === paths.length && paths.length > 0 ? { outside: outsideOwnFolders, onlyOutside: true } : { outside: [], onlyOutside: false };
 }
 
+/**
+ * The constitutions among `gitPaths` that the job may not change (E8): each one another entity's than the ticket's, and in a package stage
+ * every one. The ticket body naming a file never lets it through; V11 only refuses a constitution the body does not name.
+ */
+export function constitutionsChangedOutsideTheTicketEntityOf(
+  gitPaths: readonly string[], ownership: Readonly<ConstitutionOwnership>, stageName: TicketStageName | null
+): string[] {
+  const changedForms = new Set(gitPaths.map(protectedFormOf));
+  return ownership.constitutions
+    .filter((constitution) => changedForms.has(protectedFormOf(constitution.gitPath)))
+    .filter((constitution) => isAPackageStage(stageName) || constitution.entity !== ownership.ticketEntity)
+    .map((constitution) => constitution.gitPath);
+}
+
 /** The first sealed change the branch no longer holds as sealed; the Airlock's merge and conflict work never alter a seal. */
 function sealedChangesHeld(subject: CustomsSubject): CheckVerdict {
   const seals = subject.crossingStage?.seals ?? [];
@@ -717,7 +752,8 @@ function sealedChangesHeld(subject: CustomsSubject): CheckVerdict {
  * Judged on what the branch changed itself past its target, so a merge of the main line bringing a sibling's landing in never counts. A
  * tracker at the root asks git nothing here, unless the job is a job of an entity, whose branch that changed nothing in its own folders is
  * refused apart: all its work belongs to another entity (E15, stage 1 only; a later stage's change outside its folders is an ordinary
- * refusal, E23). A later job of a crossing ticket may not alter a sealed change (E33).
+ * refusal, E23). A constitution changes only in a job of its own entity's ticket, outside a package stage (E8). A later job of a crossing
+ * ticket may not alter a sealed change (E33).
  */
 function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const { projectScope } = subject;
@@ -734,6 +770,9 @@ function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   const stageName = crossingStageNameOf(subject);
   const allWorkInAnotherEntityCounts = stageName === null || stageName === 'build';
   if (outside.length > 0) return refused(onlyOutside && allWorkInAnotherEntityCounts ? 'changed-only-outside-home-and-reach' : 'changed-outside-home-and-reach', outside);
+  const { constitutions } = projectScope;
+  const constitutionsRefused = constitutions === undefined ? [] : constitutionsChangedOutsideTheTicketEntityOf(paths, constitutions, stageName);
+  if (constitutionsRefused.length > 0) return refused('constitution-outside-ticket-entity', constitutionsRefused);
   return sealedChangesHeld(subject);
 }
 

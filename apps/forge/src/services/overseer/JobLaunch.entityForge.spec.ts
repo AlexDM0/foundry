@@ -7,7 +7,9 @@
  * holds the ticket (E15); a need for the root entity, which has no gates, opens `need-for-root` and files nothing (E12); a need of the
  * package's job for an app that consumes the package would close a circle and opens `need-closes-circle` (E13); a need for the admin app is
  * filed as its ticket, which waits for the owner with ticket review on, holds the shop's ticket until delivered and then reruns the shop's
- * stage, and once abandoned leaves the shop's ticket with `need-abandoned` (E14). Each open decision holds its ticket.
+ * stage, and once abandoned leaves the shop's ticket with `need-abandoned` (E14). Each open decision holds its ticket. A folder that no
+ * entity names is the root entity's, so a build of the shop that creates one is sent back as for another entity's files (E6). A build of
+ * the shop that changed the package's constitution, which its ticket names, is sent back once and then fails, as any scope refusal (E8).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
@@ -20,6 +22,7 @@ import type { Job }                           from '../../lib/tracker-model/@typ
 import type { Pipeline }                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                         from '../../lib/tracker-model/Board.ts';
+import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketBodyHashUtil }                 from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { branchNamesOf }                      from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS }                   from '../../shared/constants/LifecycleLimits.ts';
@@ -29,7 +32,9 @@ import {
   ENTITY_FORGE_ENTITIES,
   ENTITY_FORGE_MAIN_LINE,
   ENTITY_FORGE_TICKETS,
+  constitutionFileOf,
   type EntityForgeEntity,
+  entityForgePipelineOf,
   entityForgePipelineTextOf,
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
@@ -89,8 +94,26 @@ function storedPipelineIn(trackerDirectory: string): Pipeline {
 /** Ticket review on, as the fixture stores it, or switched off on the pipeline read back. */
 type TicketReview = 'on' | 'off';
 
+/** The admin app's folder as a new root folder that no entity names yet: the pipeline without the admin app. */
+function withoutTheAdminApp(pipeline: Pipeline): Pipeline {
+  const entities = { ...pipeline.entities };
+  delete entities[ADMIN.key];
+  return { ...pipeline, entities };
+}
+
+/** A ticket body edit whose Brief names the package's constitution as its work. */
+const NAMING_THE_UI_KIT_CONSTITUTION = { body: { text: `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\`.\n`, appends: false }, allowsPastPending: true };
+
+/** The shop crossing into the package, as step 4's pipeline whitelists it. */
+function withTheShopCrossingIntoTheUiKit(pipeline: Pipeline): Pipeline {
+  const entities = { ...pipeline.entities };
+  const shop = entities[SHOP.key];
+  if (shop !== undefined) entities[SHOP.key] = { ...shop, whitelist: [UI_KIT.key] };
+  return { ...pipeline, entities };
+}
+
 /** Ticket 001 of `entity` in progress, its build job launched at stage 1 in the root tracker of a scratch copy of the fixture's places. */
-function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview = 'on'): ForgeBuild {
+function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview = 'on', pipelineOf: (stored: Pipeline) => Pipeline = (stored) => stored): ForgeBuild {
   const repository = createScratchDirectory('entity-forge-build');
   folders.push(repository);
   const trackerDirectory = join(repository, PRODUCT_NAMES.DATA_FOLDER);
@@ -98,7 +121,7 @@ function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview =
   const ticket = ticketFixture({
     id: SHOP_TICKET.id, status: 'in-progress', task: 1, entity: entity.key
   });
-  const storedPipeline = storedPipelineIn(trackerDirectory);
+  const storedPipeline = pipelineOf(storedPipelineIn(trackerDirectory));
   const pipeline = ticketReview === 'on' ? storedPipeline : { ...storedPipeline, approvals: { tickets: false } };
   const { board } = boardFixture({ tickets: [ticket], pipeline });
   board.setOverseerState('running', AT);
@@ -238,6 +261,29 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
     const build = launchedBuildOf(SHOP);
     leaveARedHandoff(build, 'gate', 'verify', false);
     expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN)).toBe('interrupted: V17');
+  });
+
+  test('E6: a new root folder is the root entity\'s until an entity names it, so the shop\'s build that creates it is sent back once', () => {
+    const build = launchedBuildOf(SHOP, 'on', withoutTheAdminApp);
+    const entities = build.board.pipeline()?.entities ?? {};
+    expect(EntityOwnershipUtil.ownerOf(entities, '/packages/new/Example.ts')).toBe(ROOT.key);
+    expect(EntityOwnershipUtil.ownerOf(entities, `/${sourceFileOf(ADMIN)}`)).toBe(ROOT.key);
+    expect(EntityOwnershipUtil.ownerOf(entityForgePipelineOf('strict-isolation').entities ?? {}, `/${sourceFileOf(ADMIN)}`)).toBe(ADMIN.key);
+
+    expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN)).toBe('interrupted: V17');
+    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+  });
+
+  test('E8: that changed the package\'s constitution, which its ticket names, is sent back once, then fails', () => {
+    const build = launchedBuildOf(SHOP, 'on', withTheShopCrossingIntoTheUiKit);
+    build.board.editTicket(SHOP_TICKET.id, NAMING_THE_UI_KIT_CONSTITUTION, AT);
+    expect(verify(build, ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED)).toBe('interrupted: V17');
+    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`constitution-outside-ticket-entity\n${constitutionFileOf(UI_KIT)}`);
+
+    const sentBack = launchedBuildOf(SHOP, 'on', withTheShopCrossingIntoTheUiKit);
+    sentBack.board.editTicket(SHOP_TICKET.id, NAMING_THE_UI_KIT_CONSTITUTION, AT);
+    leaveARedHandoff(sentBack, 'customs', 'V17', true);
+    expect(verify(sentBack, ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED)).toBe('failed: constitution-outside-ticket-entity');
   });
 
   test('that changed only the admin app\'s files is sent back once, then fails and opens work-in-other-entity, which holds it (E15)', () => {
