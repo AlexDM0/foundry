@@ -41,7 +41,7 @@ function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly st
 
 /**
  * A worker's finding waits for its finders (`dependsOn`) in their group, and is submitted at once: so it builds only after the finders
- * land, against their code.
+ * land, against their code. Its Brief's work outside its entity (E85) is refused before it is filed.
  */
 function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
@@ -68,18 +68,21 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
     change.board.refuseAnUnknownEntity(ticket.frontmatter.id, command.entity);
     ticket.frontmatter.entity = command.entity;
   }
+  if (finderTicketIds.length > 0 && ticket.frontmatter.status === 'draft') {
+    change.board.refuseWorkOutsideTheEntity([ticket], TicketAcceptanceUtil.readinessGapsOf, TicketAcceptanceUtil.workFilesOf);
+  }
   const filing     = change.board.fileTicket(ticket, change.at);
   const networkSet = command.network.length === 0 ? [] : change.board.setTicketNetwork(ticket.frontmatter.id, command.network, change.at).logged;
   const submitted  = finderTicketIds.length === 0 || ticket.frontmatter.status !== 'draft'
     ? []
-    : change.board.submitDraftTickets([ticket.frontmatter.id], TicketAcceptanceUtil.readinessGapsOf, change.at).logged;
+    : change.board.submitDraftTickets([ticket.frontmatter.id], TicketAcceptanceUtil.readinessGapsOf, change.at, TicketAcceptanceUtil.workFilesOf).logged;
   return { ...filing, logged: [...filing.logged, ...networkSet, ...submitted] };
 }
 
 /** Only User readies, a draft or a ticket in `ready-for-review`: no role the Bouncer admits relays `ticket ready`. */
 function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
   const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
-  return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES);
+  return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES, TicketAcceptanceUtil.workFilesOf);
 }
 
 /** A stamped `jobId` is the product owner's job, which only the role policy writes; without one the command is User's own. */
@@ -157,6 +160,7 @@ export const TICKET_CONTROLS = {
     command.ticketReferences.map((reference) => ticketIdOfReference(change, reference)),
     TicketAcceptanceUtil.readinessGapsOf,
     change.at,
+    TicketAcceptanceUtil.workFilesOf,
   ),
   'ticket-network': (command: CommandOf<'ticket-network'>, change: TrackerChange) => change.board.setTicketNetwork(
     ticketIdOfReference(change, command.ticketReference),

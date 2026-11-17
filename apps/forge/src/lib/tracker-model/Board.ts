@@ -201,7 +201,7 @@ import type { TicketEdit, TicketEdited }               from './TicketEdits.ts';
 import { TicketEdits }                                 from './TicketEdits.ts';
 import { TicketForecasts }                             from './TicketForecasts.ts';
 import { TicketLinks }                                 from './TicketLinks.ts';
-import { TicketMoves }                                 from './TicketMoves.ts';
+import { TicketMoves, type WorkFilesOf }               from './TicketMoves.ts';
 import { TicketSettings }                              from './TicketSettings.ts';
 import { TicketStageRows }                             from './TicketStageRows.ts';
 import { TokenCredits }                                from './TokenCredits.ts';
@@ -389,16 +389,22 @@ export class Board {
     return this.jobControls.startIntake(text, pictures, at);
   }
 
-  /** The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. */
+  /**
+   * The product owner's close submits every draft its intake chain filed: readied, or ready for review when ticket review is on. Work
+   * outside an entity (E85) is refused before the job moves, so a corrected retry can still close.
+   */
   closeIntake(
     jobId: string,
     proposedDraftSets: readonly (readonly string[])[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
+    workFilesOf?: WorkFilesOf,
   ): JobChanged {
+    const drafts = this.draftsFiledByIntakeOf(jobId);
+    if (workFilesOf !== undefined) this.refuseWorkOutsideTheEntity(drafts, readinessGapsOf, workFilesOf);
     const closed    = this.jobControls.closeIntake(jobId, proposedDraftSets, at);
     const draftIds  = this.draftsFiledByIntakeOf(jobId).map((ticket) => ticket.frontmatter.id);
-    const submitted = draftIds.length === 0 ? [] : this.submitDraftTickets(draftIds, readinessGapsOf, at).logged;
+    const submitted = draftIds.length === 0 ? [] : this.submitDraftTickets(draftIds, readinessGapsOf, at, workFilesOf).logged;
     return { job: closed.job, logged: [...closed.logged, ...submitted] };
   }
 
@@ -774,6 +780,8 @@ export class Board {
       entitiesWithReview:          Object.entries(this.records.pipeline?.entities ?? {})
         .filter(([, entity]) => entity.review !== undefined)
         .map(([entityKey]) => entityKey),
+      concurrencyByEntity: Object.fromEntries(Object.entries(this.records.pipeline?.entities ?? {})
+        .flatMap(([entityKey, entity]): [string, number][] => (entity.concurrency === undefined ? [] : [[entityKey, entity.concurrency]]))),
       observations,
     };
   }
@@ -1246,13 +1254,28 @@ export class Board {
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
     readiableStatuses?: readonly TicketStatus[],
+    workFilesOf?: WorkFilesOf,
   ): TicketsReadied {
-    return this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses);
+    return this.ticketMoves.readyDraftTickets(ticketIds, readinessGapsOf, at, readiableStatuses, workFilesOf);
   }
 
-  /** The filer's close of its drafts, judged by the board's ticket review switch. */
-  submitDraftTickets(ticketIds: readonly string[], readinessGapsOf: (body: string) => readonly ReadinessGap[], at: string): DraftsSubmitted {
-    return this.ticketMoves.submitDraftTickets(ticketIds, this.ticketReviewIsOn(), readinessGapsOf, at);
+  /** The filer's close of its drafts, judged by the board's ticket review switch; `workFilesOf` refuses work outside an entity (E85). */
+  submitDraftTickets(
+    ticketIds: readonly string[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    at: string,
+    workFilesOf?: WorkFilesOf,
+  ): DraftsSubmitted {
+    return this.ticketMoves.submitDraftTickets(ticketIds, this.ticketReviewIsOn(), readinessGapsOf, at, workFilesOf);
+  }
+
+  /** Refuses E85 for the complete tickets a submit would move, judged before anything moves; a ticket not yet filed may be judged. */
+  refuseWorkOutsideTheEntity(
+    tickets: readonly Readonly<Ticket>[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    workFilesOf: WorkFilesOf,
+  ): void {
+    this.ticketMoves.refuseWorkOutsideTheEntityOfCompleteTickets(tickets, readinessGapsOf, workFilesOf);
   }
 
   /** Without an `approvals.tickets` key, ticket review is on. */

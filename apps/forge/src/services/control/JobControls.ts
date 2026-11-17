@@ -36,7 +36,7 @@ function storedPicturesOf(pictures: unknown, change: TrackerChange): PictureRefe
 
 function closeIntake(command: ControlCommandOf<'intake-close'>, change: TrackerChange) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-close-without-job' });
-  return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at);
+  return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at, TicketAcceptanceUtil.workFilesOf);
 }
 
 function titleIntake(command: ControlCommandOf<'intake-title'>, change: TrackerChange) {

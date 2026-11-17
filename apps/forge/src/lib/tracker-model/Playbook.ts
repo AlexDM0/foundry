@@ -13,6 +13,7 @@ import type {
 } from './@types/Job.ts';
 import type { LifecycleLimits }                                                                  from './@types/LifecycleLimits.ts';
 import type { LogRecord }                                                                        from './@types/LogRecord.ts';
+import type { EntityKey }                                                                        from './@types/Pipeline.ts';
 import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
 import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
 import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
@@ -21,6 +22,7 @@ import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RE
 import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
 import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
 import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
+import { LaunchSlotUtil }                                                                        from './utils/LaunchSlotUtil.ts';
 import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
 import { TicketStageUtil }                                                                       from './utils/TicketStageUtil.ts';
@@ -70,6 +72,8 @@ export interface PlaybookFacts {
   pipelineHasEntities:         boolean;
   /** The entities whose own pipeline has a `review` phase: only these launch a reviewer for a review stage of a crossing ticket. */
   entitiesWithReview:          readonly string[];
+  /** Each entity's cap: the most of its jobs that hold a slot at once, under `concurrencyLimit`. An entity without one has the board's limit alone. */
+  concurrencyByEntity:         Readonly<Record<EntityKey, number>>;
   observations:                PlaybookObservations;
 }
 
@@ -663,12 +667,40 @@ function freeSlotsOf(facts: PlaybookFacts): number {
   return ConcurrencyUtil.concurrencyOf(facts.jobs, facts.concurrencyLimit).freeSlots;
 }
 
-/** The board's free slots bound the launches first; of those, the ones past the machine's free slots wait as `await-machine-slot`. */
+function launchEntityOf(step: PlaybookStep): EntityKey | undefined {
+  return step.kind === 'launch-build' || step.kind === 'launch-review' ? step.entity : undefined;
+}
+
+/**
+ * The candidates, in order, that their entity's cap leaves room for (E72): an entity's running jobs that hold a slot, whatever ticket they
+ * serve, and the candidates of it kept before, count against its cap. A candidate past its cap gives its place to the next one.
+ */
+function candidatesWithinEntityCapsOf(candidates: readonly Candidate[], facts: PlaybookFacts): Candidate[] {
+  if (!facts.pipelineHasEntities) return [...candidates];
+  const jobsByEntity = new Map<EntityKey, number>();
+  for (const job of facts.jobs) {
+    if (job.entity !== undefined && LaunchSlotUtil.jobHoldsLaunchSlot(job)) jobsByEntity.set(job.entity, (jobsByEntity.get(job.entity) ?? 0) + 1);
+  }
+  return candidates.filter((candidate) => {
+    const entity = launchEntityOf(candidate.step);
+    if (entity === undefined || !Object.hasOwn(facts.concurrencyByEntity, entity)) return true;
+    const entityJobs = jobsByEntity.get(entity) ?? 0;
+    if (entityJobs >= (facts.concurrencyByEntity[entity] ?? 0)) return false;
+    jobsByEntity.set(entity, entityJobs + 1);
+    return true;
+  });
+}
+
+/**
+ * Each entity's cap passes the launches first, then the board's free slots bound them; of those, the ones past the machine's free slots
+ * wait as `await-machine-slot`.
+ */
 function launchStepsOf(facts: IndexedPlaybookFacts, ticketIdsSettledThisPass: ReadonlySet<string>): PlaybookStep[] {
-  const launchable = facts.tickets
+  const candidates = facts.tickets
     .filter((ticket) => !ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && !ticketIsHeld(ticket, facts))
     .flatMap((ticket) => candidateOf(ticket, facts) ?? [])
-    .sort(candidateOrder(facts))
+    .sort(candidateOrder(facts));
+  const launchable = candidatesWithinEntityCapsOf(candidates, facts)
     .slice(0, freeSlotsOf(facts));
   const machineSlotsFree = facts.observations.machineAgentSlotsFree ?? launchable.length;
   return launchable.map((candidate, index): PlaybookStep => (

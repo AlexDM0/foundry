@@ -660,6 +660,13 @@ written (`ticket-without-entity`, naming each such ticket), since each ticket bu
 Board refuses it on every way to `pending`: `ticket submit` and `intake close` with ticket review off, and a worker's
 finding, refuse it too. A forge without entities readies as before.
 
+In a forge with entities, a draft whose `## Brief` names work outside its entity is refused at exit 1 with nothing
+written (`work-outside-entity`, naming each such ticket and path). The work is each path with a folder on the Brief's
+`Work belongs in:` line and the lines that continue it. A path is inside when the entity owns it, a package that the
+entity whitelists owns it, or it is in the entity's `reach`. `ticket submit`, `intake close` and a worker's finding
+refuse it too, with ticket review on or off. A need's ticket, which the Overseer files for the entity the need names, is
+not read.
+
 No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`, `ticket submit`,
 `intake close` or `ticket abandon`. It also readies a ticket in `ready-for-review`: that is User's ticket review, and
 no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through `ticket ready` or
@@ -986,6 +993,12 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
 kind decides, never the role: a merge agent runs as its ticket's last worker or as a conflict re-reviewer and still
 takes none. No row takes a launch slot: a `task add --start` row or a review bar with no live job counts nothing.
+
+In a forge with entities, an entity's `concurrency` in `pipeline.json` caps its own launch slots under the board's
+limit, which stays the `concurrency` setting. The cap counts the live `build` and `review` jobs whose `entity` is that
+entity, whatever ticket they serve, so a package stage's job counts against the package. A ticket whose entity is at
+its cap waits, and the free slot goes to the next ticket of another entity. An entity without a `concurrency` has the
+board's limit alone.
 
 ### Pipeline setup
 

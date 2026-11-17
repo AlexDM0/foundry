@@ -3,7 +3,8 @@
  * stop or wind-down holds the job's ticket in the same hold, before any Watcher exists too, and logs its mode; a message to a finished job
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
  * `ready-for-review` while ticket review is on and to `pending` while it is off, and in a forge with entities refuses one without an
- * entity, and ends the job once no Watcher is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
+ * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
+ * Watcher is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
  * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
  * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
  * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
@@ -263,6 +264,24 @@ describe('intake', () => {
     expect(refusalDetailOf(() => apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] })))
       .toEqual({ reason: 'ticket-without-entity', ticketIds: ['005'] });
     expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['draft', 'draft']);
+  });
+
+  test('with ticket review on, intake-close refuses a draft naming work outside its entity before the job moves, and a corrected retry closes', () => {
+    const outsideBody = '## Acceptance\nA1. The basket shows its total.\n\n## Brief\nWork belongs in: `scripts/Release.ts`.\n';
+    const draftOfWeb  = draftFiledBy('004', 'J1', outsideBody);
+    draftOfWeb.frontmatter.entity = 'web';
+    const { board } = boardFixture({ pipeline: entityPipelineFixture(), tickets: [draftOfWeb] });
+    apply(board, { kind: 'intake-start', text: 'A basket' });
+    const jobStateBefore = board.jobById('J1')?.state;
+
+    expect(refusalDetailOf(() => apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] })))
+      .toEqual({ reason: 'work-outside-entity', ticketsOutside: [{ ticketId: '004', entity: 'web', paths: ['/scripts/Release.ts'] }] });
+    expect(board.jobById('J1')?.state).toBe(jobStateBefore);
+    expect(board.tickets()[0]?.frontmatter.status).toBe('draft');
+
+    board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, allowsPastPending: false }, AT);
+    expect(loggedKindsOf(apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] }))).toContain('ticket-submitted-for-review');
+    expect(board.tickets()[0]?.frontmatter.status).toBe('ready-for-review');
   });
 
   test('User\'s ticket ready moves a ticket ready for review to pending; a draft-only ready refuses it', () => {

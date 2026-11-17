@@ -80,6 +80,7 @@ export function factsWith(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts
     reviewIsSet:                 true,
     pipelineHasEntities:         false,
     entitiesWithReview:          [],
+    concurrencyByEntity:         {},
     observations:                FIXTURE_OBSERVATIONS,
     ...overrides,
   };

@@ -305,6 +305,18 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     + 'Give each one with `agent-progress ticket entity <id> <key> --reason <text>`, then ready them again.',
   ],
   [
+    {
+      reason:         'work-outside-entity',
+      ticketsOutside: [
+        { ticketId: '003', entity: 'shop', paths: ['/apps/admin/src/Example.ts', '/scripts/Example.ts'] },
+        { ticketId: '004', entity: 'admin', paths: ['/apps/shop/src/Example.ts'] },
+      ],
+    },
+    'Nothing was readied: ticket #003 of shop names /apps/admin/src/Example.ts, /scripts/Example.ts as its work; '
+    + 'ticket #004 of admin names /apps/shop/src/Example.ts as its work, outside its entity and the packages it may cross into. '
+    + 'A ticket builds only in its own entity: file that work as a ticket of the entity that owns it, or correct the Brief, then ready it again.',
+  ],
+  [
     { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
     'Ticket #004 is delivered, and its agents were not changed: no agent will work it again. Nothing was written.',
   ],
@@ -439,7 +451,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 59;
+const REFUSAL_REASON_COUNT = 60;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

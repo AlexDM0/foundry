@@ -1,6 +1,7 @@
 /**
- * Which entity of a pipeline owns a repository path, whose gates a change of some paths reaches, and the order a ticket's package stages
- * run in. Paths are repository paths leading with `/`; the deepest home that holds a path owns it, and the root entity owns the rest.
+ * Which entity of a pipeline owns a repository path, which paths a ticket of an entity may not name, whose gates a change of some paths
+ * reaches, and the order a ticket's package stages run in. Paths are repository paths leading with `/`; the deepest home that holds a
+ * path owns it, and the root entity owns the rest.
  */
 import type { EntityKey, PipelineEntity } from '../@types/Pipeline.ts';
 
@@ -101,6 +102,21 @@ function stageOrderOf(entities: PipelineEntities, packageKeys: readonly EntityKe
   return ordered;
 }
 
+/**
+ * The paths a ticket of an entity may not name as its work (E85): owned neither by the entity nor by a package it whitelists, and outside
+ * every path of its `reach`, a file or a folder.
+ */
+function pathsOutsideEntityOf(entities: PipelineEntities, entityKey: EntityKey, repositoryPaths: readonly string[]): string[] {
+  const entity    = Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+  const whitelist = entity?.whitelist ?? [];
+  const reach     = entity?.reach ?? [];
+  return repositoryPaths.filter((repositoryPath) => {
+    const owner = ownerOf(entities, repositoryPath);
+    if (owner === entityKey || whitelist.includes(owner)) return false;
+    return !reach.some((reachPath) => homeHoldsPath(reachPath, repositoryPath));
+  });
+}
+
 export const EntityOwnershipUtil = Object.freeze({
   dependenciesOf,
   dependentsOf,
@@ -108,6 +124,7 @@ export const EntityOwnershipUtil = Object.freeze({
   homeFolderOf,
   ownerOf,
   pathsByOwnerOf,
+  pathsOutsideEntityOf,
   rootEntityKeyOf,
   stageOrderOf,
 });

@@ -36,6 +36,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'ready-of-a-ticket-not-in-draft':                  { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'pending' },
   'incomplete-tickets':                              { reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps: ['acceptance-unnumbered', 'brief-missing'] }] },
   'ticket-without-entity':                           { reason: 'ticket-without-entity', ticketIds: ['004', '005'] },
+  'work-outside-entity':                             { reason: 'work-outside-entity', ticketsOutside: [{ ticketId: '004', entity: 'shop', paths: ['/apps/admin/Example.ts'] }] },
   'abandon-without-reason':                          { reason: 'abandon-without-reason', ticketId: '004' },
   'tokens-without-a-row':                            { reason: 'tokens-without-a-row', ticketId: '004' },
   'rereview-outside-review':                         { reason: 'rereview-outside-review', ticketId: '004', status: 'reviewed' },

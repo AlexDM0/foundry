@@ -3,7 +3,9 @@
  * root entity and `root` when it does not; a deeper home wins over the one around it (E2), whatever order the entities come in, and a home
  * holds only whole folder names; a file moved across a border is a change of both entities (E5). A change reaches every consumer, also
  * through another, and a change of the root entity reaches every entity. A landing gates the entities its paths are in and their consumers
- * (E60), every entity for a root-owned path (E4). Package stages run a package before the packages that consume it.
+ * (E60), every entity for a root-owned path (E4). Package stages run a package before the packages that consume it. A ticket of an entity
+ * may name as its work only paths its entity or a package it whitelists owns, or a path inside its `reach` (E85): a path of a deeper home
+ * inside its own home is outside it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -154,5 +156,33 @@ describe('the stage order of crossed packages', () => {
     };
     expect(EntityOwnershipUtil.stageOrderOf(entities, ['gamma', 'beta', 'alpha'])).toEqual(['gamma', 'beta', 'alpha']);
     expect(EntityOwnershipUtil.stageOrderOf(entities, [])).toEqual([]);
+  });
+});
+
+describe('the paths outside an entity', () => {
+  const entities: PipelineEntities = {
+    ...EXAMPLE_ENTITIES,
+    'shop': { ...entityOf('app', ['/apps/shop', '/packages/shop-private']), whitelist: ['design-system'], reach: ['/bun.lock', '/config/shared/'] },
+  };
+
+  test('are the paths that neither the entity nor a package it whitelists owns, outside its reach (E85)', () => {
+    expect(EntityOwnershipUtil.pathsOutsideEntityOf(entities, 'shop', [
+      '/apps/shop/index.ts',
+      '/packages/shop-private/a.ts',
+      '/packages/design-system/Button.ts',
+      '/bun.lock',
+      '/config/shared/a.json',
+      '/apps/admin/index.ts',
+      '/scripts/release.ts',
+      '/config/other.json',
+    ])).toEqual(['/apps/admin/index.ts', '/scripts/release.ts', '/config/other.json']);
+  });
+
+  test('hold a deeper home of another entity, also inside a whitelisted package', () => {
+    expect(EntityOwnershipUtil.pathsOutsideEntityOf(entities, 'shop', ['/packages/design-system/tokens/colour.ts'])).toEqual(['/packages/design-system/tokens/colour.ts']);
+  });
+
+  test('of the root entity, which the pipeline need not name, are every path another entity owns', () => {
+    expect(EntityOwnershipUtil.pathsOutsideEntityOf(entities, ROOT_ENTITY_KEY, ['/scripts/release.ts', '/apps/shop/index.ts'])).toEqual(['/apps/shop/index.ts']);
   });
 });

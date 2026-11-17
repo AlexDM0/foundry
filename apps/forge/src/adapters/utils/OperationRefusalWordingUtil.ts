@@ -146,6 +146,11 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
           `The product owner gives each ticket its entity; then ready ${single ? 'it' : 'them'} again.`
         );
     }
+    case 'work-outside-entity': {
+      const ticketTexts = detail.ticketsOutside.map(({ ticketId, entity, paths }) => `ticket #${ticketId} of ${entity} names ${paths.join(', ')} as its work`);
+      return `Nothing was readied: ${ticketTexts.join('; ')}, outside its entity and the packages it may cross into. `
+        + 'A ticket builds only in its own entity: file that work as a ticket of the entity that owns it, or correct the Brief, then ready it again.';
+    }
     case 'abandon-without-reason':
       return adviceFor(
         channel,

@@ -25,10 +25,14 @@ import type { GroupReleases }                from './GroupReleases.ts';
 import type { ReviewBars, ReviewBarsClosed } from './ReviewBars.ts';
 import type { TicketDependencies }           from './TicketDependencies.ts';
 import { FIRST_REPEAT_REVIEW_ROUND }         from './constants/ReviewRounds.ts';
+import { EntityOwnershipUtil }               from './utils/EntityOwnershipUtil.ts';
 import { TicketBodyHashUtil }                from './utils/TicketBodyHashUtil.ts';
 import { TicketMoveUtil }                    from './utils/TicketMoveUtil.ts';
 
 type TicketMoveFields = Pick<TicketMoveRequest, 'branch' | 'commit' | 'reason' | 'byHand'>;
+
+/** The files a body's Brief says the work belongs in, as repository paths; the caller reads the body, since the model holds no markdown reader. */
+export type WorkFilesOf = (body: string) => readonly string[];
 
 export class TicketMoves {
   constructor(
@@ -110,13 +114,16 @@ export class TicketMoves {
   /**
    * Every named draft moves to `pending` with a row at any priority, or none does: a ticket not in `draft` is refused first, then, in a
    * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `pending`
-   * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable.
+   * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable. A
+   * filer's move passes `workFilesOf`, so a ticket whose Brief names work outside its entity is refused (E85); a need's ticket, filed by
+   * the Overseer for the entity the need names, passes none.
    */
   readyDraftTickets(
     ticketIds: readonly string[],
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
     readiableStatuses: readonly TicketStatus[] = ['draft'],
+    workFilesOf?: WorkFilesOf,
   ): TicketsReadied {
     const readiedTickets = [...new Set(ticketIds)].map((ticketId) => this.records.requireTicket(ticketId));
     const notADraft      = readiedTickets.find((ticket) => !readiableStatuses.includes(ticket.frontmatter.status));
@@ -127,6 +134,7 @@ export class TicketMoves {
       const ticketIdsWithoutAnEntity = readiedTickets.filter((ticket) => ticket.frontmatter.entity === undefined).map((ticket) => ticket.frontmatter.id);
       if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
     }
+    this.refuseWorkOutsideTheEntity(readiedTickets, workFilesOf);
     const incompleteTickets = readiedTickets.flatMap((ticket) => {
       const gaps = readinessGapsOf(ticket.body);
       return gaps.length === 0 ? [] : [{ ticketId: ticket.frontmatter.id, gaps }];
@@ -153,6 +161,7 @@ export class TicketMoves {
     ticketReviewIsOn: boolean,
     readinessGapsOf: (body: string) => readonly ReadinessGap[],
     at: string,
+    workFilesOf?: WorkFilesOf,
   ): DraftsSubmitted {
     const namedTickets = [...new Set(ticketIds)].map((ticketId) => this.records.requireTicket(ticketId));
     const notADraft    = namedTickets.find((ticket) => ticket.frontmatter.status !== 'draft');
@@ -166,11 +175,36 @@ export class TicketMoves {
     const completeTickets = namedTickets.filter((ticket) => !incompleteTickets.some((incomplete) => incomplete.ticketId === ticket.frontmatter.id));
     if (!ticketReviewIsOn) {
       const completeIds = completeTickets.map((ticket) => ticket.frontmatter.id);
-      const readied     = completeIds.length === 0 ? { logged: [], tickets: [] } : this.readyDraftTickets(completeIds, readinessGapsOf, at);
+      const readied     = completeIds.length === 0 ? { logged: [], tickets: [] } : this.readyDraftTickets(completeIds, readinessGapsOf, at, undefined, workFilesOf);
       return { ...readied, incompleteTickets };
     }
+    this.refuseWorkOutsideTheEntity(completeTickets, workFilesOf);
     const logged = completeTickets.map((ticket) => this.putBeforeReview(ticket, at));
     return { logged, tickets: completeTickets, incompleteTickets };
+  }
+
+  /**
+   * The E85 judgement of a submit, run before anything it would undo moves: the complete tickets, which a submit moves, refused when a
+   * Brief names work outside its entity. A ticket not yet filed may be judged too.
+   */
+  refuseWorkOutsideTheEntityOfCompleteTickets(
+    tickets: readonly Readonly<Ticket>[],
+    readinessGapsOf: (body: string) => readonly ReadinessGap[],
+    workFilesOf: WorkFilesOf,
+  ): void {
+    this.refuseWorkOutsideTheEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0), workFilesOf);
+  }
+
+  /** On a forge with entities, every ticket with an entity whose Brief names work outside it, all named at once (E85). */
+  private refuseWorkOutsideTheEntity(tickets: readonly Readonly<Ticket>[], workFilesOf: WorkFilesOf | undefined): void {
+    const entities = this.records.pipeline?.entities;
+    if (entities === undefined || workFilesOf === undefined) return;
+    const ticketsOutside = tickets.flatMap(({ frontmatter, body }) => {
+      if (frontmatter.entity === undefined) return [];
+      const paths = EntityOwnershipUtil.pathsOutsideEntityOf(entities, frontmatter.entity, workFilesOf(body));
+      return paths.length === 0 ? [] : [{ ticketId: frontmatter.id, entity: frontmatter.entity, paths }];
+    });
+    if (ticketsOutside.length > 0) throw new BoardRefusal({ reason: 'work-outside-entity', ticketsOutside });
   }
 
   /** Moves a ticket not yet started to `ready-for-review`, past the move rules, which keep that status for the filer's close. */

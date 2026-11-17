@@ -15,6 +15,13 @@ import type {
 } from './@types/Ticket.ts';
 import type { OptionNotesProblem } from './utils/OptionConsequencesUtil.ts';
 
+/** A ticket whose Brief names files that neither its entity nor a package it whitelists owns, outside its `reach` (E85). */
+export interface TicketWorkOutsideEntity {
+  ticketId: string;
+  entity:   string;
+  paths:    readonly string[];
+}
+
 export type BoardRefusalDetail =
   | { reason: 'unknown-task'; taskId: number }
   | { reason: 'ticket-owned-row'; taskId: number; ticketId: string; targetStatus: Exclude<TaskStatus, 'paused'> }
@@ -31,6 +38,7 @@ export type BoardRefusalDetail =
   | { reason: 'incomplete-tickets'; incompleteTickets: readonly IncompleteTicket[] }
   /** In a forge with entities: the tickets named to ready that have none. */
   | { reason: 'ticket-without-entity'; ticketIds: readonly string[] }
+  | { reason: 'work-outside-entity'; ticketsOutside: readonly TicketWorkOutsideEntity[] }
   | { reason: 'abandon-without-reason'; ticketId: string }
   | { reason: 'tokens-without-a-row'; ticketId: string }
   | { reason: 'rereview-outside-review'; ticketId: string; status: TicketStatus }

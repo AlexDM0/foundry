@@ -393,6 +393,10 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   Bridge control sets it. The reason goes on the `entity-assigned` log record, not on the ticket. The Board refuses to
   move a ticket without an entity to `pending` (`ticket-without-entity`), so `ticket ready`, `ticket submit`,
   `intake close` and a worker's finding all refuse it.
+- In a forge with entities, these filer's moves also refuse a draft when its Brief's `Work belongs in:` line names a
+  path outside its entity, the packages that it whitelists and its `reach` (`work-outside-entity`, E85). A need's ticket
+  does not get this check. The Playbook launches no job for an entity that has its `concurrency` count of build and
+  review jobs, and the board's limit stays above each entity's cap (E72).
 - A row's `history` holds only what the tool watched.
 - An Overseer build job's `## Handoff` is code's: written from the builder's verified report only after its gate passes,
   replacing the section the filing template left; a builder never edits its ticket file (`docs/cli.md`, "A build job").

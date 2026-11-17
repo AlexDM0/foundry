@@ -1,6 +1,7 @@
 /**
  * A ticket's numbered Acceptance items read against its latest `## Review`, so a release can tell whether the review accounted for every
- * item, and its `##` sections as text, so a page can quote one. It only reads: a body it cannot make sense of is a verdict, never a throw.
+ * item, its `##` sections as text, so a page can quote one, and the files its Brief says the work belongs in. It only reads: a body it
+ * cannot make sense of is a verdict, never a throw.
  */
 
 import type { ReadinessGap }                      from '../../../lib/tracker-model/@types/Ticket.ts';
@@ -48,6 +49,21 @@ const BRIEF_HEADING             = /^## Brief[ \t]*$/;
 const WAIVED_MARKER_PATTERN     = /^Waived:[ \t]*(.*)$/;
 const REVIEW_LINE_PATTERN       = /^[ \t]*(?:[-*+][ \t]+)?A(\d+)[ \t]+(holds|does not hold|waived)\b(.*)$/;
 const VERDICT_SEPARATOR_PATTERN = /^[\s—–:-]+/;
+const WORK_FILES_LABEL_PATTERN  = /^[ \t]*Work belongs in:(.*)$/;
+/** A line that starts the next part of the Brief: a label ending in a colon, or a numbered or bulleted item. */
+const NEXT_BRIEF_PART_PATTERN   = /^[ \t]*(?:[A-Z][^:/]*:|\d+\.|[-*+][ \t])/;
+const WORK_FILE_SEPARATOR       = /[\s,;]+/;
+/** Quotes, brackets and sentence punctuation around a path as prose writes it. */
+const SURROUNDING_PUNCTUATION   = /^[`'"([{<]+|[`'")\]}>.,;:]+$/g;
+/** A line range after a file: `:12` or `:12-30`. */
+const LINE_RANGE_SUFFIX         = /:\d+(?:-\d+)?$/;
+/** Where a glob's wildcards or brace alternatives start: the path is cut there. */
+const GLOB_START_PATTERN        = /[*?{[]/;
+/** Path characters only, so prose such as `(read/write` is no path. */
+const PATH_CHARACTERS_PATTERN   = /^\/?[\w.@+-]+(?:\/[\w.@+-]*)*$/u;
+const FILE_EXTENSION_PATTERN    = /\.[A-Za-z0-9]+$/;
+/** Prose such as `and/or` holds two segments; a folder path written without a trailing `/` holds at least this many. */
+const SEGMENTS_OF_A_BARE_FOLDER = 3;
 
 function labelOf(digits: string): string {
   return `A${Number.parseInt(digits, 10)}`;
@@ -175,10 +191,48 @@ function readinessGapsOf(body: string): ReadinessGap[] {
   return gaps;
 }
 
+/**
+ * A token of the Work line as a repository path leading with `/`, a glob cut at its first wildcard or brace; `null` when it names no path.
+ * Prose with one slash, such as `and/or` or `n/a`, names no path: a path is quoted in backticks, ends in `/`, names a file with an
+ * extension, or holds at least three segments.
+ */
+function workFileOf(token: string): string | null {
+  if (token.includes('://') || token.includes('<')) return null;
+  const isQuotedAsCode = token.startsWith('`');
+  const trimmed        = token.replace(SURROUNDING_PUNCTUATION, '').replace(LINE_RANGE_SUFFIX, '').replace(/^\.\//u, '');
+  const path           = trimmed.split(GLOB_START_PATTERN)[0] ?? '';
+  if (!path.includes('/') || !PATH_CHARACTERS_PATTERN.test(path)) return null;
+  const withoutTrailingSlash = path.replace(/\/+$/u, '');
+  if (withoutTrailingSlash === '') return null;
+  const segmentCount = withoutTrailingSlash.split('/').filter((segment) => segment !== '').length;
+  const looksLikeAPath = isQuotedAsCode || path.endsWith('/') || FILE_EXTENSION_PATTERN.test(withoutTrailingSlash)
+    || segmentCount >= SEGMENTS_OF_A_BARE_FOLDER;
+  if (!looksLikeAPath) return null;
+  return withoutTrailingSlash.startsWith('/') ? withoutTrailingSlash : `/${withoutTrailingSlash}`;
+}
+
+/**
+ * The files the first `## Brief` says the work belongs in: each path on its `Work belongs in:` line and the lines that continue it, up to
+ * a blank line or the next part of the Brief. A bare file name with no folder names no path.
+ */
+function workFilesOf(body: string): string[] {
+  const briefLines = sectionsUnder(body, BRIEF_HEADING)[0] ?? [];
+  const labelIndex = briefLines.findIndex((line) => WORK_FILES_LABEL_PATTERN.test(line));
+  if (labelIndex === -1) return [];
+  const workLines = [WORK_FILES_LABEL_PATTERN.exec(briefLines[labelIndex] ?? '')?.[1] ?? ''];
+  for (const line of briefLines.slice(labelIndex + 1)) {
+    if (line.trim() === '' || NEXT_BRIEF_PART_PATTERN.test(line)) break;
+    workLines.push(line);
+  }
+  const files = workLines.join(' ').split(WORK_FILE_SEPARATOR).flatMap((token) => workFileOf(token) ?? []);
+  return [...new Set(files)];
+}
+
 export const TicketAcceptanceUtil = {
   sectionsOf,
   acceptanceItemsOf,
   latestReviewLinesOf,
   acceptanceVerdictOf,
   readinessGapsOf,
+  workFilesOf,
 } as const;

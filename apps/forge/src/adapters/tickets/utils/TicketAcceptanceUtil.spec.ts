@@ -4,7 +4,10 @@
  * latest `## Review` counts, a `does not hold` line is a gap even beside a `holds` one, a gap outranks a waiver, a heading inside a code
  * fence is not a section, and no body, however malformed, throws. A page quotes the sections and the item text, so those are pinned too:
  * an item's text joins its continuation lines, a section is every `##` heading in order with its source lines, and a CRLF body splits the
- * same as an LF one.
+ * same as an LF one. The Brief's work files are what filing judges an entity's ticket by (E85): only the `Work belongs in:` line of the first
+ * `## Brief` and the lines that continue it count, never the `Out of bounds` line; each token with a folder is a repository path, its
+ * quotes, line range, glob and brace alternatives dropped; a bare file name, a placeholder, a link and prose with one slash (`and/or`, `n/a`,
+ * `read/write`) name no path.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -204,5 +207,32 @@ describe('readinessGapsOf', () => {
 
   test('a body with neither names both gaps, Acceptance first', () => {
     expect(TicketAcceptanceUtil.readinessGapsOf('## Report\nExample.\n')).toEqual(['acceptance-unnumbered', 'brief-missing']);
+  });
+});
+
+describe('workFilesOf', () => {
+  test('reads the Work line of the Brief and its continuation as repository paths, up to the next part of the Brief', () => {
+    const body = '## Brief\nWork belongs in: `apps/shop/src/Basket.ts:12-30`, /packages/ui-kit/Button.ts and\n'
+      + 'apps/shop/test/**, "scripts/Release.ts".\nOut of bounds regardless: apps/admin/.\nFacts you do not need to look up:\n1. apps/admin/x.ts\n';
+    expect(TicketAcceptanceUtil.workFilesOf(body))
+      .toEqual(['/apps/shop/src/Basket.ts', '/packages/ui-kit/Button.ts', '/apps/shop/test', '/scripts/Release.ts']);
+  });
+
+  test('names no path for a bare file name, a placeholder or a link, and nothing without a Work line or a Brief', () => {
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: README.md, <the files you expect it to touch>, https://example.com/a.\n')).toEqual([]);
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nFacts: apps/shop/a.ts\n')).toEqual([]);
+    expect(TicketAcceptanceUtil.workFilesOf('## Wanted\nWork belongs in: apps/shop/a.ts\n')).toEqual([]);
+  });
+
+  test('names no path for prose with one slash, and cuts a brace glob at its brace', () => {
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: the basket and/or checkout in apps/shop/src/.\n')).toEqual(['/apps/shop/src']);
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: n/a, research only.\n')).toEqual([]);
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: apps/shop/src/Basket.ts (read/write path).\n')).toEqual(['/apps/shop/src/Basket.ts']);
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: `apps/shop/src/{a,b}.ts`, `apps/shop`.\n')).toEqual(['/apps/shop/src', '/apps/shop']);
+  });
+
+  test('reads only the first Brief, and a path named twice once', () => {
+    expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: apps/a/x.ts, ./apps/a/x.ts\n\n## Brief\nWork belongs in: apps/b/y.ts\n'))
+      .toEqual(['/apps/a/x.ts']);
   });
 });
