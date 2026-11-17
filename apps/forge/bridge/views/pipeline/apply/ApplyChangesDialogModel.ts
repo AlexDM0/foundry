@@ -69,6 +69,12 @@ export interface LevelGroupingFacts {
   readonly pipeline: AppliedPipelineFacts | undefined;
 }
 
+/** The entities in the draft's order, else the stored pipeline's; none in single mode. */
+function entityOrderOf({ record, pipeline }: LevelGroupingFacts): string[] {
+  const storedEntities = pipeline?.readingVerdict === 'readable' ? pipeline.pipeline.entities : undefined;
+  return Object.keys(record.draft?.entities ?? storedEntities ?? {});
+}
+
 /** The rows grouped by level over entities, the forge's constitution as committed to main on Apply; null in single mode. */
 function levelGroupsOf(changeList: readonly PipelineChange[], { record, pipeline }: LevelGroupingFacts): ChangeGroupView[] | null {
   const draftEntities = record.draft?.entities;
@@ -107,6 +113,7 @@ export const ApplyChangesDialogModel = Object.freeze({
   versionLineOf,
   changeRowsOf,
   levelGroupsOf,
+  entityOrderOf,
   inFlightLeadOf,
   inFlightTextOf,
   applyCommandOf,

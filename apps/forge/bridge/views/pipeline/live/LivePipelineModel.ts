@@ -82,12 +82,15 @@ export interface LiveFlowJob {
   readonly id:          string;
   readonly launchedAt?: string | null;
   readonly entity?:     EntityKey;
+  readonly ticketIds?:  readonly string[];
 }
 
-/** The view's facts with what the live flow of a forge over entities reads beside them: each job's entity and the jobs in flight. */
+/** The view's facts with what the live flow of a forge over entities reads beside them: each job's entity and tickets, and the jobs in flight. */
 export type LivePipelineFacts = Omit<PipelineViewFacts, 'jobs' | 'concurrency'> & {
   readonly jobs?:        readonly LiveFlowJob[];
   readonly concurrency?: { readonly limit: number; readonly agentsInFlight?: number };
+  /** The jobs that hold a launch slot, which each entity's jobs count against its cap. */
+  readonly launchSlots?: { readonly slotJobIds: readonly string[] };
 };
 
 const AGENT_TAB_LABEL = 'Pipeline agent';

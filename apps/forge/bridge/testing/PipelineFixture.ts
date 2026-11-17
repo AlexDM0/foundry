@@ -40,8 +40,14 @@ import type {
   SetupEdit,
   SetupQuestion
 } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }                                             from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { BoardStateDocument, PageTicketDocument, UsageDocument } from '../@types/BoardStateDocument.ts';
+import type { AgentPair } from '../../src/lib/tracker-model/@types/Ticket.ts';
+import type {
+  BoardStateDocument,
+  PageDocument,
+  PageTicketDocument,
+  PageTicketFactsDocument,
+  UsageDocument
+} from '../@types/BoardStateDocument.ts';
 
 import type { TranscriptFollower } from '../conversation/TranscriptLog.tsx';
 import type { BridgeClock }        from '../shell/BridgeClock.ts';
@@ -1025,14 +1031,50 @@ const MONOREPO_LIVE_JOBS: readonly (AgentJobDocument & { readonly entity?: Entit
   },
 ];
 
+/**
+ * The tickets of the monorepo boards: web's builds and its ticket in the Airlock, web's ticket 22 crossing into the design system in its
+ * package build, the design system's ticket queued for the Airlock, and web's ready ticket that waits for a slot.
+ */
+const MONOREPO_TICKET_FACTS: readonly PageTicketFactsDocument[] = [
+  { ticketId: '21', displayState: 'in-progress', entity: 'web' },
+  {
+    ticketId: '22', displayState: 'in-progress', entity: 'web', stage: { name: 'package-build', entity: 'design-system' },
+  },
+  { ticketId: '19', displayState: 'in-progress', entity: 'web' },
+  { ticketId: '23', displayState: 'in-progress', entity: 'design-system' },
+  { ticketId: '24', displayState: 'ready', entity: 'web' },
+  { ticketId: '18', displayState: 'delivered', entity: 'web' },
+];
+
+/** The page with the monorepo's ticket facts beside the base board's, and web's ready ticket first in line. */
+function monorepoPageOf(page: PageDocument | undefined): Partial<BoardStateDocument> {
+  if (page === undefined) return {};
+  const { boardFacts } = page.payload;
+  return {
+    page: {
+      ...page,
+      payload: { ...page.payload, boardFacts: { ...boardFacts, tickets: [...boardFacts.tickets, ...MONOREPO_TICKET_FACTS], readyTickets: [{ id: '24' }] } },
+    },
+  };
+}
+
+/** Web holds at most one job at once, so its ready ticket waits for a slot while its build runs. */
+const MONOREPO_LIVE_PIPELINE: AppliedPipelineFacts = {
+  ...MONOREPO_APPLIED_PIPELINE,
+  pipeline: { ...MONOREPO_PIPELINE, entities: { ...MONOREPO_PIPELINE.entities, web: { ...WEB_ENTITY, concurrency: 1 } } },
+};
+
 function monorepoLiveState(): BoardStateDocument {
-  return pipelineBoardState({
-    pipeline:       MONOREPO_APPLIED_PIPELINE,
+  const board = pipelineBoardState({
+    pipeline:       MONOREPO_LIVE_PIPELINE,
     pipelineFlow:   monorepoFlowOf('live', 'unchanged', true, { occupants: [...MONOREPO_LIVE_OCCUPANTS], ticketIdsInFlight: ['21', '22', '19'] }),
     profileRuns:    [...MONOREPO_PROFILE_RUNS],
     gateCacheMarks: [...MONOREPO_CACHE_MARKS],
     jobs:           [...MONOREPO_LIVE_JOBS],
+    concurrency:    { limit: 2, agentsInFlight: 2 },
+    launchSlots:    { limit: 2, slotJobIds: ['J21', 'J22'], inProgressTicketIdsWithoutJob: [] },
   });
+  return { ...board, ...monorepoPageOf(board.page) };
 }
 
 /** The edits of an update over entities: merge approval at the forge, web's typecheck, and a copy of web's unit tests to the design system. */
@@ -1077,10 +1119,11 @@ function monorepoEditingState(): BoardStateDocument {
     { field: 'entity:design-system/phase-order:build', changeKind: 'changed', editId: 'E4' },
   ];
   const entities = { 'web': setupEntityFacts(), 'design-system': setupEntityFacts(), 'root': setupEntityFacts() };
-  return setupState(record, { agentJobState: null, entities }, {
+  const board = setupState(record, { agentJobState: null, entities }, {
     pipeline:     MONOREPO_APPLIED_PIPELINE,
     pipelineFlow: monorepoFlowOf('editing', 'unchanged', true, { changeList, ticketIdsInFlight: ['21', '22'] }),
   });
+  return { ...board, ...monorepoPageOf(board.page) };
 }
 
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDocument>> = {

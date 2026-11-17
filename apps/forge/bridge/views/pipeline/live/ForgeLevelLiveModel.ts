@@ -1,8 +1,9 @@
 /**
  * The forge level's live page (MonoLive), pure: the merge train over every entity, the ticket the Airlock lets onto main first and then
- * the tickets queued for it, each with how long it has stood there, and the board's jobs in flight against its limit, worded in jobs.
- * The train shows no entity column and the page no cap per entity yet: the facts carry neither a ticket's entity nor a cap's use.
+ * the tickets queued for it, each with the entity it names and how long it has stood there, and the board's jobs in flight against its
+ * limit, worded in jobs.
  */
+import type { EntityKey }         from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineFlowFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import { ElapsedTimeUtil }        from '../../../utils/ElapsedTimeUtil.ts';
 import { PipelinePhaseModel }     from '../flow/PipelinePhaseModel.ts';
@@ -13,6 +14,8 @@ export interface MergeTrainRowView {
   /** "1" for the ticket the Airlock holds, then the queue in order. */
   readonly positionText: string;
   readonly ticketId:     string;
+  /** Null while the ticket names no entity. */
+  readonly entityKey:    EntityKey | null;
   readonly href:         string;
   readonly inAirlock:    boolean;
   readonly stateText:    string;
@@ -28,7 +31,11 @@ function countText(count: number, singular: string, plural: string): string {
 }
 
 /** The tickets in the Airlock first, then the queue, each in the facts' order. */
-function mergeTrainRowsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>, now: Date): MergeTrainRowView[] {
+function mergeTrainRowsOf(
+  flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>,
+  now: Date,
+  ticketEntityOf: (ticketId: string) => EntityKey | null = () => null,
+): MergeTrainRowView[] {
   const trainNodeIds = new Set(PipelinePhaseModel.trainNodeIdsOf(flow));
   const queueNodeIds = new Set(PipelinePhaseModel.queueNodeIdsOf(flow));
   const tickets = flow.occupants.filter((occupant) => occupant.occupantKind === 'ticket');
@@ -41,6 +48,7 @@ function mergeTrainRowsOf(flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>, 
       key:          occupant.occupantId,
       positionText: String(i + 1),
       ticketId:     occupant.occupantId,
+      entityKey:    ticketEntityOf(occupant.occupantId),
       href:         chip?.href ?? '',
       inAirlock,
       stateText:    inAirlock ? IN_AIRLOCK_TEXT : QUEUED_TEXT,

@@ -24,6 +24,7 @@ import type { AgentPair }                                           from '../../
 import { HashRouter, type BridgeRoute }                             from '../../shell/HashRouter.ts';
 import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }      from './entities/PipelineLevelModel.ts';
+import type { EntityWorkBoardFacts }                                from './live/EntityWorkModel.ts';
 import { MinimalPipelineNoteModel }                                 from './live/MinimalPipelineNoteModel.ts';
 
 /** The setup steps in their order; single mode leaves out `entities` (`setupStepsOf`). */
@@ -66,7 +67,7 @@ export interface PipelineViewFacts {
   /** The setup landing and the first Apply count the pending tickets in it; the live flow cuts its stamps by the payload's limits. */
   readonly page?:            {
     readonly tickets:  readonly { readonly status: string; readonly entity?: string }[];
-    readonly payload?: { readonly limits?: TimestampSlices };
+    readonly payload?: { readonly limits?: TimestampSlices; readonly boardFacts?: EntityWorkBoardFacts };
   };
   /** The first Apply says how many tickets start building at a time. */
   readonly concurrency?:      { readonly limit: number };

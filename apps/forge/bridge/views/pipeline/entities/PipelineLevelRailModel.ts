@@ -2,7 +2,8 @@
  * The pipeline's level rail, pure: the forge row first, then the entities in the groups Apps, Packages and Root, each row with its key,
  * its kind, one status mark and its counts of open questions and pending edits, and the one line that counts what deserves a look. The
  * filter keeps the entities whose key or kind holds its text; the forge row always stays. A root entity with no gates is kept for a
- * person, so it never counts as an entity without gates.
+ * person, so it never counts as an entity without gates. A live screen may give each row a line of its work, as MonoLive counts each
+ * entity's tickets and the forge's jobs.
  */
 import type { EntityKey, PipelineEntity, PipelineEntityKind }  from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunState, PipelineChange }            from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
@@ -28,6 +29,9 @@ export interface PipelineLevelRailFacts extends ShownEntitiesFacts {
   readonly profileRuns?:  readonly { readonly entity?: EntityKey; readonly state: GateProfileRunState }[];
 }
 
+/** A live screen's line of each level's work; null leaves the row without one. */
+export type PipelineLevelRailActivityTexts = (level: PipelineLevel) => string | null;
+
 /** A screen's own word on each entity row and its own attention line, in place of the gates marks: the constitution step's states. */
 export interface PipelineLevelRailMarkTexts {
   readonly textOf:        (entityKey: EntityKey) => string;
@@ -45,6 +49,8 @@ export interface PipelineLevelRailRowView {
   readonly statusText:        string | null;
   readonly openQuestionCount: number;
   readonly pendingEditCount:  number;
+  /** The level's work now, "4 tickets"; null on a screen that gives none. */
+  readonly activityText:      string | null;
   readonly selected:          boolean;
   /** The row's whole sentence for a screen reader: its name, kind, mark and counts. */
   readonly accessibleName:    string;
@@ -98,6 +104,7 @@ function pendingEditCountOf(level: PipelineLevel, facts: PipelineLevelRailFacts)
 function accessibleNameOf(row: Omit<PipelineLevelRailRowView, 'accessibleName'>): string {
   const parts = [row.name, row.kindText];
   if (row.statusText !== null) parts.push(row.statusText);
+  if (row.activityText !== null) parts.push(row.activityText);
   if (row.openQuestionCount > 0) parts.push(countedText(row.openQuestionCount, 'open question', 'open questions'));
   if (row.pendingEditCount > 0) parts.push(countedText(row.pendingEditCount, 'pending edit', 'pending edits'));
   return parts.join(', ');
@@ -107,7 +114,7 @@ function withAccessibleName(row: Omit<PipelineLevelRailRowView, 'accessibleName'
   return { ...row, accessibleName: accessibleNameOf(row) };
 }
 
-function forgeRowOf(facts: PipelineLevelRailFacts, selectedLevel: PipelineLevel): PipelineLevelRailRowView {
+function forgeRowOf(facts: PipelineLevelRailFacts, selectedLevel: PipelineLevel, activityTextOf: PipelineLevelRailActivityTexts | null): PipelineLevelRailRowView {
   const questions = facts.pipelineSetup?.record.questions ?? [];
   return withAccessibleName({
     level:             FORGE_LEVEL,
@@ -117,6 +124,7 @@ function forgeRowOf(facts: PipelineLevelRailFacts, selectedLevel: PipelineLevel)
     statusText:        null,
     openQuestionCount: questions.filter((question) => question.answer === null).length,
     pendingEditCount:  pendingEditCountOf(FORGE_LEVEL, facts),
+    activityText:      activityTextOf === null ? null : activityTextOf(FORGE_LEVEL),
     selected:          PipelineLevelModel.isForgeLevel(selectedLevel),
   });
 }
@@ -136,6 +144,7 @@ function entityRowOf(
   facts: PipelineLevelRailFacts,
   selectedLevel: PipelineLevel,
   markTexts: PipelineLevelRailMarkTexts | null,
+  activityTextOf: PipelineLevelRailActivityTexts | null,
 ): PipelineLevelRailRowView {
   const level = PipelineLevelModel.entityLevelOf(entityKey);
   const status = statusOf(entityKey, entity, facts);
@@ -147,6 +156,7 @@ function entityRowOf(
     statusText:        markTexts === null ? gatesStatusTextOf(status, entity) : markTexts.textOf(entityKey),
     openQuestionCount: openQuestionCountOf(entityKey, facts),
     pendingEditCount:  pendingEditCountOf(level, facts),
+    activityText:      activityTextOf === null ? null : activityTextOf(level),
     selected:          PipelineLevelModel.levelsAreEqual(level, selectedLevel),
   });
 }
@@ -175,15 +185,24 @@ function kindOf(entities: ShownEntities, entityKey: EntityKey): PipelineEntityKi
   return Object.hasOwn(entities, entityKey) ? entities[entityKey]?.kind ?? null : null;
 }
 
-/** With `markTexts` the rows carry the screen's words and its attention line, and the note on gates stays away. */
-function railOf(facts: PipelineLevelRailFacts, selectedLevel: PipelineLevel, filterText: string, markTexts: PipelineLevelRailMarkTexts | null = null): PipelineLevelRailView {
+/**
+ * With `markTexts` the rows carry the screen's words and its attention line, and the note on gates stays away; with `activityTextOf`
+ * each row carries its level's work.
+ */
+function railOf(
+  facts: PipelineLevelRailFacts,
+  selectedLevel: PipelineLevel,
+  filterText: string,
+  markTexts: PipelineLevelRailMarkTexts | null = null,
+  activityTextOf: PipelineLevelRailActivityTexts | null = null,
+): PipelineLevelRailView {
   const entities = PipelineViewModel.entitiesShownOf(facts);
-  const allRows = Object.entries(entities).map(([entityKey, entity]) => entityRowOf(entityKey, entity, facts, selectedLevel, markTexts));
+  const allRows = Object.entries(entities).map(([entityKey, entity]) => entityRowOf(entityKey, entity, facts, selectedLevel, markTexts, activityTextOf));
   const shownRows = allRows.filter((row) => matchesFilter(row, filterText));
   const groups = EntityGroupUtil.groupsOf(shownRows, (row) => kindOf(entities, row.name))
     .map((group) => ({ groupKind: group.groupKind, label: group.label, rows: group.items }));
   return {
-    forgeRow:             forgeRowOf(facts, selectedLevel),
+    forgeRow:             forgeRowOf(facts, selectedLevel, activityTextOf),
     groups,
     attentionText:        markTexts === null ? attentionTextOf(entities) : markTexts.attentionText,
     someEntityHasNoGates: markTexts === null && checkedEntitiesOf(entities).some((entity) => entity.gates.length === 0),

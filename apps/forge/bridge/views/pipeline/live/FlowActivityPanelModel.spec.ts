@@ -1,9 +1,10 @@
 /**
  * The live flow's activity model. What matters: a node's chips are exactly the occupants the facts place on it, each linking to its
  * ticket or draft detail, a draft read as drafting and a ticket on the merge before review as catching up; the "Now" rows equal the
- * occupants in the facts' order, with a meter only on a step an agent runs; the panel head counts the working rows; a ticket in flight is a
- * chip linking to its detail; a gate profile is a row only while queued or running, naming its entity when it has one; the "Earlier"
- * lines keep the facts' order, cut the stamp only when the page carries the slices, and leave out a record kind they have no line for.
+ * occupants in the facts' order, with a meter only on a step an agent runs, and a row the crossing namer names ends with its crossing;
+ * the panel head counts the working rows; a ticket in flight is a chip linking to its detail; a gate profile is a row only while queued
+ * or running, naming its entity when it has one; the "Earlier" lines keep the facts' order, cut the stamp only when the page carries
+ * the slices, and leave out a record kind they have no line for.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -74,6 +75,17 @@ describe('activityRowsOf', () => {
     const flow = liveFlow();
     const stray = { ...flow, occupants: [...flow.occupants, { ...flow.occupants[0], nodeId: 'gone', occupantId: '99' } as (typeof flow.occupants)[number]] };
     expect(FlowActivityPanelModel.activityRowsOf(stray, EFFORTS, new Date()).map((row) => row.idText)).not.toContain('99');
+  });
+
+  test('a row the crossing namer names ends its step with the crossing, and only that row', () => {
+    const flow = liveFlow();
+    const crossedTicketId = flow.occupants[1]?.occupantId;
+    const rows = FlowActivityPanelModel.activityRowsOf(flow, EFFORTS, new Date('2026-11-12T12:00:00'), null, (occupant) => (
+      occupant.occupantId === crossedTicketId ? 'Package build of a crossing from web' : null
+    ));
+    expect(rows.map((row) => row.stepText)).toEqual([
+      'Ticket creation', 'Builder · Package build of a crossing from web', 'Merge main into the tree', 'Gates · build',
+    ]);
   });
 
   test('the heading counts the rows', () => {

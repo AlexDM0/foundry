@@ -1,7 +1,7 @@
 /**
  * The forge level's live page. What matters: the merge train lists the tickets in the Airlock before the queue, each with its place, its
- * state and how long it has waited, and leaves out drafts and tickets elsewhere on the flow; the board counts its jobs in flight against
- * its limit, in jobs.
+ * state and how long it has waited, and leaves out drafts and tickets elsewhere on the flow; each row names the entity its ticket names, or
+ * none while it names none; the board counts its jobs in flight against its limit, in jobs.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -19,6 +19,17 @@ describe('mergeTrainRowsOf', () => {
       ['2', '23', false, 'Waiting for the Airlock', '#kanban/ticket/23'],
     ]);
     expect(ForgeLevelLiveModel.mergeTrainRowsOf(flow, NOW).map((row) => row.waitingText).every((text) => text !== '')).toBe(true);
+  });
+});
+
+describe('the entity of each ticket in the train', () => {
+  test('is the one the ticket names, or none while it names none', () => {
+    const flow = pipelineBoardStateOf('mono-live').pipelineFlow;
+    if (flow === null || flow === undefined) throw new Error('the fixture mono-live has no flow');
+    const entityByTicket: Readonly<Record<string, string>> = { 19: 'web' };
+    const rows = ForgeLevelLiveModel.mergeTrainRowsOf(flow, NOW, (ticketId) => (Object.hasOwn(entityByTicket, ticketId) ? entityByTicket[ticketId] ?? null : null));
+    expect(rows.map((row) => [row.ticketId, row.entityKey])).toEqual([['19', 'web'], ['23', null]]);
+    expect(ForgeLevelLiveModel.mergeTrainRowsOf(flow, NOW).every((row) => row.entityKey === null)).toBe(true);
   });
 });
 

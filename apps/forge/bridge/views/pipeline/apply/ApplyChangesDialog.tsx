@@ -4,7 +4,8 @@
  * `pipeline-apply` without resuming the board, and a refusal shows verbatim with nothing else offered. While Apply commits
  * `CONSTITUTION.md` first, the pending, held and refused states show as in the first Apply, with Cancel apply. Over entities
  * (MonoApplyChanges) the rows group by level under each level's name and count, a copy's set as one row with its count of edits, and the
- * tickets in flight stay one list; a refusal, such as removing an entity a ticket names, shows verbatim as every refusal does.
+ * tickets in flight group by entity, a ticket in a package stage under the package as a crossing from its entity; a refusal, such as
+ * removing an entity a ticket names, shows verbatim as every refusal does.
  */
 import { ChangeRow }  from 'design-system/ChangeRow';
 import { CountBadge } from 'design-system/CountBadge';
@@ -17,6 +18,7 @@ import { View }       from 'design-system/View';
 import type { AppliedPipelineFacts, PipelineFlowFacts, PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ChangeGroupView }                                             from '../entities/ChangeGroupModel.ts';
 import { PipelineLevelModel }                                               from '../entities/PipelineLevelModel.ts';
+import { EntityWorkModel, type EntityWorkTicket }                           from '../live/EntityWorkModel.ts';
 import { ApplyChangesDialogModel }                                          from './ApplyChangesDialogModel.ts';
 import { ApplyFoot, ApplyPendingState }                                     from './ApplyPendingState.tsx';
 import { InFlightNote }                                                     from './InFlightNote.tsx';
@@ -28,6 +30,8 @@ export interface ApplyChangesDialogProps {
   readonly onClose:      () => void;
   /** Called once the Overseer took the Apply, which never resumes the board. */
   readonly onApplySent?: () => void;
+  /** Over entities, every ticket's entity and stage, which group the tickets in flight; absent keeps them one list. */
+  readonly tickets?:     readonly EntityWorkTicket[];
 }
 
 /** One level's rows under its name and count; a copy's set is one row naming the copy and its count of edits. */
@@ -57,12 +61,15 @@ function LevelRows({ group }: { readonly group: ChangeGroupView }) {
 }
 
 export function ApplyChangesDialog({
-  setup, flow, pipeline, onClose, onApplySent
+  setup, flow, pipeline, onClose, onApplySent, tickets
 }: ApplyChangesDialogProps) {
   const { record, applyState } = setup;
   const rows = ApplyChangesDialogModel.changeRowsOf(flow.changeList, flow);
   const groups = ApplyChangesDialogModel.levelGroupsOf(flow.changeList, { record, pipeline });
   const appliedRevision = ApplyChangesDialogModel.appliedRevisionOf(pipeline);
+  const inFlightGroups = groups === null || tickets === undefined
+    ? null
+    : EntityWorkModel.inFlightGroupsOf(flow.ticketIdsInFlight, tickets, ApplyChangesDialogModel.entityOrderOf({ record, pipeline }));
   return (
     <Dialog
       title={ApplyChangesDialogModel.titleOf(rows.length)}
@@ -99,6 +106,7 @@ export function ApplyChangesDialog({
           ticketIds={flow.ticketIdsInFlight}
           lead={ApplyChangesDialogModel.inFlightLeadOf(flow.ticketIdsInFlight.length)}
           text={ApplyChangesDialogModel.inFlightTextOf(appliedRevision)}
+          groups={inFlightGroups}
         />
         {applyState === null ? null : <ApplyPendingState applyState={applyState} constitutionMarkdown={record.constitution?.markdown ?? null} />}
       </View>

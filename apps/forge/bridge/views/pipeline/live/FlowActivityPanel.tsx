@@ -3,8 +3,9 @@
  * then the newest pipeline records; the Pipeline agent tab says that no agent runs until one is asked. On the smallest pipeline, the About
  * tab comes first. The head names the selected tab, with how many work and the builds at a time on the flow tab. Under every tab, Ask the
  * pipeline agent sends `pipeline-agent-advise` and turns to the agent's tab; the advise session it opens then shows as an edit of the
- * pipeline. On a forge over entities (MonoLive) the flow tab lists every entity's work, each row naming its entity or the forge, then
- * every entity's gate profiles under way, and the agent's tab and Ask name the level shown, whose entity the advise command carries.
+ * pipeline. On a forge over entities (MonoLive) the flow tab lists every entity's work, each row naming its entity or the forge and a
+ * package stage the crossing it runs, then every entity's gate profiles under way, and the agent's tab and Ask name the level shown,
+ * whose entity the advise command carries.
  */
 
 import { ActivityRow }              from 'design-system/ActivityRow';
@@ -23,10 +24,12 @@ import {
   type PanelStatus
 } from '../PipelinePanel.tsx';
 import { PipelineLevelModel, type PipelineLevel } from '../entities/PipelineLevelModel.ts';
+import { EntityWorkModel }                        from './EntityWorkModel.ts';
 import {
   FlowActivityPanelModel,
   type ActivityRowView,
   type HistoryLineView,
+  type OccupantCrossingNamer,
   type OccupantLevelNamer,
   type StampFormat
 } from './FlowActivityPanelModel.ts';
@@ -112,7 +115,10 @@ export function FlowActivityPanel({
       const occupantLevel = LivePipelineModel.occupantLevelOf(occupant, node, jobs);
       return occupantLevel === null ? null : PipelineLevelModel.levelNameOf(occupantLevel);
     };
-  const occupantRows = flow === null ? [] : FlowActivityPanelModel.activityRowsOf(flow, facts.pipelineChoices?.efforts ?? [], now, levelNameOf);
+  const crossingTextOf: OccupantCrossingNamer | null = level === null
+    ? null
+    : (occupant) => (occupant.occupantKind === 'ticket' ? EntityWorkModel.crossingActivityTextOf(occupant.occupantId, facts) : null);
+  const occupantRows = flow === null ? [] : FlowActivityPanelModel.activityRowsOf(flow, facts.pipelineChoices?.efforts ?? [], now, levelNameOf, crossingTextOf);
   const rows = level === null ? occupantRows : [...occupantRows, ...FlowActivityPanelModel.profileActivityRowsOf(facts.profileRuns ?? [])];
   const historyLines = FlowActivityPanelModel.historyLinesOf(facts.pipelineHistory ?? [], stampFormat);
   const concurrencyLimit = facts.concurrency?.limit ?? null;

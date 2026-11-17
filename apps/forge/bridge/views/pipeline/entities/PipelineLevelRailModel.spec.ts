@@ -4,7 +4,7 @@
  * count; a root without gates is kept for a person and never counted as needing a look; the counts of open questions and pending edits
  * belong to their own level only; the filter keeps the forge and the entities whose key or kind holds its text; the stored pipeline's
  * entities show while no record holds a draft; a screen's own words replace every entity row's mark and the attention line, and drop the
- * note on gates.
+ * note on gates; a live screen's line of each level's work joins its row and the row's sentence, and no row has one without it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -129,5 +129,18 @@ describe('a screen\'s own marks', () => {
     expect(rows[1]?.accessibleName).toBe('web, app, State of web');
     expect(rail.attentionText).toBe('One line');
     expect(rail.someEntityHasNoGates).toBe(false);
+  });
+});
+
+describe('a live screen\'s line of each level\'s work', () => {
+  test('joins each row and its sentence, and no row has one without it', () => {
+    const activityTextOf = (level: { readonly kind: string }): string => (level.kind === 'forge' ? '2 of 6 jobs' : 'No tickets');
+    const rows = PipelineLevelRailModel.rowsInOrderOf(PipelineLevelRailModel.railOf(draftFacts(ENTITIES), FORGE_LEVEL, '', null, activityTextOf));
+    expect(rows.slice(0, 2).map((row) => [row.activityText, row.accessibleName])).toEqual([
+      ['2 of 6 jobs', 'Forge, Shared by every entity, 2 of 6 jobs'],
+      ['No tickets', 'web, app, Default constitution, No tickets'],
+    ]);
+    const withoutLine = PipelineLevelRailModel.rowsInOrderOf(PipelineLevelRailModel.railOf(draftFacts(ENTITIES), FORGE_LEVEL, ''));
+    expect(withoutLine.every((row) => row.activityText === null)).toBe(true);
   });
 });

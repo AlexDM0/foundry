@@ -2,8 +2,8 @@
  * The live flow's activity, pure: what stands on each node now (a ticket, or a filing draft being written) as a chip linking to its
  * detail, the panel head's status and the board's builds at a time, the "Now" rows of the activity panel in the facts' order, each with
  * a meter only on a step an agent runs, and the "Earlier" lines worded from the newest pipeline records. A record kind with no line here
- * is left out of the list. On a forge over entities a row names the level of its occupant, each gate profile under way at any entity is a
- * row naming its entity, and the head counts jobs over every entity.
+ * is left out of the list. On a forge over entities a row names the level of its occupant and, for a package stage of a crossing, the
+ * crossing it runs; each gate profile under way at any entity is a row naming its entity, and the head counts jobs over every entity.
  */
 import type { LogRecord } from '../../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type {
@@ -119,22 +119,28 @@ function stepTextOf(node: PipelineFlowNode, efforts: readonly string[]): string 
 /** The name of the level an occupant is at on a forge over entities ("web", "Forge"); null when it names none. */
 export type OccupantLevelNamer = (occupant: PipelineOccupant, node: PipelineFlowNode) => string | null;
 
+/** The crossing a ticket runs a package stage of ("Package build of a crossing from web"); null for any other occupant. */
+export type OccupantCrossingNamer = (occupant: PipelineOccupant) => string | null;
+
 /**
  * One row per occupant, in the facts' order; an occupant on a node the flow does not draw is left out. On a forge over entities each row
- * leads its step with the level the namer gives ("web · Builder").
+ * leads its step with the level the namer gives ("web · Builder") and ends it with the crossing it runs, when it runs one.
  */
 function activityRowsOf(
   flow: Pick<PipelineFlowFacts, 'nodes' | 'occupants'>,
   efforts: readonly string[],
   now: Date,
   levelNameOf: OccupantLevelNamer | null = null,
+  crossingTextOf: OccupantCrossingNamer | null = null,
 ): ActivityRowView[] {
   return flow.occupants.flatMap((occupant) => {
     const node = flow.nodes.find((candidate) => candidate.nodeId === occupant.nodeId);
     if (node === undefined) return [];
     const runByAgent = node.role !== null;
     const levelName = levelNameOf === null ? null : levelNameOf(occupant, node);
-    const stepText = stepTextOf(node, efforts);
+    const crossingText = crossingTextOf === null ? null : crossingTextOf(occupant);
+    const nodeText = stepTextOf(node, efforts);
+    const stepText = crossingText === null ? nodeText : `${nodeText} · ${crossingText}`;
     return [{
       key:      `${occupant.occupantKind}-${occupant.occupantId}`,
       href:     occupantHrefOf(occupant),

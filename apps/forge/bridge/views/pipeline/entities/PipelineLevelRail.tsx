@@ -2,7 +2,8 @@
  * The boards' left column in monorepo mode, the levels of the pipeline on the design system's selection rail: a filter field, a one-line
  * count of what deserves a look, then the forge row and the entities in the groups Apps, Packages and Root. Each row shows the key in mono,
  * the kind muted, one status mark and the counts of open questions and pending edits; a press moves to that level. A screen may give its
- * own marks, as the constitution step marks each entity's constitution, in place of the gates marks.
+ * own marks, as the constitution step marks each entity's constitution, in place of the gates marks, and a live screen a line of each
+ * level's work after its kind.
  */
 import { CountBadge }                           from 'design-system/CountBadge';
 import { Icon }                                 from 'design-system/Icon';
@@ -18,6 +19,7 @@ import type { EntityKey } from '../../../../src/lib/tracker-model/@types/Pipelin
 import { PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
 import {
   PipelineLevelRailModel,
+  type PipelineLevelRailActivityTexts,
   type PipelineLevelRailFacts,
   type PipelineLevelRailMarkTexts,
   type PipelineLevelRailRowView
@@ -29,11 +31,13 @@ export interface PipelineLevelRailMarks extends PipelineLevelRailMarkTexts {
 }
 
 export interface PipelineLevelRailProps {
-  readonly facts:    PipelineLevelRailFacts;
-  readonly level:    PipelineLevel;
-  readonly onSelect: (level: PipelineLevel) => void;
+  readonly facts:           PipelineLevelRailFacts;
+  readonly level:           PipelineLevel;
+  readonly onSelect:        (level: PipelineLevel) => void;
   /** Absent: each row carries its gates mark. */
-  readonly marks?:   PipelineLevelRailMarks | null;
+  readonly marks?:          PipelineLevelRailMarks | null;
+  /** Absent: the rows carry no line of their work. */
+  readonly activityTextOf?: PipelineLevelRailActivityTexts | null;
 }
 
 const NO_GATES_NOTE = 'An entity without gates lands its tickets unchecked. It never blocks Apply.';
@@ -72,7 +76,7 @@ function selectionRailRowOf(row: PipelineLevelRailRowView, marks: PipelineLevelR
     accessibleName: row.accessibleName,
     selected:       row.selected,
     title:          isForge ? <Text bold>{row.name}</Text> : <MonoId text={row.name} tone="strong" weight={row.selected ? 'bold' : 'medium'} />,
-    subtitle:       row.kindText,
+    subtitle:       row.activityText === null ? row.kindText : `${row.kindText} · ${row.activityText}`,
     ...isForge ? { mark: <Icon name="flow" label={null} /> } : {},
     end:            (
       <>
@@ -85,10 +89,10 @@ function selectionRailRowOf(row: PipelineLevelRailRowView, marks: PipelineLevelR
 }
 
 export function PipelineLevelRail({
-  facts, level, onSelect, marks = null
+  facts, level, onSelect, marks = null, activityTextOf = null
 }: PipelineLevelRailProps) {
   const [filterText, setFilterText] = useState('');
-  const rail = PipelineLevelRailModel.railOf(facts, level, filterText, marks);
+  const rail = PipelineLevelRailModel.railOf(facts, level, filterText, marks, activityTextOf);
   const rowsByKey = new Map(PipelineLevelRailModel.rowsInOrderOf(rail).map((row) => [rowKeyOf(row), row] as const));
   const selectRow = (rowKey: string): void => {
     const row = rowsByKey.get(rowKey);

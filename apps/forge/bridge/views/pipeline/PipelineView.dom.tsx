@@ -12,7 +12,11 @@
  * A live monorepo pipeline (MonoLive) shows the level the route names, with the rail and the breadcrumb: an entity's steps carry only its
  * own tickets, its gates head names its profile under way, the activity names each row's entity or the forge and lists every entity's
  * profile under way, and Ask carries the entity;
- * the forge's level lists the merge train and the board's jobs in place of the phases.
+ * the forge's level lists the merge train and the board's jobs in place of the phases. Each rail row counts its level's work: an entity's
+ * open tickets and the crossings in a package stage there, the forge's jobs and merge train; an entity's page shows the crossings that
+ * run a package stage now, out of it or into it; an activity row of a package stage names the crossing it runs; the merge train names
+ * each ticket's entity; and each entity's jobs stand against its cap, worded in jobs, with the crossings they serve and the ready tickets
+ * that wait for a slot.
  */
 import {
   act,
@@ -384,7 +388,58 @@ describe('a live monorepo pipeline', () => {
     const train = screen.getByRole('table', { name: 'Merge train' });
     expect(within(train).getByRole('link', { name: 'Open ticket 19' }).getAttribute('href')).toBe('#kanban/ticket/19');
     expect(within(train).getByText('Waiting for the Airlock')).toBeDefined();
-    expect(screen.getByText('Board: 0 of 2 jobs running')).toBeDefined();
+    expect(screen.getByText('Board: 2 of 2 jobs running')).toBeDefined();
     expect(document.querySelector('[data-step-node-id="ticket-creation"]')?.textContent).toContain('D3');
+  });
+
+  test('each rail row counts its level\'s work: an entity\'s open tickets and crossings, the forge\'s jobs and merge train', () => {
+    renderAt('entity/web');
+    const rail = screen.getByRole('navigation', { name: 'Pipeline levels' });
+    const rowNamed = (name: string): string => within(rail).getByRole('button', { name: new RegExp(`^${name},`) }).getAttribute('aria-label') ?? '';
+    expect(rowNamed('Forge')).toContain('2 of 2 jobs · 1 merging, 1 waiting');
+    expect(rowNamed('web')).toContain('2 tickets');
+    expect(rowNamed('design-system')).toContain('1 ticket · 1 crossing');
+    expect(rowNamed('root')).toContain('No tickets');
+  });
+
+  test('an entity\'s page shows the crossings in a package stage now, out of it and into it, and the forge\'s page none', () => {
+    for (const item of ['entity/web', 'entity/design-system']) {
+      const { unmount } = render(<PipelineView facts={pipelineBoardStateOf('mono-live')} route={{ tab: 'pipeline', item }} {...pipelineViewServicesOf()} />);
+      const crossing = screen.getByRole('region', { name: 'Crossing now' });
+      expect(within(crossing).getByRole('link', { name: 'Open ticket 22' }).getAttribute('href')).toBe('#kanban/ticket/22');
+      expect(crossing.textContent).toContain('web→design-system· package build, with design-system’s constitution, builder and gates');
+      unmount();
+    }
+    renderAt('forge');
+    expect(screen.queryByRole('region', { name: 'Crossing now' })).toBeNull();
+  });
+
+  test('an activity row of a package stage names the crossing it runs', () => {
+    renderAt('forge');
+    const stepOf = (idText: string): string | null | undefined => [...document.querySelectorAll('.design-system-activity-row')]
+      .find((row) => row.querySelector('.design-system-activity-row-id')?.textContent === idText)
+      ?.querySelector('.design-system-activity-row-step')?.textContent;
+    expect(stepOf('22')).toStartWith('design-system · ');
+    expect(stepOf('22')).toEndWith(' · Package build of a crossing from web');
+    expect(stepOf('21')).not.toContain('crossing');
+  });
+
+  test('the merge train names each ticket\'s entity', () => {
+    renderAt('forge');
+    const train = screen.getByRole('table', { name: 'Merge train' });
+    const rows = within(train).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent));
+    expect(rows.map((cells) => [cells[1], cells[2]])).toEqual([['19', 'web'], ['23', 'design-system']]);
+  });
+
+  test('each entity\'s jobs stand against its cap in jobs, with the crossings they serve and the tickets waiting for a slot', () => {
+    renderAt('forge');
+    const table = screen.getByRole('table', { name: 'Jobs by entity' });
+    const rows = within(table).getAllByRole('row').slice(1).map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent));
+    expect(rows).toEqual([
+      ['web', '1 job', '1', 'At its cap24'],
+      ['design-system', 'Board limit', '1 · crossing from web', 'None'],
+      ['root', 'For a person', 'No jobs', 'None'],
+    ]);
+    expect(within(table).getByRole('link', { name: '24' }).getAttribute('href')).toBe('#kanban/ticket/24');
   });
 });

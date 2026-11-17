@@ -11,10 +11,12 @@
  * activity panel (About first on the smallest pipeline) and the applied footer, and an Apply sent from this view shows its toast once the
  * facts carry the version it made. A gate dialog on any screen reads a profile's output through the follower the view provides.
  * A live monorepo pipeline (MonoLive) is one level's page, held in the route: the entity rail stands left and the level's breadcrumb over
- * the title. An entity's level draws its three phases with only its own tickets on them; the forge's level draws what every entity
- * shares; the activity panel lists every entity's work, each row naming its level, and asks the pipeline agent about the level shown.
+ * the title, each rail row counting its level's work. An entity's level draws its three phases with only its own tickets on them, under
+ * the crossings that run a package stage now; the forge's level draws what every entity shares; the activity panel lists every entity's
+ * work, each row naming its level, and asks the pipeline agent about the level shown.
  * Editing a pipeline over entities (MonoEditing) is one level's page the same way, with the editing panel's changes grouped by level
- * and the footer counting the levels they are in; an entity's settings can be copied to other entities from its page.
+ * and the footer counting the levels they are in, and Apply changes groups the tickets in flight by entity; an entity's settings can be
+ * copied to other entities from its page.
  */
 import { ActionBar }           from 'design-system/ActionBar';
 import { Banner }              from 'design-system/Banner';
@@ -49,6 +51,8 @@ import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }            from '
 import { PipelineLevelRail }                                              from './entities/PipelineLevelRail.tsx';
 import { useFlowSelection }                                               from './flow/FlowSelection.ts';
 import { PipelineFlowModel }                                              from './flow/PipelineFlowModel.ts';
+import { CrossingNow }                                                    from './live/CrossingNow.tsx';
+import { EntityWorkModel }                                                from './live/EntityWorkModel.ts';
 import { FlowActivityPanel }                                              from './live/FlowActivityPanel.tsx';
 import type { StampFormat }                                               from './live/FlowActivityPanelModel.ts';
 import { ForgeLevelLive }                                                 from './live/ForgeLevelLive.tsx';
@@ -159,6 +163,9 @@ function MonorepoLiveFlow({
   const words = LivePipelineModel.levelPageWordsOf(level, facts.pipeline);
   const hrefOf = (target: PipelineLevel): string => HashRouter.fragmentOf(PipelineLevelModel.routeMovedTo(route, target));
   const levelFacts = level.kind === 'entity' ? LivePipelineModel.factsLiveAtEntityOf(facts, level.key) : facts;
+  const activityTextOf = (target: PipelineLevel): string | null => (target.kind === 'entity'
+    ? EntityWorkModel.railActivityTextOf(target.key, facts)
+    : EntityWorkModel.forgeRailActivityTextOf(facts));
   return (
     <MonorepoLevelContext.Provider value={{ level, forgeLevelHref: hrefOf(FORGE_LEVEL), wholeDraft: null }}>
       <FlowWorkspace
@@ -166,9 +173,17 @@ function MonorepoLiveFlow({
         selection={selection}
         title={words.title}
         lead={words.lead}
+        notice={level.kind === 'entity' ? <CrossingNow crossings={EntityWorkModel.crossingsNowOf(level.key, facts)} /> : null}
         aside={<FlowActivityPanel facts={facts} stampFormat={stampFormat} clock={clock} level={level} />}
         footer={footer === null ? null : <LiveFooter footer={footer} />}
-        rail={<PipelineLevelRail facts={facts} level={level} onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))} />}
+        rail={(
+          <PipelineLevelRail
+            facts={facts}
+            level={level}
+            onSelect={(target) => HashRouter.navigateTo(PipelineLevelModel.routeMovedTo(route, target))}
+            activityTextOf={activityTextOf}
+          />
+        )}
         breadcrumb={<EntityLevelBreadcrumb level={level} forgeLevelHref={hrefOf(FORGE_LEVEL)} />}
         levelPage={PipelineLevelModel.isForgeLevel(level) ? <ForgeLevelLive facts={facts} selection={selection} now={now} /> : null}
       />
@@ -240,6 +255,7 @@ function MonorepoEditingFlow({
             pipeline={facts.pipeline}
             onClose={selection.closeApply}
             onApplySent={() => onApplySent(false)}
+            tickets={EntityWorkModel.ticketsOf(facts)}
           />
         )
         : null}

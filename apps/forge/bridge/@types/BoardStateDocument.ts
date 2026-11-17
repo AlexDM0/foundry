@@ -12,6 +12,7 @@ import type {
   PipelineFlowFacts,
   PipelineSetupFacts
 } from '../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { TicketStage }        from '../../src/lib/tracker-model/@types/Task.ts';
 import type { AgentPair }          from '../../src/lib/tracker-model/@types/Ticket.ts';
 import type { TodayFlintBrainRun } from '../../src/shared/monitor/TodayFigures.ts';
 import type { TimestampSlices }    from '../utils/TimeUtil.ts';
@@ -112,15 +113,27 @@ export interface PageDraftDocument {
   readonly openedAt:          string;
 }
 
+/** A ticket's Board facts, as far as the Bridge's views read them. */
+export interface PageTicketFactsDocument {
+  readonly ticketId:     string;
+  readonly displayState: string;
+  /** On a forge with entities, once the ticket names its entity. */
+  readonly entity?:      string;
+  /** The stage a crossing ticket is in; absent on a ticket that crosses into no package. */
+  readonly stage?:       TicketStage;
+}
+
 /** The page payload the render service assembles, as far as the Bridge's views read it. */
 export interface PageDocument {
   readonly payload: {
     readonly progress:         { readonly tasks: readonly TaskDocument[] };
     readonly epicDescriptions: readonly { readonly key: string; readonly descriptionHtml: string }[];
     readonly boardFacts:       {
-      readonly epics:   readonly EpicRollupDocument[];
-      readonly tickets: readonly { readonly ticketId: string; readonly displayState: string }[];
-      readonly drafts?: readonly PageDraftDocument[];
+      readonly epics:         readonly EpicRollupDocument[];
+      readonly tickets:       readonly PageTicketFactsDocument[];
+      readonly drafts?:       readonly PageDraftDocument[];
+      /** The ready tickets in the order to take them; absent on a board document built without them, as a spec's. */
+      readonly readyTickets?: readonly { readonly id: string; readonly held?: true }[];
     };
     readonly limits?: TimestampSlices;
   };

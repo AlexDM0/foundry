@@ -3,8 +3,9 @@
  * controls. What matters: each level is its own page beside the entity rail, the forge's or the entity's; the Changes tab groups every
  * level's changes, the forge first, each with its count, and names the entities the check covers; a copy's set undoes with one press as
  * `pipeline-draft-undo` with `wholeBatch`, while each of its edits still undoes alone; the footer counts the changes and the levels they
- * are in; the agent's tab is the session of the level shown; Apply changes groups its rows by level, a copy's set as one row, and keeps
- * the tickets in flight one list; and the refusal of removing an entity that a ticket names shows verbatim.
+ * are in; the agent's tab is the session of the level shown; Apply changes groups its rows by level, a copy's set as one row, and groups
+ * the tickets in flight by entity, a ticket in a package stage under the package as a crossing from its own entity; and the refusal of
+ * removing an entity that a ticket names shows verbatim.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {
@@ -100,7 +101,7 @@ describe('the Changes tab', () => {
 });
 
 describe('Apply changes', () => {
-  test('groups its rows by level, a copy\'s set as one row, and keeps the tickets in flight one list', async () => {
+  test('groups its rows by level, a copy\'s set as one row, and the tickets in flight by entity, a crossing under its package', async () => {
     renderEditing(FORGE_ROUTE, boardRemovingRoot());
     const dialog = await openApplyChanges();
     const rowsOf = (levelName: string): string[] => {
@@ -111,8 +112,13 @@ describe('Apply changes', () => {
     expect(rowsOf('web')).toEqual(['typecheck gate · changed']);
     expect(rowsOf('design-system')).toEqual(['Copied gates from web2 edits']);
     expect(rowsOf('root')).toEqual(['root entity · removed']);
-    const tickets = within(dialog).getByRole('list', { name: 'Tickets in flight' });
-    expect(within(tickets).getAllByRole('listitem').map((ticket) => ticket.textContent)).toEqual(['21', '22']);
+    const ticketsIn = (entity: string): (string | null)[] => {
+      const tickets = within(dialog).getByRole('list', { name: `Tickets in flight in ${entity}` });
+      return within(tickets).getAllByRole('listitem').map((ticket) => ticket.textContent);
+    };
+    expect(ticketsIn('web')).toEqual(['21']);
+    expect(ticketsIn('design-system')).toEqual(['22crossing from web']);
+    expect(within(dialog).queryByRole('list', { name: 'Tickets in flight' })).toBeNull();
   });
 
   test('removing an entity that a ticket names is refused in the Overseer\'s words, verbatim', async () => {
