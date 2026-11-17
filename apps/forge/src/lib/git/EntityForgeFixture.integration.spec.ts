@@ -96,6 +96,19 @@ function crossedThenChanging(changedPaths: readonly string[]): (directory: strin
   };
 }
 
+/** The shop's ticket crossed into the package and the package build reshaped it, then `adapt` changed the shop, and the home review too. */
+function reshapedThenAdapted(homeReviewFixes: boolean): (directory: string, startCommit: string) => Record<string, string> {
+  return (directory, startCommit) => {
+    const reshaped = crossedThenChanging([sourceFileOf(UI_KIT)])(directory, startCommit);
+    const worktreeDirectory = join(directory, ticketWorktreeFolderOf(SHOP_TICKET));
+    writeFileSync(join(worktreeDirectory, sourceFileOf(SHOP)), 'export const changedByAdapt = 4;\n');
+    const adapted = { ...reshaped, '<adapt tip>': commitAll(worktreeDirectory, 'Adapt the shop to the package for ticket 001') };
+    if (!homeReviewFixes) return adapted;
+    writeFileSync(join(worktreeDirectory, sourceFileOf(SHOP)), 'export const changedByTheHomeReview = 5;\n');
+    return { ...adapted, '<home review tip>': commitAll(worktreeDirectory, 'Fix the shop in the review of ticket 001') };
+  };
+}
+
 /** Each scenario and how it changes the fixture repository, naming the commits beside the start. */
 const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: string, startCommit: string) => Record<string, string>])[] = [
   [ENTITY_FORGE_SCENARIOS.AT_REST, () => ({})],
@@ -108,6 +121,8 @@ const SCENARIO_STATES: readonly (readonly [EntityForgeScenario, (directory: stri
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED, crossedThenChanging([sourceFileOf(SHOP)])],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED, crossedThenChanging([sourceFileOf(UI_KIT)])],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED, crossedThenChanging([sourceFileOf(UI_KIT), ENTITY_FORGE_LOCK_FILE])],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED, reshapedThenAdapted(false)],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED, reshapedThenAdapted(true)],
 ];
 
 /** Runs every call of the scenario at each of its places, and records each answer under the scenario with the placeholders put back. */

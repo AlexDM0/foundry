@@ -17,8 +17,8 @@
  * Handoff` holds one part per stage that built, each stage writing only its own, and a package build that refuses the change ends `refused`
  * with a `package-refused` decision that holds the ticket (E22).
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import path, { join }                             from 'node:path';
+import { mkdirSync, readFileSync } from 'node:fs';
+import path, { join }              from 'node:path';
 
 import {
   afterEach,
@@ -27,15 +27,11 @@ import {
   test
 } from 'bun:test';
 
-import { GitProcess }                               from '../../lib/git/GitProcess.ts';
 import type { Job }                                 from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { DecisionWording }                     from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { TicketStage }                         from '../../lib/tracker-model/@types/Task.ts';
 import type { Board }                               from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                             from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketBodyHashUtil }                       from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { TicketStageUtil }                          from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { branchNamesOf }                            from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS }                         from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                            from '../../shared/constants/ProductNames.ts';
@@ -48,19 +44,23 @@ import {
   entityForgePipelineOf,
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
-import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
-import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
-import { launchSnapshotOf, sealOf }                                                        from '../lifecycle/Customs.ts';
-import type { TrackerChange }                                                              from '../tracker/TrackerPipeline.ts';
-import { CrossingStages }                                                                  from './CrossingStages.ts';
-import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
-import { RedHandoff }                                                                      from './RedHandoff.ts';
-import { WatcherFleet }                                                                    from './WatcherFleet.ts';
+import { ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { useRecordedGit }                                   from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
+import { sealOf }                                           from '../lifecycle/Customs.ts';
+import { CrossingStages }                                   from './CrossingStages.ts';
+import { JobLaunch, type JobLaunchContext }                 from './JobLaunch.ts';
+import { RedHandoff }                                       from './RedHandoff.ts';
+import { WatcherFleet }                                     from './WatcherFleet.ts';
+import {
+  CrossingStageRun,
+  type CrossingStagePlace,
+  type StageJob,
+  type StageRun
+} from './testing/CrossingStageRun.ts';
 
 const AT = '2026-11-17T17:00:00+01:00';
-const OBJECT_ID_LENGTH = 40;
 const { SHOP, ADMIN, UI_KIT } = ENTITY_FORGE_ENTITIES;
 const { SHOP_TICKET } = ENTITY_FORGE_TICKETS;
 const CROSSING_PIPELINE = entityForgePipelineOf('shop-crosses-into-ui-kit');
@@ -84,16 +84,11 @@ afterEach(() => {
   for (const folder of folders.splice(0)) removeScratchDirectory(folder);
 });
 
-function commitsOf(scenario: EntityForgeScenario): Record<string, string> {
-  return Object.fromEntries(ENTITY_FORGE_SCENARIO_COMMITS[scenario].map((placeholder, i) => [placeholder, `${i + 1}`.repeat(OBJECT_ID_LENGTH)]));
-}
+const {
+  runStage, stageRunOf: runOf, builtReportOf, reviewedReportOf, commitsOf
+} = CrossingStageRun;
 
-/** The shop's ticket in a scratch copy of the fixture's places, its row storing `stage` and `seals` when given. */
-interface CrossingTicket {
-  readonly board:      Board;
-  readonly context:    JobLaunchContext;
-  readonly repository: string;
-}
+type CrossingTicket = CrossingStagePlace;
 
 interface CrossingRow {
   stage?:    TicketStage;
@@ -102,6 +97,7 @@ interface CrossingRow {
   pipeline?: Pipeline;
 }
 
+/** The shop's ticket in a scratch copy of the fixture's places, its row storing `stage` and `seals` when given. */
 function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
   const repository = createScratchDirectory('entity-forge-crossing');
   folders.push(repository);
@@ -126,147 +122,9 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
-  return { board, context, repository };
-}
-
-/** A stage job of the ticket: its kind, the entity it runs under and the stage's number. */
-interface StageJob {
-  readonly kind:   'build' | 'review';
-  readonly entity: string;
-  readonly stage:  number;
-}
-
-/** Where a stage job's session started, as the scenario names its commits, and its report beside the head it ran on. */
-interface StageRun {
-  readonly scenario:           EntityForgeScenario;
-  readonly startCommit:        string;
-  readonly reportOf:           (headCommit: string) => Record<string, unknown>;
-  /** A scope resume this job already spent on an earlier V17 refusal. */
-  readonly scopeResumed?:      boolean;
-  /** The gate of the job's run that is red, by its name in the run; every gate passes when absent. */
-  readonly redGate?:           string;
-  /** The red handoffs of the job's gates before this run, each resumed; none when absent. */
-  readonly redHandoffsBefore?: number;
-}
-
-function runOf(scenarioName: keyof typeof ENTITY_FORGE_SCENARIOS, startCommit: string, reportOf: StageRun['reportOf']): StageRun {
-  return { scenario: ENTITY_FORGE_SCENARIOS[scenarioName], startCommit, reportOf };
-}
-
-function builtReportOf(extraFields: Record<string, unknown> = {}): (headCommit: string) => Record<string, unknown> {
-  return (headCommit) => ({
-    role:              'builder',
-    outcome:           'built',
-    headCommit,
-    acceptance:        [],
-    alsoFixed:         [],
-    gates:             [{ name: 'verify', commit: headCommit }],
-    handoff:           'Example handoff.',
-    blockedReason:     null,
-    cannotBuildReason: null,
-    ...extraFields,
-  });
-}
-
-function reviewedReportOf(extraFields: Record<string, unknown> = {}): (headCommit: string) => Record<string, unknown> {
-  return (headCommit) => ({
-    role: 'reviewer', headCommit, claims: [], findings: [], reviewText: 'Example package review.', ...extraFields
-  });
-}
-
-function observationOf(job: Readonly<Job>, report: unknown, gate: Parameters<typeof JobLaunch.applyBuildJobObservations>[2][number]['gate']) {
   return {
-    jobId:            job.id,
-    setup:            'installed' as const,
-    calls:            1,
-    report,
-    agentEnd:         null,
-    gate,
-    sandboxRefusal:   null,
-    targetCatchUp:    { verdict: 'not-checked' as const },
-    mainMerge:        null,
-    conflictReReview: null,
+    board, context, repository, ticketId: SHOP_TICKET.id, enterScenario, at: AT, gatedTreeId: 'example-tree'
   };
-}
-
-/** The job's state after Customs, and once Customs passed, after its gate judged its tree green: its outcome and cause once it ended. */
-function runStage(ticket: CrossingTicket, stageJob: StageJob, run: StageRun): { job: Readonly<Job>; whereTheJobWent: string } {
-  const { board, context, repository } = ticket;
-  const { job } = board.launchJob({
-    kind:        stageJob.kind,
-    role:        stageJob.kind === 'build' ? 'builder' : 'reviewer',
-    ticketIds:   [SHOP_TICKET.id],
-    parentJobId: null,
-    attempt:     1,
-    target:      ENTITY_FORGE_MAIN_LINE,
-    entity:      stageJob.entity,
-    stage:       stageJob.stage,
-  }, AT);
-  const commits = commitsOf(run.scenario);
-  enterScenario(run.scenario, { repositoryDirectory: repository, commits });
-  const worktree = JobLaunch.worktreeOf(context.workspace, job);
-  mkdirSync(worktree, { recursive: true });
-  const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
-  mkdirSync(jobFolder, { recursive: true });
-  if (run.scopeResumed === true) {
-    RedHandoff.writeRedHandoff(jobFolder, {
-      kind:                'customs',
-      name:                'V17',
-      command:             null,
-      fixCommand:          null,
-      commit:              '',
-      exitCode:            null,
-      batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
-      fullLogPath:         null,
-      resume:              1,
-      resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
-      interruptedInstance: 1,
-      callBudget:          50,
-      scopeResumed:        true,
-    }, 'V17 refused');
-  }
-  if (run.redHandoffsBefore !== undefined) {
-    RedHandoff.writeRedHandoff(jobFolder, {
-      kind:                'gate',
-      name:                run.redGate ?? '',
-      command:             null,
-      fixCommand:          null,
-      commit:              '',
-      exitCode:            1,
-      batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
-      fullLogPath:         null,
-      resume:              run.redHandoffsBefore,
-      resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
-      interruptedInstance: 1,
-      callBudget:          50,
-    }, 'Example red gate.');
-  }
-  const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === SHOP_TICKET.id)?.body ?? '';
-  const startCommit = commits[run.startCommit] ?? '';
-  const jobStart = { startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketBody), launchSnapshot: launchSnapshotOf(worktree) };
-  writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
-  const reviewStage = TicketStageUtil.stageOfJob(job);
-  if (stageJob.kind === 'review' && reviewStage !== null) board.startReviewBar(SHOP_TICKET.id, { round: 1, owner: job.id, stage: reviewStage }, AT);
-  for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
-  const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD') ?? '';
-  const report = run.reportOf(headCommit);
-  const change = { board, at: AT, workspace: context.workspace } as unknown as TrackerChange;
-  JobLaunch.applyBuildJobObservations(change, context, [observationOf(job, report, { verdict: 'pending' })]);
-  if (board.jobById(job.id)?.state === 'gating') {
-    const manifest = { ...PipelineUtil.entitiesGateRunStampOf(board.pipeline() ?? CROSSING_PIPELINE, stageJob.kind, [stageJob.entity]), prepare: [], gates: [] };
-    const verdict = run.redGate === undefined
-      ? { outcome: 'passed' as const, step: null, output: '' }
-      : {
-        outcome: 'failed' as const, step: run.redGate, output: 'Example red gate.', exitCode: 1
-      };
-    JobLaunch.applyBuildJobObservations(change, context, [observationOf(job, report, {
-      verdict: 'judged', treeId: 'example-tree', ...verdict, ran: true, manifest, cacheReports: []
-    })]);
-  }
-  const ended = board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === job.id);
-  if (ended?.kind === 'job-ended') return { job, whereTheJobWent: `${ended.fields.outcome}: ${ended.fields.cause ?? ''}` };
-  const state = board.jobById(job.id)?.state ?? 'gone';
-  return { job, whereTheJobWent: state === 'interrupted' ? `${state}: ${RedHandoff.redHandoffFactsOf(jobFolder)?.name ?? ''}` : state };
 }
 
 function shopTicketOf(board: Board) {

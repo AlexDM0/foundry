@@ -299,8 +299,7 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   has entities. A job of an entity changes only the homes and the `reach` of its entity. In stage 1 it can also write a
   proposal in a package that its entity whitelists. A later stage of the ticket does not change a sealed package
   change. Customs V17 sends its session back one time for a change outside its entity or to a sealed change, and a
-  second such refusal fails the job. Until the reader accepts a whitelist, the pipeline reader refuses an entity whose
-  `whitelist` names a package (`whitelist-not-supported`).
+  second such refusal fails the job.
 - `src/services/tracker/ProjectLocation.ts` gives the five names of a tracker's place: `repositoryRoot`,
   `projectDirectory`, `projectPrefix`, `worktreeRoot` and `projectDirectoryInWorktree`. Use these names in code and
   docs. `src/shared/utils/ProjectPathsUtil.ts` maps a project path to a repository path, which starts with `/`.

@@ -26,7 +26,6 @@ export type OperationRefusalDetail =
   | { kind: 'unreadable-file-in-the-way'; filePath: string; record: 'epic' | 'draft' }
   | { kind: 'malformed-pipeline'; filePath: string; reason: string }
   | { kind: 'older-pipeline'; filePath: string }
-  | { kind: 'whitelist-not-supported'; filePath: string; entityKeys: readonly string[] }
   | { kind: 'entities-in-a-folder'; filePath: string; projectPrefix: string }
   | { kind: 'role-command-refused'; reason: RoleCommandRefusalReason; commandKind: string }
   | { kind: 'verb-not-relayable'; verb: string; jobId: string }

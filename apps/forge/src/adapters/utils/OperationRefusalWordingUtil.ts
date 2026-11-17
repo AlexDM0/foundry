@@ -644,13 +644,6 @@ function olderPipelineText(filePath: string, channel: RefusalChannel): string {
     + `Pipeline tab of the Bridge${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
 }
 
-function whitelistNotSupportedText(filePath: string, entityKeys: readonly string[], channel: RefusalChannel): string {
-  return `${filePath} holds entities that whitelist a package (${entityKeys.join(', ')}), and this ${PRODUCT_NAMES.PROGRAM} does not run the `
-    + 'stages of a ticket that crosses into a package yet, so the board cannot use it. The file is kept as it is and nothing was written. '
-    + 'Keep it for a release that runs crossings, or empty each whitelist on the Pipeline tab of the Bridge'
-    + `${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
-}
-
 function olderProgramPresentText({
   rootDirectory, olderDataFolderPath, program, olderProgram
 }: OlderProgramPresentDetail, channel: RefusalChannel): string {
@@ -739,8 +732,6 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
         + 'or delete it first.';
     case 'older-pipeline':
       return olderPipelineText(detail.filePath, channel);
-    case 'whitelist-not-supported':
-      return whitelistNotSupportedText(detail.filePath, detail.entityKeys, channel);
     case 'entities-in-a-folder':
       return `The pipeline ${detail.filePath} of the tracker in the folder ${detail.projectPrefix} cannot hold entities: only a tracker at the `
         + `repository's root holds them, since an entity's home is a folder of the repository. ${NOTHING_WAS_WRITTEN}`;

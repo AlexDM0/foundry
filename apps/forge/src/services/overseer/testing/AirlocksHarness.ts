@@ -48,8 +48,11 @@ export interface HarnessTicket {
   group?:         string;
   releasesGroup?: true;
   dependsOn?:     string[];
-  /** `in-review` and queued unless set; a ticket of the bundle already integrated is `reviewed`; a `pending` one is not built yet. */
-  status?:        'pending' | 'in-review' | 'reviewed';
+  /**
+   * `in-review` and queued unless set; a ticket of the bundle already integrated is `reviewed`; a `pending` one is not built yet, and an
+   * `in-progress` one is still in its build.
+   */
+  status?:        'pending' | 'in-progress' | 'in-review' | 'reviewed';
   /** The ticket's entity on a pipeline with entities, whose review green queues it. */
   entity?:        EntityKey;
 }

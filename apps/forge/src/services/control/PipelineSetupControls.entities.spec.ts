@@ -5,9 +5,9 @@
  * that entity's part, whose session a resume opens without one at the forge; a resume opens the level the record opened at and each
  * entity a session served, never an entity whose part only a check made; a level the pipeline has no entity for is refused before
  * anything is written; an answer, a constitution edit, a discard and a check message the session of the level they change and no other;
- * a check covers each entity whose gates the draft touched, with its own gates; a start over stops every session; and an Apply reads each
- * entity's constitution path on main and starts the product owner with the request's words. A forge without
- * entities keeps one session, which `PipelineSetupControls.spec.ts` holds.
+ * a check covers each entity whose gates the draft touched, with its own gates; a start over stops every session; an Apply reads each
+ * entity's constitution path on main and starts the product owner with the request's words; and a draft edit that whitelists a package
+ * with a review is accepted. A forge without entities keeps one session, which `PipelineSetupControls.spec.ts` holds.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -389,5 +389,20 @@ describe('an Apply over entities', () => {
     expect(productOwner?.intake?.text).toBe(entityAssignmentRequestOf(['021']));
     expect(productOwner?.intake?.text).toContain('#021');
     expect(productOwner?.intake?.text).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket entity <id> <key> --reason "<reason>"\``);
+  });
+});
+
+describe('a whitelist in the draft', () => {
+  test('an edit that whitelists a package with a review is accepted, and the draft keeps the whitelist', () => {
+    const fixture = boardAtEntitiesStep();
+    const designSystem = setupOf(fixture).draft?.entities?.['design-system'];
+    if (designSystem === undefined) throw new Error('the fixture has no design-system entity');
+    designSystem.review = { name: 'review' };
+
+    apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: [{ field: 'entity:web/whitelist', value: ['design-system'] }]
+    });
+
+    expect(setupOf(fixture).draft?.entities?.['web']?.whitelist).toEqual(['design-system']);
   });
 });

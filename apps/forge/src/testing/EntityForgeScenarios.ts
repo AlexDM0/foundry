@@ -31,6 +31,8 @@ export const ENTITY_FORGE_SCENARIOS = {
   SHOP_TICKET_ADAPTED:          'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, apps/shop adapted at <stage tip>',
   SHOP_TICKET_PACKAGE_RESHAPED: 'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit reshaped at <stage tip>',
   SHOP_TICKET_LOCKFILE_SEALED:  'a top-level forge, ticket-001 of shop crossed into packages/ui-kit at <shop ticket tip>, packages/ui-kit and bun.lock changed at <stage tip>',
+  SHOP_TICKET_RESHAPED_ADAPTED: 'a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, packages/ui-kit reshaped at <stage tip>, apps/shop adapted at <adapt tip>',
+  SHOP_TICKET_ADAPTED_REVIEWED: 'a top-level forge, ticket-001 of shop crossed at <shop ticket tip>, reshaped at <stage tip>, adapted at <adapt tip>, fixed at <home review tip>',
 } as const;
 
 export type EntityForgeScenario = typeof ENTITY_FORGE_SCENARIOS[keyof typeof ENTITY_FORGE_SCENARIOS];
@@ -47,6 +49,8 @@ export const ENTITY_FORGE_SCENARIO_COMMITS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED]:          ['<start>', '<shop ticket tip>', '<stage tip>'],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED]: ['<start>', '<shop ticket tip>', '<stage tip>'],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  ['<start>', '<shop ticket tip>', '<stage tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED]: ['<start>', '<shop ticket tip>', '<stage tip>', '<adapt tip>'],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: ['<start>', '<shop ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>'],
 };
 
 /** The tickets whose worktree each scenario made. */
@@ -61,6 +65,8 @@ export const ENTITY_FORGE_SCENARIO_TICKETS: Readonly<Record<EntityForgeScenario,
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED]:          [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_PACKAGE_RESHAPED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
   [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_LOCKFILE_SEALED]:  [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_RESHAPED_ADAPTED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
+  [ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED]: [ENTITY_FORGE_TICKETS.SHOP_TICKET],
 };
 
 export interface EntityForgeCall {
@@ -94,7 +100,7 @@ const TICKET_WORK_READS: readonly EntityForgeCall[] = [
 ];
 
 /** Each commit a ticket worktree's branch may hold, whose message V7 reads. */
-const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>'];
+const TICKET_COMMITS: readonly string[] = ['<shop ticket tip>', '<need ticket tip>', '<stage tip>', '<adapt tip>', '<home review tip>'];
 
 /**
  * What Customs asks a ticket worktree when it verifies a job of the ticket that started at `startCommit` against the main line: the
@@ -123,45 +129,55 @@ const TICKET_CUSTOMS_READS: readonly EntityForgeCall[] = [
   ...ticketCustomsReadsFrom('<start>'),
   ...ticketCustomsReadsFrom('<shop ticket tip>'),
   ...ticketCustomsReadsFrom('<stage tip>'),
+  ...ticketCustomsReadsFrom('<adapt tip>'),
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<shop ticket tip>', 'HEAD', '--'] },
   { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<stage tip>', 'HEAD', '--'] },
+  { gitArguments: ['diff', '--name-only', '--no-renames', '-z', '<adapt tip>', 'HEAD', '--'] },
   ...TICKET_COMMITS.map((commit): EntityForgeCall => ({ gitArguments: ['log', '-1', '--format=%B', commit] })),
 ];
 
 /**
- * What a review's settlement asks of a later stage that started at the crossed tip and fixed at the stage tip: the rework of its fixes and
- * the size of the change it reviewed.
+ * What a review's settlement asks of a stage that started at `reviewStart` and fixed at `fixTip`: the rework of its fixes and the size of
+ * the change it reviewed.
  */
+function ticketReviewSettlementReadsOf(reviewStart: string, fixTip: string): readonly EntityForgeCall[] {
+  return [
+    { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${reviewStart}^{commit}`] },
+    { gitArguments: ['merge-base', '--is-ancestor', reviewStart, fixTip] },
+    { gitArguments: ['rev-list', '--merges', `${reviewStart}..${fixTip}`] },
+    { gitArguments: ['rev-list', '--reverse', `${reviewStart}..${fixTip}`] },
+    {
+      gitArguments: [
+        'log',
+        '--patch',
+        '--format=',
+        '--no-show-signature',
+        '--no-color',
+        '--no-ext-diff',
+        '--no-textconv',
+        '--no-relative',
+        '--submodule=short',
+        '--src-prefix=a/',
+        '--dst-prefix=b/',
+        '--find-renames',
+        '--diff-algorithm=myers',
+        '--indent-heuristic',
+        '--unified=25',
+        `${reviewStart}..${fixTip}`,
+      ],
+    },
+    {
+      gitArguments: [
+        'diff', '--shortstat', '--no-color', '--no-ext-diff', '--no-textconv', '--no-relative', '--find-renames', `${ENTITY_FORGE_MAIN_LINE}...${reviewStart}`,
+      ],
+    },
+  ];
+}
+
+/** The package review that starts at the crossed tip and fixes at the stage tip, and the home review that fixes after `adapt`. */
 const TICKET_REVIEW_SETTLEMENT_READS: readonly EntityForgeCall[] = [
-  { gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', '<shop ticket tip>^{commit}'] },
-  { gitArguments: ['merge-base', '--is-ancestor', '<shop ticket tip>', '<stage tip>'] },
-  { gitArguments: ['rev-list', '--merges', '<shop ticket tip>..<stage tip>'] },
-  { gitArguments: ['rev-list', '--reverse', '<shop ticket tip>..<stage tip>'] },
-  {
-    gitArguments: [
-      'log',
-      '--patch',
-      '--format=',
-      '--no-show-signature',
-      '--no-color',
-      '--no-ext-diff',
-      '--no-textconv',
-      '--no-relative',
-      '--submodule=short',
-      '--src-prefix=a/',
-      '--dst-prefix=b/',
-      '--find-renames',
-      '--diff-algorithm=myers',
-      '--indent-heuristic',
-      '--unified=25',
-      '<shop ticket tip>..<stage tip>',
-    ],
-  },
-  {
-    gitArguments: [
-      'diff', '--shortstat', '--no-color', '--no-ext-diff', '--no-textconv', '--no-relative', '--find-renames', `${ENTITY_FORGE_MAIN_LINE}...<shop ticket tip>`,
-    ],
-  },
+  ...ticketReviewSettlementReadsOf('<shop ticket tip>', '<stage tip>'),
+  ...ticketReviewSettlementReadsOf('<adapt tip>', '<home review tip>'),
 ];
 
 const SEAL_DIFFERENCE: readonly string[] = ['diff', '--no-color', '--no-ext-diff', '--binary', '--no-renames', '-U0', '<start>', 'HEAD', '--'];

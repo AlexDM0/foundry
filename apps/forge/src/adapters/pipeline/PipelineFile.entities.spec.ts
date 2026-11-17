@@ -1,8 +1,8 @@
 /**
  * `pipeline.json` version 4, the format that holds entities. What matters: a pipeline with entities is mapped and checked whole, so a
  * stored file gets every refusal the entities earn, each with its own reason naming the entity; once nothing is wrong it is read, and
- * writes back byte for byte; an entity whose whitelist names a package is still refused as not yet supported, a verdict a refusal names
- * apart from a repair, since no forge runs a crossing's stages before step 4, while an empty whitelist names none and is read; beside
+ * writes back byte for byte; an entity whose whitelist names a package is read with its whitelist, the setup draft's read among them,
+ * since a crossing's stages run, and an empty whitelist names none and is read too; beside
  * entities the forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; version
  * 4 exists only for entities, and only version 4 holds them; and a pipeline with entities is written as version 4 in the read's key order.
  */
@@ -20,8 +20,6 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { PipelineFile }                                   from './PipelineFile.ts';
 
 const NO_PHASES = { build: [], review: [], merge: [] };
-
-const WHITELIST_NOT_SUPPORTED_REASON = 'the entities web whitelist a package, which this build does not support yet (whitelist-not-supported)';
 
 let scratchDirectory = '';
 
@@ -71,12 +69,10 @@ const SOUND_ENTITIES = {
   'design-system': entity({ kind: 'package', home: ['/packages/design-system'], review: { name: 'review' } }),
 };
 
-/** The sound entities with no whitelist, which this build runs. */
-const STRICTLY_ISOLATED_ENTITIES = { ...SOUND_ENTITIES, web: { ...SOUND_ENTITIES.web, whitelist: undefined } };
 
 describe('a pipeline with entities', () => {
-  test('a pipeline with sound entities and no whitelist is read whole', () => {
-    const reading = PipelineFile.documentReadingOf(withEntities(STRICTLY_ISOLATED_ENTITIES, { agents: { productOwner: { model: 'opus' } }, approvals: { merge: true } }));
+  test('a pipeline with sound entities is read whole', () => {
+    const reading = PipelineFile.documentReadingOf(withEntities(SOUND_ENTITIES, { agents: { productOwner: { model: 'opus' } }, approvals: { merge: true } }));
     expect(reading.verdict).toBe('readable');
     expect(reading.verdict === 'readable' ? Object.keys(reading.pipeline.entities ?? {}) : []).toEqual(['web', 'design-system']);
     expect(reading.verdict === 'readable' ? reading.pipeline.entities?.['web']?.dependsOn : []).toEqual(['design-system']);
@@ -85,18 +81,17 @@ describe('a pipeline with entities', () => {
   test('a stored pipeline with entities is written back byte for byte', () => {
     const pipelineFilePath = join(scratchDirectory, 'pipeline.json');
     const pipeline = {
-      version: 4, prepare: [], gates: [], phases: NO_PHASES, entities: STRICTLY_ISOLATED_ENTITIES
+      version: 4, prepare: [], gates: [], phases: NO_PHASES, entities: SOUND_ENTITIES
     } as unknown as Pipeline;
     writeFileSync(pipelineFilePath, PipelineFile.contentsOf(pipeline));
     const reading = PipelineFile.read(pipelineFilePath);
     expect(reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : reading.verdict).toBe(readFileSync(pipelineFilePath, 'utf8'));
   });
 
-  test('an entity whose whitelist names a package is refused as not yet supported, however sound its entities are', () => {
-    expect(reasonOf(withEntities(SOUND_ENTITIES, { agents: { productOwner: { model: 'opus' } }, approvals: { merge: true } })))
-      .toBe(WHITELIST_NOT_SUPPORTED_REASON);
-    const unsupportedEntities = { kind: 'whitelist-not-supported', entityKeys: ['web'] } as const;
-    expect(PipelineFile.documentReadingOf(withEntities(SOUND_ENTITIES))).toEqual({ verdict: 'malformed', reason: WHITELIST_NOT_SUPPORTED_REASON, unsupportedEntities });
+  test('an entity whose whitelist names a package is read with its whitelist, as a stored file and as a setup draft is', () => {
+    expect(reasonOf(withEntities(SOUND_ENTITIES, { agents: { productOwner: { model: 'opus' } }, approvals: { merge: true } }))).toBe(READ);
+    const reading = PipelineFile.documentReadingOf(PipelineFile.storedDocumentOf(withEntities(SOUND_ENTITIES) as unknown as Pipeline));
+    expect(reading.verdict === 'readable' ? reading.pipeline.entities?.['web']?.whitelist : reading).toEqual(['design-system']);
   });
 
   test('an empty whitelist names no package and is read', () => {
@@ -104,7 +99,7 @@ describe('a pipeline with entities', () => {
   });
 
   test('the root entity\'s home may be the repository\'s root alone, as the Bridge writes it', () => {
-    expect(reasonOf(withEntities({ ...STRICTLY_ISOLATED_ENTITIES, root: entity({ kind: 'root', home: ['/'] }) }))).toBe(READ);
+    expect(reasonOf(withEntities({ ...SOUND_ENTITIES, root: entity({ kind: 'root', home: ['/'] }) }))).toBe(READ);
   });
 
   test.each([
@@ -151,7 +146,7 @@ describe('the forge\'s own keys beside entities', () => {
   });
 
   test('an empty reach beside entities is no reach, and is not refused for it', () => {
-    expect(reasonOf(withEntities(STRICTLY_ISOLATED_ENTITIES, { reach: [] }))).toBe(READ);
+    expect(reasonOf(withEntities(SOUND_ENTITIES, { reach: [] }))).toBe(READ);
   });
 });
 
