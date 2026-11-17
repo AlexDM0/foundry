@@ -10,6 +10,7 @@ export interface ForgeRegistryFacts {
   readonly root:              string;
   readonly overseerUrl:       string;
   readonly overseerProcessId: number;
+  readonly program:           string | null;
   readonly lastCommand:       string | null;
   readonly lastChangedAt:     string | null;
 }

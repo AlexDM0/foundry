@@ -110,6 +110,7 @@ function readFromTheRegistryAlone(
     codeVersion:       null,
     lastReportedAt:    null,
     overseerStartedAt: null,
+    program:           '/Users/alexexample/.bun/bin/forge',
     lastCommand:       null,
     concurrency:       null,
     readyTicketCount:  null,

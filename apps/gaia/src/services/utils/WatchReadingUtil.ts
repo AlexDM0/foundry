@@ -23,6 +23,7 @@ function registryFactsOf(forge: RegisteredForge, overseer: RegisteredOverseer): 
     root:              forge.root,
     overseerUrl:       overseer.url,
     overseerProcessId: overseer.processId,
+    program:           forge.program,
     lastCommand:       forge.lastCommand,
     lastChangedAt:     forge.lastChangedAt,
   };
@@ -42,6 +43,7 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
     codeVersion:       null,
     lastReportedAt:    null,
     overseerStartedAt: forge.overseer?.startedAt ?? null,
+    program:           forge.program,
     lastCommand:       forge.lastCommand,
     lastChangedAt:     forge.lastChangedAt,
     concurrency:       null,
@@ -78,6 +80,7 @@ function dormantReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading
     url:               null,
     processId:         null,
     overseerStartedAt: null,
+    program:           forge.program,
     lastCommand:       forge.lastCommand,
     lastChangedAt:     forge.lastChangedAt,
     concurrency:       concurrency === null ? null : { ...concurrency, ticketsWaitingForMachineSlot: null },
@@ -114,6 +117,7 @@ function unreachableReadingOf(forge: RegisteredForge, lastWholeReading: ForgeRea
     ...lastWholeReading,
     fidelity:      'unreachable',
     condition:     'unreachable',
+    program:       forge.program,
     lastCommand:   forge.lastCommand,
     lastChangedAt: forge.lastChangedAt,
   };

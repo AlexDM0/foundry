@@ -442,6 +442,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:22.000Z',
   overseerStartedAt: '2026-11-12T09:12:00.000Z',
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       null,
   lastChangedAt:     '2026-11-12T09:12:00.000Z',
   concurrency:       {
@@ -541,6 +542,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:24.000Z',
   overseerStartedAt: '2026-11-12T08:40:00.000Z',
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       null,
   lastChangedAt:     '2026-11-12T08:40:00.000Z',
   concurrency:       {
@@ -631,6 +633,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T13:19:18.000Z',
   overseerStartedAt: '2026-11-12T11:02:00.000Z',
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       null,
   lastChangedAt:     '2026-11-12T11:02:00.000Z',
   concurrency:       {
@@ -685,6 +688,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
   codeVersion:       'b81e07d',
   lastReportedAt:    '2026-11-12T13:19:20.000Z',
   overseerStartedAt: '2026-11-12T12:40:00.000Z',
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       null,
   lastChangedAt:     '2026-11-12T12:40:00.000Z',
   concurrency:       {
@@ -740,6 +744,7 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
   codeVersion:       '3f9a2c1',
   lastReportedAt:    '2026-11-12T12:19:58.000Z',
   overseerStartedAt: null,
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       'Stop forge',
   lastChangedAt:     '2026-11-12T12:20:00.000Z',
   concurrency:       {
@@ -788,6 +793,7 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   codeVersion:       null,
   lastReportedAt:    null,
   overseerStartedAt: null,
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       'Stop forge',
   lastChangedAt:     '2026-09-03T17:40:00.000Z',
   concurrency:       null,

@@ -174,6 +174,8 @@ export interface FleetDocumentForge {
   codeVersion:       string | null;
   lastReportedAt:    string | null;
   overseerStartedAt: string | null;
+  /** The forge program the registry names for this forge; `null` when it names none, and Gaia then starts it with the one in its settings. */
+  program:           string | null;
   lastCommand:       string | null;
   lastChangedAt:     string | null;
   concurrency:       FleetDocumentConcurrency | null;

@@ -53,6 +53,7 @@ export function registryFactsOf(reading: ForgeReading): ForgeRegistryFacts {
     root:              reading.root,
     overseerUrl:       reading.url,
     overseerProcessId: reading.processId,
+    program:           reading.program,
     lastCommand:       reading.lastCommand,
     lastChangedAt:     reading.lastChangedAt,
   };

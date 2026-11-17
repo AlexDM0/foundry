@@ -24,6 +24,7 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
   root:              '/Users/alexexample/development/example-project',
   overseerUrl:       'http://127.0.0.1:54795/',
   overseerProcessId: 21_008,
+  program:           null,
   lastCommand:       'open',
   lastChangedAt:     '2026-11-12T09:00:00.000Z',
 };

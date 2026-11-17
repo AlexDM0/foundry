@@ -78,6 +78,7 @@ const RECORDED_READING: ForgeReading = {
   codeVersion:       RECORDED_CODE_VERSION,
   lastReportedAt:    EXAMPLE_READ_STAMP,
   overseerStartedAt: '2026-11-16T12:44:59+01:00',
+  program:           STOREFRONT.program,
   lastCommand:       STOREFRONT.lastCommand,
   lastChangedAt:     STOREFRONT.lastChangedAt,
   concurrency:       {
@@ -398,6 +399,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       codeVersion:       RECORDED_CODE_VERSION,
       lastReportedAt:    null,
       overseerStartedAt: null,
+      program:           STOREFRONT.program,
       lastCommand:       STOREFRONT.lastCommand,
       lastChangedAt:     STOREFRONT.lastChangedAt,
       concurrency:       null,

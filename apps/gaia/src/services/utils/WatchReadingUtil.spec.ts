@@ -18,7 +18,7 @@ function entryOf(reading: ForgeReading, overseer: RegisteredForge['overseer']): 
     trackerId:     reading.trackerId,
     project:       reading.project,
     root:          reading.root,
-    program:       null,
+    program:       reading.program,
     overseer,
     lastCommand:   reading.lastCommand,
     lastChangedAt: reading.lastChangedAt,
@@ -173,6 +173,7 @@ describe('the registry facts', () => {
       root:              READINGS.designSystem.root,
       overseerUrl:       EXAMPLE_OVERSEER.url,
       overseerProcessId: EXAMPLE_OVERSEER.processId,
+      program:           READINGS.designSystem.program,
       lastCommand:       STOP_FACTS.lastCommand,
       lastChangedAt:     STOP_FACTS.lastChangedAt,
     });
