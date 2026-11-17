@@ -1,21 +1,31 @@
 /**
  * What the stored pipeline means beside its steps: the hashes that say what judged a row and whether the file moved, the gates of each
- * phase, the instruction list a role reads, and the folders its gates write. The steps stay structured: each runs as its own process,
- * and a display line is the shell grammar's to render.
+ * phase, the instruction list a role reads, the folders its gates write, and the single pipeline of an entity. The steps stay structured:
+ * each runs as its own process, and a display line is the shell grammar's to render.
  */
 import { GATE_PHASES, type GatePhase, type GateRunStamp } from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
+  EntityKey,
+  ForgeLevelAgentRole,
   InstructionEntry,
   Pipeline,
   PipelineAgentRole,
+  PipelineEntity,
   PipelineFormatVersion,
   PipelineGate,
+  PipelineReview,
   PipelineStep
 } from '../@types/Pipeline.ts';
-import { EARLIEST_PIPELINE_FORMAT_VERSION, PIPELINE_FORMAT_VERSION } from '../@types/Pipeline.ts';
-import { DEFAULT_INSTRUCTIONS_OF_ROLE }                              from '../constants/PipelineDefaults.ts';
-import { TicketBodyHashUtil }                                        from './TicketBodyHashUtil.ts';
+import {
+  EARLIEST_PIPELINE_FORMAT_VERSION,
+  ENTITIES_PIPELINE_FORMAT_VERSION,
+  FORGE_LEVEL_AGENT_ROLES,
+  PIPELINE_AGENT_ROLES,
+  PIPELINE_FORMAT_VERSION
+} from '../@types/Pipeline.ts';
+import { DEFAULT_INSTRUCTIONS_OF_ROLE } from '../constants/PipelineDefaults.ts';
+import { TicketBodyHashUtil }           from './TicketBodyHashUtil.ts';
 
 /** A gate defined once, with the phases that run it, in the phases' order. */
 export interface CataloguedGate {
@@ -55,11 +65,45 @@ function canonicalAgentSettingsOf(settings: Readonly<AgentStepSettings>): object
   };
 }
 
+function canonicalReviewOf(review: Readonly<PipelineReview> | undefined): object | null {
+  return review === undefined ? null : { name: review.name, reReview: review.reReview?.thresholdLines ?? null };
+}
+
+function canonicalAgentsOf(agents: Readonly<Partial<Record<PipelineAgentRole, AgentStepSettings>>> | undefined): object {
+  return Object.entries(agents ?? {}).sort(([a], [b]) => a.localeCompare(b)).map(([role, settings]) => [role, canonicalAgentSettingsOf(settings)]);
+}
+
+/** Every key of an entity, each option filled, so a hand edit that only reorders keys or writes out a default keeps the hash. */
+function canonicalEntityOf(entity: Readonly<PipelineEntity>): object {
+  return {
+    kind:         entity.kind,
+    home:         entity.home,
+    summary:      entity.summary ?? null,
+    constitution: entity.constitution?.path ?? null,
+    prepare:      entity.prepare.map(canonicalStepOf),
+    gates:        entity.gates.map(canonicalGateOf),
+    phases:       { build: entity.phases.build, review: entity.phases.review, merge: entity.phases.merge },
+    review:       canonicalReviewOf(entity.review),
+    agents:       canonicalAgentsOf(entity.agents),
+    whitelist:    entity.whitelist ?? [],
+    reach:        entity.reach ?? [],
+    dependsOn:    entity.dependsOn ?? [],
+    concurrency:  entity.concurrency ?? null,
+  };
+}
+
+/** Sorted by key in code-unit order, which no locale changes, so the order of the file moves no hash. */
+function canonicalEntitiesOf(entities: Readonly<Record<EntityKey, PipelineEntity>>): object {
+  return Object.entries(entities).sort(([a], [b]) => (a < b ? -1 : 1)).map(([entityKey, entity]) => [entityKey, canonicalEntityOf(entity)]);
+}
+
 /**
- * A gate folder from the repository's root, a prepare step's folder or a reach: the keys version 2 lacks. A pipeline holding none is
- * stored as version 2, so a release that reads only version 2 still reads it, and one holding any as version 3, which that release refuses.
+ * The earliest format that holds the pipeline. Entities are version 4's alone. Without them, a gate folder from the repository's root, a
+ * prepare step's folder or a reach are the keys version 2 lacks: a pipeline holding none is stored as version 2, so a release that reads
+ * only version 2 still reads it, and one holding any as version 3, which that release refuses.
  */
 function formatVersionOf(pipeline: Readonly<Pipeline>): PipelineFormatVersion {
+  if (pipeline.entities !== undefined) return ENTITIES_PIPELINE_FORMAT_VERSION;
   const holdsANewerKey = pipeline.reach !== undefined
     || pipeline.prepare.some((step) => step.in !== undefined)
     || pipeline.gates.some((gate) => gate.in?.startsWith('/') === true);
@@ -67,20 +111,20 @@ function formatVersionOf(pipeline: Readonly<Pipeline>): PipelineFormatVersion {
 }
 
 /**
- * Every key but the version, the approvals and the billing, in a fixed order, `agents` sorted by role; `reach` only in version 3, so a
- * version 2 pipeline hashes as it did before version 3 existed.
+ * Every key but the version, the approvals and the billing, in a fixed order, `agents` sorted by role; `reach` from version 3 and
+ * `entities` only in version 4, so a version 2 or 3 pipeline hashes as it did before the next version existed.
  */
 function canonicalShapeOf(pipeline: Readonly<Pipeline>, formatVersion: PipelineFormatVersion): object {
   return {
     prepare:      pipeline.prepare.map(canonicalStepOf),
     gates:        pipeline.gates.map(canonicalGateOf),
     phases:       { build: pipeline.phases.build, review: pipeline.phases.review, merge: pipeline.phases.merge },
-    review:       pipeline.review === undefined ? null : { name: pipeline.review.name, reReview: pipeline.review.reReview?.thresholdLines ?? null },
+    review:       canonicalReviewOf(pipeline.review),
     airlock:      pipeline.airlock === undefined ? null : { reReview: pipeline.airlock.reReview?.thresholdLines ?? null },
     constitution: pipeline.constitution?.path ?? null,
-    agents:       Object.entries(pipeline.agents ?? {}).sort(([a], [b]) => a.localeCompare(b))
-      .map(([role, settings]) => [role, canonicalAgentSettingsOf(settings)]),
+    agents:       canonicalAgentsOf(pipeline.agents),
     ...(formatVersion === EARLIEST_PIPELINE_FORMAT_VERSION ? {} : { reach: pipeline.reach ?? [] }),
+    ...(formatVersion === ENTITIES_PIPELINE_FORMAT_VERSION ? { entities: canonicalEntitiesOf(pipeline.entities ?? {}) } : {}),
   };
 }
 
@@ -138,6 +182,44 @@ function writablePathsOf(pipeline: Readonly<Pipeline>): string[] {
   return [...new Set(gateCatalogueOf(pipeline).flatMap(({ gate }) => gate.writes ?? []))];
 }
 
+function roleIsForgeLevel(role: PipelineAgentRole): role is ForgeLevelAgentRole {
+  return (FORGE_LEVEL_AGENT_ROLES as readonly PipelineAgentRole[]).includes(role);
+}
+
+/** The forge's settings for the roles it sets once, the entity's for the rest, in the order the flow draws the roles. */
+function agentsOfEntity(pipeline: Readonly<Pipeline>, entity: Readonly<PipelineEntity>): Partial<Record<PipelineAgentRole, AgentStepSettings>> {
+  const agents: Partial<Record<PipelineAgentRole, AgentStepSettings>> = {};
+  for (const role of PIPELINE_AGENT_ROLES) {
+    const settings = roleIsForgeLevel(role) ? pipeline.agents?.[role] : entity.agents?.[role];
+    if (settings !== undefined) agents[role] = settings;
+  }
+  return agents;
+}
+
+/**
+ * The entity as an ordinary single pipeline: its own steps, gates, phases, review, constitution, reach and agents, with the forge's merge
+ * train, approvals, billing and forge-level agents. Null when the pipeline has no entity of that key.
+ */
+function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): Pipeline | null {
+  const { entities } = pipeline;
+  const entity       = entities !== undefined && Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+  if (entity === undefined) return null;
+  const agents = agentsOfEntity(pipeline, entity);
+  return {
+    version: PIPELINE_FORMAT_VERSION,
+    prepare: entity.prepare,
+    gates:   entity.gates,
+    phases:  entity.phases,
+    ...(entity.review === undefined ? {} : { review: entity.review }),
+    ...(pipeline.airlock === undefined ? {} : { airlock: pipeline.airlock }),
+    ...(entity.constitution === undefined ? {} : { constitution: entity.constitution }),
+    ...(Object.keys(agents).length === 0 ? {} : { agents }),
+    ...(pipeline.approvals === undefined ? {} : { approvals: pipeline.approvals }),
+    ...(pipeline.billing === undefined ? {} : { billing: pipeline.billing }),
+    ...(entity.reach === undefined ? {} : { reach: entity.reach }),
+  };
+}
+
 export const PipelineUtil = Object.freeze({
   contentHashOf,
   formatVersionOf,
@@ -146,6 +228,7 @@ export const PipelineUtil = Object.freeze({
   gatesOfPhase,
   minimalPipelineOf,
   phaseHashOf,
+  pipelineOfEntity,
   resolvedInstructionsOf,
   writablePathsOf,
 });

@@ -8,6 +8,7 @@ import {
   type AgentStepSettings,
   type ConditionalReReview,
   EARLIEST_PIPELINE_FORMAT_VERSION,
+  ENTITIES_PIPELINE_FORMAT_VERSION,
   type InstructionEntry,
   PIPELINE_FORMAT_VERSION,
   type Pipeline,
@@ -43,13 +44,17 @@ const EARLIEST_PIPELINE_KEYS = ['version', 'prepare', 'gates', 'phases', 'review
 const PIPELINE_KEYS_OF_VERSION = {
   [EARLIEST_PIPELINE_FORMAT_VERSION]: EARLIEST_PIPELINE_KEYS,
   [PIPELINE_FORMAT_VERSION]:          [...EARLIEST_PIPELINE_KEYS, 'reach'],
+  [ENTITIES_PIPELINE_FORMAT_VERSION]: [...EARLIEST_PIPELINE_KEYS, 'reach', 'entities'],
 } as const satisfies Record<PipelineFormatVersion, readonly string[]>;
+/** Version 4 holds entities, which no forge runs yet, so this build still refuses it as a newer format. */
+const READABLE_FORMAT_VERSIONS = [EARLIEST_PIPELINE_FORMAT_VERSION, PIPELINE_FORMAT_VERSION] as const satisfies readonly PipelineFormatVersion[];
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS_OF_VERSION = {
   [EARLIEST_PIPELINE_FORMAT_VERSION]: ['name', 'run'],
   [PIPELINE_FORMAT_VERSION]:          ['name', 'run', 'in'],
+  [ENTITIES_PIPELINE_FORMAT_VERSION]: ['name', 'run', 'in'],
 } as const satisfies Record<PipelineFormatVersion, readonly string[]>;
 const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
 const PHASE_KEYS           = ['build', 'review', 'merge'] as const satisfies readonly GatePhase[];
@@ -402,8 +407,8 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
 }
 
 /**
- * Version 2 and 3 are read, each with its own keys; no release converts an earlier file, so one with no version or a lower one is
- * `older`, never mapped, and a higher one is malformed.
+ * Version 2 and 3 are read, each by its exact version with its own keys; no release converts an earlier file, so one with no version or a
+ * lower one is `older`, never mapped, and a higher one is malformed.
  */
 function documentReadingOf(document: unknown): PipelineReading {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
@@ -411,10 +416,11 @@ function documentReadingOf(document: unknown): PipelineReading {
   if (version === undefined) return { verdict: 'older' };
   if (typeof version !== 'number' || !Number.isInteger(version)) return { verdict: 'malformed', reason: 'version is not a whole number' };
   if (version < EARLIEST_PIPELINE_FORMAT_VERSION) return { verdict: 'older' };
-  if (version > PIPELINE_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${PIPELINE_FORMAT_VERSION}, which this build reads (newer-format)` };
+  const formatVersion = READABLE_FORMAT_VERSIONS.find((readableVersion) => readableVersion === version);
+  if (formatVersion === undefined) {
+    return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${Math.max(...READABLE_FORMAT_VERSIONS)}, which this build reads (newer-format)` };
   }
-  const pipeline = pipelineOf(document, version === EARLIEST_PIPELINE_FORMAT_VERSION ? EARLIEST_PIPELINE_FORMAT_VERSION : PIPELINE_FORMAT_VERSION);
+  const pipeline = pipelineOf(document, formatVersion);
   return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
 }
 

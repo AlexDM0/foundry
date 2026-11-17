@@ -5,14 +5,16 @@
  * moves with every key but `billing`, and a pipeline with no key version 3 added hashes as version 2 did. The phase hashes were taken from the
  * implementation that first computed them, a version 2 pipeline's content hash from version 2's (`db64ed0a`) and a version 3 one's from
  * version 3's, since the content hash covers the version; retake them only in a change that means to invalidate every recorded row, by
- * printing each hash for each pipeline below. The format version names the earliest that holds a pipeline.
+ * printing each hash for each pipeline below. The format version names the earliest that holds a pipeline, and only entities make it 4.
+ * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
+ * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { GatePhase }                  from '../@types/GatePhase.ts';
-import { GATE_PHASES }                     from '../@types/GatePhase.ts';
-import type { InstructionEntry, Pipeline } from '../@types/Pipeline.ts';
-import { PipelineUtil }                    from './PipelineUtil.ts';
+import type { GatePhase }                                  from '../@types/GatePhase.ts';
+import { GATE_PHASES }                                     from '../@types/GatePhase.ts';
+import type { InstructionEntry, Pipeline, PipelineEntity } from '../@types/Pipeline.ts';
+import { PipelineUtil }                                    from './PipelineUtil.ts';
 
 const ONE_STEP_ONE_GATE: Pipeline = {
   version: 3,
@@ -41,6 +43,38 @@ const FULL_VERSION_TWO_PIPELINE: Pipeline = {
 };
 
 const FULL_PIPELINE: Pipeline = { ...FULL_VERSION_TWO_PIPELINE, reach: ['/packages/shared', '/bun.lock'] };
+
+const EXAMPLE_APP_ENTITY: PipelineEntity = {
+  kind:         'app',
+  home:         ['/apps/example'],
+  summary:      'The example app.',
+  constitution: { path: '/apps/example/CONSTITUTION.md' },
+  prepare:      [{ name: 'install', run: 'bun install', in: '/' }],
+  gates:        [{ name: 'verify', run: 'bun run gate:example', in: '/' }],
+  phases:       { build: ['verify'], review: ['verify'], merge: ['verify'] },
+  review:       { name: 'review' },
+  agents:       { builder: { model: 'opus', effort: 'high' } },
+  whitelist:    ['shared'],
+  reach:        ['/bun.lock'],
+  dependsOn:    ['shared'],
+  concurrency:  2,
+};
+
+const SHARED_PACKAGE_ENTITY: PipelineEntity = {
+  kind: 'package', home: ['/packages/shared'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'review' },
+};
+
+const ENTITIES_PIPELINE: Pipeline = {
+  version:   3,
+  prepare:   [],
+  gates:     [],
+  phases:    { build: [], review: [], merge: [] },
+  airlock:   { reReview: { thresholdLines: 300 } },
+  agents:    { productOwner: { model: 'opus', effort: 'high' }, builder: { model: 'sonnet' } },
+  approvals: { merge: true },
+  billing:   { mode: 'subscription' },
+  entities:  { 'example': EXAMPLE_APP_ENTITY, 'shared': SHARED_PACKAGE_ENTITY },
+};
 
 const FULL_PHASE_HASHES: Record<GatePhase, string> = { build: '0496db2e5271e410', review: '3a8acba95f67264e', merge: '056057fab8c449a0' };
 
@@ -143,6 +177,17 @@ describe('the format version', () => {
     expect(PipelineUtil.formatVersionOf({ ...ONE_STEP_ONE_GATE, prepare: [{ name: 'install', run: 'bun install', in: 'packages/example' }] })).toBe(3);
     expect(PipelineUtil.formatVersionOf({ ...ONE_STEP_ONE_GATE, gates: [{ name: 'verify', run: 'bun run verify', in: '/' }] })).toBe(3);
   });
+
+  test('is 4 for a pipeline with entities, an empty entity record included, whatever else it holds', () => {
+    expect(PipelineUtil.formatVersionOf(ENTITIES_PIPELINE)).toBe(4);
+    expect(PipelineUtil.formatVersionOf({ ...PipelineUtil.minimalPipelineOf(), entities: {} })).toBe(4);
+    expect(PipelineUtil.formatVersionOf({ ...FULL_PIPELINE, entities: {} })).toBe(4);
+  });
+
+  test('is never 4 for a pipeline without entities', () => {
+    for (const [description, pipeline] of FROZEN_PHASE_AND_CONTENT_HASHES) expect(PipelineUtil.formatVersionOf(pipeline), description).not.toBe(4);
+    for (const [description, pipeline] of EDITS_OUTSIDE_THE_GATES) expect(PipelineUtil.formatVersionOf(pipeline), description).not.toBe(4);
+  });
 });
 
 describe('the content hash', () => {
@@ -164,6 +209,16 @@ describe('the content hash', () => {
     expect(PipelineUtil.contentHashOf({ ...FULL_PIPELINE, gates: [...FULL_PIPELINE.gates, { name: 'audit', run: 'bun audit' }] })).not.toBe(baseHash);
     expect(PipelineUtil.contentHashOf({ ...FULL_PIPELINE, phases: { ...FULL_PIPELINE.phases, review: [] } })).not.toBe(baseHash);
     expect(PipelineUtil.contentHashOf({ ...FULL_PIPELINE, prepare: [] })).not.toBe(baseHash);
+  });
+
+  test('changes when an entity changes, and keeps its hash when only the order of the entities changes', () => {
+    const baseHash = PipelineUtil.contentHashOf(ENTITIES_PIPELINE);
+    const reordered: Pipeline = { ...ENTITIES_PIPELINE, entities: { 'shared': SHARED_PACKAGE_ENTITY, 'example': EXAMPLE_APP_ENTITY } };
+
+    expect(PipelineUtil.contentHashOf(reordered)).toBe(baseHash);
+    expect(PipelineUtil.contentHashOf({ ...ENTITIES_PIPELINE, entities: { 'example': { ...EXAMPLE_APP_ENTITY, concurrency: 1 }, 'shared': SHARED_PACKAGE_ENTITY } }))
+      .not.toBe(baseHash);
+    expect(PipelineUtil.contentHashOf({ ...ENTITIES_PIPELINE, entities: { 'example': EXAMPLE_APP_ENTITY } })).not.toBe(baseHash);
   });
 
   test('keeps its hash when only the billing changes', () => {
@@ -215,5 +270,56 @@ describe('the instructions a role reads', () => {
     const listed: Pipeline = { ...FULL_PIPELINE, agents: { productOwner: { instructions } } };
 
     expect(PipelineUtil.resolvedInstructionsOf(listed, 'productOwner')).toEqual(instructions);
+  });
+});
+
+describe('the pipeline of an entity', () => {
+  test('is the entity\'s own steps, gates, phases, review, constitution and reach, with the forge\'s merge train, approvals and billing', () => {
+    expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'example')).toEqual({
+      version:      3,
+      prepare:      EXAMPLE_APP_ENTITY.prepare,
+      gates:        EXAMPLE_APP_ENTITY.gates,
+      phases:       EXAMPLE_APP_ENTITY.phases,
+      review:       { name: 'review' },
+      airlock:      { reReview: { thresholdLines: 300 } },
+      constitution: { path: '/apps/example/CONSTITUTION.md' },
+      agents:       { productOwner: { model: 'opus', effort: 'high' }, builder: { model: 'opus', effort: 'high' } },
+      approvals:    { merge: true },
+      billing:      { mode: 'subscription' },
+      reach:        ['/bun.lock'],
+    });
+  });
+
+  test('takes the forge-level roles from the forge and never a top-level builder, and leaves out what neither sets', () => {
+    expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'shared')).toEqual({
+      version:   3,
+      prepare:   [],
+      gates:     [],
+      phases:    { build: [], review: [], merge: [] },
+      review:    { name: 'review' },
+      airlock:   { reReview: { thresholdLines: 300 } },
+      agents:    { productOwner: { model: 'opus', effort: 'high' } },
+      approvals: { merge: true },
+      billing:   { mode: 'subscription' },
+    });
+    const {
+      agents: _agents, airlock: _airlock, approvals: _approvals, billing: _billing, ...bare
+    } = ENTITIES_PIPELINE;
+    expect(Object.keys(PipelineUtil.pipelineOfEntity(bare, 'shared') ?? {})).toEqual(['version', 'prepare', 'gates', 'phases', 'review']);
+  });
+
+  test('has the phase hashes of the same single pipeline, so an entity\'s gate greens follow its own gates alone', () => {
+    const entityPipeline = PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'example');
+    const singlePipeline: Pipeline = {
+      version: 3, prepare: EXAMPLE_APP_ENTITY.prepare, gates: EXAMPLE_APP_ENTITY.gates, phases: EXAMPLE_APP_ENTITY.phases
+    };
+
+    for (const phase of GATE_PHASES) expect(entityPipeline === null ? null : PipelineUtil.phaseHashOf(entityPipeline, phase)).toBe(PipelineUtil.phaseHashOf(singlePipeline, phase));
+  });
+
+  test('is none for a key with no entity, an inherited name included, and for a pipeline without entities', () => {
+    expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'unknown')).toBeNull();
+    expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'toString')).toBeNull();
+    expect(PipelineUtil.pipelineOfEntity(FULL_PIPELINE, 'example')).toBeNull();
   });
 });

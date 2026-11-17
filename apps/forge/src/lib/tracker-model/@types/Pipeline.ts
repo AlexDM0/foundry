@@ -2,13 +2,22 @@
 import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
 
-/** The newest `pipeline.json` format, written only for a pipeline that holds a key the earliest format lacks. */
+/**
+ * The `pipeline.json` format that adds a prepare step's folder, a gate folder from the repository's root and `reach`, written only for a
+ * pipeline that holds one of them and no entity; also the version every pipeline carries in memory.
+ */
 export const PIPELINE_FORMAT_VERSION = 3;
 
 /** The earliest format this build reads, written for every pipeline that needs nothing newer, so a release that reads only it still can. */
 export const EARLIEST_PIPELINE_FORMAT_VERSION = 2;
 
-export type PipelineFormatVersion = typeof EARLIEST_PIPELINE_FORMAT_VERSION | typeof PIPELINE_FORMAT_VERSION;
+/** The format that adds `entities`, written only for a pipeline that holds them, so a release that knows no entity refuses it. */
+export const ENTITIES_PIPELINE_FORMAT_VERSION = 4;
+
+export type PipelineFormatVersion =
+  | typeof EARLIEST_PIPELINE_FORMAT_VERSION
+  | typeof PIPELINE_FORMAT_VERSION
+  | typeof ENTITIES_PIPELINE_FORMAT_VERSION;
 
 export interface PipelineStep {
   name: string;
@@ -53,6 +62,14 @@ export type PipelineAgentRole =
 export const PIPELINE_AGENT_ROLES: readonly PipelineAgentRole[] = Object.freeze([
   'productOwner', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'pipelineAgent', 'assistant',
 ]);
+
+/** The roles set once for the whole forge, at the top of `pipeline.json`, also when it holds entities. */
+export type ForgeLevelAgentRole = 'productOwner' | 'pipelineAgent' | 'assistant';
+
+/** The roles an entity sets for its own tickets. */
+export type EntityAgentRole = Exclude<PipelineAgentRole, ForgeLevelAgentRole>;
+
+export const FORGE_LEVEL_AGENT_ROLES: readonly ForgeLevelAgentRole[] = Object.freeze(['productOwner', 'pipelineAgent', 'assistant']);
 
 export type InstructionEntry =
   | { kind: 'constitution' }
@@ -99,12 +116,45 @@ export type PipelineBilling =
   | { mode: 'subscription' }
   | { mode: 'api'; maxBudgetUsd?: number };
 
+/** An entity's stable name: tickets, jobs, log records and the monitor store the key, never a path. */
+export type EntityKey = string;
+
+/** An app, a package, or the one root entity, which owns every path no other entity owns. */
+export type PipelineEntityKind = 'app' | 'package' | 'root';
+
+/** One part of a monorepo with its own constitution, pipeline and agents, under the forge's one intake and board. */
+export interface PipelineEntity {
+  kind:          PipelineEntityKind;
+  /** Repository folders, each leading with `/`; the deepest folder that holds a path owns it. */
+  home:          string[];
+  /** Two lines that intake routes a ticket by. */
+  summary?:      string;
+  /** Absent: the installed default constitution. */
+  constitution?: PipelineConstitution;
+  prepare:       PipelineStep[];
+  gates:         PipelineGate[];
+  phases:        PipelinePhaseOrders;
+  /** Present: the review phase is on; a package that any entity whitelists has it. */
+  review?:       PipelineReview;
+  agents?:       Partial<Record<EntityAgentRole, AgentStepSettings>>;
+  /** The package entities its tickets may cross into by stages; absent crosses into none. */
+  whitelist?:    EntityKey[];
+  /** The repository paths outside its homes its builder may change, each leading with `/`; absent reaches none. */
+  reach?:        string[];
+  /** The entities it consumes, whose change runs its gates; every entity depends on the root entity without naming it. */
+  dependsOn?:    EntityKey[];
+  /** The most jobs of this entity that run at once, under the board's limit; absent is the board's limit alone. */
+  concurrency?:  number;
+}
+
 export interface Pipeline {
   /** The model's format; the file holds `PipelineUtil.formatVersionOf`'s, the earliest that holds the pipeline. */
   version:       typeof PIPELINE_FORMAT_VERSION;
+  /** Empty beside `entities`, whose own steps run instead. */
   prepare:       PipelineStep[];
-  /** Every gate, defined once; an empty list is no gates on purpose, which counts as set. */
+  /** Every gate, defined once; an empty list is no gates on purpose, which counts as set. Empty beside `entities`. */
   gates:         PipelineGate[];
+  /** Empty beside `entities`. */
   phases:        PipelinePhaseOrders;
   /** Present: the review phase is on. */
   review?:       PipelineReview;
@@ -118,6 +168,8 @@ export interface Pipeline {
   billing?:      PipelineBilling;
   /** The repository paths besides the project a ticket may change, each leading with `/`; absent reaches none. */
   reach?:        string[];
+  /** Present: a forge at the repository's root over these entities, each read through `PipelineUtil.pipelineOfEntity`. */
+  entities?:     Record<EntityKey, PipelineEntity>;
 }
 
 /**

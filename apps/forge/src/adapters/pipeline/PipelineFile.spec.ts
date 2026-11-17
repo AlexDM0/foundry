@@ -144,6 +144,16 @@ describe('a file an earlier release wrote', () => {
     expect(reasonOf(minimalWith({ version: 4 }))).toBe('version is 4, a newer format than version 3, which this build reads (newer-format)');
   });
 
+  test('with version 4 and entities is still malformed as a newer format, since no forge runs entities yet', () => {
+    const entities = {
+      example: {
+        kind: 'app', home: ['/apps/example'], prepare: [], gates: [], phases: NO_PHASES
+      }
+    };
+
+    expect(reasonOf(minimalWith({ version: 4, entities }))).toBe('version is 4, a newer format than version 3, which this build reads (newer-format)');
+  });
+
   test('with a version that is not a whole number is malformed', () => {
     expect(reasonOf(minimalWith({ version: '2' }))).toBe('version is not a whole number');
     expect(reasonOf(minimalWith({ version: 2.5 }))).toBe('version is not a whole number');
