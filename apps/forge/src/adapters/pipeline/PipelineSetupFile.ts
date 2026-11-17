@@ -86,6 +86,8 @@ const CONSTITUTION_KEYS = ['markdown', 'annotations', 'draftedFrom', 'baseBlob',
 const ANNOTATION_KEYS  = ['lineText', 'occurrence', 'kind', 'path'] as const;
 const SOURCES_KEYS     = ['contributing', 'research', 'installedDefault'] as const;
 const EDIT_KEYS        = ['editId', 'by', 'field', 'summary', 'undone'] as const;
+/** A copy's set, written only on the edits a copy made, so an edit without stays as stored. */
+const OPTIONAL_EDIT_KEYS = ['batch'] as const;
 const APPLY_KEYS       = ['draftRevision', 'resumesBoard', 'commitJobId', 'state', 'reason'] as const;
 const NEXT_NUMBER_KEYS = ['finding', 'question', 'edit'] as const;
 const CHECK_KEYS       = ['draftRevision', 'gateNames', 'state', 'result', 'reason'] as const;
@@ -290,18 +292,23 @@ function draftOf(value: unknown): Mapped<Pipeline | null> {
 }
 
 function editOf(value: unknown, path: string): Mapped<SetupEdit> {
-  const record = closedRecordOf(value, path, EDIT_KEYS);
+  const hasBatch = JsonRecordUtil.valueIsAPlainObject(value) && Object.hasOwn(value, 'batch');
+  const record = closedRecordOf(value, path, hasBatch ? [...EDIT_KEYS, ...OPTIONAL_EDIT_KEYS] : EDIT_KEYS);
   if ('problem' in record) return record;
   const fields = record.value;
   const { field } = fields;
   if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) return problemOf(`${path}.field is not a draft field`);
-  return fieldsOf<SetupEdit>({
+  const batch = hasBatch ? textOf(fields['batch'], `${path}.batch`) : null;
+  if (batch !== null && 'problem' in batch) return batch;
+  const mapped = fieldsOf<Omit<SetupEdit, 'batch'>>({
     editId:  textOf(fields['editId'], `${path}.editId`),
     by:      wordOf(fields['by'], `${path}.by`, SETUP_EDIT_AUTHORS),
     field:   { value: field },
     summary: textOf(fields['summary'], `${path}.summary`),
     undone:  flagOf(fields['undone'], `${path}.undone`),
   });
+  if ('problem' in mapped) return mapped;
+  return { value: { ...mapped.value, ...(batch === null ? {} : { batch: batch.value }) } };
 }
 
 function applyRequestOf(value: unknown): Mapped<ApplyRequest | null> {

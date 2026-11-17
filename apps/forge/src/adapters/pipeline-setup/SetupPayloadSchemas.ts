@@ -7,7 +7,9 @@ import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import { GATE_PHASES }    from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
+  ENTITY_AGENT_ROLES,
   PIPELINE_AGENT_ROLES,
+  PIPELINE_ENTITY_KINDS,
   type PipelineAirlock,
   type PipelineConstitution,
   type PipelineGate,
@@ -16,7 +18,12 @@ import {
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSetting,
+  EntityDraftEdit,
+  EntityDraftField,
   PipelineDraftEdit,
+  PipelineDraftField,
+  PipelineEntityDefinition,
+  PipelineStepsDraftEdit,
   ResearchFindingRecording,
   ResearchScript,
   SetupQuestionAsking,
@@ -50,6 +57,7 @@ const SOURCE_KEYS = ['lineText', 'occurrence', 'kind', 'path'] as const;
 const PROPOSAL_KEYS = ['edits'] as const;
 const PROPOSED_EDIT_KEYS = ['field', 'value', 'summary'] as const;
 const READY_STEP_KEYS = ['step'] as const;
+const ENTITY_DEFINITION_KEYS = ['kind', 'home', 'summary'] as const;
 
 /** An option that offers "Other" is the Bridge's own free-text answer, so the agent never sends one. */
 const OTHER_OPTION_PATTERN = /^other\s*(?:$|[(:.,;-])/iu;
@@ -207,32 +215,91 @@ function textListOrMalformed(value: unknown, path: string): string[] {
   return value;
 }
 
-/**
- * The typed edit a field and its value name: a whole object or `null` for a definition, names for an order, a switch or `null` for an
- * approval. A definition is taken as sent, since the whole draft is validated once every edit is written.
- */
-function draftEditAt(fieldEdit: PayloadRecord, path: string): PipelineDraftEdit {
-  const { field, value } = fieldEdit;
-  if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) malformed(`${path}.field`);
+/** A list of non-blank texts, as a whitelist, a reach or the keys an entity depends on, or `null` to remove it. */
+function textsOrNullAt(value: unknown, path: string): string[] | null {
+  if (value === null) return null;
+  const texts = textListOrMalformed(value, path);
+  const blankIndex = texts.findIndex((text) => text.trim() === '');
+  if (blankIndex !== -1) malformed(`${path}[${blankIndex}]`);
+  return texts;
+}
+
+/** A whole definition or `null` for a value that must be an object, which the whole draft's validation then judges. */
+function definitionOrNullAt(value: unknown, path: string): object | null {
+  if (value !== null && !JsonRecordUtil.valueIsAPlainObject(value)) malformed(path);
+  return value;
+}
+
+/** The edit of what a pipeline and an entity both hold; null for a field that names something else. */
+function stepsEditAt(field: string, value: unknown, valuePath: string): PipelineStepsDraftEdit | null {
   const [fieldKind = '', name = ''] = field.split(/:(.*)/su);
-  const valuePath = `${path}.value`;
   if (fieldKind === 'phase-order' || fieldKind === 'prepare-order') {
     const names = textListOrMalformed(value, valuePath);
     const phase = GATE_PHASES.find((candidate) => candidate === name);
     return phase === undefined ? { target: 'prepare-order', names } : { target: 'phase-order', phase, names };
   }
+  if (fieldKind === 'gate') return { target: 'gate', name, value: definitionOrNullAt(value, valuePath) as PipelineGate | null };
+  if (fieldKind === 'prepare') return { target: 'prepare', name, value: definitionOrNullAt(value, valuePath) as PipelineStep | null };
+  if (fieldKind === 'review') return { target: 'review', value: definitionOrNullAt(value, valuePath) as PipelineReview | null };
+  if (fieldKind === 'constitution') return { target: 'constitution', value: definitionOrNullAt(value, valuePath) as PipelineConstitution | null };
+  return null;
+}
+
+/** An entity's kind, home folders and optional summary, or `null` to remove the entity; whether the homes fit is the draft's validation. */
+function entityDefinitionAt(value: unknown, valuePath: string): PipelineEntityDefinition | null {
+  if (value === null) return null;
+  const record  = closedRecordAt(value, valuePath, ENTITY_DEFINITION_KEYS);
+  const home    = textListAt(record, valuePath, 'home');
+  const kind    = oneOf(PIPELINE_ENTITY_KINDS, record, valuePath, 'kind');
+  const summary = Object.hasOwn(record, 'summary') ? { summary: textAt(record, valuePath, 'summary') } : {};
+  return { kind, home, ...summary };
+}
+
+/** A field inside an entity: its steps, one of its own roles, a list of keys or paths, or a cap of at least one job. */
+function entityEditAt(field: EntityDraftField, value: unknown, valuePath: string): EntityDraftEdit {
+  const stepsEdit = stepsEditAt(field, value, valuePath);
+  if (stepsEdit !== null) return stepsEdit;
+  if (field === 'whitelist' || field === 'reach' || field === 'depends-on') {
+    const texts = textsOrNullAt(value, valuePath);
+    if (field === 'reach') return { target: 'reach', value: texts };
+    return field === 'whitelist' ? { target: 'whitelist', value: texts } : { target: 'depends-on', value: texts };
+  }
+  if (field === 'concurrency') {
+    if (value !== null && !(typeof value === 'number' && Number.isInteger(value) && value >= 1)) malformed(valuePath);
+    return { target: 'concurrency', value };
+  }
+  const role = ENTITY_AGENT_ROLES.find((candidate) => field === `role:${candidate}`);
+  if (role === undefined) malformed(valuePath);
+  return { target: 'role', role, value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
+}
+
+/** A field of the pipeline itself: its steps, a role, an approval or the merge train. */
+function pipelineEditAt(field: PipelineDraftField, value: unknown, valuePath: string): PipelineDraftEdit {
+  const stepsEdit = stepsEditAt(field, value, valuePath);
+  if (stepsEdit !== null) return stepsEdit;
+  const [fieldKind = '', name = ''] = field.split(/:(.*)/su);
   if (fieldKind === 'approval') {
     if (value !== null && typeof value !== 'boolean') malformed(valuePath);
     return { target: 'approval', approval: name === 'merge' ? 'merge' : 'tickets', value };
   }
-  if (value !== null && !JsonRecordUtil.valueIsAPlainObject(value)) malformed(valuePath);
   const role = PIPELINE_AGENT_ROLES.find((candidate) => candidate === name);
-  if (fieldKind === 'gate') return { target: 'gate', name, value: value as PipelineGate | null };
-  if (fieldKind === 'prepare') return { target: 'prepare', name, value: value as PipelineStep | null };
-  if (fieldKind === 'role' && role !== undefined) return { target: 'role', role, value: value as AgentStepSettings | null };
-  if (fieldKind === 'review') return { target: 'review', value: value as PipelineReview | null };
-  if (fieldKind === 'airlock') return { target: 'airlock', value: value as PipelineAirlock | null };
-  return { target: 'constitution', value: value as PipelineConstitution | null };
+  if (fieldKind === 'role' && role !== undefined) return { target: 'role', role, value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
+  return { target: 'airlock', value: definitionOrNullAt(value, valuePath) as PipelineAirlock | null };
+}
+
+/**
+ * The typed edit a field and its value name: a whole object or `null` for a definition, names for an order, a switch or `null` for an
+ * approval, a list or a cap inside an entity. A definition is taken as sent, since the whole draft is validated once every edit is written.
+ */
+function draftEditAt(fieldEdit: PayloadRecord, path: string): PipelineDraftEdit {
+  const { field, value } = fieldEdit;
+  if (typeof field !== 'string' || !PipelineDraftEditUtil.fieldIsWellFormed(field)) malformed(`${path}.field`);
+  const valuePath = `${path}.value`;
+  const scope     = PipelineDraftEditUtil.entityScopeOf(field);
+  if (scope === null) return pipelineEditAt(field, value, valuePath);
+  const { entityKey } = scope;
+  if (scope.field === null) return { target: 'entity', entityKey, value: entityDefinitionAt(value, valuePath) };
+  return { target: 'within-entity', entityKey, edit: entityEditAt(scope.field, value, valuePath) };
 }
 
 /** User's `{field, value}` at `edits[index]`: a field outside the closed union is malformed. */

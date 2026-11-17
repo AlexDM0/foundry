@@ -3,8 +3,8 @@
  * change marker and what a double-click on it opens, the add-step menus and the edits they send, and the footer's list of removed steps.
  * The facts carry values only; every word here is worded from them.
  */
-import type { GatePhase }                                      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { Pipeline, PipelineApproval, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { GatePhase }                  from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { Pipeline, PipelineApproval } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   GateCacheMarkFacts,
   PipelineChange,
@@ -16,8 +16,9 @@ import type {
   PipelineNodeKind,
   PipelineNodeMark
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { DISPATCH_PROTOCOL }  from '../../../../src/shared/constants/DispatchProtocol.ts';
-import { GateCacheMarkModel } from '../gates/GateCacheMarkModel.ts';
+import type { PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { DISPATCH_PROTOCOL }       from '../../../../src/shared/constants/DispatchProtocol.ts';
+import { GateCacheMarkModel }      from '../gates/GateCacheMarkModel.ts';
 
 /** What a step card names itself as: an agent's step, User's step, a phase's gates or a step that runs by itself. */
 export type StepKind = 'agent' | 'you' | 'gates' | 'automatic';

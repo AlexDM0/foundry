@@ -2,6 +2,8 @@
  * The closed shapes of the setup payloads. What matters: a well-formed payload reads to the typed value the Board takes; every missing,
  * misshapen or unknown field is named, never thrown; the agent can offer no "Other" option; a draft field outside the closed union is
  * malformed; a source path or a finding's path must stay inside the repository; and the constitution's markdown is kept byte for byte.
+ * An entity's definition is a kind, its homes and an optional summary; a field inside an entity reads to the same edit on the entity, a
+ * list of non-blank keys or paths, or a cap of at least one job, and a forge-level field never reads inside one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -188,5 +190,53 @@ describe('a ready step and a User field edit', () => {
     expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'review', value: null }, 2)).toEqual({ verdict: 'read', value: { target: 'review', value: null } });
     expect(SetupPayloadSchemas.draftEditReadingOf('review', 2)).toEqual({ verdict: 'malformed', field: 'edits[2]' });
     expect(SetupPayloadSchemas.draftEditReadingOf({ field: 'phase-order:build', value: 'test' }, 0)).toEqual({ verdict: 'malformed', field: 'edits[0].value' });
+  });
+});
+
+describe('an edit of an entity', () => {
+  test('reads a definition and each field inside an entity', () => {
+    expect(SetupPayloadSchemas.proposalReadingOf({
+      edits: [
+        { field: 'entity:api', value: { kind: 'app', home: ['/apps/api'], summary: 'The API.' }, summary: 'Add the API.' },
+        { field: 'entity:web', value: null, summary: 'Fold web.' },
+        { field: 'entity:api/gate:test', value: { name: 'test', run: 'bun test' }, summary: 'Run the tests.' },
+        { field: 'entity:api/role:builder', value: { model: 'opus' }, summary: 'Build with Opus.' },
+        { field: 'entity:api/whitelist', value: ['design'], summary: 'Cross into design.' },
+        { field: 'entity:api/reach', value: ['/bun.lock'], summary: 'Reach the lockfile.' },
+        { field: 'entity:api/depends-on', value: null, summary: 'Depend on the root alone.' },
+        { field: 'entity:api/concurrency', value: 2, summary: 'Two jobs at once.' },
+      ],
+    })).toEqual({
+      verdict: 'read',
+      value:   [
+        { edit: { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: 'The API.' } }, summary: 'Add the API.' },
+        { edit: { target: 'entity', entityKey: 'web', value: null }, summary: 'Fold web.' },
+        {
+          edit:    { target: 'within-entity', entityKey: 'api', edit: { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } } },
+          summary: 'Run the tests.'
+        },
+        { edit: { target: 'within-entity', entityKey: 'api', edit: { target: 'role', role: 'builder', value: { model: 'opus' } } }, summary: 'Build with Opus.' },
+        { edit: { target: 'within-entity', entityKey: 'api', edit: { target: 'whitelist', value: ['design'] } }, summary: 'Cross into design.' },
+        { edit: { target: 'within-entity', entityKey: 'api', edit: { target: 'reach', value: ['/bun.lock'] } }, summary: 'Reach the lockfile.' },
+        { edit: { target: 'within-entity', entityKey: 'api', edit: { target: 'depends-on', value: null } }, summary: 'Depend on the root alone.' },
+        { edit: { target: 'within-entity', entityKey: 'api', edit: { target: 'concurrency', value: 2 } }, summary: 'Two jobs at once.' },
+      ],
+    });
+  });
+
+  test.each<[string, unknown, unknown]>([
+    ['edits[0].field', 'entity:api/approval:merge', true],
+    ['edits[0].field', 'entity:api/role:productOwner', null],
+    ['edits[0].field', 'entity:/gate:test', null],
+    ['edits[0].value.kind', 'entity:api', { kind: 'service', home: ['/apps/api'] }],
+    ['edits[0].value.home', 'entity:api', { kind: 'app' }],
+    ['edits[0].value.owner', 'entity:api', { kind: 'app', home: ['/apps/api'], owner: 'Alex Example' }],
+    ['edits[0].value', 'entity:api/concurrency', 0],
+    ['edits[0].value', 'entity:api/concurrency', 1.5],
+    ['edits[0].value[1]', 'entity:api/whitelist', ['design', ' ']],
+    ['edits[0].value', 'entity:api/reach', '/bun.lock'],
+    ['edits[0].value', 'entity:api/gate:test', 'bun test'],
+  ])('names %s of %s', (field, draftField, value) => {
+    expect(SetupPayloadSchemas.draftEditReadingOf({ field: draftField, value }, 0)).toEqual({ verdict: 'malformed', field });
   });
 });

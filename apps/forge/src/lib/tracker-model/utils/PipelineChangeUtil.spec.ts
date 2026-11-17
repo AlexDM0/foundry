@@ -2,7 +2,10 @@
  * The change list between a base pipeline and a draft, and the field names Apply logs. What matters: each edit User or the pipeline
  * agent can make shows as exactly one row of the right kind on the field the edit addresses; a hand edit that only reorders keys, and a
  * default written out, is no change; a reorder of prepare steps is one order row, while an added or removed step is only its own row;
- * billing is never a row; the constitution is a row when its path or, as the caller says, its text changed.
+ * billing is never a row; the constitution is a row when its path or, as the caller says, its text changed. Over entities: an entity's
+ * definition is its own row; a field inside an entity is a row scoped `entity:<key>/`, a forge-level role never among them; an entity
+ * only one side holds lists each of its fields against an empty entity; an empty list equals an absent one; and a pipeline without
+ * entities gets no entity row.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -206,6 +209,87 @@ describe('the change list', () => {
       ['role:builder', 'changed'],
       ['approval:merge', 'changed'],
       ['constitution', 'new'],
+    ]);
+  });
+});
+
+describe('the change list over entities', () => {
+  const OVER_ENTITIES: Pipeline = {
+    ...MINIMAL,
+    agents:   { productOwner: { model: 'opus' } },
+    entities: {
+      web: {
+        kind:      'app',
+        home:      ['/apps/web'],
+        prepare:   [],
+        gates:     [{ name: 'tests', run: 'bun test' }],
+        phases:    { build: ['tests'], review: [], merge: ['tests'] },
+        whitelist: ['design'],
+      },
+      design: {
+        kind: 'package', home: ['/packages/design'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'Review' }
+      },
+    },
+  };
+
+  function withWeb(change: Partial<NonNullable<Pipeline['entities']>[string]>): Pipeline {
+    const { web, design } = OVER_ENTITIES.entities ?? {};
+    if (web === undefined || design === undefined) throw new Error('the example has both entities');
+    return { ...OVER_ENTITIES, entities: { web: { ...web, ...change }, design } };
+  }
+
+  test('is empty for an unchanged pipeline, and a forge-level role stays a forge-level row', () => {
+    expect(PipelineChangeUtil.changesBetween(OVER_ENTITIES, structuredClone(OVER_ENTITIES), false)).toEqual([]);
+    expect(fieldsAndKindsOf(OVER_ENTITIES, { ...OVER_ENTITIES, agents: {} })).toEqual([['role:productOwner', 'changed']]);
+  });
+
+  test('names a changed definition alone, with the kind, homes and summary before and after', () => {
+    expect(PipelineChangeUtil.changesBetween(OVER_ENTITIES, withWeb({ home: ['/apps/web', '/packages/web-private'] }), false)).toEqual([
+      {
+        field: 'entity:web', change: 'changed', before: { kind: 'app', home: ['/apps/web'] }, after: { kind: 'app', home: ['/apps/web', '/packages/web-private'] }
+      },
+    ]);
+  });
+
+  test('names each field inside an entity under its scope', () => {
+    const draft = withWeb({
+      gates:       [{ name: 'tests', run: 'bun test' }, { name: 'lint', run: 'bun run lint' }],
+      phases:      { build: ['tests', 'lint'], review: [], merge: ['tests'] },
+      agents:      { builder: { effort: 'high' } },
+      reach:       ['/bun.lock'],
+      dependsOn:   ['design'],
+      whitelist:   [],
+      concurrency: 2,
+    });
+
+    expect(fieldsAndKindsOf(OVER_ENTITIES, draft)).toEqual([
+      ['entity:web/gate:lint', 'new'],
+      ['entity:web/phase-order:build', 'changed'],
+      ['entity:web/role:builder', 'changed'],
+      ['entity:web/whitelist', 'removed'],
+      ['entity:web/reach', 'new'],
+      ['entity:web/depends-on', 'new'],
+      ['entity:web/concurrency', 'new'],
+    ]);
+  });
+
+  test('lists an added entity\'s definition, then each of its fields against an empty entity', () => {
+    const { design: _design, ...onlyWeb } = OVER_ENTITIES.entities ?? {};
+
+    expect(fieldsAndKindsOf({ ...OVER_ENTITIES, entities: onlyWeb }, OVER_ENTITIES)).toEqual([['entity:design', 'new'], ['entity:design/review', 'new']]);
+    expect(fieldsAndKindsOf(OVER_ENTITIES, { ...OVER_ENTITIES, entities: onlyWeb })).toEqual([['entity:design', 'removed'], ['entity:design/review', 'removed']]);
+  });
+
+  test('lists a first setup over entities after the forge level, each entity in the draft\'s order', () => {
+    expect(fieldsAndKindsOf(MINIMAL, OVER_ENTITIES)).toEqual([
+      ['role:productOwner', 'changed'],
+      ['entity:web', 'new'],
+      ['entity:web/gate:tests', 'new'],
+      ['entity:web/phase-order:build', 'changed'],
+      ['entity:web/phase-order:merge', 'changed'],
+      ['entity:web/whitelist', 'new'],
+      ['entity:design', 'new'],
+      ['entity:design/review', 'new'],
     ]);
   });
 });

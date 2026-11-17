@@ -3,9 +3,10 @@
  * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
  * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; a record of a forge
  * without entities, as an open record stored before them, reads and writes back byte for byte with no `entities` key and no `entities`
- * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set; no file is
- * `absent`; and a file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason naming the
- * offending part, never a throw.
+ * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set; an edit
+ * stored without `batch`, as every edit but a copy's is, reads and writes back byte for byte with no `batch` key, while a copy's edits
+ * keep theirs after `undone`, an entity's field included; no file is `absent`; and a file nobody could trust whole, a nested key the read
+ * does not know included, is `malformed` with a reason naming the offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -163,6 +164,38 @@ const STORED_BEFORE_ENTITIES_TEXT = `{
 }
 `;
 
+/** An open record with edits as a build that knew no copy stored it, written by hand so the new build cannot shape it. */
+const STORED_EDITS_BEFORE_BATCH_TEXT = STORED_BEFORE_ENTITIES_TEXT.replace('"edits": []', `"edits": [
+    {
+      "editId": "E1",
+      "by": "agent",
+      "field": "gate:test",
+      "summary": "Run the tests.",
+      "undone": false
+    },
+    {
+      "editId": "E2",
+      "by": "user",
+      "field": "review",
+      "summary": "",
+      "undone": true
+    }
+  ]`);
+
+const EXAMPLE_COPIED: PipelineSetup = {
+  ...EXAMPLE_SETUP,
+  edits: [
+    ...EXAMPLE_SETUP.edits,
+    {
+      editId: 'E2', by: 'user', field: 'entity:api/gate:test', summary: 'Copy the tests from web.', undone: false, batch: 'E2'
+    },
+    {
+      editId: 'E3', by: 'user', field: 'entity:api/role:builder', summary: 'Copy the builder from web.', undone: true, batch: 'E2'
+    },
+  ],
+  nextNumbers: { finding: 3, question: 3, edit: 4 },
+};
+
 const EXAMPLE_OVER_ENTITIES: PipelineSetup = {
   ...EXAMPLE_SETUP,
   stepStates: {
@@ -296,6 +329,33 @@ describe('a readable record', () => {
     expect(Object.keys(document.entities['api'] ?? {})).toEqual(['agentJobId', 'findings', 'questions', 'constitution']);
   });
 
+  test('edits stored without a batch read, then write back byte for byte with no batch key', () => {
+    writeFileSync(setupFilePath, STORED_EDITS_BEFORE_BATCH_TEXT);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(reading.setup.edits.map((edit) => Object.hasOwn(edit, 'batch'))).toEqual([false, false]);
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(STORED_EDITS_BEFORE_BATCH_TEXT);
+  });
+
+  test('a copy\'s edits keep their batch after undone, and an entity\'s field reads back as stored', () => {
+    const text = PipelineSetupFile.contentsOf(EXAMPLE_COPIED);
+    writeFileSync(setupFilePath, text);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    expect(reading).toEqual({ verdict: 'readable', setup: EXAMPLE_COPIED });
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
+    const document = JSON.parse(text) as { edits: object[] };
+    expect(document.edits.map((edit) => Object.keys(edit))).toEqual([
+      ['editId', 'by', 'field', 'summary', 'undone'],
+      ['editId', 'by', 'field', 'summary', 'undone', 'batch'],
+      ['editId', 'by', 'field', 'summary', 'undone', 'batch'],
+    ]);
+  });
+
   test('a nested record built in another key order is written in the read\'s order', () => {
     const [firstFinding] = EXAMPLE_SETUP.findings;
     if (firstFinding === undefined) throw new Error('the example has a finding');
@@ -329,6 +389,22 @@ describe('a malformed record', () => {
         ...document,
         edits: [{
           editId: 'E1', by: 'user', field: 'rule:R1', summary: 'x', undone: false
+        }]
+      }),
+      'edits[0].field is not a draft field'],
+    ['an edit whose batch is not a text',
+      (document) => ({
+        ...document,
+        edits: [{
+          editId: 'E1', by: 'user', field: 'entity:web/concurrency', summary: 'x', undone: false, batch: 1
+        }]
+      }),
+      'edits[0].batch is not a text'],
+    ['an edit naming a forge field inside an entity',
+      (document) => ({
+        ...document,
+        edits: [{
+          editId: 'E1', by: 'user', field: 'entity:web/approval:merge', summary: 'x', undone: false
         }]
       }),
       'edits[0].field is not a draft field'],

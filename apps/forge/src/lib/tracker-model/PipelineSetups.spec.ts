@@ -5,7 +5,9 @@
  * edit re-anchors the sources so only the edited line loses its tag; Undo writes the base value back; an unreadable record and a pending
  * Apply refuse every move; and each move refuses with its reason and logs ids and values only. The `entities` step is walked only by a
  * record whose step states hold it: a first setup and an update of a pipeline without entities open with no such state and never reach
- * it, while a record over entities walks it between research and the constitution.
+ * it, while a record over entities walks it between research and the constitution. The edits of a copy to another entity carry their
+ * set's batch, the first of their edit ids, and still undo one by one; no other edit carries a batch; and a field inside an entity is
+ * refused as the same field at the top would be.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -556,6 +558,67 @@ describe('the draft', () => {
     expect(setup.draft).toEqual(STORED_PIPELINE);
     expect(setup.edits.every((edit) => edit.undone)).toBe(true);
     expect(setup.draftRevision).toBe(2);
+  });
+});
+
+describe('the draft over entities', () => {
+  const STORED_OVER_ENTITIES: Pipeline = {
+    version:  3,
+    prepare:  [],
+    gates:    [],
+    phases:   { build: [], review: [], merge: [] },
+    entities: {
+      web: {
+        kind:    'app',
+        home:    ['/apps/web'],
+        prepare: [{ name: 'install', run: 'bun install' }, { name: 'build', run: 'bun run build' }],
+        gates:   [{ name: 'test', run: 'bun test' }],
+        phases:  { build: ['test'], review: [], merge: ['test'] },
+        agents:  { builder: { model: 'opus' } },
+      },
+      api: {
+        kind: 'app', home: ['/apps/api'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      },
+    },
+  };
+
+  const COPY_TO_API: readonly PipelineDraftEdit[] = [
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'role', role: 'builder', value: { model: 'opus' } } },
+  ];
+
+  test('a copy\'s edits carry the first of their edit ids as their batch, and each still undoes alone', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+    board.editDraft(setupId, { by: 'user', revision: 0, edits: [{ edit: { target: 'review', value: { name: 'Review' } }, summary: 'Review.' }] }, AT);
+
+    const { setup } = board.editDraft(setupId, {
+      by: 'user', revision: 1, edits: COPY_TO_API.map((edit) => ({ edit, summary: 'Copied from web.' })), isACopy: true
+    }, AT);
+
+    expect(setup.edits.map((edit) => [edit.editId, edit.field, edit.batch])).toEqual([
+      ['E1', 'review', undefined],
+      ['E2', 'entity:api/gate:test', 'E2'],
+      ['E3', 'entity:api/role:builder', 'E2'],
+    ]);
+    expect(Object.hasOwn(setup.edits[0] ?? {}, 'batch')).toBe(false);
+    expect(setup.draft?.entities?.['api']?.agents).toEqual({ builder: { model: 'opus' } });
+
+    const undone = board.undoDraftEdit(setupId, 'E3', AT).setup;
+
+    expect(undone.draft?.entities?.['api']?.gates).toEqual([{ name: 'test', run: 'bun test' }]);
+    expect(undone.draft?.entities?.['api']?.agents).toBeUndefined();
+    expect(undone.edits.map((edit) => edit.undone)).toEqual([false, false, true]);
+  });
+
+  test('a gate named apart from its field, and a prepare order that is not a reorder, are refused inside an entity', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+
+    const refusalOf = (edit: PipelineDraftEdit): unknown => refusalDetailOf(() => board.editDraft(setupId, { by: 'user', revision: 0, edits: [{ edit, summary: 'x' }] }, AT));
+
+    expect(refusalOf({ target: 'within-entity', entityKey: 'web', edit: { target: 'gate', name: 'test', value: { name: 'lint', run: 'bun run lint' } } }))
+      .toEqual({ reason: 'draft-edit-name-mismatch', field: 'entity:web/gate:test', name: 'lint' });
+    expect(refusalOf({ target: 'within-entity', entityKey: 'web', edit: { target: 'prepare-order', names: ['build'] } }))
+      .toEqual({ reason: 'prepare-order-not-a-reorder', names: ['build'], prepareNames: ['install', 'build'] });
   });
 });
 

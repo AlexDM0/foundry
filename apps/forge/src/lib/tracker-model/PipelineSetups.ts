@@ -8,7 +8,12 @@
  */
 import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
 import type { LogRecord }                                  from './@types/LogRecord.ts';
-import type { Pipeline, PipelineBilling, PipelineGate }    from './@types/Pipeline.ts';
+import type {
+  Pipeline,
+  PipelineBilling,
+  PipelineGate,
+  PipelineStep
+} from './@types/Pipeline.ts';
 import type {
   ApplyFinishing,
   ApplyHolding,
@@ -19,7 +24,9 @@ import type {
   ConstitutionSetting,
   ConstitutionSources,
   DraftEditRequest,
+  EntityDraftEdit,
   MainConstitution,
+  PipelineDraftEdit,
   PipelineCheckEnding,
   PipelineCheckStart,
   PipelineSetup,
@@ -397,18 +404,22 @@ export class PipelineSetups {
     return this.editedDraftOf(this.requireMovableSetup(setupId), request);
   }
 
-  /** Every edit of one move lands at once, at the next revision, each kept for attribution and Undo. */
+  /**
+   * Every edit of one move lands at once, at the next revision, each kept for attribution and Undo. The edits of a copy also carry their
+   * set's `batch`, the first of their edit ids; each one still undoes alone.
+   */
   editDraft(setupId: string, request: DraftEditRequest, at: string): PipelineSetupChanged {
     const setup    = this.requireMovableSetup(setupId);
     const draft    = this.editedDraftOf(setup, request);
     const reopened = request.by === 'user' ? this.userEditReopenRecords(setup, 'design', at) : [];
+    const batch    = request.isACopy === true ? { batch: `${SETUP_EDIT_ID_PREFIX}${setup.nextNumbers.edit}` } : {};
     const editIds: string[] = [];
     const fields: string[]  = [];
     for (const { edit, summary } of request.edits) {
       const editId = `${SETUP_EDIT_ID_PREFIX}${setup.nextNumbers.edit}`;
       const field  = PipelineDraftEditUtil.fieldOf(edit);
       setup.edits.push({
-        editId, by: request.by, field, summary, undone: false
+        editId, by: request.by, field, summary, undone: false, ...batch
       });
       setup.nextNumbers.edit += 1;
       editIds.push(editId);
@@ -875,13 +886,22 @@ export class PipelineSetups {
     return PipelineDraftEditUtil.pipelineWithBaseValueOf(base, setup.draft ?? base, edit.field);
   }
 
-  /** A gate or step names itself as its field does, and a prepare order names each prepare step once. */
-  private refuseMismatchedEdit(draft: Readonly<Pipeline>, edit: DraftEditRequest['edits'][number]['edit']): void {
+  /** A gate or step names itself as its field does, and a prepare order names each prepare step once, inside an entity as at the top. */
+  private refuseMismatchedEdit(draft: Readonly<Pipeline>, edit: PipelineDraftEdit): void {
+    if (edit.target !== 'within-entity') {
+      this.refuseMismatchedStepsEdit(draft.prepare, edit, PipelineDraftEditUtil.fieldOf(edit));
+      return;
+    }
+    const entity = draft.entities !== undefined && Object.hasOwn(draft.entities, edit.entityKey) ? draft.entities[edit.entityKey] : undefined;
+    if (entity !== undefined) this.refuseMismatchedStepsEdit(entity.prepare, edit.edit, PipelineDraftEditUtil.fieldOf(edit));
+  }
+
+  private refuseMismatchedStepsEdit(prepare: readonly PipelineStep[], edit: PipelineDraftEdit | EntityDraftEdit, field: string): void {
     if ((edit.target === 'gate' || edit.target === 'prepare') && edit.value !== null && edit.value.name !== edit.name) {
-      throw new BoardRefusal({ reason: 'draft-edit-name-mismatch', field: PipelineDraftEditUtil.fieldOf(edit), name: edit.value.name });
+      throw new BoardRefusal({ reason: 'draft-edit-name-mismatch', field, name: edit.value.name });
     }
     if (edit.target !== 'prepare-order') return;
-    const prepareNames = draft.prepare.map((step) => step.name);
+    const prepareNames = prepare.map((step) => step.name);
     const isReorder    = edit.names.length === prepareNames.length && new Set(edit.names).size === edit.names.length
       && edit.names.every((name) => prepareNames.includes(name));
     if (!isReorder) throw new BoardRefusal({ reason: 'prepare-order-not-a-reorder', names: [...edit.names], prepareNames });

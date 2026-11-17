@@ -7,6 +7,7 @@ import type { GatePhase }                        from './GatePhase.ts';
 import type { GateOutcome }                      from './Job.ts';
 import type {
   AgentStepSettings,
+  EntityAgentRole,
   EntityKey,
   Pipeline,
   PipelineAgentRole,
@@ -14,6 +15,7 @@ import type {
   PipelineApproval,
   PipelineBilling,
   PipelineConstitution,
+  PipelineEntity,
   PipelineGate,
   PipelineReview,
   PipelineStep
@@ -113,17 +115,35 @@ export interface ConstitutionDraft {
   revision:    number;
 }
 
-/** An addressable part of the draft pipeline: an edit names one, and a `null` value on a gate, prepare step, review or airlock removes it. */
-export type PipelineDraftField =
+/** A field of what a pipeline and an entity both hold: a gate, a phase's order, a prepare step, the prepare order, the review, the constitution. */
+export type PipelineStepsDraftField =
   | `gate:${string}`
   | `phase-order:${GatePhase}`
   | `prepare:${string}`
   | 'prepare-order'
-  | `role:${PipelineAgentRole}`
   | 'review'
+  | 'constitution';
+
+/** A field inside one entity: its steps, its own roles, the packages it may cross into, its reach, its dependencies and its job cap. */
+export type EntityDraftField =
+  | PipelineStepsDraftField
+  | `role:${EntityAgentRole}`
+  | 'whitelist'
+  | 'reach'
+  | 'depends-on'
+  | 'concurrency';
+
+/**
+ * An addressable part of the draft pipeline: an edit names one, and a `null` value on a gate, prepare step, review or airlock removes it.
+ * `entity:<key>` is an entity's definition, and `entity:<key>/<field>` a field inside that entity; every other field keeps its name.
+ */
+export type PipelineDraftField =
+  | PipelineStepsDraftField
+  | `role:${PipelineAgentRole}`
   | 'airlock'
   | `approval:${PipelineApproval}`
-  | 'constitution';
+  | `entity:${EntityKey}`
+  | `entity:${EntityKey}/${EntityDraftField}`;
 
 export type SetupEditAuthor = 'agent' | 'user';
 
@@ -134,6 +154,8 @@ export interface SetupEdit {
   field:   PipelineDraftField;
   summary: string;
   undone:  boolean;
+  /** The first edit id of the set one copy to another entity made, so the set can be undone at once; written only by a copy. */
+  batch?:  string;
 }
 
 export type ApplyRequestState = 'committing' | 'held' | 'refused';
@@ -341,17 +363,35 @@ export interface PipelineSetupOpening {
   storedAnnotations:          readonly SourceAnnotation[];
 }
 
-/** One edit of the draft, addressed as its field names it; a `null` value removes what the field names, or writes its default back. */
-export type PipelineDraftEdit =
+/** An edit of what a pipeline and an entity both hold; a `null` value removes what the field names. */
+export type PipelineStepsDraftEdit =
   | { target: 'gate'; name: string; value: PipelineGate | null }
   | { target: 'phase-order'; phase: GatePhase; names: string[] }
   | { target: 'prepare'; name: string; value: PipelineStep | null }
   | { target: 'prepare-order'; names: string[] }
-  | { target: 'role'; role: PipelineAgentRole; value: AgentStepSettings | null }
   | { target: 'review'; value: PipelineReview | null }
+  | { target: 'constitution'; value: PipelineConstitution | null };
+
+/** An edit inside one entity; a `null` value removes the key, so a list is absent and the cap is the board's limit alone. */
+export type EntityDraftEdit =
+  | PipelineStepsDraftEdit
+  | { target: 'role'; role: EntityAgentRole; value: AgentStepSettings | null }
+  | { target: 'whitelist'; value: EntityKey[] | null }
+  | { target: 'reach'; value: string[] | null }
+  | { target: 'depends-on'; value: EntityKey[] | null }
+  | { target: 'concurrency'; value: number | null };
+
+/** What an entity's definition field sets: its kind, home folders and summary. Its pipeline is edited field by field inside it. */
+export type PipelineEntityDefinition = Pick<PipelineEntity, 'kind' | 'home' | 'summary'>;
+
+/** One edit of the draft, addressed as its field names it; a `null` value removes what the field names, or writes its default back. */
+export type PipelineDraftEdit =
+  | PipelineStepsDraftEdit
+  | { target: 'role'; role: PipelineAgentRole; value: AgentStepSettings | null }
   | { target: 'airlock'; value: PipelineAirlock | null }
   | { target: 'approval'; approval: PipelineApproval; value: boolean | null }
-  | { target: 'constitution'; value: PipelineConstitution | null };
+  | { target: 'entity'; entityKey: EntityKey; value: PipelineEntityDefinition | null }
+  | { target: 'within-entity'; entityKey: EntityKey; edit: EntityDraftEdit };
 
 /** One edit with its author's own sentence, which the edit list and the Changes tab show. */
 export interface SummarisedDraftEdit {
@@ -364,6 +404,8 @@ export interface DraftEditRequest {
   by:       SetupEditAuthor;
   revision: number | null;
   edits:    readonly SummarisedDraftEdit[];
+  /** Present: the edits copy one entity's settings to another, and each stored edit gets the set's `batch`. */
+  isACopy?: true;
 }
 
 export type ResearchFindingRecording = Omit<ResearchFinding, 'findingId' | 'needsRecheck'>;

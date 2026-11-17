@@ -71,6 +71,8 @@ export type EntityAgentRole = Exclude<PipelineAgentRole, ForgeLevelAgentRole>;
 
 export const FORGE_LEVEL_AGENT_ROLES: readonly ForgeLevelAgentRole[] = Object.freeze(['productOwner', 'pipelineAgent', 'assistant']);
 
+export const ENTITY_AGENT_ROLES: readonly EntityAgentRole[] = Object.freeze(['builder', 'reviewer', 'reReviewer', 'conflictReReviewer']);
+
 export type InstructionEntry =
   | { kind: 'constitution' }
   | { kind: 'default-brief'; role: PipelineAgentRole }
@@ -122,6 +124,8 @@ export type EntityKey = string;
 /** An app, a package, or the one root entity, which owns every path no other entity owns. */
 export type PipelineEntityKind = 'app' | 'package' | 'root';
 
+export const PIPELINE_ENTITY_KINDS: readonly PipelineEntityKind[] = Object.freeze(['app', 'package', 'root']);
+
 /** One part of a monorepo with its own constitution, pipeline and agents, under the forge's one intake and board. */
 export interface PipelineEntity {
   kind:          PipelineEntityKind;
@@ -171,18 +175,3 @@ export interface Pipeline {
   /** Present: a forge at the repository's root over these entities, each read through `PipelineUtil.pipelineOfEntity`. */
   entities?:     Record<EntityKey, PipelineEntity>;
 }
-
-/**
- * One field of a pipeline that an edit addresses and a change list names: a gate's definition, a phase's run order, a prepare step, the
- * prepare steps' order, a role's settings, the review, the merge train, an approval or the constitution.
- */
-export type PipelineDraftField =
-  | `gate:${string}`
-  | `phase-order:${GatePhase}`
-  | `prepare:${string}`
-  | 'prepare-order'
-  | `role:${PipelineAgentRole}`
-  | 'review'
-  | 'airlock'
-  | `approval:${PipelineApproval}`
-  | 'constitution';

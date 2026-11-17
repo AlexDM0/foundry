@@ -2,13 +2,39 @@
  * The draft edited one field at a time. What matters: each edit names the field the change list names; a removed gate leaves every
  * phase, so no phase names a gate that is gone; a `null` removes an optional key rather than storing a null; the edit never changes the
  * pipeline it was given; a stored field text reads back only when well formed; and Undo writes the base value back, a restored gate in
- * the place and phases the base gives it.
+ * the place and phases the base gives it. Inside an entity the same holds on the entity's own steps and settings, under a field scoped
+ * `entity:<key>/`, which never names a forge-level field; the entity's definition adds, changes or removes it without touching its
+ * pipeline, and its Undo brings a removed entity back whole in its base place; and an edit inside an entity the draft lacks changes
+ * nothing.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }                              from '../@types/Pipeline.ts';
-import type { PipelineDraftEdit, PipelineDraftField } from '../@types/PipelineSetup.ts';
-import { PipelineDraftEditUtil }                      from './PipelineDraftEditUtil.ts';
+import type { Pipeline }                                               from '../@types/Pipeline.ts';
+import type { EntityDraftEdit, PipelineDraftEdit, PipelineDraftField } from '../@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                                       from './PipelineDraftEditUtil.ts';
+
+const ENTITIES_BASE: Pipeline = {
+  version:  3,
+  prepare:  [],
+  gates:    [],
+  phases:   { build: [], review: [], merge: [] },
+  airlock:  { reReview: { thresholdLines: 40 } },
+  entities: {
+    web: {
+      kind:      'app',
+      home:      ['/apps/web'],
+      summary:   'The web app.',
+      prepare:   [{ name: 'install', run: 'bun install' }],
+      gates:     [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
+      phases:    { build: ['types', 'test'], review: [], merge: ['types', 'test'] },
+      agents:    { builder: { model: 'opus' } },
+      whitelist: ['design'],
+    },
+    design: {
+      kind: 'package', home: ['/packages/design'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, review: { name: 'Review' }
+    },
+  },
+};
 
 const BASE: Pipeline = {
   version:   3,
@@ -35,8 +61,46 @@ describe('fieldOf', () => {
     expect(PipelineDraftEditUtil.fieldIsWellFormed(field)).toBe(true);
   });
 
-  test.each(['gate:', 'gate: ', 'phase-order:deploy', 'role:tester', 'approval:release', 'reviews', ''])('%o is not a draft field', (text) => {
+  test.each<[PipelineDraftEdit, PipelineDraftField]>([
+    [{ target: 'entity', entityKey: 'web', value: null }, 'entity:web'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'gate', name: 'test', value: null } }, 'entity:web/gate:test'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'phase-order', phase: 'build', names: [] } }, 'entity:web/phase-order:build'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'prepare-order', names: [] } }, 'entity:web/prepare-order'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'reviewer', value: null } }, 'entity:web/role:reviewer'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'constitution', value: null } }, 'entity:web/constitution'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'whitelist', value: null } }, 'entity:web/whitelist'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'reach', value: null } }, 'entity:web/reach'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'depends-on', value: null } }, 'entity:web/depends-on'],
+    [{ target: 'within-entity', entityKey: 'web', edit: { target: 'concurrency', value: null } }, 'entity:web/concurrency'],
+  ])('an entity\'s %o names %s', (edit, field) => {
+    expect(PipelineDraftEditUtil.fieldOf(edit)).toBe(field);
+    expect(PipelineDraftEditUtil.fieldIsWellFormed(field)).toBe(true);
+  });
+
+  test.each([
+    'gate:',
+    'gate: ',
+    'phase-order:deploy',
+    'role:tester',
+    'approval:release',
+    'reviews',
+    '',
+    'entity:',
+    'entity: /gate:test',
+    'entity:web/',
+    'entity:web/airlock',
+    'entity:web/approval:merge',
+    'entity:web/role:productOwner',
+    'entity:web/whitelists',
+    'entity:web/entity:design',
+  ])('%o is not a draft field', (text) => {
     expect(PipelineDraftEditUtil.fieldIsWellFormed(text)).toBe(false);
+  });
+
+  test('an entity\'s field splits at its first separator, so a gate name may hold one', () => {
+    expect(PipelineDraftEditUtil.entityScopeOf('entity:web/gate:lint/fix')).toEqual({ entityKey: 'web', field: 'gate:lint/fix' });
+    expect(PipelineDraftEditUtil.entityScopeOf('entity:web')).toEqual({ entityKey: 'web', field: null });
+    expect(PipelineDraftEditUtil.entityScopeOf('gate:entity:web')).toBeNull();
   });
 });
 
@@ -74,6 +138,66 @@ describe('pipelineWithEdit', () => {
   });
 });
 
+describe('pipelineWithEdit inside an entity', () => {
+  test('a removed gate leaves the entity\'s gates and phases, and neither the forge level nor the given pipeline changes', () => {
+    const edited = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'within-entity', entityKey: 'web', edit: { target: 'gate', name: 'types', value: null } });
+
+    expect(edited.entities?.['web']?.gates.map((gate) => gate.name)).toEqual(['test']);
+    expect(edited.entities?.['web']?.phases).toEqual({ build: ['test'], review: [], merge: ['test'] });
+    expect(edited.gates).toEqual([]);
+    expect(ENTITIES_BASE.entities?.['web']?.gates).toHaveLength(2);
+  });
+
+  test('a role, a whitelist, a reach, the dependencies and a cap are set inside the entity, and null removes each key', () => {
+    const edits: EntityDraftEdit[] = [
+      { target: 'role', role: 'reviewer', value: { effort: 'high' } },
+      { target: 'reach', value: ['/bun.lock'] },
+      { target: 'depends-on', value: ['design'] },
+      { target: 'concurrency', value: 2 },
+      { target: 'whitelist', value: null },
+    ];
+    let edited = ENTITIES_BASE;
+    for (const edit of edits) edited = PipelineDraftEditUtil.pipelineWithEdit(edited, { target: 'within-entity', entityKey: 'web', edit });
+
+    const web = edited.entities?.['web'];
+    expect(web?.agents).toEqual({ builder: { model: 'opus' }, reviewer: { effort: 'high' } });
+    expect([web?.reach, web?.dependsOn, web?.concurrency]).toEqual([['/bun.lock'], ['design'], 2]);
+    expect(web !== undefined && 'whitelist' in web).toBe(false);
+    expect(edited.agents).toBeUndefined();
+  });
+
+  test('a definition adds an entity with no pipeline of its own, after the others', () => {
+    const edited = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'] } });
+
+    expect(Object.keys(edited.entities ?? {})).toEqual(['web', 'design', 'api']);
+    expect(edited.entities?.['api']).toEqual({
+      kind: 'app', home: ['/apps/api'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
+  });
+
+  test('a definition changes the kind, homes and summary of an entity and keeps its pipeline', () => {
+    const homes  = ['/apps/web', '/packages/web-private'];
+    const edited = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'web', value: { kind: 'app', home: homes } });
+
+    const { web } = edited.entities ?? {};
+    expect(web?.home).toEqual(['/apps/web', '/packages/web-private']);
+    expect(web !== undefined && 'summary' in web).toBe(false);
+    expect(web?.gates).toEqual(ENTITIES_BASE.entities?.['web']?.gates);
+  });
+
+  test('null removes an entity, and the last one removes the whole map', () => {
+    const withoutWeb = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'web', value: null });
+    const withoutAny = PipelineDraftEditUtil.pipelineWithEdit(withoutWeb, { target: 'entity', entityKey: 'design', value: null });
+
+    expect(Object.keys(withoutWeb.entities ?? {})).toEqual(['design']);
+    expect('entities' in withoutAny).toBe(false);
+  });
+
+  test('an edit inside an entity the draft does not hold changes nothing', () => {
+    expect(PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'within-entity', entityKey: 'api', edit: { target: 'concurrency', value: 1 } })).toEqual(ENTITIES_BASE);
+  });
+});
+
 describe('pipelineWithBaseValueOf', () => {
   test('a removed gate comes back in its base place and phases', () => {
     const draft = PipelineDraftEditUtil.pipelineWithEdit(BASE, { target: 'gate', name: 'types', value: null });
@@ -102,5 +226,55 @@ describe('pipelineWithBaseValueOf', () => {
     for (const field of ['review', 'approval:merge', 'phase-order:build'] as const) draft = PipelineDraftEditUtil.pipelineWithBaseValueOf(BASE, draft, field);
 
     expect(draft).toEqual(BASE);
+  });
+});
+
+describe('pipelineWithBaseValueOf inside an entity', () => {
+  test('a removed gate comes back in its base place and phases inside the entity', () => {
+    const draft = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'within-entity', entityKey: 'web', edit: { target: 'gate', name: 'types', value: null } });
+
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, draft, 'entity:web/gate:types')).toEqual(ENTITIES_BASE);
+  });
+
+  test('a whitelist, a role and a cap take the base value back, an absent one absent again', () => {
+    const edits: EntityDraftEdit[] = [
+      { target: 'whitelist', value: null },
+      { target: 'role', role: 'builder', value: { model: 'sonnet' } },
+      { target: 'concurrency', value: 3 },
+    ];
+    let draft = ENTITIES_BASE;
+    for (const edit of edits) draft = PipelineDraftEditUtil.pipelineWithEdit(draft, { target: 'within-entity', entityKey: 'web', edit });
+
+    for (const field of ['entity:web/whitelist', 'entity:web/role:builder', 'entity:web/concurrency'] as const) {
+      draft = PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, draft, field);
+    }
+
+    expect(draft).toEqual(ENTITIES_BASE);
+  });
+
+  test('a removed entity comes back whole in its base place', () => {
+    const draft = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'web', value: null });
+
+    const restored = PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, draft, 'entity:web');
+
+    expect(restored).toEqual(ENTITIES_BASE);
+    expect(Object.keys(restored.entities ?? {})).toEqual(['web', 'design']);
+  });
+
+  test('an entity the base never had is removed again, and a changed definition takes the base one back', () => {
+    const added   = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'] } });
+    const renamed = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'web', value: { kind: 'package', home: ['/web'] } });
+
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, added, 'entity:api')).toEqual(ENTITIES_BASE);
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, renamed, 'entity:web')).toEqual(ENTITIES_BASE);
+  });
+
+  test('a field of an entity the base never had goes back to the default, and one of an entity the draft lacks changes nothing', () => {
+    const added = PipelineDraftEditUtil.pipelineWithEdit(ENTITIES_BASE, { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'] } });
+    const testGate = { name: 'test', run: 'bun test' };
+    const gated    = PipelineDraftEditUtil.pipelineWithEdit(added, { target: 'within-entity', entityKey: 'api', edit: { target: 'gate', name: 'test', value: testGate } });
+
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, gated, 'entity:api/gate:test')).toEqual(added);
+    expect(PipelineDraftEditUtil.pipelineWithBaseValueOf(ENTITIES_BASE, ENTITIES_BASE, 'entity:api/gate:test')).toEqual(ENTITIES_BASE);
   });
 });

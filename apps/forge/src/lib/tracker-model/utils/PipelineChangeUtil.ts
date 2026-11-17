@@ -1,23 +1,27 @@
 /**
  * What a draft pipeline changes against a base one, field by field: the change list User reads before Apply, and the field names Apply's
  * log record carries. A field compares by its stored value, with the defaults the tracker model owns filled in: an absent approval or
- * instruction list equals its default, so writing a default out is no change.
+ * instruction list equals its default, so writing a default out is no change. An entity's fields compare inside it, and an entity only
+ * one side holds compares with an empty one, so each of its gates, steps and settings is its own row.
  */
-import { GATE_PHASES } from '../@types/GatePhase.ts';
+import { GATE_PHASES, type GatePhase } from '../@types/GatePhase.ts';
 import type {
   AgentStepSettings,
+  EntityKey,
   Pipeline,
   PipelineAgentRole,
   PipelineAirlock,
   PipelineApproval,
   PipelineConstitution,
-  PipelineDraftField,
+  PipelineEntity,
   PipelineGate,
   PipelineReview,
   PipelineStep
 } from '../@types/Pipeline.ts';
-import { PIPELINE_AGENT_ROLES } from '../@types/Pipeline.ts';
-import { PipelineUtil }         from './PipelineUtil.ts';
+import { ENTITY_AGENT_ROLES, PIPELINE_AGENT_ROLES }                            from '../@types/Pipeline.ts';
+import type { EntityDraftField, PipelineDraftField, PipelineEntityDefinition } from '../@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                                               from './PipelineDraftEditUtil.ts';
+import { PipelineUtil }                                                        from './PipelineUtil.ts';
 
 export type PipelineChangeKind = 'changed' | 'new' | 'removed';
 
@@ -29,11 +33,13 @@ export type PipelineFieldValue =
   | PipelineReview
   | PipelineAirlock
   | boolean
-  | PipelineConstitution;
+  | PipelineConstitution
+  | PipelineEntityDefinition
+  | number;
 
 /** `before` is null on a new field and `after` on a removed one. */
-export interface PipelineChange {
-  field:  PipelineDraftField;
+export interface PipelineChange<Field extends string = PipelineDraftField> {
+  field:  Field;
   change: PipelineChangeKind;
   before: PipelineFieldValue | null;
   after:  PipelineFieldValue | null;
@@ -67,7 +73,7 @@ function sameValue(base: unknown, draft: unknown): boolean {
 }
 
 /** A field present on one side only is new or removed; on both, changed when the values differ. */
-function changeOf(field: PipelineDraftField, before: PipelineFieldValue | undefined, after: PipelineFieldValue | undefined): PipelineChange[] {
+function changeOf<Field extends string>(field: Field, before: PipelineFieldValue | undefined, after: PipelineFieldValue | undefined): PipelineChange<Field>[] {
   if (before === undefined && after === undefined) return [];
   if (before === undefined) return [{
     field, change: 'new', before: null, after: after ?? null
@@ -85,11 +91,11 @@ function namesOfBoth(baseNames: readonly string[], draftNames: readonly string[]
   return [...baseNames, ...draftNames.filter((name) => !baseNames.includes(name))];
 }
 
-function prepareChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
+function prepareChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange<`prepare:${string}` | 'prepare-order'>[] {
   const baseNames  = base.prepare.map((step) => step.name);
   const draftNames = draft.prepare.map((step) => step.name);
   const stepChanges = namesOfBoth(baseNames, draftNames).flatMap((name) => changeOf(
-    `prepare:${name}`,
+    `prepare:${name}` as const,
     base.prepare.find((step) => step.name === name),
     draft.prepare.find((step) => step.name === name),
   ));
@@ -111,18 +117,18 @@ function filledGateOf(gate: Readonly<PipelineGate>): object {
   };
 }
 
-function gateChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
+function gateChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange<`gate:${string}`>[] {
   const gateNames = namesOfBoth(base.gates.map((gate) => gate.name), draft.gates.map((gate) => gate.name));
   return gateNames.flatMap((name) => {
     const before = base.gates.find((gate) => gate.name === name);
     const after  = draft.gates.find((gate) => gate.name === name);
     if (before !== undefined && after !== undefined && sameValue(filledGateOf(before), filledGateOf(after))) return [];
-    return changeOf(`gate:${name}`, before, after);
+    return changeOf(`gate:${name}` as const, before, after);
   });
 }
 
-function phaseOrderChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
-  return GATE_PHASES.flatMap((phase) => changeOf(`phase-order:${phase}`, base.phases[phase], draft.phases[phase]));
+function phaseOrderChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange<`phase-order:${GatePhase}`>[] {
+  return GATE_PHASES.flatMap((phase) => changeOf(`phase-order:${phase}` as const, base.phases[phase], draft.phases[phase]));
 }
 
 /** The model and effort as stored, since their defaults are the app's; the instructions as read, since their defaults are the model's. */
@@ -132,15 +138,15 @@ function comparableSettingsOf(pipeline: Readonly<Pipeline>, role: PipelineAgentR
 }
 
 /** A role's step always exists, so its settings only change. */
-function roleChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
-  return PIPELINE_AGENT_ROLES.flatMap((role) => (sameValue(comparableSettingsOf(base, role), comparableSettingsOf(draft, role))
+function roleChangesOf<Role extends PipelineAgentRole>(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, roles: readonly Role[]): PipelineChange<`role:${Role}`>[] {
+  return roles.flatMap((role) => (sameValue(comparableSettingsOf(base, role), comparableSettingsOf(draft, role))
     ? []
     : [{
       field: `role:${role}` as const, change: 'changed' as const, before: base.agents?.[role] ?? {}, after: draft.agents?.[role] ?? {}
     }]));
 }
 
-function approvalChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
+function approvalChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange<`approval:${PipelineApproval}`>[] {
   return PIPELINE_APPROVALS.flatMap((approval) => {
     const before = approvalIsOn(base, approval);
     const after  = approvalIsOn(draft, approval);
@@ -151,7 +157,7 @@ function approvalChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>):
 }
 
 /** The constitution text lives outside the pipeline, so the caller says whether it changed; a changed text alone is a changed row. */
-function constitutionChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, constitutionTextChanged: boolean): PipelineChange[] {
+function constitutionChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, constitutionTextChanged: boolean): PipelineChange<'constitution'>[] {
   const pathChanges = changeOf('constitution', base.constitution, draft.constitution);
   if (pathChanges.length > 0 || !constitutionTextChanged) return pathChanges;
   return [{
@@ -159,9 +165,60 @@ function constitutionChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipelin
   }];
 }
 
+function entityOf(pipeline: Readonly<Pipeline>, entityKey: EntityKey): PipelineEntity | undefined {
+  const { entities } = pipeline;
+  return entities !== undefined && Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
+}
+
+/** An empty list reads as absent, as an absent whitelist crosses into none and an absent reach reaches none. */
+function listOrAbsentOf(list: readonly string[] | undefined): string[] | undefined {
+  return list === undefined || list.length === 0 ? undefined : [...list];
+}
+
+/**
+ * The fields inside one entity, in the flow's order and then its whitelist, reach, dependencies and cap. The constitution compares by its
+ * path only: whether an entity's text changed is the caller's, per entity.
+ */
+function withinEntityChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, entityKey: EntityKey): PipelineChange[] {
+  const before         = entityOf(base, entityKey);
+  const after          = entityOf(draft, entityKey);
+  const basePipeline   = PipelineUtil.pipelineOfEntity(base, entityKey) ?? PipelineUtil.minimalPipelineOf();
+  const draftPipeline  = PipelineUtil.pipelineOfEntity(draft, entityKey) ?? PipelineUtil.minimalPipelineOf();
+  const changes: PipelineChange<EntityDraftField>[] = [
+    ...prepareChangesOf(basePipeline, draftPipeline),
+    ...gateChangesOf(basePipeline, draftPipeline),
+    ...phaseOrderChangesOf(basePipeline, draftPipeline),
+    ...changeOf('review', basePipeline.review, draftPipeline.review),
+    ...roleChangesOf(basePipeline, draftPipeline, ENTITY_AGENT_ROLES),
+    ...changeOf('constitution', basePipeline.constitution, draftPipeline.constitution),
+    ...changeOf('whitelist', listOrAbsentOf(before?.whitelist), listOrAbsentOf(after?.whitelist)),
+    ...changeOf('reach', listOrAbsentOf(before?.reach), listOrAbsentOf(after?.reach)),
+    ...changeOf('depends-on', listOrAbsentOf(before?.dependsOn), listOrAbsentOf(after?.dependsOn)),
+    ...changeOf('concurrency', before?.concurrency, after?.concurrency),
+  ];
+  return changes.map((change) => ({ ...change, field: `entity:${entityKey}/${change.field}` as const }));
+}
+
+/** Each entity of either side, in base order and then the draft's new ones: its definition's row, then the rows inside it. */
+function entityChangesOf(base: Readonly<Pipeline>, draft: Readonly<Pipeline>): PipelineChange[] {
+  const entityKeys = namesOfBoth(Object.keys(base.entities ?? {}), Object.keys(draft.entities ?? {}));
+  return entityKeys.flatMap((entityKey) => {
+    const before = entityOf(base, entityKey);
+    const after  = entityOf(draft, entityKey);
+    return [
+      ...changeOf(
+        `entity:${entityKey}` as const,
+        before === undefined ? undefined : PipelineDraftEditUtil.definitionOf(before),
+        after === undefined ? undefined : PipelineDraftEditUtil.definitionOf(after),
+      ),
+      ...withinEntityChangesOf(base, draft, entityKey),
+    ];
+  });
+}
+
 /**
  * Every field the draft changes, in the flow's order: prepare steps, gates, phase orders, review, merge train, roles, approvals, the
- * constitution. Billing is never a change row, as it is no part of the content hash.
+ * constitution, then each entity. Billing is never a change row, as it is no part of the content hash.
  */
 function changesBetween(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, constitutionTextChanged: boolean): PipelineChange[] {
   return [
@@ -170,9 +227,10 @@ function changesBetween(base: Readonly<Pipeline>, draft: Readonly<Pipeline>, con
     ...phaseOrderChangesOf(base, draft),
     ...changeOf('review', base.review, draft.review),
     ...changeOf('airlock', base.airlock, draft.airlock),
-    ...roleChangesOf(base, draft),
+    ...roleChangesOf(base, draft, PIPELINE_AGENT_ROLES),
     ...approvalChangesOf(base, draft),
     ...constitutionChangesOf(base, draft, constitutionTextChanged),
+    ...entityChangesOf(base, draft),
   ];
 }
 
