@@ -1612,7 +1612,7 @@ function settledOutsideAnyCrossing(hold: HoldContext, ticketId: string): false {
 }
 
 /**
- * The stage after the last package review: the home review when `adapt` is skipped (C15), with the ticket moved to review as a build moves
+ * The stage after the last package review: the home review when `adapt` is skipped (E40), with the ticket moved to review as a build moves
  * it; `adapt` otherwise.
  */
 function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeEntity: EntityKey, headCommit: string): readonly LogRecord[] {

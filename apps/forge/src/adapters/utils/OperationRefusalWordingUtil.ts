@@ -308,7 +308,7 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'pipeline-set-per-entity':
       return `The pipeline holds the entities ${detail.entityKeys.join(', ')}, and each entity has its own prepare steps, gates and reach, so the `
         + 'top-level ones stay empty. Set them for each entity on the Pipeline tab of the Bridge'
-        + `${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}. ${NOTHING_WAS_WRITTEN}`;
+        + `${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline update\``, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'gate-profiles-unreadable':
       return `The gate profile runs cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove gate-profiles.json in the data folder.`;
     case 'gate-profile-running':

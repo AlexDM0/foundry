@@ -1,7 +1,7 @@
 /**
  * The stages of a ticket that crosses into whitelisted packages (strategy 4.2), as the Overseer runs them: which packages the branch crossed
  * into after stage 1, what Customs holds each stage to, the statement each package stage leaves in its job folder, whether `adapt` is
- * skipped (C15), and what each stage's session is told.
+ * skipped (E40), and what each stage's session is told.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join }                    from 'node:path';
@@ -277,7 +277,7 @@ function packageReviewFindingsOf(trackerDirectory: string, logRecords: readonly 
 
 /**
  * Whether the ticket's newest ended build or review job is a package review: an `adapt` job launched now takes up the home builder's session
- * after the package stages (A2), not after a home review that did not hold (E51).
+ * after the package stages (E43), not after a home review that did not hold (E51).
  */
 function followsThePackageStages(logRecords: readonly LogRecord[], ticketId: string): boolean {
   const stageByJobId = new Map<string, number | undefined>();
@@ -320,7 +320,7 @@ function packageReturnReasonOf(trackerDirectory: string, logRecords: readonly Lo
 }
 
 /**
- * Whether `adapt` is skipped (C15, A1): for every crossed package the package builder stated that what the package exposes did not change
+ * Whether `adapt` is skipped (E40): for every crossed package the package builder stated that what the package exposes did not change
  * from the proposal, and the package reviewer confirmed it. A statement left out counts as a change.
  */
 function adaptIsSkipped(statements: readonly PackageStageStatements[]): boolean {

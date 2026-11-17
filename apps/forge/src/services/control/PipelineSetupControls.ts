@@ -163,7 +163,7 @@ function copyFlagFieldOf(command: SentCommand): { isACopy?: true } {
   return { isACopy: true };
 }
 
-/** A copy goes from one entity to others: only a draft with entities takes one, and only with edits of fields inside an entity (A5). */
+/** A copy goes from one entity to others: only a draft with entities takes one, and only with edits of fields inside an entity. */
 function refuseACopyOutsideEntities(setupId: string, setup: Readonly<PipelineSetup> | null, edits: readonly PipelineDraftEdit[]): void {
   if (setup?.draft?.entities === undefined) throw new OperationRefusal('refused', { kind: 'draft-copy-outside-entities', setupId, fields: [] });
   const fieldsOutside = edits.map(PipelineDraftEditUtil.fieldOf).filter((field) => levelOfField(field) === undefined);
@@ -189,7 +189,7 @@ export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Bo
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
 }
 
-/** A move of the whole record: the forge's session hears it as before, then each entity's session. */
+/** A move of the whole record: first the forge's session hears it, then each entity's session. */
 function messagedToEveryAgent(changed: PipelineSetupChanged, change: TrackerChange, context: ControlContext, message: SetupMessage): PipelineSetupChanged {
   return entityKeysOfParts(changed.setup).reduce(
     (latest, entityKey) => messagedToTheAgent(latest, change, context, message, entityKey),

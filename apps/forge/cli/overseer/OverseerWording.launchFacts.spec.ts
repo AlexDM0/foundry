@@ -1,7 +1,7 @@
 /**
  * What a crossing ticket's builder is told, from the launch facts the DrivePass reads off the board and the job folders, worded as the
  * Overseer words them. What matters: `adapt` that takes up the stage 1 session after the package stages gets the adapt message, with the
- * sealed packages, their reviews, `package-return` and the Acceptance evidence, and is never told a review did not hold (A2); after a home
+ * sealed packages, their reviews, `package-return` and the Acceptance evidence, and is never told a review did not hold (E43); after a home
  * review that did not hold, `adapt` resumes with that review's findings, followed by the rules of the adapt stage, both when `adapt` was
  * skipped, so the session never heard them, and when it ran (E51); a package build that its package review sent back is told that review,
  * which the ticket does not hold, in a resumed session and in a fresh one (E34).
@@ -144,7 +144,7 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
 }
 
 describe('stage 4, adapt, after the package stages', () => {
-  test('takes up the stage 1 session with the adapt message, never told that a review did not hold (A2)', () => {
+  test('takes up the stage 1 session with the adapt message, never told that a review did not hold (E43)', () => {
     const crossing = crossingBoardOf(ADAPT);
     packageStagesSealed(crossing, true);
 

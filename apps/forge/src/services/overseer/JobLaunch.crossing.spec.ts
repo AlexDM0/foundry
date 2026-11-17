@@ -12,7 +12,7 @@
  * review settles its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31),
  * and one that does not hold sends the package build back with its Review, kept in its job folder since the ticket holds none (E34); one
  * that holds seals the ticket's own change to the package, a lockfile change of its stages among it (E3), and runs the home review when the
- * build stated no change of what the package exposes and the review confirmed it, else `adapt` (E40, C15), and must confirm or correct the
+ * build stated no change of what the package exposes and the review confirmed it, else `adapt` (E40), and must confirm or correct the
  * statement. A later stage whose branch no longer holds the sealed change is sent back once, then fails (E33); `adapt` that kept the seal
  * reaches its gates and hands over to the home review. The `## Handoff` holds one part per stage that built, each stage writing only its
  * own, and a package build that refuses the change ends `refused` with a `package-refused` decision about the package that holds the
@@ -428,7 +428,7 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
     expect(batonPassOf(ticket, homeReview.job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
   });
 
-  test('skips adapt when the package build stated no change of what the package exposes and the review confirmed it (E40, C15)', () => {
+  test('skips adapt when the package build stated no change of what the package exposes and the review confirmed it (E40)', () => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
     reviewedPackageOf(ticket, false, { exposedSurfaceConfirmed: true });
 
@@ -439,7 +439,7 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
   test.each([
     ['the package build stated a change', true, true],
     ['the review corrected the statement', false, false],
-  ])('runs adapt when %s (E40, C15)', (_name, exposedSurfaceChanged, exposedSurfaceConfirmed) => {
+  ])('runs adapt when %s (E40)', (_name, exposedSurfaceChanged, exposedSurfaceConfirmed) => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
     reviewedPackageOf(ticket, exposedSurfaceChanged, { exposedSurfaceConfirmed });
 

@@ -4,7 +4,7 @@
  * owners are crossed, a package before the packages that consume it; a seal covers a package's homes but not a deeper home of another
  * entity (E2), and the `reach` paths its package stages changed (E3), which Customs judges every later job on; `adapt` is skipped only when
  * every crossed package's build stated no change of what it exposes and its review confirmed it, a missing statement counting as a change
- * (C15, E40); each stage's session is told its stage, the package review the build's statement, `adapt` each package's confirmed statement
+ * (E40); each stage's session is told its stage, the package review the build's statement, `adapt` each package's confirmed statement
  * and review, the home review each package's review (E32); a stage's run starts at its first job, a retry after a failed one included, and
  * a package review's run at its package's first build; and a stage statement that cannot be read counts as none.
  */
@@ -94,7 +94,7 @@ function statementsOf(exposedSurfaceChanged: boolean | null, exposedSurfaceConfi
   };
 }
 
-describe('skipping adapt (C15, E40)', () => {
+describe('skipping adapt (E40)', () => {
   test.each([
     ['no change stated and confirmed', [statementsOf(false, true)], true],
     ['a change stated and confirmed', [statementsOf(true, true)], false],

@@ -2380,8 +2380,9 @@ lives in [`pipeline.json`](#datapipelinejson).
 The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
 [Apply](#apply) write it through the lock, in format version 2 unless it holds a prepare step's `in`, a gate `in` that
 starts with `/` or a `reach`, which only version 3 has: a release that reads only version 2 then refuses the file
-rather than misread it. A pipeline with `entities` is version 4, which only a tracker at its repository's root holds.
-This build reads all three.
+rather than misread it. A pipeline with `entities` is version 4, which only a tracker at its repository's root holds: in
+a tracker in a folder a write that would store one is refused at exit 1 with nothing written, and a stored one reads as
+malformed, both as `entities-in-a-folder`. This build reads all three.
 
 ```json
 {
@@ -2479,7 +2480,7 @@ the lock, atomically; a start over removes it. This is format version 1.
   "baseContentHash": null,                       // the stored pipeline's content hash when an update or advise opened
   "stepStates": {                                // not-started | in-progress | done | needs-recheck
     "billing": "done", "research": "in-progress", "constitution": "not-started", "design": "not-started",
-    "apply": "not-started"
+    "apply": "not-started"                       // and "entities", only once a record over entities walks it
   },
   "currentStep": "research",
   "billing": { "mode": "subscription" },         // as pipeline.json's billing
@@ -2488,7 +2489,7 @@ the lock, atomically; a start over removes it. This is format version 1.
   "readyToContinue": [],                         // the agent's suggestion; it never moves a step
   "findings": [
     { "findingId": "F1", "topic": "scripts", "label": "Tests", "value": "bun test", "sourcePaths": ["package.json"],
-      "script": null, "needsRecheck": false }   // topic: stack | scripts | conventions | continuous-integration | note
+      "script": null, "needsRecheck": false }   // topic: stack | scripts | conventions | continuous-integration | note | layout
   ],
   "questions": [
     { "questionId": "Q1", "step": "research", "subject": { "kind": "finding", "reference": "F1" },
@@ -2498,11 +2499,22 @@ the lock, atomically; a start over removes it. This is format version 1.
   "constitution": null,                          // or { markdown, annotations, draftedFrom, baseBlob, revision }
   "draft": null,                                 // or the whole version 3 pipeline being designed, as pipeline.json
   "draftRevision": 0,
-  "edits": [],                                   // { editId, by: agent | user, field, summary, undone }
+  "edits": [],                                   // { editId, by: agent | user, field, summary, undone, batch? }
   "replacesUnreadablePipeline": false,
   "applyRequest": null,                          // or { draftRevision, resumesBoard, commitJobId, state, reason }
   "check": { "draftRevision": 0, "gateNames": ["tests"], "state": "queued", "result": null, "reason": null },
   "nextNumbers": { "finding": 2, "question": 2, "edit": 1 }
+}
+```
+
+On a forge over entities the record also holds, each written only once set:
+
+```jsonc
+{
+  "entities": {                                  // each entity's part, by its key; the draft holds every entity
+    "web": { "agentJobId": "J7", "findings": [], "questions": [], "constitution": null }  // and "check" once asked for
+  },
+  "openedAtEntity": "web"                        // an update or advise opened at an entity; absent at the forge
 }
 ```
 
@@ -2514,8 +2526,24 @@ the lock, atomically; a start over removes it. This is format version 1.
   times, so an edited line loses its source. `draftedFrom` holds the three SOURCES ticks; `baseBlob` is main's blob of
   `CONSTITUTION.md` when the record opened, or `null`.
 - An edit's `field` is one of `gate:<name>`, `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `role:<role>`,
-  `review`, `airlock`, `approval:<approval>` and `constitution`. Undo writes the base pipeline's value of that field
-  back: the stored pipeline's, or the minimal one's for a first setup.
+  `review`, `airlock`, `approval:<approval>` and `constitution`; on a draft with entities also `entity:<key>`, an
+  entity's `kind`, `home` and `summary`, and `entity:<key>/<field>`, a field inside that entity: one of `gate:<name>`,
+  `phase-order:<phase>`, `prepare:<name>`, `prepare-order`, `review`, `constitution`, `role:<role>` (`builder`,
+  `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `depends-on` and `concurrency`. Undo writes the
+  base pipeline's value of that field back: the stored pipeline's, or the minimal one's for a first setup.
+- An edit's `batch` is written only by a copy of one entity's settings to other entities: a `pipeline-draft-edit` sent
+  with `isACopy`, whose edits each take the set's `batch`, the first of their edit ids. A copy on a draft without
+  entities, or with an edit of a field outside an entity, is refused `draft-copy-outside-entities`, so a forge without
+  entities never stores a `batch`. Each edit of a set still undoes alone; a `pipeline-draft-undo` sent with `wholeBatch`
+  undoes at one revision every edit of the named edit's set at its entity that still stands, each logged
+  `pipeline-draft-undone`, and an edit of no set as a set of one. `pipeline undo` sends no `wholeBatch`.
+- `entities` holds each entity's part of the record on a forge over entities: `agentJobId` (the entity's own
+  pipeline-agent session, or `null`), its `findings` and `questions` of the shapes above, its `constitution` draft, and
+  `check`, absent until User first asks for a check of that entity. An entity's check runs that entity's prepare steps
+  and gates, their folders read under the entity's first home: the check's start carries it as `entityHome`, which the
+  record does not store. `openedAtEntity` names the entity an update or advise opened at, the level whose session a
+  resume opens. `stepStates.entities` exists only once the record walks the `entities` step, between `research` and
+  `constitution`.
 - Only one record is open at a time: a second opening is refused (`setup-in-progress`). Only a step at or before the
   current one reopens (`setup-step-not-reached`). Reopening a step sets every later `done` step to `needs-recheck`,
   never `not-started`; Continue on that step sets it `done`, the only way out of a recheck. In a first setup, User's
@@ -3138,9 +3166,17 @@ ignored. Only the `draft` commands write it, through the lock, atomically:
     }
   ],
   "nextNoteNumber": 2,                           // the number the next note and question take, never wound back
-  "nextQuestionNumber": 2
+  "nextQuestionNumber": 2,
+  "entity": "web",                               // optional: the entity the draft's tickets are filed for
+  "crosses": ["design-system"]                   // optional: the whitelisted packages they are expected to cross into
 }
 ```
+
+`entity` and `crosses` are optional and written only once set, after `nextQuestionNumber`, so a filing draft without
+them round-trips byte for byte. `entity` is an entity key: one that is not a string, or is blank, makes the file
+malformed. `crosses` is a list of entity keys: one that is not a list, or holds an item that is not a string or is
+blank, makes the file malformed. No `draft` command sets either key: this build reads them and writes them back as
+read.
 
 Keys the CLI does not know are kept, in their stored order, after its own. A filing-draft file that is not JSON, lacks a
 field, holds one of the wrong shape, or has another `version` (older or newer, refused with `OLDER_FORMAT_ADVICE`) is

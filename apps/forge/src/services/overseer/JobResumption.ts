@@ -178,7 +178,7 @@ type SessionOwnerSubject = Readonly<Pick<Job, 'id' | 'kind' | 'role' | 'ticketId
 /** A build of the same attempt, entity and stage carries on the session of a build that ended so: sent back by its review, or its needs settled. */
 const SESSION_CARRYING_OUTCOMES: readonly string[] = ['built', 'needs-declared'];
 
-/** A crossing ticket's `adapt` (stage 4) carries on the home builder's session of `build` (stage 1) when it exists (A2). */
+/** A crossing ticket's `adapt` (stage 4) carries on the home builder's session of `build` (stage 1) when it exists (E43). */
 const ADAPT_STAGE_NUMBER = 4;
 
 const BUILD_STAGE_NUMBER = 1;
@@ -193,7 +193,7 @@ function adaptTakesUp(sessionScope: SessionScope | undefined, jobScope: SessionS
  * The job whose session a build job carries on: a build of the same attempt, entity and stage after one that ended `built` was sent back by
  * its review, or after one that ended `needs-declared` once its needs are settled, and resumes that builder's session (itself perhaps carried
  * on from an earlier one). An `adapt` job after the package stages carries on the newest home build of stage 1 or 4 that ended so, whatever
- * its attempt (A2); with none it starts fresh (E43). The job itself for every other job.
+ * its attempt; with none it starts fresh (E43). The job itself for every other job.
  */
 function sessionOwnerJobIdOf(logRecords: readonly LogRecord[], job: SessionOwnerSubject): string {
   if (job.kind === 'merge-agent') return airlockSessionOwnerJobIdOf(logRecords, job);

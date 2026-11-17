@@ -490,7 +490,7 @@ function airlockAgentLaunchesOf(board: Board, job: Readonly<Job>): ({ role: JobR
 }
 
 /**
- * The conflict re-reviewer a resolution still needs, in order: the home's, as today, when its resolution is too large to merge unread; then
+ * The conflict re-reviewer a resolution still needs, in order: the home's, when its resolution is too large to merge unread; then
  * one of each package whose builder resolved a part, whatever its size (E62). `null` once each one needed was launched.
  */
 function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsAReReview: boolean): AirlockAgentScope | null {

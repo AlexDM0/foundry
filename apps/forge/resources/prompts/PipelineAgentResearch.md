@@ -20,6 +20,10 @@ Record each fact as one finding with `{{program}} pipeline finding`. Put the pat
 - `continuous-integration`: what the CI runs, and when it runs.
 - `note`: an area that has no tests, an existing `CONSTITUTION.md`, or a different fact that a gate or the
   constitution needs.
+- `layout`: one app or one package of the repository that has its own folder. Put its folder in `label`, relative to
+  the repository root, such as `apps/web`. Put what it is in `value`, such as `Next.js app`. Put its package or build
+  file in `sourcePaths`. Record one `layout` finding for each app and each package. The entities step proposes the
+  entities from these findings.
 
 Record each fact one time. When a finding needs a recheck, read its paths again. Then record the correct fact as a new
 finding.

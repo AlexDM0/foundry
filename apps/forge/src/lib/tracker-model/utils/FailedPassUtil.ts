@@ -36,7 +36,7 @@ function stageKeyOf(launch: Readonly<{ entity?: string; stage?: number }>): stri
 
 /**
  * The ticket's failed passes per entity and stage, keyed as `stageKeyOf` keys a launch. Until the ticket crosses into a package, its build
- * and review count together under its entity, as today; once it crossed, a launch into another stage number starts the stage with no counts.
+ * and review count together under its entity; once it crossed, a launch into another stage number starts the stage with no counts.
  * A start from `in-review` is rework, which keeps them; a start from anywhere else begins them again.
  */
 function failedPassesByStageOf(ticketId: string, logRecords: readonly LogRecord[]): ReadonlyMap<string, number> {

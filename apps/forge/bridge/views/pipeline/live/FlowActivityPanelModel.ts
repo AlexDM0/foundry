@@ -199,7 +199,7 @@ function buildsAtATimeTextOf(concurrencyLimit: number): string {
   return `${concurrencyLimit} ${concurrencyLimit === 1 ? 'build' : 'builds'} at a time`;
 }
 
-/** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity (C20). */
+/** "Every entity · 6 jobs at a time": a forge over entities counts jobs over every entity (E72). */
 function everyEntityHeadTextOf(concurrencyLimit: number | null): string {
   return concurrencyLimit === null ? 'Every entity' : `Every entity · ${concurrencyLimit} ${concurrencyLimit === 1 ? 'job' : 'jobs'} at a time`;
 }

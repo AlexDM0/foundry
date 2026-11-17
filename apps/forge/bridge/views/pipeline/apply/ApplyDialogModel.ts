@@ -1,5 +1,5 @@
 /**
- * The first Apply's model (A4), pure: the "Resume the board" line from the pending tickets and the concurrency limit, the note that
+ * The first Apply's model, pure: the "Resume the board" line from the pending tickets and the concurrency limit, the note that
  * Apply commits the constitution first, and the `pipeline-apply` command, which carries the checkbox's value as it shows.
  * Over entities (MonoApply) it also words what Apply stores, the pending tickets that the product owner gives an entity after Apply,
  * the entities worth a look, which never block Apply, and, only in update mode over a stored pipeline without entities, the refusal
@@ -14,7 +14,7 @@ import { HashRouter }                  from '../../../shell/HashRouter.ts';
 import { ForgeLevelPageModel }         from '../entities/ForgeLevelPageModel.ts';
 import { ConstitutionCommitListModel } from './ConstitutionCommitListModel.ts';
 
-/** How the resume line words the pace: today's "2 at a time", or "2 jobs at once" over entities, where a cap counts jobs. */
+/** How the resume line words the pace: "2 at a time", or "2 jobs at once" over entities, where a cap counts jobs. */
 export type ResumePace = 'at-a-time' | 'jobs-at-once';
 
 /** What the Apply dialog reads of the stored pipeline and the board, beside the record. */

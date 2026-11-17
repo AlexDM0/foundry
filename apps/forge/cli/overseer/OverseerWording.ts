@@ -321,7 +321,7 @@ function refusedPackageChangeLineOf(refused: Readonly<RefusedPackageChange>): st
 
 /**
  * A builder of an entity: where it writes, the proposal its whitelist permits in stage 1, and how it declares a need for another entity. A
- * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle (A10).
+ * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle (E13).
  */
 function builderEntityScopeOf(job: Readonly<Job>, facts: JobLaunchFacts): string {
   if (job.entity === undefined) return '';
@@ -343,7 +343,7 @@ function builderEntityScopeOf(job: Readonly<Job>, facts: JobLaunchFacts): string
   ]);
 }
 
-/** The package reviewer confirms or corrects the package builder's statement, which decides whether the adapt stage runs (C15). */
+/** The package reviewer confirms or corrects the package builder's statement, which decides whether the adapt stage runs (E40). */
 function exposedSurfaceConfirmationLineOf(packageEntity: string, exposedSurfaceChanged: boolean): string {
   return `The builder of \`${packageEntity}\` stated that what the package exposes ${exposedSurfaceChanged ? 'changed' : 'did not change'} `
     + `from the proposal of stage 1. ${EXPOSED_SURFACE_DEFINITION} Compare the proposal with the branch at your HEAD, with your own fixes. `
@@ -396,7 +396,7 @@ function crossedPackageResultOf(result: Readonly<CrossedPackageResult>): string 
 }
 
 /**
- * Stage 4: the resumed session of stage 1 gets the adapt message alone (A2); a fresh one, since that session cannot continue (E43), gets it
+ * Stage 4: the resumed session of stage 1 gets the adapt message alone; a fresh one, since that session cannot continue (E43), gets it
  * before its build prompt, whose ticket holds the handoff of stage 1.
  */
 function adaptMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {

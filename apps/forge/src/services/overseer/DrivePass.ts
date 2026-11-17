@@ -399,7 +399,7 @@ function airlockAgentPhaseOf(board: Board, job: Readonly<Job>): AirlockAgentPhas
 
 /**
  * A conflict re-reviewer reports as a reviewer while it re-reviews; resumed for a red merged tree, it reports as any Airlock agent. A package
- * stage's report also states what the package exposes (A1): the package builder states it, the package reviewer confirms it. An
+ * stage's report also states what the package exposes (E40): the package builder states it, the package reviewer confirms it. An
  * adapt build's report may send the ticket back to a sealed package (E41).
  */
 function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
@@ -765,7 +765,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
 /**
  * What a builder whose session is carried on is told of the review that sent it back: the ticket's newest Review, or for a package build the
  * Review its package review kept in its job folder (E34). `null` for a fresh session, and for `adapt` taking up the home builder's session
- * after the package stages, which gets the adapt message (A2); after a home review that did not hold, `adapt` gets its findings (E51).
+ * after the package stages, which gets the adapt message (E43); after a home review that did not hold, `adapt` gets its findings (E51).
  */
 function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null): ReviewFindingsFacts | null {
   if (job.kind !== 'build' || JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;

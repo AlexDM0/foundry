@@ -1,5 +1,5 @@
 /**
- * Whose session a crossing ticket's `adapt` (stage 4) carries on (A2). What matters: after the package stages, `adapt` resumes the home
+ * Whose session a crossing ticket's `adapt` (stage 4) carries on (E43). What matters: after the package stages, `adapt` resumes the home
  * builder's stage 1 session, whatever attempt it ran in, and never the package builder's (E29); once that resume failed and the job was
  * replaced, the next `adapt` starts fresh on the branch (E43); `adapt` after a home review that did not hold carries on the `adapt` session
  * that built, and when `adapt` was skipped it takes up the stage 1 session (E51); a stage 1 build that never ended `built` leaves `adapt`
@@ -65,7 +65,7 @@ const THE_PACKAGE_STAGES: readonly LogRecord[] = [
 ];
 
 describe('adapt after the package stages', () => {
-  test('resumes the home builder\'s stage 1 session, not the package builder\'s (A2, E29)', () => {
+  test('resumes the home builder\'s stage 1 session, not the package builder\'s (E29, E43)', () => {
     const records = [launched('J1', 'build', HOME_BUILD), ended('J1', 'built'), ...THE_PACKAGE_STAGES, launched('J4', 'build', ADAPT)];
 
     expect(JobResumption.sessionOwnerJobIdOf(records, adaptJobOf('J4'))).toBe('J1');

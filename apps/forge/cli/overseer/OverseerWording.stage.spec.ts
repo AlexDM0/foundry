@@ -1,12 +1,12 @@
 /**
  * What a builder and a reviewer of an entity are told, by the stage of a ticket that crosses into a whitelisted package. What matters: a
- * job without an entity gets the build and review prompts exactly as before, since a forge without entities must not change; a builder of
+ * job without an entity gets the build and review prompts with no entity part, since a forge without entities must not change; a builder of
  * an entity is told its homes and `reach`, and how and when to declare a need with `need declare` and end `needs-declared`, but a builder
- * of the root entity declares no need (A10); in stage 1 the whitelisted packages are named as a proposal; the package builder of stage 2
- * reads its stage's rules first, states `exposedSurfaceChanged` (A1) and declares no need into its home entity (E24); the package reviewer
- * of stage 3 is told that statement and confirms or corrects it with `exposedSurfaceConfirmed` (C15), and is not told to merge the target
+ * of the root entity declares no need (E13); in stage 1 the whitelisted packages are named as a proposal; the package builder of stage 2
+ * reads its stage's rules first, states `exposedSurfaceChanged` (E40) and declares no need into its home entity (E24); the package reviewer
+ * of stage 3 is told that statement and confirms or corrects it with `exposedSurfaceConfirmed` (E40), and is not told to merge the target
  * in when merge approval is on, which only the home review is (E36); a fresh package builder sent back by its package review reads that
- * review first (E34); the adapt stage resumes the stage 1 session with its message alone (A2), after a home review that did not hold with
+ * review first (E34); the adapt stage resumes the stage 1 session with its message alone, after a home review that did not hold with
  * the findings and then the stage's rules (E51), a fresh session (E43) gets the message before its build prompt, and a need cannot name a sealed
  * package, which only `package-return` changes, with what the package must give (E41, E42); the package build the ticket returned to is
  * told that reason before its stage's rules (E42), and one the ticket did not return to is told nothing of a return; a fresh session after

@@ -92,7 +92,7 @@ const REFUSED_NEEDS_ITS_REASON: JsonSchema = {
 
 /**
  * Stage 2 of a crossing ticket, the package build: a builder report that also states whether what the package exposes changed from the
- * stage 1 proposal (A1). The statement and the package reviewer's confirmation decide whether the adapt stage runs (C15). `refused`, with
+ * stage 1 proposal. The statement and the package reviewer's confirmation decide whether the adapt stage runs (E40). `refused`, with
  * its reason, ends a package build whose constitution forbids the change (E22); only a package build may report it.
  */
 export const PACKAGE_BUILDER_REPORT_SCHEMA: JsonSchema = {
@@ -170,7 +170,7 @@ export const REVIEWER_REPORT_SCHEMA: JsonSchema = {
   ...closedObject(REVIEWER_REPORT_PROPERTIES),
 };
 
-/** Stage 3 of a crossing ticket, the package review: a reviewer report that confirms or corrects the package builder's statement (A1, C15). */
+/** Stage 3 of a crossing ticket, the package review: a reviewer report that confirms or corrects the package builder's statement (E40). */
 export const PACKAGE_REVIEWER_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
   title:   'package reviewer report',

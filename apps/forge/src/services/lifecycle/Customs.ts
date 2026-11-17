@@ -327,7 +327,7 @@ function inAPackageStage(subject: Pick<CustomsSubject, 'crossingStage'>): boolea
 }
 
 /**
- * A package stage's report carries the statement of what the package exposes (A1): the package builder states it, its reviewer confirms it.
+ * A package stage's report carries the statement of what the package exposes: the package builder states it, its reviewer confirms it.
  * An adapt build's report may send the ticket back to a sealed package (E41).
  */
 function reportSchemaOf(role: ReportingRole, stageName: TicketStageName | null): JsonSchema {

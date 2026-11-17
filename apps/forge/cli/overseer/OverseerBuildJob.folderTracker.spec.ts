@@ -1,7 +1,7 @@
 /**
  * A build job's code for a tracker in a folder of its repository with a branch namespace, on the recorded folder flow of
  * `src/testing/RecordedGitFlow.ts` behind the Watcher boundary, as `cli/overseer/OverseerBuildJob.spec.ts` runs a root tracker's. What
- * matters: once step 0 made a folder tracker's guard real, its git calls are frozen, so no later change moves them unnoticed. Each flow asks
+ * matters: a folder tracker's git calls are frozen, so no change moves them unnoticed. Each flow asks
  * git exactly the calls in `cli/overseer/FrozenFolderTrackerGitCalls.json`: a clean run to the landing, a conflict an Airlock agent
  * resolves, whose resolution V5, V17 and V13 then judge against git's own merge, a red merged tree whose fix by the resumed Airlock agent
  * they judge again before the landing, and a red handoff that parks the ticket.
@@ -246,9 +246,9 @@ afterEach(() => {
 });
 
 /**
- * Each flow the frozen replay runs, under its name in `FrozenFolderTrackerGitCalls.json`. Each was taken from be2d36e8, the last commit of
- * step 0, by running its case there with the distinct calls written out. Retake one the same way from the commit before a change meant to
- * move a folder tracker's git, never from this run.
+ * Each flow the frozen replay runs, under its name in `FrozenFolderTrackerGitCalls.json`. Each was taken from be2d36e8 by running its case
+ * there with the distinct calls written out. Retake one the same way from the commit before a change meant to move a folder tracker's git,
+ * never from this run.
  */
 const FROZEN_FOLDER_TRACKER_FLOWS = {
   'a clean run to the landing':           passUntilLanded,
@@ -270,7 +270,7 @@ const FROZEN_FOLDER_TRACKER_FLOWS = {
 const FROZEN_FOLDER_TRACKER_FLOW_NAMES = Object.keys(FROZEN_FOLDER_TRACKER_FLOWS) as (keyof typeof FROZEN_FOLDER_TRACKER_FLOWS)[];
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a folder tracker\'s build job end to end', () => {
-  const frozenClaim = 'a tracker in a folder with a branch namespace, on %s, asks git exactly the calls it asked once step 0 was done';
+  const frozenClaim = 'a tracker in a folder with a branch namespace, on %s, asks git exactly its frozen calls';
   test.each(FROZEN_FOLDER_TRACKER_FLOW_NAMES)(frozenClaim, async (flowName) => {
     const gitCalls = startGitCallLog({ [repositoryDirectory]: '<repository>', [monitorFolder]: '<monitor>', [runScratchRoot()]: '<scratch root>' });
     try {

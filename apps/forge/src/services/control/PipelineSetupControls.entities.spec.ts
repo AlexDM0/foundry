@@ -9,7 +9,7 @@
  * entity's constitution path on main and starts the product owner with the request's words; a draft edit that whitelists a package
  * with a review is accepted; and a copy to another entity stores its edits under one `batch`, the first of their edit ids, which
  * `wholeBatch` undoes at once with the entity's session hearing every edit of it in one message, while a copy that names a field outside an
- * entity is refused with the record untouched (A5). A forge without entities keeps one session and stores no batch, which
+ * entity is refused with the record untouched. A forge without entities keeps one session and stores no batch, which
  * `PipelineSetupControls.spec.ts` holds.
  */
 import { describe, expect, test } from 'bun:test';

@@ -23,7 +23,7 @@ export interface TicketStage {
 
 /**
  * What one stage of one entity counted. Red handoffs and failed passes start at zero each time the stage starts; review rounds are kept when
- * the ticket comes back to the stage, so today's bound on rounds holds across a return.
+ * the ticket comes back to the stage, so the bound on review rounds holds across a return.
  */
 export interface TaskStageCounters {
   redHandoffs:  number;
