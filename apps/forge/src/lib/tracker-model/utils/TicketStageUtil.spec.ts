@@ -3,18 +3,16 @@
  * review, adapt and review in that order, and adapt may be skipped; every way back the strategy names is legal and nothing else is, so a
  * later unit cannot jump a package review or a seal, and a package change turned into a need goes back to build from any later stage (E19);
  * only a move from `adapt` or `review` into a package build counts as a package return, since the second one opens a decision; a stage's
- * number is the job's `stage`, and its counter key is its job launch's key, so a return to a stage finds its counts, and a job's entity and
- * number give its stage back; and a stage name read from outside is a membership test.
+ * number is the job's `stage`, and a job's entity and number give its stage back; and a stage name read from outside is a membership test.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { TicketStageName }                                     from '../@types/Task.ts';
 import { LEGAL_SOURCE_STAGES_FOR_TICKET_STAGE, TICKET_STAGE_NAMES } from '../constants/TicketStages.ts';
-import { FailedPassUtil }                                           from './FailedPassUtil.ts';
 import { TicketStageUtil }                                          from './TicketStageUtil.ts';
 
 const {
-  stageNameIsKnown, stageNumberOf, stageKeyOf, stageOfJob, stageMoveIsLegal, stageMoveIsAPackageReturn
+  stageNameIsKnown, stageNumberOf, stageOfJob, stageMoveIsLegal, stageMoveIsAPackageReturn
 } = TicketStageUtil;
 
 function legalMovesOf(): string[] {
@@ -83,13 +81,6 @@ describe('a stage name and number', () => {
   test('a stage\'s number is its place in the crossing table, which a job stores as its stage', () => {
     const numbers = TICKET_STAGE_NAMES.map((name: TicketStageName) => stageNumberOf(name));
     expect(numbers).toEqual([1, 2, 3, 4, 5]);
-  });
-
-  test('a stage\'s counter key is the key of its job launch, the same for every return to it and apart for each entity', () => {
-    expect(stageKeyOf({ name: 'package-review', entity: 'design-system' })).toBe(FailedPassUtil.stageKeyOf({ entity: 'design-system', stage: 3 }));
-    expect(stageKeyOf({ name: 'package-review', entity: 'design-system' })).toBe('design-system/3');
-    expect(stageKeyOf({ name: 'package-review', entity: 'brand' })).not.toBe(stageKeyOf({ name: 'package-review', entity: 'design-system' }));
-    expect(stageKeyOf({ name: 'review', entity: 'shop' })).not.toBe(stageKeyOf({ name: 'adapt', entity: 'shop' }));
   });
 
   test('a job\'s entity and number give back the stage it runs, and a job without them or with a number no stage has gives none', () => {

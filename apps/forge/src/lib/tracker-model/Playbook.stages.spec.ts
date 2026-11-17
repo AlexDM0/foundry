@@ -156,7 +156,7 @@ const CLAIMS: StageClaim[] = [
     mutant: policyLine('stageRoundsGranted += 1', 'stageRoundsGranted += 0'),
   },
   {
-    name:  'a review stage keeps its rounds when the ticket returns to it, as its row keeps them',
+    name:  'a review stage keeps its rounds when the ticket returns to it',
     holds: (policy) => launchesExactly(policy, factsWith({
       pipelineHasEntities: true,
       entitiesWithReview:  BOTH_REVIEWED,

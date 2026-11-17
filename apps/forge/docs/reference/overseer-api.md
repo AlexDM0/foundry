@@ -647,7 +647,7 @@ the `needs-declared` job outcome, the `need-for-root`, `need-closes-circle`, `ne
 `whitelist-removed-mid-crossing` decision kinds and the `need-declared` record, 1.7 adds the `changed-only-outside-home-and-reach`
 refusal and job-ended cause and the `pipeline-set-per-entity` refusal, 1.8 adds the `whitelist-not-supported` refusal, a
 pipeline with entities in the Overseer's documents and the board, and the `changed-outside-home-and-reach` job-ended cause, 1.9 adds a
-progress row's `stage`, `seals`, `packageReturns` and `stageCounters`, the `entity-named-by-tickets` and `entities-while-tickets-in-flight`
+progress row's `stage`, `seals` and `packageReturns`, the `entity-named-by-tickets` and `entities-while-tickets-in-flight`
 refusals and apply reasons, the entity on the `constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's
 `entityAssignment`, 1.10 adds a `stage` on a review bar's progress row, `wholeBatch` on `pipeline-draft-undo` and the
 `draft-batch-undone` setup message, 1.11 adds the `sealed-change-altered` refusal and job-ended cause, the package

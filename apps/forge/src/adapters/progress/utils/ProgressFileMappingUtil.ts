@@ -10,18 +10,13 @@ import type {
   JobIntake,
   Airlock
 } from '../../../lib/tracker-model/@types/Job.ts';
-import type { DeclaredNeed }        from '../../../lib/tracker-model/@types/Need.ts';
-import type { QuestionOptionNotes } from '../../../lib/tracker-model/@types/OptionConsequences.ts';
-import type {
-  Task,
-  TaskPhase,
-  TaskStageCounters,
-  TicketStage
-} from '../../../lib/tracker-model/@types/Task.ts';
-import type { TrackerProgress }        from '../../../lib/tracker-model/@types/TrackerProgress.ts';
-import { OptionConsequencesUtil }      from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
-import type { WordedLogEntry }         from '../../../shared/@types/WordedLogEntry.ts';
-import type { WordedProgressDocument } from '../../../shared/@types/WordedProgressDocument.ts';
+import type { DeclaredNeed }                 from '../../../lib/tracker-model/@types/Need.ts';
+import type { QuestionOptionNotes }          from '../../../lib/tracker-model/@types/OptionConsequences.ts';
+import type { Task, TaskPhase, TicketStage } from '../../../lib/tracker-model/@types/Task.ts';
+import type { TrackerProgress }              from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import { OptionConsequencesUtil }            from '../../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
+import type { WordedLogEntry }               from '../../../shared/@types/WordedLogEntry.ts';
+import type { WordedProgressDocument }       from '../../../shared/@types/WordedProgressDocument.ts';
 import type {
   StoredDecision,
   StoredDecisionQuestion,
@@ -35,7 +30,6 @@ import type {
   StoredProgressFile,
   StoredTask,
   StoredTaskPhase,
-  StoredTaskStageCounters,
   StoredTicketStage
 }                                                                            from '../@types/StoredProgressFile.ts';
 import { CURRENT_PROGRESS_FILE_VERSION, EMBEDDED_LOG_PROGRESS_FILE_VERSION } from '../constants/ProgressFileVersions.ts';
@@ -180,18 +174,11 @@ const KNOWN_TASK_KEYS = {
   stage:          true,
   seals:          true,
   packageReturns: true,
-  stageCounters:  true,
 } as const satisfies Record<keyof Task | keyof StoredTask, true>;
 
 const KNOWN_TASK_PHASE_KEYS = { status: true, at: true } as const satisfies Record<keyof TaskPhase | keyof StoredTaskPhase, true>;
 
 const KNOWN_TICKET_STAGE_KEYS = { name: true, entity: true } as const satisfies Record<keyof TicketStage | keyof StoredTicketStage, true>;
-
-const KNOWN_STAGE_COUNTER_KEYS = {
-  redHandoffs:  true,
-  failedPasses: true,
-  reviewRounds: true,
-} as const satisfies Record<keyof TaskStageCounters | keyof StoredTaskStageCounters, true>;
 
 /** Non-enumerable, so it never shows in a listing, a comparison or a JSON dump of the model, and stays on an object the Board changes in place. */
 const UNKNOWN_STORED_KEYS = Symbol('the keys the file held that the tool does not know');
@@ -236,14 +223,6 @@ function ticketStageOf(stored: StoredTicketStage): TicketStage {
   return readInFileOrder(stored, KNOWN_TICKET_STAGE_KEYS, { name: stored.name, entity: stored.entity });
 }
 
-function stageCountersOf(stored: StoredTaskStageCounters): TaskStageCounters {
-  return readInFileOrder(stored, KNOWN_STAGE_COUNTER_KEYS, { redHandoffs: stored.redHandoffs, failedPasses: stored.failedPasses, reviewRounds: stored.reviewRounds });
-}
-
-function stageCountersByStageKeyOf(stored: Record<string, StoredTaskStageCounters>): Record<string, TaskStageCounters> {
-  return Object.fromEntries(Object.entries(stored).map(([stageKey, counters]) => [stageKey, stageCountersOf(counters)]));
-}
-
 function taskOf(stored: StoredTask): Task {
   return readInFileOrder(stored, KNOWN_TASK_KEYS, {
     id:     stored.id,
@@ -270,7 +249,6 @@ function taskOf(stored: StoredTask): Task {
     ...(stored.stage === undefined ? {} : { stage: ticketStageOf(stored.stage) }),
     ...(stored.seals === undefined ? {} : { seals: { ...stored.seals } }),
     ...(stored.packageReturns === undefined ? {} : { packageReturns: stored.packageReturns }),
-    ...(stored.stageCounters === undefined ? {} : { stageCounters: stageCountersByStageKeyOf(stored.stageCounters) }),
   });
 }
 
@@ -393,14 +371,6 @@ function storedTicketStageOf(stage: TicketStage): StoredTicketStage {
   return writtenInModelOrder(stage, [], { name: stage.name, entity: stage.entity });
 }
 
-function storedStageCountersOf(counters: TaskStageCounters): StoredTaskStageCounters {
-  return writtenInModelOrder(counters, [], { redHandoffs: counters.redHandoffs, failedPasses: counters.failedPasses, reviewRounds: counters.reviewRounds });
-}
-
-function storedStageCountersByStageKeyOf(countersByStageKey: Record<string, TaskStageCounters>): Record<string, StoredTaskStageCounters> {
-  return Object.fromEntries(Object.entries(countersByStageKey).map(([stageKey, counters]) => [stageKey, storedStageCountersOf(counters)]));
-}
-
 function storedTaskOf(task: Task): StoredTask {
   return writtenInModelOrder(task, [], {
     id:     task.id,
@@ -427,7 +397,6 @@ function storedTaskOf(task: Task): StoredTask {
     ...(task.stage === undefined ? {} : { stage: storedTicketStageOf(task.stage) }),
     ...(task.seals === undefined ? {} : { seals: { ...task.seals } }),
     ...(task.packageReturns === undefined ? {} : { packageReturns: task.packageReturns }),
-    ...(task.stageCounters === undefined ? {} : { stageCounters: storedStageCountersByStageKeyOf(task.stageCounters) }),
   });
 }
 

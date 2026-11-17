@@ -6,7 +6,6 @@ import {
   TICKET_STAGE_NAMES,
   TICKET_STAGE_NUMBERS
 } from '../constants/TicketStages.ts';
-import { FailedPassUtil } from './FailedPassUtil.ts';
 
 /** A membership test, not a record lookup: outside text can spell `constructor`. */
 function stageNameIsKnown(text: string): text is TicketStageName {
@@ -15,11 +14,6 @@ function stageNameIsKnown(text: string): text is TicketStageName {
 
 function stageNumberOf(stageName: TicketStageName): number {
   return TICKET_STAGE_NUMBERS[stageName];
-}
-
-/** The key a row's `stageCounters` holds the stage's counts under: the key of the stage's job launch, so a return to the stage finds them. */
-function stageKeyOf(stage: TicketStage): string {
-  return FailedPassUtil.stageKeyOf({ entity: stage.entity, stage: stageNumberOf(stage.name) });
 }
 
 /** The stage a job of an entity runs, read from its `entity` and `stage`; `null` for a job without them or a number no stage has. */
@@ -42,7 +36,6 @@ function stageMoveIsAPackageReturn(currentStage: TicketStageName, targetStage: T
 export const TicketStageUtil = {
   stageNameIsKnown,
   stageNumberOf,
-  stageKeyOf,
   stageOfJob,
   stageMoveIsLegal,
   stageMoveIsAPackageReturn,

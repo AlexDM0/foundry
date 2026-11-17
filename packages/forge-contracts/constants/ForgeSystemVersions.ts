@@ -14,7 +14,7 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * file's needs, the need refusals, the needs-declared job outcome, the need decision kinds and the need-declared record; 1.7 adds the
  * changed-only-outside-home-and-reach refusal and job-ended cause and the pipeline-set-per-entity refusal; 1.8 adds the whitelist-not-supported
  * refusal, a pipeline with entities in the Overseer's documents and the board, and the changed-outside-home-and-reach job-ended cause; 1.9 adds a
- * progress row's stage, seals, package returns and stage counters, the entity-named-by-tickets and entities-while-tickets-in-flight refusals and
+ * progress row's stage, seals and package returns, the entity-named-by-tickets and entities-while-tickets-in-flight refusals and
  * apply reasons, the entity on the constitution-moved refusal, the entities to assign on the job-launched record and the board's entity
  * assignment; 1.10 adds a stage on a review bar's progress row, the whole-batch flag on the pipeline-draft-undo command and the
  * draft-batch-undone setup message; 1.11 adds the sealed-change-altered refusal and job-ended cause, the package builder's and package

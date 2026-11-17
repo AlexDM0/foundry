@@ -1711,6 +1711,11 @@ owns it; a package build keeps it. Each move of the row's `stage` logs `stage-st
 from `adapt` or the home `review` back to a `package-build` is a package return, which lifts that package's seal
 (`seal-lifted`), counts in the row's `packageReturns` and logs `package-return`.
 
+A crossing ticket's red handoffs, failed passes and review rounds are counted per stage, by the entity and stage number
+its `job-launched` records name, from the log alone: no row key holds them, so they survive a restart of the Overseer
+and read the same once the board is read again from disk (E74). Red handoffs and failed passes start again when the
+ticket starts a stage again; review rounds are kept when the ticket returns to a stage.
+
 - **Package build (stage 2).** The package's builder answers for the commits since the first job of its stage, so a
   retry after a refused job still answers for that job's commits, under the package's homes and `reach`. Commits that
   all lie outside them are refused `changed-outside-home-and-reach`, never as work of another entity. It may commit
@@ -2327,7 +2332,6 @@ The board's state. The example shows the shape; the tables below give each key's
 | `stage` | yes | On a forge with entities, once the ticket crosses into a whitelisted package: `{ name, entity }`, the stage it is in (`build`, `package-build`, `package-review`, `adapt` or `review`) and the key of the entity whose agent runs it; the Overseer launches the ticket's next job from it. On a review bar of a forge with entities: the stage its reviewer runs. A ticket that stays in one entity, and every row of a forge without entities, has none. |
 | `seals` | yes | The seal of each crossed package that a package review sealed, by package entity key: a hash of the ticket's own change to that package. |
 | `packageReturns` | yes | How many times the ticket went back from `adapt` or `review` to a package build, from 1; written at the first return. |
-| `stageCounters` | yes | What each stage the ticket ran counted, by stage key (`entity/number`, as a job launch is keyed): `{ redHandoffs, failedPasses, reviewRounds }`, each from 0. Red handoffs and failed passes start again at 0 when the stage starts again; review rounds are kept when the ticket returns to the stage. Written with `stage`. |
 
 </details>
 

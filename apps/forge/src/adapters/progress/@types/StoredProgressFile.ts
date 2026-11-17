@@ -49,18 +49,11 @@ export interface StoredTask {
   stage?:          StoredTicketStage;
   seals?:          Record<string, string>;
   packageReturns?: number;
-  stageCounters?:  Record<string, StoredTaskStageCounters>;
 }
 
 export interface StoredTicketStage {
   name:   TicketStageName;
   entity: string;
-}
-
-export interface StoredTaskStageCounters {
-  redHandoffs:  number;
-  failedPasses: number;
-  reviewRounds: number;
 }
 
 export interface StoredJobEventCursor {

@@ -60,16 +60,6 @@ function ticketStageIsWellFormed(value: unknown): boolean {
   return typeof name === 'string' && TicketStageUtil.stageNameIsKnown(name) && typeof entity === 'string' && entity !== '';
 }
 
-function stageCountersAreWellFormed(value: unknown): boolean {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return false;
-  return [value['redHandoffs'], value['failedPasses'], value['reviewRounds']].every((count) => StoredValueUtil.wholeNumberIsAtLeast(count, 0));
-}
-
-function stageCountersByStageKeyAreWellFormed(value: unknown): boolean {
-  return JsonRecordUtil.valueIsAPlainObject(value)
-    && Object.entries(value).every(([stageKey, counters]) => stageKey !== '' && stageCountersAreWellFormed(counters));
-}
-
 function taskStatusIsKnown(value: unknown): boolean {
   return typeof value === 'string' && VocabularyUtil.taskStatusIsKnown(value);
 }
@@ -131,9 +121,6 @@ function taskProblem(value: unknown, index: number): string | null {
   }
   if (task['packageReturns'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(task['packageReturns'], 1)) {
     return `tasks[${index}].packageReturns is present and is not a whole number of at least 1`;
-  }
-  if (task['stageCounters'] !== undefined && !stageCountersByStageKeyAreWellFormed(task['stageCounters'])) {
-    return `tasks[${index}].stageCounters is present and is not, for each stage key, a whole count of at least 0 for each of redHandoffs, failedPasses and reviewRounds`;
   }
   return null;
 }

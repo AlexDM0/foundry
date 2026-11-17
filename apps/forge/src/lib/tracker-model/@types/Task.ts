@@ -21,16 +21,6 @@ export interface TicketStage {
   entity: string;
 }
 
-/**
- * What one stage of one entity counted. Red handoffs and failed passes start at zero each time the stage starts; review rounds are kept when
- * the ticket comes back to the stage, so the bound on review rounds holds across a return.
- */
-export interface TaskStageCounters {
-  redHandoffs:  number;
-  failedPasses: number;
-  reviewRounds: number;
-}
-
 /** One status a row actually reached, and when. A correction never files one: a correction is not something that happened. */
 export interface TaskPhase {
   status: TaskStatus;
@@ -98,6 +88,4 @@ export interface Task {
   seals?:          Record<string, string>;
   /** How many times the ticket returned to a package build from `adapt` or `review`; written at the first return. */
   packageReturns?: number;
-  /** The counts of each stage the ticket ran, by stage key (`entity/number`, as a job launch is keyed); written with `stage`. */
-  stageCounters?:  Record<string, TaskStageCounters>;
 }

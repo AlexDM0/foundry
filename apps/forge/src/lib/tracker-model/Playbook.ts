@@ -236,7 +236,7 @@ function nextReviewRoundOf(ticketId: string, facts: IndexedLog): number {
 
 /**
  * The round of a review stage's next pass: one past the rounds that the ticket's reviews of the same entity and stage were granted. Rounds
- * are numbered per stage, so another stage's review never counts, and kept when the ticket returns to the stage, as its row keeps them.
+ * are numbered per stage, so another stage's review never counts, and kept when the ticket returns to the stage.
  */
 function nextStageReviewRoundOf(ticketId: string, launchStage: LaunchStage, facts: IndexedLog): number {
   const launches = facts.launchesByJobId;

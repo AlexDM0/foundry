@@ -5,9 +5,10 @@
  * and it never reaches the file. An optional row key such as `greenPhase` is written only once set, so a file without it keeps its bytes.
  * An unknown key named by an integer is the one exception to the order: it keeps its value but moves to the front of its object. A row's
  * `pipelineHashes` is a forge with entities' alone: a file without it keeps its bytes, also after a forge without entities gated the row.
- * The same holds for the stage keys of a crossing ticket (`stage`, `seals`, `packageReturns`, `stageCounters`): a row without them keeps its
- * bytes through a whole build, review and delivery on a forge without entities, a row with them reads them back in place, counts of two
- * stages included so a return to a review stage finds its rounds, and a malformed one is refused naming its field.
+ * The same holds for the stage keys of a crossing ticket (`stage`, `seals`, `packageReturns`): a row without them keeps its bytes through a
+ * whole build, review and delivery on a forge without entities, a row with them reads them back in place, and a malformed one is refused
+ * naming its field. The per-stage counts are read from the log (E74), so a row that still carries the retired `stageCounters` keeps it as an
+ * unknown key, byte for byte and whatever it holds.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -219,17 +220,11 @@ describe('a row\'s pipelineHashes', () => {
 
 describe('a row\'s stage keys', () => {
   const AT = '2026-11-17T10:00:00+01:00';
-  const STAGE_KEYS = ['stage', 'seals', 'packageReturns', 'stageCounters'];
+  const STAGE_KEYS = ['stage', 'seals', 'packageReturns'];
   const CROSSING_KEYS = {
     stage:          { name: 'package-review', entity: 'design-system', unknownStageKey: 'kept' },
     seals:          { 'design-system': '5d41402abc4b2a76' },
     packageReturns: 1,
-    stageCounters:  {
-      'design-system/3': { redHandoffs: 0, failedPasses: 0, reviewRounds: 2 },
-      'design-system/2': {
-        redHandoffs: 1, failedPasses: 0, reviewRounds: 0, unknownCounterKey: 'kept',
-      },
-    },
   };
 
   function textOfRows(rows: object[]): string {
@@ -252,7 +247,7 @@ describe('a row\'s stage keys', () => {
     expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mapped))).toBe(stored);
   });
 
-  test('a row stored with them reads each back and is written back byte for byte, counts of two stages and unknown keys kept in place', () => {
+  test('a row stored with them reads each back and is written back byte for byte, unknown keys kept in place', () => {
     const stored = textOfRows([ticketRowOf(CROSSING_KEYS)]);
     const mapped = ProgressFileMappingUtil.progressOf(storedDocumentOf(stored));
 
@@ -260,14 +255,30 @@ describe('a row\'s stage keys', () => {
       stage:          { name: 'package-review', entity: 'design-system' },
       seals:          { 'design-system': '5d41402abc4b2a76' },
       packageReturns: 1,
-      stageCounters:  {
-        'design-system/3': { redHandoffs: 0, failedPasses: 0, reviewRounds: 2 },
-        'design-system/2': { redHandoffs: 1, failedPasses: 0, reviewRounds: 0 },
-      },
     });
     expect(Object.keys(mapped.tasks[0]?.stage ?? {})).toEqual(['name', 'entity', 'unknownStageKey']);
-    expect(Object.keys(mapped.tasks[0]?.stageCounters ?? {})).toEqual(['design-system/3', 'design-system/2']);
     expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mapped))).toBe(stored);
+  });
+
+  test('a row that still carries the retired stageCounters keeps it as an unknown key, byte for byte, whatever it holds (E74)', () => {
+    const retiredCounters = [
+      {
+        'design-system/2': {
+          redHandoffs: 1, failedPasses: 0, reviewRounds: 0, unknownCounterKey: 'kept'
+        }
+      },
+      { 'shop/1': { redHandoffs: 0, failedPasses: -1 } },
+      'not counts at all',
+    ];
+    for (const stageCounters of retiredCounters) {
+      const stored  = textOfRows([ticketRowOf({ ...CROSSING_KEYS, stageCounters, trailingRowKey: 'kept' })]);
+      const reading = ProgressFileValidationUtil.readingOf(JSON.parse(stored));
+      const mapped  = ProgressFileMappingUtil.progressOf(storedDocumentOf(stored));
+
+      expect(reading.verdict, JSON.stringify(stageCounters)).not.toBe('unreadable');
+      expect(Reflect.get(mapped.tasks[0] ?? {}, 'stageCounters')).toEqual(stageCounters);
+      expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mapped))).toBe(stored);
+    }
   });
 
   test('a stage the Board moves in place is written with the new values in the file\'s order', () => {
@@ -297,19 +308,13 @@ describe('a row\'s stage keys', () => {
   });
 
   test('a row whose stage keys are malformed is refused, naming the field', () => {
-    const stageReason    = 'tasks[0].stage is present and is not a stage name, one of build, package-build, package-review, adapt, review, with the key of the entity that runs it';
-    const countersReason = 'tasks[0].stageCounters is present and is not, for each stage key, a whole count of at least 0 for each of '
-      + 'redHandoffs, failedPasses and reviewRounds';
+    const stageReason = 'tasks[0].stage is present and is not a stage name, one of build, package-build, package-review, adapt, review, with the key of the entity that runs it';
     const refusals: [object, string][] = [
       [{ stage: { name: 'landing', entity: 'shop' } }, stageReason],
       [{ stage: { name: 'build', entity: '' } }, stageReason],
       [{ stage: 'build' }, stageReason],
       [{ seals: { 'design-system': 7 } }, 'tasks[0].seals is present and is not a record of a seal for each package entity key'],
       [{ packageReturns: 0 }, 'tasks[0].packageReturns is present and is not a whole number of at least 1'],
-      [{ stageCounters: { 'shop/1': { redHandoffs: 0, failedPasses: -1, reviewRounds: 0 } } }, countersReason],
-      [{ stageCounters: { 'shop/1': { redHandoffs: 0, failedPasses: 0 } } }, countersReason],
-      [{ stageCounters: { redHandoffs: 0, failedPasses: 0, reviewRounds: 0 } }, countersReason],
-      [{ stageCounters: { '': { redHandoffs: 0, failedPasses: 0, reviewRounds: 0 } } }, countersReason],
     ];
     for (const [extraKeys, reason] of refusals) {
       const reading = ProgressFileValidationUtil.readingOf(JSON.parse(textOfRows([ticketRowOf(extraKeys)])));
