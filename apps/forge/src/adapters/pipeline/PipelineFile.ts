@@ -80,6 +80,7 @@ const ENTITY_KEYS = [
 ] as const satisfies readonly (keyof PipelineEntity)[];
 const REQUIRED_ENTITY_KEYS = ['kind', 'home', 'prepare', 'gates', 'phases'] as const satisfies readonly (keyof PipelineEntity)[];
 const ENTITY_KINDS         = ['app', 'package', 'root'] as const satisfies readonly PipelineEntityKind[];
+const REPOSITORY_ROOT_HOME = '/';
 const ENTITY_AGENT_ROLES   = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly EntityAgentRole[];
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
@@ -424,7 +425,9 @@ function concurrencyOf(value: unknown, path: string): Mapped<number | undefined>
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? { value } : problemOf(`${path} is not a positive whole number`);
 }
 
-function homeOf(value: unknown, path: string): Mapped<string[]> {
+/** The root entity's home may be the repository's root alone, `/`, as the Bridge writes it; any other home names folders below the root. */
+function homeOf(value: unknown, path: string, entityKind: PipelineEntityKind): Mapped<string[]> {
+  if (entityKind === 'root' && Array.isArray(value) && value.length === 1 && value[0] === REPOSITORY_ROOT_HOME) return { value: [REPOSITORY_ROOT_HOME] };
   const folders = repositoryPathsOf(value, path);
   if ('problem' in folders) return folders;
   return folders.value === undefined || folders.value.length === 0 ? problemOf(`${path} names no folder`) : { value: folders.value };
@@ -439,7 +442,7 @@ function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineF
   if (missingKey !== undefined) return problemOf(`${path}.${missingKey} is missing`);
   const entityKind = entityKindOf(fields['kind'], `${path}.kind`);
   if ('problem' in entityKind) return entityKind;
-  const home = homeOf(fields['home'], `${path}.home`);
+  const home = homeOf(fields['home'], `${path}.home`, entityKind.value);
   if ('problem' in home) return home;
   const ownSteps = ownStepsOf(fields, `${path}.`, formatVersion);
   if ('problem' in ownSteps) return ownSteps;

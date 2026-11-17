@@ -41,6 +41,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/git/BranchDiffs.integration.spec.ts',
       'src/lib/git/BranchIntegration.integration.spec.ts',
       'src/lib/git/BranchMerge.integration.spec.ts',
+      'src/lib/git/EntityForgeFixture.integration.spec.ts',
       'src/lib/git/GitIgnore.integration.spec.ts',
       'src/lib/git/GitProcess.integration.spec.ts',
       'src/lib/git/GitWorktrees.integration.spec.ts',

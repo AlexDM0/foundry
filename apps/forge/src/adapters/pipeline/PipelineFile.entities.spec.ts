@@ -2,8 +2,9 @@
  * `pipeline.json` version 4, the format that holds entities. What matters: a pipeline with entities is mapped and checked whole, so a
  * stored file gets every refusal the entities earn, each with its own reason naming the entity; once nothing is wrong it is still refused
  * as not yet supported, a verdict a refusal names apart from a repair, since no forge runs entities before step 3; beside entities the
- * forge's own prepare steps, gates, constitution and reach stay empty; version 4 exists only for entities, and only version 4 holds them;
- * and a pipeline with entities is written as version 4 in the read's key order, so the file stays the same once entities are switched on.
+ * forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; version 4 exists
+ * only for entities, and only version 4 holds them; and a pipeline with entities is written as version 4 in the read's key order, so the
+ * file stays the same once entities are switched on.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -74,6 +75,17 @@ describe('a pipeline with entities', () => {
       .toBe(NOT_YET_SUPPORTED_REASON);
     const unsupportedEntities = { kind: 'entities-not-supported' } as const;
     expect(PipelineFile.documentReadingOf(withEntities(SOUND_ENTITIES))).toEqual({ verdict: 'malformed', reason: NOT_YET_SUPPORTED_REASON, unsupportedEntities });
+  });
+
+  test('the root entity\'s home may be the repository\'s root alone, as the Bridge writes it', () => {
+    expect(reasonOf(withEntities({ ...SOUND_ENTITIES, root: entity({ kind: 'root', home: ['/'] }) }))).toBe(NOT_YET_SUPPORTED_REASON);
+  });
+
+  test.each([
+    ['an app', entity({ home: ['/'] })],
+    ['a root entity with a second home', entity({ kind: 'root', home: ['/', '/tools'] })],
+  ])('%s whose home is the repository\'s root is refused', (_label, web) => {
+    expect(reasonOf(withEntities({ web }))).toStartWith('entities.web.home names "/", which is not a repository path leading with /');
   });
 
   test('a version 4 file without entities is malformed, since version 4 exists only for them', () => {
