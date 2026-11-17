@@ -1,15 +1,17 @@
 /**
  * The Airlock of a ticket of the shop that crossed into the package `tokens`, one named claim per case of strategy 5.7. What matters: the
  * landing gates every entity it changes and their consumers (E60), and a clean merge-in of a main line that changed the same package keeps
- * the seal and needs no package review (E61); a conflict goes to the entity that owns the files, a package's files to its builder and its
- * conflict re-reviewer whatever the size (E62), the home's files to the ticket's last home worker and its re-reviewer above the threshold
- * (E63), and a conflict in both to the package's builder first, which leaves the merge open, then to the home's worker, which commits it
- * (E64), and a worker that hands its own part on unresolved refuses the merge, so no part goes back to it; a package's builder that
- * resumes its build's session runs on the resumed call budget; a red merged tree and a stale green turned red go back to the entity that
- * owns the red gate, a package's or a consumer's gate to the package's build with the seal lifted and the return counted, the home's gate
- * to `adapt`, and a second package return parks the ticket (E65, E45); an abandoned ticket never takes the Airlock (E67); and a group's
- * landing gates only the entities it changes (E68). E66 is the review's catch-up, in `JobLaunch.targetCatchUp.spec.ts`. Git answers from
- * the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`.
+ * the seal and needs no package review (E61), which a moved main tip is enough to show: the Airlock never asks git which files the main
+ * line's side changed, only whether the merge-in conflicts, so a main side that changed the package reads the same; a conflict goes to the
+ * entity that owns the files, a package's files to its builder and its conflict re-reviewer whatever the size (E62), the home's files to
+ * the ticket's last home worker and its re-reviewer above the threshold (E63), and a conflict in both to the package's builder first, which
+ * leaves the merge open, then to the home's worker, which commits it (E64), and a worker that hands its own part on unresolved refuses the
+ * merge, so no part goes back to it; a package's builder that resumes its build's session runs on the resumed call budget; a red merged
+ * tree and a stale green turned red go back to the entity that owns the red gate, a package's or a consumer's gate to the package's build
+ * with the seal lifted and the return counted, the home's gate to `adapt`, and a second package return opens `second-return` naming the
+ * package, the ticket kept at its stage (E65, E45); an abandoned ticket never takes the Airlock (E67); and a group's landing gates only the
+ * entities it changes, while the group's release landing on the main line gates their consumers too (E68). E66 is the review's catch-up, in
+ * `JobLaunch.targetCatchUp.spec.ts`. Git answers from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`.
  */
 import { join } from 'node:path';
 
@@ -47,7 +49,8 @@ import {
   fastForwardIn,
   GROUP,
   groupReads,
-  groupWorktreeOf
+  groupWorktreeOf,
+  releaseAnswersOf
 } from './testing/GroupAirlockAnswers.ts';
 
 const recordedGit = useRecordedGit();
@@ -176,6 +179,7 @@ describe('a crossing ticket\'s landing (strategy 5.7)', () => {
     expect(harness.board.logRecordsSoFar().some((record) => record.kind === 'job-launched' && record.fields.kind === 'merge-agent')).toBe(false);
     expect(harness.gatedEntities).toEqual([['shop', 'admin', 'tokens']]);
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+    expect(harness.board.ticketSealsOf('001')).toEqual({ tokens: SEAL });
   });
 });
 
@@ -323,15 +327,18 @@ describeWhenGitIsRecorded('a crossing ticket\'s red merged tree, routed to the o
     expect(harness.board.ticketPackageReturnsOf('001')).toBe(0);
   });
 
-  test('a package\'s gate that would be a second package return parks the ticket for User instead (E45)', async () => {
+  test('a package\'s gate that would be a second package return opens second-return naming the package, the stage kept (E65, E45)', async () => {
     harness = cleanLandingHarness(PACKAGE_FILE, {}, 2).current;
     failWith(harness, 'tokens');
 
     await harness.slots.sweep();
 
-    expect(harness.board.tickets()[0]?.frontmatter.hold).toBe('parked:second-return');
-    expect(harness.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+    expect(harness.board.decisions()).toMatchObject([{ kind: 'second-return', ticketIds: ['001'], context: 'tokens' }]);
+    expect(harness.board.tickets()[0]?.frontmatter.hold).toBeUndefined();
+    expect(harness.board.tickets()[0]?.frontmatter.status).toBe('in-review');
+    expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
     expect(harness.board.ticketStageOf('001')).toEqual(HOME_REVIEW);
+    expect(harness.board.ticketSealsOf('001')).toEqual({ tokens: SEAL });
     expect(harness.board.ticketPackageReturnsOf('001')).toBe(1);
   });
 });
@@ -412,5 +419,27 @@ describeWhenGitIsRecorded('a crossing ticket in a group (E68)', () => {
 
     expect(harness.gatedEntities).toEqual([['tokens']]);
     expect(harness.board.tickets()[0]?.frontmatter.status).toBe('reviewed');
+  });
+
+  test('its group\'s release landing on the main line gates the entities it changes and the entities that consume them (E68)', async () => {
+    harness = createRecordedAirlocksHarness([
+      {
+        id: '010', group: 'example', status: 'reviewed', entity: 'shop'
+      },
+      {
+        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010'], entity: 'shop'
+      },
+    ], {}, true, null, false, null, ENTITIES);
+    const releasePathsAsked = stepIn(harness.worktreeOf('012'), {
+      gitArguments: ['diff', '--name-only', '--no-renames', '-z', 'HEAD', MAIN_TIP, '--'],
+      answeredAs:   GIT_CALL_SHAPES.FILES_CHANGED_UP_TO_A_COMMIT,
+      filledIn:     { [RECORDED_PLACEHOLDERS.PATH]: PACKAGE_FILE },
+    });
+    recordedGit.answerFrom([...releaseAnswersOf(harness, true, true).beforeTheMergeIn, releasePathsAsked]);
+
+    await harness.slots.sweep();
+
+    expect(harness.gatedEntities).toEqual([['shop', 'admin', 'tokens']]);
+    expect(harness.board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['delivered', 'delivered']);
   });
 });

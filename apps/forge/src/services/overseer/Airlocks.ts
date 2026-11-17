@@ -52,8 +52,6 @@ import { entityAssignmentRequestOf }                                         fro
 import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
 import {
   MergeRun,
-  PACKAGE_RETURNS_AGREED,
-  SECOND_RETURN_PARK_CAUSE,
   type ConflictPart,
   type CrossingLanding,
   type RedGateOwner
@@ -917,15 +915,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   /**
    * In the hold: a crossing ticket's red gate, on its merged tree or on its stale green, goes to the entity that owns the gate (E65). The
    * ticket returns to the package's build, its seal lifted and the return counted, or to the home's `adapt`, and that stage's builder takes
-   * the red handoff over. A second package return parks the ticket for User (E45), and so does a red gate past the builder's resumes.
+   * the red handoff over. A second package return opens `second-return`, naming the package, and the ticket keeps its stage and status
+   * (E45); a red gate past the builder's resumes parks the ticket for User.
    */
   function returnRedGateToItsOwner(hold: AirlockHold, ticketId: string, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed): void {
     const { owner } = route;
-    const parkCause = owner.owner === 'package' && hold.board.ticketPackageReturnsOf(ticketId) >= PACKAGE_RETURNS_AGREED
-      ? SECOND_RETURN_PARK_CAUSE
-      : writeStaleGreenHandoff(hold.board, ticketId, red, true) ? null : RED_RESUMES_SPENT_CAUSE;
-    if (parkCause !== null) {
-      hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${parkCause}`, hold.at);
+    if (owner.owner === 'package' && hold.board.returnToThePackageIsASecondReturn(ticketId, owner.packageEntity)) {
+      hold.board.returnTicketToThePackage(ticketId, owner.packageEntity, context.decisionWordingOf, hold.at);
+      return;
+    }
+    if (!writeStaleGreenHandoff(hold.board, ticketId, red, true)) {
+      hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${RED_RESUMES_SPENT_CAUSE}`, hold.at);
       openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
       return;
     }

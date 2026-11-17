@@ -87,8 +87,6 @@ import type { SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import {
   CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE,
   MergeRun,
-  PACKAGE_RETURNS_AGREED,
-  SECOND_RETURN_PARK_CAUSE,
   type MergeSides,
   type ReReviewVerdict,
   type TargetMergeSettlement
@@ -1926,8 +1924,8 @@ function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extrac
  * review's catch-up runs only the gates of the review's own entity, so a red gate has no files and is that entity's to fix. A package review
  * goes back to its package's build when only the package's files conflict. The home review goes back to `adapt` when no sealed package's
  * file conflicts, and to the package's build when only that package's files conflict, its seal lifted and the return counted; a second
- * return parks it (E45). A conflict that no one stage may resolve, such as one in a package's and in the home's files, parks the ticket for
- * User. Nothing for any other review.
+ * return opens `second-return`, naming the package, and keeps the stage (E45). A conflict that no one stage may resolve, such as one in a
+ * package's and in the home's files, or one in home files for a package review, parks the ticket for User. Nothing for any other review.
  */
 function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflictedFiles: readonly string[]): void {
   const { board, at } = hold.change;
@@ -1955,11 +1953,7 @@ function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflicte
     parkTheCatchUp(hold, ticketId, CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE, conflictedFiles);
     return;
   }
-  if (board.ticketPackageReturnsOf(ticketId) < PACKAGE_RETURNS_AGREED) {
-    board.returnTicketToThePackage(ticketId, part.packageEntity, hold.context.decisionWordingOf, at);
-    return;
-  }
-  parkTheCatchUp(hold, ticketId, SECOND_RETURN_PARK_CAUSE, conflictedFiles);
+  hold.logged.push(...board.returnTicketToThePackage(ticketId, part.packageEntity, hold.context.decisionWordingOf, at).logged);
 }
 
 /** The ticket of a review sent back by its catch-up, parked for User with the conflicted files as the decision's context. */

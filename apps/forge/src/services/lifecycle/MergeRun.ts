@@ -198,11 +198,6 @@ export interface ConflictPart {
 
 const REPOSITORY_ROOT_FOLDER = '/';
 
-/** The package returns the owner agreed to (E45): a ticket that would return once more is parked, held with `SECOND_RETURN_PARK_CAUSE`. */
-export const PACKAGE_RETURNS_AGREED = 1;
-
-export const SECOND_RETURN_PARK_CAUSE = 'second-return';
-
 /**
  * A review's catch-up that conflicts in files no one stage may change parks the ticket for User: the catch-up's merge is aborted, so it is
  * never left open for a second worker as a landing's is (E64).

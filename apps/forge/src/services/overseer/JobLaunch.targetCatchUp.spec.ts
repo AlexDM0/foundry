@@ -5,9 +5,11 @@
  * has none; a red gate and a conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge
  * and resets the worktree to the branch tip. A crossing ticket's review sends its catch-up to the entity that owns the cause (E66): a
  * conflict in a sealed package's files returns the ticket to the package's build, its seal lifted and the return counted, a second such
- * return parks it, and a conflict in home files goes back to `adapt`; a package review's catch-up that conflicts in the package's files
- * goes back to its package's build, the ticket left in progress; and a conflict no one stage may resolve, in a package's and the home's
- * files, parks the ticket for User. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the
+ * return opens `second-return` naming the package and keeps the stage (E45), and a conflict in home files goes back to `adapt`; a package
+ * review's catch-up that conflicts in the package's files goes back to its package's build, the ticket left in progress; a red catch-up
+ * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
+ * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
+ * ticket for User. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the
  * launcher is fake, and the spec ends the Watchers itself.
  */
 import {
@@ -246,8 +248,8 @@ function handoffCycleResumes(scene: CatchUpScene): number {
 }
 
 /** The branch behind the target, its merge launched and ended clean, and the passes that follow up to the gate. */
-async function cleanlyMergedScene(pipeline: Pipeline = PIPELINE): Promise<CatchUpScene> {
-  const scene = catchUpScene(pipeline);
+async function cleanlyMergedScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThePackage = false): Promise<CatchUpScene> {
+  const scene = catchUpScene(pipeline, packageRuns, reviewsThePackage);
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
   endMergeWatcher(scene, CLEAN_EXIT_CODE);
@@ -383,12 +385,40 @@ testWhenGitIsRecorded('a crossing ticket\'s conflict in home files goes back to 
   expect(scene.board.ticketSealsOf('001')).toEqual({ tokens: 'example-tokens-seal' });
 });
 
-testWhenGitIsRecorded('a crossing ticket\'s conflict in package files that would be its second package return parks it (E66, E45)', async () => {
+testWhenGitIsRecorded('a crossing ticket\'s conflict in package files that would be its second package return opens second-return (E66, E45)', async () => {
   const scene = await crossingConflictScene('packages/tokens/Colour.ts', 2);
 
-  expect(scene.board.tickets()[0]?.frontmatter.hold).toBe('parked:second-return');
-  expect(scene.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+  expect(scene.board.decisions()).toMatchObject([{ kind: 'second-return', ticketIds: ['001'], context: 'tokens' }]);
+  expect(scene.board.tickets()[0]?.frontmatter.hold).toBeUndefined();
   expect(scene.board.ticketStageOf('001')).toEqual({ name: 'review', entity: 'shop' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({ tokens: 'example-tokens-seal' });
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(1);
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s home review whose catch-up gate runs red goes back to adapt, the seal kept (E66)', async () => {
+  const scene = await cleanlyMergedScene(SHOP_AND_TOKENS, 1);
+
+  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  await scene.pass();
+
+  expect(scene.reviewJob()).toBeUndefined();
+  expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'adapt', entity: 'shop' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({ tokens: 'example-tokens-seal' });
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(0);
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s package review whose catch-up gate runs red goes back to the package\'s build, no return counted (E66)', async () => {
+  const scene = await cleanlyMergedScene(SHOP_AND_TOKENS, 0, true);
+
+  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  await scene.pass();
+
+  expect(scene.reviewJob()).toBeUndefined();
+  expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'package-build', entity: 'tokens' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({});
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(0);
 });
 
 testWhenGitIsRecorded('a crossing ticket\'s package review whose catch-up conflicts goes back to the package\'s build, still in progress (E66)', async () => {

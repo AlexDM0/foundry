@@ -562,6 +562,11 @@ export class Board {
     };
   }
 
+  /** Whether `returnTicketToThePackage` would open `second-return` rather than move the ticket into the package's build (E45). */
+  returnToThePackageIsASecondReturn(ticketId: string, packageEntity: string): boolean {
+    return this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, { name: 'package-build', entity: packageEntity });
+  }
+
   sealTicketPackage(ticketId: string, packageEntity: string, seal: string, at: string): Logged {
     return this.ticketStageRows.sealTicketPackage(ticketId, packageEntity, seal, at);
   }

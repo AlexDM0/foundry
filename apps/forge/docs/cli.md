@@ -1749,10 +1749,16 @@ part in goes to that package's conflict re-reviewer whatever its size; the home'
 gate, or a gate of an entity that consumes it, as `package-gate-red`, which lifts the package's seal, counts the return
 in `packageReturns` and moves the row to that package's `package-build`; any other as `home-gate-red`, which moves the
 row to the home `adapt`. Either way the ticket goes `in-progress`, and its newest ended build job's folder keeps the red
-handoff that the next build takes over. A second package return holds the ticket `parked:second-return` with a `parked`
-decision. The review's catch-up is routed the same way: a package review's goes back to its `package-build`, and the
-home review's goes to `adapt`, or for a conflict in a sealed package's files back to that package. A group's landing
-gates only the entities it changes; the entities that consume them are gated when the release lands on the main line.
+handoff that the next build takes over. A second package return opens the `second-return` decision, which names the
+package in its `context` and holds the ticket at its stage and status; past the red handoff's resumes the ticket parks
+`parked:red-resumes-spent`. The review's catch-up is routed the same way. A red catch-up gate sends a package review
+back to its `package-build`, no return counted, and the home review to `adapt`, the seal kept. A catch-up conflict sends
+a package review whose conflict is only in its package's files back to its `package-build`; it sends the home review to
+`adapt` when no sealed package's file conflicts, and back to the package when only that package's files conflict, a
+second return opening `second-return`. A catch-up that conflicts in a package's and the home's files, or a package
+review's catch-up that conflicts in home files, parks the ticket `parked:conflict-without-one-owner` with a `parked`
+decision whose `context` lists the conflicted files, at its stage. A group's landing gates only the entities it changes;
+the entities that consume them are gated when the release lands on the main line.
 
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
