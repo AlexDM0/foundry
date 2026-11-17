@@ -2,8 +2,9 @@
  * Failed passes as a log reading. What matters: only `failed` and `does-not-hold` count, and only on the ticket's own jobs; a start from
  * review is rework and keeps the count, while a start from anywhere else, an unhold or a clearing begins it again; a crash, `replaced` or
  * `stopped` is never a failed pass; nor is a review that does not hold after a `built` build, which resumes the builder against the
- * resume bound instead, while one that resumes nobody still counts. On a forge with entities the passes count per entity and stage: a
- * launch into another stage starts with no counts, two entities in one stage count apart, and the ticket's count is the highest of them.
+ * resume bound instead, while one that resumes nobody still counts. On a forge with entities a ticket that crosses into no package counts
+ * its build and review stages together, as today; once it crosses, the passes count per entity and stage: a launch into another stage
+ * starts with no counts, two entities in one stage count apart, and the ticket's count is the highest of them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -75,6 +76,21 @@ describe('counting failed passes per entity and stage', () => {
   test('a launch without entity and stage counts under the one key it always had', () => {
     const records = [...finishedJobRecords('J1', 'build', '001', 'failed'), ...finishedJobRecords('J2', 'build', '001', 'failed', 2)];
     expect([...failedPassesByStageOf('001', records)]).toEqual([['', 2]]);
+  });
+
+  test('a ticket that crosses into no package counts its build and review stages together, kept across rework as today', () => {
+    const records: LogRecord[] = [
+      ticketRecord('ticket-started', '001'),
+      stagedLaunchedRecord('B1', 'build', '001', 'shop', 1),
+      endedRecord('B1', 'failed'),
+      ticketRecord('ticket-finished', '001'),
+      stagedLaunchedRecord('R1', 'review', '001', 'shop', 5),
+      endedRecord('R1', 'failed'),
+      ticketRecord('ticket-started', '001'),
+      stagedLaunchedRecord('B2', 'build', '001', 'shop', 1, 2),
+    ];
+    expect([...failedPassesByStageOf('001', records)]).toEqual([['shop/', 2]]);
+    expect(failedPassesOf('001', records)).toBe(2);
   });
 
   test('a launch into another stage starts it with no counts, and a return to an earlier stage starts again too', () => {

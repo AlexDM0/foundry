@@ -122,13 +122,13 @@ const WAIVER_OPENED_AND_ANSWERED: LogRecord[] = [
   },
 ];
 
-/** One failed pass in stage 1, a stage 2 between, and one more after the return to stage 1: a stage that starts again counts from zero. */
+/** One failed pass in stage 2, a stage 4 between, and one more after the return to stage 2: a stage that starts again counts from zero. */
 const FAILED_PASSES_IN_TWO_ENTRIES_OF_A_STAGE: LogRecord[] = [
-  stagedLaunchedRecord('J1', 'build', '001', 'shop', 1),
+  stagedLaunchedRecord('J1', 'build', '001', 'ui', 2),
   endedRecord('J1', 'failed'),
-  stagedLaunchedRecord('J2', 'build', '001', 'ui', 2),
+  stagedLaunchedRecord('J2', 'build', '001', 'shop', 4),
   endedRecord('J2', 'built'),
-  stagedLaunchedRecord('J3', 'build', '001', 'shop', 1, 2),
+  stagedLaunchedRecord('J3', 'build', '001', 'ui', 2, 2),
   endedRecord('J3', 'failed'),
 ];
 
@@ -185,7 +185,7 @@ const CLAIMS: PolicyClaim[] = [
     name:   'a review goes ahead of a ready build of its own rank',
     facts:  factsWith({ tickets: [ticketOf('001', 'pending'), ticketOf('002', 'in-review')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['002']),
-    mutant: policyLine('{ review: 0, rebuild: 1, build: 2 }', '{ review: 3, rebuild: 1, build: 2 }'),
+    mutant: policyLine('review: 0, stage: 1, rebuild: 2, build: 3', 'review: 4, stage: 1, rebuild: 2, build: 3'),
   },
   {
     name:  'a rebuild goes ahead of a ready build of its own rank',
@@ -195,7 +195,7 @@ const CLAIMS: PolicyClaim[] = [
       concurrencyLimit: 1,
     }),
     holds:  (steps) => steps.some((step) => step.kind === 'launch-build' && step.ticketId === '002' && step.attempt === 2) && launchedTicketIdsOf(steps).length === 1,
-    mutant: policyLine('{ review: 0, rebuild: 1, build: 2 }', '{ review: 0, rebuild: 3, build: 2 }'),
+    mutant: policyLine('review: 0, stage: 1, rebuild: 2, build: 3', 'review: 0, stage: 1, rebuild: 4, build: 3'),
   },
   {
     name:   'a review never goes ahead of a ready build of a higher rank',
@@ -408,7 +408,7 @@ const CLAIMS: PolicyClaim[] = [
     holds:  (steps) => !stepKindsOf(steps).includes('park'),
     mutant: {
       modulePath: FAILED_PASS_MODULE,
-      find:       '      if (record.fields.stage !== undefined && record.fields.stage !== currentStage) failedPassesByStage.clear();\n',
+      find:       '      if (ticketHasCrossed && launchStage !== undefined && launchStage !== currentStage) failedPassesByStage.clear();\n',
       replace:    '',
     },
   },

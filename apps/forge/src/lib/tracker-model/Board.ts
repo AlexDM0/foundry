@@ -136,6 +136,7 @@ import type {
 import type {
   DecisionDraft,
   DecisionWording,
+  PlaybookLaunchStage,
   PlaybookObservations,
   PlaybookStep
 }                                              from './@types/PlaybookStep.ts';
@@ -183,7 +184,7 @@ import type { Logger }                                 from './Logger.ts';
 import { MergeQueueMarks }                             from './MergeQueueMarks.ts';
 import { Needs }                                       from './Needs.ts';
 import { PipelineSetups }                              from './PipelineSetups.ts';
-import type { PlaybookFacts }                          from './Playbook.ts';
+import type { PlaybookFacts, PlaybookTicket }          from './Playbook.ts';
 import { Playbook }                                    from './Playbook.ts';
 import { ReviewBars }                                  from './ReviewBars.ts';
 import type { ReviewStatisticsReport }                 from './ReviewStatistics.ts';
@@ -203,6 +204,11 @@ import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/Decisio
 import { GroupNameUtil }                               from './utils/GroupNameUtil.ts';
 import { OptionConsequencesUtil }                      from './utils/OptionConsequencesUtil.ts';
 import { PipelineUtil }                                from './utils/PipelineUtil.ts';
+
+/** The entity and stage a launch step names, which the job carries only when set. */
+function launchStageOf(step: PlaybookLaunchStage): PlaybookLaunchStage {
+  return { ...(step.entity === undefined ? {} : { entity: step.entity }), ...(step.stage === undefined ? {} : { stage: step.stage }) };
+}
 
 export interface BoardInput {
   progress:             TrackerProgress;
@@ -705,7 +711,7 @@ export class Board {
 
   private playbookFactsOf(observations: PlaybookObservations): PlaybookFacts {
     return {
-      tickets:                     this.records.ticketRecords.map((ticket) => ({ ...ticket.frontmatter, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id) })),
+      tickets:                     this.records.ticketRecords.map((ticket) => this.playbookTicketOf(ticket)),
       jobs:                        this.jobs(),
       decisions:                   this.decisions(),
       incidents:                   this.incidents(),
@@ -716,8 +722,17 @@ export class Board {
       pipelineIsSet:               this.records.pipeline !== null,
       reviewIsSet:                 this.records.pipeline?.review !== undefined,
       pipelineHasEntities:         this.records.pipeline?.entities !== undefined,
+      entitiesWithReview:          Object.entries(this.records.pipeline?.entities ?? {})
+        .filter(([, entity]) => entity.review !== undefined)
+        .map(([entityKey]) => entityKey),
       observations,
     };
+  }
+
+  /** The ticket as the Playbook reads it: its frontmatter, whether it is queued to land, and the stage its row stores once it crosses. */
+  private playbookTicketOf(ticket: Readonly<Ticket>): PlaybookTicket {
+    const stage = this.records.linkedTaskRecordOf(ticket)?.stage;
+    return { ...ticket.frontmatter, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id), ...(stage === undefined ? {} : { stage: { ...stage } }) };
   }
 
   private applyPlaybookStep(step: PlaybookStep, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): readonly LogRecord[] {
@@ -727,11 +742,17 @@ export class Board {
     switch (step.kind) {
       case 'launch-build':
         return this.launchJob({
-          kind: 'build', role: 'builder', ticketIds: [step.ticketId], parentJobId: null, attempt: step.attempt, target: step.base
+          kind: 'build', role: 'builder', ticketIds: [step.ticketId], parentJobId: null, attempt: step.attempt, target: step.base, ...launchStageOf(step)
         }, at).logged;
       case 'launch-review':
         return this.launchJob({
-          kind: 'review', role: step.round > 1 ? 're-reviewer' : 'reviewer', ticketIds: [step.ticketId], parentJobId: null, attempt: step.round, target: step.target
+          kind:        'review',
+          role:        step.round > 1 ? 're-reviewer' : 'reviewer',
+          ticketIds:   [step.ticketId],
+          parentJobId: null,
+          attempt:     step.round,
+          target:      step.target,
+          ...launchStageOf(step),
         }, at).logged;
       case 'boot-assistant':
         return this.launchJob({

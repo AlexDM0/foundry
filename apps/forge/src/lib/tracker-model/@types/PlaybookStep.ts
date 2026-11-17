@@ -19,9 +19,15 @@ export interface DecisionWording {
   context:   string;
 }
 
+/** On a pipeline with entities, a launch of a ticket of an entity names the entity whose stage the job runs and the stage's number. */
+export interface PlaybookLaunchStage {
+  entity?: string;
+  stage?:  number;
+}
+
 export type PlaybookStep =
-  | { kind: 'launch-build'; ticketId: string; attempt: number; base: string }
-  | { kind: 'launch-review'; ticketId: string; round: number; target: string }
+  | { kind: 'launch-build'; ticketId: string; attempt: number; base: string } & PlaybookLaunchStage
+  | { kind: 'launch-review'; ticketId: string; round: number; target: string } & PlaybookLaunchStage
   | { kind: 'resume-job'; jobId: string }
   // Past `JOB_RESUMES_BEFORE_FRESH` crash resumes, or a session that went down: ended `replaced`.
   | { kind: 'replace-job'; jobId: string }

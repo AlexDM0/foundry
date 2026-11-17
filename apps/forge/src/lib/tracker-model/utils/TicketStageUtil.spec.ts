@@ -3,7 +3,7 @@
  * review, adapt and review in that order, and adapt may be skipped; every way back the strategy names is legal and nothing else is, so a
  * later unit cannot jump a package review or a seal; only a move from `adapt` or `review` into a package build counts as a package return,
  * since the second one opens a decision; a stage's number is the job's `stage`, and its counter key is its job launch's key, so a return to
- * a stage finds its counts; and a stage name read from outside is a membership test.
+ * a stage finds its counts, and a job's entity and number give its stage back; and a stage name read from outside is a membership test.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -13,7 +13,7 @@ import { FailedPassUtil }                                           from './Fail
 import { TicketStageUtil }                                          from './TicketStageUtil.ts';
 
 const {
-  stageNameIsKnown, stageNumberOf, stageKeyOf, stageMoveIsLegal, stageMoveIsAPackageReturn
+  stageNameIsKnown, stageNumberOf, stageKeyOf, stageOfJob, stageMoveIsLegal, stageMoveIsAPackageReturn
 } = TicketStageUtil;
 
 function legalMovesOf(): string[] {
@@ -83,6 +83,14 @@ describe('a stage name and number', () => {
     expect(stageKeyOf({ name: 'package-review', entity: 'design-system' })).toBe('design-system/3');
     expect(stageKeyOf({ name: 'package-review', entity: 'brand' })).not.toBe(stageKeyOf({ name: 'package-review', entity: 'design-system' }));
     expect(stageKeyOf({ name: 'review', entity: 'shop' })).not.toBe(stageKeyOf({ name: 'adapt', entity: 'shop' }));
+  });
+
+  test('a job\'s entity and number give back the stage it runs, and a job without them or with a number no stage has gives none', () => {
+    expect(stageOfJob({ entity: 'ui-kit', stage: 3 })).toEqual({ name: 'package-review', entity: 'ui-kit' });
+    expect(stageOfJob({ entity: 'shop', stage: 5 })).toEqual({ name: 'review', entity: 'shop' });
+    expect(stageOfJob({})).toBeNull();
+    expect(stageOfJob({ entity: 'shop' })).toBeNull();
+    expect(stageOfJob({ entity: 'shop', stage: 6 })).toBeNull();
   });
 
   test('only a stage name is known, never an inherited property or another word', () => {

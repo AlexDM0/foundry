@@ -22,6 +22,14 @@ function stageKeyOf(stage: TicketStage): string {
   return FailedPassUtil.stageKeyOf({ entity: stage.entity, stage: stageNumberOf(stage.name) });
 }
 
+/** The stage a job of an entity runs, read from its `entity` and `stage`; `null` for a job without them or a number no stage has. */
+function stageOfJob(job: Readonly<{ entity?: string; stage?: number }>): TicketStage | null {
+  const { entity, stage } = job;
+  if (entity === undefined || stage === undefined) return null;
+  const stageName = TICKET_STAGE_NAMES.find((name) => TICKET_STAGE_NUMBERS[name] === stage);
+  return stageName === undefined ? null : { name: stageName, entity };
+}
+
 function stageMoveIsLegal(currentStage: TicketStageName, targetStage: TicketStageName): boolean {
   return LEGAL_SOURCE_STAGES_FOR_TICKET_STAGE[targetStage].includes(currentStage);
 }
@@ -35,6 +43,7 @@ export const TicketStageUtil = {
   stageNameIsKnown,
   stageNumberOf,
   stageKeyOf,
+  stageOfJob,
   stageMoveIsLegal,
   stageMoveIsAPackageReturn,
 } as const;

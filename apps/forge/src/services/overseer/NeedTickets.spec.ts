@@ -4,8 +4,9 @@
  * the declaring job waits on it, it waits on none of them, and each waiting ticket logs `need-declared`; the needs leave the board, which then holds no
  * `needs` key, also when the declaring job ends another way; a need for a root entity without gates opens `need-for-root` and files nothing, and one
  * with gates is filed; the waiting ticket keeps its status and launches nothing until the need is delivered, a reviewed need not being on the main line
- * yet, then its stage runs again in the same attempt and is told the needs it declared, resuming the session; the need runs at the waiting ticket's
- * priority, also once it is raised later; and an abandoned need drops out of `dependsOn` with a `need-abandoned` decision that holds the ticket.
+ * yet, then its stage runs again in the same attempt, as stage 1 of its entity, and is told the needs it declared, resuming the session; the need
+ * runs at the waiting ticket's priority, also once it is raised later; and an abandoned need drops out of `dependsOn` with a `need-abandoned`
+ * decision that holds the ticket.
  */
 import {
   afterEach,
@@ -187,7 +188,7 @@ describe('the waiting ticket', () => {
 
     expect(ticketOf(declared.board, '001')?.frontmatter.status).toBe('in-progress');
     expect(launchesOf(followThePlaybook(declared.board))).toEqual([{
-      kind: 'launch-build', ticketId: '002', attempt: 1, base: 'main'
+      kind: 'launch-build', ticketId: '002', attempt: 1, base: 'main', entity: 'design-system', stage: 1
     }]);
   });
 
@@ -199,7 +200,7 @@ describe('the waiting ticket', () => {
     const rerun = declared.board.jobs().find((job) => job.kind === 'build');
 
     expect(launchesOf(steps)).toEqual([{
-      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main'
+      kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main', entity: 'web', stage: 1
     }]);
     expect(rerun === undefined ? null : NeedTickets.needsSettledOf(declared.board, rerun, { mainLine: 'main', resumesSession: true })).toEqual({
       needs: [{

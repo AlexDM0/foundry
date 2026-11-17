@@ -14,6 +14,7 @@ import type {
 import type { LifecycleLimits }                                                                  from './@types/LifecycleLimits.ts';
 import type { LogRecord }                                                                        from './@types/LogRecord.ts';
 import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
+import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
 import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
 import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
 import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
@@ -22,6 +23,7 @@ import { ConcurrencyUtil }                                                      
 import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
 import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
+import { TicketStageUtil }                                                                       from './utils/TicketStageUtil.ts';
 
 export interface PlaybookTicket {
   id:           string;
@@ -34,6 +36,10 @@ export interface PlaybookTicket {
   mergeQueued?: boolean;
   /** The job that filed it; a need's ticket names the build job of the ticket that waits on it. */
   filedByJob?:  string;
+  /** On a pipeline with entities: the entity it belongs to, whose build and review its jobs run while it crosses into no package. */
+  entity?:      string;
+  /** The stage its row stores once it crosses into a whitelisted package: its next launch comes from the stage, not from its status. */
+  stage?:       TicketStage;
 }
 
 /** The decisions naming a ticket that hold every launch on it until User answers. */
@@ -59,6 +65,8 @@ export interface PlaybookFacts {
    * the highest priority of the tickets that wait on it.
    */
   pipelineHasEntities:         boolean;
+  /** The entities whose own pipeline has a `review` phase: only these launch a reviewer for a review stage of a crossing ticket. */
+  entitiesWithReview:          readonly string[];
   observations:                PlaybookObservations;
 }
 
@@ -73,8 +81,16 @@ const VERIFIED_OUTCOMES: readonly JobOutcome[] = ['built', 'reviewed', 'round-gr
 
 const PRIORITY_RANK: Readonly<Record<TicketPriority, number>> = { high: 0, normal: 1, low: 2 };
 
-/** Within a priority rank a review goes first (it holds finished work), then a rebuild, then a ready build. */
-const WORK_PHASE_RANK = { review: 0, rebuild: 1, build: 2 } as const;
+/**
+ * Within a priority rank a review goes first (it holds finished work), then the next build stage of a ticket between stages, so started
+ * work finishes first (E71), then a rebuild, then a ready build.
+ */
+const WORK_PHASE_RANK = {
+  review: 0, stage: 1, rebuild: 2, build: 3
+} as const;
+
+/** The stages of a crossing ticket a reviewer runs; a builder runs every other one. */
+const REVIEW_STAGE_NAMES: readonly TicketStageName[] = ['package-review', 'review'];
 
 type WorkPhase = keyof typeof WORK_PHASE_RANK;
 
@@ -93,6 +109,12 @@ interface JobLaunch {
   attempt:   number;
   entity?:   string;
   stage?:    number;
+}
+
+/** What a launch on a pipeline with entities names: the entity whose stage the job runs, and the stage's number. */
+interface LaunchStage {
+  entity: string;
+  stage:  number;
 }
 
 type JobLaunchesByJobId = ReadonlyMap<string, JobLaunch>;
@@ -205,6 +227,23 @@ function nextReviewRoundOf(ticketId: string, facts: IndexedLog): number {
   return grantedRounds + 1;
 }
 
+/**
+ * The round of a review stage's next pass: one past the rounds that the ticket's reviews of the same entity and stage were granted. Rounds
+ * are numbered per stage, so another stage's review never counts, and kept when the ticket returns to the stage, as its row keeps them.
+ */
+function nextStageReviewRoundOf(ticketId: string, launchStage: LaunchStage, facts: IndexedLog): number {
+  const launches = facts.launchesByJobId;
+  const stageKey = FailedPassUtil.stageKeyOf(launchStage);
+  let stageRoundsGranted = 0;
+  for (const record of facts.logRecords) {
+    if (record.kind === 'tracker-cleared') stageRoundsGranted = 0;
+    if (record.kind !== 'job-ended' || record.fields.outcome !== 'round-granted') continue;
+    const launch = launches.get(record.jobId);
+    if (launch?.kind === 'review' && launch.ticketIds.includes(ticketId) && FailedPassUtil.stageKeyOf(launch) === stageKey) stageRoundsGranted += 1;
+  }
+  return stageRoundsGranted + 1;
+}
+
 /** The ticket's newest build launch, whose entity and stage a returning builder's cycle runs in. */
 function newestBuildLaunchOf(ticketId: string, facts: IndexedLog): JobLaunch | undefined {
   return [...facts.launchesByJobId.values()].findLast((launch) => launch.kind === 'build' && launch.ticketIds.includes(ticketId));
@@ -229,7 +268,8 @@ interface HandoffCycle {
 /**
  * The resumes of a handoff cycle, every job of its kind, tickets, attempt, entity and stage, so a fresh session that took over a session the vendor
  * could not resume carries on the same count: its red-handoff resumes, and for a build cycle each review of its tickets that did not
- * hold after the cycle began, since the builder is resumed with that review's findings.
+ * hold after the cycle began, since the builder is resumed with that review's findings. A cycle of an entity never counts a review of
+ * another entity: a package review sends back the package's builder, never the home builder.
  */
 function handoffCycleResumesOf(cycle: HandoffCycle, logRecords: readonly LogRecord[]): number {
   return handoffCycleResumesWith(cycle, logRecords, jobLaunchesByJobIdOf(logRecords));
@@ -248,7 +288,9 @@ function handoffCycleResumesWith(cycle: HandoffCycle, logRecords: readonly LogRe
     if (record.kind === 'job-launched' && inTheCycle(record.jobId)) cycleBegan = true;
     if (record.kind === 'job-resumed' && record.fields.cause === HANDOFF_RED_INTERRUPTION && inTheCycle(record.jobId)) resumes += 1;
     const endedReview = record.kind === 'job-ended' && record.fields.outcome === 'does-not-hold' ? launches.get(record.jobId) : undefined;
-    if (cycleBegan && cycle.kind === 'build' && endedReview?.kind === 'review' && endedReview.ticketIds.some((ticketId) => cycle.ticketIds.includes(ticketId))) resumes += 1;
+    const reviewOfTheCycle = endedReview?.kind === 'review' && endedReview.ticketIds.some((ticketId) => cycle.ticketIds.includes(ticketId))
+      && (cycle.entity === undefined || endedReview.entity === undefined || endedReview.entity === cycle.entity);
+    if (cycleBegan && cycle.kind === 'build' && reviewOfTheCycle) resumes += 1;
   }
   return resumes;
 }
@@ -526,10 +568,46 @@ function waitsOnADependency(ticket: PlaybookTicket, facts: IndexedPlaybookFacts)
   return needTicketIdsOf(ticket, facts).some((needTicketId) => facts.statusById.get(needTicketId) !== NEED_SETTLING_STATUS);
 }
 
+/**
+ * The stage a launch of a ticket that crosses into no package runs: its own entity's build (stage 1) or review (stage 5). Nothing on a forge
+ * without entities or for a ticket without an entity, whose launch names no stage.
+ */
+function ownEntityLaunchStageOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts, stageName: 'build' | 'review'): Partial<LaunchStage> {
+  if (!facts.pipelineHasEntities || ticket.entity === undefined) return {};
+  return { entity: ticket.entity, stage: TicketStageUtil.stageNumberOf(stageName) };
+}
+
+/**
+ * A ticket whose row stores a stage launches that stage's job whatever its status, a review stage only for an entity with a review phase.
+ * Its attempt is read as any build's, its round within its stage.
+ */
+function stageCandidateOf(ticket: PlaybookTicket, stage: TicketStage, facts: IndexedPlaybookFacts): Candidate | null {
+  const launchStage: LaunchStage = { entity: stage.entity, stage: TicketStageUtil.stageNumberOf(stage.name) };
+  const base = targetOf(ticket, facts.observations);
+  if (REVIEW_STAGE_NAMES.includes(stage.name)) {
+    if (!facts.entitiesWithReview.includes(stage.entity)) return null;
+    return {
+      ticket,
+      phase: 'review',
+      step:  {
+        kind: 'launch-review', ticketId: ticket.id, round: nextStageReviewRoundOf(ticket.id, launchStage, facts), target: base, ...launchStage
+      }
+    };
+  }
+  return {
+    ticket,
+    phase: 'stage',
+    step:  {
+      kind: 'launch-build', ticketId: ticket.id, attempt: nextBuildOf(ticket, facts).attempt, base, ...launchStage
+    }
+  };
+}
+
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
   if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
   // Today's rule holds a pending ticket alone; on a pipeline with entities a started ticket waits for its needs too.
   if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;
+  if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'pending') return stageCandidateOf(ticket, ticket.stage, facts);
   const base = targetOf(ticket, facts.observations);
   if (ticket.status === 'in-review') {
     if (!facts.reviewIsSet) return null;
@@ -537,7 +615,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
       ticket,
       phase: 'review',
       step:  {
-        kind: 'launch-review', ticketId: ticket.id, round: nextReviewRoundOf(ticket.id, facts), target: base
+        kind: 'launch-review', ticketId: ticket.id, round: nextReviewRoundOf(ticket.id, facts), target: base, ...ownEntityLaunchStageOf(ticket, facts, 'review')
       }
     };
   }
@@ -546,7 +624,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
     ticket,
     phase: 'rebuild',
     step:  {
-      kind: 'launch-build', ticketId: ticket.id, attempt, base
+      kind: 'launch-build', ticketId: ticket.id, attempt, base, ...ownEntityLaunchStageOf(ticket, facts, 'build')
     }
   };
   if (ticket.status !== 'pending') return null;
@@ -556,7 +634,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
     ticket,
     phase: 'build',
     step:  {
-      kind: 'launch-build', ticketId: ticket.id, attempt, base
+      kind: 'launch-build', ticketId: ticket.id, attempt, base, ...ownEntityLaunchStageOf(ticket, facts, 'build')
     }
   };
 }

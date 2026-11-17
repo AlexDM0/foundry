@@ -89,8 +89,9 @@ export interface Task {
   /** With merge approval on: User accepted the queued ticket for its Airlock. Cleared with `mergeQueued`, and by a conflicting merge-in. */
   mergeAccepted?:  true;
   /**
-   * On a forge with entities, once the ticket crosses into a whitelisted package: the stage it is in. Absent on a ticket that stays in one
-   * entity and on every row of a forge without entities.
+   * On a forge with entities, once the ticket crosses into a whitelisted package: the stage it is in, which its next launch comes from. On a
+   * review bar of a forge with entities: the stage its reviewer runs. Absent on a ticket that stays in one entity and on every row of a forge
+   * without entities.
    */
   stage?:          TicketStage;
   /** The seal of each crossed package whose change a package review sealed, by package entity key: a hash of the ticket's own change to it. */

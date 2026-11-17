@@ -14,6 +14,12 @@ import { TicketChartUtil }   from './utils/TicketChartUtil.ts';
 
 export type ReviewBar = Task & { reviewOf: string };
 
+/** A bar of a stage carries the stage's entity before the review's own name, so the bars of a crossing ticket's review stages read apart. */
+function barLabelOf(request: ReviewBarRequest): string | undefined {
+  if (request.stage === undefined) return request.label;
+  return request.label === undefined || request.label === '' ? request.stage.entity : `${request.stage.entity}: ${request.label}`;
+}
+
 export interface ReviewBarsClosed {
   bars:   ReviewBar[];
   logged: LogRecord[];
@@ -25,13 +31,13 @@ export class ReviewBars {
   /**
    * Closes the ticket's in-progress review bars and starts the next one in the same change, so the ticket never shows two running bars or
    * none between two rounds. The round is the caller's to count from the ticket's body, so the Board reads no markdown; it names the bar
-   * and is stored on it.
+   * and is stored on it. A bar of a stage stores the stage, one bar per review stage, and its round counts within that stage.
    */
   startReviewBar(ticketId: string, request: ReviewBarRequest, at: string): ReviewBarStarted {
     const ticket = this.records.requireTicket(ticketId);
     const closed = this.closeInProgressReviewBars([ticketId], at);
     const bar    = this.records.fileTask({
-      name:           TicketChartUtil.reviewBarNameOf(request.round, ticket.frontmatter, request.label),
+      name:           TicketChartUtil.reviewBarNameOf(request.round, ticket.frontmatter, barLabelOf(request)),
       filedAt:        at,
       reviewOf:       ticketId,
       reviewBarRound: request.round,
@@ -39,6 +45,7 @@ export class ReviewBars {
       ...(request.note === undefined ? {} : { note: request.note }),
     });
     this.records.transitionTaskInPlace(bar, 'in-progress', at);
+    if (request.stage !== undefined) bar.stage = { ...request.stage };
     const bundleAgentKey = this.agentKeyOfABundleStillInProgress(ticket);
     if (bundleAgentKey !== null) bar.agent = bundleAgentKey;
     const started = this.records.logger.log({

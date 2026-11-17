@@ -1,17 +1,17 @@
 /** What the Board's changes take and give back. Every change that logs returns the records it logged, in order. */
-import type { Concurrency }                  from './Concurrency.ts';
-import type { Decision, DecisionAnswer }     from './Decision.ts';
-import type { Draft }                        from './Draft.ts';
-import type { Epic }                         from './Epic.ts';
-import type { GateProfileRun }               from './GateProfile.ts';
-import type { Incident }                     from './Incident.ts';
-import type { Job }                          from './Job.ts';
-import type { LogRecord, LogRecordFieldsOf } from './LogRecord.ts';
-import type { DeclaredNeed }                 from './Need.ts';
-import type { Pipeline }                     from './Pipeline.ts';
-import type { PipelineSetup }                from './PipelineSetup.ts';
-import type { PlaybookStep }                 from './PlaybookStep.ts';
-import type { Task, TaskStatus }             from './Task.ts';
+import type { Concurrency }                   from './Concurrency.ts';
+import type { Decision, DecisionAnswer }      from './Decision.ts';
+import type { Draft }                         from './Draft.ts';
+import type { Epic }                          from './Epic.ts';
+import type { GateProfileRun }                from './GateProfile.ts';
+import type { Incident }                      from './Incident.ts';
+import type { Job }                           from './Job.ts';
+import type { LogRecord, LogRecordFieldsOf }  from './LogRecord.ts';
+import type { DeclaredNeed }                  from './Need.ts';
+import type { Pipeline }                      from './Pipeline.ts';
+import type { PipelineSetup }                 from './PipelineSetup.ts';
+import type { PlaybookStep }                  from './PlaybookStep.ts';
+import type { Task, TaskStatus, TicketStage } from './Task.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -44,9 +44,12 @@ export interface TicketClaim extends AgentAssignment {
 }
 
 export interface ReviewBarRequest extends AgentAssignment {
+  /** On a forge with entities, the round within the bar's stage: another stage's review never counts. */
   round:  number;
   /** The pipeline review's `name`, which the bar's name ends with. */
   label?: string;
+  /** On a forge with entities, the stage the reviewer runs: the bar stores it and its name carries the stage's entity. */
+  stage?: TicketStage;
 }
 
 export interface ReviewBarLink {

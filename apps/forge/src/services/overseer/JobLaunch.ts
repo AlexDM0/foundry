@@ -22,6 +22,7 @@ import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConvent
 import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { PlatformPorts }           from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts';
+import type { ReviewBarRequest }        from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { Decision }                from '../../lib/tracker-model/@types/Decision.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type {
@@ -48,6 +49,7 @@ import { EntityOwnershipUtil, type PipelineEntities }                           
 import { GroupNameUtil }                                                                          from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketStageUtil }                                                                        from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
 import type { BranchNames }                                                                       from '../../shared/BranchNames.ts';
@@ -1664,6 +1666,16 @@ function userStopEndingOf(job: Readonly<Job>): Parameters<Board['endJob']>[1] | 
   return job.stopRequest === 'stop' ? { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE } : null;
 }
 
+/** A reviewer's bar: its round, and on a forge with entities its stage, named by the review of the stage's entity. */
+function reviewBarRequestOf(board: Board, job: Readonly<Job>): ReviewBarRequest {
+  const stage    = TicketStageUtil.stageOfJob(job);
+  const pipeline = board.pipeline();
+  const review   = stage === null || pipeline === null ? pipeline?.review : PipelineUtil.pipelineOfEntity(pipeline, stage.entity)?.review;
+  return {
+    round: job.attempt, owner: job.id, ...(review?.name === undefined ? {} : { label: review.name }), ...(stage === null ? {} : { stage })
+  };
+}
+
 function applyObservation(hold: HoldContext, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
@@ -1677,8 +1689,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
     case 'launching': {
       hold.logged.push(...board.moveJob(job.id, 'preparing', at).logged);
       if (job.kind === REVIEW_JOB_KIND) {
-        const label = board.pipeline()?.review?.name;
-        hold.logged.push(...board.startReviewBar(ticketIdOf(job), { round: job.attempt, owner: job.id, ...(label === undefined ? {} : { label }) }, at).logged);
+        hold.logged.push(...board.startReviewBar(ticketIdOf(job), reviewBarRequestOf(board, job), at).logged);
         return;
       }
       const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
