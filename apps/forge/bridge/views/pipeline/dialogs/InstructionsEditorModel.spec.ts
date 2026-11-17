@@ -1,13 +1,14 @@
 /**
  * The instruction list's model. What matters: the constitution is `constitution.md` and "drafted" before Apply and the pipeline's path
- * after it, with an Edit link and no Open; a brief takes the file name and text the facts resolved, and a role's own brief in a re-review
- * list says whose it is; a removed constitution comes back at the top; an added path goes last, once; and only the roles that may read the
- * constitution are offered it.
+ * after it, with an Edit link and no Open; at an entity its own state says drafted, adopted or default; a brief takes the file name and
+ * text the facts resolved, and a role's own brief in a re-review list says whose it is; a removed constitution comes back at the top; an
+ * added path goes last, once; and only the roles that may read the constitution are offered it.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { InstructionEntry, Pipeline } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { ResolvedInstructionEntry }   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ConstitutionState }          from '../entities/ConstitutionStateTagModel.ts';
 import { InstructionsEditorModel }         from './InstructionsEditorModel.ts';
 
 const EDIT_HREF = '#pipeline/setup/constitution';
@@ -31,6 +32,18 @@ describe('the rows', () => {
     expect(row).toMatchObject({
       fileName: 'constitution.md', roleText: 'constitution · drafted', editHref: EDIT_HREF, text: null
     });
+  });
+
+  test('at an entity its own state says whether it is drafted, adopted or the installed default', () => {
+    const rowOf = (state: ConstitutionState, draft: Pipeline): string | undefined => {
+      const constitution = InstructionsEditorModel.constitutionPlaceOf(draft, EDIT_HREF, state);
+      return InstructionsEditorModel.rowsOf([{ kind: 'constitution' }], 'builder', constitution, [])[0]?.roleText;
+    };
+    const adoptedDraft = { ...MINIMAL_DRAFT, constitution: { path: '/apps/web/CONSTITUTION.md' } };
+    expect(rowOf('drafted', MINIMAL_DRAFT)).toBe('constitution · drafted');
+    expect(rowOf('adopted', adoptedDraft)).toBe('constitution');
+    expect(rowOf('default', MINIMAL_DRAFT)).toBe('constitution · default');
+    expect(rowOf('not-started', MINIMAL_DRAFT)).toBe('constitution · default');
   });
 
   test('after Apply it is the path the pipeline names', () => {

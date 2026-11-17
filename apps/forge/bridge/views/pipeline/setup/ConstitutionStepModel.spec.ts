@@ -2,13 +2,15 @@
  * The constitution step's model against the pipeline fixtures. What matters: READ BY names Builder, Review and Re-review from the facts'
  * roles and nothing else, both re-reviewers as one word; the footer counts the outline's sections and rules; the agent's state comes from
  * its job and its ready mark; a SOURCES tick flips that one choice at the facts' revision and never sends the markdown; Continue moves the
- * constitution step; an update record is the edit mode.
+ * constitution step; an update record is the edit mode. At an entity: READ BY names each of its roles apart and what a crossing reads;
+ * its file and SOURCES are its own folder's; its setup carries its own draft and readers; a tick names the entity; an adopted file is
+ * offered only when the flow holds it whole; a forge-wide role never reads an entity's; a root kept for a person has no editor and says so.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import { pipelineBoardStateOf }    from '../../../testing/PipelineFixture.ts';
-import { ConstitutionStepModel }   from './ConstitutionStepModel.ts';
+import type { PipelineFlowFacts, PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { pipelineBoardStateOf }                       from '../../../testing/PipelineFixture.ts';
+import { ConstitutionStepModel }                      from './ConstitutionStepModel.ts';
 
 function constitutionSetup(): PipelineSetupFacts {
   const setup = pipelineBoardStateOf('A3b').pipelineSetup;
@@ -76,5 +78,76 @@ describe('the mode', () => {
     expect(ConstitutionStepModel.stepModeOf('setup')).toBe('setup');
     expect(ConstitutionStepModel.stepModeOf('update')).toBe('update');
     expect(ConstitutionStepModel.stepModeOf('advise')).toBe('update');
+  });
+});
+
+describe('an entity', () => {
+  function monorepoSetup(): PipelineSetupFacts {
+    const setup = pipelineBoardStateOf('mono-design').pipelineSetup;
+    if (setup === null || setup === undefined) throw new Error('the fixture mono-design has no setup');
+    return setup;
+  }
+
+  test('READ BY names each of its roles apart, and what a ticket that crosses into its packages reads', () => {
+    expect(ConstitutionStepModel.entityReaderLabelsOf(['builder', 'reviewer', 'reReviewer', 'conflictReReviewer']))
+      .toEqual(['Builder', 'Reviewer', 'Re-reviewer', 'Conflict re-reviewer']);
+    expect(ConstitutionStepModel.entityReaderLabelsOf(['productOwner', 'builder', 'pipelineAgent', 'reviewer', 'assistant'])).toEqual(['Builder', 'Reviewer']);
+    expect(ConstitutionStepModel.entityReadersNoteOf({})).toBe('No other entity’s agent reads it.');
+    expect(ConstitutionStepModel.entityReadersNoteOf({ whitelist: ['ui', 'api-client', 'config'] }))
+      .toBe('No other entity’s agent reads it. On a ticket that crosses into ui, api-client or config, their agents read their own.');
+  });
+
+  test('its file is the one it names, else CONSTITUTION.md in its first home folder', () => {
+    expect(ConstitutionStepModel.entityConstitutionFileOf({ home: ['/apps/web'], constitution: { path: '/apps/web/RULES.md' } })).toBe('apps/web/RULES.md');
+    expect(ConstitutionStepModel.entityConstitutionFileOf({ home: ['/apps/web', '/apps/shared'] })).toBe('apps/web/CONSTITUTION.md');
+    expect(ConstitutionStepModel.entityConstitutionFileOf({ home: ['/'] })).toBe('CONSTITUTION.md');
+  });
+
+  test('its SOURCES name its own CONTRIBUTING.md and research', () => {
+    expect(ConstitutionStepModel.entitySourceChoicesOf('web', { home: ['/apps/web'] }).map((choice) => choice.label))
+      .toEqual(['apps/web/CONTRIBUTING.md', 'web’s research findings', 'The installed default']);
+  });
+
+  test('its setup carries its own draft, document and readers, and its tick names it', () => {
+    const entitySetup = ConstitutionStepModel.entitySetupOf(monorepoSetup(), 'web');
+    expect(entitySetup.record.constitution?.revision).toBe(3);
+    expect(entitySetup.constitutionOutline).toEqual({ sectionCount: 4, ruleCount: 6 });
+    expect(entitySetup.readByRoles).toEqual(['builder', 'reviewer', 'reReviewer', 'conflictReReviewer']);
+    expect(ConstitutionStepModel.sourcesCommandOf(entitySetup, 'research', 'web')).toMatchObject({ revision: 3, entity: 'web' });
+    expect(ConstitutionStepModel.entitySetupOf(monorepoSetup(), 'design-system').record.constitution).toBeNull();
+  });
+
+  test('an adopted file is offered only when the flow holds it whole', () => {
+    const flowWith = (text: string | null, textIsCut: boolean): Pick<PipelineFlowFacts, 'nodes'> => {
+      const node = pipelineBoardStateOf('A2').pipelineFlow?.nodes.find((candidate) => candidate.nodeId === 'builder');
+      if (node === undefined) throw new Error('the fixture A2 has no builder');
+      return {
+        nodes: [{
+          ...node,
+          instructionEntries: [{
+            entry: { kind: 'constitution' }, fileName: 'CONSTITUTION.md', readByRoles: [], text, textIsCut
+          }]
+        }]
+      };
+    };
+    expect(ConstitutionStepModel.adoptedTextOf(flowWith('- Kept.\r\n', false))).toBe('- Kept.\r\n');
+    expect(ConstitutionStepModel.adoptedTextOf(flowWith('- Cut', true))).toBeNull();
+    expect(ConstitutionStepModel.adoptedTextOf(flowWith(null, false))).toBeNull();
+    expect(ConstitutionStepModel.adoptedTextOf(null)).toBeNull();
+  });
+
+  test('the editor starts from the adopted file or the draft; a root kept for a person and a cut file have none, and say why', () => {
+    const draft = {
+      markdown: '- Drafted.\n', annotations: [], draftedFrom: { contributing: false, research: true, installedDefault: false }, baseBlob: null, revision: 2
+    };
+    expect(ConstitutionStepModel.entityEditorVersionOf('drafted', null, draft)).toEqual({ markdown: '- Drafted.\n', revision: 2 });
+    expect(ConstitutionStepModel.entityEditorVersionOf('not-started', null, null)).toEqual({ markdown: '', revision: 0 });
+    expect(ConstitutionStepModel.entityEditorVersionOf('kept-for-a-person', null, draft)).toBeNull();
+    expect(ConstitutionStepModel.entityEditorVersionOf('adopted', null, draft)).toBeNull();
+    expect(ConstitutionStepModel.entityEditNoteOf('kept-for-a-person', 'CONSTITUTION.md')).toMatch(/^It is kept for a person/u);
+    expect(ConstitutionStepModel.entityEditNoteOf('adopted', 'apps/web/RULES.md'))
+      .toBe('The pipeline keeps apps/web/RULES.md as it is. Ask the pipeline agent to draft a new one.');
+    expect(ConstitutionStepModel.entityPreviewNoteOf('adopted', 'apps/web/RULES.md', 'web')).toBe('apps/web/RULES.md stays as it is, byte for byte.');
+    expect(ConstitutionStepModel.entityPreviewNoteOf('not-started', 'apps/web/CONSTITUTION.md', 'web')).toBe('The agent has not drafted web’s constitution yet.');
   });
 });

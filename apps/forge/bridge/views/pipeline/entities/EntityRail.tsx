@@ -2,26 +2,41 @@
  * The boards' left column in monorepo mode: a filter field, a one-line count of what deserves a look, then the forge row and the
  * entities in the groups Apps, Packages and Root. Each row is a button with the key in mono, the kind muted, one status mark and the
  * counts of open questions and pending edits; a press moves to that level. The rows take one tab stop, and the arrow keys, Home and End
- * move between them. The selected row has the boards' selection look, a filled neutral ground and a 1 px border.
+ * move between them. The selected row has the boards' selection look, a filled neutral ground and a 1 px border. A screen may give its
+ * own marks, as the constitution step marks each entity's constitution, in place of the gates marks.
  */
-import { CountBadge }                   from 'design-system/CountBadge';
-import { Icon }                         from 'design-system/Icon';
-import { MonoId }                       from 'design-system/MonoId';
-import { RovingFocusUtil }              from 'design-system/RovingFocusUtil';
-import { Row }                          from 'design-system/Row';
-import { StateDot }                     from 'design-system/StateDot';
-import { Tag }                          from 'design-system/Tag';
-import { Text }                         from 'design-system/Text';
-import { TextField }                    from 'design-system/TextField';
-import { useState, type KeyboardEvent } from 'react';
+import { CountBadge }                                   from 'design-system/CountBadge';
+import { Icon }                                         from 'design-system/Icon';
+import { MonoId }                                       from 'design-system/MonoId';
+import { RovingFocusUtil }                              from 'design-system/RovingFocusUtil';
+import { Row }                                          from 'design-system/Row';
+import { StateDot }                                     from 'design-system/StateDot';
+import { Tag }                                          from 'design-system/Tag';
+import { Text }                                         from 'design-system/Text';
+import { TextField }                                    from 'design-system/TextField';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 
-import { EntityRailModel, type EntityRailFacts, type EntityRailRowView } from './EntityRailModel.ts';
-import { PipelineLevelModel, type PipelineLevel }                        from './PipelineLevelModel.ts';
+import type { EntityKey } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+
+import {
+  EntityRailModel,
+  type EntityRailFacts,
+  type EntityRailMarkTexts,
+  type EntityRailRowView
+} from './EntityRailModel.ts';
+import { PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
+
+/** A screen's own mark on each entity row, its word and its attention line, in place of the gates marks. */
+export interface EntityRailMarks extends EntityRailMarkTexts {
+  readonly markOf: (entityKey: EntityKey) => ReactNode;
+}
 
 export interface EntityRailProps {
   readonly facts:    EntityRailFacts;
   readonly level:    PipelineLevel;
   readonly onSelect: (level: PipelineLevel) => void;
+  /** Absent: each row carries its gates mark. */
+  readonly marks?:   EntityRailMarks | null;
 }
 
 const NO_GATES_NOTE = 'An entity without gates lands its tickets unchecked. It never blocks Apply.';
@@ -51,9 +66,12 @@ interface RailRowProps {
   readonly row:      EntityRailRowView;
   readonly tabStop:  boolean;
   readonly onSelect: (level: PipelineLevel) => void;
+  readonly marks:    EntityRailMarks | null;
 }
 
-function RailRow({ row, tabStop, onSelect }: RailRowProps) {
+function RailRow({
+  row, tabStop, onSelect, marks
+}: RailRowProps) {
   const isForge = PipelineLevelModel.isForgeLevel(row.level);
   return (
     <button
@@ -74,15 +92,17 @@ function RailRow({ row, tabStop, onSelect }: RailRowProps) {
       <span className="bridge-entity-rail-row-end">
         {row.openQuestionCount === 0 ? null : <CountBadge count={row.openQuestionCount} tone="state" stateTone="accent" />}
         {row.pendingEditCount === 0 ? null : <CountBadge count={row.pendingEditCount} tone="neutral" />}
-        <StatusMark row={row} />
+        {marks === null || isForge ? <StatusMark row={row} /> : marks.markOf(row.name)}
       </span>
     </button>
   );
 }
 
-export function EntityRail({ facts, level, onSelect }: EntityRailProps) {
+export function EntityRail({
+  facts, level, onSelect, marks = null
+}: EntityRailProps) {
   const [filterText, setFilterText] = useState('');
-  const rail = EntityRailModel.railOf(facts, level, filterText);
+  const rail = EntityRailModel.railOf(facts, level, filterText, marks);
   const rows = EntityRailModel.rowsInOrderOf(rail);
   const selectedIndex = rows.findIndex((row) => row.selected);
   const tabStopIndex = selectedIndex === -1 ? 0 : selectedIndex;
@@ -111,13 +131,13 @@ export function EntityRail({ facts, level, onSelect }: EntityRailProps) {
           </span>
         )}
       <div className="bridge-entity-rail-rows" onKeyDown={moveFocus}>
-        <RailRow row={rail.forgeRow} tabStop={tabStopIndex === 0} onSelect={onSelect} />
+        <RailRow row={rail.forgeRow} tabStop={tabStopIndex === 0} onSelect={onSelect} marks={marks} />
         {rail.groups.map((group) => (
           <div key={group.groupKind} className="bridge-entity-rail-group" role="group" aria-label={group.label}>
             <span className="bridge-entity-rail-group-label" aria-hidden="true"><Text typeRole="small" subtle bold>{group.label}</Text></span>
             {group.rows.map((row) => {
               const index = rows.indexOf(row);
-              return <RailRow key={row.name} row={row} tabStop={tabStopIndex === index} onSelect={onSelect} />;
+              return <RailRow key={row.name} row={row} tabStop={tabStopIndex === index} onSelect={onSelect} marks={marks} />;
             })}
           </div>
         ))}

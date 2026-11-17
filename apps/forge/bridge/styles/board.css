@@ -81,7 +81,9 @@
  *                           and the -sources block with its -source-list of -source[data-mono?] rows and their -source-note. The
  *                           -editor is a .bridge-pipeline-constitution-input textarea, its text transparent over the aria-hidden
  *                           -mirror of -mirror-line[data-heading?][data-changed?] rows (-mirror-text, a source tag, the drafting
- *                           -caret), the visually hidden -sources-list, and the -refusal line
+ *                           -caret), the visually hidden -sources-list, and the -refusal line; in monorepo mode the -note in
+ *                           place of the editor, and at the forge level the -entities list of -entity rows (each -entity-link)
+ *                           and the -legend of -legend-item states
  *   .bridge-pipeline-design[data-state] the design step (A2Proposal): the -latest-change block (-latest-change-text,
  *                           -latest-change-links) under the agent's chat, the .bridge-pipeline-change-list of -change-list-item cards
  *                           or the -change-list-empty line; the footer's -hint[data-tone] with its -hint-dot, and the -apply holder
@@ -2786,6 +2788,19 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
   font-size: var(--fs-pill); font-weight: 500; color: var(--ink); background: var(--wash); border-radius: var(--r-pill);
 }
 .bridge-pipeline-constitution-source-note { flex: none; margin-left: auto; font-size: var(--fs-small); color: var(--ink-4); }
+.bridge-pipeline-constitution-note { margin: 18px 22px; }
+.bridge-pipeline-constitution-entities {
+  display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+.bridge-pipeline-constitution-entity { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.bridge-pipeline-constitution-entity + .bridge-pipeline-constitution-entity { border-top: 1px solid var(--line); }
+.bridge-pipeline-constitution-entity > :last-child { margin-left: auto; }
+.bridge-pipeline-constitution-entity-link { display: inline-flex; color: var(--link); }
+.bridge-pipeline-constitution-entity-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.bridge-pipeline-constitution-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; }
+.bridge-pipeline-constitution-legend-item { display: inline-flex; align-items: center; gap: 8px; }
+.bridge-pipeline-constitution-legend-item > dd { margin: 0; }
 @media (prefers-reduced-motion: no-preference) {
   .bridge-pipeline-constitution-status-dot[data-state="drafting"] { animation: bridge-pulse var(--pulse-status) ease-in-out infinite; }
   .bridge-pipeline-constitution-article { animation: bridge-rise var(--motion-rise) var(--ease-out) both; }

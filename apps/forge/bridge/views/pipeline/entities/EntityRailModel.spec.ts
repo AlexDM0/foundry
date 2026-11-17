@@ -3,7 +3,8 @@
  * the draft's order; each row has one mark, a gate profile under way before no gates before the default constitution, else its gate
  * count; a root without gates is kept for a person and never counted as needing a look; the counts of open questions and pending edits
  * belong to their own level only; the filter keeps the forge and the entities whose key or kind holds its text; the stored pipeline's
- * entities show while no record holds a draft.
+ * entities show while no record holds a draft; a screen's own words replace every entity row's mark and the attention line, and drop the
+ * note on gates.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -117,5 +118,16 @@ describe('the rail\'s rows', () => {
   test('a setup over entities reads its draft and each session\'s open questions', () => {
     const rows = EntityRailModel.rowsInOrderOf(EntityRailModel.railOf(pipelineBoardStateOf('mono-design'), FORGE_LEVEL, ''));
     expect(rows.map((row) => [row.name, row.openQuestionCount])).toEqual([['Forge', 0], ['web', 1], ['design-system', 0], ['root', 0]]);
+  });
+});
+
+describe('a screen\'s own marks', () => {
+  test('replace each entity row\'s word and the attention line, and drop the note on gates', () => {
+    const rail = EntityRailModel.railOf(draftFacts(ENTITIES), FORGE_LEVEL, '', { textOf: (entityKey) => `State of ${entityKey}`, attentionText: 'One line' });
+    const rows = EntityRailModel.rowsInOrderOf(rail);
+    expect(rows.map((row) => row.statusText)).toEqual([null, 'State of web', 'State of admin', 'State of design-system', 'State of config', 'State of root']);
+    expect(rows[1]?.accessibleName).toBe('web, app, State of web');
+    expect(rail.attentionText).toBe('One line');
+    expect(rail.someEntityHasNoGates).toBe(false);
   });
 });

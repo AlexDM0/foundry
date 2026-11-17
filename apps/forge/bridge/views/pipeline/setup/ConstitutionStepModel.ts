@@ -2,14 +2,20 @@
  * The constitution step's model, pure: the agent's state over the page and in the panel head, who reads the constitution, the outline the
  * footer counts, the SOURCES ticks that steer the agent's next draft, and the commands of Continue and of a tick. The same step edits an
  * applied pipeline's constitution at `#pipeline/edit/constitution`, with no stepper and the way back to the flow in place of Back and
- * Continue.
+ * Continue. In monorepo mode each entity has its own document, drafts, SOURCES and readers, and every command names the entity.
  */
-import type { PipelineAgentRole }                                         from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { ConstitutionOutline, PipelineSetupFacts }                   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { ConstitutionDraft, ConstitutionSources, PipelineSetupMode } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { ControlCommandBody }                                        from '../../../api/CommandClient.ts';
-import { ChatTurnWordingUtil }                                            from '../../../conversation/ChatTurnWordingUtil.ts';
-import type { PanelStatus }                                               from '../PipelinePanel.tsx';
+import type {
+  EntityAgentRole,
+  EntityKey,
+  PipelineAgentRole,
+  PipelineEntity
+} from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { ConstitutionOutline, PipelineFlowFacts, PipelineSetupFacts } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ConstitutionDraft, ConstitutionSources, PipelineSetupMode }  from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ControlCommandBody }                                         from '../../../api/CommandClient.ts';
+import { ChatTurnWordingUtil }                                             from '../../../conversation/ChatTurnWordingUtil.ts';
+import type { PanelStatus }                                                from '../PipelinePanel.tsx';
+import type { ConstitutionState }                                          from '../entities/ConstitutionStateTagModel.ts';
 
 export type ConstitutionStepMode = 'setup' | 'update';
 
@@ -48,6 +54,18 @@ export const SOURCE_CHOICES: readonly SourceChoice[] = [
     key: 'installedDefault', label: 'The installed default', note: 'the generic rules', mono: false,
   },
 ];
+
+/** An entity's readers as its READ BY names them, each role apart. */
+const ENTITY_READER_LABELS: Readonly<Record<EntityAgentRole, string>> = {
+  builder:            'Builder',
+  reviewer:           'Reviewer',
+  reReviewer:         'Re-reviewer',
+  conflictReReviewer: 'Conflict re-reviewer',
+};
+
+const CONSTITUTION_FILE_NAME = 'CONSTITUTION.md';
+
+const CONTRIBUTING_FILE_NAME = 'CONTRIBUTING.md';
 
 const EMPTY_SOURCES: ConstitutionSources = { contributing: false, research: false, installedDefault: false };
 
@@ -111,8 +129,8 @@ function sourcesOf(constitution: ConstitutionDraft | null): ConstitutionSources 
   return constitution?.draftedFrom ?? EMPTY_SOURCES;
 }
 
-/** A tick sends every SOURCES choice with the one flipped, at the facts' revision; it never carries the markdown. */
-function sourcesCommandOf(setup: PipelineSetupFacts, key: SourceChoiceKey): ControlCommandBody {
+/** A tick sends every SOURCES choice with the one flipped, at the facts' revision, with the entity it edits; it never carries the markdown. */
+function sourcesCommandOf(setup: PipelineSetupFacts, key: SourceChoiceKey, entityKey: EntityKey | null = null): ControlCommandBody {
   const { constitution } = setup.record;
   const sources = sourcesOf(constitution);
   return {
@@ -120,7 +138,120 @@ function sourcesCommandOf(setup: PipelineSetupFacts, key: SourceChoiceKey): Cont
     setupId:     setup.record.setupId,
     revision:    versionOf(constitution).revision,
     draftedFrom: { ...sources, [key]: !sources[key] },
+    ...(entityKey === null ? {} : { entity: entityKey }),
   };
+}
+
+function roleIsAnEntityRole(role: PipelineAgentRole): role is EntityAgentRole {
+  return Object.hasOwn(ENTITY_READER_LABELS, role);
+}
+
+/** Builder, Reviewer, Re-reviewer, Conflict re-reviewer: the entity's own roles, each named apart; a forge-wide role is not one of them. */
+function entityReaderLabelsOf(roles: readonly PipelineAgentRole[]): string[] {
+  return roles.filter(roleIsAnEntityRole).map((role) => ENTITY_READER_LABELS[role]);
+}
+
+/** "ui or api-client", "a, b or c". */
+function alternativesTextOf(words: readonly string[]): string {
+  if (words.length <= 1) return words.join('');
+  return `${words.slice(0, -1).join(', ')} or ${words.at(-1) ?? ''}`;
+}
+
+/** That no other entity's agent reads it, and what a ticket that crosses into a whitelisted package reads there. */
+function entityReadersNoteOf(entity: Pick<PipelineEntity, 'whitelist'>): string {
+  const whitelist = entity.whitelist ?? [];
+  const note = 'No other entity’s agent reads it.';
+  if (whitelist.length === 0) return note;
+  return `${note} On a ticket that crosses into ${alternativesTextOf(whitelist)}, their agents read their own.`;
+}
+
+/** A repository path as a person reads it, without its leading `/`. */
+function readablePathOf(path: string): string {
+  return path.replace(/^\/+/u, '');
+}
+
+/** The file the entity names, else `CONSTITUTION.md` in its first home folder, where Apply commits a new one. */
+function entityConstitutionFileOf(entity: Pick<PipelineEntity, 'home' | 'constitution'>): string {
+  if (entity.constitution !== undefined) return readablePathOf(entity.constitution.path);
+  const homeFolder = readablePathOf(entity.home[0] ?? '');
+  return homeFolder === '' ? CONSTITUTION_FILE_NAME : `${homeFolder}/${CONSTITUTION_FILE_NAME}`;
+}
+
+/** The SOURCES of one entity: the CONTRIBUTING.md in its first home folder and its own research findings. */
+function entitySourceChoicesOf(entityKey: EntityKey, entity: Pick<PipelineEntity, 'home'>): SourceChoice[] {
+  const homeFolder = readablePathOf(entity.home[0] ?? '');
+  const labels: Readonly<Record<SourceChoiceKey, string>> = {
+    contributing:     homeFolder === '' ? CONTRIBUTING_FILE_NAME : `${homeFolder}/${CONTRIBUTING_FILE_NAME}`,
+    research:         `${entityKey}’s research findings`,
+    installedDefault: 'The installed default',
+  };
+  return SOURCE_CHOICES.map((choice) => ({ ...choice, label: labels[choice.key] }));
+}
+
+/**
+ * The entity's setup facts as the step reads a single pipeline's: its own session, questions and findings from the level's facts, and
+ * its own draft, document, tags and readers in place of the forge's.
+ */
+function entitySetupOf(levelSetup: PipelineSetupFacts, entityKey: EntityKey): PipelineSetupFacts {
+  const parts = levelSetup.record.entities ?? {};
+  const part = Object.hasOwn(parts, entityKey) ? parts[entityKey] : undefined;
+  const entityFacts = levelSetup.entities ?? {};
+  const facts = Object.hasOwn(entityFacts, entityKey) ? entityFacts[entityKey] : undefined;
+  return {
+    ...levelSetup,
+    record:              { ...levelSetup.record, constitution: part?.constitution ?? null },
+    constitutionHtml:    facts?.constitutionHtml ?? null,
+    constitutionOutline: facts?.constitutionOutline ?? null,
+    annotations:         facts?.annotations ?? [],
+    readByRoles:         facts?.readByRoles ?? [],
+  };
+}
+
+/**
+ * The text an adopted constitution holds on main, as the entity's flow resolved its instruction entry; `null` when the flow carries none
+ * or cut it short, so the step never offers to edit a part of the file.
+ */
+function adoptedTextOf(flow: Pick<PipelineFlowFacts, 'nodes'> | null): string | null {
+  const entries = (flow?.nodes ?? []).flatMap((node) => node.instructionEntries);
+  const constitution = entries.find((resolved) => resolved.entry.kind === 'constitution' && resolved.text !== null && !resolved.textIsCut);
+  return constitution?.text ?? null;
+}
+
+/**
+ * The text and revision the entity's editor starts from: the file on main for an adopted one, else its draft; `null`, and no editor, for a
+ * root kept for a person or an adopted file the flow does not hold whole.
+ */
+function entityEditorVersionOf(
+  state: ConstitutionState,
+  flow: Pick<PipelineFlowFacts, 'nodes'> | null,
+  draft: ConstitutionDraft | null,
+): { markdown: string; revision: number } | null {
+  if (state === 'kept-for-a-person') return null;
+  if (state !== 'adopted') return versionOf(draft);
+  const adoptedText = adoptedTextOf(flow);
+  return adoptedText === null ? null : { markdown: adoptedText, revision: 0 };
+}
+
+const KEPT_FOR_A_PERSON_NOTE = 'It is kept for a person: it has no constitution, and agents change its files only through an app’s reach.';
+
+/** What shows in place of the editor when the entity has none. */
+function entityEditNoteOf(state: ConstitutionState, fileName: string): string {
+  return state === 'kept-for-a-person' ? KEPT_FOR_A_PERSON_NOTE : `The pipeline keeps ${fileName} as it is. Ask the pipeline agent to draft a new one.`;
+}
+
+/** What Preview shows while there is no rendered document. */
+function entityPreviewNoteOf(state: ConstitutionState, fileName: string, entityKey: EntityKey): string {
+  return state === 'adopted' ? `${fileName} stays as it is, byte for byte.` : `The agent has not drafted ${entityKey}’s constitution yet.`;
+}
+
+const ENTITY_STATUS_LINES: Readonly<Record<ConstitutionAgentState, (entityKey: EntityKey) => string>> = {
+  'drafting':    (entityKey) => `Pipeline agent · drafting ${entityKey}’s constitution`,
+  'ready':       () => 'Pipeline agent · draft ready',
+  'not-running': () => 'Pipeline agent · not running',
+};
+
+function entityStatusLineOf(entitySetup: PipelineSetupFacts, entityKey: EntityKey): string {
+  return ENTITY_STATUS_LINES[agentStateOf(entitySetup)](entityKey);
 }
 
 function continueCommandOf(setup: PipelineSetupFacts): ControlCommandBody {
@@ -144,6 +275,16 @@ export const ConstitutionStepModel = Object.freeze({
   versionOf,
   sourcesOf,
   sourcesCommandOf,
+  entityReaderLabelsOf,
+  entityReadersNoteOf,
+  entityConstitutionFileOf,
+  entitySourceChoicesOf,
+  entitySetupOf,
+  adoptedTextOf,
+  entityEditorVersionOf,
+  entityEditNoteOf,
+  entityPreviewNoteOf,
+  entityStatusLineOf,
   continueCommandOf,
   continueHasAttention,
 });

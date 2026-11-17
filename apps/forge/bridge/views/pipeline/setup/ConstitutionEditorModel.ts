@@ -4,6 +4,7 @@
  * when the line itself changes. The text in the textarea follows the facts until User types, and then stays User's until a save lands or
  * User discards it.
  */
+import type { EntityKey }                              from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { SourceAnnotation, SourceAnnotationKind } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }                     from '../../../api/CommandClient.ts';
 
@@ -113,11 +114,15 @@ function savedTextOf(editorText: EditorText, saved: ConstitutionVersion): Editor
   return { text: editorText.text, baseMarkdown: saved.markdown, baseRevision: saved.revision + 1 };
 }
 
-/** The whole markdown at the revision User saw; `null` while the text is what that revision holds. */
-function saveCommandOf(setupId: string, editorText: EditorText): ControlCommandBody | null {
+/** The whole markdown at the revision User saw, with the entity it edits; `null` while the text is what that revision holds. */
+function saveCommandOf(setupId: string, editorText: EditorText, entityKey: EntityKey | null = null): ControlCommandBody | null {
   if (!textIsUnsaved(editorText)) return null;
   return {
-    kind: 'pipeline-constitution-edit', setupId, revision: editorText.baseRevision, markdown: editorText.text
+    kind:     'pipeline-constitution-edit',
+    setupId,
+    revision: editorText.baseRevision,
+    markdown: editorText.text,
+    ...(entityKey === null ? {} : { entity: entityKey }),
   };
 }
 

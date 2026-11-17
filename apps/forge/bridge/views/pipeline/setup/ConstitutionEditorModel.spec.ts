@@ -3,7 +3,7 @@
  * line, so both stand at the same heights; a tag sits exactly on the line an annotation anchors by text and occurrence, and on no other;
  * an edited anchored line loses its tag and every other keeps its own; `#` and `##` lines are headings; a new draft names only the lines
  * it changed; the text follows newer facts only while nothing is unsaved; a save carries the whole markdown with the revision User saw,
- * only when the text changed.
+ * only when the text changed, and names the entity in monorepo mode.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -95,6 +95,13 @@ describe('the save', () => {
     const typed = ConstitutionEditorModel.editorTextOf({ markdown: MARKDOWN, revision: 3 });
     expect(ConstitutionEditorModel.saveCommandOf('S1', { ...typed, text: `${MARKDOWN}\n- More.` })).toEqual({
       kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown: `${MARKDOWN}\n- More.`,
+    });
+  });
+
+  test('names the entity whose document it saves, and only then', () => {
+    const typed = { ...ConstitutionEditorModel.editorTextOf({ markdown: MARKDOWN, revision: 0 }), text: `${MARKDOWN}\n- More.` };
+    expect(ConstitutionEditorModel.saveCommandOf('S1', typed, 'web')).toEqual({
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown: `${MARKDOWN}\n- More.`, entity: 'web',
     });
   });
 

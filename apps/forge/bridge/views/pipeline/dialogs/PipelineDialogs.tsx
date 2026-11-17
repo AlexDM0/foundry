@@ -5,17 +5,19 @@
  * the refusal when they are not. At a monorepo level the constitution's link opens that level's, the merge step dialog sets only the
  * level's part of the merge train's re-review, and the product owner's dialog at the forge says it routes each ticket to an entity.
  */
-import { GATE_PHASES, type GatePhase }                                from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { PipelineFlowFacts, PipelineFlowNode, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineViewFacts }                                     from '../PipelineViewModel.ts';
-import { PipelineViewModel }                                          from '../PipelineViewModel.ts';
-import { PipelineAgentPanelModel }                                    from '../agent-panel/PipelineAgentPanelModel.ts';
-import { useMonorepoLevelScope }                                      from '../entities/MonorepoLevelContext.ts';
-import { PipelineLevelModel }                                         from '../entities/PipelineLevelModel.ts';
-import { usePipelineFlowEditSender }                                  from '../flow/PipelineFlowEditSender.ts';
-import type { FlowOpenRequest }                                       from '../flow/PipelineFlowModel.ts';
-import { PipelineFlowModel }                                          from '../flow/PipelineFlowModel.ts';
-import type { GatesOpenRequest }                                      from '../gates/GatesAreaModel.ts';
+import { GATE_PHASES, type GatePhase }                                      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { PipelineFlowFacts, PipelineFlowNode, PipelineNodeMark }       from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetup }                                               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineViewFacts }                                           from '../PipelineViewModel.ts';
+import { PipelineViewModel }                                                from '../PipelineViewModel.ts';
+import { PipelineAgentPanelModel }                                          from '../agent-panel/PipelineAgentPanelModel.ts';
+import { ConstitutionStateTagModel, type ConstitutionState }                from '../entities/ConstitutionStateTagModel.ts';
+import { entityKeyOfScope, useMonorepoLevelScope, type MonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
+import { PipelineLevelModel }                                               from '../entities/PipelineLevelModel.ts';
+import { usePipelineFlowEditSender }                                        from '../flow/PipelineFlowEditSender.ts';
+import type { FlowOpenRequest }                                             from '../flow/PipelineFlowModel.ts';
+import { PipelineFlowModel }                                                from '../flow/PipelineFlowModel.ts';
+import type { GatesOpenRequest }                                            from '../gates/GatesAreaModel.ts';
 
 import { AgentStepDialog }                from './AgentStepDialog.tsx';
 import { AgentStepDialogModel }           from './AgentStepDialogModel.ts';
@@ -77,6 +79,15 @@ function conflictReReviewAfter(nodes: readonly PipelineFlowNode[], mergeNode: Pi
   return (nextMerge === -1 ? after : after.slice(0, nextMerge)).find((candidate) => candidate.role === 'conflictReReviewer') ?? null;
 }
 
+/** At an entity of the whole draft, the state of its constitution; `null` at the forge and in single mode. */
+function entityConstitutionStateOf(scope: MonorepoLevelScope | null, record: PipelineSetup | null): ConstitutionState | null {
+  const entityKey = entityKeyOfScope(scope);
+  const entities = scope?.wholeDraft?.entities ?? {};
+  const entity = entityKey === null || !Object.hasOwn(entities, entityKey) ? undefined : entities[entityKey];
+  if (entityKey === null || entity === undefined) return null;
+  return ConstitutionStateTagModel.stateOf(record, entityKey, entity);
+}
+
 export function PipelineDialogs({
   facts, request, onClose, followLog
 }: PipelineDialogsProps) {
@@ -88,7 +99,11 @@ export function PipelineDialogs({
   const asker = usePipelineAgentQuestionSender(record?.agentJobId ?? null, onClose);
   const choices = facts.pipelineChoices ?? { models: [], efforts: [] };
   const scope = useMonorepoLevelScope();
-  const constitution = InstructionsEditorModel.constitutionPlaceOf(draft, PipelineViewModel.constitutionFragmentOf(record?.mode ?? null, scope?.level ?? null));
+  const constitution = InstructionsEditorModel.constitutionPlaceOf(
+    draft,
+    PipelineViewModel.constitutionFragmentOf(record?.mode ?? null, scope?.level ?? null),
+    entityConstitutionStateOf(scope, record),
+  );
   if (request === null || flow === null) return null;
 
   // A dialog opened on another subject starts from a fresh form.

@@ -5,6 +5,7 @@
  */
 import type { InstructionEntry, Pipeline } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { ResolvedInstructionEntry }   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { ConstitutionState }          from '../entities/ConstitutionStateTagModel.ts';
 import type { StepDialogRole }             from './AgentStepDialogModel.ts';
 
 /** Before Apply the draft constitution is this file; Apply commits it under the path the pipeline then names. */
@@ -18,11 +19,12 @@ const OWN_BRIEF_NOTES: Readonly<Partial<Record<StepDialogRole, string>>> = Objec
   conflictReReviewer: 'only this re-review',
 });
 
-/** Where the constitution stands: its file name, whether it is still a draft, and where its Edit link goes. */
+/** Where the constitution stands: its file name, whether it is still a draft or the installed default, and where its Edit link goes. */
 export interface ConstitutionPlace {
-  readonly fileName:  string;
-  readonly isDrafted: boolean;
-  readonly editHref:  string;
+  readonly fileName:        string;
+  readonly isDrafted:       boolean;
+  readonly readsTheDefault: boolean;
+  readonly editHref:        string;
 }
 
 export interface InstructionRowView {
@@ -45,11 +47,29 @@ function sameEntry(first: InstructionEntry, second: InstructionEntry): boolean {
   return first.path === second.path;
 }
 
-function constitutionPlaceOf(draft: Pipeline | null, editHref: string): ConstitutionPlace {
+const DEFAULT_CONSTITUTION_STATES: readonly ConstitutionState[] = ['default', 'not-started'];
+
+/**
+ * In single mode a pipeline that names no file has its constitution drafted; at an entity, the entity's own state says whether its
+ * document is drafted, its file adopted, or the installed default read, and the Edit link opens that entity's document.
+ */
+function constitutionPlaceOf(draft: Pipeline | null, editHref: string, entityState: ConstitutionState | null = null): ConstitutionPlace {
   const path = draft?.constitution?.path;
+  if (entityState !== null) {
+    return {
+      fileName:        path ?? DRAFTED_CONSTITUTION_FILE_NAME,
+      isDrafted:       entityState === 'drafted',
+      readsTheDefault: DEFAULT_CONSTITUTION_STATES.includes(entityState),
+      editHref,
+    };
+  }
   return path === undefined
-    ? { fileName: DRAFTED_CONSTITUTION_FILE_NAME, isDrafted: true, editHref }
-    : { fileName: path, isDrafted: false, editHref };
+    ? {
+      fileName: DRAFTED_CONSTITUTION_FILE_NAME, isDrafted: true, readsTheDefault: false, editHref
+    }
+    : {
+      fileName: path, isDrafted: false, readsTheDefault: false, editHref
+    };
 }
 
 function fileNameOf(entry: InstructionEntry, constitution: ConstitutionPlace): string {
@@ -66,7 +86,8 @@ function fileNameOf(entry: InstructionEntry, constitution: ConstitutionPlace): s
 function roleTextOf(entry: InstructionEntry, listRole: StepDialogRole, constitution: ConstitutionPlace): string {
   switch (entry.kind) {
     case 'constitution':
-      return constitution.isDrafted ? 'constitution · drafted' : 'constitution';
+      if (constitution.isDrafted) return 'constitution · drafted';
+      return constitution.readsTheDefault ? 'constitution · default' : 'constitution';
     case 'default-brief':
       return entry.role === listRole ? OWN_BRIEF_NOTES[listRole] ?? 'default' : 'default';
     case 'file':

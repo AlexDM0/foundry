@@ -27,6 +27,12 @@ export interface EntityRailFacts extends ShownEntitiesFacts {
   readonly profileRuns?:  readonly { readonly entity?: EntityKey; readonly state: GateProfileRunState }[];
 }
 
+/** A screen's own word on each entity row and its own attention line, in place of the gates marks: the constitution step's states. */
+export interface EntityRailMarkTexts {
+  readonly textOf:        (entityKey: EntityKey) => string;
+  readonly attentionText: string | null;
+}
+
 export interface EntityRailRowView {
   readonly level:             PipelineLevel;
   /** The forge's name, or the entity's key, set in mono. */
@@ -125,7 +131,17 @@ function openQuestionCountOf(entityKey: EntityKey, facts: EntityRailFacts): numb
   return Object.hasOwn(entityFacts, entityKey) ? entityFacts[entityKey]?.openQuestionCount ?? 0 : 0;
 }
 
-function entityRowOf(entityKey: EntityKey, entity: PipelineEntity, facts: EntityRailFacts, selectedLevel: PipelineLevel): EntityRailRowView {
+function gatesStatusTextOf(status: EntityRailStatus, entity: PipelineEntity): string {
+  return status === 'checked' ? countedText(entity.gates.length, 'gate', 'gates') : STATUS_TEXTS[status];
+}
+
+function entityRowOf(
+  entityKey: EntityKey,
+  entity: PipelineEntity,
+  facts: EntityRailFacts,
+  selectedLevel: PipelineLevel,
+  markTexts: EntityRailMarkTexts | null,
+): EntityRailRowView {
   const level = PipelineLevelModel.entityLevelOf(entityKey);
   const status = statusOf(entityKey, entity, facts);
   return withAccessibleName({
@@ -133,7 +149,7 @@ function entityRowOf(entityKey: EntityKey, entity: PipelineEntity, facts: Entity
     name:              entityKey,
     kindText:          KIND_TEXTS[entity.kind],
     status,
-    statusText:        status === 'checked' ? countedText(entity.gates.length, 'gate', 'gates') : STATUS_TEXTS[status],
+    statusText:        markTexts === null ? gatesStatusTextOf(status, entity) : markTexts.textOf(entityKey),
     openQuestionCount: openQuestionCountOf(entityKey, facts),
     pendingEditCount:  pendingEditCountOf(level, facts),
     selected:          PipelineLevelModel.levelsAreEqual(level, selectedLevel),
@@ -166,9 +182,10 @@ function kindOf(entities: ShownEntities, entityKey: EntityKey): PipelineEntityKi
   return Object.hasOwn(entities, entityKey) ? entities[entityKey]?.kind ?? null : null;
 }
 
-function railOf(facts: EntityRailFacts, selectedLevel: PipelineLevel, filterText: string): EntityRailView {
+/** With `markTexts` the rows carry the screen's words and its attention line, and the note on gates stays away. */
+function railOf(facts: EntityRailFacts, selectedLevel: PipelineLevel, filterText: string, markTexts: EntityRailMarkTexts | null = null): EntityRailView {
   const entities = PipelineViewModel.entitiesShownOf(facts);
-  const allRows = Object.entries(entities).map(([entityKey, entity]) => entityRowOf(entityKey, entity, facts, selectedLevel));
+  const allRows = Object.entries(entities).map(([entityKey, entity]) => entityRowOf(entityKey, entity, facts, selectedLevel, markTexts));
   const shownRows = allRows.filter((row) => matchesFilter(row, filterText));
   const groups = GROUP_ORDER.map((groupKind) => ({
     groupKind,
@@ -178,8 +195,8 @@ function railOf(facts: EntityRailFacts, selectedLevel: PipelineLevel, filterText
   return {
     forgeRow:             forgeRowOf(facts, selectedLevel),
     groups,
-    attentionText:        attentionTextOf(entities),
-    someEntityHasNoGates: checkedEntitiesOf(entities).some((entity) => entity.gates.length === 0),
+    attentionText:        markTexts === null ? attentionTextOf(entities) : markTexts.attentionText,
+    someEntityHasNoGates: markTexts === null && checkedEntitiesOf(entities).some((entity) => entity.gates.length === 0),
     nothingMatches:       allRows.length > 0 && shownRows.length === 0,
   };
 }

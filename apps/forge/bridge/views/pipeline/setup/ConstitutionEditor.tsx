@@ -17,6 +17,7 @@ import {
   type KeyboardEvent
 } from 'react';
 
+import type { EntityKey }                                                     from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { SourceAnnotation }                                              from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { useChangedKeys }                                                     from '../../../shell/ChangeHighlight.ts';
 import { useControlCommand }                                                  from '../../../shell/ControlCommandSender.ts';
@@ -28,6 +29,8 @@ export interface ConstitutionEditorProps {
   readonly annotations: readonly SourceAnnotation[];
   /** The agent is writing a draft: a caret blinks after the last line. */
   readonly drafting:    boolean;
+  /** The entity whose document it edits; absent in single mode. */
+  readonly entityKey?:  EntityKey | null;
 }
 
 /** The facts' text, and whether User's own save brought it, so only a draft from elsewhere sweeps its changed lines. */
@@ -47,7 +50,7 @@ function saveKeyIsPressed(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
 }
 
 export function ConstitutionEditor({
-  setupId, version, annotations, drafting
+  setupId, version, annotations, drafting, entityKey = null
 }: ConstitutionEditorProps) {
   const sourcesListId = useId();
   const mirror = useRef<HTMLDivElement>(null);
@@ -65,7 +68,7 @@ export function ConstitutionEditor({
   const [refusalIsHeld, setRefusalIsHeld] = useState(false);
   // After a refusal, the next save goes on top of the facts as they are now.
   const savedOnText = refusalIsHeld ? ConstitutionEditorModel.rebasedTextOf(followedText, version) : followedText;
-  const command = ConstitutionEditorModel.saveCommandOf(setupId, savedOnText);
+  const command = ConstitutionEditorModel.saveCommandOf(setupId, savedOnText, entityKey);
   const sender = useControlCommand(command, {
     onApplied: () => {
       setLastSavedMarkdown(savedOnText.text);

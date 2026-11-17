@@ -7,6 +7,10 @@
  * re-anchored annotations drop the edited line's tag and keep the others; the footer counts the outline with the Draft chip; the
  * mirror shows the textarea's lines; a new draft sweeps its changed lines; SOURCES and Continue send their commands; at
  * `#pipeline/edit/constitution` the same step shows only Back to the flow.
+ * In monorepo mode (MonoConstitution): the rail marks each entity Adopted, Drafted, Not started or For a person, and Default once the
+ * step is done; the forge level lists the entities and has no document; an adopted file opens byte for byte and nothing is sent until
+ * User changes it, and then the save names the entity; READ BY lists the entity's own roles from its facts and what a crossing reads;
+ * SOURCES name the entity's own files; a root kept for a person has no editor; Continue keeps the level.
  */
 import {
   act,
@@ -23,8 +27,9 @@ import {
 } from 'bun:test';
 import { useState } from 'react';
 
+import type { PipelineEntity }                          from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { BoardStateDocument }                      from '../../../@types/BoardStateDocument.ts';
-import type { BridgeRoute }                             from '../../../shell/HashRouter.ts';
+import { HashRouter, type BridgeRoute }                 from '../../../shell/HashRouter.ts';
 import { clickSettled, fakeControls }                   from '../../../testing/FakeControls.ts';
 import { pipelineBoardStateOf, pipelineViewServicesOf } from '../../../testing/PipelineFixture.ts';
 import { PipelineView }                                 from '../PipelineView.tsx';
@@ -315,5 +320,156 @@ describe('editing an applied pipeline', () => {
     expect(screen.getByRole('link', { name: 'Back to the flow' }).getAttribute('href')).toBe('#pipeline');
     expect(screen.queryByRole('link', { name: 'Back to research' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Continue to pipeline design' })).toBeNull();
+  });
+});
+
+describe('monorepo mode', () => {
+  /** Kept with its trailing blanks, its tab and no final line break, so a save of a normalized copy would show. */
+  const ADOPTED_TEXT = '# Design system constitution\n\n- Keep every token in `tokens.css`.  \n-\tNo app imports a component file.';
+
+  const ADMIN_ENTITY: PipelineEntity = {
+    kind: 'app', home: ['/apps/admin'], prepare: [], gates: [{ name: 'lint', run: 'bun run lint' }], phases: { build: ['lint'], review: [], merge: [] },
+  };
+
+  const levelRoute = (level: string): BridgeRoute => ({ tab: 'pipeline', item: `${level}/setup/constitution` });
+
+  /** The design fixture at its constitution step, with an app that has no document yet and an adopted file in the design system's flow. */
+  function monorepoConstitutionBoard(constitutionStep: 'in-progress' | 'done' = 'in-progress'): BoardStateDocument {
+    const board = pipelineBoardStateOf('mono-design');
+    const setup = board.pipelineSetup;
+    const draft = setup?.record.draft;
+    const flow = board.pipelineFlow;
+    if (setup === null || setup === undefined || draft === null || draft === undefined || flow === null || flow === undefined) throw new Error('the board has no monorepo setup');
+    const entityFlows = flow.entityFlows ?? {};
+    const designSystemFlow = entityFlows['design-system'];
+    if (designSystemFlow === undefined) throw new Error('the board has no design-system flow');
+    const adoptedNodes = designSystemFlow.nodes.map((node) => ({
+      ...node,
+      instructionEntries: node.instructionEntries.map((resolved) => (resolved.entry.kind === 'constitution' ? { ...resolved, text: ADOPTED_TEXT } : resolved)),
+    }));
+    const webFacts = setup.entities?.['web'];
+    if (webFacts === undefined) throw new Error('the board has no web facts');
+    return {
+      ...board,
+      pipelineSetup: {
+        ...setup,
+        record: {
+          ...setup.record,
+          currentStep: 'constitution',
+          stepStates:  {
+            billing: 'done', research: 'done', entities: 'done', constitution: constitutionStep, design: 'not-started', apply: 'not-started',
+          },
+          draft: { ...draft, entities: { ...draft.entities, admin: ADMIN_ENTITY } },
+        },
+        entities: { ...setup.entities, web: { ...webFacts, readByRoles: ['builder', 'reviewer'] } },
+      },
+      pipelineFlow: { ...flow, entityFlows: { ...entityFlows, 'design-system': { ...designSystemFlow, nodes: adoptedNodes } } },
+    };
+  }
+
+  /** Runs a move of the address bar and waits, inside `act`, for the step to follow its `hashchange`. */
+  async function hashChangeSettled(move: () => unknown): Promise<void> {
+    await act(async () => {
+      const changed = new Promise((resolve) => {
+        window.addEventListener('hashchange', resolve, { once: true });
+      });
+      await move();
+      await changed;
+    });
+  }
+
+  async function renderLevel(level: string, board: BoardStateDocument = monorepoConstitutionBoard()) {
+    const route = levelRoute(level);
+    const controls = fakeControls();
+    await hashChangeSettled(() => {
+      window.location.hash = HashRouter.fragmentOf(route);
+      controls.render(<PipelineView facts={board} route={route} {...pipelineViewServicesOf()} />);
+    });
+    return { controls };
+  }
+
+  function railRow(entityKey: string): HTMLElement {
+    return within(screen.getByRole('navigation', { name: 'Pipeline levels' })).getByRole('button', { name: new RegExp(`^${entityKey},`, 'u') });
+  }
+
+  test('the rail marks each entity with the state of its constitution, and the forge level lists them with no document', async () => {
+    await renderLevel('forge');
+    expect(railRow('web').getAttribute('aria-label')).toBe('web, app, Drafted, 1 open question');
+    expect(railRow('design-system').getAttribute('aria-label')).toBe('design-system, package, Adopted');
+    expect(railRow('admin').getAttribute('aria-label')).toBe('admin, app, Not started');
+    expect(railRow('root').getAttribute('aria-label')).toBe('root, every other path, For a person');
+    expect(screen.getByRole('heading', { level: 2, name: 'Constitutions' })).toBeDefined();
+    expect(screen.queryByRole('textbox', { name: 'Constitution markdown' })).toBeNull();
+    const entities = screen.getByRole('list', { name: 'Entities' });
+    expect(within(entities).getByRole('link', { name: 'Open web’s constitution' }).getAttribute('href')).toBe('#pipeline/entity/web/setup/constitution');
+    expect(within(entities).getByText('packages/design-system/CONSTITUTION.md')).toBeDefined();
+    expect(within(screen.getByLabelText('States')).getAllByRole('term').map((term) => term.textContent)).toEqual(['Adopted', 'Drafted', 'Default', 'Not started']);
+  });
+
+  test('once the step is done, an entity with no document reads the default, and the rail counts it', async () => {
+    await renderLevel('forge', monorepoConstitutionBoard('done'));
+    expect(railRow('admin').getAttribute('aria-label')).toBe('admin, app, Default');
+    expect(screen.getByText('1 entity has the default constitution')).toBeDefined();
+  });
+
+  test('an adopted file opens byte for byte, sends nothing on a blur, and a change saves the whole text for its entity', async () => {
+    const { controls } = await renderLevel('entity/design-system');
+    expect(screen.getByRole('heading', { level: 2, name: 'design-system’s constitution' })).toBeDefined();
+    expect(editor().value).toBe(ADOPTED_TEXT);
+    await blurSettled(editor());
+    expect(controls.sent).toEqual([]);
+    const markdown = `${ADOPTED_TEXT}\n- Every story shows each state.`;
+    fireEvent.change(editor(), { target: { value: markdown } });
+    await blurSettled(editor());
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 0, markdown, entity: 'design-system'
+    }]);
+  });
+
+  test('READ BY lists the entity\'s own roles, each apart, and what a ticket that crosses into its packages reads', async () => {
+    await renderLevel('entity/web');
+    const readBy = screen.getByRole('region', { name: 'Read by' });
+    expect(within(readBy).getByRole('heading', { name: 'Read by web’s' })).toBeDefined();
+    expect(within(readBy).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Builder', 'Reviewer']);
+    expect(within(readBy).getByText(/No other entity’s agent reads it/u).textContent)
+      .toBe('No other entity’s agent reads it. On a ticket that crosses into design-system, their agents read their own.');
+  });
+
+  test('a drafted document saves and ticks its SOURCES for its entity, which names its own files', async () => {
+    const { controls } = await renderLevel('entity/web');
+    const markdown = `${editor().value}- Pages stay server components.\n`;
+    fireEvent.change(editor(), { target: { value: markdown } });
+    await blurSettled(editor());
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(within(sources).getByRole('checkbox', { name: 'apps/web/CONTRIBUTING.md' })).toBeDefined();
+    await clickSettled(within(sources).getByRole('checkbox', { name: 'web’s research findings' }));
+    expect(controls.sent).toEqual([
+      {
+        kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, markdown, entity: 'web'
+      },
+      {
+        kind: 'pipeline-constitution-edit', setupId: 'S1', revision: 3, draftedFrom: { contributing: true, research: false, installedDefault: false }, entity: 'web'
+      },
+    ]);
+  });
+
+  test('a root kept for a person has no editor, no readers and no SOURCES', async () => {
+    await renderLevel('entity/root');
+    expect(screen.queryByRole('textbox', { name: 'Constitution markdown' })).toBeNull();
+    expect(screen.getByText(/It is kept for a person/u)).toBeDefined();
+    expect(screen.queryByRole('region', { name: 'Read by' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Sources' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull();
+    expect(screen.queryByText('Draft')).toBeNull();
+  });
+
+  test('Back goes to the entities and Continue opens the design at the same level', async () => {
+    const { controls } = await renderLevel('entity/web');
+    expect(screen.getByRole('link', { name: 'Back to entities' }).getAttribute('href')).toBe('#pipeline/entity/web/setup/entities');
+    await hashChangeSettled(() => clickSettled(screen.getByRole('button', { name: 'Continue to pipeline design' })));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'constitution', move: 'continue'
+    }]);
+    expect(window.location.hash).toBe('#pipeline/entity/web/setup/design');
   });
 });
