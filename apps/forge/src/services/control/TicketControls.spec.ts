@@ -5,11 +5,11 @@
  * ticket without one never reaches `pending`, by `ticket ready` or by a submit with ticket review off, while a submit with review on still
  * waits for review and a forge without entities readies as before. A draft whose Brief names work outside its entity, its whitelisted
  * packages and its `reach` is refused by every filer's move, `ticket ready` and `ticket submit` with review on or off, naming each path,
- * and stays a draft (E85). A worker's finding, which names no entity, is filed for the entity that owns the paths its Brief names, a
- * builder's or a stage 5 reviewer's finding about a package's file for the package (E83, E53), else for its finder job's entity; one whose
- * paths span several owners is judged in the finder's entity and refused before it is filed, as is one that would reach `pending` without
- * an entity, leaving no ticket behind; a forge without entities reads no Brief and files a finding with no entity. An assignment stamped
- * with a job is the product owner's, any other User's.
+ * and stays a draft (E85). A research draft needs an entity as any other, and readies in `root` (E84). A worker's finding, which names
+ * no entity, is filed for the entity that owns the paths its Brief names, a builder's or a stage 5 reviewer's finding about a package's file
+ * for the package (E83, E53), else for its finder job's entity; one whose paths span several owners is judged in the finder's entity and
+ * refused before it is filed, as is one that would reach `pending` without an entity, leaving no ticket behind; a forge without entities
+ * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's.
  */
 import { mkdirSync } from 'node:fs';
 
@@ -126,6 +126,23 @@ test('ticket submit with ticket review off in a forge with entities refuses a co
   reviewOn.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, allowsPastPending: false }, AT);
   ControlService.apply({ kind: 'ticket-submit', ticketReferences: ['1'] }, reviewOn.change, ECHOED_CONTROL_CONTEXT);
   expect(reviewOn.board.ticketByReference('001')?.frontmatter.status).toBe('ready-for-review');
+});
+
+test('ticket ready of a research draft without an entity is refused ticket-without-entity, and of one in the root entity readies it (E84)', () => {
+  const researchBody = '## Acceptance\n\nA1. The report names each slow gate.\n\n## Brief\nWork belongs in: docs/research/.\n';
+  const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', type: 'research', status: 'draft' }), entityPipelineFixture());
+  board.editTicket('001', { body: { text: researchBody, appends: false }, allowsPastPending: false }, AT);
+  expect(refusalDetailOf(() => ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, change, ECHOED_CONTROL_CONTEXT)))
+    .toEqual({ reason: 'ticket-without-entity', ticketIds: ['001'] });
+  expect(board.ticketByReference('001')?.frontmatter.status).toBe('draft');
+
+  const researchInRoot = ticketFixture({
+    id: '001', type: 'research', status: 'draft', entity: 'root'
+  });
+  const inRoot = boardWithOneTicket(researchInRoot, entityPipelineFixture());
+  inRoot.board.editTicket('001', { body: { text: researchBody, appends: false }, allowsPastPending: false }, AT);
+  ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, inRoot.change, ECHOED_CONTROL_CONTEXT);
+  expect(inRoot.board.ticketByReference('001')?.frontmatter.status).toBe('pending');
 });
 
 test('ticket ready readies a draft with an entity in a forge with entities, and a draft without one in a forge without entities', () => {

@@ -51,11 +51,14 @@ function firstMessagePicturesOf(job: Readonly<Job>): readonly PictureReference[]
   return isIntakeJob(job) ? job.intake?.pictures ?? [] : [];
 }
 
-/** One entity as the map lists it: its key, kind and home folders, and the summary intake routes a ticket by. */
+/** One entity as the map lists it: its key, kind, home folders, the entities it depends on, and the summary intake routes a ticket by. */
 function entityLineOf(entityKey: EntityKey, entity: Readonly<PipelineEntity>): string {
   const homes = entity.home.map((home) => `\`${home}\``).join(', ');
   const summary = entity.summary === undefined ? '' : ` ${entity.summary.replace(/\s+/gu, ' ').trim()}`;
-  return `- \`${entityKey}\` (${entity.kind}): ${homes}.${summary}`;
+  const dependsOn = entity.dependsOn === undefined || entity.dependsOn.length === 0
+    ? ''
+    : ` Depends on ${entity.dependsOn.map((dependencyKey) => `\`${dependencyKey}\``).join(', ')}.`;
+  return `- \`${entityKey}\` (${entity.kind}): ${homes}.${dependsOn}${summary}`;
 }
 
 /** The map of the pipeline's entities that a product owner's brief ends with; empty on a forge without entities. */

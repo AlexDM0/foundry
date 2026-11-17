@@ -343,7 +343,9 @@ never carries it.
                               as a draft ticket, with no row; no move returns a ticket there.
                               It also readies a ticket in ready-for-review; only User does that.
                               Where the pipeline names entities, a ticket with no entity is refused
-                              (\`ticket-without-entity\`), each ticket named.
+                              (\`ticket-without-entity\`), each ticket named, and so is a ticket whose
+                              Brief names work outside its entity (\`work-outside-entity\`), each
+                              ticket and path named.
   ticket submit <id> [<id>...] [--at <when>] [--json]
                               The filer's close of its draft tickets. With ticket review off, each
                               complete draft becomes pending with its row (ticket-readied); with
@@ -352,7 +354,9 @@ never carries it.
                               An incomplete draft stays a draft and is named with its gaps.
                               Refused at exit 1 when a ticket named is not a draft ticket, and,
                               with ticket review off where the pipeline names entities, when a
-                              complete draft has no entity (\`ticket-without-entity\`).
+                              complete draft has no entity (\`ticket-without-entity\`). Where the
+                              pipeline names entities, a complete draft whose Brief names work
+                              outside its entity is refused (\`work-outside-entity\`), review on or off.
   ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]
                               Hold the ticket parked:<incident kind> (parked:user with none) and
                               open a parked decision to User; under a question incident it stops
@@ -768,7 +772,8 @@ never carries it.
                               several may run at once, and job message chats with one.
   intake close <J> [--set <id,id>]... [--json]
                               Close its input (job-not-intake for another kind of job) and submit
-                              the drafts its intake filed, as ticket submit does; the Overseer
+                              the drafts its intake filed, as ticket submit does, refused as it is
+                              (\`ticket-without-entity\`, \`work-outside-entity\`); the Overseer
                               ends the job once its session ends. --set is stored on the job and
                               decides nothing. Under the product owner's own job it names no job.
   intake title <J> -- <title> [--json]

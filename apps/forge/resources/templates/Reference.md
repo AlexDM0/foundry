@@ -146,9 +146,9 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity`; ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
-| `ticket submit`, `intake close` with ticket review on | draft, each complete one; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
-| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` in a forge with entities; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity` and no path on its `Work belongs in:` line outside that entity (`work-outside-entity`); ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket submit`, `intake close` with ticket review on | draft, each complete one, with no path on its `Work belongs in:` line outside its `entity` in a forge with entities; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` and no path on its `Work belongs in:` line outside that entity in a forge with entities; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
 | a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |
@@ -255,12 +255,19 @@ on standard input with `--file <path>` or `--file -`.
 - `pipeline ready` only tells User that the step can continue. It does not move a step.
 - The pipeline agent may also run `{{program}} question options`. It cannot run a ticket command.
 
-In a forge with entities, a builder changes only the homes of its own entity. When the work needs a change in a
-different entity, do not make that change. Declare a need with
+In a forge with entities, a builder changes only the homes and the `reach` of its own entity. In stage 1 it can also
+write a proposal in the home of a package that its entity whitelists. When the work needs a change in a different
+entity, do not make that change. Declare a need with
 `{{program}} need declare "<title>" --entity <key> --body-file <path>`. The body is the body of a ticket: a numbered
 `## Acceptance` that gives the intended use, and a `## Brief`. Under the job, do not name the job: the Overseer adds
-it. The Overseer refuses a need that is not complete, a need for the entity of the job, and a need from a job that is
-not a build job of an entity.
+it. The Overseer refuses these needs:
+
+- A need that is not complete (`need-incomplete`).
+- A need for an entity that the pipeline does not name (`need-entity-unknown`).
+- A need for the entity of the job (`need-of-own-entity`).
+- A need from a job that is not a build job of an entity (`need-outside-an-entity-build`).
+- A sixth need from one job (`need-limit-reached`).
+- A need for a package whose change for the ticket a package review sealed (`need-for-sealed-package`).
 
 ## Where a review bar is drawn
 

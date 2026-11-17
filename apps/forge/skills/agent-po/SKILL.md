@@ -24,8 +24,8 @@ Brief template, the moves, the findings flow and the exit codes.
 
 Send these as separate calls in one message, never joined into one shell line:
 
-1. `{{program}} status --json`: the drafts, what is pending, in flight and settled. Exit 1 saying there is no
-   tracker means this repository has not adopted one: say so, and do not create one uninvited.
+1. `{{program}} status --json`: the drafts, what is pending, in flight and settled. On exit 1 with no
+   tracker, say so, and do not create one uninvited.
 2. `{{program}} epic list`: the epics a new ticket may belong to.
 3. Read `{{dataFolder}}/reference.md` once: its Brief section is the `## Brief` every ticket carries.
 
@@ -56,8 +56,11 @@ owner's claim with `--force` only when the user says that session is gone. `draf
 ## Shaping the tickets
 
 **Route by entity first.** When `{{dataFolder}}/pipeline.json` has `entities`, file one ticket per entity that the
-request changes, and run `{{program}} ticket entity <id> <key> --reason "<files>"`. If you cannot find the entity,
-use `draft ask`.
+request changes, and run `{{program}} ticket entity <id> <key> --reason "<files>"`. Order them with `--depends-on`
+along the entities' `dependsOn`, a package first. Use one `--group` when they must land together. A change to every
+entity (a rename, a tool upgrade) is one group, or expand and contract: the package keeps the old name, each app,
+then the removal. Research for the whole repository is a ticket of `root`. If you cannot find the entity, use
+`draft ask`.
 
 **Split a large request by mechanism**, one ticket per mechanism, joined with `--depends-on <earlier>`, only when it
 is too big for one builder's budget: a small request stays one ticket, and so do small requests on the same files.
@@ -82,9 +85,8 @@ L ≤ 750, XL ≤ 1500, XXL beyond (usually split it). **Model and effort stay t
 
 ## The ticket body
 
-Write each new ticket body in ASD-STE100. Use the Write tool to write the body to a file outside the repository, for
-example in your session folder or your temporary folder. Then file it with one command that Bash and PowerShell both
-accept:
+Write each new ticket body in ASD-STE100. Use the Write tool to write the body to a file outside the repository.
+Then file it with one command that Bash and PowerShell both accept:
 
 ```
 {{program}} ticket add "<title>" --type ticket|bug|research --size <size> --depends-on <ids> --epic <key> --body-file <path>
@@ -113,14 +115,14 @@ cause**: a subagent finds the delivered ticket that introduced it, passed as `--
 
 The Acceptance is the builder's stop condition: things true or false, never a direction, numbered `A1.`, `A2.`, …,
 never renumbered or reused. **Every ticket carries a numbered Acceptance and a non-empty `## Brief`**: `ticket ready`
-refuses one without either, and the Brief is what its builder reads instead of rediscovering your facts.
+refuses one without either.
 
 **Read the Acceptance back against itself before filing.** Two items that cannot both be true cost an agent a pass:
 say in the ticket which wins and what bounded deviation the other tolerates.
 
 ## The mechanics
 
-- A dependency is recorded, never remembered: `--depends-on` when filing, `ticket depends <id> --add <ids>` later.
+- Record a dependency with `--depends-on`, later with `ticket depends <id> --add <ids>`.
 - Run each tracker command on a line of its own, and parse `--json` output, never the human text.
 - Never write a file under `{{dataFolder}}/` with a file tool, edit a ticket only below its frontmatter, and never
   commit the tracker.
@@ -134,15 +136,14 @@ Tell the user, one line per draft, its id, title, dependencies and epic, what yo
 the filing draft closed or left open with its open question numbers. Then:
 
 - **In the user's own session**, do not ask a closing question. Run `{{program}} ticket submit <ids>` once, with the
-  ids of all the drafts you filed, and report what it moved and which drafts stay drafts with their gaps. Then stop.
+  ids of every draft you filed, and report what it moved and which stay drafts with their gaps. Then stop.
 - **Under the Overseer** (your prompt names your job), run `{{program}} intake close` and stop. It submits the drafts
   that your intake filed. Never run `ticket ready`.
 
-The board's ticket review switch (`gate approval tickets on|off`) sets what the submit does to a complete draft, that
-is a draft with a numbered Acceptance and a non-empty `## Brief`:
+The board's ticket review switch (`gate approval tickets on|off`) sets what the submit does to a complete draft:
 
-- **Ticket review off**: the draft becomes `pending` with its row. The Overseer builds it. Nobody else must approve it.
+- **Ticket review off**: the draft becomes `pending` with its row. The Overseer builds it.
 - **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
   the user moves it on, with `{{program}} ticket ready <ids>` or the Ready button on the Bridge.
 
-An incomplete draft stays a draft with either value. Complete it, then submit it again.
+An incomplete draft stays a draft. Complete it, then submit it again.
