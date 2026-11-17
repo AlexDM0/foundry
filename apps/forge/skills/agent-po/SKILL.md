@@ -55,6 +55,10 @@ owner's claim with `--force` only when the user says that session is gone. `draf
 
 ## Shaping the tickets
 
+**Route by entity first.** When `{{dataFolder}}/pipeline.json` has `entities`, file one ticket per entity that the
+request changes, and run `{{program}} ticket entity <id> <key> --reason "<files>"`. If you cannot find the entity,
+use `draft ask`.
+
 **Split a large request by mechanism**, one ticket per mechanism, joined with `--depends-on <earlier>`, only when it
 is too big for one builder's budget: a small request stays one ticket, and so do small requests on the same files.
 
