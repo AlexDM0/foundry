@@ -304,14 +304,46 @@ function adaptMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaun
       ? `The package stages of #${ticket.id} are complete. Your session of stage 1 continues.`
       : `The session of stage 1 of #${ticket.id} cannot continue. You continue its work on the same branch. The ticket below holds its handoff.`,
     ticketId:       ticket.id,
-    homeEntity,
-    sealedPackages: codeListOf(adapt.crossedPackages.map((result) => result.entity)),
     packageResults: adapt.crossedPackages.map(crossedPackageResultOf).join('\n\n'),
+    stageRules:     adaptStageRulesOf(homeEntity, adapt),
     closing:        adapt.resumesSession
       ? `Run the gates of \`${homeEntity}\` again, and end with your report.`
       : `The build prompt of \`${homeEntity}\` follows.`,
   }).trim();
   return adapt.resumesSession ? message : `${message}\n\n${builderInstructionsOf(job, ticket, facts)}`;
+}
+
+/** The rules of stage 4: the sealed packages, where the builder writes, the way back to a package, and the Acceptance evidence it owns. */
+function adaptStageRulesOf(homeEntity: string, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {
+  return filledTemplateOf(promptOf('AdaptStageRules.md'), {
+    homeEntity,
+    sealedPackages: codeListOf(adapt.crossedPackages.map((result) => result.entity)),
+  }).trim();
+}
+
+/**
+ * A home review that did not hold sends the ticket back to stage 4 (E51). The session it resumes may not have run stage 4, since `adapt` was
+ * skipped, so it is told the stage's rules after the findings.
+ */
+function adaptAfterTheHomeReviewOf(ticketId: string, homeEntity: string, findingsMessage: string, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {
+  return [
+    findingsMessage,
+    '',
+    `Your session continues as stage 4 of ticket #${ticketId}: adapt. The rules of this stage apply to your fix.`,
+    '',
+    adaptStageRulesOf(homeEntity, adapt),
+  ].join('\n');
+}
+
+/** What the package review wrote when it did not hold, which the package build it sent back fixes (E34). */
+function packageReviewFindingsSectionOf(packageEntity: string, packageReviewFindings: string): string {
+  return [
+    `## Why the package build of \`${packageEntity}\` runs again`,
+    '',
+    `The package review of \`${packageEntity}\` found a claim that does not hold. Fix what does not hold. Its review follows:`,
+    '',
+    packageReviewFindings.trim(),
+  ].join('\n');
 }
 
 /** What the adapt builder wrote the package must give, when it sent the ticket back to this package build (E41, E42). */
@@ -343,7 +375,10 @@ function packageBuildMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
   const packageReturn = packageBuild.packageReturnReason === undefined
     ? ''
     : `${packageReturnSectionOf(packageBuild.homeEntity, packageEntity, packageBuild.packageReturnReason)}\n\n`;
-  return `${packageReturn}${stageRules}\n\n${builderInstructionsOf(job, ticket, facts)}`;
+  const packageReviewFindings = packageBuild.packageReviewFindings === undefined
+    ? ''
+    : `${packageReviewFindingsSectionOf(packageEntity, packageBuild.packageReviewFindings)}\n\n`;
+  return `${packageReturn}${packageReviewFindings}${stageRules}\n\n${builderInstructionsOf(job, ticket, facts)}`;
 }
 
 /** Where a session at the root of a folder tracker's worktree finds its project, since its ticket names paths from the project's folder. */
@@ -699,7 +734,9 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
     return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock), roleBrief };
   }
   if (job.kind === 'review' && ticket !== undefined) {
-    const mergeApprovalStep = facts.mergeApprovalIsOn === true && job.target !== null ? mergeApprovalStepOf(job.target, ticket.branch) : '';
+    // Merge approval is once per ticket, at its end (E36): a package review of stage 3 does not merge the target in.
+    const approvesTheMerge = facts.mergeApprovalIsOn === true && facts.crossingStage?.stage !== 'package-review';
+    const mergeApprovalStep = approvesTheMerge && job.target !== null ? mergeApprovalStepOf(job.target, ticket.branch) : '';
     return { firstMessage: reviewerInstructionsOf(job, ticket, facts, mergeApprovalStep), roleBrief };
   }
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };
@@ -709,6 +746,10 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
     return { firstMessage: `${needsSettledMessageOf(ticket.id, needsSettled)}\n\n${freshBuilderMessageOf(job, ticket, facts, true)}`, roleBrief };
   }
   const reviewFindings = facts.reviewFindings ?? null;
+  const crossingStage = facts.crossingStage ?? null;
+  if (reviewFindings !== null && crossingStage?.stage === 'adapt') {
+    return { firstMessage: adaptAfterTheHomeReviewOf(ticket.id, job.entity ?? '', reviewFindingsMessageOf(ticket.id, reviewFindings), crossingStage), roleBrief };
+  }
   if (reviewFindings !== null) return { firstMessage: reviewFindingsMessageOf(ticket.id, reviewFindings), roleBrief };
   return { firstMessage: freshBuilderMessageOf(job, ticket, facts, false), roleBrief };
 }

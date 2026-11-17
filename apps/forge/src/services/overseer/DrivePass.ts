@@ -759,11 +759,19 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   };
 }
 
-function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>): ReviewFindingsFacts | null {
+/**
+ * What a builder whose session is carried on is told of the review that sent it back: the ticket's newest Review, or for a package build the
+ * Review its package review kept in its job folder (E34). `null` for a fresh session, and for `adapt` taking up the home builder's session
+ * after the package stages, which gets the adapt message (A2); after a home review that did not hold, `adapt` gets its findings (E51).
+ */
+function reviewFindingsOf(board: Board, trackerDirectory: string, job: Readonly<Job>, crossingStage: CrossingStageFacts | null): ReviewFindingsFacts | null {
   if (job.kind !== 'build' || JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job) === job.id) return null;
+  const [ticketId] = job.ticketIds;
+  if (crossingStage?.stage === 'adapt' && ticketId !== undefined && CrossingStages.followsThePackageStages(board.logRecordsSoFar(), ticketId)) return null;
   const ticketBody = board.tickets().find((ticket) => job.ticketIds.includes(ticket.frontmatter.id))?.body ?? '';
+  const reviewSection = crossingStage?.stage === 'package-build' ? crossingStage.packageReviewFindings ?? '' : JobResumption.newestReviewSectionOf(ticketBody);
   return {
-    reviewSection:  JobResumption.newestReviewSectionOf(ticketBody),
+    reviewSection,
     resume:         Playbook.handoffCycleResumesOf(job, board.logRecordsSoFar()),
     resumesAllowed: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     targetCatchUp:  JobLaunch.targetCatchUpHandoverOf(trackerDirectory, board.logRecordsSoFar(), job.ticketIds[0] ?? ''),
@@ -782,7 +790,8 @@ function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts'])
   return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
 }
 
-function launchFactsOf(
+/** What a job's launch text is filled from, read off the board and the tracker's job folders. */
+export function launchFactsOf(
   board: Board, request: LaunchFactsSource, job: Readonly<Job>, launch: { instructions: string; airlock: AirlockFacts | null; place: SessionPlace }
 ): JobLaunchFacts {
   const { trackerDirectory } = request.workspace;
@@ -809,7 +818,7 @@ function launchFactsOf(
     mergeApprovalIsOn:      board.mergeApprovalIsOn(),
     earlierSessionReplaced: JobResumption.earlierSessionWasReplaced(board.logRecordsSoFar(), job),
     redHandoff:             JobResumption.redHandoffTakenOverOf(trackerDirectory, board.logRecordsSoFar(), job),
-    reviewFindings:         needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job) : null,
+    reviewFindings:         needsSettled === null ? reviewFindingsOf(board, trackerDirectory, job, crossingStage) : null,
     needsSettled,
     ...(crossingStage === null ? {} : { crossingStage }),
     ...(rootEntityKey === ROOT_ENTITY_KEY ? {} : { rootEntityKey }),

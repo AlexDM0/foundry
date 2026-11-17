@@ -38,7 +38,7 @@ export interface SealedPackageReview {
  */
 export type CrossingStageFacts =
   | { stage: 'build'; whitelistedPackages: readonly string[] }
-  | { stage: 'package-build'; homeEntity: string; packageReturnReason?: string }
+  | { stage: 'package-build'; homeEntity: string; packageReturnReason?: string; packageReviewFindings?: string }
   | { stage: 'package-review'; homeEntity: string; exposedSurfaceChanged: boolean }
   | { stage: 'adapt'; crossedPackages: readonly CrossedPackageResult[]; resumesSession: boolean }
   | { stage: 'review'; crossedPackages: readonly SealedPackageReview[] };
@@ -46,11 +46,13 @@ export type CrossingStageFacts =
 /**
  * What a package stage's verified report stated, kept in its job folder, since the stages after it read it once the job ended. A package
  * review also keeps the `reach` paths its package's stages changed, which its seal covers (E3). An adapt build that sent the ticket back
- * keeps the package and what the package must give, which the returned package build is told (E41, E42).
+ * keeps the package and what the package must give, which the returned package build is told (E41, E42). A package review that does not
+ * hold keeps its Review, since it writes none in the ticket, which the package build it sends back is told (E34).
  */
 export type StageStatement =
   | { stage: 'package-build'; exposedSurfaceChanged: boolean }
   | { stage: 'package-review'; exposedSurfaceConfirmed: boolean; reviewText: string; sealedReachPaths: readonly string[] }
+  | { stage: 'package-review-findings'; reviewSection: string }
   | { stage: 'adapt'; returnedPackage: string; packageReturnReason: string };
 
 /** What the package stages of one crossed package stated: `null` where a stage left no statement. */
@@ -199,6 +201,8 @@ function stageStatementOf(trackerDirectory: string, jobId: string): StageStateme
     return { stage: 'adapt', returnedPackage, packageReturnReason };
   }
   if (fieldOf(stored, 'stage') === 'package-build' && typeof exposedSurfaceChanged === 'boolean') return { stage: 'package-build', exposedSurfaceChanged };
+  const reviewSection = fieldOf(stored, 'reviewSection');
+  if (fieldOf(stored, 'stage') === 'package-review-findings' && typeof reviewSection === 'string') return { stage: 'package-review-findings', reviewSection };
   const exposedSurfaceConfirmed = fieldOf(stored, 'exposedSurfaceConfirmed');
   const reviewText = fieldOf(stored, 'reviewText');
   const sealedReachPaths = fieldOf(stored, 'sealedReachPaths');
@@ -224,6 +228,54 @@ function newestStageJobIdOf(logRecords: readonly LogRecord[], ticketId: string, 
     if (record.kind === 'job-ended' && stageJobIds.has(record.jobId) && record.fields.outcome === outcome) newest = record.jobId;
   }
   return newest;
+}
+
+/** The newest job of the ticket that ran `stage` and ended, with its outcome; `null` when none did. */
+function newestEndedStageJobOf(logRecords: readonly LogRecord[], ticketId: string, stage: TicketStage): { jobId: string; outcome: string } | null {
+  const stageNumber = TicketStageUtil.stageNumberOf(stage.name);
+  const stageJobIds = new Set<string>();
+  let newest: { jobId: string; outcome: string } | null = null;
+  for (const record of logRecords) {
+    if (record.kind === 'tracker-cleared') {
+      stageJobIds.clear();
+      newest = null;
+    }
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) && record.fields.entity === stage.entity && record.fields.stage === stageNumber) {
+      stageJobIds.add(record.jobId);
+    }
+    if (record.kind === 'job-ended' && stageJobIds.has(record.jobId)) newest = { jobId: record.jobId, outcome: record.fields.outcome };
+  }
+  return newest;
+}
+
+/**
+ * The Review of the newest package review of `packageKey`, when it did not hold: the package build it sent back fixes what it found (E34).
+ * `null` when the newest package review held, or none ended.
+ */
+function packageReviewFindingsOf(trackerDirectory: string, logRecords: readonly LogRecord[], ticketId: string, packageKey: EntityKey): string | null {
+  const newestReview = newestEndedStageJobOf(logRecords, ticketId, { name: 'package-review', entity: packageKey });
+  if (newestReview?.outcome !== 'does-not-hold') return null;
+  const statement = stageStatementOf(trackerDirectory, newestReview.jobId);
+  return statement?.stage === 'package-review-findings' ? statement.reviewSection : null;
+}
+
+/**
+ * Whether the ticket's newest ended build or review job is a package review: an `adapt` job launched now takes up the home builder's session
+ * after the package stages (A2), not after a home review that did not hold (E51).
+ */
+function followsThePackageStages(logRecords: readonly LogRecord[], ticketId: string): boolean {
+  const stageByJobId = new Map<string, number | undefined>();
+  let newestEndedStage: number | undefined;
+  for (const record of logRecords) {
+    if (record.kind === 'tracker-cleared') {
+      stageByJobId.clear();
+      newestEndedStage = undefined;
+    }
+    const isStageWork = record.kind === 'job-launched' && (record.fields.kind === 'build' || record.fields.kind === 'review');
+    if (isStageWork && record.fields.ticketIds.includes(ticketId)) stageByJobId.set(record.jobId, record.fields.stage);
+    if (record.kind === 'job-ended' && stageByJobId.has(record.jobId)) newestEndedStage = stageByJobId.get(record.jobId);
+  }
+  return newestEndedStage === TicketStageUtil.stageNumberOf('package-review');
 }
 
 /** What the package build and the package review of `packageKey` stated, from their newest jobs that ended `built` and `reviewed`. */
@@ -288,7 +340,13 @@ function crossingStageFactsOf(board: Board, trackerDirectory: string, job: Reado
     },
     'package-build': () => {
       const packageReturnReason = packageReturnReasonOf(trackerDirectory, logRecords, ticketId, homeEntity, jobStage.entity);
-      return { stage: 'package-build', homeEntity, ...(packageReturnReason === null ? {} : { packageReturnReason }) };
+      const packageReviewFindings = packageReviewFindingsOf(trackerDirectory, logRecords, ticketId, jobStage.entity);
+      return {
+        stage: 'package-build',
+        homeEntity,
+        ...(packageReturnReason === null ? {} : { packageReturnReason }),
+        ...(packageReviewFindings === null ? {} : { packageReviewFindings }),
+      };
     },
     'package-review': () => ({
       stage:                 'package-review',
@@ -326,6 +384,8 @@ export const CrossingStages = Object.freeze({
   stageStatementOf,
   packageStageStatementsOf,
   packageReturnReasonOf,
+  packageReviewFindingsOf,
+  followsThePackageStages,
   adaptIsSkipped,
   confirmedExposedSurfaceChangedOf,
   sealedPackagesOf,

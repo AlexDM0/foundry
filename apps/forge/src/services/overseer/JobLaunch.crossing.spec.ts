@@ -10,7 +10,8 @@
  * checks the package, then the package's dependents but the home, and a red one is its red handoff (E25, E26); a dependent's gate still red
  * once the resumes are spent ends the job and opens `dependent-broken`, while the package's own goes the red handoff's way. The package
  * review settles its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31),
- * and one that does not hold sends the package build back (E34); one that holds seals the ticket's own change to the package, a lockfile
+ * and one that does not hold sends the package build back with its Review, kept in its job folder since the ticket holds none (E34); one
+ * that holds seals the ticket's own change to the package, a lockfile
  * change of its stages among it (E3), and runs the home review when the build stated no change of what the package exposes and the review
  * confirmed it, else `adapt` (E40, C15), and must confirm or correct the statement. A later stage whose branch no longer holds the sealed
  * change is sent back once, then fails (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `##
@@ -18,7 +19,9 @@
  * with a `package-refused` decision that holds the ticket (E22). An adapt build that needs more of the package ends `package-return`: the
  * seal is lifted, the row goes back to the package build, the return is counted and logged (E41), and the reason waits for the package
  * builder, while the adapt branch holds no change of the package (E42); a second return opens `second-return` and keeps `adapt` (E45). A
- * home review that does not hold for a cause in the package goes back to `adapt`, whose return reaches the package build (E52).
+ * home review that does not hold goes back to `adapt` and in progress, after an adapt that ran and after a skipped one (E51), and for a
+ * cause in the package `adapt`'s return reaches the package build (E52). With merge approval on, a package review that holds moves on to the
+ * next stage, and only the home review waits in `merging-main`, once per ticket (E36).
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import path, { join }              from 'node:path';
@@ -400,6 +403,34 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
     expect(ticket.board.ticketSealsOf(SHOP_TICKET.id)).toEqual({});
   });
 
+  test('E34: that does not hold keeps its Review, which the package build it sends back is told, though the ticket holds none', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+    const claims = [{
+      item: 'A1', result: 'does-not-hold', handoffContradicted: false, note: 'The example part breaks.'
+    }];
+    reviewedPackageOf(ticket, false, { exposedSurfaceConfirmed: true, claims, reviewText: 'The example part reads the old name.' });
+
+    const facts = CrossingStages.crossingStageFactsOf(ticket.board, ticket.context.workspace.trackerDirectory, returnedPackageBuildOf(ticket), true);
+    expect(facts).toEqual({
+      stage:                 'package-build',
+      homeEntity:            SHOP.key,
+      packageReviewFindings: '## Review 1\n\nThe example part reads the old name.\n\n- A1 does-not-hold — The example part breaks.',
+    });
+    expect(shopTicketOf(ticket.board)?.body).not.toContain('## Review');
+  });
+
+  test('E34: a package review that holds after one that did not leaves the next package build no findings', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+    const claims = [{
+      item: 'A1', result: 'does-not-hold', handoffContradicted: false, note: 'The example part breaks.'
+    }];
+    reviewedPackageOf(ticket, true, { exposedSurfaceConfirmed: true, claims });
+    reviewedPackageOf(ticket, true, { exposedSurfaceConfirmed: true });
+
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
+    expect(CrossingStages.packageReviewFindingsOf(ticket.context.workspace.trackerDirectory, ticket.board.logRecordsSoFar(), SHOP_TICKET.id, UI_KIT.key)).toBeNull();
+  });
+
   test('whose report neither confirms nor corrects the statement fails as a report without one (E40)', () => {
     expect(reviewedPackageOf(crossingTicketOf({ stage: PACKAGE_BUILD }), false, {})).toBe('failed: no-report');
   });
@@ -435,6 +466,57 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     expect(batonPassOf(ticket, job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
     const sentBack = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: 'an-example-seal-of-another-change' }, status: 'in-review' });
     expect(runStage(sentBack, HOME_REVIEWER, { ...run, scopeResumed: true }).whereTheJobWent).toBe('failed: sealed-change-altered');
+  });
+});
+
+const DOES_NOT_HOLD_CLAIMS = [{
+  item: 'A1', result: 'does-not-hold', handoffContradicted: false, note: 'The basket shows the total in euros.'
+}];
+
+describeWhenGitIsRecorded('stage 5, the home review that does not hold (E51)', () => {
+  test('E51: after an adapt that ran, sends the ticket back to adapt and back in progress', () => {
+    const ticket = crossingTicketOf({ stage: ADAPT, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED) } });
+    expect(runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_ADAPTED_REVIEWED', '<stage tip>', builtReportOf())).whereTheJobWent).toBe('built: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(HOME_REVIEW);
+
+    const homeReview = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED_REVIEWED', '<adapt tip>', reviewedReportOf({ claims: DOES_NOT_HOLD_CLAIMS })));
+
+    expect(homeReview.whereTheJobWent).toBe('does-not-hold: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual({ name: 'adapt', entity: SHOP.key });
+    expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-progress');
+  });
+
+  test('E51: after a skipped adapt, sends the ticket back to adapt and back in progress', () => {
+    const ticket = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) }, status: 'in-review' });
+
+    const homeReview = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', reviewedReportOf({ claims: DOES_NOT_HOLD_CLAIMS })));
+
+    expect(homeReview.whereTheJobWent).toBe('does-not-hold: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual({ name: 'adapt', entity: SHOP.key });
+    expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-progress');
+  });
+});
+
+describeWhenGitIsRecorded('merge approval on a crossing ticket (E36)', () => {
+  test('E36: a package review that holds moves on to the next stage, never to merging-main or the merge queue', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+    ticket.board.setApproval('merge', true, AT);
+
+    expect(reviewedPackageOf(ticket, false, { exposedSurfaceConfirmed: true })).toBe('reviewed: ');
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(HOME_REVIEW);
+    expect(ticket.board.jobs().filter((job) => job.state === 'merging-main')).toEqual([]);
+    expect(ticket.board.ticketIsMergeQueued(SHOP_TICKET.id)).toBe(false);
+  });
+
+  test('E36: the home review of stage 5 that holds waits in merging-main, once per ticket at its end', () => {
+    const seals = { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED_REVIEWED) };
+    const ticket = crossingTicketOf({ stage: HOME_REVIEW, seals, status: 'in-review' });
+    ticket.board.setApproval('merge', true, AT);
+
+    const { job, whereTheJobWent } = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED_REVIEWED', '<adapt tip>', reviewedReportOf()));
+
+    expect(whereTheJobWent).toBe('merging-main');
+    expect(ticket.board.jobById(job.id)?.state).toBe('merging-main');
   });
 });
 

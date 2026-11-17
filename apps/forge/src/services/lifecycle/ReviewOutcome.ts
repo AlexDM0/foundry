@@ -49,8 +49,11 @@ export interface ReviewPassRequest {
  * since no package stage accounts for the ticket's Acceptance.
  */
 export interface PackageReviewSettlement {
-  /** The review does not hold: the package build runs again (E34). Called after the job ended `does-not-hold`; returns its records. */
-  sendBackToThePackageBuild: () => readonly LogRecord[];
+  /**
+   * The review does not hold: the package build runs again with `reviewSection`, the Review the ticket does not hold (E34). Called after the
+   * job ended `does-not-hold`; returns its records.
+   */
+  sendBackToThePackageBuild: (reviewSection: string) => readonly LogRecord[];
   /** The review holds: the seal, the statement, the job's end and the next stage; returns their records. */
   sealAndMoveOn:             (headCommit: string) => readonly LogRecord[];
 }
@@ -216,9 +219,10 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   const claims = claimsOf(report);
   const findings = findingsOf(report, filedTicketIdResolver(records, job.id));
   const { packageReview } = request;
+  const reviewSection = reviewSectionOf(round, report, claims, findings);
   if (packageReview === undefined) {
     const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
-    const bodyWithReview = appendSection(ticket?.body ?? '', reviewSectionOf(round, report, claims, findings));
+    const bodyWithReview = appendSection(ticket?.body ?? '', reviewSection);
     logged.push(...board.editTicket(ticketId, { body: { text: bodyWithReview, appends: false }, allowsPastPending: true }, at).logged);
   }
 
@@ -251,7 +255,7 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   if (packageReview !== undefined && move !== 'fresh-reviewer') {
     if (move === 'fixer') {
       logged.push(...board.endJob(job.id, { outcome: 'does-not-hold', commit: headCommit }, at).logged);
-      logged.push(...packageReview.sendBackToThePackageBuild());
+      logged.push(...packageReview.sendBackToThePackageBuild(reviewSection.trim()));
     } else {
       logged.push(...packageReview.sealAndMoveOn(headCommit));
     }

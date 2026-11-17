@@ -1621,9 +1621,9 @@ function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: E
 
 /**
  * A gated package review (stage 3) settles its rounds and record as any review (E30, E31) but moves neither the ticket's status nor its
- * merge queue: one that does not hold sends the package build back (E34). One that holds seals the ticket's own change to the package and
- * keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed package's build runs, or the stage after
- * the package stages. Its bar is closed here, since no status move closes it.
+ * merge queue: one that does not hold sends the package build back with its Review, kept in its job folder (E34). One that holds seals the
+ * ticket's own change to the package and keeps the reviewer's confirmation of what the package exposes and its text; then the next crossed
+ * package's build runs, or the stage after the package stages. Its bar is closed here, since no status move closes it.
  */
 function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report: unknown): PackageReviewSettlement {
   const { board, at } = hold.change;
@@ -1631,7 +1631,8 @@ function packageReviewSettlementOf(hold: HoldContext, job: Readonly<Job>, report
   const packageKey = job.entity ?? '';
   const homeEntity = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.frontmatter.entity ?? '';
   return {
-    sendBackToThePackageBuild: () => {
+    sendBackToThePackageBuild: (reviewSection) => {
+      CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-review-findings', reviewSection });
       const { logged } = board.closeStageReviewBars(ticketId, at);
       board.moveTicketStage(ticketId, { name: 'package-build', entity: packageKey }, at);
       return logged;

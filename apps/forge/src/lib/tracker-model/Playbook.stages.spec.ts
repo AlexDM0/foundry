@@ -2,7 +2,8 @@
  * The Playbook's launches for a crossing ticket's stages (strategy 4.2 and 5.8) on the entity-forge fixture's entities, each rule claim watched
  * failing under the mutant of its line. What matters: a ticket whose row stores a stage launches that stage's job in the stage's entity and
  * number whatever its status, a reviewer only for an entity with a review phase; review rounds count within their stage and are kept on a
- * return to it, so the home review's round 1 is its first; a package review never counts against the home builder's resumes; a ticket that
+ * return to it, so the home review's round 1 is its first; a package review never counts against the home builder's resumes, while it
+ * counts against the package builder's, so a package build and package review loop parks once they are spent (E34); a ticket that
  * crosses into no package launches as today, as stage 1 or stage 5 of its own entity, and still parks after today's failed passes when
  * review rounds come between its failed builds; a forge without entities launches exactly as today, a stored stage ignored. The scheduling
  * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
@@ -180,6 +181,39 @@ const CLAIMS: StageClaim[] = [
       ...[1, 2, 3].flatMap((review) => [stagedLaunchedRecord(`R${review}`, 'review', '001', UI_KIT.key, 3), endedRecord(`R${review}`, 'does-not-hold')]),
     ]) === 0,
     mutant: policyLine('|| endedReview.entity === undefined || endedReview.entity === cycle.entity)', '|| true)'),
+  },
+  {
+    name:  'E34: a package build sent back by its package reviews past the package builder\'s resumes parks red-resumes-spent',
+    holds: (policy) => Bun.deepEquals(policy.nextStepsOf(entityFacts({
+      entitiesWithReview: BOTH_REVIEWED,
+      tickets:            [crossingTicket(PACKAGE_BUILD)],
+      logRecords:         [
+        ...HOME_BUILT,
+        stagedLaunchedRecord('P1', 'build', '001', UI_KIT.key, 2),
+        endedRecord('P1', 'built'),
+        ...[1, 2, 3].flatMap((review): LogRecord[] => [
+          stagedLaunchedRecord(`R${review}`, 'review', '001', UI_KIT.key, 3),
+          endedRecord(`R${review}`, 'does-not-hold'),
+          ...(review < 3 ? [stagedLaunchedRecord(`P${review + 1}`, 'build', '001', UI_KIT.key, 2), endedRecord(`P${review + 1}`, 'built')] : []),
+        ]),
+      ],
+    }), FIXTURE_LIMITS), [{ kind: 'park', ticketId: '001', cause: 'red-resumes-spent' }], true),
+    mutant: policyLine('    ...(newestBuild?.stage === undefined ? {} : { stage: newestBuild.stage }),\n', ''),
+  },
+  {
+    name:  'E34: a package build sent back by its package review within the package builder\'s resumes runs again in the same attempt',
+    holds: (policy) => launchesExactly(policy, factsWith({
+      pipelineHasEntities: true,
+      entitiesWithReview:  BOTH_REVIEWED,
+      tickets:             [crossingTicket(PACKAGE_BUILD)],
+      logRecords:          [
+        ...HOME_BUILT,
+        stagedLaunchedRecord('P1', 'build', '001', UI_KIT.key, 2),
+        endedRecord('P1', 'built'),
+        stagedLaunchedRecord('R1', 'review', '001', UI_KIT.key, 3),
+        endedRecord('R1', 'does-not-hold'),
+      ],
+    }), [packageBuildOf('001')]),
   },
   {
     name:  'a ticket that crosses into no package builds as stage 1 of its entity and is reviewed as stage 5, its attempt and round as today',

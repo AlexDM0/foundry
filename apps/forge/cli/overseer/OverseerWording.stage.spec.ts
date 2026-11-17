@@ -4,8 +4,10 @@
  * an entity is told its homes and `reach`, and how and when to declare a need with `need declare` and end `needs-declared`, but a builder
  * of the root entity declares no need (A10); in stage 1 the whitelisted packages are named as a proposal; the package builder of stage 2
  * reads its stage's rules first, states `exposedSurfaceChanged` (A1) and declares no need into its home entity (E24); the package reviewer
- * of stage 3 is told that statement and confirms or corrects it with `exposedSurfaceConfirmed` (C15); the adapt stage resumes the stage 1
- * session with its message alone (A2), a fresh session (E43) gets the message before its build prompt, and a need cannot name a sealed
+ * of stage 3 is told that statement and confirms or corrects it with `exposedSurfaceConfirmed` (C15), and is not told to merge the target
+ * in when merge approval is on, which only the home review is (E36); a fresh package builder sent back by its package review reads that
+ * review first (E34); the adapt stage resumes the stage 1 session with its message alone (A2), after a home review that did not hold with
+ * the findings and then the stage's rules (E51), a fresh session (E43) gets the message before its build prompt, and a need cannot name a sealed
  * package, which only `package-return` changes, with what the package must give (E41, E42); the package build the ticket returned to is
  * told that reason before its stage's rules (E42), and one the ticket did not return to is told nothing of a return; a fresh session after
  * settled needs still gets its stage's message; the home review of stage 5 is told the packages are sealed, and that a cause in a package
@@ -14,13 +16,13 @@
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { Job }                from '../../src/lib/tracker-model/@types/Job.ts';
-import type { CrossingStageFacts } from '../../src/services/overseer/CrossingStages.ts';
-import type { JobLaunchFacts }     from '../../src/services/overseer/DrivePass.ts';
-import type { NeedsSettledFacts }  from '../../src/services/overseer/NeedTickets.ts';
-import { resourceFilePathOf }      from '../../src/shared/ResourceFilePath.ts';
-import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { OverseerWording }         from './OverseerWording.ts';
+import type { Job }                                 from '../../src/lib/tracker-model/@types/Job.ts';
+import type { CrossingStageFacts }                  from '../../src/services/overseer/CrossingStages.ts';
+import type { JobLaunchFacts, ReviewFindingsFacts } from '../../src/services/overseer/DrivePass.ts';
+import type { NeedsSettledFacts }                   from '../../src/services/overseer/NeedTickets.ts';
+import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
+import { OverseerWording }                          from './OverseerWording.ts';
 
 const BUILD_PROMPT  = readFileSync(resourceFilePathOf('prompts', 'BuildPrompt.md'), 'utf8');
 const REVIEW_PROMPT = readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8');
@@ -40,8 +42,10 @@ function jobOf(kind: 'build' | 'review', entity: string | undefined): Readonly<J
 }
 
 interface ExtraLaunchFacts {
-  needsSettled?:  NeedsSettledFacts;
-  rootEntityKey?: string;
+  needsSettled?:      NeedsSettledFacts;
+  rootEntityKey?:     string;
+  mergeApprovalIsOn?: boolean;
+  reviewFindings?:    ReviewFindingsFacts;
 }
 
 function messageOf(
@@ -169,11 +173,33 @@ describe('a builder of an entity', () => {
     expect(message).toContain('does not allow the change');
   });
 
+  test('E34: in stage 2 after its package review did not hold, a fresh package builder gets the review before its stage\'s rules', () => {
+    const packageReviewFindings = '## Review 1\n\nThe export breaks. {{notAPlaceholder}}\n\n- A1 does-not-hold — The example part breaks.';
+    const message = messageOf('build', 'shared', { stage: 'package-build', homeEntity: 'web', packageReviewFindings });
+
+    expect(message.startsWith('## Why the package build of `shared` runs again\n\nThe package review of `shared` found a claim that does not hold.')).toBe(true);
+    expect(message).toContain('Its review follows:\n\n## Review 1\n\nThe export breaks. {{notAPlaceholder}}\n\n- A1 does-not-hold');
+    expect(message.indexOf('- A1 does-not-hold')).toBeLessThan(message.indexOf('This job is stage 2 of ticket #014'));
+  });
+
   test('in stage 2 without a return, the package builder is told nothing of one (E42)', () => {
     const message = messageOf('build', 'shared', { stage: 'package-build', homeEntity: 'web' });
 
     expect(message.startsWith('This job is stage 2 of ticket #014')).toBe(true);
     expect(message).not.toContain('Why the ticket is back');
+  });
+
+  test('E51: in stage 4 after a home review that did not hold, the resumed session gets the findings, then the rules of the adapt stage', () => {
+    const reviewFindings: ReviewFindingsFacts = { reviewSection: '## Review 1\n\nThe basket shows euros.', resume: 1, resumesAllowed: 2 };
+    const message = messageOf('build', 'web', { ...adapt, resumesSession: true }, { reviewFindings });
+
+    expect(message.startsWith('The review of #014 found a claim that does not hold, so your session is resumed with its findings (resume 1 of 2).')).toBe(true);
+    expect(message).toContain('## Review 1\n\nThe basket shows euros.\n\nYour session continues as stage 4 of ticket #014: adapt.');
+    expect(message).toContain('## The rules of this stage\n\n- The change of the ticket in `shared` is sealed. Do not change the files of these packages.');
+    expect(message).toContain('End with the outcome `package-return`.');
+    expect(message).toContain('give the evidence for each numbered\n  item again');
+    expect(message).not.toContain('You build ticket #014');
+    expect(message).not.toMatch(PLACEHOLDER);
   });
 
   test('in stage 4, a fresh session gets the adapt message before its build prompt, which holds the ticket', () => {
@@ -213,6 +239,16 @@ describe('a reviewer of an entity', () => {
       expect(message).toContain('set `exposedSurfaceConfirmed` to true when the statement is correct');
       expect(message).toContain('When you see a problem in the files of `web`, write it in your `reviewText`. Do not fix it');
     }
+  });
+
+  test('E36: in stage 3 with merge approval on, is not told to merge the target in, which the home review of stage 5 is', () => {
+    const packageReview = messageOf('review', 'shared', { stage: 'package-review', homeEntity: 'web', exposedSurfaceChanged: false }, { mergeApprovalIsOn: true });
+    const homeReview = messageOf('review', 'web', { stage: 'review', crossedPackages: [{ entity: 'shared', reviewText: '' }] }, { mergeApprovalIsOn: true });
+
+    expect(packageReview).not.toContain('Merge approval is on');
+    expect(packageReview).not.toContain('git merge --no-edit main');
+    expect(packageReview).not.toMatch(PLACEHOLDER);
+    expect(homeReview).toContain('- Merge approval is on. As the last step of your review, merge the target into the branch: `git merge --no-edit main`');
   });
 
   test('in stage 5, is told the crossed packages are sealed', () => {
