@@ -2,7 +2,8 @@
  * The launch as a flow, over the programs and the window recorded from a real Mac (one answer set per situation), Gaia's own health and
  * session code per stage, and timers fired by hand. What matters: with nothing on the port the launch starts the server and the splash at
  * once, moves the splash on as the server and its forges answer, opens the page with a fresh code and stops both programs when the window
- * closes; with Gaia up it opens the splash at its last step, asks for a code only once the window is listed, never puts the code in the
+ * closes, also while the browser still lists another window on Gaia's profile, which is not Gaia's and would otherwise keep a launch with
+ * no window running; with Gaia up it opens the splash at its last step, asks for a code only once the window is listed, never puts the code in the
  * browser's arguments, and stops nothing of Gaia's; a missing browser and another program on the port are refusals in a dialog that start
  * nothing; a server that ends, before or after it answers, a window that never shows and a stop request each close what the launch
  * started; a splash User closes closes Gaia without a dialog; a Gaia.app installed for another install version refuses in a dialog before
@@ -223,6 +224,32 @@ describe('a launch with nothing on the port', () => {
       'browser-ended: page targets',
       'browser-ended: page targets',
     ]);
+  });
+
+  test('stops both when Gaia\'s window closes while the browser still lists another window on Gaia\'s profile', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => launch.setHealth(gaiaAnswering({ forgesRegistered: 1, forgesAnswered: 1 })));
+    await afterTheNextWait(launch, WAITS.windowWatchIntervalMilliseconds);
+    for (let i = 0; i < WAITS.windowGonePolls; i++) {
+      await afterTheNextWait(launch, WAITS.windowWatchIntervalMilliseconds, () => launch.window.enterSituation('other-window-left'));
+    }
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
+    expect(launch.window.callsAnswered().slice(-WAITS.windowGonePolls)).toEqual(Array.from({ length: WAITS.windowGonePolls }, () => 'other-window-left: page targets'));
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([SPLASH_BROWSER_SHAPE, SERVER_SHAPE]);
+    expect(launch.processRun.ownedChildrenRunning()).toEqual([]);
+  });
+
+  test('stops both quietly, with no dialog, when User closes the splash while another window on Gaia\'s profile stays', async () => {
+    const launch = launchIn('server-down', { verdict: 'nothing-answers' }, 'window-open');
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds);
+    await afterTheNextWait(launch, WAITS.pollIntervalMilliseconds, () => {
+      launch.setHealth(gaiaAnswering({ forgesRegistered: 0, forgesAnswered: 0 }));
+      launch.window.enterSituation('other-window-left');
+    });
+    expect(await launch.verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
+    expect(launch.processRun.callShapesAnswered()).toEqual([SERVER_SHAPE, SPLASH_BROWSER_SHAPE]);
+    expect(launch.processRun.ownedChildrenStopped()).toEqual([SPLASH_BROWSER_SHAPE, SERVER_SHAPE]);
   });
 
   test('opens Attention without waiting on forges when every registered forge has answered', async () => {

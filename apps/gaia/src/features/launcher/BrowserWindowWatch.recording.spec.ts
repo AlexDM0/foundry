@@ -2,8 +2,9 @@
  * The real-system spec of the browser window watch, run only by `bun run record browser-window-watch` on a Mac with Chrome or Edge. It
  * opens the browser as the launcher does, on a scratch profile with its debugging pipe and on this repository's splash as a file page, and
  * records each situation of the window, with the splash's file at the launcher specs' example path: the splash listed and navigated to a
- * step, which the splash then shows; a navigation the browser refuses while the window stays; the window closed while the browser runs;
- * and the browser ended. The browser opens no debugging port. The browser's own version stamps the recording.
+ * step, which the splash then shows; a navigation the browser refuses while the window stays; the window closed while another window on
+ * the profile stays; every window closed while the browser runs; and the browser ended. The browser opens no debugging port. The browser's
+ * own version stamps the recording.
  */
 import { readdirSync }   from 'node:fs';
 import { join }          from 'node:path';
@@ -50,6 +51,7 @@ const SCRATCH_HOME_BROWSER_ARGUMENTS = ['--use-mock-keychain'];
 /** The file a browser writes into its profile when it opens a debugging port. */
 const DEBUGGING_PORT_FILE_NAME = 'DevToolsActivePort';
 const ADDRESS_THE_BROWSER_REFUSES = 'not an address';
+const OTHER_WINDOW_ADDRESS = 'about:blank';
 
 let browser: FoundBrowser;
 let profileFolder = '';
@@ -57,6 +59,7 @@ let browserChild: OwnedChild | null = null;
 let watch: BrowserWindowWatch;
 let rawProtocol: RawDebuggingProtocol;
 let splashTarget: PageTarget;
+let otherWindowTargetId = '';
 
 function splashPagePath(): string {
   return join(repositoryRoot(), SPLASH_PAGE_PATH_IN_REPOSITORY);
@@ -143,8 +146,24 @@ describe('the window of a browser started as the launcher starts it', () => {
     record('navigation-refused', 'page targets', targetsAnswer);
   });
 
-  test('lists no page target once the window is closed, while the browser still runs', async () => {
+  test('lists only the other window on the profile once the splash\'s window is closed', async () => {
+    const otherWindow = await rawProtocol.ask('Target.createTarget', { url: OTHER_WINDOW_ADDRESS, newWindow: true });
+    if (typeof otherWindow['targetId'] !== 'string') throw new Error(`The browser opened no other window: ${JSON.stringify(otherWindow)}`);
+    otherWindowTargetId = otherWindow['targetId'];
     await rawProtocol.closeWindow(splashTarget.targetId);
+    const targetsAnswer = await untilAnswered(
+      () => watch.pageTargets(),
+      (answer) => answer.verdict === 'listed' && answer.pageTargets.length === 1 && answer.pageTargets.every((pageTarget) => pageTarget.targetId === otherWindowTargetId),
+    );
+    expect(targetsAnswer).toEqual({ verdict: 'listed', pageTargets: [{ targetId: otherWindowTargetId, url: OTHER_WINDOW_ADDRESS }] });
+    record('other-window-left', 'page targets', targetsAnswer);
+    const navigation = await watch.navigate(splashTarget, `http://127.0.0.1:${EXAMPLE_GAIA_PORT}/`);
+    expect(navigation.verdict).not.toBe('navigated');
+    record('other-window-left', 'navigate', navigation);
+  });
+
+  test('lists no page target once every window is closed, while the browser still runs', async () => {
+    await rawProtocol.closeWindow(otherWindowTargetId);
     const targetsAnswer = await untilAnswered(() => watch.pageTargets(), (answer) => answer.verdict === 'listed' && answer.pageTargets.length === 0);
     expect(targetsAnswer).toEqual({ verdict: 'listed', pageTargets: [] });
     record('window-closed', 'page targets', targetsAnswer);

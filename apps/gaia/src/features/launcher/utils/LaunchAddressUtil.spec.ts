@@ -1,8 +1,9 @@
 /**
  * The addresses of a launch against their own contract: the splash carries Gaia's address and theme in its query and its step in the
  * fragment, so a move between steps stays within the page, and leaves out counts Gaia did not report; the page address carries the code
- * in the fragment only; the browser's arguments are PLAN 9.2's; the dialog's message is an argument, never script; and the window of the
- * splash is the one at the splash's file, or the only one listed.
+ * in the fragment only; the browser's arguments are PLAN 9.2's; the dialog's message is an argument, never script; the window of the
+ * splash is the one at the splash's file, or the only one listed; and a window of Gaia's is the one the launch opened or one at Gaia's
+ * address, never another window on the same profile.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -69,5 +70,25 @@ describe('the splash\'s window', () => {
     expect(LaunchAddressUtil.splashTargetAmong([onlyTarget], SPLASH_ADDRESS)).toEqual(onlyTarget);
     expect(LaunchAddressUtil.splashTargetAmong([pageTargetAt('http://127.0.0.1:4790/', 'one'), pageTargetAt('about:blank', 'two')], SPLASH_ADDRESS)).toBeNull();
     expect(LaunchAddressUtil.splashTargetAmong([], SPLASH_ADDRESS)).toBeNull();
+  });
+});
+
+describe('a window of Gaia\'s', () => {
+  const openedTarget = pageTargetAt(SPLASH_ADDRESS, 'opened');
+
+  test('is the window the launch opened, whatever address it shows', () => {
+    expect(LaunchAddressUtil.gaiaWindowIsAmong([pageTargetAt('about:blank', 'other'), pageTargetAt('about:blank', 'opened')], openedTarget, 4790)).toBe(true);
+  });
+
+  test('is a window at Gaia\'s address, whatever its id, path and fragment', () => {
+    expect(LaunchAddressUtil.gaiaWindowIsAmong([pageTargetAt('http://127.0.0.1:4790/forge/example#session=abc123', 'other')], openedTarget, 4790)).toBe(true);
+  });
+
+  test('is no other window on the profile: another port, another host, a file page, an address that parses as none, or no window at all', () => {
+    const otherAddresses = ['http://127.0.0.1:6006/', 'http://localhost:4790/', 'https://127.0.0.1:4790/', SPLASH_ADDRESS, 'about:blank', 'not an address'];
+    for (const otherAddress of otherAddresses) {
+      expect(LaunchAddressUtil.gaiaWindowIsAmong([pageTargetAt(otherAddress, 'other')], openedTarget, 4790)).toBe(false);
+    }
+    expect(LaunchAddressUtil.gaiaWindowIsAmong([], openedTarget, 4790)).toBe(false);
   });
 });

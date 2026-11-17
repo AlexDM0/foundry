@@ -21,7 +21,8 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
   page sessions. It refuses to start when Gaia's health route already answers on its port.
 - **`gaia launch`** (`src/features/launcher/`) probes the health route, starts `gaia serve` as an owned child when nothing answers, opens
   a Chrome or Edge app window with Gaia's kept browser profile, follows that window through the browser's debugging pipe, and when no
-  window is left stops the browser and only the server it started; a server it started that ends closes the window with a dialog.
+  window of Gaia's is left (the one it opened, or one at Gaia's address) stops the browser, whatever other window it still shows on
+  that profile, and only the server it started; a server it started that ends closes the window with a dialog.
 - **`Gaia.app`** is generated into `~/Applications` by `gaia install-app` (`src/features/app-install/`): a compiled stub that runs a
   generated script, which runs `gaia launch` from this checkout.
 - **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory, drawn with Forge's linked `design-system`

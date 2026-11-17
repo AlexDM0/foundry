@@ -1,6 +1,7 @@
 /**
  * The addresses and arguments of a launch: the splash's address and the step it shows, Gaia's page with a window's session code, the
- * browser's arguments for an app window on Gaia's own profile, the dialog's arguments, and which listed window shows the splash.
+ * browser's arguments for an app window on Gaia's own profile, the dialog's arguments, which listed window shows the splash, and whether
+ * a listing holds a window of Gaia's.
  */
 import { pathToFileURL } from 'node:url';
 
@@ -84,6 +85,17 @@ function splashTargetAmong(pageTargets: readonly PageTarget[], splashAddress: st
   return onlyTarget !== undefined && otherTargets.length === 0 ? onlyTarget : null;
 }
 
+/**
+ * Whether a listing holds a window of Gaia's: the window the launch opened, or any window at Gaia's own address. Another window on Gaia's
+ * profile, as of a link macOS handed this browser, is not Gaia's.
+ */
+function gaiaWindowIsAmong(pageTargets: readonly PageTarget[], openedTarget: PageTarget, port: number): boolean {
+  const gaiaOrigin = `http://${addressOfPort(port)}`;
+  return pageTargets.some((pageTarget) => (
+    pageTarget.targetId === openedTarget.targetId || (URL.canParse(pageTarget.url) && new URL(pageTarget.url).origin === gaiaOrigin)
+  ));
+}
+
 export const LaunchAddressUtil = {
   splashAddressOf,
   splashStepAddressOf,
@@ -91,4 +103,5 @@ export const LaunchAddressUtil = {
   browserArgumentsOf,
   dialogRunOf,
   splashTargetAmong,
+  gaiaWindowIsAmong,
 } as const;

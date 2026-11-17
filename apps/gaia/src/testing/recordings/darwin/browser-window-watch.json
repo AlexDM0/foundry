@@ -1,11 +1,12 @@
 {
   "recordingVersion": 1,
+  "recordingMinor": 0,
   "stamp": {
     "recordingName": "browser-window-watch",
     "operatingSystem": "darwin",
     "system": "browser",
     "source": "recorded",
-    "systemVersion": "Google Chrome 157.0.8103.51"
+    "systemVersion": "Google Chrome 157.0.8103.79"
   },
   "answers": [
     {
@@ -33,8 +34,27 @@
         "verdict": "listed",
         "pageTargets": [
           {
-            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "targetId": "66F828EA2BE69E06845550240A86A946",
             "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark#step=looking&answered=3&registered=5"
+          }
+        ]
+      }
+    },
+    {
+      "callShape": "other-window-left: navigate",
+      "answer": {
+        "verdict": "refused",
+        "failure": "No target with given id found"
+      }
+    },
+    {
+      "callShape": "other-window-left: page targets",
+      "answer": {
+        "verdict": "listed",
+        "pageTargets": [
+          {
+            "targetId": "ABC1D09CE6FE9E47C82118E384D77B9D",
+            "url": "about:blank"
           }
         ]
       }
@@ -65,7 +85,7 @@
         "verdict": "listed",
         "pageTargets": [
           {
-            "targetId": "32064DC30CD840C317193F47DA1500A1",
+            "targetId": "66F828EA2BE69E06845550240A86A946",
             "url": "file:///Users/example/gaia/resources/page/loading.html?address=127.0.0.1%3A4790&theme=dark"
           }
         ]
