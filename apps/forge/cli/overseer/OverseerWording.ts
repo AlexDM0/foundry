@@ -2,12 +2,12 @@
  * The words the Overseer's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                from 'node:fs';
-import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CLAUDE_API_KEY_VARIABLE }     from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
-import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { readFileSync }                           from 'node:fs';
+import { OperationRefusalWordingUtil }            from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CLAUDE_API_KEY_VARIABLE }                from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
+import type { Incident }                          from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -21,6 +21,7 @@ import type {
 } from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { DecisionDraft, DecisionWording } from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
 import { DEFAULT_CONSTITUTION_SOURCES }        from '../../src/lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { ROOT_ENTITY_KEY }                     from '../../src/lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }      from '../../src/services/control/constants/AllowedMovesByIncidentKind.ts';
 import type { AssistantFacts }                 from '../../src/services/overseer/AssistantBoot.ts';
 import type { AssistantChatFacts }             from '../../src/services/overseer/AssistantSession.ts';
@@ -188,6 +189,159 @@ function airlockCallBudgetOf(role: string, resumesSession: boolean): number {
 
 type LaunchTicket = JobLaunchFacts['tickets'][number];
 
+/** What the package stages ended with for one crossed package, as the adapt stage reads it. */
+export interface CrossedPackageResult {
+  entity:                string;
+  /** The package builder's statement, as the package reviewer confirmed or corrected it. */
+  exposedSurfaceChanged: boolean;
+  /** The package reviewer's Review. */
+  reviewText:            string;
+}
+
+/**
+ * What a job of a ticket that crosses into whitelisted packages is told of its stage (strategy 4.2). The job's `entity` is the entity the
+ * stage runs under: the home entity in `build`, `adapt` and `review`, the package in `package-build` and `package-review`.
+ */
+export type CrossingStageFacts =
+  | { stage: 'build'; whitelistedPackages: readonly string[] }
+  | { stage: 'package-build'; homeEntity: string }
+  | { stage: 'package-review'; homeEntity: string; exposedSurfaceChanged: boolean }
+  | { stage: 'adapt'; crossedPackages: readonly CrossedPackageResult[]; resumesSession: boolean }
+  | { stage: 'review'; crossedPackages: readonly string[] };
+
+/**
+ * The launch facts with the stage of a crossing ticket, absent or `null` for every other job, and the key of the pipeline's root entity,
+ * absent where it is the default key.
+ */
+export type StagedJobLaunchFacts = JobLaunchFacts & { crossingStage?: CrossingStageFacts | null; rootEntityKey?: EntityKey };
+
+const EXPOSED_SURFACE_DEFINITION = 'What the package exposes is all that a different entity can use: the entry points, the exported names, '
+  + 'their types and their behaviour.';
+
+function codeListOf(names: readonly string[]): string {
+  return names.map((name) => `\`${name}\``).join(', ');
+}
+
+/** Bullets that a placeholder on its own line under a heading takes: empty, the heading keeps its one blank line. */
+function placeholderBulletsOf(lines: readonly string[]): string {
+  return lines.map((line) => `\n- ${line}`).join('');
+}
+
+/** The entities a need may name, by stage: not the stage 1 whitelist, not the home entity in stage 2 (E24), not the sealed packages in stage 4. */
+function needEntityPhraseOf(crossingStage: CrossingStageFacts | null): string {
+  if (crossingStage?.stage === 'build' && crossingStage.whitelistedPackages.length > 0) return 'a different entity that the whitelist does not name';
+  if (crossingStage?.stage === 'package-build') return `an entity that is not this package and not \`${crossingStage.homeEntity}\``;
+  if (crossingStage?.stage === 'adapt' && crossingStage.crossedPackages.length > 0) {
+    return `a different entity that is not a sealed package (${codeListOf(crossingStage.crossedPackages.map((result) => result.entity))})`;
+  }
+  return 'a different entity';
+}
+
+function needDeclarationLineOf(crossingStage: CrossingStageFacts | null): string {
+  return `When the work needs a change in ${needEntityPhraseOf(crossingStage)}, do not make that change. Declare a need before you write there: `
+    + `\`${PRODUCT_NAMES.PROGRAM} need declare "<title>" --entity <key> --body-file <path>\`. The body is the body of a ticket: a numbered `
+    + '`## Acceptance` that gives the intended use, and a `## Brief`. Do not name the job: the Overseer adds it. Then commit your work, '
+    + 'and end with the outcome `needs-declared`. When each need is settled, the Overseer starts this stage again.';
+}
+
+/**
+ * A builder of an entity: where it writes, the proposal its whitelist permits in stage 1, and how it declares a need for another entity. A
+ * job of the root entity declares no need, since every entity consumes the root entity and each need would close a circle (A10).
+ */
+function builderEntityScopeOf(job: Readonly<Job>, facts: StagedJobLaunchFacts): string {
+  if (job.entity === undefined) return '';
+  const { entity } = job;
+  const crossingStage = facts.crossingStage ?? null;
+  const whitelistedPackages = crossingStage?.stage === 'build' ? crossingStage.whitelistedPackages : [];
+  const proposalLines = whitelistedPackages.length === 0 ? [] : [
+    `In this stage you can also change the files of a package that the whitelist of \`${entity}\` names: ${codeListOf(whitelistedPackages)}. `
+    + 'This change is a proposal. After your report, the builder of each package builds it in its own stage, and its reviewer seals it.',
+  ];
+  const isRootEntityJob = entity === (facts.rootEntityKey ?? ROOT_ENTITY_KEY);
+  return placeholderBulletsOf([
+    `This job builds in the entity \`${entity}\`. Change only the files in the homes of \`${entity}\` and in its \`reach\`. Customs sends `
+    + 'your session back one time for a change to a different file, and a second such change fails the job.',
+    ...proposalLines,
+    ...(isRootEntityJob ? [] : [needDeclarationLineOf(crossingStage)]),
+  ]);
+}
+
+/** The package reviewer confirms or corrects the package builder's statement, which decides whether the adapt stage runs (C15). */
+function exposedSurfaceConfirmationLineOf(packageEntity: string, exposedSurfaceChanged: boolean): string {
+  return `The builder of \`${packageEntity}\` stated that what the package exposes ${exposedSurfaceChanged ? 'changed' : 'did not change'} `
+    + `from the proposal of stage 1. ${EXPOSED_SURFACE_DEFINITION} Compare the proposal with the branch at your HEAD, with your own fixes. `
+    + 'In your report, set `exposedSurfaceConfirmed` to true when the statement is correct, and to false when it is not correct. When it '
+    + 'is false, write in your `reviewText` what changed.';
+}
+
+/** A reviewer of an entity: what it reviews and where it may fix, by the stage of a crossing ticket. */
+function reviewerEntityScopeOf(job: Readonly<Job>, crossingStage: CrossingStageFacts | null): string {
+  if (job.entity === undefined) return '';
+  const { entity } = job;
+  const fixScope = `Fix only in the files in the homes of \`${entity}\` and in its \`reach\`.`;
+  if (crossingStage?.stage === 'package-review') {
+    const home = crossingStage.homeEntity;
+    return placeholderBulletsOf([
+      `This review is stage 3 of the ticket: the package review of \`${entity}\`. The ticket belongs to the entity \`${home}\`. Review the `
+      + `change of the branch in the files of \`${entity}\` and its \`reach\`. ${fixScope}`,
+      `When you see a problem in the files of \`${home}\`, write it in your \`reviewText\`. Do not fix it, and do not file a ticket for it. `
+      + `The builder and the reviewer of \`${home}\` get your \`reviewText\`.`,
+      `After your review, the Overseer seals the change of the ticket in \`${entity}\`. No later stage of the ticket can change it.`,
+      exposedSurfaceConfirmationLineOf(entity, crossingStage.exposedSurfaceChanged),
+    ]);
+  }
+  if (crossingStage?.stage === 'review' && crossingStage.crossedPackages.length > 0) {
+    return placeholderBulletsOf([
+      `This review is stage 5 of the ticket: the review of \`${entity}\`. ${fixScope}`,
+      `The change of the ticket in ${codeListOf(crossingStage.crossedPackages)} is sealed. Do not change the files of these packages. When `
+      + 'the cause of a problem is in a package, write it in your `reviewText`, and claim the item `does-not-hold`. The builder then sends '
+      + 'the package back.',
+    ]);
+  }
+  return placeholderBulletsOf([`This review is of the entity \`${entity}\`. ${fixScope}`]);
+}
+
+function crossedPackageResultOf(result: Readonly<CrossedPackageResult>): string {
+  const exposed = result.exposedSurfaceChanged
+    ? 'What the package exposes changed from the proposal.'
+    : 'What the package exposes is the same as in the proposal.';
+  return [`### The package \`${result.entity}\``, '', exposed, '', result.reviewText.trim()].join('\n');
+}
+
+/**
+ * Stage 4: the resumed session of stage 1 gets the adapt message alone (A2); a fresh one, since that session cannot continue (E43), gets it
+ * before its build prompt, whose ticket holds the handoff of stage 1.
+ */
+function adaptMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, adapt: Extract<CrossingStageFacts, { stage: 'adapt' }>): string {
+  const homeEntity = job.entity ?? '';
+  const message = filledTemplateOf(promptOf('AdaptMessage.md'), {
+    opening: adapt.resumesSession
+      ? `The package stages of #${ticket.id} are complete. Your session of stage 1 continues.`
+      : `The session of stage 1 of #${ticket.id} cannot continue. You continue its work on the same branch. The ticket below holds its handoff.`,
+    ticketId:       ticket.id,
+    homeEntity,
+    sealedPackages: codeListOf(adapt.crossedPackages.map((result) => result.entity)),
+    packageResults: adapt.crossedPackages.map(crossedPackageResultOf).join('\n\n'),
+    closing:        adapt.resumesSession
+      ? `Run the gates of \`${homeEntity}\` again, and end with your report.`
+      : `The build prompt of \`${homeEntity}\` follows.`,
+  }).trim();
+  return adapt.resumesSession ? message : `${message}\n\n${builderInstructionsOf(job, ticket, facts)}`;
+}
+
+/** Stage 2: the package builder reads the rules of its stage, then the build prompt of its package. */
+function packageBuildMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, homeEntity: string): string {
+  const stageRules = filledTemplateOf(promptOf('PackageBuildPrompt.md'), {
+    ticketId:                 ticket.id,
+    ticketBranch:             ticket.branch,
+    target:                   job.target ?? '',
+    homeEntity,
+    packageEntity:            job.entity ?? '',
+    exposedSurfaceDefinition: EXPOSED_SURFACE_DEFINITION,
+  }).trim();
+  return `${stageRules}\n\n${builderInstructionsOf(job, ticket, facts)}`;
+}
+
 /** Where a session at the root of a folder tracker's worktree finds its project, since its ticket names paths from the project's folder. */
 function projectFolderLinesOf(facts: JobLaunchFacts): string {
   if (facts.projectFolder === undefined) return '';
@@ -200,7 +354,7 @@ function projectFolderLinesOf(facts: JobLaunchFacts): string {
 }
 
 /** A builder's instruction files, filled for its ticket and attempt. */
-function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts): string {
+function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts): string {
   return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
     ticketBranch:   ticket.branch,
@@ -213,11 +367,12 @@ function builderInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
     callBudget:     String(DISPATCH_PROTOCOL.BUILDER_API_CALL_BUDGET),
     program:        PRODUCT_NAMES.PROGRAM,
     sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
+    entityScope:    builderEntityScopeOf(job, facts),
   });
 }
 
 /** A reviewer's instruction files, filled for its ticket and round; `mergeApprovalStep` is empty where no approval step applies. */
-function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, mergeApprovalStep: string): string {
+function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, mergeApprovalStep: string): string {
   return projectFolderLinesOf(facts) + filledTemplateOf(facts.instructions, {
     ticketId:       ticket.id,
     ticketBranch:   ticket.branch,
@@ -230,6 +385,7 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
     program:        PRODUCT_NAMES.PROGRAM,
     mergeApprovalStep,
     sandboxRefusal: CONFINEMENT_WORDING[facts.confinement].sandboxRefusal,
+    reviewScope:    reviewerEntityScopeOf(job, facts.crossingStage ?? null),
   });
 }
 
@@ -238,7 +394,7 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
  * red gate on the merged tree. A fresh agent in place of a session that could not resume first reads the instruction files of the role
  * it stands in for, then the ticket, its Handoff and Review; a resumed session read them at its own launch.
  */
-function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
+function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, airlock: AirlockFacts): string {
   const role = job.role ?? job.kind;
   const task = airlock.phase === 'resolving' || airlock.redHandoff === null
     ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockConflictMessage.md'), 'utf8'), {
@@ -264,7 +420,7 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
  * A conflict re-reviewer reads its role's instruction files, the reviewer's brief among them, filled as a first review round's, and then
  * what the Airlock, or the merge before User's code review, asks of it: the merge it re-reviews, with no question to User.
  */
-function conflictReReviewMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
+function conflictReReviewMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, airlock: AirlockFacts): string {
   const instructions = reviewerInstructionsOf(job, ticket, facts, '').trim();
   const conflictedFiles = airlock.conflictedFiles.map((path) => `- ${path}`).join('\n');
   const callBudget = String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET);
@@ -523,7 +679,7 @@ function pipelineAgentTextOf(job: Readonly<Job>, facts: PipelineAgentFacts, inst
  * A builder's and a reviewer's first message is its role's instruction files, the constitution first, filled with its ticket and checks
  * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it.
  */
-function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
+function launchTextOf(job: Readonly<Job>, facts: StagedJobLaunchFacts): JobLaunchText {
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
   if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement);
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
@@ -543,10 +699,22 @@ function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText 
   if (job.kind !== 'build' || ticket === undefined) return { firstMessage: `Job ${job.id}: work as the ${job.role ?? job.kind} on ${subject}, attempt ${job.attempt}.`, roleBrief };
   const needsSettled = facts.needsSettled ?? null;
   if (needsSettled?.resumesSession === true) return { firstMessage: needsSettledMessageOf(ticket.id, needsSettled), roleBrief };
-  if (needsSettled !== null) return { firstMessage: `${needsSettledMessageOf(ticket.id, needsSettled)}\n\n${builderInstructionsOf(job, ticket, facts)}`, roleBrief };
+  if (needsSettled !== null) {
+    return { firstMessage: `${needsSettledMessageOf(ticket.id, needsSettled)}\n\n${freshBuilderMessageOf(job, ticket, facts, true)}`, roleBrief };
+  }
   const reviewFindings = facts.reviewFindings ?? null;
   if (reviewFindings !== null) return { firstMessage: reviewFindingsMessageOf(ticket.id, reviewFindings), roleBrief };
-  return { firstMessage: builderInstructionsOf(job, ticket, facts), roleBrief };
+  return { firstMessage: freshBuilderMessageOf(job, ticket, facts, false), roleBrief };
+}
+
+/** A builder's message by the stage of its ticket; after settled needs no earlier session continues, so an adapt stage starts fresh too. */
+function freshBuilderMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: StagedJobLaunchFacts, afterSettledNeeds: boolean): string {
+  const crossingStage = facts.crossingStage ?? null;
+  if (crossingStage?.stage === 'adapt') {
+    return adaptMessageOf(job, ticket, facts, afterSettledNeeds ? { ...crossingStage, resumesSession: false } : crossingStage);
+  }
+  if (crossingStage?.stage === 'package-build') return packageBuildMessageOf(job, ticket, facts, crossingStage.homeEntity);
+  return builderInstructionsOf(job, ticket, facts);
 }
 
 function windDownMessage(): string {
@@ -681,7 +849,7 @@ const EARLIER_SESSION_NOTE = 'An earlier session was interrupted; uncommitted ch
  * A fresh job after a `replaced` one inherits its worktree, and is told so before anything else; one taking over a red handoff the
  * replaced session could not be resumed for opens with that handoff's message.
  */
-function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
+function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: StagedJobLaunchFacts): JobLaunchText {
   const text = launchTextOf(job, facts);
   if (!facts.earlierSessionReplaced) return text;
   const redHandoff = facts.redHandoff ?? null;

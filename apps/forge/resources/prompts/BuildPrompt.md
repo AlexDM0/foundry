@@ -14,7 +14,7 @@ Overseer holds each claim to your HEAD before it runs any gate: a missing or sta
 claim says is taken as true until the Overseer has run the gates on your HEAD itself.
 
 ## How you work
-
+{{entityScope}}
 - Edit files only inside this worktree. Commit on `{{ticketBranch}}` as you go, one plain subject line per commit,
   never an attribution trailer. Never amend, rebase, reset, push or move another branch: {{sandboxRefusal}}verification
   fails a rewritten history.
