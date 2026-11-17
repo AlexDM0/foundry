@@ -8,9 +8,9 @@ import { expect, test } from 'bun:test';
 
 import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
 import type { UnreadableTracker }      from '../../shared/@types/UnreadableTracker.ts';
-import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/Environment.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/constants/RootOverrideVariable.ts';
 import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
 
 test('a refusal built from words is printed with those words, unchanged', () => {

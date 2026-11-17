@@ -13,10 +13,7 @@ import { CLAUDE_API_KEY_VARIABLE }                             from '../lib/clau
 import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { OperationRefusal }                                    from './OperationRefusal.ts';
 import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
-
-export function rootOverrideVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
-  return `${ENVIRONMENT_PREFIX}ROOT`;
-}
+import { ROOT_OVERRIDE_VARIABLE }                              from './constants/RootOverrideVariable.ts';
 
 export function everyToolRequiredVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}REQUIRE_EVERY_TOOL`;
@@ -117,8 +114,6 @@ export const FLINT_BRAIN_WITHHELD_VARIABLE = flintBrainWithheldVariableOf(PRODUC
 export function flintBrainIsWithheld(): boolean {
   return switchIsOn(FLINT_BRAIN_WITHHELD_VARIABLE);
 }
-
-export const ROOT_OVERRIDE_VARIABLE = rootOverrideVariableOf(PRODUCT_NAMES);
 
 export const EVERY_TOOL_REQUIRED_VARIABLE = everyToolRequiredVariableOf(PRODUCT_NAMES);
 

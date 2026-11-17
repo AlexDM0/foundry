@@ -7,18 +7,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { delimiter, dirname, join }                from 'node:path';
 
-import { CLAUDE_CONFIG_FOLDER_VARIABLE } from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
-import {
-  environmentCopy,
-  fakeAgentVariableOf,
-  overseerPollIntervalVariableOf,
-  rootOverrideVariableOf,
-} from '../../src/shared/Environment.ts';
-import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES } from '../../src/shared/constants/ProductNames.ts';
-import { programTrapFolders }                                 from '../../src/testing/ProgramTraps.ts';
-import type { RecordedGit, RecordedGitStage }                 from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }     from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation }                            from '../../src/testing/TrackerIsolation.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                        from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
+import { environmentCopy, fakeAgentVariableOf, overseerPollIntervalVariableOf } from '../../src/shared/Environment.ts';
+import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                   from '../../src/shared/constants/ProductNames.ts';
+import { rootOverrideVariableOf }                                               from '../../src/shared/constants/RootOverrideVariable.ts';
+import { programTrapFolders }                                                   from '../../src/testing/ProgramTraps.ts';
+import type { RecordedGit, RecordedGitStage }                                   from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                       from '../../src/testing/ScratchWorkspace.ts';
+import { requireTrackerIsolation }                                              from '../../src/testing/TrackerIsolation.ts';
 
 export interface AgentProgressResult {
   exitCode:       number;

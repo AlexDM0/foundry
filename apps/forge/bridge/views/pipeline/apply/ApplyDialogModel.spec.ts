@@ -3,13 +3,16 @@
  * the facts carry one; the constitution note shows only while the draft holds a constitution; the command carries the record, its draft
  * revision and the checkbox's value as given. Over entities: the description counts the entities and the version; the pace is worded in
  * jobs; the line about pending tickets without an entity shows only when Apply turns the pipeline into entities; E94 shows only in update
- * mode over a stored pipeline without entities while tickets are in flight, never on a first Apply, each ticket a link to its detail; an
+ * mode over a stored pipeline without entities while tickets are in flight, never on a first Apply, worded as the Overseer's API words
+ * that refusal, each ticket a link to its detail; an
  * entity without gates or with the default constitution is worth a look, and the root kept for a person is not.
  */
 import { describe, expect, test } from 'bun:test';
 
+import { OperationRefusalWordingUtil }   from '../../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { Pipeline, PipelineEntity } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup }            from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { OperationRefusal }              from '../../../../src/shared/OperationRefusal.ts';
 import { pipelineBoardStateOf }          from '../../../testing/PipelineFixture.ts';
 import { ApplyDialogModel }              from './ApplyDialogModel.ts';
 
@@ -91,13 +94,22 @@ describe('E94 before Apply', () => {
 
   test('shows in update mode over a stored pipeline without entities while a ticket is in flight, with a link to its detail', () => {
     expect(ApplyDialogModel.entitiesRefusalOf({ ...monorepoRecord(), mode: 'update' }, board)).toEqual({
-      title:          'Apply is refused',
-      text:           'Ticket 14 is in progress, in review or reviewed, so this pipeline cannot turn into entities yet. Apply once it lands.',
+      title: 'Apply is refused',
+      text:  'This pipeline cannot turn into entities yet: ticket #14 is in progress, in review or reviewed under the pipeline without '
+        + 'entities. Nothing was written. Apply once it lands.',
       ticketLinks:    [{ ticketId: '14', text: 'Open 14', href: '#kanban/ticket/14' }],
       disabledReason: 'Ticket 14 is in flight',
     });
     expect(ApplyDialogModel.entitiesRefusalOf({ ...monorepoRecord(), mode: 'update' }, { ...board, ticketIdsInFlight: ['14', '15', '16'] })?.text)
-      .toBe('Tickets 14, 15 and 16 are in progress, in review or reviewed, so this pipeline cannot turn into entities yet. Apply once they land.');
+      .toBe('This pipeline cannot turn into entities yet: tickets #14, #15, #16 are in progress, in review or reviewed under the pipeline '
+        + 'without entities. Nothing was written. Apply once they land.');
+  });
+
+  test('its text is the sentence the Overseer\'s API carries for the refused Apply', () => {
+    const ticketIdsInFlight = ['14', '15'];
+    const boardRefusal = { reason: 'entities-while-tickets-in-flight', setupId: monorepoRecord().setupId, ticketIds: ticketIdsInFlight } as const;
+    expect(ApplyDialogModel.entitiesRefusalOf({ ...monorepoRecord(), mode: 'update' }, { ...board, ticketIdsInFlight })?.text)
+      .toBe(OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal })));
   });
 
   test('never shows on a first Apply, over a stored pipeline with entities, without a pipeline, with no ticket in flight, or in single mode', () => {

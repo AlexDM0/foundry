@@ -15,15 +15,15 @@ import {
 } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 
-import { WatcherFleet }    from '../../src/services/overseer/WatcherFleet.ts';
+import { WatcherFleet }       from '../../src/services/overseer/WatcherFleet.ts';
 import {
   environmentCopy,
   FAKE_AGENT_VARIABLE,
   JOB_ID_VARIABLE,
   HATCH_DIRECTORY_VARIABLE,
-  ROOT_OVERRIDE_VARIABLE
 } from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                                                   from '../../src/shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }                                                          from '../../src/shared/constants/RootOverrideVariable.ts';
 import { createCanonicalScratchDirectory, gitOutputIn, SCRATCH_COMMIT_IDENTITY_ARGUMENTS } from '../../src/testing/ScratchWorkspace.ts';
 import {
   CutoverSmokeUtil,

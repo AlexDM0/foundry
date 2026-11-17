@@ -9,6 +9,8 @@ import { EntityOwnershipUtil, type PipelineEntities } from './EntityOwnershipUti
 export type EntityRefusal =
   | { reason: 'more-than-one-root'; entityKeys: EntityKey[] }
   | { reason: 'equal-homes'; home: string; entityKeys: EntityKey[] }
+  /** E9: a `reach` path inside or above a home of another entity, not the root entity; `reach` names only paths the root entity owns. */
+  | { reason: 'reach-inside-another-home'; entityKey: EntityKey; reachPath: string; ownerKey: EntityKey }
   | { reason: 'unknown-whitelist-key'; entityKey: EntityKey; unknownKey: EntityKey }
   | { reason: 'unknown-dependency-key'; entityKey: EntityKey; unknownKey: EntityKey }
   | { reason: 'whitelisted-entity-not-package'; entityKey: EntityKey; whitelistedKey: EntityKey }
@@ -31,6 +33,26 @@ function equalHomeRefusalsOf(entities: PipelineEntities): EntityRefusal[] {
   }
   return [...entityKeysByHome].filter(([, entityKeys]) => entityKeys.length > 1)
     .map(([home, entityKeys]) => ({ reason: 'equal-homes', home, entityKeys }));
+}
+
+/** The entity other than the root entity and the naming one whose home holds a reach path or lies under it, the deepest holder first. */
+function foreignOwnerOfReach(entities: PipelineEntities, entityKey: EntityKey, reachPath: string): EntityKey | null {
+  const rootEntityKey = EntityOwnershipUtil.rootEntityKeyOf(entities);
+  const isForeign     = (ownerKey: EntityKey): boolean => ownerKey !== rootEntityKey && ownerKey !== entityKey;
+  const holderKey     = EntityOwnershipUtil.ownerOf(entities, EntityOwnershipUtil.homeFolderOf(reachPath));
+  if (isForeign(holderKey)) return holderKey;
+  const heldOwnerKey = Object.keys(entities).find((ownerKey) => isForeign(ownerKey)
+    && (entities[ownerKey]?.home ?? []).some((home) => EntityOwnershipUtil.homeHoldsPath(reachPath, EntityOwnershipUtil.homeFolderOf(home))));
+  return heldOwnerKey ?? null;
+}
+
+function reachRefusalsOf(entities: PipelineEntities): EntityRefusal[] {
+  return Object.entries(entities).flatMap(([entityKey, entity]) => (entity.reach ?? []).flatMap((reachPath): EntityRefusal[] => {
+    const ownerKey = foreignOwnerOfReach(entities, entityKey, reachPath);
+    return ownerKey === null ? [] : [{
+      reason: 'reach-inside-another-home', entityKey, reachPath, ownerKey
+    }];
+  }));
 }
 
 function knownKeysOf(entities: PipelineEntities): Set<EntityKey> {
@@ -79,11 +101,15 @@ function circlesOf(entities: PipelineEntities): EntityKey[][] {
   return circles;
 }
 
-/** Every refusal of the entities, in a fixed order: more than one root entity, equal homes, the whitelists, unknown dependencies, then each circle. */
+/**
+ * Every refusal of the entities, in a fixed order: more than one root entity, equal homes, a reach inside another home, the whitelists,
+ * unknown dependencies, then each circle.
+ */
 function refusalsOf(entities: PipelineEntities): EntityRefusal[] {
   return [
     ...rootCountRefusalsOf(entities),
     ...equalHomeRefusalsOf(entities),
+    ...reachRefusalsOf(entities),
     ...whitelistRefusalsOf(entities),
     ...unknownDependencyRefusalsOf(entities),
     ...circlesOf(entities).map((entityKeys): EntityRefusal => ({ reason: 'dependency-circle', entityKeys })),

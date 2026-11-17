@@ -28,14 +28,15 @@ import {
   type PipelineReview,
   type PipelineStep
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { RE_REVIEW_THRESHOLD_STEP_LINES }           from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { EntityValidationUtil, type EntityRefusal } from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { PipelineUtil }                             from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { VocabularyUtil }                           from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { JsonTextUtil }                             from '../../shared/utils/JsonTextUtil.ts';
-import { PathNestingUtil }                          from '../../shared/utils/PathNestingUtil.ts';
-import { storedFileTextOf }                         from '../StoredFileText.ts';
-import { StoredValueUtil }                          from '../utils/StoredValueUtil.ts';
+import { RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { EntityValidationUtil }           from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import { PipelineUtil }                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { VocabularyUtil }                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { JsonTextUtil }                   from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }                from '../../shared/utils/PathNestingUtil.ts';
+import { storedFileTextOf }               from '../StoredFileText.ts';
+import { OperationRefusalWordingUtil }    from '../utils/OperationRefusalWordingUtil.ts';
+import { StoredValueUtil }                from '../utils/StoredValueUtil.ts';
 
 /** Entities that are sound as stored but that this tracker cannot hold, which a refusal names instead of a repair. */
 export type UnsupportedEntities = { kind: 'entities-in-a-folder'; projectPrefix: string };
@@ -479,25 +480,6 @@ function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineF
   };
 }
 
-function entityRefusalProblemOf(refusal: EntityRefusal): string {
-  switch (refusal.reason) {
-    case 'more-than-one-root':
-      return `the entities ${refusal.entityKeys.join(', ')} are each of kind root, and one at most is`;
-    case 'equal-homes':
-      return `the entities ${refusal.entityKeys.join(', ')} share the home ${JSON.stringify(refusal.home)}`;
-    case 'unknown-whitelist-key':
-      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
-    case 'unknown-dependency-key':
-      return `entities.${refusal.entityKey}.dependsOn names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
-    case 'whitelisted-entity-not-package':
-      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, which is not a package`;
-    case 'whitelisted-package-without-review':
-      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, a package without a review`;
-    case 'dependency-circle':
-      return `the entities ${[...refusal.entityKeys, refusal.entityKeys[0]].join(' -> ')} depend on each other in a circle`;
-  }
-}
-
 /** Each entity mapped, then the entities checked together by the validator the Bridge shares. */
 function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
   if (value === undefined) return { value: undefined };
@@ -510,7 +492,7 @@ function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mappe
     entities[entityKey] = entity.value;
   }
   const firstRefusal = EntityValidationUtil.refusalsOf(entities)[0];
-  return firstRefusal === undefined ? { value: entities } : problemOf(entityRefusalProblemOf(firstRefusal));
+  return firstRefusal === undefined ? { value: entities } : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));
 }
 
 /** A version 4 file holds entities, the only reason it exists, and beside them the forge's own steps, gates, constitution and reach stay empty. */

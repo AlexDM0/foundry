@@ -15,7 +15,6 @@ import {
 import { join } from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
-import { rootOverrideVariableOf }  from '../src/shared/Environment.ts';
 import { OperationRefusal }        from '../src/shared/OperationRefusal.ts';
 import {
   ORIGINAL_PRODUCT_NAMES,
@@ -23,6 +22,7 @@ import {
   type ProductNames,
   SIDE_BY_SIDE_PRODUCT_NAMES
 } from '../src/shared/constants/ProductNames.ts';
+import { rootOverrideVariableOf }                                      from '../src/shared/constants/RootOverrideVariable.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                       from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                      from '../src/testing/ScratchWorkspace.ts';

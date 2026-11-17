@@ -3,9 +3,9 @@
  * waits until User decides; Accept opens Continue, which moves the step on; Stay in single mode removes every entity from the draft, the
  * step then says single mode, and once the step is left that way the setup has five steps again; before any proposal, Stay in single mode
  * continues the step with no entity; a fold sends the package's removal and the target's new homes as one gesture; a gesture that would
- * leave a refusal of the shared validator sends nothing and shows the refusal before Continue, whose fix sends the held change and the fix
- * together; a key the field codec cannot name makes no edit and says why; choosing the root's gates adds the root entity; and how a
- * crossing runs is read-only.
+ * leave a refusal of the shared validator sends nothing and shows the API sentence of that refusal before Continue, whose fix sends the
+ * held change and the fix together; a key the field codec cannot name makes no edit and says why; choosing the root's gates adds the root
+ * entity; and how a crossing runs is read-only.
  */
 import {
   act,
@@ -164,7 +164,8 @@ describe('the refusals before Continue', () => {
     expect(controls.sent).toEqual([]);
     const alert = screen.getByRole('alert');
     expect(within(alert).getByText('Continue is refused')).toBeDefined();
-    expect(within(alert).getByText('web\'s whitelist names ui, which is not a package. A ticket crosses only into a package.')).toBeDefined();
+    expect(within(alert).getByText('The edit would leave pipeline setup S1\'s draft a pipeline that cannot be stored: entities.web.whitelist names "ui", '
+      + 'which is not a package. Nothing was written.')).toBeDefined();
     expect(continueButton().disabled).toBe(true);
   });
 

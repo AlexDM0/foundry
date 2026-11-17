@@ -187,7 +187,7 @@ function useEntitiesStepState(setup: PipelineSetupFacts) {
   const gesture = (edits: readonly PipelineDraftEdit[]): boolean => {
     if (edits.length === 0 || !sender.enabled) return false;
     const combined = [...heldEdits, ...edits];
-    if (EntityRefusalsModel.refusalsOf(EntitiesStepModel.entitiesAfterEdits(record.draft, combined)).length > 0) {
+    if (EntityRefusalsModel.refusalsOf(record.setupId, EntitiesStepModel.entitiesAfterEdits(record.draft, combined)).length > 0) {
       setHeldEdits(combined);
       return true;
     }
@@ -233,7 +233,7 @@ export function EntitiesStep({
   const { shown, mode, sender } = state;
   const gesturesAreOpen = sender.enabled;
   const rows = EntitiesStepModel.rowsOf(shown);
-  const refusals = EntityRefusalsModel.refusalsOf(shown);
+  const refusals = EntityRefusalsModel.refusalsOf(record.setupId, shown);
   const continueBlock = EntitiesStepModel.continueBlockOf(mode, refusals.length, state.heldEdits.length);
   const showsEntities = mode === 'proposed' || mode === 'accepted';
   const main = (

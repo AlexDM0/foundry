@@ -134,7 +134,8 @@ const ALONE_IN_ITS_REPOSITORY: SharedRepositoryRefs = { journaledLandings: [], w
 
 /**
  * What a job of an entity may change (E2, E11). A path belongs to the deepest home that holds it, so a path that a deeper home of another
- * entity holds is that entity's, though one of `homes` holds it too. A `reach` path stays writable inside another entity's home.
+ * entity holds is that entity's, though one of `homes` holds it too. A `reach` path is writable wherever it lies; the pipeline's check
+ * keeps it to paths the root entity owns (E9).
  */
 export interface WritableFolders {
   /** The stage entity's homes, repository folders leading with `/`; `/` among them for the root entity, which owns every path no home holds. */

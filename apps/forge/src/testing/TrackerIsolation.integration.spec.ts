@@ -14,7 +14,7 @@ import {
   test
 }                    from 'bun:test';
 
-import { ROOT_OVERRIDE_VARIABLE }                                                          from '../shared/Environment.ts';
+import { ROOT_OVERRIDE_VARIABLE }                                                          from '../shared/constants/RootOverrideVariable.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                         from './ChildProcessCaseTimeout.ts';
 import { jsonPrintedByAChildProcess }                                                      from './JsonPrintedByAChildProcess.ts';
 import { createCanonicalScratchDirectory, createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';

@@ -143,7 +143,7 @@ export interface PipelineEntity {
   agents?:       Partial<Record<EntityAgentRole, AgentStepSettings>>;
   /** The package entities its tickets may cross into by stages; absent crosses into none. */
   whitelist?:    EntityKey[];
-  /** The repository paths outside its homes its builder may change, each leading with `/`; absent reaches none. */
+  /** The repository paths outside its homes its builder may change, each leading with `/` and owned by the root entity; absent reaches none. */
   reach?:        string[];
   /** The entities it consumes, whose change runs its gates; every entity depends on the root entity without naming it. */
   dependsOn?:    EntityKey[];

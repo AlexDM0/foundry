@@ -10,14 +10,15 @@ import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../lib/tra
 import type { BoardRefusalDetail }                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }                  from '../../lib/tracker-model/constants/JobMoveLegality.ts';
 import { LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS }           from '../../lib/tracker-model/constants/TicketMoveLegality.ts';
+import type { EntityRefusal }                                from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
 import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
 import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
-import { ROOT_OVERRIDE_VARIABLE }                            from '../../shared/Environment.ts';
 import type { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import type { OperationRefusalDetail }                       from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }                            from '../../shared/constants/RootOverrideVariable.ts';
 import { StatusWordingUtil }                                 from './StatusWordingUtil.ts';
 import { TicketPhraseUtil }                                  from './TicketPhraseUtil.ts';
 
@@ -907,6 +908,32 @@ function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): 
   return installVersionMismatchSentenceOf(detail, 'command-line');
 }
 
+/**
+ * Why a pipeline's entities cannot be stored, as the pipeline file reports the first refusal and a `pipeline-draft-invalid` refusal
+ * carries it as its reason; the Bridge words each refusal of the entities step with it.
+ */
+function entityRefusalReasonOf(refusal: EntityRefusal): string {
+  switch (refusal.reason) {
+    case 'more-than-one-root':
+      return `the entities ${refusal.entityKeys.join(', ')} are each of kind root, and one at most is`;
+    case 'equal-homes':
+      return `the entities ${refusal.entityKeys.join(', ')} share the home ${JSON.stringify(refusal.home)}`;
+    case 'reach-inside-another-home':
+      return `entities.${refusal.entityKey}.reach names ${JSON.stringify(refusal.reachPath)}, which reaches into the home of the entity ${refusal.ownerKey}; `
+        + 'reach names only paths the root entity owns';
+    case 'unknown-whitelist-key':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
+    case 'unknown-dependency-key':
+      return `entities.${refusal.entityKey}.dependsOn names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
+    case 'whitelisted-entity-not-package':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, which is not a package`;
+    case 'whitelisted-package-without-review':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, a package without a review`;
+    case 'dependency-circle':
+      return `the entities ${[...refusal.entityKeys, refusal.entityKeys[0]].join(' -> ')} depend on each other in a circle`;
+  }
+}
+
 /** The sentence the command line prints. */
 function messageOf(refusal: OperationRefusal): string {
   return refusalSentenceOf(refusal, 'command-line');
@@ -921,6 +948,7 @@ export const OperationRefusalWordingUtil = {
   agentProgramRefusalTextOf,
   apiMessageOf,
   boardRefusalMessageOf,
+  entityRefusalReasonOf,
   installVersionMismatchMessageOf,
   messageOf,
   hatchAnsweredMessageOf,

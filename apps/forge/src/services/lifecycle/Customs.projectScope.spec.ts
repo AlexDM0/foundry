@@ -188,14 +188,14 @@ describe('a project tracker judges paths from its own folder', () => {
 
 describe('a top-level forge with entities', () => {
   const ENTITY_HOMES = ['/', '/apps/forge', '/packages/shared/'];
-  const FORGE_STAGE: WritableFolders = { homes: ['/apps/forge'], reach: ['/bun.lock', '/packages/shared/generated/'], otherHomes: ['/', '/packages/shared', '/apps/forge/vendor'] };
+  const FORGE_STAGE: WritableFolders = { homes: ['/apps/forge'], reach: ['/bun.lock', '/tools/generated/'], otherHomes: ['/', '/packages/shared', '/apps/forge/vendor'] };
   const ROOT_STAGE: WritableFolders = { homes: ['/', '/scripts/root-tools'], reach: [], otherHomes: ['/apps/forge', '/packages/shared', '/scripts'] };
 
-  test('a job of an entity may change its homes and its reach, a reach path inside another home among them, and nothing else', () => {
+  test('a job of an entity may change its homes and its reach of root-owned paths, and nothing else', () => {
     const changed = [
       'apps/forge/src/Example.ts',
       'bun.lock',
-      'packages/shared/generated/Example.ts',
+      'tools/generated/Example.ts',
       'packages/shared/src/Example.ts',
       'apps/forge/vendor/Example.ts',
       'apps/forge-extra/Example.ts',

@@ -11,8 +11,8 @@ import { join }                                   from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
-import { ROOT_OVERRIDE_VARIABLE }                                                                  from '../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                                                           from '../src/shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }                                                                  from '../src/shared/constants/RootOverrideVariable.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                                 from '../src/testing/ChildProcessCaseTimeout.ts';
 import { type RecordedGitStage, useRecordedGit }                                                   from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                                  from '../src/testing/ScratchWorkspace.ts';

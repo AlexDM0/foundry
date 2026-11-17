@@ -15,8 +15,8 @@ import {
   test
 }                                                         from 'bun:test';
 import { versionsFromTheBinary }                                          from '../src/services/overseer/InstallChangeWatch.ts';
-import { ROOT_OVERRIDE_VARIABLE }                                         from '../src/shared/Environment.ts';
 import { ToolRuntimeUtil }                                                from '../src/shared/ToolRuntimeUtil.ts';
+import { ROOT_OVERRIDE_VARIABLE }                                         from '../src/shared/constants/RootOverrideVariable.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                        from '../src/testing/ChildProcessCaseTimeout.ts';
 import { createScratchDirectory, removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
 import { childEnvironmentOf, runAgentProgress, type AgentProgressResult } from './testing/CliProcess.ts';

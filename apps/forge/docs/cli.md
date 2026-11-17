@@ -1688,14 +1688,17 @@ On a forge with entities, Customs protects `.claude/`, `.mcp.json` and `<data>/`
 entity home. A job of an entity installs with its entity's prepare steps, runs its entity's gates from the entity's
 first home and stamps that entity's phase hash. Its session is told these gates, and Customs V15 holds it to them. A
 gate's `definedBy` pattern without a leading `/` names a file of the entity's first home. The job may change only its
-entity's homes and `reach`: a path that a deeper home of another entity holds is that entity's, and the root entity
-owns every path that no other home holds. Customs V17 refuses any other change and sends the session back once on a
-red handoff, whose `gate-failure.md` names each path to take out; a second V17 refusal fails the job, and one whose
-branch still changed nothing in its own entity also opens `work-in-other-entity` (see [`need declare`](#need-declare)).
-An entity's constitution changes only in a job of a ticket of that entity: V17 refuses a change of another entity's
-constitution, and any constitution change in a package stage, as `constitution-outside-ticket-entity`, also when the
-ticket body names the file, and sends the session back once like any other V17 refusal. A job carries on only a session
-of its own entity and stage. A job without an entity keeps the checks it always had.
+entity's homes and `reach`: a path that a deeper home of another entity holds is that entity's, and the root entity owns
+every path that no other home holds. A `reach` path names only a path the root entity owns, such as the lockfile or a
+root manifest: a pipeline whose `reach` lies inside or above the home of another entity, the root entity aside, is
+refused.
+Customs V17 refuses any other change and sends the session back once on a red handoff, whose `gate-failure.md` names
+each path to take out; a second V17 refusal fails the job, and one whose branch still changed nothing in its own entity
+also opens `work-in-other-entity` (see [`need declare`](#need-declare)). An entity's constitution changes only in a job
+of a ticket of that entity: V17 refuses a change of another entity's constitution, and any constitution change in a
+package stage, as `constitution-outside-ticket-entity`, also when the ticket body names the file, and sends the session
+back once like any other V17 refusal. A job carries on only a session of its own entity and stage. A job without an
+entity keeps the checks it always had.
 
 A ticket of an entity whose `whitelist` names a package can cross into it by stages. Its stage 1 build may also write
 a proposal in the homes of the whitelisted packages; V17 still refuses a branch that changed only those files

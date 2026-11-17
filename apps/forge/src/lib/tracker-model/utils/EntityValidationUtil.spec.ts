@@ -1,8 +1,10 @@
 /**
  * The one check of a pipeline's entities that the pipeline file and the Bridge share. What matters: a valid layout has no refusal, a home
  * inside another home among it; each refusal comes with the keys it names: more than one entity of kind root, two entities with the same
- * home (a trailing slash ignored), an unknown key in a whitelist or in `dependsOn`, a whitelisted entity that is not a package (the root
- * entity included) or has no review, and a circle in `dependsOn`, a self-dependency and a root entity that names a dependency included.
+ * home (a trailing slash ignored), a `reach` path inside or above the home of another entity that is not the root entity (E9: a root-owned
+ * path such as the lockfile, the root entity's own home or the entity's own home stays allowed), an unknown key in a whitelist or in
+ * `dependsOn`, a whitelisted entity that is not a package (the root entity included) or has no review, and a circle in `dependsOn`, a
+ * self-dependency and a root entity that names a dependency included.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,6 +38,40 @@ describe('a refusal', () => {
   test('names two entities with the same home, a trailing slash ignored', () => {
     const entities: PipelineEntities = { ...VALID_ENTITIES, 'shop-legacy': entityOf('app', ['/apps/legacy', '/apps/shop/']) };
     expect(EntityValidationUtil.refusalsOf(entities)).toEqual([{ reason: 'equal-homes', home: '/apps/shop', entityKeys: ['shop', 'shop-legacy'] }]);
+  });
+
+  const ROOT_OWNED_REACH = ['/bun.lock', '/package.json', '/scripts/root-tools/'];
+
+  test('E9: names a reach path inside or above the home of another entity that is not the root entity, and allows a root-owned one', () => {
+    const entities: PipelineEntities = {
+      ...VALID_ENTITIES,
+      'root':  entityOf('root', ['/', '/scripts/root-tools']),
+      'admin': entityOf('app', ['/apps/admin'], { reach: [...ROOT_OWNED_REACH, '/apps/admin/generated/', '/packages/design-system/generated/', '/apps/shop'] }),
+    };
+    expect(EntityValidationUtil.refusalsOf(entities)).toEqual([
+      {
+        reason: 'reach-inside-another-home', entityKey: 'admin', reachPath: '/packages/design-system/generated/', ownerKey: 'design-system'
+      },
+      {
+        reason: 'reach-inside-another-home', entityKey: 'admin', reachPath: '/apps/shop', ownerKey: 'shop'
+      },
+    ]);
+  });
+
+  test('E9: names a reach path that holds the home of another entity, the root folder included', () => {
+    const entities: PipelineEntities = {
+      ...VALID_ENTITIES,
+      'root':  entityOf('root', ['/']),
+      'admin': entityOf('app', ['/apps/admin'], { reach: ['/packages/', '/', '/apps/admin/'] }),
+    };
+    expect(EntityValidationUtil.refusalsOf(entities)).toEqual([
+      {
+        reason: 'reach-inside-another-home', entityKey: 'admin', reachPath: '/packages/', ownerKey: 'design-system'
+      },
+      {
+        reason: 'reach-inside-another-home', entityKey: 'admin', reachPath: '/', ownerKey: 'shop'
+      },
+    ]);
   });
 
   test('names an unknown key in a whitelist', () => {

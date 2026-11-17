@@ -3,8 +3,8 @@
  * The layout is load-bearing: an entry begins at column 2 and every continuation line is indented past it.
  */
 import type { ShellLineGrammar }  from '../src/lib/shell-line/ShellLine.ts';
-import { ROOT_OVERRIDE_VARIABLE } from '../src/shared/Environment.ts';
 import { PRODUCT_NAMES }          from '../src/shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE } from '../src/shared/constants/RootOverrideVariable.ts';
 import { LINE_GRAMMAR_WORDING }   from './LineGrammarWording.ts';
 
 /** `lineGrammar` is the shell line port's, so `gate add` names the grammar a line runs in on this machine. */

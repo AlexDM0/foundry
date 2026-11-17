@@ -122,6 +122,7 @@ export const EntityOwnershipUtil = Object.freeze({
   dependentsOf,
   gatedEntitiesOf,
   homeFolderOf,
+  homeHoldsPath,
   ownerOf,
   pathsByOwnerOf,
   pathsOutsideEntityOf,

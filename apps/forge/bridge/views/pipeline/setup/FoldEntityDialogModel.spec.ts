@@ -32,7 +32,7 @@ describe('the fold', () => {
     expect(after['web']?.whitelist).toBeUndefined();
     expect(after['web']?.dependsOn).toEqual(['config']);
     expect(after['admin']?.dependsOn).toEqual(['web']);
-    expect(EntityRefusalsModel.refusalsOf(after)).toEqual([]);
+    expect(EntityRefusalsModel.refusalsOf('S1', after)).toEqual([]);
   });
 
   test('the words name the target and the trade', () => {

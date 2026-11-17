@@ -2,10 +2,11 @@
 import { realpathSync, statSync } from 'node:fs';
 import { resolve }                from 'node:path';
 
-import { discoverRepositoryRoot }                            from '../../../src/lib/git/RepositoryRoot.ts';
-import { agentProgressRootOverride, ROOT_OVERRIDE_VARIABLE } from '../../../src/shared/Environment.ts';
-import { OperationRefusal }                                  from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                     from '../../../src/shared/constants/ProductNames.ts';
+import { discoverRepositoryRoot }    from '../../../src/lib/git/RepositoryRoot.ts';
+import { agentProgressRootOverride } from '../../../src/shared/Environment.ts';
+import { OperationRefusal }          from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }             from '../../../src/shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }    from '../../../src/shared/constants/RootOverrideVariable.ts';
 
 function resolvedRealPath(path: string): string {
   try {

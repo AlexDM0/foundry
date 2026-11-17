@@ -12,10 +12,10 @@ import {
   agentProgressRootOverride,
   EVERY_TOOL_REQUIRED_VARIABLE,
   OVERSEER_POLL_INTERVAL_VARIABLE,
-  ROOT_OVERRIDE_VARIABLE,
   VERSIONS_ANSWER_VARIABLE,
 } from './Environment.ts';
-import { PRODUCT_NAMES } from './constants/ProductNames.ts';
+import { PRODUCT_NAMES }          from './constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE } from './constants/RootOverrideVariable.ts';
 
 const ENVIRONMENT_MODULE_PATH = join(import.meta.dir, 'Environment.ts');
 

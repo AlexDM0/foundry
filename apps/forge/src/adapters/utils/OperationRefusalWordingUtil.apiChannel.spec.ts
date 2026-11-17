@@ -6,10 +6,10 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardRefusalDetail }     from '../../lib/tracker-model/BoardRefusal.ts';
-import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/Environment.ts';
 import { OperationRefusal }            from '../../shared/OperationRefusal.ts';
 import type { OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }      from '../../shared/constants/RootOverrideVariable.ts';
 import { COMMAND_LINE_FORM }           from '../../testing/CommandLineForm.ts';
 import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
 

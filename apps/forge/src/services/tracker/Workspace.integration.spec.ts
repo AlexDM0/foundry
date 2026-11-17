@@ -12,9 +12,9 @@ import {
 } from 'node:fs';
 import { dirname, join }             from 'node:path';
 import { afterAll, expect }          from 'bun:test';
-import { ROOT_OVERRIDE_VARIABLE }    from '../../shared/Environment.ts';
 import { refusalIsOperationRefusal } from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }             from '../../shared/constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }    from '../../shared/constants/RootOverrideVariable.ts';
 
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                 from '../../testing/ChildProcessCaseTimeout.ts';
 import { jsonPrintedByAChildProcess }                              from '../../testing/JsonPrintedByAChildProcess.ts';

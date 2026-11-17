@@ -5,9 +5,11 @@
  * the entities worth a look, which never block Apply, and, only in update mode over a stored pipeline without entities, the refusal
  * that tickets in flight cause (E94), with a link to each ticket's detail.
  */
+import { OperationRefusalWordingUtil } from '../../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { EntityKey, Pipeline }    from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { AppliedPipelineFacts }   from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { PipelineSetup }          from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { OperationRefusal }            from '../../../../src/shared/OperationRefusal.ts';
 import type { ControlCommandBody }     from '../../../api/CommandClient.ts';
 import { DetailRoute }                 from '../../../shell/DetailRoute.ts';
 import { HashRouter }                  from '../../../shell/HashRouter.ts';
@@ -131,7 +133,8 @@ function ticketLinkOf(ticketId: string): TicketLinkView {
 
 /**
  * E94 as the Overseer gives it: only in update mode, over a stored pipeline without entities that the draft turns into entities, while
- * tickets are in progress, in review or reviewed. A first Apply never shows it.
+ * tickets are in progress, in review or reviewed. A first Apply never shows it. The text is the sentence the Overseer's API carries for
+ * the refusal of that Apply.
  */
 function entitiesRefusalOf(record: PipelineSetup, board: ApplyDialogBoard): EntitiesRefusalView | null {
   if (record.mode !== 'update' || !draftHasEntities(record)) return null;
@@ -140,13 +143,12 @@ function entitiesRefusalOf(record: PipelineSetup, board: ApplyDialogBoard): Enti
   const ticketIds = board.ticketIdsInFlight;
   if (ticketIds.length === 0) return null;
   const single = ticketIds.length === 1;
-  const tickets = `${single ? 'Ticket' : 'Tickets'} ${listedText(ticketIds)}`;
+  const boardRefusal = { reason: 'entities-while-tickets-in-flight', setupId: record.setupId, ticketIds } as const;
   return {
-    title: 'Apply is refused',
-    text:  `${tickets} ${single ? 'is' : 'are'} in progress, in review or reviewed, so this pipeline cannot turn into entities yet. `
-      + `Apply once ${single ? 'it lands' : 'they land'}.`,
+    title:          'Apply is refused',
+    text:           OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal })),
     ticketLinks:    ticketIds.map(ticketLinkOf),
-    disabledReason: `${tickets} ${single ? 'is' : 'are'} in flight`,
+    disabledReason: `${single ? 'Ticket' : 'Tickets'} ${listedText(ticketIds)} ${single ? 'is' : 'are'} in flight`,
   };
 }
 
