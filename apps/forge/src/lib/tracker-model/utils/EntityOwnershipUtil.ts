@@ -1,5 +1,5 @@
 /**
- * Which entity of a pipeline owns a repository path, whose gates a change of some entities reaches, and the order a ticket's package stages
+ * Which entity of a pipeline owns a repository path, whose gates a change of some paths reaches, and the order a ticket's package stages
  * run in. Paths are repository paths leading with `/`; the deepest home that holds a path owns it, and the root entity owns the rest.
  */
 import type { EntityKey, PipelineEntity } from '../@types/Pipeline.ts';
@@ -74,6 +74,16 @@ function dependentsOf(entities: PipelineEntities, changedKeys: readonly EntityKe
 }
 
 /**
+ * The entities whose gates judge a landing: the owner of every changed path and every entity that consumes one, in the pipeline's order. A
+ * root-owned path, such as a `reach` path at the root, is a change of the root entity, which every entity consumes (E4, E60).
+ */
+function gatedEntitiesOf(entities: PipelineEntities, changedPaths: readonly string[]): EntityKey[] {
+  const changedKeys = [...pathsByOwnerOf(entities, changedPaths).keys()];
+  const reachedKeys = new Set([...changedKeys, ...dependentsOf(entities, changedKeys)]);
+  return Object.keys(entities).filter((entityKey) => reachedKeys.has(entityKey));
+}
+
+/**
  * The crossed packages in the order their stages run: a package before every package that consumes it, directly or through another;
  * otherwise in the order given. A circle, which validation refuses, keeps the order given for the packages in it.
  */
@@ -94,6 +104,7 @@ function stageOrderOf(entities: PipelineEntities, packageKeys: readonly EntityKe
 export const EntityOwnershipUtil = Object.freeze({
   dependenciesOf,
   dependentsOf,
+  gatedEntitiesOf,
   homeFolderOf,
   ownerOf,
   pathsByOwnerOf,

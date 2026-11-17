@@ -484,8 +484,8 @@ export class Board {
     return this.mergeQueueMarks.ticketIsMergeQueued(ticketId);
   }
 
-  greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null): boolean {
-    return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree, phase);
+  greenIsCurrent(ticketId: string, headTree: string | null, phase: GatePhase | null, entitiesItMustName: readonly EntityKey[] = []): boolean {
+    return this.mergeQueueMarks.greenIsCurrent(ticketId, headTree, phase, entitiesItMustName);
   }
 
   greenPhaseOf(ticketId: string): GatePhase | null {

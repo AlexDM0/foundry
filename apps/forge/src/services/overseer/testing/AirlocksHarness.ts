@@ -6,22 +6,23 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { RepositoryLandings }                 from '../../../lib/git/RepositoryLandings.ts';
-import type { GatePhase }                     from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateRunCacheReports, Job }      from '../../../lib/tracker-model/@types/Job.ts';
-import type { PipelineAirlock }               from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading }       from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { TicketPriority }                from '../../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                         from '../../../lib/tracker-model/Board.ts';
-import { branchNamesOf }                      from '../../../shared/BranchNames.ts';
-import { AIRLOCK_LIMITS, type AirlockLimits } from '../../../shared/constants/AirlockLimits.ts';
-import { PRODUCT_NAMES }                      from '../../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }        from '../../../testing/BoardFixtures.ts';
-import { queueOnCurrentGreen }                from '../../../testing/GreenQueue.ts';
-import { createPlantedRepository }            from '../../../testing/RecordedAirlockGit.ts';
-import { removeScratchDirectory }             from '../../../testing/ScratchWorkspace.ts';
-import type { ProjectScope }                  from '../../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding }       from '../../lifecycle/Landing.ts';
+import { RepositoryLandings }                        from '../../../lib/git/RepositoryLandings.ts';
+import type { GatePhase }                            from '../../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateRunCacheReports, Job }             from '../../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineAirlock } from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading }              from '../../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { TicketPriority }                       from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                from '../../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                              from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import { branchNamesOf }                             from '../../../shared/BranchNames.ts';
+import { AIRLOCK_LIMITS, type AirlockLimits }        from '../../../shared/constants/AirlockLimits.ts';
+import { PRODUCT_NAMES }                             from '../../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }               from '../../../testing/BoardFixtures.ts';
+import { queueOnCurrentGreen }                       from '../../../testing/GreenQueue.ts';
+import { createPlantedRepository }                   from '../../../testing/RecordedAirlockGit.ts';
+import { removeScratchDirectory }                    from '../../../testing/ScratchWorkspace.ts';
+import type { ProjectScope }                         from '../../lifecycle/Customs.ts';
+import type { SharedRepositoryLanding }              from '../../lifecycle/Landing.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -49,6 +50,8 @@ export interface HarnessTicket {
   dependsOn?:     string[];
   /** `in-review` and queued unless set; a ticket of the bundle already integrated is `reviewed`; a `pending` one is not built yet. */
   status?:        'pending' | 'in-review' | 'reviewed';
+  /** The ticket's entity on a pipeline with entities, whose review green queues it. */
+  entity?:        EntityKey;
 }
 
 export interface AirlocksHarness {
@@ -60,6 +63,8 @@ export interface AirlocksHarness {
   gatedTrees:       string[];
   /** The phase each gated tree was gated in, in the order of `gatedTrees`. */
   gatedPhases:      GatePhase[];
+  /** The entities whose gates each gated tree was to run, in the order of `gatedTrees`; `undefined` where the Airlocks named none. */
+  gatedEntities:    (readonly EntityKey[] | undefined)[];
   stopped:          string[];
   /** The landing the tracker shares with its siblings, in the repository's `.git` folder; `null` for a tracker at the root. */
   sharedRepository: SharedRepositoryLanding | null;
@@ -69,6 +74,10 @@ export interface AirlocksHarness {
   keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
   settings:    {
     gateOutcome:       MergedTreeGate['outcome'];
+    /** The red gate or the failed step a gate that does not pass names: `tests` unless set. */
+    gateStep:          string;
+    /** The entity a gate that does not pass names; absent unless set. */
+    gateEntity?:       EntityKey;
     /** What the gates reported of their cache; absent unless set, as when no gate reported. */
     gateCacheReports?: GateRunCacheReports;
     reading:           MergeAgentReading;
@@ -115,7 +124,8 @@ function plantedTipOf(branch: string): string {
  * main line at `MAIN_TIP` and a group branch at `GROUP_TIP`, and the spec answers each git call the Airlocks ask from recorded answers.
  * The repository holds the `.git` folder a recorded common-folder answer names. `airlock` is the pipeline's merge train, absent unless set;
  * `besideSiblings` makes the tracker one in a project folder of the repository, whose landings it shares with its siblings, and
- * `projectScope` gives the Airlocks that folder and the pipeline its reach, so a conflict resolution is held to them.
+ * `projectScope` gives the Airlocks that folder and the pipeline its reach, so a conflict resolution is held to them. `entities` makes the
+ * pipeline one with entities, each ticket queued on a review green of its own entity's gates.
  */
 export function createRecordedAirlocksHarness(
   tickets: readonly HarnessTicket[],
@@ -124,6 +134,7 @@ export function createRecordedAirlocksHarness(
   airlock: PipelineAirlock | null = null,
   besideSiblings = false,
   projectScope: ProjectScope | null = null,
+  entities: Pipeline['entities'] | null = null,
 ): AirlocksHarness {
   const repository = createPlantedRepository('airlocks');
   const sharedRepository: SharedRepositoryLanding | null = besideSiblings ? {
@@ -148,6 +159,7 @@ export function createRecordedAirlocksHarness(
       ...hasReviewPhase ? { review: { name: 'Review' } } : {},
       ...airlock === null ? {} : { airlock },
       ...projectScope === null ? {} : { reach: [...projectScope.reach] },
+      ...entities === null ? {} : { entities },
     },
     tickets: tickets.map((ticket) => ({
       ...ticketFixture({
@@ -157,20 +169,30 @@ export function createRecordedAirlocksHarness(
         ...(ticket.group === undefined ? {} : { group: ticket.group }),
         ...(ticket.releasesGroup === undefined ? {} : { releasesGroup: ticket.releasesGroup }),
         ...(ticket.dependsOn === undefined ? {} : { dependsOn: ticket.dependsOn }),
+        ...(ticket.entity === undefined ? {} : { entity: ticket.entity }),
       }),
       body: ticket.body ?? ACCOUNTED_BODY,
     })),
   });
-  for (const ticket of tickets.filter((each) => each.status === undefined)) queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
+  for (const ticket of tickets.filter((each) => each.status === undefined)) {
+    const pipeline = board.pipeline();
+    if (pipeline?.entities !== undefined) {
+      const reviewStamp = PipelineUtil.entitiesGateRunStampOf(pipeline, 'review', ticket.entity === undefined ? [] : [ticket.entity]);
+      board.recordPipelineJudgedBy(ticket.id, branchTreeOf(ticket.id), reviewStamp, HARNESS_AT);
+      board.queueTicketForMerge(ticket.id, 'main', branchTreeOf(ticket.id), HARNESS_AT);
+    } else queueOnCurrentGreen(board, ticket.id, 'main', HARNESS_AT, branchTreeOf(ticket.id));
+  }
 
   const phases: string[] = [];
   const gatedTrees: string[] = [];
   const gatedPhases: GatePhase[] = [];
+  const gatedEntities: (readonly EntityKey[] | undefined)[] = [];
   const stopped: string[] = [];
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
   const settings: AirlocksHarness['settings'] = {
     gateOutcome:       'passed',
+    gateStep:          'tests',
     reading:           { calls: 0, report: undefined },
     resolutionLines:   0,
     watcherIsLive:     false,
@@ -197,14 +219,17 @@ export function createRecordedAirlocksHarness(
       if (phase !== undefined && phases.at(-1) !== phase) phases.push(phase);
       return Promise.resolve(result);
     },
-    gateMergedTree: (_worktreePath, treeId, phase) => {
+    gateMergedTree: (_worktreePath, treeId, phase, entityKeys) => {
       gatedTrees.push(treeId);
       gatedPhases.push(phase);
-      const stamp = board.gateRunStampOf(phase);
+      gatedEntities.push(entityKeys);
+      const pipeline = board.pipeline();
+      const stamp = pipeline?.entities === undefined ? board.gateRunStampOf(phase) : PipelineUtil.entitiesGateRunStampOf(pipeline, phase, entityKeys ?? []);
       settings.beforeGate();
       return Promise.resolve({
         outcome: settings.gateOutcome,
-        step:    settings.gateOutcome === 'passed' ? null : 'tests',
+        step:    settings.gateOutcome === 'passed' ? null : settings.gateStep,
+        ...(settings.gateOutcome === 'passed' || settings.gateEntity === undefined ? {} : { entity: settings.gateEntity }),
         output:  'Example gate output\nexpected 2, received 3',
         stamp,
         ...(settings.gateCacheReports === undefined ? {} : { cacheReports: settings.gateCacheReports }),
@@ -242,6 +267,7 @@ export function createRecordedAirlocksHarness(
     phases,
     gatedTrees,
     gatedPhases,
+    gatedEntities,
     stopped,
     declinedCleanups,
     keptAirlockFacts,

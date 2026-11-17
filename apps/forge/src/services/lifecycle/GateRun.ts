@@ -2,21 +2,30 @@
  * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate of the
  * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs under the
  * port's spawn options with the job variables removed from its environment. agent-progress keeps no gate result: caching is the
- * repository's own tooling's, and a gate may only report what its tooling did, at the report path each gate line is handed.
+ * repository's own tooling's, and a gate may only report what its tooling did, at the report path each gate line is handed. On a pipeline
+ * with entities, each gated entity's part runs in turn, its steps' folders read from its first home folder.
  */
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, rmSync }   from 'node:fs';
 import { tmpdir }                 from 'node:os';
 import { join }                   from 'node:path';
 
-import { GateReportFile }                                                  from '../../adapters/pipeline/GateReportFile.ts';
-import type { ConfinedLine }                                               from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                                      from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                                    from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }                                     from '../../lib/process-identity/ProcessSupervision.ts';
-import type { ShellExitReport, ShellLine, ShellRunRefusal }                from '../../lib/shell-line/ShellLine.ts';
-import type { GateCacheReport, GateCacheReportOfGate, GateOutcome }        from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GateReportFile }                                           from '../../adapters/pipeline/GateReportFile.ts';
+import type { ConfinedLine }                                        from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                               from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                             from '../../lib/git/GitWorktrees.ts';
+import type { SupervisedSpawnOptions }                              from '../../lib/process-identity/ProcessSupervision.ts';
+import type { ShellExitReport, ShellLine, ShellRunRefusal }         from '../../lib/shell-line/ShellLine.ts';
+import type { GatePhase }                                           from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateCacheReport, GateCacheReportOfGate, GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import type {
+  EntityKey,
+  Pipeline,
+  PipelineGate,
+  PipelineStep
+} from '../../lib/tracker-model/@types/Pipeline.ts';
+import { EntityOwnershipUtil }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
 import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
 
@@ -92,6 +101,21 @@ export type PipelineVerdict =
   | { outcome: 'sandbox-unavailable'; step: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
   | { outcome: 'passed'; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
   | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] };
+
+/** One entity's part of a gate run of entities: its prepare steps and the phase's gates, each step's folder read from its first home. */
+export interface EntityPipelineRun {
+  entityKey:  EntityKey;
+  prepare:    readonly PipelineStep[];
+  gates:      readonly PipelineGate[];
+  /** The entity's first home folder below the checkout's root, `/`-separated with no leading `/`; `''` for a home at the root. */
+  homePrefix: string;
+}
+
+/** A gate run of entities: what a single run takes but its steps and its folder, which each entity brings. */
+export type EntityPipelinesRunRequest = Omit<PipelineRunRequest, 'prepare' | 'gates' | 'projectPrefix'>;
+
+/** A single run's verdict; `entity` names the entity whose step or gate stopped the run, absent on a pass. */
+export type EntityPipelinesVerdict = PipelineVerdict & { entity?: EntityKey };
 
 const JOB_VARIABLES: readonly string[] = [JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE];
 
@@ -257,6 +281,23 @@ function gateDirectoryOf(checkoutDirectory: string, step: Readonly<Pick<Pipeline
   return join(checkoutDirectory, ProjectPathsUtil.toRepositoryPath(projectPrefix, step.in ?? ''));
 }
 
+/** An entity's first home folder as a prefix below the checkout's root, from which its steps' folders read; a home at the root is `''`. */
+function homePrefixOf(firstHome: string): string {
+  return EntityOwnershipUtil.homeFolderOf(firstHome).replace(/^\/+/u, '');
+}
+
+/** The part each gated entity of the pipeline runs in `phase`, in the order given; a key the pipeline has no entity for runs nothing. */
+function entityPipelinesOf(pipeline: Readonly<Pipeline>, entityKeys: readonly EntityKey[], phase: GatePhase): EntityPipelineRun[] {
+  return entityKeys.flatMap((entityKey) => {
+    const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+    if (entityPipeline === null) return [];
+    const firstHome = pipeline.entities?.[entityKey]?.home[0] ?? '/';
+    return [{
+      entityKey, prepare: entityPipeline.prepare, gates: PipelineUtil.gatesOfPhase(entityPipeline, phase), homePrefix: homePrefixOf(firstHome)
+    }];
+  });
+}
+
 function gateConfinementOf(gate: Readonly<PipelineGate>): GateConfinement {
   const networkDomains = gate.network ?? [];
   return { network: networkDomains.length > 0, networkDomains, writes: gate.writes ?? [] };
@@ -322,12 +363,40 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   return { outcome: 'passed', gatesRun, cacheReports };
 }
 
+/**
+ * Each entity's part in turn, as a single run from its first home folder, through `runOnePipeline`; the first part that does not pass
+ * ends the run, named by its entity. The gates run and their cache reports are every part's, in run order.
+ */
+async function runEntityPipelines(
+  request: EntityPipelinesRunRequest,
+  entityPipelines: readonly EntityPipelineRun[],
+  runOnePipeline: (pipelineRequest: PipelineRunRequest) => Promise<PipelineVerdict> = runPipeline,
+): Promise<EntityPipelinesVerdict> {
+  const gatesRun: string[] = [];
+  const cacheReports: GateCacheReportOfGate[] = [];
+  for (const {
+    entityKey, prepare, gates, homePrefix
+  } of entityPipelines) {
+    const verdict = await runOnePipeline({
+      ...request, prepare, gates, projectPrefix: homePrefix
+    });
+    gatesRun.push(...verdict.gatesRun);
+    cacheReports.push(...verdict.cacheReports);
+    if (verdict.outcome !== 'passed') return {
+      ...verdict, gatesRun, cacheReports, entity: entityKey
+    };
+  }
+  return { outcome: 'passed', gatesRun, cacheReports };
+}
+
 export const GateRun = Object.freeze({
   gateEnvironmentOf,
   gateOutcomeOf,
   gateErrorOutputOf,
   prepareFailureOutputOf,
   gateDirectoryOf,
+  homePrefixOf,
+  entityPipelinesOf,
   gateConfinementOf,
   prepareConfinementOf,
   trackedChangesOf,
@@ -340,4 +409,5 @@ export const GateRun = Object.freeze({
   runnableLineOf,
   runGate,
   runPipeline,
+  runEntityPipelines,
 });

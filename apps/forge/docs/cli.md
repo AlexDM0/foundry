@@ -900,6 +900,15 @@ while the row has a `greenPhase` and its `pipelineHash` equals that phase's hash
 steps and gates never makes a green stale. A row with a `pipelineHash` and no `greenPhase` has no current green, so the
 Overseer gates its ticket again.
 
+On a forge with entities the row also holds `pipelineHashes`: the phase hash of each entity whose gates the run ran, by
+entity key, as that entity's own pipeline hashes it. `pipelineHash` stays the forge's own phase hash. A green is current
+only while every entity it names keeps that hash, and a row without `pipelineHashes` has no current green. The merged
+tree runs the gates of the landing's entities: each entity whose paths the fast-forward changes, each entity that
+consumes one of them, and every entity for a path the root owns. A stale green is gated again by its ticket's own
+entity. Each entity's prepare steps and gates run from its first home folder; an `in` leading with `/` is the
+repository's root. The branch's own tree lands without a gate run only when its green also names every entity of the
+landing's gate set. A forge without entities never writes `pipelineHashes`.
+
 #### `gate add`
 
 `--defined-by` names the files that define the gate, as git pathspec-style globs. The Overseer's check V11 refuses a job
@@ -2050,6 +2059,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `reviewOf` | yes | The ticket this row reviews. A row is a review bar by this key alone, never by its name. |
 | `reviewBarRound` | yes | Which review of that ticket this bar is, from 1. |
 | `pipelineHash` | yes | The phase hash of the gates the row's ticket was last gated by, in `greenPhase` ([the pipeline hashes](#the-pipeline-hashes)). |
+| `pipelineHashes` | yes | On a forge with entities: the phase hash of each entity whose gates that run ran, by entity key ([the pipeline hashes](#the-pipeline-hashes)). Written with `pipelineHash` by a run of entities' gates, removed by any other; a forge without entities never writes it. |
 | `greenPhase` | yes | `build`, `review` or `merge`: the phase of that gate run, written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green and is gated again; a read adds none. |
 | `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash` in `greenPhase`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
 

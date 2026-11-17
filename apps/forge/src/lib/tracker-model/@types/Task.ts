@@ -53,6 +53,11 @@ export interface Task {
    * was stored then.
    */
   pipelineHash?:   string;
+  /**
+   * On a forge with entities: the phase hash of each entity whose gates that run ran, by entity key, beside `pipelineHash`. Never written on
+   * a forge without entities.
+   */
+  pipelineHashes?: Record<string, string>;
   /** The phase of that gate run; written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green. */
   greenPhase?:     GatePhase;
   /**

@@ -48,6 +48,10 @@ function gatePhaseIsKnown(value: unknown): boolean {
   return typeof value === 'string' && GATE_PHASES.some((phase) => phase === value);
 }
 
+function entityHashesAreWellFormed(value: unknown): value is Record<string, string> {
+  return JsonRecordUtil.valueIsAPlainObject(value) && Object.values(value).every((entityPhaseHash) => typeof entityPhaseHash === 'string');
+}
+
 function taskStatusIsKnown(value: unknown): boolean {
   return typeof value === 'string' && VocabularyUtil.taskStatusIsKnown(value);
 }
@@ -92,6 +96,9 @@ function taskProblem(value: unknown, index: number): string | null {
     return `tasks[${index}].checkCommand is present, and a row records the hash of the pipeline it was gated by instead; ${OLDER_FORMAT_ADVICE}`;
   }
   if (task['pipelineHash'] !== undefined && !textFieldIsPresent(task, 'pipelineHash')) return `tasks[${index}].pipelineHash is present and is not a hash`;
+  if (task['pipelineHashes'] !== undefined && !entityHashesAreWellFormed(task['pipelineHashes'])) {
+    return `tasks[${index}].pipelineHashes is present and is not a record of a hash for each entity key`;
+  }
   if (task['greenPhase'] !== undefined && !gatePhaseIsKnown(task['greenPhase'])) {
     return `tasks[${index}].greenPhase is present and is not one of ${GATE_PHASES.join(', ')}`;
   }

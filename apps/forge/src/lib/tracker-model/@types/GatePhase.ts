@@ -11,6 +11,8 @@ export const GATE_PHASES: readonly GatePhase[] = Object.freeze(['build', 'review
 
 /** What a gate run judged a tree by: its phase, and the hash of that phase's prepare steps and gates as the run read them at its start. */
 export interface GateRunStamp {
-  phase:     GatePhase;
-  phaseHash: string;
+  phase:              GatePhase;
+  phaseHash:          string;
+  /** On a pipeline with entities: the phase hash of each entity whose gates ran, by entity key. Absent on a pipeline without entities. */
+  entityPhaseHashes?: Readonly<Record<string, string>>;
 }

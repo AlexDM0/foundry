@@ -155,6 +155,25 @@ function gateRunStampOf(pipeline: Readonly<Pipeline>, phase: GatePhase): GateRun
   return { phase, phaseHash: phaseHashOf(pipeline, phase) };
 }
 
+/** The green hash of an entity's phase, as its single pipeline hashes it; `null` when the pipeline has no entity of that key. */
+function entityPhaseHashOf(pipeline: Readonly<Pipeline>, entityKey: EntityKey, phase: GatePhase): string | null {
+  const entityPipeline = pipelineOfEntity(pipeline, entityKey);
+  return entityPipeline === null ? null : phaseHashOf(entityPipeline, phase);
+}
+
+/**
+ * The stamp a gate run of some entities' gates in `phase` records: the forge's own phase hash, as a run without entities records it, and
+ * the phase hash of each of those entities the pipeline holds.
+ */
+function entitiesGateRunStampOf(pipeline: Readonly<Pipeline>, phase: GatePhase, entityKeys: readonly EntityKey[]): GateRunStamp {
+  const entityPhaseHashes: Record<EntityKey, string> = {};
+  for (const entityKey of entityKeys) {
+    const entityPhaseHash = entityPhaseHashOf(pipeline, entityKey, phase);
+    if (entityPhaseHash !== null) entityPhaseHashes[entityKey] = entityPhaseHash;
+  }
+  return { ...gateRunStampOf(pipeline, phase), entityPhaseHashes };
+}
+
 /** Every key but `billing`, in a fixed order: what tells Apply that someone changed the stored pipeline under it. */
 function contentHashOf(pipeline: Readonly<Pipeline>): string {
   const formatVersion = formatVersionOf(pipeline);
@@ -222,6 +241,8 @@ function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): P
 
 export const PipelineUtil = Object.freeze({
   contentHashOf,
+  entitiesGateRunStampOf,
+  entityPhaseHashOf,
   formatVersionOf,
   gateCatalogueOf,
   gateRunStampOf,

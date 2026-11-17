@@ -30,7 +30,6 @@ import type { Board }                                                           
 import { Playbook }                                                                   from '../../lib/tracker-model/Playbook.ts';
 import { FORCED_STOP_REFUSED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
 import { LaunchSlotUtil }                                                             from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
-import { PipelineUtil }                                                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { EventLogEntry }                                                         from '../../lib/watcher/EventLog.ts';
 import type { SetupMessage }                                                          from '../../shared/@types/ControlContext.ts';
 import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
@@ -88,6 +87,7 @@ import { JobResumption }                                              from './Jo
 import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
+import { runMergedTreeGates }                                         from './MergedTreeGateRun.ts';
 import { overseerFilesIn }                                            from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { PipelineChecking }                                           from './PipelineChecking.ts';
@@ -1192,7 +1192,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
     hold:           holdTracker,
-    gateMergedTree: async (worktreePath, treeId, phase) => {
+    gateMergedTree: async (worktreePath, treeId, phase, gatedEntities) => {
       // Read afresh once at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and
       // the stamp names the gates this run ran, whatever changes while it runs.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
@@ -1200,25 +1200,21 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
-      const verdict  = await runMergedTreeGatePipeline({
-        shellLine:       platformPorts.shellLine,
-        prepare:         pipeline?.prepare ?? [],
-        gates:           pipeline === null ? [] : PipelineUtil.gatesOfPhase(pipeline, phase),
-        directory:       worktreePath,
-        projectPrefix:   projectLocation.projectPrefix,
-        environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
-        spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-        confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
-        acquireGateSlot: () => gateSlots.acquire(holder),
+      return runMergedTreeGates({
+        pipeline,
+        phase,
+        gatedEntities,
+        runRequest: {
+          shellLine:       platformPorts.shellLine,
+          directory:       worktreePath,
+          environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
+          spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
+          confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
+          acquireGateSlot: () => gateSlots.acquire(holder),
+        },
+        projectPrefix:  projectLocation.projectPrefix,
+        runOnePipeline: runMergedTreeGatePipeline,
       });
-      const stamp = pipeline === null ? null : PipelineUtil.gateRunStampOf(pipeline, phase);
-      const cacheReports = verdict.cacheReports.length === 0 ? {} : { cacheReports: { phase, gates: verdict.cacheReports } };
-      if (verdict.outcome === 'passed') return {
-        outcome: 'passed', step: null, output: '', stamp, ...cacheReports
-      };
-      return {
-        outcome: verdict.outcome, step: 'step' in verdict ? verdict.step : verdict.gate, output: verdict.output, stamp, ...cacheReports
-      };
     },
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
     resolutionLinesOf:   MergeRun.resolutionLinesOf,

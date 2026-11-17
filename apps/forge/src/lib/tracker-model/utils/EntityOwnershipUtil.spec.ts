@@ -2,7 +2,8 @@
  * Ownership of a pipeline's entities. What matters: a path in no home is the root entity's (E1), named by its key when the pipeline holds a
  * root entity and `root` when it does not; a deeper home wins over the one around it (E2), whatever order the entities come in, and a home
  * holds only whole folder names; a file moved across a border is a change of both entities (E5). A change reaches every consumer, also
- * through another, and a change of the root entity reaches every entity. Package stages run a package before the packages that consume it.
+ * through another, and a change of the root entity reaches every entity. A landing gates the entities its paths are in and their consumers
+ * (E60), every entity for a root-owned path (E4). Package stages run a package before the packages that consume it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -101,6 +102,32 @@ describe('the dependents of a change', () => {
     expect(EntityOwnershipUtil.dependentsOf(EXAMPLE_ENTITIES, ['root'])).toEqual(['shop', 'admin', 'design-system', 'tokens']);
     expect(EntityOwnershipUtil.dependenciesOf(EXAMPLE_ENTITIES, 'tokens')).toEqual(['root']);
     expect(EntityOwnershipUtil.dependenciesOf(EXAMPLE_ENTITIES, 'root')).toEqual([]);
+  });
+});
+
+describe('the entities a landing gates', () => {
+  test('are the entities the changed paths are in and the entities that consume them, in the pipeline\'s order (E60)', () => {
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, ['/packages/design-system/Button.tsx'])).toEqual(['shop', 'design-system']);
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, ['/apps/admin/Main.ts', '/apps/shop/Main.ts'])).toEqual(['shop', 'admin']);
+  });
+
+  test('are only the changed entity when nothing consumes it', () => {
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, ['/packages/shop-private/index.ts'])).toEqual(['shop']);
+  });
+
+  test('are every entity for a root-owned path, such as a reach path at the root (E4)', () => {
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, ['/bun.lock'])).toEqual(['shop', 'admin', 'design-system', 'tokens']);
+    const entities: PipelineEntities = { 'repository': entityOf('root', []), ...EXAMPLE_ENTITIES };
+    expect(EntityOwnershipUtil.gatedEntitiesOf(entities, ['/package.json'])).toEqual(['repository', 'shop', 'admin', 'design-system', 'tokens']);
+  });
+
+  test('are both sides and their consumers for a file moved across a border (E5)', () => {
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, ['/apps/admin/Colour.ts', '/packages/design-system/tokens/Colour.ts']))
+      .toEqual(['shop', 'admin', 'design-system', 'tokens']);
+  });
+
+  test('are none when no path changed', () => {
+    expect(EntityOwnershipUtil.gatedEntitiesOf(EXAMPLE_ENTITIES, [])).toEqual([]);
   });
 });
 

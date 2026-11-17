@@ -24,6 +24,7 @@ import type {
   AirlockPhase
 }                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecordFieldsOf }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { EntityKey, Pipeline, PipelineGate }                             from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ApplyRequestReason, MainConstitution, MainConstitutionReading } from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { DecisionDraft, DecisionWording }                                from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                   from '../../lib/tracker-model/AirlockClaims.ts';
@@ -33,7 +34,9 @@ import { BoardRefusal }                                                       fr
 import { PARKED_HOLD_PREFIX }                                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { HANDOFF_RED_INTERRUPTION }                                           from '../../lib/tracker-model/constants/JobStates.ts';
 import { PENDING_APPLY_REQUEST_STATES }                                       from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { EntityOwnershipUtil, type PipelineEntities }                         from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { MergeQueueUtil, type MergeForecast }                                 from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { PipelineUtil }                                                       from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { BranchNames }                                                   from '../../shared/BranchNames.ts';
 import type { AirlockLimits }                                                 from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
@@ -83,9 +86,10 @@ export interface AirlocksContext {
   hold:                   AirlockHoldRunner;
   /**
    * Gates the tree with the gates of `phase`, read afresh once as the run starts: `merge` for an Airlock's merged tree, the row's own phase
-   * for a stale green. The result carries the stamp of what it read.
+   * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
+   * a stale green; absent, every entity's. The result carries the stamp of what it read.
    */
-  gateMergedTree:         (worktreePath: string, treeId: string, phase: GatePhase) => Promise<MergedTreeGate>;
+  gateMergedTree:         (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities?: readonly EntityKey[]) => Promise<MergedTreeGate>;
   mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:      (worktreePath: string) => number | null;
@@ -117,6 +121,8 @@ export interface MergedTreeGate {
   outcome:       GateOutcome | 'setup-failed' | 'sandbox-unavailable';
   /** The red gate or the failed or refused step; `null` on a pass. */
   step:          string | null;
+  /** On a pipeline with entities, the entity whose gate or step that is; absent on a pass. */
+  entity?:       EntityKey;
   output:        string;
   /** The phase and phase hash of the pipeline the run read as it started, which a row's green records; `null` when it read none. */
   stamp:         GateRunStamp | null;
@@ -146,14 +152,17 @@ function mergedTreeIsTheBranchTree(worktree: string, job: Readonly<Job>, treeId:
 
 /**
  * The merged tree is the branch's own tree, the newest gate run on it passed, and the ticket's row holds it as a green current in the merge
- * phase: the merge changed nothing the gates judged, and the gates that passed it are the merge phase's. A refresh has no row, so its merged
- * tree is always gated.
+ * phase: the merge changed nothing the gates judged, and the gates that passed it are the merge phase's. On a pipeline with entities that
+ * green also names every entity of the landing's gate set. A refresh has no row, so its merged tree is always gated.
  */
-function mergedTreeWasLastPassed(board: Board, job: Readonly<Job>, treeId: string, isTheBranchTree: boolean): boolean {
+function mergedTreeWasLastPassed(
+  board: Board, job: Readonly<Job>, treeId: string, isTheBranchTree: boolean, landingGatedEntities: readonly EntityKey[] = []
+): boolean {
   const [ticketId] = job.ticketIds;
   if (!isTheBranchTree || ticketId === undefined) return false;
   const newestRunOnTheTree = board.logRecordsSoFar().findLast((record) => record.kind === 'gate-ran' && record.fields.tree === treeId);
-  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed' && board.greenIsCurrent(ticketId, treeId, 'merge');
+  return newestRunOnTheTree?.kind === 'gate-ran' && newestRunOnTheTree.fields.outcome === 'passed'
+    && board.greenIsCurrent(ticketId, treeId, 'merge', landingGatedEntities);
 }
 
 /** The parked hold a merged tree leaves when it is still red after the agent's resumes. */
@@ -223,10 +232,12 @@ const RED_RESUMES_SPENT_CAUSE = 'red-resumes-spent';
 const STALE_GREEN_LOG_FILE = 'gate.log';
 
 interface StaleGreenRed {
-  treeId: string;
-  step:   string;
-  output: string;
-  commit: string;
+  treeId:  string;
+  step:    string;
+  /** The entity whose gate went red, on a pipeline with entities. */
+  entity?: EntityKey;
+  output:  string;
+  commit:  string;
 }
 
 const LANDING_REFUSED_DECISION: DecisionKind = 'landing-refused';
@@ -240,6 +251,30 @@ const REFRESH_REFUSAL_SEPARATOR = ': ';
  */
 function regatePhaseOf(board: Board, ticketId: string): GatePhase {
   return board.greenPhaseOf(ticketId) ?? (board.pipeline()?.review === undefined ? 'build' : 'review');
+}
+
+/** The red gate a handoff names: from the pipeline of the entity whose gate it is, or from the forge's own gates without one. */
+function redGateOf(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined, gateName: string): PipelineGate | undefined {
+  const gatesPipeline = pipeline === null || entityKey === undefined ? pipeline : PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+  return gatesPipeline?.gates.find((gate) => gate.name === gateName);
+}
+
+/** A stale green is gated again by its ticket's own entity, or by every entity when the ticket names none the pipeline holds. */
+function staleGreenGatedEntitiesOf(board: Board, ticketId: string): readonly EntityKey[] | undefined {
+  const entities = board.pipeline()?.entities;
+  if (entities === undefined) return undefined;
+  const entityKey = board.tickets().find((ticket) => ticket.frontmatter.id === ticketId)?.frontmatter.entity;
+  return entityKey !== undefined && Object.hasOwn(entities, entityKey) ? [entityKey] : Object.keys(entities);
+}
+
+/**
+ * The landing's gate set: the entities the fast-forward to the merged tree changes and their consumers. When git cannot name the paths,
+ * every entity's gates run.
+ */
+function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string): readonly EntityKey[] {
+  const changedPaths = pathsTheFastForwardChangesOf(worktree, targetTip);
+  if (changedPaths === null) return Object.keys(entities);
+  return EntityOwnershipUtil.gatedEntitiesOf(entities, changedPaths.map((gitPath) => `/${gitPath}`));
 }
 
 function reportFieldOf(report: unknown, field: string): unknown {
@@ -417,7 +452,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const resume = (RedHandoff.redHandoffFactsOf(context.jobFolderOfId(jobId))?.resume ?? 0) + 1;
     if (resume > context.redHandoffResumes) return false;
     const folder = join(context.jobFolderOfId(jobId), RED_HANDOFF_FILES.staleGreenFolder);
-    const pipelineGate = board.pipeline()?.gates.find((gate) => gate.name === red.step);
+    const pipelineGate = redGateOf(board.pipeline(), red.entity, red.step);
     mkdirSync(folder, { recursive: true });
     writeFileSync(join(folder, STALE_GREEN_LOG_FILE), `${red.step}\n${red.output}`);
     RedHandoff.writeRedHandoff(folder, {
@@ -465,7 +500,11 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
       const branchRef = `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`;
       returnStaleGreenRed(hold, ticketId, {
-        treeId, step: gate.step ?? '', output: gate.output, commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? ''
+        treeId,
+        step:   gate.step ?? '',
+        ...(gate.entity === undefined ? {} : { entity: gate.entity }),
+        output: gate.output,
+        commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? '',
       });
       return;
     }
@@ -489,16 +528,23 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     let moved = false;
     for (const { ticketId } of awaiting) {
       const settled = await context.hold((hold) => {
-        const branchTree = branchTreeOf(ticketId);
-        const phase      = regatePhaseOf(hold.board, ticketId);
+        const branchTree    = branchTreeOf(ticketId);
+        const phase         = regatePhaseOf(hold.board, ticketId);
+        const gatedEntities = staleGreenGatedEntitiesOf(hold.board, ticketId);
         if (!hold.board.greenIsCurrent(ticketId, branchTree, hold.board.greenPhaseOf(ticketId))) {
           const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
           if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-          return { greenIsCurrent: false, changed: wasQueued, phase };
+          return {
+            greenIsCurrent: false, changed: wasQueued, phase, gatedEntities
+          };
         }
-        if (hold.board.ticketIsMergeQueued(ticketId)) return { greenIsCurrent: true, changed: false, phase };
+        if (hold.board.ticketIsMergeQueued(ticketId)) return {
+          greenIsCurrent: true, changed: false, phase, gatedEntities
+        };
         hold.board.queueTicketForMerge(ticketId, target, branchTree, hold.at);
-        return { greenIsCurrent: true, changed: true, phase };
+        return {
+          greenIsCurrent: true, changed: true, phase, gatedEntities
+        };
       });
       moved = moved || settled.changed;
       if (settled.greenIsCurrent) continue;
@@ -508,7 +554,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const treeId   = MergeRun.treeOf(worktree);
       if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
       moved = true;
-      const gate = await context.gateMergedTree(worktree, treeId, settled.phase);
+      const gate = await context.gateMergedTree(worktree, treeId, settled.phase, settled.gatedEntities);
       await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
     }
     return moved;
@@ -649,15 +695,24 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return true;
     }
     const isTheBranchTree = mergedTreeIsTheBranchTree(worktree, job, treeId);
-    const landsUngated = await context.hold((hold) => {
-      if (!mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree)) return false;
+    const admission = await context.hold((hold) => {
+      const entities = hold.board.pipeline()?.entities ?? null;
+      // With entities, whether the green covers the landing waits for the gate set, which git names outside the hold.
+      if (entities !== null || !mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree)) return { landsUngated: false, entities };
+      setPhase(hold, job, 'landing');
+      return { landsUngated: true, entities };
+    });
+    if (admission.landsUngated) return true;
+    // Only a pipeline with entities asks git which paths the landing changes.
+    const gatedEntities = admission.entities === null ? undefined : landingGatedEntitiesOf(admission.entities, worktree, slotOf(job).targetTip);
+    if (gatedEntities !== undefined && isTheBranchTree && await context.hold((hold) => {
+      if (!mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree, gatedEntities)) return false;
       setPhase(hold, job, 'landing');
       return true;
-    });
-    if (landsUngated) return true;
+    })) return true;
     const {
-      outcome, step, output, stamp, cacheReports
-    } = await context.gateMergedTree(worktree, treeId, 'merge');
+      outcome, step, entity, output, stamp, cacheReports
+    } = await context.gateMergedTree(worktree, treeId, 'merge', gatedEntities);
     const resumesSpent = await context.hold((hold) => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
       const agent = mergeAgentOf(hold.board, job);
@@ -668,7 +723,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         setPhase(hold, job, 'landing');
         return false;
       }
-      if (outcome === 'failed') return isRefresh(job) || resumeOrSpendTheAgent(hold, job, agent, { step: step ?? '', output, worktree });
+      if (outcome === 'failed') return isRefresh(job) || resumeOrSpendTheAgent(hold, job, agent, {
+        step: step ?? '', ...(entity === undefined ? {} : { entity }), output, worktree
+      });
       hold.board.openIncident({
         kind:        MERGE_GATE_INCIDENT_KINDS[outcome],
         ticketIds:   job.ticketIds,
@@ -687,7 +744,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * conflict re-reviewer's after a re-review), or, with none there yet, the last worker's own session is resumed into the Airlock. Past the
    * resumes the agent ends `failed` and the merge parks. Returns whether the resumes are spent.
    */
-  function resumeOrSpendTheAgent(hold: AirlockHold, job: Readonly<Job>, agent: Readonly<Job> | undefined, red: { step: string; output: string; worktree: string }): boolean {
+  function resumeOrSpendTheAgent(
+    hold: AirlockHold, job: Readonly<Job>, agent: Readonly<Job> | undefined, red: { step: string; entity?: EntityKey; output: string; worktree: string }
+  ): boolean {
     const { resumes } = airlockAgentHistoryOf(hold.board, job);
     if (resumes >= context.redHandoffResumes) {
       if (agent !== undefined) hold.board.endJob(agent.id, { outcome: 'failed', cause: RED_RESUMES_SPENT_CAUSE }, hold.at);
@@ -699,7 +758,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       RedHandoff.writeRedHandoff(folder, {
         kind:                'gate',
         name:                red.step,
-        command:             hold.board.pipeline()?.gates.find((gate) => gate.name === red.step)?.run ?? null,
+        command:             redGateOf(hold.board.pipeline(), red.entity, red.step)?.run ?? null,
         fixCommand:          null,
         commit:              MergeRun.headOf(red.worktree) ?? '',
         exitCode:            null,

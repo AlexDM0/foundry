@@ -7,7 +7,8 @@
  * version 3's, since the content hash covers the version; retake them only in a change that means to invalidate every recorded row, by
  * printing each hash for each pipeline below. The format version names the earliest that holds a pipeline, and only entities make it 4.
  * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
- * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none.
+ * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none. A gate
+ * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -321,5 +322,24 @@ describe('the pipeline of an entity', () => {
     expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'unknown')).toBeNull();
     expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'toString')).toBeNull();
     expect(PipelineUtil.pipelineOfEntity(FULL_PIPELINE, 'example')).toBeNull();
+  });
+});
+
+describe('the gate run stamp of entities', () => {
+  test('carries the forge\'s own phase hash and each named entity\'s phase hash, leaving out a key with no entity', () => {
+    const singlePipeline: Pipeline = {
+      version: 3, prepare: EXAMPLE_APP_ENTITY.prepare, gates: EXAMPLE_APP_ENTITY.gates, phases: EXAMPLE_APP_ENTITY.phases
+    };
+
+    expect(PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'merge', ['example', 'unknown'])).toEqual({
+      ...PipelineUtil.gateRunStampOf(ENTITIES_PIPELINE, 'merge'),
+      entityPhaseHashes: { example: PipelineUtil.phaseHashOf(singlePipeline, 'merge') },
+    });
+    expect(PipelineUtil.entityPhaseHashOf(ENTITIES_PIPELINE, 'example', 'build')).toBe(PipelineUtil.phaseHashOf(singlePipeline, 'build'));
+    expect(PipelineUtil.entityPhaseHashOf(ENTITIES_PIPELINE, 'unknown', 'build')).toBeNull();
+  });
+
+  test('carries an empty record when no entity was gated', () => {
+    expect(PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'review', []).entityPhaseHashes).toEqual({});
   });
 });

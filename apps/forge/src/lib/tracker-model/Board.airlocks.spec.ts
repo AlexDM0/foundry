@@ -2,6 +2,8 @@
  * The Airlock's claim on the board. What matters: the queue is re-derived inside the hold, so a strictly higher priority queued since
  * the prediction is never jumped, a held slot is never claimed twice, and a claim writes the slot on the merge job it launches. A green
  * is current only under the phase hash it was recorded with and with its phase stored: a row from before the phase existed fails closed.
+ * On a forge with entities a green also holds each gated entity's phase hash, and a row naming none fails closed; without entities the row
+ * never gets them.
  * With merge approval on, User's press order alone sets the train: a candidate's readiness is its newest accept, and no priority refuses
  * a claim, while the tickets still waiting keep the order they were queued in.
  */
@@ -10,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }      from '../../testing/GreenQueue.ts';
 import { GATE_PHASES }                                  from './@types/GatePhase.ts';
+import type { Pipeline, PipelineEntity }                from './@types/Pipeline.ts';
 import type { BranchTreeOf, MergeTargetOf }             from './AirlockClaims.ts';
 import { PipelineUtil }                                 from './utils/PipelineUtil.ts';
 
@@ -104,6 +107,94 @@ describe('the phase of a green', () => {
     expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(true);
     expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'build')).toBe(true);
     expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'merge')).toBe(false);
+  });
+});
+
+describe('a green of entities\' gates', () => {
+  function entityGatesOf(): Pick<PipelineEntity, 'prepare' | 'phases'> {
+    return { prepare: [], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] } };
+  }
+
+  const ENTITIES_PIPELINE: Pipeline = {
+    version:  3,
+    prepare:  [],
+    gates:    [],
+    phases:   { build: [], review: [], merge: [] },
+    entities: {
+      shop: {
+        kind: 'app', home: ['/apps/shop'], gates: [{ name: 'verify', run: 'bun run verify' }], ...entityGatesOf()
+      },
+      tokens: {
+        kind: 'package', home: ['/packages/tokens'], gates: [{ name: 'verify', run: 'bun test' }], ...entityGatesOf()
+      },
+    },
+  };
+
+  function entitiesFixture(): ReturnType<typeof boardFixture> {
+    return boardFixture({ pipeline: ENTITIES_PIPELINE, tickets: [ticketFixture({ id: '001', status: 'in-review' })] });
+  }
+
+  function withShopGate(run: string): Pipeline {
+    const { entities } = ENTITIES_PIPELINE;
+    const shop = entities?.['shop'];
+    if (entities === undefined || shop === undefined) throw new Error('the pipeline holds the shop entity');
+    return { ...ENTITIES_PIPELINE, entities: { ...entities, shop: { ...shop, gates: [{ name: 'verify', run }] } } };
+  }
+
+  test('records each gated entity\'s phase hash beside the forge\'s own, which stays the hash a run without entities records', () => {
+    const { board, progress } = entitiesFixture();
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'merge', ['shop']), AT);
+
+    expect(progress.tasks[0]).toMatchObject({
+      greenPhase:     'merge',
+      pipelineHash:   PipelineUtil.phaseHashOf(ENTITIES_PIPELINE, 'merge'),
+      pipelineHashes: { shop: PipelineUtil.entityPhaseHashOf(ENTITIES_PIPELINE, 'shop', 'merge') },
+      greenTree:      EXAMPLE_GREEN_TREE,
+    });
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'merge')).toBe(true);
+  });
+
+  test('a run without entities\' hashes, and a run that read no pipeline, remove the entities\' hashes with the rest', () => {
+    const { board, progress } = entitiesFixture();
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'review', ['shop']), AT);
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.gateRunStampOf(ENTITIES_PIPELINE, 'review'), AT);
+    expect(progress.tasks[0]?.pipelineHashes).toBeUndefined();
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(false);
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'review', ['shop']), AT);
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, null, AT);
+    expect(progress.tasks[0]?.pipelineHash).toBeUndefined();
+    expect(progress.tasks[0]?.pipelineHashes).toBeUndefined();
+  });
+
+  test('goes stale when a gated entity\'s gates changed under the run, and stays current when only an entity it did not gate changed', () => {
+    const { board } = entitiesFixture();
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.entitiesGateRunStampOf(withShopGate('bun run lint'), 'review', ['shop']), AT);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(false);
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.entitiesGateRunStampOf(withShopGate('bun run lint'), 'review', ['tokens']), AT);
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(true);
+  });
+
+  test('a row that names no entity\'s gates holds no current green, in any phase', () => {
+    const { board } = entitiesFixture();
+
+    board.recordPipelineJudgedBy('001', EXAMPLE_GREEN_TREE, PipelineUtil.gateRunStampOf(ENTITIES_PIPELINE, 'review'), AT);
+
+    for (const phase of GATE_PHASES) expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, phase)).toBe(false);
+  });
+
+  test('without entities a row\'s green is the forge\'s alone, and a run never writes entities\' hashes', () => {
+    const { board, progress } = queuedFixture();
+    const [row]               = progress.tasks;
+    if (row === undefined) throw new Error('the fixture files a row for each ticket');
+
+    expect(Object.hasOwn(row, 'pipelineHashes')).toBe(false);
+    row.pipelineHashes = { shop: 'stale' };
+    expect(board.greenIsCurrent('001', EXAMPLE_GREEN_TREE, 'review')).toBe(true);
   });
 });
 

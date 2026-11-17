@@ -41,6 +41,7 @@ export interface StoredTask {
   reviewOf?:       string;
   reviewBarRound?: number;
   pipelineHash?:   string;
+  pipelineHashes?: Record<string, string>;
   greenPhase?:     GatePhase;
   greenTree?:      string;
   mergeQueued?:    true;
