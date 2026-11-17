@@ -264,6 +264,8 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   },
   'unreadable-file-in-the-way':       { kind: 'unreadable-file-in-the-way', filePath: `${ROOT}/epic.md`, record: 'epic' },
   'malformed-pipeline':               { kind: 'malformed-pipeline', filePath: `${ROOT}/pipeline.json`, reason: 'Example reason' },
+  'entities-not-supported':           { kind: 'entities-not-supported', filePath: `${ROOT}/pipeline.json` },
+  'entities-in-a-folder':             { kind: 'entities-in-a-folder', filePath: `${ROOT}/pipeline.json`, projectPrefix: 'apps/web' },
   'role-command-refused':             { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: 'ticket add' },
   'verb-not-relayable':               { kind: 'verb-not-relayable', verb: 'init', jobId: 'J3' },
   'malformed-hatch-reply':            { kind: 'malformed-hatch-reply', replyFilePath: `${ROOT}/reply.json` },

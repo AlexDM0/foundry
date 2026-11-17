@@ -5,7 +5,7 @@
  * read with its own keys; the minimal pipeline is readable; an empty gate list stays written, since it is "no gates on purpose", not "none
  * set"; a file with no `version` or one below 2 is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason
  * naming the offending part, one distinct reason per rule, never a throw; and no file is `absent`. A file version 2 wrote is
- * `PipelineFile.versionTwo.spec.ts`'s.
+ * `PipelineFile.versionTwo.spec.ts`'s, and a file with entities `PipelineFile.entities.spec.ts`'s.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -140,18 +140,8 @@ describe('a file an earlier release wrote', () => {
     expect(readingOf(minimalWith({ version: 0 }))).toEqual({ verdict: 'older' });
   });
 
-  test('with a version above 3 is malformed as a newer format', () => {
-    expect(reasonOf(minimalWith({ version: 4 }))).toBe('version is 4, a newer format than version 3, which this build reads (newer-format)');
-  });
-
-  test('with version 4 and entities is still malformed as a newer format, since no forge runs entities yet', () => {
-    const entities = {
-      example: {
-        kind: 'app', home: ['/apps/example'], prepare: [], gates: [], phases: NO_PHASES
-      }
-    };
-
-    expect(reasonOf(minimalWith({ version: 4, entities }))).toBe('version is 4, a newer format than version 3, which this build reads (newer-format)');
+  test('with a version above 4 is malformed as a newer format', () => {
+    expect(reasonOf(minimalWith({ version: 5 }))).toBe('version is 5, a newer format than version 4, which this build reads (newer-format)');
   });
 
   test('with a version that is not a whole number is malformed', () => {

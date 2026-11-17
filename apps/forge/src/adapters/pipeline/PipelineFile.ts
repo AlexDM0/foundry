@@ -1,6 +1,7 @@
 /**
  * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in version
- * 2 or 3. A file that cannot be read whole is `malformed` with the reason, and one below version 2 is `older`, never a throw.
+ * 2, 3 or 4. A file that cannot be read whole is `malformed` with the reason, and one below version 2 is `older`, never a throw. Version 4
+ * holds entities, which this build maps and validates in full and then refuses as not yet supported.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -8,6 +9,8 @@ import {
   type AgentStepSettings,
   type ConditionalReReview,
   EARLIEST_PIPELINE_FORMAT_VERSION,
+  type EntityAgentRole,
+  type EntityKey,
   ENTITIES_PIPELINE_FORMAT_VERSION,
   type InstructionEntry,
   PIPELINE_FORMAT_VERSION,
@@ -17,25 +20,31 @@ import {
   type PipelineApproval,
   type PipelineBilling,
   type PipelineConstitution,
+  type PipelineEntity,
+  type PipelineEntityKind,
   type PipelineFormatVersion,
   type PipelineGate,
   type PipelinePhaseOrders,
   type PipelineReview,
   type PipelineStep
 } from '../../lib/tracker-model/@types/Pipeline.ts';
-import { RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
-import { PipelineUtil }                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { VocabularyUtil }                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import { JsonTextUtil }                   from '../../shared/utils/JsonTextUtil.ts';
-import { PathNestingUtil }                from '../../shared/utils/PathNestingUtil.ts';
-import { storedFileTextOf }               from '../StoredFileText.ts';
-import { StoredValueUtil }                from '../utils/StoredValueUtil.ts';
+import { RE_REVIEW_THRESHOLD_STEP_LINES }           from '../../lib/tracker-model/constants/PipelineDefaults.ts';
+import { EntityValidationUtil, type EntityRefusal } from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
+import { PipelineUtil }                             from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { VocabularyUtil }                           from '../../lib/tracker-model/utils/VocabularyUtil.ts';
+import { JsonTextUtil }                             from '../../shared/utils/JsonTextUtil.ts';
+import { PathNestingUtil }                          from '../../shared/utils/PathNestingUtil.ts';
+import { storedFileTextOf }                         from '../StoredFileText.ts';
+import { StoredValueUtil }                          from '../utils/StoredValueUtil.ts';
+
+/** Entities that are sound as stored but that this build or this tracker cannot hold, which a refusal names instead of a repair. */
+export type UnsupportedEntities = { kind: 'entities-not-supported' } | { kind: 'entities-in-a-folder'; projectPrefix: string };
 
 export type PipelineReading =
   | { verdict: 'absent' }
   | { verdict: 'readable'; pipeline: Pipeline }
   | { verdict: 'older' }
-  | { verdict: 'malformed'; reason: string };
+  | { verdict: 'malformed'; reason: string; unsupportedEntities?: UnsupportedEntities };
 
 /** A stored file the board cannot use, which nothing writes over. */
 export type UnreadablePipelineReading = Extract<PipelineReading, { verdict: 'older' | 'malformed' }>;
@@ -46,9 +55,32 @@ const PIPELINE_KEYS_OF_VERSION = {
   [PIPELINE_FORMAT_VERSION]:          [...EARLIEST_PIPELINE_KEYS, 'reach'],
   [ENTITIES_PIPELINE_FORMAT_VERSION]: [...EARLIEST_PIPELINE_KEYS, 'reach', 'entities'],
 } as const satisfies Record<PipelineFormatVersion, readonly string[]>;
-/** Version 4 holds entities, which no forge runs yet, so this build still refuses it as a newer format. */
-const READABLE_FORMAT_VERSIONS = [EARLIEST_PIPELINE_FORMAT_VERSION, PIPELINE_FORMAT_VERSION] as const satisfies readonly PipelineFormatVersion[];
+const READABLE_FORMAT_VERSIONS = [
+  EARLIEST_PIPELINE_FORMAT_VERSION,
+  PIPELINE_FORMAT_VERSION,
+  ENTITIES_PIPELINE_FORMAT_VERSION
+] as const satisfies readonly PipelineFormatVersion[];
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
+/** Each entity holds its own steps, gates, constitution and reach, so beside `entities` the forge's own stay empty. */
+const KEYS_EMPTY_BESIDE_ENTITIES = ['prepare', 'gates', 'constitution', 'reach'] as const satisfies readonly (keyof Pipeline)[];
+const ENTITY_KEYS = [
+  'kind',
+  'home',
+  'summary',
+  'constitution',
+  'prepare',
+  'gates',
+  'phases',
+  'review',
+  'agents',
+  'whitelist',
+  'reach',
+  'dependsOn',
+  'concurrency'
+] as const satisfies readonly (keyof PipelineEntity)[];
+const REQUIRED_ENTITY_KEYS = ['kind', 'home', 'prepare', 'gates', 'phases'] as const satisfies readonly (keyof PipelineEntity)[];
+const ENTITY_KINDS         = ['app', 'package', 'root'] as const satisfies readonly PipelineEntityKind[];
+const ENTITY_AGENT_ROLES   = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly EntityAgentRole[];
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
 const STEP_KEYS_OF_VERSION = {
@@ -135,14 +167,14 @@ function optionalFolderInRepositoryOf(value: unknown, path: string): Mapped<stri
 }
 
 /** Each a repository path leading with `/`, named once. */
-function reachOf(value: unknown): Mapped<string[] | undefined> {
-  const paths = textListOf(value, 'reach');
+function repositoryPathsOf(value: unknown, path: string): Mapped<string[] | undefined> {
+  const paths = textListOf(value, path);
   if ('problem' in paths || paths.value === undefined) return paths;
-  const reachPaths = paths.value;
-  const outsideRepository = reachPaths.find((reachPath) => !PathNestingUtil.repositoryWirePathStaysInside(reachPath));
-  if (outsideRepository !== undefined) return problemOf(`reach names ${JSON.stringify(outsideRepository)}, which is not a repository path leading with /`);
-  const repeated = reachPaths.find((reachPath, index) => reachPaths.indexOf(reachPath) !== index);
-  return repeated === undefined ? paths : problemOf(`reach names ${JSON.stringify(repeated)} twice`);
+  const repositoryPaths = paths.value;
+  const outsideRepository = repositoryPaths.find((repositoryPath) => !PathNestingUtil.repositoryWirePathStaysInside(repositoryPath));
+  if (outsideRepository !== undefined) return problemOf(`${path} names ${JSON.stringify(outsideRepository)}, which is not a repository path leading with /`);
+  const repeated = repositoryPaths.find((repositoryPath, index) => repositoryPaths.indexOf(repositoryPath) !== index);
+  return repeated === undefined ? paths : problemOf(`${path} names ${JSON.stringify(repeated)} twice`);
 }
 
 function stepOf(value: unknown, path: string, formatVersion: PipelineFormatVersion): Mapped<PipelineStep> {
@@ -208,23 +240,25 @@ function namedListOf<Item extends { name: string }>(
   return repeated === undefined ? items : problemOf(`${path} names ${JSON.stringify(repeated)} twice`);
 }
 
-function phasesOf(value: unknown, gates: readonly PipelineGate[]): Mapped<PipelinePhaseOrders> {
-  const record = closedRecordOf(value, 'phases', PHASE_KEYS);
+function phasesOf(value: unknown, gates: readonly PipelineGate[], keyPrefix: string): Mapped<PipelinePhaseOrders> {
+  const record = closedRecordOf(value, `${keyPrefix}phases`, PHASE_KEYS);
   if ('problem' in record) return record;
   const gateNames = gates.map((gate) => gate.name);
   const phases: PipelinePhaseOrders = { build: [], review: [], merge: [] };
   for (const phase of PHASE_KEYS) {
     const names = record.value[phase];
-    if (names === undefined) return problemOf(`phases.${phase} is missing`);
-    if (!Array.isArray(names) || !names.every(textIsPresent)) return problemOf(`phases.${phase} is not a list of gate names`);
+    const phasePath = `${keyPrefix}phases.${phase}`;
+    if (names === undefined) return problemOf(`${phasePath} is missing`);
+    if (!Array.isArray(names) || !names.every(textIsPresent)) return problemOf(`${phasePath} is not a list of gate names`);
     const unknownName = names.find((name) => !gateNames.includes(name));
-    if (unknownName !== undefined) return problemOf(`phases.${phase} names ${JSON.stringify(unknownName)}, which is not a gate`);
+    if (unknownName !== undefined) return problemOf(`${phasePath} names ${JSON.stringify(unknownName)}, which is not a gate`);
     const repeated = names.find((name, index) => names.indexOf(name) !== index);
-    if (repeated !== undefined) return problemOf(`phases.${phase} names ${JSON.stringify(repeated)} twice`);
+    if (repeated !== undefined) return problemOf(`${phasePath} names ${JSON.stringify(repeated)} twice`);
     phases[phase] = [...names];
   }
   const gateInNoPhase = gateNames.find((name) => PHASE_KEYS.every((phase) => !phases[phase].includes(name)));
-  return gateInNoPhase === undefined ? { value: phases } : problemOf(`the gate ${JSON.stringify(gateInNoPhase)} runs in no phase`);
+  if (gateInNoPhase === undefined) return { value: phases };
+  return problemOf(`the gate ${JSON.stringify(gateInNoPhase)}${keyPrefix === '' ? '' : ` of ${keyPrefix}gates`} runs in no phase`);
 }
 
 function reReviewOf(value: unknown, path: string): Mapped<ConditionalReReview | undefined> {
@@ -238,11 +272,11 @@ function reReviewOf(value: unknown, path: string): Mapped<ConditionalReReview | 
   return { value: { thresholdLines } };
 }
 
-function reviewOf(value: unknown): Mapped<PipelineReview | undefined> {
+function reviewOf(value: unknown, path: string): Mapped<PipelineReview | undefined> {
   if (value === undefined) return { value: undefined };
-  const record = namedRecordOf(value, 'review', REVIEW_KEYS);
+  const record = namedRecordOf(value, path, REVIEW_KEYS);
   if ('problem' in record) return record;
-  const reReview = reReviewOf(record.value['reReview'], 'review.reReview');
+  const reReview = reReviewOf(record.value['reReview'], `${path}.reReview`);
   if ('problem' in reReview) return reReview;
   return { value: { name: String(record.value['name']), ...(reReview.value === undefined ? {} : { reReview: reReview.value }) } };
 }
@@ -256,12 +290,12 @@ function airlockOf(value: unknown): Mapped<PipelineAirlock | undefined> {
   return { value: reReview.value === undefined ? {} : { reReview: reReview.value } };
 }
 
-function constitutionOf(value: unknown): Mapped<PipelineConstitution | undefined> {
+function constitutionOf(value: unknown, path: string): Mapped<PipelineConstitution | undefined> {
   if (value === undefined) return { value: undefined };
-  const record = closedRecordOf(value, 'constitution', CONSTITUTION_KEYS);
+  const record = closedRecordOf(value, path, CONSTITUTION_KEYS);
   if ('problem' in record) return record;
-  const path = pathInsideRepositoryOf(record.value['path'], 'constitution.path');
-  return 'problem' in path ? path : { value: { path: path.value } };
+  const constitutionPath = pathInsideRepositoryOf(record.value['path'], `${path}.path`);
+  return 'problem' in constitutionPath ? constitutionPath : { value: { path: constitutionPath.value } };
 }
 
 function roleIsKnown(value: unknown): value is PipelineAgentRole {
@@ -314,14 +348,14 @@ function agentSettingsOf(value: unknown, path: string): Mapped<AgentStepSettings
   };
 }
 
-function agentsOf(value: unknown): Mapped<Pipeline['agents']> {
+function agentsOf<Role extends PipelineAgentRole>(value: unknown, path: string, roles: readonly Role[]): Mapped<Partial<Record<Role, AgentStepSettings>> | undefined> {
   if (value === undefined) return { value: undefined };
-  const record = closedRecordOf(value, 'agents', AGENT_ROLES);
+  const record = closedRecordOf(value, path, roles);
   if ('problem' in record) return record;
-  const agents: Partial<Record<PipelineAgentRole, AgentStepSettings>> = {};
-  for (const role of AGENT_ROLES) {
+  const agents: Partial<Record<Role, AgentStepSettings>> = {};
+  for (const role of roles) {
     if (record.value[role] === undefined) continue;
-    const settings = agentSettingsOf(record.value[role], `agents.${role}`);
+    const settings = agentSettingsOf(record.value[role], `${path}.${role}`);
     if ('problem' in settings) return settings;
     agents[role] = settings.value;
   }
@@ -362,26 +396,149 @@ function sharedNameProblemOf(prepare: readonly PipelineStep[], gates: readonly P
   return shared === undefined ? null : problemOf(`${JSON.stringify(shared.name)} names both a prepare step and a gate`);
 }
 
+interface OwnSteps {
+  prepare: PipelineStep[];
+  gates:   PipelineGate[];
+  phases:  PipelinePhaseOrders;
+}
+
+/** The prepare steps, gates and phases a pipeline or an entity runs, each path named under `keyPrefix`. */
+function ownStepsOf(record: Record<string, unknown>, keyPrefix: string, formatVersion: PipelineFormatVersion): Mapped<OwnSteps> {
+  const prepare = namedListOf(record['prepare'], `${keyPrefix}prepare`, (step, stepPath) => stepOf(step, stepPath, formatVersion));
+  if ('problem' in prepare) return prepare;
+  const gates = namedListOf(record['gates'], `${keyPrefix}gates`, (gate, gatePath) => gateOf(gate, gatePath, formatVersion));
+  if ('problem' in gates) return gates;
+  const sharedNameProblem = sharedNameProblemOf(prepare.value, gates.value);
+  if (sharedNameProblem !== null) return sharedNameProblem;
+  const phases = phasesOf(record['phases'], gates.value, keyPrefix);
+  return 'problem' in phases ? phases : { value: { prepare: prepare.value, gates: gates.value, phases: phases.value } };
+}
+
+function entityKindOf(value: unknown, path: string): Mapped<PipelineEntityKind> {
+  const entityKind = ENTITY_KINDS.find((knownKind) => knownKind === value);
+  return entityKind === undefined ? problemOf(`${path} is not one of ${ENTITY_KINDS.join(', ')}`) : { value: entityKind };
+}
+
+function concurrencyOf(value: unknown, path: string): Mapped<number | undefined> {
+  if (value === undefined) return { value: undefined };
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? { value } : problemOf(`${path} is not a positive whole number`);
+}
+
+function homeOf(value: unknown, path: string): Mapped<string[]> {
+  const folders = repositoryPathsOf(value, path);
+  if ('problem' in folders) return folders;
+  return folders.value === undefined || folders.value.length === 0 ? problemOf(`${path} names no folder`) : { value: folders.value };
+}
+
+function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineFormatVersion): Mapped<PipelineEntity> {
+  const path   = `entities.${entityKey}`;
+  const record = closedRecordOf(value, path, ENTITY_KEYS);
+  if ('problem' in record) return record;
+  const fields     = record.value;
+  const missingKey = REQUIRED_ENTITY_KEYS.find((key) => fields[key] === undefined);
+  if (missingKey !== undefined) return problemOf(`${path}.${missingKey} is missing`);
+  const entityKind = entityKindOf(fields['kind'], `${path}.kind`);
+  if ('problem' in entityKind) return entityKind;
+  const home = homeOf(fields['home'], `${path}.home`);
+  if ('problem' in home) return home;
+  const ownSteps = ownStepsOf(fields, `${path}.`, formatVersion);
+  if ('problem' in ownSteps) return ownSteps;
+  const summary      = optionalTextOf(fields['summary'], `${path}.summary`);
+  const constitution = constitutionOf(fields['constitution'], `${path}.constitution`);
+  const review       = reviewOf(fields['review'], `${path}.review`);
+  const agents       = agentsOf(fields['agents'], `${path}.agents`, ENTITY_AGENT_ROLES);
+  const whitelist    = textListOf(fields['whitelist'], `${path}.whitelist`);
+  const reach        = repositoryPathsOf(fields['reach'], `${path}.reach`);
+  const dependsOn    = textListOf(fields['dependsOn'], `${path}.dependsOn`);
+  const concurrency  = concurrencyOf(fields['concurrency'], `${path}.concurrency`);
+  if ('problem' in summary) return summary;
+  if ('problem' in constitution) return constitution;
+  if ('problem' in review) return review;
+  if ('problem' in agents) return agents;
+  if ('problem' in whitelist) return whitelist;
+  if ('problem' in reach) return reach;
+  if ('problem' in dependsOn) return dependsOn;
+  if ('problem' in concurrency) return concurrency;
+  return {
+    value: {
+      kind: entityKind.value,
+      home: home.value,
+      ...(summary.value === undefined ? {} : { summary: summary.value }),
+      ...(constitution.value === undefined ? {} : { constitution: constitution.value }),
+      ...ownSteps.value,
+      ...(review.value === undefined ? {} : { review: review.value }),
+      ...(agents.value === undefined ? {} : { agents: agents.value }),
+      ...(whitelist.value === undefined ? {} : { whitelist: whitelist.value }),
+      ...(reach.value === undefined ? {} : { reach: reach.value }),
+      ...(dependsOn.value === undefined ? {} : { dependsOn: dependsOn.value }),
+      ...(concurrency.value === undefined ? {} : { concurrency: concurrency.value }),
+    },
+  };
+}
+
+function entityRefusalProblemOf(refusal: EntityRefusal): string {
+  switch (refusal.reason) {
+    case 'more-than-one-root':
+      return `the entities ${refusal.entityKeys.join(', ')} are each of kind root, and one at most is`;
+    case 'equal-homes':
+      return `the entities ${refusal.entityKeys.join(', ')} share the home ${JSON.stringify(refusal.home)}`;
+    case 'unknown-whitelist-key':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
+    case 'unknown-dependency-key':
+      return `entities.${refusal.entityKey}.dependsOn names ${JSON.stringify(refusal.unknownKey)}, which is not an entity`;
+    case 'whitelisted-entity-not-package':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, which is not a package`;
+    case 'whitelisted-package-without-review':
+      return `entities.${refusal.entityKey}.whitelist names ${JSON.stringify(refusal.whitelistedKey)}, a package without a review`;
+    case 'dependency-circle':
+      return `the entities ${[...refusal.entityKeys, refusal.entityKeys[0]].join(' -> ')} depend on each other in a circle`;
+  }
+}
+
+/** Each entity mapped, then the entities checked together by the validator the Bridge shares. */
+function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
+  if (value === undefined) return { value: undefined };
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
+  const entities: Record<EntityKey, PipelineEntity> = {};
+  for (const [entityKey, entityValue] of Object.entries(value)) {
+    if (!textIsPresent(entityKey)) return problemOf('entities holds a blank key');
+    const entity = entityOf(entityValue, entityKey, formatVersion);
+    if ('problem' in entity) return entity;
+    entities[entityKey] = entity.value;
+  }
+  const firstRefusal = EntityValidationUtil.refusalsOf(entities)[0];
+  return firstRefusal === undefined ? { value: entities } : problemOf(entityRefusalProblemOf(firstRefusal));
+}
+
+/** A version 4 file holds entities, the only reason it exists, and beside them the forge's own steps, gates, constitution and reach stay empty. */
+function entitiesProblemOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion): { problem: string } | null {
+  const holdsEntities = document['entities'] !== undefined;
+  if (formatVersion === ENTITIES_PIPELINE_FORMAT_VERSION && !holdsEntities) return problemOf(`version is ${formatVersion} and entities is missing`);
+  if (!holdsEntities) return null;
+  const keyNotEmpty = KEYS_EMPTY_BESIDE_ENTITIES.find((key) => {
+    const keyValue = document[key];
+    return keyValue !== undefined && !(Array.isArray(keyValue) && keyValue.length === 0);
+  });
+  return keyNotEmpty === undefined ? null : problemOf(`${keyNotEmpty} is not empty beside entities; each entity holds its own`);
+}
+
 function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion): Mapped<Pipeline> {
   const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS_OF_VERSION[formatVersion], '');
   if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
   const missingKey = REQUIRED_KEYS.find((key) => document[key] === undefined);
   if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
-  const prepare = namedListOf(document['prepare'], 'prepare', (step, stepPath) => stepOf(step, stepPath, formatVersion));
-  if ('problem' in prepare) return prepare;
-  const gates = namedListOf(document['gates'], 'gates', (gate, gatePath) => gateOf(gate, gatePath, formatVersion));
-  if ('problem' in gates) return gates;
-  const sharedNameProblem = sharedNameProblemOf(prepare.value, gates.value);
-  if (sharedNameProblem !== null) return sharedNameProblem;
-  const phases       = phasesOf(document['phases'], gates.value);
-  const review       = reviewOf(document['review']);
+  const entitiesProblem = entitiesProblemOf(document, formatVersion);
+  if (entitiesProblem !== null) return entitiesProblem;
+  const ownSteps = ownStepsOf(document, '', formatVersion);
+  if ('problem' in ownSteps) return ownSteps;
+  const review       = reviewOf(document['review'], 'review');
   const airlock      = airlockOf(document['airlock']);
-  const constitution = constitutionOf(document['constitution']);
-  const agents       = agentsOf(document['agents']);
+  const constitution = constitutionOf(document['constitution'], 'constitution');
+  const agents       = agentsOf(document['agents'], 'agents', AGENT_ROLES);
   const approvals    = approvalsOf(document['approvals']);
   const billing      = billingOf(document['billing']);
-  const reach        = reachOf(document['reach']);
-  if ('problem' in phases) return phases;
+  const reach        = repositoryPathsOf(document['reach'], 'reach');
+  const entities     = entitiesOf(document['entities'], formatVersion);
   if ('problem' in review) return review;
   if ('problem' in airlock) return airlock;
   if ('problem' in constitution) return constitution;
@@ -389,12 +546,11 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
   if ('problem' in approvals) return approvals;
   if ('problem' in billing) return billing;
   if ('problem' in reach) return reach;
+  if ('problem' in entities) return entities;
   return {
     value: {
       version: PIPELINE_FORMAT_VERSION,
-      prepare: prepare.value,
-      gates:   gates.value,
-      phases:  phases.value,
+      ...ownSteps.value,
       ...(review.value === undefined ? {} : { review: review.value }),
       ...(airlock.value === undefined ? {} : { airlock: airlock.value }),
       ...(constitution.value === undefined ? {} : { constitution: constitution.value }),
@@ -402,15 +558,16 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
       ...(approvals.value === undefined ? {} : { approvals: approvals.value }),
       ...(billing.value === undefined ? {} : { billing: billing.value }),
       ...(reach.value === undefined ? {} : { reach: reach.value }),
+      ...(entities.value === undefined ? {} : { entities: entities.value }),
     },
   };
 }
 
 /**
- * Version 2 and 3 are read, each by its exact version with its own keys; no release converts an earlier file, so one with no version or a
- * lower one is `older`, never mapped, and a higher one is malformed.
+ * Version 2, 3 and 4 are mapped, each by its exact version with its own keys; no release converts an earlier file, so one with no version
+ * or a lower one is `older`, never mapped, and a higher one is malformed.
  */
-function documentReadingOf(document: unknown): PipelineReading {
+function mappedReadingOf(document: unknown): PipelineReading {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
   const { version } = document;
   if (version === undefined) return { verdict: 'older' };
@@ -422,6 +579,28 @@ function documentReadingOf(document: unknown): PipelineReading {
   }
   const pipeline = pipelineOf(document, formatVersion);
   return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
+}
+
+/** A pipeline with entities maps whole, so every refusal of its entities shows, and is then refused: no forge runs entities yet. */
+function documentReadingOf(document: unknown): PipelineReading {
+  const reading = mappedReadingOf(document);
+  if (reading.verdict === 'readable' && reading.pipeline.entities !== undefined) {
+    return {
+      verdict:             'malformed',
+      reason:              'it holds entities, which this build does not support yet (entities-not-supported)',
+      unsupportedEntities: { kind: 'entities-not-supported' },
+    };
+  }
+  return reading;
+}
+
+/** A stored pipeline with entities in a tracker in a folder, which the board cannot use, as any malformed one. */
+function entitiesInAFolderReadingOf(projectPrefix: string): PipelineReading {
+  return {
+    verdict:             'malformed',
+    reason:              `it holds entities, and only a tracker at the repository's root may hold them, not one in the folder ${projectPrefix} (entities-in-a-folder)`,
+    unsupportedEntities: { kind: 'entities-in-a-folder', projectPrefix },
+  };
 }
 
 function read(pipelineFilePath: string): PipelineReading {
@@ -444,10 +623,10 @@ function storedDocumentOf(pipeline: Readonly<Pipeline>): Record<string, unknown>
  */
 function contentsOf(pipeline: Readonly<Pipeline>): string {
   const document = storedDocumentOf(pipeline);
-  const reading  = documentReadingOf(document);
+  const reading  = mappedReadingOf(document);
   return JsonTextUtil.storedFileTextOf(reading.verdict === 'readable' ? { ...reading.pipeline, version: document['version'] } : document);
 }
 
 export const PipelineFile = Object.freeze({
-  read, contentsOf, documentReadingOf, storedDocumentOf, billingOf
+  read, contentsOf, documentReadingOf, entitiesInAFolderReadingOf, storedDocumentOf, billingOf
 });

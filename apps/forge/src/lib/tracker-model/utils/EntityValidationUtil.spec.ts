@@ -1,8 +1,8 @@
 /**
  * The one check of a pipeline's entities that the pipeline file and the Bridge share. What matters: a valid layout has no refusal, a home
- * inside another home among it; each refusal comes with the keys it names: two entities with the same home (a trailing slash ignored), an
- * unknown key in a whitelist or in `dependsOn`, a whitelisted entity that is not a package (the root entity included) or has no review,
- * and a circle in `dependsOn`, a self-dependency and a root entity that names a dependency included.
+ * inside another home among it; each refusal comes with the keys it names: more than one entity of kind root, two entities with the same
+ * home (a trailing slash ignored), an unknown key in a whitelist or in `dependsOn`, a whitelisted entity that is not a package (the root
+ * entity included) or has no review, and a circle in `dependsOn`, a self-dependency and a root entity that names a dependency included.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -28,6 +28,11 @@ test('a valid layout has no refusal, a home inside another and a named root depe
 });
 
 describe('a refusal', () => {
+  test('names every entity of kind root when there is more than one', () => {
+    const entities: PipelineEntities = { 'base': entityOf('root', ['/base']), 'core': entityOf('root', ['/core']) };
+    expect(EntityValidationUtil.refusalsOf(entities)).toEqual([{ reason: 'more-than-one-root', entityKeys: ['base', 'core'] }]);
+  });
+
   test('names two entities with the same home, a trailing slash ignored', () => {
     const entities: PipelineEntities = { ...VALID_ENTITIES, 'shop-legacy': entityOf('app', ['/apps/legacy', '/apps/shop/']) };
     expect(EntityValidationUtil.refusalsOf(entities)).toEqual([{ reason: 'equal-homes', home: '/apps/shop', entityKeys: ['shop', 'shop-legacy'] }]);

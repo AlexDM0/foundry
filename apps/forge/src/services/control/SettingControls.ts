@@ -11,6 +11,7 @@ export function requireReadablePipeline(change: TrackerChange): void {
   const filePath = change.workspace.pipelineFilePath;
   if (unreadablePipeline === null) return;
   if (unreadablePipeline.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath });
+  if (unreadablePipeline.unsupportedEntities !== undefined) throw new OperationRefusal('refused', { ...unreadablePipeline.unsupportedEntities, filePath });
   throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath, reason: unreadablePipeline.reason });
 }
 

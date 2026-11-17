@@ -18,6 +18,7 @@ import { PipelineSetupFile }                                                  fr
 import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
 import type { LogRecord }                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import { Board }                                                              from '../../lib/tracker-model/Board.ts';
 import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
 import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
@@ -25,6 +26,7 @@ import { OperationRefusal }                                                   fr
 import { draftFilePathOf, type MalformedDraftFile }                           from './DraftStore.ts';
 import { everyEpicFilePathIn, type MalformedEpicFile }                        from './EpicStore.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
+import { projectLocationOf }                                                  from './ProjectLocation.ts';
 import { everyTicketFilePathIn, type MalformedTicketFile }                    from './TicketStore.ts';
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock }      from './TrackerLock.ts';
 import { requireTracker, type TrackerContents }                               from './TrackerReader.ts';
@@ -73,6 +75,29 @@ interface OpenBoard {
   contents:           TrackerContents;
   logRecordCollector: ReturnType<typeof createLogRecordCollector>;
   board:              Board;
+}
+
+/**
+ * Only a tracker at its repository's root holds entities, since an entity's home is a repository folder. The prefix is read only for a
+ * pipeline that holds entities, so a pipeline without them reads no more than before.
+ */
+function folderPrefixHoldingEntitiesOf(workspace: Workspace, pipeline: Readonly<Pipeline> | null): string | null {
+  if (pipeline?.entities === undefined) return null;
+  const { projectPrefix } = projectLocationOf(workspace.rootDirectory);
+  return projectPrefix === '' ? null : projectPrefix;
+}
+
+function pipelineReadingInPlaceOf(workspace: Workspace, reading: PipelineReading): PipelineReading {
+  if (reading.verdict !== 'readable') return reading;
+  const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, reading.pipeline);
+  return projectPrefix === null ? reading : PipelineFile.entitiesInAFolderReadingOf(projectPrefix);
+}
+
+/** The pipeline a mutation would store with entities in a tracker in a folder is refused before anything is written. */
+function refuseEntitiesInAFolder(workspace: Workspace, board: Board): void {
+  if (!board.pipelineChanged()) return;
+  const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, board.pipeline());
+  if (projectPrefix !== null) throw new OperationRefusal('refused', { kind: 'entities-in-a-folder', filePath: workspace.pipelineFilePath, projectPrefix });
 }
 
 function openBoard(contents: TrackerContents): OpenBoard {
@@ -156,7 +181,8 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
   } = request;
 
   return withLock(workspace, async (hold) => {
-    const openedBoard = openBoard(requireTracker(workspace));
+    const contents    = requireTracker(workspace);
+    const openedBoard = openBoard({ ...contents, pipelineReading: pipelineReadingInPlaceOf(workspace, contents.pipelineReading) });
 
     const deletionCallbacks: ((deletedTicketCount: number) => void)[] = [];
     const result = await mutateWrappingBoardRefusals(mutate, {
@@ -172,6 +198,7 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
       deleteAllTicketFilesAfterwards: (onDeleted) => { deletionCallbacks.push(onDeleted); },
     });
 
+    refuseEntitiesInAFolder(workspace, openedBoard.board);
     const plannedHold = plannedHoldOf(workspace, openedBoard, deletionCallbacks.length > 0);
     commitHold(workspace, plannedHold.files, hold, afterFileWritten);
     for (const onDeleted of deletionCallbacks) onDeleted(plannedHold.deletedTicketCount);

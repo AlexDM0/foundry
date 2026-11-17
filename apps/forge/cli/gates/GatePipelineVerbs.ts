@@ -221,6 +221,9 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
   commandArguments.rejectExtraPositionals(1, GATE_PIPELINE_USAGE.list);
   const { pipelineFilePath } = requireWorkspace(context.currentDirectory);
   const reading = PipelineFile.read(pipelineFilePath);
+  if (reading.verdict === 'malformed' && reading.unsupportedEntities !== undefined) {
+    throw new OperationRefusal('refused', { ...reading.unsupportedEntities, filePath: pipelineFilePath });
+  }
   if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineFilePath, reason: reading.reason });
   if (reading.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath: pipelineFilePath });
   const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;

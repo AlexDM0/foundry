@@ -7,6 +7,7 @@ import type { EntityKey } from '../@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from './EntityOwnershipUtil.ts';
 
 export type EntityRefusal =
+  | { reason: 'more-than-one-root'; entityKeys: EntityKey[] }
   | { reason: 'equal-homes'; home: string; entityKeys: EntityKey[] }
   | { reason: 'unknown-whitelist-key'; entityKey: EntityKey; unknownKey: EntityKey }
   | { reason: 'unknown-dependency-key'; entityKey: EntityKey; unknownKey: EntityKey }
@@ -15,6 +16,11 @@ export type EntityRefusal =
   | { reason: 'dependency-circle'; entityKeys: EntityKey[] };
 
 export type EntityRefusalReason = EntityRefusal['reason'];
+
+function rootCountRefusalsOf(entities: PipelineEntities): EntityRefusal[] {
+  const rootEntityKeys = Object.keys(entities).filter((entityKey) => entities[entityKey]?.kind === 'root');
+  return rootEntityKeys.length > 1 ? [{ reason: 'more-than-one-root', entityKeys: rootEntityKeys }] : [];
+}
 
 function equalHomeRefusalsOf(entities: PipelineEntities): EntityRefusal[] {
   const entityKeysByHome = new Map<string, EntityKey[]>();
@@ -73,9 +79,10 @@ function circlesOf(entities: PipelineEntities): EntityKey[][] {
   return circles;
 }
 
-/** Every refusal of the entities, in a fixed order: equal homes, the whitelists, unknown dependencies, then each circle. */
+/** Every refusal of the entities, in a fixed order: more than one root entity, equal homes, the whitelists, unknown dependencies, then each circle. */
 function refusalsOf(entities: PipelineEntities): EntityRefusal[] {
   return [
+    ...rootCountRefusalsOf(entities),
     ...equalHomeRefusalsOf(entities),
     ...whitelistRefusalsOf(entities),
     ...unknownDependencyRefusalsOf(entities),
