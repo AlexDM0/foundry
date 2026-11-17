@@ -634,7 +634,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.8` and `0.0`: 1.1 adds
+moment the server answers, while the Overseer starts too. This forge answers `1.9` and `0.0`: 1.1 adds
 [Flint's brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and
 crosses, the entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity`
 command, a ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields
@@ -646,7 +646,10 @@ on a setup record, and `isACopy` on `pipeline-draft-edit`, 1.6 adds the `need-de
 the `needs-declared` job outcome, the `need-for-root`, `need-closes-circle`, `need-abandoned`, `work-in-other-entity` and
 `whitelist-removed-mid-crossing` decision kinds and the `need-declared` record, 1.7 adds the `changed-only-outside-home-and-reach`
 refusal and job-ended cause and the `pipeline-set-per-entity` refusal, 1.8 adds the `whitelist-not-supported` refusal, a
-pipeline with entities in the Overseer's documents and the board, and the `changed-outside-home-and-reach` job-ended cause, each minor only adds, and version 0.0 stands for every forge released before
+pipeline with entities in the Overseer's documents and the board, and the `changed-outside-home-and-reach` job-ended cause, 1.9 adds a
+progress row's `stage`, `seals`, `packageReturns` and `stageCounters`, the `entity-named-by-tickets` and `entities-while-tickets-in-flight`
+refusals and apply reasons, the entity on the `constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's
+`entityAssignment`, each minor only adds, and version 0.0 stands for every forge released before
 system versions.
 
 The system version is set by interoperability, never by a package's version:
