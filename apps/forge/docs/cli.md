@@ -1597,7 +1597,8 @@ branch back at its own tip. With `airlock.reReview` absent no conflict re-review
 [Apply](#apply)'s stage 1 leaves a request whose `CONSTITUTION.md` main lacks. The main line's Airlock commits that text
 in a `constitution-commit` job, role `null`, no ticket, no agent and no Customs. It is the one write of this program to
 the main line outside a ticket's landing. The job runs no gate of any phase, takes no gate slot and opens no
-`merge-refused` decision: the commit changes only that document, and the one-path check below lets nothing else land.
+`merge-refused` decision: the commit changes only the listed constitutions, and the path check below lets nothing else
+land.
 
 - **Allocation.** Each sweep, while a request waits (`committing` with no live job, or `held`) and no job holds the
   main line's slot, the Airlock reads main's `CONSTITUTION.md` first. Main already holding the draft's text finishes
@@ -1612,8 +1613,10 @@ the main line outside a ticket's landing. The job runs no gate of any phase, tak
   byte for byte, staged with `git add -- CONSTITUTION.md` and committed with
   `git commit --no-verify -q -m <subject>`, hooks off, in the Overseer's own process and with the repository's own
   configuration. The subject is `Add the repository constitution` when main had no such file, else
-  `Update the repository constitution`, with no body. No call overrides `commit.gpgsign`. The commit must change
-  exactly one path against the tip, `CONSTITUTION.md`.
+  `Update the repository constitution`, with no body. No call overrides `commit.gpgsign`. The commit may change only
+  the paths it lists against the tip; a forge without entities lists `CONSTITUTION.md` alone, so its commit changes
+  exactly that path. A list of several, each entity's constitution beside `CONSTITUTION.md`, is checked blob by blob,
+  staged in one `git add --` and committed under `Update the constitutions`.
 - **Landing.** The same compare-and-swap fast-forward of the main checkout a ticket's landing uses, with no Acceptance
   check. The landing's hold runs Apply's stage 2. The worktree is removed after the hold, and after every end of the
   job.

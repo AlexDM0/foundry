@@ -1,9 +1,10 @@
 /**
- * The commit of an Apply's `CONSTITUTION.md` in its own worktree. What matters: the draft's text is written byte for byte and committed
- * with hooks off, a subject that says whether main had the file and no body; main's blob must be the one the record opened on; a commit
- * git refuses is an unsigned one where the repository signs, carrying git's text; and a commit that changes any path but `CONSTITUTION.md`
- * is refused, fail closed; a tracker below the repository's root commits its own project's file. The folders are real; git answers from
- * the recorded answer sets of `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
+ * The commit of an Apply's constitutions in its own worktree. What matters: the draft's text is written byte for byte and committed with
+ * hooks off, a subject that says whether main had the file and no body; main's blob must be the one the record opened on; a commit git
+ * refuses is an unsigned one where the repository signs, carrying git's text; a commit that changes any path outside its list is refused,
+ * fail closed, for one `CONSTITUTION.md` as for a forge with entities' list of several; a list that is empty or names a path twice commits
+ * nothing; and a tracker below the repository's root commits its own project's file. The folders are real; git answers from the recorded
+ * answer sets of `src/services/overseer/testing/ConstitutionCommitAnswers.ts`.
  */
 import {
   existsSync,
@@ -31,6 +32,7 @@ import {
   CONSTITUTION_COMMIT_IDS,
   ConstitutionCommitAnswers,
   DRAFT_CONSTITUTION_TEXT,
+  SEVERAL_FILES_SUBJECT,
   type ConstitutionCommitWalk
 } from './testing/ConstitutionCommitAnswers.ts';
 
@@ -38,6 +40,10 @@ const recordedGit = useRecordedGit();
 
 const { MAIN_TIP } = RECORDED_AIRLOCK_IDS;
 const { COMMITTED_TIP, MAIN_BLOB, OTHER_BLOB } = CONSTITUTION_COMMIT_IDS;
+
+const ENTITY_CONSTITUTION_PATH = 'packages/design-system/CONSTITUTION.md';
+
+const ENTITY_CONSTITUTION_TEXT = '# Design system\n\n- Compose before you add a part.\n';
 
 let repository: string | null = null;
 
@@ -55,11 +61,17 @@ function plantedRequest(changes: Partial<ConstitutionCommitRequest> = {}): Const
     worktreesRoot:  `${repository}-worktrees`,
     jobId:          'J1',
     targetTip:      MAIN_TIP,
-    baseBlob:       MAIN_BLOB,
-    markdown:       DRAFT_CONSTITUTION_TEXT,
+    constitutions:  [{ path: 'CONSTITUTION.md', baseBlob: MAIN_BLOB, markdown: DRAFT_CONSTITUTION_TEXT }],
     signsCommits:   false,
     ...changes,
   };
+}
+
+function entityConstitutions(): ConstitutionCommitRequest['constitutions'] {
+  return [
+    { path: 'CONSTITUTION.md', baseBlob: MAIN_BLOB, markdown: DRAFT_CONSTITUTION_TEXT },
+    { path: ENTITY_CONSTITUTION_PATH, baseBlob: MAIN_BLOB, markdown: ENTITY_CONSTITUTION_TEXT },
+  ];
 }
 
 function answering(request: ConstitutionCommitRequest, walk: Partial<ConstitutionCommitWalk> = {}): void {
@@ -87,7 +99,7 @@ describe('a commit', () => {
   });
 
   test('says it adds the constitution when main held no such file', () => {
-    const request = plantedRequest({ baseBlob: null });
+    const request = plantedRequest({ constitutions: [{ path: 'CONSTITUTION.md', baseBlob: null, markdown: DRAFT_CONSTITUTION_TEXT }] });
     answering(request, { mainBlob: null });
 
     expect(ConstitutionCommits.commitConstitution(request).verdict).toBe('committed');
@@ -109,6 +121,18 @@ describe('a commit', () => {
     expect(readFileSync(join(worktree, constitutionPath), 'utf8')).toBe(DRAFT_CONSTITUTION_TEXT);
     expect(recordedGit.flowCalls()).toContainEqual(['add', '--', constitutionPath]);
     expect(ConstitutionCommits.removeCommitWorktree(projectRequest.repositoryRoot, request.worktreesRoot, 'J1')).toBeNull();
+  });
+
+  test('of a list writes each draft, stages every listed path and commits them in one commit with one subject', () => {
+    const request = plantedRequest({ constitutions: entityConstitutions() });
+    answering(request, { constitutionPaths: ['CONSTITUTION.md', ENTITY_CONSTITUTION_PATH] });
+
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'committed', commit: COMMITTED_TIP });
+    const worktree = commitWorktreeOf(request.repositoryRoot, 'J1');
+    expect(readFileSync(join(worktree, 'CONSTITUTION.md'), 'utf8')).toBe(DRAFT_CONSTITUTION_TEXT);
+    expect(readFileSync(join(worktree, ENTITY_CONSTITUTION_PATH), 'utf8')).toBe(ENTITY_CONSTITUTION_TEXT);
+    expect(recordedGit.flowCalls()).toContainEqual(['add', '--', 'CONSTITUTION.md', ENTITY_CONSTITUTION_PATH]);
+    expect(commitCallsAsked()).toEqual([['commit', '--no-verify', '-q', '-m', SEVERAL_FILES_SUBJECT]]);
   });
 
   test('the worktree it leaves is removed', () => {
@@ -149,5 +173,23 @@ describe('a refused commit', () => {
     answering(request, { paths: 'constitution-and-base' });
 
     expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+  });
+
+  test('a list whose commit changes a path outside it is refused, so that path never lands', () => {
+    const request = plantedRequest({ constitutions: entityConstitutions() });
+    answering(request, { constitutionPaths: ['CONSTITUTION.md', ENTITY_CONSTITUTION_PATH], paths: 'constitution-and-base' });
+
+    expect(ConstitutionCommits.commitConstitution(request)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+  });
+
+  test('an empty list or one that names a path twice is refused before git is asked', () => {
+    const empty = plantedRequest({ constitutions: [] });
+    expect(ConstitutionCommits.commitConstitution(empty)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    removeScratchDirectory(empty.repositoryRoot);
+
+    const rootConstitution = { path: 'CONSTITUTION.md', baseBlob: MAIN_BLOB, markdown: DRAFT_CONSTITUTION_TEXT };
+    const twice = plantedRequest({ constitutions: [rootConstitution, rootConstitution] });
+    expect(ConstitutionCommits.commitConstitution(twice)).toEqual({ verdict: 'refused', reason: 'constitution-commit-unexpected-paths', gitFailure: null });
+    expect(recordedGit.flowCalls()).toEqual([]);
   });
 });

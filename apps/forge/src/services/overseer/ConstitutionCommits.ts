@@ -1,8 +1,9 @@
 /**
- * The commit of an Apply's `CONSTITUTION.md`, the project's own (plan section 8.7), made in the Overseer's own process in a detached worktree of the main
- * line's tip that its constitution commit job owns: main's blob of the file is checked against the one the record opened on, the draft's
- * text is written byte for byte, and the commit, with hooks off and the repository's own signing configuration, must change that one path
- * and nothing else. Every refusal is a wordless verdict; git's own text goes with it.
+ * The commit of an Apply's constitutions, the project's own `CONSTITUTION.md` (plan section 8.7) and on a forge with entities each changed
+ * entity's, made in the Overseer's own process in a detached worktree of the main line's tip that its constitution commit job owns: main's
+ * blob of each file is checked against the one the record opened on, each draft's text is written byte for byte, and the commit, with hooks
+ * off and the repository's own signing configuration, must change only the listed paths. Every refusal is a wordless verdict; git's own
+ * text goes with it.
  */
 import { mkdirSync }     from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -23,6 +24,16 @@ const SUBJECT_OF_A_NEW_FILE = 'Add the repository constitution';
 
 const SUBJECT_OF_A_CHANGED_FILE = 'Update the repository constitution';
 
+const SUBJECT_OF_SEVERAL_FILES = 'Update the constitutions';
+
+/** One constitution the commit writes: its project path, main's blob of it when the record opened, and the draft's text. */
+export interface ConstitutionFileCommit {
+  path:     string;
+  /** `null` when main held no such file. */
+  baseBlob: string | null;
+  markdown: string;
+}
+
 export interface ConstitutionCommitRequest {
   /** The tracker's folder, `Workspace.rootDirectory`, from which its place in the repository is found. */
   repositoryRoot: string;
@@ -30,9 +41,8 @@ export interface ConstitutionCommitRequest {
   jobId:          string;
   /** The main line's tip the job's slot recorded, which the commit is made on. */
   targetTip:      string;
-  /** Main's blob of `CONSTITUTION.md` when the record opened; `null` when main held no such file. */
-  baseBlob:       string | null;
-  markdown:       string;
+  /** Every path the commit may change; a forge without entities lists its one `CONSTITUTION.md`. */
+  constitutions:  readonly ConstitutionFileCommit[];
   /** The repository sets `commit.gpgsign`: a commit git cannot make is then an unsigned one, never made. */
   signsCommits:   boolean;
 }
@@ -47,7 +57,7 @@ export type ConstitutionCommitVerdict =
   | { verdict: 'committed'; commit: string }
   | { verdict: 'refused'; reason: ConstitutionCommitRefusalReason; gitFailure: string | null };
 
-/** The blob of `CONSTITUTION.md` in a commit: its id, `null` when the commit holds no such file, or `unreadable` when git cannot answer. */
+/** The blob of a constitution in a commit: its id, `null` when the commit holds no such file, or `unreadable` when git cannot answer. */
 export type ConstitutionBlobReading = { verdict: 'read'; blob: string | null } | { verdict: 'unreadable'; gitFailure: string };
 
 function commitWorktreeOf(worktreesRoot: string, jobId: string): string {
@@ -58,8 +68,13 @@ function subjectOf(mainHoldsTheFile: boolean): string {
   return mainHoldsTheFile ? SUBJECT_OF_A_CHANGED_FILE : SUBJECT_OF_A_NEW_FILE;
 }
 
-function constitutionBlobOf(projectDirectory: string, commit: string): ConstitutionBlobReading {
-  const constitution = InstructionFiles.projectFileOf(projectDirectory, CONSTITUTION_FILE_PATH);
+/** One constitution keeps the subject that says whether main had it; several share one. */
+function subjectOfFiles(mainBlobs: readonly (string | null)[]): string {
+  return mainBlobs.length === 1 ? subjectOf(mainBlobs[0] !== null) : SUBJECT_OF_SEVERAL_FILES;
+}
+
+function constitutionBlobOf(projectDirectory: string, commit: string, constitutionPath = CONSTITUTION_FILE_PATH): ConstitutionBlobReading {
+  const constitution = InstructionFiles.projectFileOf(projectDirectory, constitutionPath);
   const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${commit}:${constitution.repositoryPath}`];
   const run = GitProcess.run(constitution.repositoryRoot, blobArguments);
   if (GitProcess.succeeded(run)) return { verdict: 'read', blob: run.standardOutput.trim() };
@@ -77,38 +92,51 @@ function pathsChangedBy(worktree: string, targetTip: string, commit: string): st
   return GitProcess.succeeded(run) ? run.standardOutput.split('\0').filter((path) => path !== '') : null;
 }
 
+/** The commit changes some of the listed paths and nothing else: a listed draft equal to main's text leaves its path unchanged. */
+function changesOnlyListedPaths(changedPaths: readonly string[] | null, listedPaths: ReadonlySet<string>): boolean {
+  return changedPaths !== null && changedPaths.length > 0 && changedPaths.every((path) => listedPaths.has(path));
+}
+
 /**
- * Commits the draft's text on the recorded tip in the job's worktree, which it leaves for the caller to land or remove. Never passes an
+ * Commits each draft's text on the recorded tip in the job's worktree, which it leaves for the caller to land or remove. Never passes an
  * override of `commit.gpgsign`: a commit git cannot sign fails, and nothing is committed unsigned.
  */
 function commitConstitution(request: ConstitutionCommitRequest): ConstitutionCommitVerdict {
-  const { targetTip } = request;
-  const { repositoryRoot, repositoryPath } = InstructionFiles.projectFileOf(request.repositoryRoot, CONSTITUTION_FILE_PATH);
-  const mainBlob = constitutionBlobOf(request.repositoryRoot, targetTip);
-  if (mainBlob.verdict === 'unreadable') return refused('git-failed', mainBlob.gitFailure);
-  if (mainBlob.blob !== request.baseBlob) return refused('constitution-moved');
+  const { targetTip, constitutions } = request;
+  const files = constitutions.map((constitution) => ({ constitution, file: InstructionFiles.projectFileOf(request.repositoryRoot, constitution.path) }));
+  const listedPaths = new Set(files.map(({ file }) => file.repositoryPath));
+  const repositoryRoot = files[0]?.file.repositoryRoot;
+  if (repositoryRoot === undefined || listedPaths.size !== files.length) return refused('constitution-commit-unexpected-paths');
+  const mainBlobs: (string | null)[] = [];
+  for (const constitution of constitutions) {
+    const mainBlob = constitutionBlobOf(request.repositoryRoot, targetTip, constitution.path);
+    if (mainBlob.verdict === 'unreadable') return refused('git-failed', mainBlob.gitFailure);
+    if (mainBlob.blob !== constitution.baseBlob) return refused('constitution-moved');
+    mainBlobs.push(mainBlob.blob);
+  }
   const worktree = commitWorktreeOf(request.worktreesRoot, request.jobId);
   const addArguments = ['worktree', 'add', '--quiet', '--detach', worktree, targetTip];
   const added = GitProcess.run(repositoryRoot, addArguments);
   if (!GitProcess.succeeded(added)) return refused('git-failed', GitProcess.failureReasonOf(added, addArguments));
   const ceiling = GitWorktrees.ceilingOf(worktree);
-  const constitutionInWorktree = join(worktree, repositoryPath);
-  // A project folder holding no tracked file yet is not in the checkout.
-  mkdirSync(dirname(constitutionInWorktree), { recursive: true });
-  writeFileAtomically(constitutionInWorktree, request.markdown);
-  const stageArguments = ['add', '--', repositoryPath];
+  for (const { constitution, file } of files) {
+    const constitutionInWorktree = join(worktree, file.repositoryPath);
+    // A project folder holding no tracked file yet is not in the checkout.
+    mkdirSync(dirname(constitutionInWorktree), { recursive: true });
+    writeFileAtomically(constitutionInWorktree, constitution.markdown);
+  }
+  const stageArguments = ['add', '--', ...listedPaths];
   const staged = GitProcess.run(worktree, stageArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(staged)) return refused('git-failed', GitProcess.failureReasonOf(staged, stageArguments));
-  const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOf(mainBlob.blob !== null)];
+  const commitArguments = ['commit', '--no-verify', '-q', '-m', subjectOfFiles(mainBlobs)];
   const committed = GitProcess.run(worktree, commitArguments, 'hooks-off', undefined, ceiling);
   if (!GitProcess.succeeded(committed)) {
     return refused(request.signsCommits ? 'constitution-commit-unsigned' : 'git-failed', GitProcess.failureReasonOf(committed, commitArguments));
   }
   const commit = GitProcess.resolvedCommitOf(worktree, 'HEAD', ceiling);
   if (commit === null || commit === targetTip) return refused('git-failed', `git ${commitArguments.join(' ')} exited 0, yet HEAD holds no new commit.`);
-  const changedPaths = pathsChangedBy(worktree, targetTip, commit);
   // Fail closed: this check is what lets the commit land with no gate.
-  if (changedPaths === null || changedPaths.length !== 1 || changedPaths[0] !== repositoryPath) return refused('constitution-commit-unexpected-paths');
+  if (!changesOnlyListedPaths(pathsChangedBy(worktree, targetTip, commit), listedPaths)) return refused('constitution-commit-unexpected-paths');
   return { verdict: 'committed', commit };
 }
 

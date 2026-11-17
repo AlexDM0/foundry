@@ -39,7 +39,7 @@ import type { AirlockLimits }                                                 fr
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                     from '../../shared/constants/OverseerLimits.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import { MergeRun }                                                           from '../lifecycle/MergeRun.ts';
-import { ConstitutionCommits }                                                from './ConstitutionCommits.ts';
+import { ConstitutionCommits, type ConstitutionFileCommit }                   from './ConstitutionCommits.ts';
 import { GroupWorktrees }                                                     from './GroupWorktrees.ts';
 import { CONSTITUTION_FILE_PATH }                                             from './InstructionFiles.ts';
 import { JobResumption }                                                      from './JobResumption.ts';
@@ -105,8 +105,8 @@ export interface AirlocksContext {
   dispatchIsStopped:      () => boolean;
   /** A removal git declined after a refresh or a release: the Overseer logs it and shows it as a notice while the leftover stands. */
   reportDeclinedCleanup:  (declined: DeclinedCleanup) => void;
-  /** Main's `CONSTITUTION.md` as git answers for the main line's tip, read afresh at each call. */
-  mainConstitutionOf:     () => MainConstitutionReading;
+  /** A constitution on the main line's tip as git answers for its project path, read afresh at each call. */
+  mainConstitutionOf:     (constitutionPath: string) => MainConstitutionReading;
   /** The repository sets `commit.gpgsign`, so a constitution commit git cannot make is an unsigned one. */
   repositorySignsCommits: () => boolean;
 }
@@ -263,13 +263,15 @@ function isConstitutionCommit(job: Readonly<Job>): boolean {
   return job.kind === 'constitution-commit';
 }
 
-/** What a constitution commit job commits and lands: the open record's Apply request that names it, with the draft's text. */
+/**
+ * What a constitution commit job commits and lands: the open record's Apply request that names it, with each constitution's draft. The
+ * record's own `CONSTITUTION.md`, whose text on main the Apply records, comes first; a forge without entities lists it alone.
+ */
 interface ConstitutionCommitRequest {
   setupId:       string;
   draftRevision: number;
   resumesBoard:  boolean;
-  markdown:      string;
-  baseBlob:      string | null;
+  constitutions: readonly [ConstitutionFileCommit, ...ConstitutionFileCommit[]];
 }
 
 /** The open record's Apply request while it waits for its commit; with `commitJobId`, only while it names that job. */
@@ -283,14 +285,27 @@ function pendingApplyOf(board: Board, commitJobId?: string): ConstitutionCommitR
     setupId:       setup.setupId,
     draftRevision: request.draftRevision,
     resumesBoard:  request.resumesBoard,
-    markdown:      setup.constitution?.markdown ?? '',
-    baseBlob:      setup.constitution?.baseBlob ?? null,
+    constitutions: [{ path: CONSTITUTION_FILE_PATH, markdown: setup.constitution?.markdown ?? '', baseBlob: setup.constitution?.baseBlob ?? null }],
   };
 }
 
-/** Main holds the draft's text when it holds `CONSTITUTION.md` with exactly that text; an empty draft only matches no file at all. */
+/** Main holds the draft's text when it holds the constitution with exactly that text; an empty draft only matches no file at all. */
 function mainHoldsTheText(mainConstitution: MainConstitution | null, markdown: string): boolean {
   return (mainConstitution?.markdown ?? null) === (markdown === '' ? null : markdown);
+}
+
+/**
+ * The blob of each listed constitution in the commit, in the request's order; `null` when the commit holds one of them not, or git cannot
+ * tell, so the commit is not the one the job made.
+ */
+function committedBlobsOf(commit: string, request: Readonly<ConstitutionCommitRequest>, projectDirectory: string): string[] | null {
+  const blobs: string[] = [];
+  for (const constitution of request.constitutions) {
+    const reading = ConstitutionCommits.constitutionBlobOf(projectDirectory, commit, constitution.path);
+    if (reading.verdict !== 'read' || reading.blob === null) return null;
+    blobs.push(reading.blob);
+  }
+  return blobs;
 }
 
 function mergeAgentOf(board: Board, job: Readonly<Job>): Readonly<Job> | undefined {
@@ -1134,8 +1149,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       worktreesRoot:  context.worktreesRoot,
       jobId:          job.id,
       targetTip:      slotOf(job).targetTip,
-      baseBlob:       request.baseBlob,
-      markdown:       request.markdown,
+      constitutions:  request.constitutions,
       signsCommits:   context.repositorySignsCommits(),
     });
     if (verdict.verdict === 'refused') {
@@ -1160,14 +1174,16 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const slot     = slotOf(job);
     const worktree = ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id);
     const commit   = existsSync(worktree) ? MergeRun.headOf(worktree) : null;
-    const blob     = commit === null ? null : ConstitutionCommits.constitutionBlobOf(context.repositoryRoot, commit);
-    if (commit === null || commit === slot.targetTip || blob?.verdict !== 'read' || blob.blob === null) {
+    if (commit === null || commit === slot.targetTip) {
       return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
     }
     const landed = await context.hold((hold) => {
       const request = pendingApplyOf(hold.board, job.id);
       if (request === null) return { verdict: 'cancelled' } as const;
-      const mainConstitution: MainConstitution = { path: CONSTITUTION_FILE_PATH, markdown: request.markdown, blob: blob.blob ?? '' };
+      const recordedBlob = committedBlobsOf(commit, request, context.repositoryRoot)?.[0];
+      if (recordedBlob === undefined) return { verdict: 'orphaned' } as const;
+      const [recorded] = request.constitutions;
+      const mainConstitution: MainConstitution = { path: recorded.path, markdown: recorded.markdown, blob: recordedBlob };
       if (hold.board.storedPipelineMovedSince(request.setupId, mainConstitution)) {
         hold.board.endConstitutionCommitJob(job.id, { outcome: 'failed', cause: 'pipeline-moved' }, hold.at);
         hold.board.refuseApply(request.setupId, { reason: 'pipeline-moved', gitFailure: null }, hold.at);
@@ -1190,6 +1206,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return { verdict: 'landed' } as const;
     });
     if (landed.verdict === 'cancelled') return endConstitutionCommit(job, { outcome: 'stopped', cause: APPLY_CANCELLED_CAUSE });
+    if (landed.verdict === 'orphaned') return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
     if (landed.verdict !== 'refused') {
       removeConstitutionCommitWorktree(job);
       return true;
@@ -1198,7 +1215,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     // The commit and its worktree stay for a later sweep, which finds the lock its sibling held free again.
     if (LANDING_OUTCOME_OF_REFUSAL[refusal.reason] === 'wait-for-the-landing-lock') return false;
     const heldReason = HELD_APPLY_REASONS.find((reason) => reason === refusal.reason);
-    // A main line moved by anyone: only `CONSTITUTION.md` changes, so a fresh job commits again on the new tip.
+    // A main line moved by anyone: only the listed constitutions change, so a fresh job commits again on the new tip.
     if (heldReason === undefined) return endConstitutionCommit(job, { outcome: 'stopped', cause: refusal.reason });
     const blockingFiles = refusal.facts.blockingFiles ?? [];
     const heldFiles     = refusal.facts.heldFiles ?? [];
@@ -1234,12 +1251,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (waiting === null) return 'none';
     if (waiting.slotIsHeld) return 'waits';
     const { request } = waiting;
-    const reading = context.mainConstitutionOf();
-    if (reading.verdict === 'unreadable') return 'waits';
-    const mainConstitution = reading.verdict === 'read' ? reading.constitution : null;
-    if (mainHoldsTheText(mainConstitution, request.markdown)) {
+    const mainConstitutions: (MainConstitution | null)[] = [];
+    for (const constitution of request.constitutions) {
+      const reading = context.mainConstitutionOf(constitution.path);
+      if (reading.verdict === 'unreadable') return 'waits';
+      mainConstitutions.push(reading.verdict === 'read' ? reading.constitution : null);
+    }
+    const mainHoldsEveryText = request.constitutions.every((constitution, index) => mainHoldsTheText(mainConstitutions[index] ?? null, constitution.markdown));
+    if (mainHoldsEveryText) {
+      const recordedMainConstitution = mainConstitutions[0] ?? null;
       await context.hold((hold) => {
-        if (pendingApplyOf(hold.board)?.setupId === request.setupId) finishWithoutACommit(hold, request, mainConstitution);
+        if (pendingApplyOf(hold.board)?.setupId === request.setupId) finishWithoutACommit(hold, request, recordedMainConstitution);
       });
       return 'allocated';
     }

@@ -393,7 +393,8 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   replacing the section the filing template left; a builder never edits its ticket file (`docs/cli.md`, "A build job").
 - A review row belongs to its ticket by `reviewOf` alone. The Bridge reads which rows are bars from the Board facts,
   and a bar's name only to order a ticket's bars.
-- Apply commits `CONSTITUTION.md` to the main line through an Airlock job of kind `constitution-commit`. It is the one
+- Apply commits the constitutions to the main line through an Airlock job of kind `constitution-commit`, in one commit:
+  `CONSTITUTION.md`, and on a forge with entities each entity's constitution the job lists beside it. It is the one
   tracked write of the product to a tracked repository's main line outside a ticket's landing. The commit runs no gates,
-  because it changes only this document. A commit that changes another path never lands (`docs/cli.md`, "The
-  constitution commit").
+  because it changes only these documents. A commit that changes a path outside its list never lands; a forge without
+  entities lists `CONSTITUTION.md` alone (`docs/cli.md`, "The constitution commit").

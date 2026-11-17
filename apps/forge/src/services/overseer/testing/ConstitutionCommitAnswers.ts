@@ -50,6 +50,8 @@ export const PLANTED_MERGE_GATE = 'merge-tests';
 
 export const UPDATE_SUBJECT = 'Update the repository constitution';
 
+export const SEVERAL_FILES_SUBJECT = 'Update the constitutions';
+
 /** `worktreesRoot` is the Airlocks harness's unless given, such as a DrivePass's worktrees folder inside the repository. */
 export function commitWorktreeOf(repository: string, jobId: string, worktreesRoot = `${repository}-worktrees`): string {
   return join(worktreesRoot, CONSTITUTION_COMMITS_FOLDER, jobId);
@@ -70,27 +72,29 @@ export function requestConstitutionApply(board: Board, resumesBoard = false): st
 }
 
 export interface ConstitutionCommitWalk {
-  repository:        string;
+  repository:         string;
   /** The Airlocks harness's worktrees folder unless set. */
-  worktreesRoot?:    string;
-  jobId:             string;
+  worktreesRoot?:     string;
+  jobId:              string;
   /** The main line's tip the job claims on. */
-  mainTip:           string;
+  mainTip:            string;
   /** The constitution's path from the repository's root: `CONSTITUTION.md` unless set, as for a tracker below the root. */
-  constitutionPath?: string;
-  committedTip:      string;
+  constitutionPath?:  string;
+  /** Every path the commit writes, from the repository's root: `constitutionPath` alone unless set, as for a forge with entities. */
+  constitutionPaths?: readonly string[];
+  committedTip:       string;
   /** Main's blob of `CONSTITUTION.md` at `mainTip`; `MAIN_BLOB` unless set, `null` for no file. */
-  mainBlob?:         string | null;
+  mainBlob?:          string | null;
   /** git refuses the commit for a signer that fails, or commits. */
-  commit?:           'committed' | 'unsigned';
-  /** The commit changes `CONSTITUTION.md` alone, or `base.ts` beside it. */
-  paths?:            'constitution-only' | 'constitution-and-base';
+  commit?:            'committed' | 'unsigned';
+  /** The commit changes the listed paths alone, or `base.ts` beside them. */
+  paths?:             'constitution-only' | 'constitution-and-base';
   /** The main checkout is clean, or holds a change to `CONSTITUTION.md` that stops the fast-forward. */
-  mainCheckout?:     'clean' | 'constitution-modified';
+  mainCheckout?:      'clean' | 'constitution-modified';
   /** The main line's tip at the landing; `mainTip` unless set, as when someone moved main by hand. */
-  tipAtLanding?:     string;
+  tipAtLanding?:      string;
   /** What else answers once the commit landed. */
-  afterLanding?:     RecordedGitStage;
+  afterLanding?:      RecordedGitStage;
 }
 
 function blobRead(commit: string, blob: string | null, constitutionPath: string): RecordedGitStep {
@@ -105,7 +109,7 @@ function forcedRemoval(repository: string, worktree: string): RecordedGitStep {
 }
 
 /** The landing reads in the main checkout, and its fast-forward, which hands on to `landed` once git moved main. */
-function landingSteps(walk: Required<Omit<ConstitutionCommitWalk, 'afterLanding' | 'worktreesRoot'>>, landed: RecordedGitStage): RecordedGitStep[] {
+function landingSteps(walk: Required<Omit<ConstitutionCommitWalk, 'afterLanding' | 'worktreesRoot' | 'constitutionPaths'>>, landed: RecordedGitStage): RecordedGitStep[] {
   const {
     repository, committedTip, tipAtLanding, constitutionPath
   } = walk;
@@ -156,13 +160,15 @@ function constitutionCommitAnswersOf(walk: ConstitutionCommitWalk): RecordedGitS
   const {
     repository, jobId, mainTip, committedTip, mainBlob, constitutionPath
   } = settled;
+  const constitutionPaths = walk.constitutionPaths ?? [constitutionPath];
   const worktree = commitWorktreeOf(repository, jobId, walk.worktreesRoot);
-  const commitArguments = ['commit', '--no-verify', '-q', '-m', mainBlob === null ? 'Add the repository constitution' : UPDATE_SUBJECT];
+  const singleSubject = mainBlob === null ? 'Add the repository constitution' : UPDATE_SUBJECT;
+  const commitArguments = ['commit', '--no-verify', '-q', '-m', constitutionPaths.length === 1 ? singleSubject : SEVERAL_FILES_SUBJECT];
   const sharedSteps: RecordedGitStep[] = [
-    blobRead(mainTip, mainBlob, constitutionPath),
-    blobRead(committedTip, CONSTITUTION_COMMIT_IDS.COMMITTED_BLOB, constitutionPath),
+    ...constitutionPaths.map((path) => blobRead(mainTip, mainBlob, path)),
+    ...constitutionPaths.map((path) => blobRead(committedTip, CONSTITUTION_COMMIT_IDS.COMMITTED_BLOB, path)),
     stepIn(repository, { gitArguments: ['worktree', 'add', '--quiet', '--detach', worktree, mainTip], answeredAs: GIT_CALL_SHAPES.WORKTREE_ADD_DETACHED, leavesFolder: worktree }),
-    stepIn(worktree, { gitArguments: ['add', '--', constitutionPath], answeredAs: GIT_CALL_SHAPES.STAGE_OF_A_CHANGED_PATH }),
+    stepIn(worktree, { gitArguments: ['add', '--', ...constitutionPaths], answeredAs: GIT_CALL_SHAPES.STAGE_OF_A_CHANGED_PATH }),
     stepIn(worktree, settled.commit === 'unsigned'
       ? { gitArguments: commitArguments, answeredAs: GIT_CALL_SHAPES.COMMIT_UNSIGNED_BY_A_FAILING_SIGNER }
       : { gitArguments: commitArguments, answeredAs: GIT_CALL_SHAPES.COMMIT_OF_A_STAGED_PATH }),
@@ -170,7 +176,8 @@ function constitutionCommitAnswersOf(walk: ConstitutionCommitWalk): RecordedGitS
     stepIn(worktree, {
       gitArguments: ['diff', '--name-only', '--no-renames', '-z', mainTip, committedTip, '--'],
       answeredAs:   settled.paths === 'constitution-only' ? GIT_CALL_SHAPES.PATHS_BETWEEN_TWO_COMMITS : GIT_CALL_SHAPES.TWO_PATHS_BETWEEN_TWO_COMMITS,
-      filledIn:     { [PATH]: constitutionPath },
+      // git ends each path with a NUL, so the recorded one-path answer holds the whole list.
+      filledIn:     { [PATH]: constitutionPaths.join('\0') },
     }),
     forcedRemoval(repository, worktree),
   ];

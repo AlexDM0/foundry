@@ -1221,7 +1221,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       request.log(`Git declined the ${declined.cleanup} cleanup of ${declined.groupBranch}: ${declined.reason}`);
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
     },
-    mainConstitutionOf:     () => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine),
+    mainConstitutionOf:     (constitutionPath) => InstructionFiles.mainConstitutionOf(request.workspace.rootDirectory, request.mainLine, constitutionPath),
     repositorySignsCommits: () => repositorySignsCommits(projectLocation.repositoryRoot),
   });
 

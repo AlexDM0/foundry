@@ -3,9 +3,11 @@
  * order; a `constitution` entry is the pipeline's constitution path or the installed default; a `default-brief` entry is that role's
  * installed default; an absent list is the role's default list; an empty list reads the role's built-in brief, which every role has; each
  * job role reads its own role's list, an Airlock agent the list of the role it stands in for; one missing file refuses the whole reading;
- * and V11 protects every tracked path any role's resolved list names. Main's `CONSTITUTION.md` is read with its blob id from one commit of
- * the main line, absent when that commit holds none or when the main line is checked out with no commit yet, and unreadable, never
- * absent, when any other main line does not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers
+ * a job of an entity reads its entity's list and constitution, a job without one the forge's own, and a job of an entity the pipeline no
+ * longer holds the installed defaults; and V11 protects every tracked path any role's resolved list names, each entity's too. Main's
+ * `CONSTITUTION.md`, or an entity's constitution by its path, is read with its blob id from one commit of the main line, absent when that
+ * commit holds none or when the main line is checked out with no commit yet, and unreadable, never absent, when any other main line does
+ * not resolve. Data-folder files are read from disk; a tracked path is asked of git, which answers
  * from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import {
@@ -48,11 +50,29 @@ const MINIMAL_PIPELINE: Pipeline = {
   version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
+const ENTITY_CONSTITUTION_PATH = 'apps/gaia/CONSTITUTION.md';
+
+/** A forge with one entity whose builder reads its own constitution and a notes file, beside the forge's own empty steps. */
+const ENTITIES_PIPELINE: Pipeline = {
+  ...MINIMAL_PIPELINE,
+  entities: {
+    gaia: {
+      kind:         'app',
+      home:         ['/apps/gaia'],
+      constitution: { path: ENTITY_CONSTITUTION_PATH },
+      prepare:      [],
+      gates:        [],
+      phases:       { build: [], review: [], merge: [] },
+      agents:       { builder: { instructions: [{ kind: 'constitution' }, { kind: 'file', path: 'apps/gaia/docs/example-notes.md' }] } },
+    },
+  },
+};
+
 let repositoryDirectory = '';
 
-function jobOf(kind: string, role: Job['role']): Readonly<Job> {
+function jobOf(kind: string, role: Job['role'], entity?: string): Readonly<Job> {
   return {
-    id: 'J7', kind, role, ticketIds: ['012'], attempt: 1
+    id: 'J7', kind, role, ticketIds: ['012'], attempt: 1, ...entity === undefined ? {} : { entity, stage: 1 }
   } as unknown as Readonly<Job>;
 }
 
@@ -189,6 +209,29 @@ describeWhenGitIsRecorded('a constitution entry', () => {
   });
 });
 
+describeWhenGitIsRecorded('a job of an entity', () => {
+  test('reads its entity\'s list and constitution from the main line, and a job without an entity reads the forge\'s own', async () => {
+    const shownFile = (path: string) => ({
+      gitArguments: ['show', `${MAIN_LINE}:${path}`],
+      answeredAs:   GIT_CALL_SHAPES.FILE_ON_BRANCH,
+      filledIn:     { [RECORDED_PLACEHOLDERS.TEXT]: `Example text of ${path}.` },
+    });
+    const entityPaths = await recordedGit.playStage(
+      [shownFile(ENTITY_CONSTITUTION_PATH), shownFile('apps/gaia/docs/example-notes.md')],
+      async () => pathsReadFor(ENTITIES_PIPELINE, jobOf('build', 'builder', 'gaia')),
+    );
+
+    expect(entityPaths).toEqual([ENTITY_CONSTITUTION_PATH, 'apps/gaia/docs/example-notes.md']);
+    expect(pathsReadFor(ENTITIES_PIPELINE, jobOf('build', 'builder'))).toEqual([CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('builder')]);
+  });
+
+  test('of an entity the pipeline no longer holds reads the installed defaults', () => {
+    expect(pathsReadFor(ENTITIES_PIPELINE, jobOf('build', 'builder', 'example-removed'))).toEqual([
+      CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('builder'),
+    ]);
+  });
+});
+
 describeWhenGitIsRecorded('main\'s CONSTITUTION.md', () => {
   const MAIN_TIP = '1'.repeat(40);
   const BLOB = '2'.repeat(40);
@@ -211,6 +254,24 @@ describeWhenGitIsRecorded('main\'s CONSTITUTION.md', () => {
     ], async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE));
 
     expect(reading).toEqual({ verdict: 'read', constitution: { path: 'CONSTITUTION.md', markdown: '# Example Agency\n', blob: BLOB } });
+  });
+
+  test('of an entity is read by its path and named by it', async () => {
+    const reading = await recordedGit.playStage([
+      tipRead,
+      {
+        gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${MAIN_TIP}:${ENTITY_CONSTITUTION_PATH}`],
+        answeredAs:   GIT_CALL_SHAPES.BLOB_OF_A_PATH,
+        filledIn:     { [RECORDED_PLACEHOLDERS.BLOB]: BLOB },
+      },
+      {
+        gitArguments: ['show', `${MAIN_TIP}:${ENTITY_CONSTITUTION_PATH}`],
+        answeredAs:   GIT_CALL_SHAPES.FILE_ON_BRANCH,
+        filledIn:     { [RECORDED_PLACEHOLDERS.TEXT]: '# Gaia' },
+      },
+    ], async () => InstructionFiles.mainConstitutionOf(repositoryDirectory, MAIN_LINE, ENTITY_CONSTITUTION_PATH));
+
+    expect(reading).toEqual({ verdict: 'read', constitution: { path: ENTITY_CONSTITUTION_PATH, markdown: '# Gaia\n', blob: BLOB } });
   });
 
   test('is absent when the tip holds no such file, and unreadable when the main line does not resolve and is not checked out', async () => {
@@ -256,5 +317,9 @@ describe('the tracked files Customs V11 protects', () => {
     expect(InstructionFiles.trackedInstructionPathsOf(pipeline).sort()).toEqual(['CONSTITUTION.md', 'docs/example-merge.md', 'docs/example-re-review.md']);
     expect(InstructionFiles.trackedInstructionPathsOf(null)).toEqual([]);
     expect(InstructionFiles.trackedInstructionPathsOf(MINIMAL_PIPELINE)).toEqual([]);
+  });
+
+  test('each entity\'s constitution and listed files beside the forge\'s own', () => {
+    expect(InstructionFiles.trackedInstructionPathsOf(ENTITIES_PIPELINE).sort()).toEqual([ENTITY_CONSTITUTION_PATH, 'apps/gaia/docs/example-notes.md']);
   });
 });

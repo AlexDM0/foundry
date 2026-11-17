@@ -85,14 +85,21 @@ function isDataFolderPath(path: string): boolean {
   return path.startsWith(`${PRODUCT_NAMES.DATA_FOLDER}/`);
 }
 
-/**
- * Every tracked file a role's resolved list names, and the constitution, which a branch may change only where its ticket names it. They are
- * repository paths, as Customs V11 compares them with git's; `projectPrefix` is `ProjectLocation.projectPrefix`, `''` at the root.
- */
-function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): string[] {
+function namedInstructionPathsOf(pipeline: Readonly<Pipeline> | null): string[] {
   const listedPaths = PIPELINE_AGENT_ROLES.flatMap((role) => PipelineUtil.resolvedInstructionsOf(pipeline, role))
     .map((entry) => instructionPathOf(pipeline, entry));
-  const named = [...(pipeline?.constitution === undefined ? [] : [pipeline.constitution.path]), ...listedPaths];
+  return [...(pipeline?.constitution === undefined ? [] : [pipeline.constitution.path]), ...listedPaths];
+}
+
+/**
+ * Every tracked file a role's resolved list names, and the constitution, the forge's own and each entity's, which a branch may change only
+ * where its ticket names it. They are repository paths, as Customs V11 compares them with git's; `projectPrefix` is
+ * `ProjectLocation.projectPrefix`, `''` at the root.
+ */
+function trackedInstructionPathsOf(pipeline: Readonly<Pipeline> | null, projectPrefix = ''): string[] {
+  const entities = pipeline?.entities ?? {};
+  const entityPipelines = pipeline === null ? [] : Object.keys(entities).flatMap((entityKey) => PipelineUtil.pipelineOfEntity(pipeline, entityKey) ?? []);
+  const named = [pipeline, ...entityPipelines].flatMap((eachPipeline) => namedInstructionPathsOf(eachPipeline));
   const trackedProjectPaths = named.filter((path) => !isDataFolderPath(path));
   return [...new Set(trackedProjectPaths.map((projectPath) => ProjectPathsUtil.toRepositoryPath(projectPrefix, projectPath)))];
 }
@@ -138,17 +145,27 @@ function builtInBriefReadingOf(role: PipelineAgentRole): InstructionReading {
 }
 
 /**
+ * The pipeline a job reads its constitution and instructions from: its entity's, on a forge with entities, else the forge's own. An entity
+ * the pipeline no longer holds sets nothing, so its job reads the installed defaults.
+ */
+function pipelineOfJob(pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): Readonly<Pipeline> | null {
+  if (pipeline === null || job.entity === undefined) return pipeline;
+  return PipelineUtil.pipelineOfEntity(pipeline, job.entity);
+}
+
+/**
  * Read whole at each launch, so a changed file, default or pipeline reaches the next launch or resume; one missing file refuses them all. An
- * empty list reads the role's built-in brief, so the agent still knows its job.
+ * empty list reads the role's built-in brief, so the agent still knows its job. A job of an entity reads that entity's list and constitution.
  */
 function readingFor(projectDirectory: string, mainLine: string, pipeline: Readonly<Pipeline> | null, job: Readonly<Job>): InstructionReading {
   const role = instructionRoleOf(job);
   if (role === null) return { verdict: 'read', text: '', files: [] };
-  const entries = PipelineUtil.resolvedInstructionsOf(pipeline, role);
+  const jobPipeline = pipelineOfJob(pipeline, job);
+  const entries = PipelineUtil.resolvedInstructionsOf(jobPipeline, role);
   if (entries.length === 0) return builtInBriefReadingOf(role);
   const texts: string[] = [];
   const files: InstructionFileRead[] = [];
-  for (const path of entries.map((entry) => instructionPathOf(pipeline, entry))) {
+  for (const path of entries.map((entry) => instructionPathOf(jobPipeline, entry))) {
     const text = fileTextOf(projectDirectory, mainLine, path);
     if (text === null) return { verdict: 'instructions-missing', path };
     texts.push(text.endsWith('\n') ? text : `${text}\n`);
@@ -158,22 +175,22 @@ function readingFor(projectDirectory: string, mainLine: string, pipeline: Readon
 }
 
 /**
- * The project's `CONSTITUTION.md` on main, its text and its blob id read from one commit of the main line, so the two always belong together. A main
- * line checked out with no commit yet holds no file, so it is absent; any other main line that does not resolve, or a git that cannot
- * answer, is unreadable, never absent.
+ * A constitution on main, the project's `CONSTITUTION.md` unless an entity's path is given, its text and its blob id read from one commit of
+ * the main line, so the two always belong together. A main line checked out with no commit yet holds no file, so it is absent; any other
+ * main line that does not resolve, or a git that cannot answer, is unreadable, never absent.
  */
-function mainConstitutionOf(projectDirectory: string, mainLine: string): MainConstitutionReading {
+function mainConstitutionOf(projectDirectory: string, mainLine: string, constitutionPath = CONSTITUTION_FILE_PATH): MainConstitutionReading {
   const { repositoryRoot } = projectLocationOf(projectDirectory);
   const mainTip = GitProcess.resolvedCommitOf(repositoryRoot, mainLine);
-  if (mainTip !== null) return mainConstitutionAt(projectDirectory, mainTip);
+  if (mainTip !== null) return mainConstitutionAt(projectDirectory, mainTip, constitutionPath);
   const currentBranch = readCurrentBranch(repositoryRoot);
   if (currentBranch.verdict === 'on-branch' && currentBranch.branch === mainLine) return { verdict: 'absent' };
   return { verdict: 'unreadable', reason: `the main line ${mainLine} does not resolve to a commit` };
 }
 
-/** The project's `CONSTITUTION.md` at one resolved commit of the main line, named by its project path. */
-function mainConstitutionAt(projectDirectory: string, mainTip: string): MainConstitutionReading {
-  const constitution = projectFileOf(projectDirectory, CONSTITUTION_FILE_PATH);
+/** A constitution at one resolved commit of the main line, the project's `CONSTITUTION.md` unless given, named by its project path. */
+function mainConstitutionAt(projectDirectory: string, mainTip: string, constitutionPath = CONSTITUTION_FILE_PATH): MainConstitutionReading {
+  const constitution = projectFileOf(projectDirectory, constitutionPath);
   const blobArguments = ['rev-parse', '--verify', '--quiet', '--end-of-options', `${mainTip}:${constitution.repositoryPath}`];
   const blobRun = GitProcess.run(constitution.repositoryRoot, blobArguments);
   if (blobRun === null) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(blobRun, blobArguments) };
@@ -181,10 +198,11 @@ function mainConstitutionAt(projectDirectory: string, mainTip: string): MainCons
   const showArguments = ['show', `${mainTip}:${constitution.repositoryPath}`];
   const shown = GitProcess.run(constitution.repositoryRoot, showArguments);
   if (!GitProcess.succeeded(shown)) return { verdict: 'unreadable', reason: GitProcess.failureReasonOf(shown, showArguments) };
-  return { verdict: 'read', constitution: { path: CONSTITUTION_FILE_PATH, markdown: shown.standardOutput, blob: blobRun.standardOutput.trim() } };
+  return { verdict: 'read', constitution: { path: constitutionPath, markdown: shown.standardOutput, blob: blobRun.standardOutput.trim() } };
 }
 
 export const InstructionFiles = Object.freeze({
+  pipelineOfJob,
   readingFor,
   trackedInstructionPathsOf,
   instructionRoleOf,
