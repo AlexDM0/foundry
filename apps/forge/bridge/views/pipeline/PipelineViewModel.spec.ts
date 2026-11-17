@@ -4,10 +4,13 @@
  * the record has reached it, and the resume summary on the bare `#pipeline` or an unknown or unreached step; a record in `update` or
  * `advise` mode is the flow being edited, or the constitution at `#pipeline/edit/constitution`; a readable pipeline is the live flow; an
  * Overseer that serves no pipeline facts lands on setup. A step's route is `#pipeline/setup/<step>`; once the setup is applied, the live
- * flow leaves a setup route for `#pipeline`, and only a setup route.
+ * flow leaves a setup route for `#pipeline`, and only a setup route. Monorepo mode is a fact of the record: single mode shows no
+ * `entities` step and its route falls back to the resume summary, while a record walking the step, or holding entities, shows it after
+ * the research.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { PipelineSetup }   from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { BridgeRoute }     from '../../shell/HashRouter.ts';
 import { pipelineBoardStateOf } from '../../testing/PipelineFixture.ts';
 import { PipelineViewModel }    from './PipelineViewModel.ts';
@@ -64,6 +67,35 @@ describe('the screen the facts and the route pick', () => {
   test('a readable pipeline with no record is the live flow, whatever the route names', () => {
     expect(screenOf(pipelineBoardStateOf('A5'), pipelineRoute(null))).toEqual({ screen: 'flow', stage: 'live' });
     expect(screenOf(pipelineBoardStateOf('A5'), pipelineRoute('setup/research'))).toEqual({ screen: 'flow', stage: 'live' });
+  });
+});
+
+describe('single mode and monorepo mode', () => {
+  function recordOf(name: 'A0b-recheck'): PipelineSetup {
+    const record = pipelineBoardStateOf(name).pipelineSetup?.record;
+    if (record === undefined) throw new Error('the fixture holds a record');
+    return record;
+  }
+
+  test('single mode has no entities step, and its route falls back to the resume summary', () => {
+    const state = pipelineBoardStateOf('A0b-recheck');
+    expect(PipelineViewModel.setupStepsOf(recordOf('A0b-recheck'))).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupStepsOf(null)).toEqual(['billing', 'research', 'constitution', 'design', 'apply']);
+    expect(screenOf(state, pipelineRoute('setup/entities'))).toEqual({ screen: 'setup-resume' });
+  });
+
+  test('a record walking the entities step, or holding entities, shows the step after the research and opens its route once reached', () => {
+    const single = recordOf('A0b-recheck');
+    const walking: PipelineSetup = { ...single, stepStates: { ...single.stepStates, entities: 'done' } };
+    const holding: PipelineSetup = { ...single, entities: {} };
+
+    expect(PipelineViewModel.setupStepsOf(walking)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    expect(PipelineViewModel.setupHasEntities(holding)).toBe(true);
+    expect(PipelineViewModel.setupStepStatusOf(walking, 'entities')).toBe('done');
+    const state = pipelineBoardStateOf('A0b-recheck');
+    const facts = { ...state, pipelineSetup: { ...state.pipelineSetup, record: walking } } as typeof state;
+    expect(screenOf(facts, pipelineRoute('setup/entities'))).toEqual({ screen: 'setup-step', step: 'entities' });
+    expect(PipelineViewModel.screenTitleOf({ screen: 'setup-step', step: 'entities' })).toBe('Entities');
   });
 });
 

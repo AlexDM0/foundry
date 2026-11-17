@@ -1,9 +1,11 @@
 /**
  * `pipeline-setup.json` both ways. What matters: a written record reads back whole and writes back byte for byte, its own keys first in a
  * fixed order and every top-level key this build does not know after them, in stored order; the constitution's markdown is kept byte for
- * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; no file is `absent`; and a
- * file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason
- * naming the offending part, never a throw.
+ * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; a record of a forge
+ * without entities, as an open record stored before them, reads and writes back byte for byte with no `entities` key and no `entities`
+ * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set; no file is
+ * `absent`; and a file nobody could trust whole, a nested key the read does not know included, is `malformed` with a reason naming the
+ * offending part, never a throw.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -113,6 +115,83 @@ const EXAMPLE_CHECKED: PipelineSetup = {
   },
 };
 
+/** An open record as a build that knew no entities stored it, written by hand so the new build cannot shape it. */
+const STORED_BEFORE_ENTITIES_TEXT = `{
+  "formatVersion": 1,
+  "setupId": "S1",
+  "mode": "setup",
+  "baseContentHash": null,
+  "stepStates": {
+    "billing": "done",
+    "research": "in-progress",
+    "constitution": "not-started",
+    "design": "not-started",
+    "apply": "not-started"
+  },
+  "currentStep": "research",
+  "billing": {
+    "mode": "subscription"
+  },
+  "agentJobId": "J1",
+  "snapshotCommit": null,
+  "readyToContinue": [],
+  "findings": [
+    {
+      "findingId": "F1",
+      "topic": "stack",
+      "label": "Bun",
+      "value": "1.3",
+      "sourcePaths": [
+        "package.json"
+      ],
+      "script": null,
+      "needsRecheck": false
+    }
+  ],
+  "questions": [],
+  "constitution": null,
+  "draft": null,
+  "draftRevision": 0,
+  "edits": [],
+  "replacesUnreadablePipeline": false,
+  "applyRequest": null,
+  "nextNumbers": {
+    "finding": 2,
+    "question": 1,
+    "edit": 1
+  }
+}
+`;
+
+const EXAMPLE_OVER_ENTITIES: PipelineSetup = {
+  ...EXAMPLE_SETUP,
+  stepStates: {
+    billing: 'done', research: 'done', entities: 'done', constitution: 'needs-recheck', design: 'in-progress', apply: 'not-started'
+  },
+  findings: [
+    ...EXAMPLE_SETUP.findings,
+    {
+      findingId: 'F3', topic: 'layout', label: 'Two apps', value: 'apps/web, apps/api', sourcePaths: ['package.json'], script: null, needsRecheck: false
+    },
+  ],
+  entities: {
+    web: {
+      agentJobId: 'J8',
+      findings:   [{
+        findingId: 'F4', topic: 'stack', label: 'React', value: '19', sourcePaths: ['apps/web/package.json'], script: null, needsRecheck: false
+      }],
+      questions:    [],
+      constitution: null,
+      check:        {
+        draftRevision: 4, gateNames: ['test'], state: 'queued', result: null, reason: null
+      },
+    },
+    api: {
+      agentJobId: null, findings: [], questions: [], constitution: null
+    },
+  },
+};
+
 let scratchDirectory = '';
 let setupFilePath    = '';
 
@@ -190,6 +269,33 @@ describe('a readable record', () => {
     expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'check', 'nextNumbers']);
   });
 
+  test('an open record stored without entities reads, then writes back byte for byte with no entities key or step state', () => {
+    writeFileSync(setupFilePath, STORED_BEFORE_ENTITIES_TEXT);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(reading.setup.entities).toBeUndefined();
+    expect(Object.hasOwn(reading.setup.stepStates, 'entities')).toBe(false);
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(STORED_BEFORE_ENTITIES_TEXT);
+  });
+
+  test('a record over entities keeps its entities step state, its layout finding and each entity\'s part, before nextNumbers', () => {
+    const text = PipelineSetupFile.contentsOf(EXAMPLE_OVER_ENTITIES);
+    writeFileSync(setupFilePath, text);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    expect(reading).toEqual({ verdict: 'readable', setup: EXAMPLE_OVER_ENTITIES });
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
+    const document = JSON.parse(text) as { stepStates: object; entities: Record<string, object> };
+    expect(Object.keys(document.stepStates)).toEqual(['billing', 'research', 'entities', 'constitution', 'design', 'apply']);
+    const keys = Object.keys(document);
+    expect(keys.slice(keys.indexOf('applyRequest'), keys.indexOf('nextNumbers') + 1)).toEqual(['applyRequest', 'entities', 'nextNumbers']);
+    expect(Object.keys(document.entities['api'] ?? {})).toEqual(['agentJobId', 'findings', 'questions', 'constitution']);
+  });
+
   test('a nested record built in another key order is written in the read\'s order', () => {
     const [firstFinding] = EXAMPLE_SETUP.findings;
     if (firstFinding === undefined) throw new Error('the example has a finding');
@@ -261,6 +367,36 @@ describe('a malformed record', () => {
         }
       }),
       'check.result.gates[0].outcomes[0] is "flaky", which is not one of passed, failed, cannot-run'],
+    ['an entities step state the read does not know',
+      (document) => ({ ...document, stepStates: { ...(document['stepStates'] as object), entities: 'paused' } }),
+      'stepStates.entities is "paused", which is not one of not-started, in-progress, done, needs-recheck'],
+    ['entities that are not an object', (document) => ({ ...document, entities: [] }), 'entities is not an object'],
+    ['an entity part with a key the read does not know',
+      (document) => ({
+        ...document,
+        entities: {
+          web: {
+            agentJobId: null, findings: [], questions: [], constitution: null, gates: []
+          }
+        }
+      }),
+      'entities.web.gates is not a key of entities.web; the keys are agentJobId, findings, questions, constitution'],
+    ['an entity\'s check in an unknown state',
+      (document) => ({
+        ...document,
+        entities: {
+          web: {
+            agentJobId:   null,
+            findings:     [],
+            questions:    [],
+            constitution: null,
+            check:        {
+              draftRevision: 1, gateNames: [], state: 'paused', result: null, reason: null
+            },
+          }
+        }
+      }),
+      'entities.web.check.state is "paused", which is not one of queued, running, checked, cannot-run, stopped'],
     ['a billing cap with a subscription',
       (document) => ({ ...document, billing: { mode: 'subscription', maxBudgetUsd: 2 } }),
       'billing.maxBudgetUsd is present with mode subscription'],

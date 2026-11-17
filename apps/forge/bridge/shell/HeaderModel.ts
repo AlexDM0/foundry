@@ -15,7 +15,7 @@ import { NoticeWordingUtil }                                             from '.
 import type { BoardStateDocument, OverseerFactsDocument, UsageDocument } from '../@types/BoardStateDocument.ts';
 import type { ConnectionState }                                          from '../api/EventStreamClient.ts';
 import { TimeUtil }                                                      from '../utils/TimeUtil.ts';
-import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS }    from '../views/pipeline/PipelineViewModel.ts';
+import { PipelineViewModel, SETUP_STEP_LABELS }                          from '../views/pipeline/PipelineViewModel.ts';
 import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }      from './ActivityStripModel.ts';
 import type { BridgeTab }                                                from './HashRouter.ts';
 
@@ -110,7 +110,7 @@ function usageTextsOf(usage: unknown): string[] {
 
 /** The record's current step is current; a done or recheck step links back to its route; with no record, Billing is current. */
 function setupStepsOf(record: PipelineSetup | null): StepperStep[] {
-  return PIPELINE_SETUP_STEPS.map((step) => {
+  return PipelineViewModel.setupStepsOf(record).map((step) => {
     const status = PipelineViewModel.setupStepStatusOf(record, step);
     const reopens = status === 'done' || status === 'recheck';
     return {

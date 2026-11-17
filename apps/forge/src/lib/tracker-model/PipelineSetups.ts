@@ -26,6 +26,7 @@ import type {
   PipelineSetupOpening,
   PipelineSetupStep,
   PipelineSetupStepState,
+  PipelineSetupStepStates,
   ResearchFindingRecording,
   SetupEdit,
   SetupEditAuthor,
@@ -62,7 +63,7 @@ import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }          from './utils/PipelineUtil.ts';
 
 /** The steps an update or advise record opens with: everything before Apply is already set. */
-const UPDATE_STEP_STATES: Readonly<Record<PipelineSetupStep, PipelineSetupStepState>> = {
+const UPDATE_STEP_STATES: Readonly<PipelineSetupStepStates> = {
   billing: 'done', research: 'done', constitution: 'done', design: 'done', apply: 'not-started'
 };
 
@@ -74,12 +75,27 @@ const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof Constitut
 };
 
 /** A first setup starts with the billing User chose, so it opens at the research, the agent's first step. */
-const FIRST_SETUP_STEP_STATES: Readonly<Record<PipelineSetupStep, PipelineSetupStepState>> = {
+const FIRST_SETUP_STEP_STATES: Readonly<PipelineSetupStepStates> = {
   billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
 };
 
 function stepIndexOf(step: PipelineSetupStep): number {
   return PIPELINE_SETUP_STEPS.indexOf(step);
+}
+
+/** The steps the record walks, in order: `entities` only while its step states hold it. */
+function walkedStepsOf(setup: Readonly<PipelineSetup>): PipelineSetupStep[] {
+  return PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities' || setup.stepStates.entities !== undefined);
+}
+
+/** A step the record does not walk is never started. */
+function stepStateOf(setup: Readonly<PipelineSetup>, step: PipelineSetupStep): PipelineSetupStepState {
+  return setup.stepStates[step] ?? 'not-started';
+}
+
+/** An update of a stored pipeline over entities walks the `entities` step, done like every step before Apply. */
+function updateStepStatesOf(stored: Readonly<Pipeline> | null): PipelineSetupStepStates {
+  return stored?.entities === undefined ? { ...UPDATE_STEP_STATES } : { ...UPDATE_STEP_STATES, entities: 'done' };
 }
 
 function linesOf(markdown: string): string[] {
@@ -131,7 +147,7 @@ export class PipelineSetups {
     if (opening.mode !== 'setup' && stored === null) throw new BoardRefusal({ reason: 'no-pipeline-to-update', mode: opening.mode });
 
     const isUpdate = opening.mode !== 'setup';
-    const stepStates = isUpdate ? { ...UPDATE_STEP_STATES } : { ...FIRST_SETUP_STEP_STATES };
+    const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...FIRST_SETUP_STEP_STATES };
     const setup: PipelineSetup = {
       formatVersion:              1,
       setupId:                    `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`,
@@ -177,7 +193,8 @@ export class PipelineSetups {
       reason: 'setup-step-not-current', setupId, step, currentStep: setup.currentStep
     });
 
-    const nextStep = PIPELINE_SETUP_STEPS[stepIndexOf(step) + 1] ?? 'apply';
+    const walkedSteps = walkedStepsOf(setup);
+    const nextStep    = walkedSteps[walkedSteps.indexOf(step) + 1] ?? 'apply';
     setup.stepStates[step] = 'done';
     if (setup.stepStates[nextStep] === 'not-started') setup.stepStates[nextStep] = 'in-progress';
     setup.currentStep     = nextStep;
@@ -799,10 +816,11 @@ export class PipelineSetups {
 
   /** Only a step at or before the current one reopens, so a later step that needs a recheck still waits for its Continue. */
   private reopenedStepRecords(setup: PipelineSetup, step: PipelineSetupStep, at: string): LogRecord[] {
-    if (setup.stepStates[step] === 'not-started' || stepIndexOf(step) > stepIndexOf(setup.currentStep)) {
+    const state = stepStateOf(setup, step);
+    if (state === 'not-started' || stepIndexOf(step) > stepIndexOf(setup.currentStep)) {
       throw new BoardRefusal({ reason: 'setup-step-not-reached', setupId: setup.setupId, step });
     }
-    if (setup.stepStates[step] !== 'needs-recheck') setup.stepStates[step] = 'in-progress';
+    if (state !== 'needs-recheck') setup.stepStates[step] = 'in-progress';
     setup.currentStep = step;
     const needsRecheck = PIPELINE_SETUP_STEPS.slice(stepIndexOf(step) + 1).filter((laterStep) => setup.stepStates[laterStep] === 'done');
     for (const laterStep of needsRecheck) setup.stepStates[laterStep] = 'needs-recheck';
@@ -812,7 +830,7 @@ export class PipelineSetups {
 
   private stepMovedRecord(setup: PipelineSetup, step: PipelineSetupStep, needsRecheck: readonly PipelineSetupStep[], at: string): LogRecord {
     const fields = {
-      step, state: setup.stepStates[step], currentStep: setup.currentStep, needsRecheck: [...needsRecheck]
+      step, state: stepStateOf(setup, step), currentStep: setup.currentStep, needsRecheck: [...needsRecheck]
     };
     return this.records.logger.log({ kind: 'pipeline-setup-step-moved', setupId: setup.setupId, fields }, at);
   }

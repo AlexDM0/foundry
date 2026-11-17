@@ -7,6 +7,7 @@ import type { GatePhase }                        from './GatePhase.ts';
 import type { GateOutcome }                      from './Job.ts';
 import type {
   AgentStepSettings,
+  EntityKey,
   Pipeline,
   PipelineAgentRole,
   PipelineAirlock,
@@ -18,15 +19,22 @@ import type {
   PipelineStep
 } from './Pipeline.ts';
 
-export type PipelineSetupStep = 'billing' | 'research' | 'constitution' | 'design' | 'apply';
+/** `entities` is walked only by a record whose step states hold it: a forge over entities. */
+export type PipelineSetupStep = 'billing' | 'research' | 'entities' | 'constitution' | 'design' | 'apply';
 
 /** A later `done` step becomes `needs-recheck` when an earlier one reopens, never `not-started`. */
 export type PipelineSetupStepState = 'not-started' | 'in-progress' | 'done' | 'needs-recheck';
 
+/** Every step but `entities` always has a state; `entities` has one only once the record walks it, written only once set. */
+export type PipelineSetupStepStates =
+  & Record<Exclude<PipelineSetupStep, 'entities'>, PipelineSetupStepState>
+  & { entities?: PipelineSetupStepState };
+
 /** `setup` designs the first pipeline; `update` changes an applied one; `advise` is an update the pipeline agent starts on. */
 export type PipelineSetupMode = 'setup' | 'update' | 'advise';
 
-export type ResearchFindingTopic = 'stack' | 'scripts' | 'conventions' | 'continuous-integration' | 'note';
+/** `layout` reports the repository's stand-alone codebases, from which the `entities` step proposes entities. */
+export type ResearchFindingTopic = 'stack' | 'scripts' | 'conventions' | 'continuous-integration' | 'note' | 'layout';
 
 export type GateCandidacy = 'gate' | 'not-a-gate' | 'unsure';
 
@@ -223,6 +231,16 @@ export interface SetupNextNumbers {
   edit:     number;
 }
 
+/** One entity's part of the record: its pipeline-agent session, findings, questions, constitution draft and newest check. */
+export interface PipelineSetupEntity {
+  agentJobId:   string | null;
+  findings:     ResearchFinding[];
+  questions:    SetupQuestion[];
+  constitution: ConstitutionDraft | null;
+  /** Absent until User first asks for a check of this entity; written only once set. */
+  check?:       PipelineCheck;
+}
+
 export interface PipelineSetup {
   formatVersion:              1;
   /** `S1`, `S2`, …: never reused. */
@@ -230,7 +248,7 @@ export interface PipelineSetup {
   mode:                       PipelineSetupMode;
   /** The stored pipeline's content hash when an update or advise record opened; null for a first setup. */
   baseContentHash:            string | null;
-  stepStates:                 Record<PipelineSetupStep, PipelineSetupStepState>;
+  stepStates:                 PipelineSetupStepStates;
   currentStep:                PipelineSetupStep;
   billing:                    PipelineBilling;
   agentJobId:                 string | null;
@@ -249,6 +267,8 @@ export interface PipelineSetup {
   applyRequest:               ApplyRequest | null;
   /** Absent until User first asks for a check; then the newest check, written only once set. */
   check?:                     PipelineCheck;
+  /** Absent on a forge without entities; each entity's part by its key, written only once set. The draft holds every entity. */
+  entities?:                  Record<EntityKey, PipelineSetupEntity>;
   nextNumbers:                SetupNextNumbers;
   /** Keys this build does not know, kept in order so a round trip stays byte-identical. */
   extra:                      Array<[string, unknown]>;

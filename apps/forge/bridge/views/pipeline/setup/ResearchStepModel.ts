@@ -11,7 +11,8 @@ import { ChatTurnWordingUtil }                                       from '../..
 import { ElapsedTimeUtil }                                           from '../../../utils/ElapsedTimeUtil.ts';
 import type { PanelStatus }                                          from '../PipelinePanel.tsx';
 
-export type CardTopic = Exclude<ResearchFindingTopic, 'scripts'>;
+/** Scripts are rows of their own, and the layout belongs to the `entities` step. */
+export type CardTopic = Exclude<ResearchFindingTopic, 'scripts' | 'layout'>;
 
 /** The topics a card shows, in the order drawn; scripts are rows of their own. */
 const CARD_TOPICS: readonly CardTopic[] = ['stack', 'conventions', 'continuous-integration', 'note'];

@@ -3,7 +3,9 @@
  * every later done step to `needs-recheck`, never back to `not-started`, and only Continue clears a recheck; only User's edit of an
  * earlier step of a first setup reopens it; the constitution is kept byte for byte, a source must name a line the text holds, and an
  * edit re-anchors the sources so only the edited line loses its tag; Undo writes the base value back; an unreadable record and a pending
- * Apply refuse every move; and each move refuses with its reason and logs ids and values only.
+ * Apply refuse every move; and each move refuses with its reason and logs ids and values only. The `entities` step is walked only by a
+ * record whose step states hold it: a first setup and an update of a pipeline without entities open with no such state and never reach
+ * it, while a record over entities walks it between research and the constitution.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -273,6 +275,59 @@ describe('the steps', () => {
     expect(setup.snapshotCommit).toBe('f0e1d2c3');
     expect(setup.stepStates.research).toBe('needs-recheck');
     expect(setup.findings.map((finding) => [finding.findingId, finding.needsRecheck])).toEqual([['F1', true], ['F2', false]]);
+  });
+});
+
+describe('the entities step', () => {
+  const STORED_OVER_ENTITIES: Pipeline = {
+    ...STORED_PIPELINE,
+    prepare:  [],
+    gates:    [],
+    phases:   { build: [], review: [], merge: [] },
+    entities: {
+      web: {
+        kind: 'app', home: ['/apps/web'], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      }
+    },
+  };
+
+  function boardWalkingEntities(): { board: Board; setupId: string } {
+    const { board, setupId } = openedBoard();
+    const setup = openSetupOf(board);
+    const walking: PipelineSetup = { ...setup, stepStates: { ...setup.stepStates, entities: 'not-started' } };
+    return { board: boardFixture({ pipelineSetup: { verdict: 'readable', setup: walking } }).board, setupId };
+  }
+
+  test('a first setup and an update of a pipeline without entities open with no entities step state, and skip the step', () => {
+    const { board, setupId } = openedBoard();
+    expect(Object.hasOwn(openSetupOf(board).stepStates, 'entities')).toBe(false);
+    expect(board.continueSetupStep(setupId, 'research', AT).setup.currentStep).toBe('constitution');
+    expect(refusalDetailOf(() => board.reopenSetupStep(setupId, 'entities', AT))).toEqual({ reason: 'setup-step-not-reached', setupId, step: 'entities' });
+
+    const updated = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_PIPELINE);
+    expect(Object.hasOwn(openSetupOf(updated.board).stepStates, 'entities')).toBe(false);
+  });
+
+  test('an update of a stored pipeline over entities walks the entities step, done like every step before Apply', () => {
+    const { board } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+
+    expect(openSetupOf(board).stepStates).toEqual({
+      billing: 'done', research: 'done', entities: 'done', constitution: 'done', design: 'done', apply: 'not-started'
+    });
+  });
+
+  test('a record over entities walks the entities step between research and the constitution, and a reopened research rechecks it', () => {
+    const { board, setupId } = boardWalkingEntities();
+
+    expect(board.continueSetupStep(setupId, 'research', AT).setup.currentStep).toBe('entities');
+    const { setup } = board.continueSetupStep(setupId, 'entities', AT);
+    expect([setup.stepStates.entities, setup.currentStep, setup.stepStates.constitution]).toEqual(['done', 'constitution', 'in-progress']);
+
+    const { logged } = board.reopenSetupStep(setupId, 'research', AT);
+    expect(openSetupOf(board).stepStates.entities).toBe('needs-recheck');
+    expect(logged.map((record) => record.fields)).toEqual([{
+      step: 'research', state: 'in-progress', currentStep: 'research', needsRecheck: ['entities']
+    }]);
   });
 });
 

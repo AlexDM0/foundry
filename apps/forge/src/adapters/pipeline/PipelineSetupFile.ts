@@ -13,9 +13,9 @@ import type {
   PipelineCheck,
   PipelineCheckResult,
   PipelineSetup,
+  PipelineSetupEntity,
   PipelineSetupReading,
-  PipelineSetupStep,
-  PipelineSetupStepState,
+  PipelineSetupStepStates,
   ResearchFinding,
   ResearchScript,
   SetupEdit,
@@ -70,8 +70,11 @@ const OWNED_KEYS = [
   'nextNumbers',
 ] as const;
 
-/** Written only once User first asks for a check, so a record with none stays as it was stored. */
-const OPTIONAL_OWNED_KEYS = ['check'] as const;
+/** `check` is written only once User first asks for one, and `entities` only on a forge over entities, so a record without stays as stored. */
+const OPTIONAL_OWNED_KEYS = ['check', 'entities'] as const;
+
+/** Every step has a state but `entities`, which a record has only while it walks that step. */
+const ALWAYS_STATED_STEPS = PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities');
 
 const SETUP_ID_PATTERN = /^S[1-9][0-9]*$/u;
 const FINDING_KEYS     = ['findingId', 'topic', 'label', 'value', 'sourcePaths', 'script', 'needsRecheck'] as const;
@@ -89,6 +92,8 @@ const CHECK_KEYS       = ['draftRevision', 'gateNames', 'state', 'result', 'reas
 const CHECK_RESULT_KEYS = ['snapshotCommit', 'prepare', 'gates'] as const;
 const CHECK_PREPARE_KEYS = ['failedSteps', 'output'] as const;
 const CHECKED_GATE_KEYS = ['name', 'outcomes', 'durationsMilliseconds', 'verdict', 'output'] as const;
+const SETUP_ENTITY_KEYS = ['agentJobId', 'findings', 'questions', 'constitution'] as const;
+const OPTIONAL_SETUP_ENTITY_KEYS = ['check'] as const;
 
 type Mapped<Value> = { value: Value } | { problem: string };
 
@@ -150,16 +155,17 @@ function fieldsOf<Fields extends object>(mappings: { [Key in keyof Fields]-?: Ma
   return { value: fields as Fields };
 }
 
-function stepStatesOf(value: unknown): Mapped<Record<PipelineSetupStep, PipelineSetupStepState>> {
-  const record = closedRecordOf(value, 'stepStates', PIPELINE_SETUP_STEPS);
+function stepStatesOf(value: unknown): Mapped<PipelineSetupStepStates> {
+  const stepsStated = JsonRecordUtil.valueIsAPlainObject(value) && Object.hasOwn(value, 'entities') ? PIPELINE_SETUP_STEPS : ALWAYS_STATED_STEPS;
+  const record = closedRecordOf(value, 'stepStates', stepsStated);
   if ('problem' in record) return record;
-  const states: Partial<Record<PipelineSetupStep, PipelineSetupStepState>> = {};
-  for (const step of PIPELINE_SETUP_STEPS) {
+  const states: Partial<PipelineSetupStepStates> = {};
+  for (const step of stepsStated) {
     const state = wordOf(record.value[step], `stepStates.${step}`, PIPELINE_SETUP_STEP_STATES);
     if ('problem' in state) return state;
     states[step] = state.value;
   }
-  return { value: states as Record<PipelineSetupStep, PipelineSetupStepState> };
+  return { value: states as PipelineSetupStepStates };
 }
 
 function scriptOf(value: unknown, path: string): Mapped<ResearchScript | null> {
@@ -255,24 +261,24 @@ function annotationOf(value: unknown, path: string): Mapped<SourceAnnotation> {
   });
 }
 
-function constitutionOf(value: unknown): Mapped<ConstitutionDraft | null> {
+function constitutionOf(value: unknown, path: string): Mapped<ConstitutionDraft | null> {
   if (value === null) return { value: null };
-  const record = closedRecordOf(value, 'constitution', CONSTITUTION_KEYS);
+  const record = closedRecordOf(value, path, CONSTITUTION_KEYS);
   if ('problem' in record) return record;
   const fields  = record.value;
-  const sources = closedRecordOf(fields['draftedFrom'], 'constitution.draftedFrom', SOURCES_KEYS);
+  const sources = closedRecordOf(fields['draftedFrom'], `${path}.draftedFrom`, SOURCES_KEYS);
   if ('problem' in sources) return sources;
   const draftedFrom = fieldsOf<ConstitutionDraft['draftedFrom']>({
-    contributing:     flagOf(sources.value['contributing'], 'constitution.draftedFrom.contributing'),
-    research:         flagOf(sources.value['research'], 'constitution.draftedFrom.research'),
-    installedDefault: flagOf(sources.value['installedDefault'], 'constitution.draftedFrom.installedDefault'),
+    contributing:     flagOf(sources.value['contributing'], `${path}.draftedFrom.contributing`),
+    research:         flagOf(sources.value['research'], `${path}.draftedFrom.research`),
+    installedDefault: flagOf(sources.value['installedDefault'], `${path}.draftedFrom.installedDefault`),
   });
   return fieldsOf<ConstitutionDraft>({
-    markdown:    textOf(fields['markdown'], 'constitution.markdown'),
-    annotations: listOf(fields['annotations'], 'constitution.annotations', annotationOf),
+    markdown:    textOf(fields['markdown'], `${path}.markdown`),
+    annotations: listOf(fields['annotations'], `${path}.annotations`, annotationOf),
     draftedFrom,
-    baseBlob:    nullableTextOf(fields['baseBlob'], 'constitution.baseBlob'),
-    revision:    countOf(fields['revision'], 'constitution.revision', 0),
+    baseBlob:    nullableTextOf(fields['baseBlob'], `${path}.baseBlob`),
+    revision:    countOf(fields['revision'], `${path}.revision`, 0),
   });
 }
 
@@ -326,33 +332,64 @@ function checkedGateOf(value: unknown, path: string): Mapped<CheckedGate> {
   });
 }
 
-function checkResultOf(value: unknown): Mapped<PipelineCheckResult | null> {
+function checkResultOf(value: unknown, path: string): Mapped<PipelineCheckResult | null> {
   if (value === null) return { value: null };
-  const record = closedRecordOf(value, 'check.result', CHECK_RESULT_KEYS);
+  const record = closedRecordOf(value, path, CHECK_RESULT_KEYS);
   if ('problem' in record) return record;
-  const prepare = closedRecordOf(record.value['prepare'], 'check.result.prepare', CHECK_PREPARE_KEYS);
+  const prepare = closedRecordOf(record.value['prepare'], `${path}.prepare`, CHECK_PREPARE_KEYS);
   if ('problem' in prepare) return prepare;
   return fieldsOf<PipelineCheckResult>({
-    snapshotCommit: textOf(record.value['snapshotCommit'], 'check.result.snapshotCommit'),
+    snapshotCommit: textOf(record.value['snapshotCommit'], `${path}.snapshotCommit`),
     prepare:        fieldsOf<PipelineCheckResult['prepare']>({
-      failedSteps: listOf(prepare.value['failedSteps'], 'check.result.prepare.failedSteps', nullableTextOf),
-      output:      textOf(prepare.value['output'], 'check.result.prepare.output'),
+      failedSteps: listOf(prepare.value['failedSteps'], `${path}.prepare.failedSteps`, nullableTextOf),
+      output:      textOf(prepare.value['output'], `${path}.prepare.output`),
     }),
-    gates: listOf(record.value['gates'], 'check.result.gates', checkedGateOf),
+    gates: listOf(record.value['gates'], `${path}.gates`, checkedGateOf),
   });
 }
 
-function checkOf(value: unknown): Mapped<PipelineCheck> {
-  const record = closedRecordOf(value, 'check', CHECK_KEYS);
+function checkOf(value: unknown, path: string): Mapped<PipelineCheck> {
+  const record = closedRecordOf(value, path, CHECK_KEYS);
   if ('problem' in record) return record;
   const fields = record.value;
   return fieldsOf<PipelineCheck>({
-    draftRevision: countOf(fields['draftRevision'], 'check.draftRevision', 0),
-    gateNames:     textsOf(fields['gateNames'], 'check.gateNames'),
-    state:         wordOf(fields['state'], 'check.state', PIPELINE_CHECK_STATES),
-    result:        checkResultOf(fields['result']),
-    reason:        nullableTextOf(fields['reason'], 'check.reason'),
+    draftRevision: countOf(fields['draftRevision'], `${path}.draftRevision`, 0),
+    gateNames:     textsOf(fields['gateNames'], `${path}.gateNames`),
+    state:         wordOf(fields['state'], `${path}.state`, PIPELINE_CHECK_STATES),
+    result:        checkResultOf(fields['result'], `${path}.result`),
+    reason:        nullableTextOf(fields['reason'], `${path}.reason`),
   });
+}
+
+/** One entity's part of the record, its `check` written only once set like the record's own. */
+function setupEntityOf(value: unknown, path: string): Mapped<PipelineSetupEntity> {
+  const hasCheck = JsonRecordUtil.valueIsAPlainObject(value) && Object.hasOwn(value, 'check');
+  const record = closedRecordOf(value, path, hasCheck ? [...SETUP_ENTITY_KEYS, ...OPTIONAL_SETUP_ENTITY_KEYS] : SETUP_ENTITY_KEYS);
+  if ('problem' in record) return record;
+  const fields = record.value;
+  const check  = hasCheck ? checkOf(fields['check'], `${path}.check`) : null;
+  if (check !== null && 'problem' in check) return check;
+  const mapped = fieldsOf<Omit<PipelineSetupEntity, 'check'>>({
+    agentJobId:   nullableTextOf(fields['agentJobId'], `${path}.agentJobId`),
+    findings:     listOf(fields['findings'], `${path}.findings`, findingOf),
+    questions:    listOf(fields['questions'], `${path}.questions`, questionOf),
+    constitution: constitutionOf(fields['constitution'], `${path}.constitution`),
+  });
+  if ('problem' in mapped) return mapped;
+  return { value: { ...mapped.value, ...(check === null ? {} : { check: check.value }) } };
+}
+
+function setupEntitiesOf(value: unknown): Mapped<Record<string, PipelineSetupEntity>> {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
+  const entries: [string, PipelineSetupEntity][] = [];
+  for (const [entityKey, entityValue] of Object.entries(value)) {
+    if (entityKey === '') return problemOf('entities has an empty entity key');
+    const entity = setupEntityOf(entityValue, `entities.${entityKey}`);
+    if ('problem' in entity) return entity;
+    entries.push([entityKey, entity.value]);
+  }
+  // `fromEntries` keeps a stored `__proto__` key as data instead of setting the prototype.
+  return { value: Object.fromEntries(entries) };
 }
 
 function nextNumbersOf(value: unknown): Mapped<PipelineSetup['nextNumbers']> {
@@ -380,9 +417,11 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const missingKey = OWNED_KEYS.find((key) => !Object.hasOwn(document, key));
   if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
   const ownedKeys: readonly string[] = [...OWNED_KEYS, ...OPTIONAL_OWNED_KEYS];
-  const check = Object.hasOwn(document, 'check') ? checkOf(document['check']) : null;
+  const check = Object.hasOwn(document, 'check') ? checkOf(document['check'], 'check') : null;
   if (check !== null && 'problem' in check) return check;
-  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra' | 'check'>>({
+  const entities = Object.hasOwn(document, 'entities') ? setupEntitiesOf(document['entities']) : null;
+  if (entities !== null && 'problem' in entities) return entities;
+  const mapped = fieldsOf<Omit<PipelineSetup, 'formatVersion' | 'extra' | 'check' | 'entities'>>({
     setupId:                    setupIdOf(document['setupId']),
     mode:                       wordOf(document['mode'], 'mode', PIPELINE_SETUP_MODES),
     baseContentHash:            nullableTextOf(document['baseContentHash'], 'baseContentHash'),
@@ -394,7 +433,7 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
     readyToContinue:            listOf(document['readyToContinue'], 'readyToContinue', (item, path) => wordOf(item, path, PIPELINE_SETUP_STEPS)),
     findings:                   listOf(document['findings'], 'findings', findingOf),
     questions:                  listOf(document['questions'], 'questions', questionOf),
-    constitution:               constitutionOf(document['constitution']),
+    constitution:               constitutionOf(document['constitution'], 'constitution'),
     draft:                      draftOf(document['draft']),
     draftRevision:              countOf(document['draftRevision'], 'draftRevision', 0),
     edits:                      listOf(document['edits'], 'edits', editOf),
@@ -406,7 +445,11 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const extra = Object.entries(document).filter(([key]) => !ownedKeys.includes(key));
   return {
     value: {
-      formatVersion: SETUP_FORMAT_VERSION, ...mapped.value, ...(check === null ? {} : { check: check.value }), extra
+      formatVersion: SETUP_FORMAT_VERSION,
+      ...mapped.value,
+      ...(check === null ? {} : { check: check.value }),
+      ...(entities === null ? {} : { entities: entities.value }),
+      extra
     }
   };
 }
@@ -430,6 +473,16 @@ function read(setupFilePath: string): PipelineSetupReading {
   return documentReadingOf(parsedJson.value);
 }
 
+function setupEntitiesDocumentOf(entities: Readonly<Record<string, PipelineSetupEntity>>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(entities).map(([entityKey, entity]) => [entityKey, Object.fromEntries([
+    ['agentJobId', entity.agentJobId],
+    ['findings', entity.findings],
+    ['questions', entity.questions],
+    ['constitution', entity.constitution],
+    ...(entity.check === undefined ? [] : [['check', entity.check]]),
+  ])]));
+}
+
 function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
   const draft = setup.draft === null ? null : JSON.parse(PipelineFile.contentsOf(setup.draft)) as unknown;
   // `fromEntries` makes every stored key an own property, so a stored `__proto__` stays data instead of setting the prototype.
@@ -438,7 +491,10 @@ function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
     ['setupId', setup.setupId],
     ['mode', setup.mode],
     ['baseContentHash', setup.baseContentHash],
-    ['stepStates', Object.fromEntries(PIPELINE_SETUP_STEPS.map((step) => [step, setup.stepStates[step]]))],
+    ['stepStates', Object.fromEntries(PIPELINE_SETUP_STEPS.flatMap((step) => {
+      const state = setup.stepStates[step];
+      return state === undefined ? [] : [[step, state]];
+    }))],
     ['currentStep', setup.currentStep],
     ['billing', setup.billing],
     ['agentJobId', setup.agentJobId],
@@ -453,6 +509,7 @@ function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
     ['replacesUnreadablePipeline', setup.replacesUnreadablePipeline],
     ['applyRequest', setup.applyRequest],
     ...(setup.check === undefined ? [] : [['check', setup.check]]),
+    ...(setup.entities === undefined ? [] : [['entities', setupEntitiesDocumentOf(setup.entities)]]),
     ['nextNumbers', setup.nextNumbers],
     ...setup.extra,
   ]);

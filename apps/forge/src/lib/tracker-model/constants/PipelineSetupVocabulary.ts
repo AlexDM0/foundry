@@ -17,8 +17,8 @@ import type {
   SourceAnnotationKind
 } from '../@types/PipelineSetup.ts';
 
-/** The steps in the order the setup walks them. */
-export const PIPELINE_SETUP_STEPS = ['billing', 'research', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
+/** The steps in the order the setup walks them; a record walks `entities` only while its step states hold it. */
+export const PIPELINE_SETUP_STEPS = ['billing', 'research', 'entities', 'constitution', 'design', 'apply'] as const satisfies readonly PipelineSetupStep[];
 
 export const PIPELINE_SETUP_STEP_STATES = ['not-started', 'in-progress', 'done', 'needs-recheck'] as const satisfies readonly PipelineSetupStepState[];
 
@@ -26,7 +26,7 @@ export const PIPELINE_BILLING_MODES = ['subscription', 'api'] as const satisfies
 
 export const PIPELINE_SETUP_MODES = ['setup', 'update', 'advise'] as const satisfies readonly PipelineSetupMode[];
 
-export const RESEARCH_FINDING_TOPICS = ['stack', 'scripts', 'conventions', 'continuous-integration', 'note'] as const satisfies readonly ResearchFindingTopic[];
+export const RESEARCH_FINDING_TOPICS = ['stack', 'scripts', 'conventions', 'continuous-integration', 'note', 'layout'] as const satisfies readonly ResearchFindingTopic[];
 
 export const GATE_CANDIDACIES = ['gate', 'not-a-gate', 'unsure'] as const satisfies readonly GateCandidacy[];
 

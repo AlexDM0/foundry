@@ -22,12 +22,13 @@ import { HashRouter, type BridgeRoute }                             from '../../
 import type { TimestampSlices }                                     from '../../utils/TimeUtil.ts';
 import { MinimalPipelineNoteModel }                                 from './live/MinimalPipelineNoteModel.ts';
 
-/** The setup steps in their order. */
-export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'constitution', 'design', 'apply'];
+/** The setup steps in their order; single mode leaves out `entities` (`setupStepsOf`). */
+export const PIPELINE_SETUP_STEPS: readonly PipelineSetupStep[] = ['billing', 'research', 'entities', 'constitution', 'design', 'apply'];
 
 export const SETUP_STEP_LABELS: Readonly<Record<PipelineSetupStep, string>> = {
   billing:      'Billing',
   research:     'Research',
+  entities:     'Entities',
   constitution: 'Constitution',
   design:       'Pipeline design',
   apply:        'Apply',
@@ -84,16 +85,24 @@ export type PipelineScreen =
   | { readonly screen: 'constitution-edit' }
   | { readonly screen: 'flow'; readonly stage: 'live' | 'editing' };
 
-function isSetupStep(text: string): text is PipelineSetupStep {
-  return (PIPELINE_SETUP_STEPS as readonly string[]).includes(text);
+/** Monorepo mode is a fact, never a choice: the record walks the `entities` step, or holds entities in its own keys or its draft. */
+function setupHasEntities(record: PipelineSetup | null): boolean {
+  if (record === null) return false;
+  return record.stepStates.entities !== undefined || record.entities !== undefined || record.draft?.entities !== undefined;
 }
 
-/** The step the route names, while the record has reached it: the current step, or one that is not `not-started`. */
+/** The steps the stepper shows, in order: single mode has no `entities` step. */
+function setupStepsOf(record: PipelineSetup | null): readonly PipelineSetupStep[] {
+  return setupHasEntities(record) ? PIPELINE_SETUP_STEPS : PIPELINE_SETUP_STEPS.filter((step) => step !== 'entities');
+}
+
+/** The step the route names, while the record has reached it: the current step, or one it walks that is not `not-started`. */
 function routedStepOf(item: string | null, record: PipelineSetup): PipelineSetupStep | null {
   if (item?.startsWith(SETUP_ITEM_PREFIX) !== true) return null;
-  const step = item.slice(SETUP_ITEM_PREFIX.length);
-  if (!isSetupStep(step)) return null;
-  return step === record.currentStep || record.stepStates[step] !== 'not-started' ? step : null;
+  const step = setupStepsOf(record).find((candidate) => candidate === item.slice(SETUP_ITEM_PREFIX.length));
+  if (step === undefined) return null;
+  const state = record.stepStates[step] ?? 'not-started';
+  return step === record.currentStep || state !== 'not-started' ? step : null;
 }
 
 function unreadablePipelineOf(pipeline: AppliedPipelineFacts | undefined): UnreadablePipeline | null {
@@ -203,6 +212,8 @@ export const PipelineViewModel = Object.freeze({
   liveRoute: LIVE_ROUTE,
   setupRouteIsLeftOf,
   screenOf,
+  setupHasEntities,
+  setupStepsOf,
   setupStepStatusOf,
   setupStepRouteOf,
   setupStepFragmentOf,

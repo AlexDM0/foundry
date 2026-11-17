@@ -5,13 +5,13 @@
  */
 import type { StepperStatus } from 'design-system/Stepper';
 
-import type { JobState }                                              from '../../../../src/lib/tracker-model/@types/Job.ts';
-import type { PipelineBilling }                                       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetupFacts }                                    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineSetupStep }                                     from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { ControlCommandBody }                                    from '../../../api/CommandClient.ts';
-import { PIPELINE_SETUP_STEPS, PipelineViewModel, SETUP_STEP_LABELS } from '../PipelineViewModel.ts';
-import { ApplyPendingStateModel }                                     from '../apply/ApplyPendingStateModel.ts';
+import type { JobState }                        from '../../../../src/lib/tracker-model/@types/Job.ts';
+import type { PipelineBilling }                 from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupFacts }              from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { PipelineSetupStep }               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ControlCommandBody }              from '../../../api/CommandClient.ts';
+import { PipelineViewModel, SETUP_STEP_LABELS } from '../PipelineViewModel.ts';
+import { ApplyPendingStateModel }               from '../apply/ApplyPendingStateModel.ts';
 
 export type ResumeChipTone = 'question' | 'neutral';
 
@@ -69,6 +69,8 @@ function summaryOf(facts: PipelineSetupFacts, step: PipelineSetupStep): string |
         ? `${countText(summary.stackItemCount, 'stack item', 'stack items')}, ${countText(summary.scriptCount, 'script', 'scripts')}, `
           + `${countText(summary.answeredResearchQuestionCount, 'question', 'questions')} answered`
         : null;
+    case 'entities':
+      return null;
     case 'constitution':
       if (!reached) return null;
       return facts.constitutionOutline === null
@@ -104,7 +106,7 @@ function currentChipsOf(facts: PipelineSetupFacts): ResumeChip[] {
 }
 
 function resumeStepsOf(facts: PipelineSetupFacts): ResumeStep[] {
-  return PIPELINE_SETUP_STEPS.map((step) => {
+  return PipelineViewModel.setupStepsOf(facts.record).map((step) => {
     const status = PipelineViewModel.setupStepStatusOf(facts.record, step);
     const reopens = status === 'done' || status === 'recheck';
     return {
