@@ -11,11 +11,16 @@ import type {
   MonitorAttentionKind,
   MonitorAttentionStampWord,
   MonitorFlintBrainDocument,
+  MonitorEntityDocument,
   MonitorJobDocument,
+  MonitorJobEntityKeys,
   MonitorJobTurn as MonitorJobTurnDocument,
   MonitorNoticeDocument,
+  MonitorOpenTicketDocument,
   MonitorOverseerState as MonitorOverseerStateDocument,
   MonitorSnapshotDocument,
+  MonitorSnapshotEntityKeys,
+  MonitorTicketStageName,
   MonitorUsageDocument
 } from 'forge-contracts/MonitorSnapshotDocument';
 
@@ -59,7 +64,7 @@ export interface MonitorAttentionEntry extends MonitorAttentionEntryDocument {
   readonly route:                   string;
 }
 
-export interface MonitorJob extends MonitorJobDocument {
+export interface MonitorJob extends MonitorJobDocument, MonitorJobEntityKeys {
   readonly id:                  string;
   readonly kind:                string;
   readonly role:                string | null;
@@ -87,6 +92,10 @@ export interface MonitorJob extends MonitorJobDocument {
   readonly lastLine:            string | null;
   readonly waitingOnDecisionId: string | null;
   readonly route:               string;
+  /** Only on a job of an entity: the entity whose stage it runs. */
+  readonly entity?:             string;
+  /** Only on a job of an entity that runs a stage: the stage's name. */
+  readonly stage?:              MonitorTicketStageName;
 }
 
 export interface MonitorActivityEntry extends MonitorActivityEntryDocument {
@@ -123,7 +132,7 @@ export interface MonitorUsage extends MonitorUsageDocument {
   readonly currentWindowResetsAt: string | null;
 }
 
-export interface MonitorSnapshot extends MonitorSnapshotDocument {
+export interface MonitorSnapshot extends MonitorSnapshotDocument, MonitorSnapshotEntityKeys {
   readonly monitorVersion: typeof SERVED_CONTRACT_VERSIONS.monitor;
   readonly trackerId:      string;
   readonly project:        string;
@@ -158,4 +167,8 @@ export interface MonitorSnapshot extends MonitorSnapshotDocument {
   readonly activity:            readonly MonitorActivityEntry[];
   /** Flint's brain, `null` where this forge cannot run it confined. */
   readonly flintBrain:          MonitorFlintBrainDocument | null;
+  /** Only on a forge with entities: each entity, in the pipeline's order. */
+  readonly entities?:           readonly MonitorEntityDocument[];
+  /** Only on a forge with entities: each ticket not delivered or abandoned, with its entity and the stage it is in, in board order. */
+  readonly openTickets?:        readonly MonitorOpenTicketDocument[];
 }

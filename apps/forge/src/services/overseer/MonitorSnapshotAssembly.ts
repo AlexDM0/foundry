@@ -2,7 +2,7 @@
  * The `MonitorSnapshot` of `GET /api/monitor` and of each `monitor` event, from the same reading as the Overseer's `BoardState`: the
  * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, the newest usage
  * window a session reported, the newest log entries a person cares about, worded as the Bridge words a log entry, and Flint's brain, which
- * is no job and so never in `jobs`.
+ * is no job and so never in `jobs`. On a forge with entities only, its entities, each open ticket's entity and stage, and each job's.
  */
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
@@ -11,7 +11,10 @@ import { LocalTimeUtil }                 from '../../lib/local-time/LocalTimeUti
 import type { Decision }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
 import type { LogRecord, LogRecordKind } from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                    from '../../lib/tracker-model/Board.ts';
+import { SETTLED_TICKET_STATUSES }       from '../../lib/tracker-model/constants/Statuses.ts';
+import { TicketStageUtil }               from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { SERVED_CONTRACT_VERSIONS }      from '../../shared/constants/OverseerApiContracts.ts';
 import { TIMESTAMP_SLICES }              from '../../shared/constants/TimestampSlices.ts';
 import type {
@@ -56,7 +59,7 @@ export interface MonitorMachineFacts {
 export interface MonitorSnapshotSource {
   state:      BoardState;
   project:    string;
-  board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus'>;
+  board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus' | 'pipeline' | 'tickets' | 'ticketStageOf'>;
   logRecords: readonly LogRecord[];
   overseer:   MonitorOverseerFacts;
   /** The Overseer's reading of Flint's brain; `null` where it cannot run confined. */
@@ -252,7 +255,34 @@ function jobOf(job: JobWithLiveFacts, decisions: readonly Decision[], incidents:
     lastLine:            live.lastLine?.text ?? null,
     waitingOnDecisionId: OpenDecisionsUtil.answeringOrderOf(decisions).find((decision) => decision.jobId === job.id)?.id ?? null,
     route:               BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.AGENTS, job.id),
+    ...jobEntityKeysOf(job),
   };
+}
+
+/** Written only once set, so a job of a forge without entities keeps exactly today's keys. */
+function jobEntityKeysOf(job: JobWithLiveFacts): Pick<MonitorJob, 'entity' | 'stage'> {
+  if (job.entity === undefined) return {};
+  const stage = TicketStageUtil.stageOfJob(job);
+  return stage === null ? { entity: job.entity } : { entity: job.entity, stage: stage.name };
+}
+
+/** Absent keys on a forge without entities, so its snapshot stays exactly today's. */
+function snapshotEntityKeysOf(board: MonitorSnapshotSource['board']): Pick<MonitorSnapshot, 'entities' | 'openTickets'> {
+  const entities = board.pipeline()?.entities;
+  if (entities === undefined) return {};
+  return {
+    entities:    entityDocumentsOf(entities),
+    openTickets: board.tickets()
+      .filter((ticket) => !SETTLED_TICKET_STATUSES.includes(ticket.frontmatter.status))
+      .map(({ frontmatter }) => {
+        const stage = board.ticketStageOf(frontmatter.id);
+        return { id: frontmatter.id, entity: frontmatter.entity ?? null, stage: stage === null ? null : { name: stage.name, entity: stage.entity } };
+      }),
+  };
+}
+
+function entityDocumentsOf(entities: NonNullable<Pipeline['entities']>): NonNullable<MonitorSnapshot['entities']> {
+  return Object.entries(entities).map(([key, entity]) => ({ key, kind: entity.kind, home: [...entity.home] }));
 }
 
 /** The state carries the notices as the DrivePass derived them; one that names no kind is no notice. */
@@ -325,6 +355,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),
     flintBrain:          source.flintBrain,
+    ...snapshotEntityKeysOf(board),
   };
 }
 

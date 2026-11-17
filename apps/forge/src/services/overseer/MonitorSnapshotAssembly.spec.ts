@@ -7,7 +7,10 @@
  * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
  * clock decides nothing. Flint's brain is the Overseer's reading as it stands, in each state, and none for a forge that cannot run it
  * confined; it is never in `jobs`. With a brain, `testing/fixtures/monitor-v3-flint-brain.json` holds the snapshot: the ended run's activity
- * entry, of the category `agent` with its kind and tokens, and today's tokens counting the running run and the ended one.
+ * entry, of the category `agent` with its kind and tokens, and today's tokens counting the running run and the ended one. On a forge with
+ * entities the snapshot adds its entities in the pipeline's order, each open ticket's entity and stage in board order (a delivered or
+ * abandoned ticket left out, an unassigned or uncrossed one `null`), and each job's entity with its stage's name only where set; a forge
+ * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -16,6 +19,9 @@ import { describe, expect, test } from 'bun:test';
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { LogRecord }                                                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                                                  from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { TicketStage }                                                               from '../../lib/tracker-model/@types/Task.ts';
+import type { Ticket }                                                                    from '../../lib/tracker-model/@types/Ticket.ts';
 import type { MonitorSnapshot }                                                           from '../../shared/monitor/@types/MonitorSnapshot.ts';
 import type { BoardState, JobLiveFactsWithSilence, JobWithLiveFacts }                     from './BoardState.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';
@@ -206,6 +212,7 @@ const OVERSEER: MonitorOverseerFacts = {
 };
 
 const BOARD = {
+  pipeline:            () => null,
   concurrency:         () => ({ limit: 3, agentsInFlight: 2, freeSlots: 1 }),
   readyTicketEntries:  () => [{ id: '003' }, { id: '004' }],
   ticketCountByStatus: () => ({
@@ -397,5 +404,80 @@ describe('MonitorSnapshotAssembly.activityOf', () => {
     const notes = Array.from({ length: 60 }, (_unused, index) => ({ kind: 'note', at: '2026-11-12T08:00:00+01:00', fields: { text: `Example note ${index}` } }));
     const activity = MonitorSnapshotAssembly.activityOf(notes as unknown as LogRecord[]);
     expect([activity.length, activity[0]?.logPosition, activity.at(-1)?.logPosition]).toEqual([50, 10, 59]);
+  });
+});
+
+const ENTITY_PIPELINE = {
+  entities: {
+    'forge':     { kind: 'app', home: ['/apps/forge'] },
+    'contracts': { kind: 'package', home: ['/packages/contracts'] },
+    'root':      { kind: 'root', home: ['/'] },
+  },
+} as unknown as Pipeline;
+
+const ENTITY_TICKETS = [
+  { frontmatter: { id: '001', status: 'in-progress', entity: 'forge' } },
+  { frontmatter: { id: '002', status: 'delivered', entity: 'forge' } },
+  { frontmatter: { id: '003', status: 'pending', entity: 'contracts' } },
+  { frontmatter: { id: '008', status: 'abandoned' } },
+  { frontmatter: { id: '009', status: 'draft' } },
+] as unknown as Ticket[];
+
+const TICKET_STAGES: Readonly<Record<string, TicketStage>> = { '001': { name: 'package-build', entity: 'contracts' } };
+
+const ENTITY_BOARD = {
+  ...BOARD,
+  pipeline:      () => ENTITY_PIPELINE,
+  tickets:       () => ENTITY_TICKETS,
+  ticketStageOf: (ticketId: string) => TICKET_STAGES[ticketId] ?? null,
+} as unknown as MonitorSnapshotSource['board'];
+
+const ENTITY_JOBS: JobWithLiveFacts[] = [
+  jobWith({
+    id: 'J1', ticketIds: ['001'], entity: 'contracts', stage: 2
+  }, {}, '2026-11-12T11:00:00+01:00'),
+  jobWith({
+    id: 'J5', kind: 'pipeline-agent', role: 'pipeline-agent', target: null, entity: 'forge'
+  }, {}, '2026-11-12T10:05:00+01:00'),
+  jobWith({
+    id: 'J6', kind: 'merge', role: null, ticketIds: ['007'], state: 'merging'
+  }, {}, '2026-11-12T11:45:00+01:00'),
+];
+
+const ENTITY_SOURCE: MonitorSnapshotSource = { ...SOURCE, board: ENTITY_BOARD, state: { ...STATE, jobs: ENTITY_JOBS } as unknown as BoardState };
+
+describe('entities in the monitor snapshot', () => {
+  test('a forge without entities gets no entity key on the snapshot or on any job', () => {
+    const snapshot = MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE);
+    expect(Object.keys(snapshot)).not.toContain('entities');
+    expect(Object.keys(snapshot)).not.toContain('openTickets');
+    for (const job of snapshot.jobs) expect(Object.keys(job).filter((key) => key === 'entity' || key === 'stage'), job.id).toEqual([]);
+  });
+
+  test('lists each entity in the pipeline\'s order with its kind and home', () => {
+    expect(MonitorSnapshotAssembly.monitorSnapshotOf(ENTITY_SOURCE).entities).toEqual([
+      { key: 'forge', kind: 'app', home: ['/apps/forge'] },
+      { key: 'contracts', kind: 'package', home: ['/packages/contracts'] },
+      { key: 'root', kind: 'root', home: ['/'] },
+    ]);
+  });
+
+  test('lists each open ticket in board order with its entity and stage, null where unassigned or uncrossed', () => {
+    expect(MonitorSnapshotAssembly.monitorSnapshotOf(ENTITY_SOURCE).openTickets).toEqual([
+      { id: '001', entity: 'forge', stage: { name: 'package-build', entity: 'contracts' } },
+      { id: '003', entity: 'contracts', stage: null },
+      { id: '009', entity: null, stage: null },
+    ]);
+  });
+
+  test('gives a job its entity, and its stage\'s name only where it runs a stage', () => {
+    const { jobs } = MonitorSnapshotAssembly.monitorSnapshotOf(ENTITY_SOURCE);
+    expect(jobs.map(({ id, entity, stage }) => ({ id, entity, stage }))).toEqual([
+      { id: 'J1', entity: 'contracts', stage: 'package-build' },
+      { id: 'J5', entity: 'forge', stage: undefined },
+      { id: 'J6', entity: undefined, stage: undefined },
+    ]);
+    expect(Object.keys(jobs[1] ?? {})).not.toContain('stage');
+    expect(Object.keys(jobs[2] ?? {})).not.toContain('entity');
   });
 });

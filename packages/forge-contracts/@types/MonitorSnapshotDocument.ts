@@ -169,6 +169,52 @@ export interface MonitorSnapshotDocument {
   readonly flintBrain:     MonitorFlintBrainDocument | null;
 }
 
+/** An entity's kind: an app, a package, or the one root entity that owns every path no other entity owns. */
+export type MonitorEntityKind = 'app' | 'package' | 'root';
+
+/** The stages of a ticket that crosses into a whitelisted package, in the order a crossing first runs them. */
+export type MonitorTicketStageName = 'build' | 'package-build' | 'package-review' | 'adapt' | 'review';
+
+/** One entity of a forge at the repository's root, in the pipeline's order. */
+export interface MonitorEntityDocument {
+  readonly key:  string;
+  readonly kind: MonitorEntityKind;
+  /** Repository folders, each leading with `/`. */
+  readonly home: readonly string[];
+}
+
+/** The stage a crossing ticket is in, and the entity whose agent runs it: the ticket's home entity, or the crossed package. */
+export interface MonitorTicketStageDocument {
+  readonly name:   MonitorTicketStageName;
+  readonly entity: string;
+}
+
+/** An open ticket of a forge with entities: `entity` is `null` until the product owner assigns one, `stage` `null` until it crosses. */
+export interface MonitorOpenTicketDocument {
+  readonly id:     string;
+  readonly entity: string | null;
+  readonly stage:  MonitorTicketStageDocument | null;
+}
+
+/**
+ * The keys a job of an entity adds to `MonitorJobDocument` from forge 1.14, each only when set: the entity whose stage the job runs, and that
+ * stage's name. A job of a forge without entities has neither. Kept apart from `MonitorJobDocument`, so a client that checks every key of a
+ * job keeps compiling until it adopts them.
+ */
+export interface MonitorJobEntityKeys {
+  readonly entity?: string;
+  readonly stage?:  MonitorTicketStageName;
+}
+
+/**
+ * The keys a forge with entities adds to `MonitorSnapshotDocument` from forge 1.14: its entities, and each open ticket's entity and stage, in
+ * board order. A forge without entities sends neither. Its jobs carry `MonitorJobEntityKeys`.
+ */
+export interface MonitorSnapshotEntityKeys {
+  readonly entities?:    readonly MonitorEntityDocument[];
+  readonly openTickets?: readonly MonitorOpenTicketDocument[];
+}
+
 /** The first event of `GET /api/v2/monitor/events`, `event: handshake`, sent before any `monitor` event. */
 export interface MonitorStreamHandshake {
   readonly systemVersion: SystemVersion;
