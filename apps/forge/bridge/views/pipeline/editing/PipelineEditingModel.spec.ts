@@ -2,7 +2,8 @@
  * The editing model against the A6 fixture. What matters: the footer counts the changes with the version they make, and only the count
  * for a pipeline that no Apply numbered, and the panel head the version step; the agent tab's status follows its job; the board note
  * names the version that runs until Apply; the change cards read the applied pipeline and the draft of the facts, and nothing without a
- * flow; Ask the pipeline agent to check and Discard send their commands with the setup.
+ * flow; Ask the pipeline agent to check and Discard send their commands with the setup. Over entities, the footer also counts the
+ * levels, the changes group by level, the forge first, and the check names the entities the draft touches.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -49,5 +50,20 @@ describe('the commands', () => {
   test('Ask the pipeline agent to check and Discard name the setup', () => {
     expect(PipelineEditingModel.checkCommandOf('S2')).toEqual({ kind: 'pipeline-check', setupId: 'S2' });
     expect(PipelineEditingModel.discardCommandOf('S2')).toEqual({ kind: 'pipeline-draft-discard', setupId: 'S2' });
+  });
+});
+
+describe('a draft over entities', () => {
+  test('the footer counts the changes and the levels they are in', () => {
+    expect(PipelineEditingModel.levelsFooterSummaryOf(4, 3, 1)).toBe('4 changes in 3 levels · version 1 → 2');
+    expect(PipelineEditingModel.levelsFooterSummaryOf(1, 1, null)).toBe('1 change in 1 level');
+  });
+
+  test('the changes group by level, the forge first, and the check names the entities the draft touches', () => {
+    const groups = PipelineEditingModel.levelGroupsOf(pipelineBoardStateOf('mono-editing'));
+    expect(groups.map((group) => [group.name, group.changeCount])).toEqual([['Forge', 1], ['web', 1], ['design-system', 2]]);
+    expect(PipelineEditingModel.checkCoverageTextOf(groups)).toBe('The check covers web and design-system: the entities this draft touches.');
+    expect(PipelineEditingModel.checkCoverageTextOf(groups.slice(0, 2))).toBe('The check covers web: the entity this draft touches.');
+    expect(PipelineEditingModel.checkCoverageTextOf(groups.slice(0, 1))).toBeNull();
   });
 });

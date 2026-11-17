@@ -1,7 +1,8 @@
 /**
  * A level's group of the Changes list in a happy-dom document, against fake controls. What matters: the head names the level with its
- * count and folds the group; a change card's Undo sends that edit; a copy's batch card names the set, undoes it with one press by the
- * command its caller gives, keeps that Undo disabled with none, and unfolds each edit with its own Undo.
+ * count and folds the group; a change card's Undo sends that edit; a copy's batch card names the set, undoes it with one press as
+ * `pipeline-draft-undo` with `wholeBatch` for the set's first edit at its level, and unfolds each edit with its own Undo; a copy to two
+ * entities gives the second entity's group a set that counts and undoes its own edits only.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {
@@ -11,12 +12,11 @@ import {
   test
 } from 'bun:test';
 
-import type { PipelineChange }                    from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { SetupEdit }                         from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import type { ControlCommandBody }                from '../../../api/CommandClient.ts';
-import { clickSettled, fakeControls }             from '../../../testing/FakeControls.ts';
-import { ChangeGroup }                            from './ChangeGroup.tsx';
-import { ChangeGroupModel, type ChangeBatchView } from './ChangeGroupModel.ts';
+import type { PipelineChange }        from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import type { SetupEdit }             from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { clickSettled, fakeControls } from '../../../testing/FakeControls.ts';
+import { ChangeGroup }                from './ChangeGroup.tsx';
+import { ChangeGroupModel }           from './ChangeGroupModel.ts';
 
 afterEach(cleanup);
 
@@ -38,11 +38,6 @@ const EDITS: readonly SetupEdit[] = [
   },
 ];
 
-/** A stand-in for the set's command, which no move of the draft provides yet. */
-function exampleSetUndoOf(batch: ChangeBatchView): ControlCommandBody {
-  return { kind: 'pipeline-draft-undo', setupId: 'S1', editId: batch.batchId };
-}
-
 function adminGroup() {
   const group = ChangeGroupModel.groupsOf(CHANGES, EDITS, ['admin'])[0];
   if (group === undefined) throw new Error('no group for admin');
@@ -51,7 +46,7 @@ function adminGroup() {
 
 describe('a level\'s group of changes', () => {
   test('the head names the level with its count and folds the group', async () => {
-    fakeControls().render(<ChangeGroup setupId="S1" group={adminGroup()} batchUndoCommandOf={exampleSetUndoOf} />);
+    fakeControls().render(<ChangeGroup setupId="S1" group={adminGroup()} />);
     const section = screen.getByRole('region', { name: 'admin changes' });
     const head = within(section).getByRole('button', { name: 'admin, 3 changes' });
     expect(head.getAttribute('aria-expanded')).toBe('true');
@@ -63,7 +58,7 @@ describe('a level\'s group of changes', () => {
 
   test('a change card\'s Undo sends its own edit', async () => {
     const controls = fakeControls();
-    controls.render(<ChangeGroup setupId="S1" group={adminGroup()} batchUndoCommandOf={exampleSetUndoOf} />);
+    controls.render(<ChangeGroup setupId="S1" group={adminGroup()} />);
     expect(screen.getByText('packages it may cross into · new')).toBeDefined();
     await clickSettled(screen.getByRole('button', { name: 'Undo the change to Whitelist' }));
     expect(controls.sent).toEqual([{ kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E6' }]);
@@ -71,11 +66,13 @@ describe('a level\'s group of changes', () => {
 
   test('a batch card undoes the set with one press and unfolds each edit with its own Undo', async () => {
     const controls = fakeControls();
-    controls.render(<ChangeGroup setupId="S1" group={adminGroup()} batchUndoCommandOf={exampleSetUndoOf} />);
+    controls.render(<ChangeGroup setupId="S1" group={adminGroup()} />);
     expect(screen.getByText('Copied gates from web')).toBeDefined();
     expect(screen.getByText('2 edits')).toBeDefined();
     await clickSettled(screen.getByRole('button', { name: 'Undo all 2: Copied gates from web' }));
-    expect(controls.sent).toEqual([{ kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3' }]);
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+    }]);
     expect(screen.queryByRole('button', { name: 'Undo the change to lint' })).toBeNull();
     const disclosure = screen.getByRole('button', { name: 'Show the 2 edits' });
     await clickSettled(disclosure);
@@ -87,8 +84,24 @@ describe('a level\'s group of changes', () => {
     expect(screen.getByRole('button', { name: 'Hide the 2 edits' })).toBeDefined();
   });
 
-  test('with no command for the set, its Undo stays disabled', () => {
-    fakeControls().render(<ChangeGroup setupId="S1" group={adminGroup()} batchUndoCommandOf={() => null} />);
-    expect(screen.getByRole('button', { name: 'Undo all 2: Copied gates from web' }).hasAttribute('disabled')).toBe(true);
+  test('a copy to two entities gives the second entity\'s group a set that counts and undoes its own edits only', async () => {
+    const copyChanges: readonly PipelineChange[] = [
+      { field: 'entity:api/gate:lint', changeKind: 'new', editId: 'E1' },
+      { field: 'entity:api/gate:test', changeKind: 'new', editId: 'E2' },
+      { field: 'entity:docs/gate:lint', changeKind: 'new', editId: 'E3' },
+      { field: 'entity:docs/gate:test', changeKind: 'new', editId: 'E4' },
+    ];
+    const copyEdits: SetupEdit[] = copyChanges.map((change) => ({
+      editId: change.editId ?? '', by: 'user', field: change.field, summary: 'Copied gates from web', undone: false, batch: 'E1',
+    }));
+    const docsGroup = ChangeGroupModel.groupsOf(copyChanges, copyEdits, ['api', 'docs'])[1];
+    if (docsGroup === undefined) throw new Error('no group for docs');
+    const controls = fakeControls();
+    controls.render(<ChangeGroup setupId="S1" group={docsGroup} />);
+    expect(screen.getByRole('button', { name: 'docs, 2 changes' })).toBeDefined();
+    await clickSettled(screen.getByRole('button', { name: 'Undo all 2: Copied gates from web' }));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+    }]);
   });
 });

@@ -799,6 +799,9 @@ function setupMessageWordingOf(message: SetupMessage): string {
     case 'draft-edit-undone':
       return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).\n\n`
         + draftChangesTextOf(message.changes);
+    case 'draft-batch-undone':
+      return `User undid the edits ${message.editIds.join(', ')} (${message.fields.join(', ')}) of the draft pipeline together `
+        + `(revision ${message.draftRevision}).\n\n${draftChangesTextOf(message.changes)}`;
     case 'draft-discarded':
       return `User discarded all proposed changes to the draft pipeline (revision ${message.draftRevision}).\n\n${draftChangesTextOf(message.changes)}`;
     case 'setup-resumed':

@@ -1034,6 +1034,15 @@ export class Board {
     return this.pipelineSetups.undoDraftEdit(setupId, editId, at);
   }
 
+  /** The draft the set's Undo would leave, with nothing stored; refused as `undoDraftBatch` refuses it. */
+  draftAfterBatchUndo(setupId: string, editId: string): Pipeline {
+    return this.pipelineSetups.draftAfterBatchUndo(setupId, editId);
+  }
+
+  undoDraftBatch(setupId: string, editId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.undoDraftBatch(setupId, editId, at);
+  }
+
   discardDraft(setupId: string, at: string): PipelineSetupChanged {
     return this.pipelineSetups.discardDraft(setupId, at);
   }

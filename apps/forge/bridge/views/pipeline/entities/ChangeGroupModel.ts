@@ -1,12 +1,14 @@
 /**
  * The Changes list grouped by level, pure: the forge's changes first, then each entity's in the rail's order, each group with its count.
  * Inside a group, the changes that one copy to another entity made (the edits sharing a `batch`) stand as one batch row in the place of
- * its first change, with one undo for the set and each change still undone alone; a set down to one change is an ordinary row. A change
- * inside an entity is worded as the same field of a single pipeline, and the fields only an entity has get their own words.
+ * its first change, with one undo for the set, `pipeline-draft-undo` with `wholeBatch` for an edit of that level, which takes back the
+ * copy's edits at that level only, and each change still undone alone; a set down to one change is an ordinary row. A change inside an
+ * entity is worded as the same field of a single pipeline, and the fields only an entity has get their own words.
  */
 import type { EntityKey }                                       from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineChange, PipelineChangeKind }              from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { EntityDraftField, PipelineDraftField, SetupEdit } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { ControlCommandBody }                              from '../../../api/CommandClient.ts';
 import { ChangeListModel, type ChangeRowView, type FieldWords } from '../apply/ChangeListModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel }  from './PipelineLevelModel.ts';
 
@@ -146,4 +148,16 @@ function disclosureLabelOf(batch: ChangeBatchView, isOpen: boolean): string {
   return `${isOpen ? 'Hide' : 'Show'} the ${batch.rows.length} edits`;
 }
 
-export const ChangeGroupModel = Object.freeze({ groupsOf, changeRowsOf, disclosureLabelOf });
+/**
+ * The set's one Undo, named by the set's first edit at this level: the Overseer undoes every edit of the copy at that level that still
+ * stands, at one revision, so a copy to several entities is undone one entity at a time.
+ */
+function batchUndoCommandOf(setupId: string, batch: ChangeBatchView): ControlCommandBody {
+  return {
+    kind: 'pipeline-draft-undo', setupId, editId: batch.undoEditIds[0] ?? batch.batchId, wholeBatch: true,
+  };
+}
+
+export const ChangeGroupModel = Object.freeze({
+  groupsOf, changeRowsOf, disclosureLabelOf, batchUndoCommandOf,
+});

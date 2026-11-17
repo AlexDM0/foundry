@@ -2,8 +2,10 @@
  * The Changes list grouped by level. What matters: the forge's group comes first, then the entities in the rail's order, and an entity
  * the rail no longer holds still gets its group; a group counts every change it holds, a set's members too; the edits of one copy stand
  * as one batch row in the place of its first change, with the set's sentence, its count and the edits its undo takes back, while each
- * change keeps its own Undo; a set down to one change is an ordinary row; a change inside an entity is worded as the same field of a
- * single pipeline, and the fields only an entity has, and its definition, get their own words.
+ * change keeps its own Undo; the set's one Undo is `pipeline-draft-undo` with `wholeBatch` for the set's first edit at its level, so a
+ * copy to two entities gives each entity's group its own set, counted and undone by that entity's edits alone; a set down to one
+ * change is an ordinary row; a change inside an entity is worded as the same field of a single pipeline, and the fields only an entity
+ * has, and its definition, get their own words.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -97,5 +99,39 @@ describe('the words of a change inside an entity', () => {
       ['Job cap', 'jobs at once · changed'],
       ['web', 'entity · new'],
     ]);
+  });
+
+  test('a copy to two entities gives each entity\'s group its own set, counted and undone by that entity\'s edits alone', () => {
+    const copyChanges: readonly PipelineChange[] = [
+      { field: 'entity:api/gate:lint', changeKind: 'new', editId: 'E1' },
+      { field: 'entity:api/gate:test', changeKind: 'new', editId: 'E2' },
+      { field: 'entity:docs/gate:lint', changeKind: 'new', editId: 'E3' },
+      { field: 'entity:docs/gate:test', changeKind: 'new', editId: 'E4' },
+    ];
+    const copyEdits = copyChanges.map((change) => edit(change.editId ?? '', change.field, 'Copied gates from web', 'E1'));
+
+    const groups = ChangeGroupModel.groupsOf(copyChanges, copyEdits, ['api', 'docs']);
+
+    expect(groups.map((group) => {
+      const item = group.items[0];
+      if (item?.itemKind !== 'batch') throw new Error(`no batch row for ${group.name}`);
+      return [group.name, item.batch.undoLabel, item.batch.undoEditIds, ChangeGroupModel.batchUndoCommandOf('S1', item.batch)];
+    })).toEqual([
+      ['api', 'Undo all 2', ['E1', 'E2'], {
+        kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1', wholeBatch: true
+      }],
+      ['docs', 'Undo all 2', ['E3', 'E4'], {
+        kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+      }],
+    ]);
+  });
+
+  test('the set\'s one Undo sends pipeline-draft-undo with wholeBatch for the set\'s first edit', () => {
+    const batch = {
+      batchId: 'E3', title: 'Copied gates from web', editCountText: '2 edits', undoLabel: 'Undo all 2', rows: [], undoEditIds: ['E3', 'E4'],
+    };
+    expect(ChangeGroupModel.batchUndoCommandOf('S1', batch)).toEqual({
+      kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E3', wholeBatch: true
+    });
   });
 });

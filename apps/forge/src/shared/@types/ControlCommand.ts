@@ -201,7 +201,8 @@ export type ControlCommand =
   | { kind: 'pipeline-update-start'; entity?: EntityKey }
   /** `isACopy`: the edits copy one entity's settings to others, and the set is stored under one `batch` that can be undone at once. */
   | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[]; isACopy?: true }
-  | { kind: 'pipeline-draft-undo'; setupId: string; editId: string }
+  /** `wholeBatch`: every edit of the copy that `editId` belongs to, at `editId`'s level, that still stands is undone at once, as one set. */
+  | { kind: 'pipeline-draft-undo'; setupId: string; editId: string; wholeBatch?: true }
   | { kind: 'pipeline-draft-discard'; setupId: string }
   /**
    * User's press: one gate in one phase, from the open setup's draft, or with `setupId` `null` from the stored pipeline; on a forge over

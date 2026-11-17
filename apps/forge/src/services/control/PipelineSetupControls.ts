@@ -484,9 +484,39 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
   });
 }
 
+/** Absent or `true`: the Undo takes back the edit's whole copy at once; any other value is malformed. */
+function wholeBatchFieldOf(command: SentCommand): boolean {
+  const value = fieldOf(command, 'wholeBatch');
+  if (value === undefined) return false;
+  if (value !== true) refuseMalformedSetupCommand(command.kind, 'wholeBatch');
+  return true;
+}
+
+/** A copy's set undone at once: each level's session hears the edits of its own level, as it heard them made. */
+function undoDraftBatch(setupId: string, editId: string, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
+  const before   = workingDraftOf(change.board);
+  requireStorableDraft(setupId, change.board.draftAfterBatchUndo(setupId, editId));
+  const standing = new Set(change.board.pipelineSetup()?.edits.filter((edit) => !edit.undone).map((edit) => edit.editId));
+  const changed  = change.board.undoDraftBatch(setupId, editId, change.at);
+  const undone   = changed.setup.edits.filter((edit) => edit.undone && standing.has(edit.editId));
+  const changes  = draftChangesOf(before, changed);
+  return messagedPerLevel(changed, change, context, [...undone.map((edit) => edit.field), ...changeFieldsOf(changes)], (keeps) => {
+    const keptEdits = undone.filter((edit) => keeps(edit.field));
+    return {
+      kind:          'draft-batch-undone',
+      setupId,
+      draftRevision: changed.setup.draftRevision,
+      editIds:       keptEdits.map((edit) => edit.editId),
+      fields:        keptEdits.map((edit) => edit.field),
+      changes:       changes.filter((fieldChange) => keeps(fieldChange.field)),
+    };
+  });
+}
+
 function undoDraftEdit(command: CommandOf<'pipeline-draft-undo'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const editId  = textFieldOf(command, 'editId');
+  if (wholeBatchFieldOf(command)) return undoDraftBatch(setupId, editId, change, context);
   const before  = workingDraftOf(change.board);
   requireStorableDraft(setupId, change.board.draftAfterUndo(setupId, editId));
   const changed = change.board.undoDraftEdit(setupId, editId, change.at);

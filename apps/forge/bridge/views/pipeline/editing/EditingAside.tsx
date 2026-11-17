@@ -3,7 +3,8 @@
  * them and Ask the pipeline agent to check in its foot, which sends `pipeline-check` and turns to the agent's tab; then the Pipeline agent
  * tab with the agent's chat and the composer. The head names the selected tab: the version step beside Changes, the agent's state and
  * its model and effort beside Pipeline agent. An advise session, which Ask the pipeline agent opened on the live flow, opens on the
- * agent's tab.
+ * agent's tab. Over entities (MonoEditing) the Changes tab groups the changes of every level, a copy's set with one Undo, names the
+ * entities the check covers, and the agent's tab is the session of the level shown.
  */
 import { CountBadge } from 'design-system/CountBadge';
 import { Tabs }       from 'design-system/Tabs';
@@ -18,10 +19,13 @@ import { TimeUtil }                                            from '../../../ut
 import { PipelinePanel, PipelinePanelBody, PipelinePanelFoot } from '../PipelinePanel.tsx';
 import type { PipelineViewFacts }                              from '../PipelineViewModel.ts';
 import { AgentMeter }                                          from '../agent-panel/AgentMeter.tsx';
-import { PipelineAgentPanel }                                  from '../agent-panel/PipelineAgentPanel.tsx';
+import { PipelineAgentPanel, type AgentPanelLevel }            from '../agent-panel/PipelineAgentPanel.tsx';
+import { PipelineAgentPanelModel }                             from '../agent-panel/PipelineAgentPanelModel.ts';
 import { ApplyChangesDialogModel }                             from '../apply/ApplyChangesDialogModel.ts';
 import { ChangeList }                                          from '../apply/ChangeList.tsx';
 import { InFlightNote }                                        from '../apply/InFlightNote.tsx';
+import { ChangeGroup }                                         from '../entities/ChangeGroup.tsx';
+import { PipelineLevelModel }                                  from '../entities/PipelineLevelModel.ts';
 import { BillingStepModel }                                    from '../setup/BillingStepModel.ts';
 import { DesignStepModel }                                     from '../setup/DesignStepModel.ts';
 import { PipelineEditingModel }                                from './PipelineEditingModel.ts';
@@ -33,10 +37,25 @@ export interface EditingAsideProps {
   readonly setup:            PipelineSetupFacts;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BridgeClock;
+  /** The level a draft over entities shows; absent in single mode. */
+  readonly levelShown?:      AgentPanelLevel | null;
+}
+
+/** Every level's changes, the forge's first, with the entities the check covers under them. */
+function LevelChangeGroups({ facts, setupId }: { readonly facts: PipelineViewFacts; readonly setupId: string }) {
+  const groups = PipelineEditingModel.levelGroupsOf(facts);
+  const coverage = PipelineEditingModel.checkCoverageTextOf(groups);
+  if (groups.length === 0) return <p className="bridge-pipeline-change-list-empty">The draft changes nothing yet.</p>;
+  return (
+    <>
+      {groups.map((group) => <ChangeGroup key={PipelineLevelModel.itemAtLevel(group.level, null)} setupId={setupId} group={group} />)}
+      {coverage === null ? null : <Text element="p" muted>{coverage}</Text>}
+    </>
+  );
 }
 
 export function EditingAside({
-  facts, setup, followTranscript, clock
+  facts, setup, followTranscript, clock, levelShown = null
 }: EditingAsideProps) {
   const [panelTab, setPanelTab] = useState<PanelTab>(setup.record.mode === 'advise' ? 'agent' : 'changes');
   const now = useTickingNow(clock, false);
@@ -45,7 +64,7 @@ export function EditingAside({
   const changeList = flow?.changeList ?? [];
   const ticketIdsInFlight = flow?.ticketIdsInFlight ?? [];
   const appliedRevision = ApplyChangesDialogModel.appliedRevisionOf(facts.pipeline);
-  const versionStepText = PipelineEditingModel.versionStepTextOf(appliedRevision);
+  const versionStepText = PipelineEditingModel.versionStepTextOf(appliedRevision, levelShown !== null);
   const tabs = (
     <Tabs
       label="Changes and the pipeline agent"
@@ -68,8 +87,8 @@ export function EditingAside({
     return (
       <PipelinePanel
         label="Changes"
-        title="Pipeline agent"
-        status={PipelineEditingModel.agentStatusOf(setup.agentJobState)}
+        title={PipelineAgentPanelModel.panelTitleOf(levelShown?.level ?? null)}
+        status={PipelineEditingModel.agentStatusOf(PipelineAgentPanelModel.levelSessionOf(setup, levelShown?.level ?? null).agentJobState)}
         headEnd={<AgentMeter meter={BillingStepModel.pipelineAgentMeterOf(record, facts)} />}
         tabs={tabs}
         tabPanelLabel="Chat with the pipeline agent"
@@ -80,6 +99,7 @@ export function EditingAside({
           followTranscript={followTranscript}
           todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
           composerPlaceholder="For example: does the new gate need the network?"
+          levelShown={levelShown}
         />
       </PipelinePanel>
     );
@@ -93,7 +113,9 @@ export function EditingAside({
       tabPanelLabel="Changes"
     >
       <PipelinePanelBody>
-        <ChangeList setupId={record.setupId} changeList={changeList} edits={record.edits} editing={PipelineEditingModel.changeListEditingOf(facts)} />
+        {levelShown === null
+          ? <ChangeList setupId={record.setupId} changeList={changeList} edits={record.edits} editing={PipelineEditingModel.changeListEditingOf(facts)} />
+          : <LevelChangeGroups facts={facts} setupId={record.setupId} />}
         <InFlightNote
           ticketIds={ticketIdsInFlight}
           lead={ApplyChangesDialogModel.inFlightLeadOf(ticketIdsInFlight.length)}

@@ -109,7 +109,8 @@
  *                           -activity-history-line entries with their -activity-history-clock; the .bridge-pipeline-toast holder of
  *                           the toast after an Apply
  *   .bridge-pipeline-apply-resume the apply dialogs (A4Confirm, A6bApplyChanges), composed from package parts: the outlined "Resume the
- *                           board" checkbox row, the -changes-rows list of -changes-row change rows, the in-flight note's
+ *                           board" checkbox row, the -changes-rows list of -changes-row change rows (over entities, one
+ *                           -changes-level per level with its -changes-level-head, a copy's set as a -changes-batch row), the in-flight note's
  *                           .bridge-pipeline-in-flight-dot and -tickets of -ticket chips, and the -pending[data-state] block of a pending
  *                           Apply (-pending-line with its busy ring and -pending-text, -pending-next, -pending-actions)
  *   .bridge-pipeline-dialog-settings[data-size] the step dialogs' model and effort: a -field (-label) holding the -select with its
@@ -3002,6 +3003,12 @@ button.bridge-pipeline-gate-time:hover { filter: brightness(0.94); }
 .bridge-pipeline-apply-resume > input { margin: 3px 0 0; accent-color: var(--link); }
 .bridge-pipeline-apply-changes-rows { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .bridge-pipeline-apply-changes-row { display: block; }
+.bridge-pipeline-apply-changes-level { display: flex; flex-direction: column; gap: 6px; }
+.bridge-pipeline-apply-changes-level-head { display: flex; align-items: center; gap: var(--sp-2); height: 24px; color: var(--ink); }
+.bridge-pipeline-apply-changes-batch {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-2);
+}
 .bridge-pipeline-in-flight-dot { flex: none; width: 7px; height: 7px; margin-top: 6px; background: var(--signal); border-radius: var(--r-pill); }
 .bridge-pipeline-in-flight-tickets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .bridge-pipeline-in-flight-ticket { display: inline-flex; }

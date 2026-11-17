@@ -30,6 +30,12 @@ test.each<[SetupMessage, string]>([
   ],
   [
     {
+      kind: 'draft-batch-undone', setupId: 'S1', draftRevision: 8, editIds: ['E2', 'E3'], fields: ['gate:lint', 'gate:test'], changes: []
+    },
+    'User undid the edits E2, E3 (gate:lint, gate:test) of the draft pipeline together (revision 8).\n\nNo value of the draft changed.',
+  ],
+  [
+    {
       kind: 'draft-discarded', setupId: 'S1', draftRevision: 7, changes: []
     },
     'User discarded all proposed changes to the draft pipeline (revision 7).\n\nNo value of the draft changed.',

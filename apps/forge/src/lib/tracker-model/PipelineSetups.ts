@@ -197,6 +197,11 @@ interface CheckHolder {
 
 const ROOT_FOLDER = '/';
 
+/** The entity a draft field names; null for a field of the forge itself. */
+function entityKeyOfField(field: string): EntityKey | null {
+  return PipelineDraftEditUtil.entityScopeOf(field)?.entityKey ?? null;
+}
+
 function entityPartsOf(setup: Readonly<PipelineSetup>): [EntityKey, PipelineSetupEntity][] {
   return Object.entries(setup.entities ?? {});
 }
@@ -561,6 +566,30 @@ export class PipelineSetups {
     this.store(setup);
     const fields = { editId, field: edit.field, revision: setup.draftRevision };
     return { logged: [this.records.logger.log({ kind: 'pipeline-draft-undone', setupId, fields }, at)], setup };
+  }
+
+  /** The draft the set's Undo would leave, refused as `undoDraftBatch` refuses it; nothing is stored. */
+  draftAfterBatchUndo(setupId: string, editId: string): Pipeline {
+    const setup = this.requireMovableSetup(setupId);
+    return this.batchUndoneDraftOf(setup, this.requireUndoableBatch(setup, editId));
+  }
+
+  /**
+   * Undoes at once every edit of the copy the named edit belongs to, at the named edit's level, that is not undone yet, at one revision,
+   * each logged as its own Undo; an edit of no copy is a set of one.
+   */
+  undoDraftBatch(setupId: string, editId: string, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    const edits = this.requireUndoableBatch(setup, editId);
+    setup.draft         = this.batchUndoneDraftOf(setup, edits);
+    setup.draftRevision += 1;
+    for (const edit of edits) edit.undone = true;
+    this.store(setup);
+    const logged = edits.map((edit) => {
+      const fields = { editId: edit.editId, field: edit.field, revision: setup.draftRevision };
+      return this.records.logger.log({ kind: 'pipeline-draft-undone', setupId, fields }, at);
+    });
+    return { logged, setup };
   }
 
   /** Drops every proposed change: the draft is the base again, every edit is undone, and the agent stays. */
@@ -1129,6 +1158,29 @@ export class PipelineSetups {
     if (edit === undefined) throw new BoardRefusal({ reason: 'unknown-setup-edit', setupId, editId });
     if (edit.undone) throw new BoardRefusal({ reason: 'setup-edit-already-undone', setupId, editId });
     return edit;
+  }
+
+  /**
+   * The edits of the named edit's set at the named edit's level still standing, in the order made, so a copy to several entities is
+   * undone one entity at a time; refused as one Undo is when none stands.
+   */
+  private requireUndoableBatch(setup: PipelineSetup, editId: string): SetupEdit[] {
+    const { setupId } = setup;
+    const named = setup.edits.find((candidate) => candidate.editId === editId);
+    if (named === undefined) throw new BoardRefusal({ reason: 'unknown-setup-edit', setupId, editId });
+    const { batch } = named;
+    const namedEntityKey = entityKeyOfField(named.field);
+    const members = batch === undefined
+      ? [named]
+      : setup.edits.filter((candidate) => candidate.batch === batch && entityKeyOfField(candidate.field) === namedEntityKey);
+    const standing = members.filter((edit) => !edit.undone);
+    if (standing.length === 0) throw new BoardRefusal({ reason: 'setup-edit-already-undone', setupId, editId });
+    return standing;
+  }
+
+  private batchUndoneDraftOf(setup: Readonly<PipelineSetup>, edits: readonly Readonly<SetupEdit>[]): Pipeline {
+    const base = this.basePipeline();
+    return edits.reduce((draft, edit) => PipelineDraftEditUtil.pipelineWithBaseValueOf(base, draft, edit.field), setup.draft ?? base);
   }
 
   private undoneDraftOf(setup: Readonly<PipelineSetup>, edit: Readonly<SetupEdit>): Pipeline {

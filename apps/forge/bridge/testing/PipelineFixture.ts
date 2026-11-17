@@ -90,6 +90,7 @@ export type PipelineFixtureName =
   | 'header-both-usage-windows'
   | 'header-no-usage-windows'
   | 'mono-design'
+  | 'mono-editing'
   | 'mono-live';
 
 export const PIPELINE_FIXTURE_SETUP_ID = 'S1';
@@ -1034,6 +1035,54 @@ function monorepoLiveState(): BoardStateDocument {
   });
 }
 
+/** The edits of an update over entities: merge approval at the forge, web's typecheck, and a copy of web's unit tests to the design system. */
+const MONOREPO_EDITS: readonly SetupEdit[] = [
+  {
+    editId: 'E1', by: 'user', field: 'approval:merge', summary: '', undone: false,
+  },
+  {
+    editId: 'E2', by: 'user', field: 'entity:web/gate:typecheck', summary: 'Example: typecheck runs incrementally.', undone: false,
+  },
+  {
+    editId: 'E3', by: 'user', field: 'entity:design-system/gate:unit-tests', summary: 'Copied gates from web', undone: false, batch: 'E3',
+  },
+  {
+    editId: 'E4', by: 'user', field: 'entity:design-system/phase-order:build', summary: 'Copied gates from web', undone: false, batch: 'E3',
+  },
+];
+
+const MONOREPO_EDITED_DRAFT: Pipeline = {
+  ...MONOREPO_PIPELINE,
+  approvals: { tickets: true, merge: true },
+  entities:  {
+    'web':           { ...WEB_ENTITY, gates: [{ name: 'typecheck', run: 'bun run typecheck --incremental' }, { name: 'unit-tests', run: 'bun test' }] },
+    'design-system': {
+      ...DESIGN_SYSTEM_ENTITY,
+      gates:  [...DESIGN_SYSTEM_ENTITY.gates, { name: 'unit-tests', run: 'bun test' }],
+      phases: { ...DESIGN_SYSTEM_ENTITY.phases, build: ['typecheck', 'unit-tests'] },
+    },
+    'root': ROOT_ENTITY,
+  },
+};
+
+/** An update of the pipeline over entities: four changes in three levels, two of them one copy, and two tickets in flight. */
+function monorepoEditingState(): BoardStateDocument {
+  const record = updateRecord({
+    draft: MONOREPO_EDITED_DRAFT, draftRevision: 4, edits: [...MONOREPO_EDITS], nextNumbers: { finding: 1, question: 1, edit: 5 },
+  });
+  const changeList: PipelineChange[] = [
+    { field: 'approval:merge', changeKind: 'changed', editId: 'E1' },
+    { field: 'entity:web/gate:typecheck', changeKind: 'changed', editId: 'E2' },
+    { field: 'entity:design-system/gate:unit-tests', changeKind: 'new', editId: 'E3' },
+    { field: 'entity:design-system/phase-order:build', changeKind: 'changed', editId: 'E4' },
+  ];
+  const entities = { 'web': setupEntityFacts(), 'design-system': setupEntityFacts(), 'root': setupEntityFacts() };
+  return setupState(record, { agentJobState: null, entities }, {
+    pipeline:     MONOREPO_APPLIED_PIPELINE,
+    pipelineFlow: monorepoFlowOf('editing', 'unchanged', true, { changeList, ticketIdsInFlight: ['21', '22'] }),
+  });
+}
+
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDocument>> = {
   'A0':             () => pipelineBoardState({}),
   'A0-unreadable':  () => pipelineBoardState({ pipeline: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' }, }),
@@ -1213,6 +1262,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
   ]),
   'header-no-usage-windows': () => usageState([]),
   'mono-design':             () => monorepoDesignState(),
+  'mono-editing':            () => monorepoEditingState(),
   'mono-live':               () => monorepoLiveState(),
 };
 

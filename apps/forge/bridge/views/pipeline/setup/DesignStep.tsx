@@ -103,12 +103,12 @@ interface LevelShown {
   readonly route: BridgeRoute;
 }
 
-/** The Changes tab at a level: that level's group, a copy's edits as one set; nothing undoes a set at once yet, so its Undo waits. */
+/** The Changes tab at a level: that level's group, a copy's edits as one set with one Undo. */
 function LevelChanges({ setup, facts, level }: { readonly setup: PipelineSetupFacts; readonly facts: PipelineViewFacts; readonly level: PipelineLevel }) {
   const groups = ChangeGroupModel.groupsOf(facts.pipelineFlow?.changeList ?? [], setup.record.edits, Object.keys(setup.record.draft?.entities ?? {}));
   const group = groups.find((candidate) => PipelineLevelModel.levelsAreEqual(candidate.level, level)) ?? null;
   if (group === null) return <p className="bridge-pipeline-design-level-no-change">No changes at this level yet.</p>;
-  return <ChangeGroup setupId={setup.record.setupId} group={group} batchUndoCommandOf={() => null} />;
+  return <ChangeGroup setupId={setup.record.setupId} group={group} />;
 }
 
 function levelChangeCountOf(facts: PipelineViewFacts, level: PipelineLevel): number {

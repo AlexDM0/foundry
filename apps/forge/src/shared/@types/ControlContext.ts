@@ -40,6 +40,14 @@ export type SetupMessage =
   | {
     kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField; changes: readonly DraftFieldValue[]
   }
+  | {
+    kind:          'draft-batch-undone';
+    setupId:       string;
+    draftRevision: number;
+    editIds:       readonly string[];
+    fields:        readonly PipelineDraftField[];
+    changes:       readonly DraftFieldValue[];
+  }
   | { kind: 'draft-discarded'; setupId: string; draftRevision: number; changes: readonly DraftFieldValue[] }
   | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] }
   | { kind: 'check-requested'; setupId: string; draftRevision: number; gateNames: readonly string[] }

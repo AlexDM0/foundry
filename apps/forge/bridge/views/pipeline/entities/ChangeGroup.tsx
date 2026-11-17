@@ -12,17 +12,14 @@ import { Tag }             from 'design-system/Tag';
 import { Text }            from 'design-system/Text';
 import { useId, useState } from 'react';
 
-import type { ControlCommandBody }                                      from '../../../api/CommandClient.ts';
 import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
 import { ChangeListModel, type ChangeRowView }                          from '../apply/ChangeListModel.ts';
 import { ChangeGroupModel, type ChangeBatchView, type ChangeGroupView } from './ChangeGroupModel.ts';
 import { PipelineLevelModel }                                           from './PipelineLevelModel.ts';
 
 export interface ChangeGroupProps {
-  readonly setupId:            string;
-  readonly group:              ChangeGroupView;
-  /** The command that undoes a whole set; `null` keeps the set's Undo disabled. */
-  readonly batchUndoCommandOf: (batch: ChangeBatchView) => ControlCommandBody | null;
+  readonly setupId: string;
+  readonly group:   ChangeGroupView;
 }
 
 function ChangeCard({ setupId, row, density }: { readonly setupId: string; readonly row: ChangeRowView; readonly density: 'card' | 'row' }) {
@@ -51,7 +48,7 @@ function ChangeCard({ setupId, row, density }: { readonly setupId: string; reado
   );
 }
 
-function BatchCard({ setupId, batch, command }: { readonly setupId: string; readonly batch: ChangeBatchView; readonly command: ControlCommandBody | null }) {
+function BatchCard({ setupId, batch }: { readonly setupId: string; readonly batch: ChangeBatchView }) {
   const [isOpen, setIsOpen] = useState(false);
   const editListId = useId();
   return (
@@ -61,7 +58,7 @@ function BatchCard({ setupId, batch, command }: { readonly setupId: string; read
           <Text bold>{batch.title}</Text>
           <Tag text={batch.editCountText} tone="state" stateTone="accent" />
         </span>
-        <CommandButton label={batch.undoLabel} compact accessibleName={`${batch.undoLabel}: ${batch.title}`} command={command} />
+        <CommandButton label={batch.undoLabel} compact accessibleName={`${batch.undoLabel}: ${batch.title}`} command={ChangeGroupModel.batchUndoCommandOf(setupId, batch)} />
       </span>
       <button
         type="button"
@@ -84,7 +81,7 @@ function BatchCard({ setupId, batch, command }: { readonly setupId: string; read
   );
 }
 
-export function ChangeGroup({ setupId, group, batchUndoCommandOf }: ChangeGroupProps) {
+export function ChangeGroup({ setupId, group }: ChangeGroupProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const isForge = PipelineLevelModel.isForgeLevel(group.level);
   return (
@@ -101,7 +98,7 @@ export function ChangeGroup({ setupId, group, batchUndoCommandOf }: ChangeGroupP
               <li key={item.itemKind === 'edit' ? item.row.field : item.batch.batchId} className="bridge-change-group-item">
                 {item.itemKind === 'edit'
                   ? <ChangeCard setupId={setupId} row={item.row} density="card" />
-                  : <BatchCard setupId={setupId} batch={item.batch} command={batchUndoCommandOf(item.batch)} />}
+                  : <BatchCard setupId={setupId} batch={item.batch} />}
               </li>
             ))}
           </ul>

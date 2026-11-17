@@ -6,7 +6,9 @@
  * Apply refuse every move; and each move refuses with its reason and logs ids and values only. The `entities` step is walked only by a
  * record whose step states hold it: a first setup and an update of a pipeline without entities open with no such state and never reach
  * it, while a record over entities walks it between research and the constitution. The edits of a copy to another entity carry their
- * set's batch, the first of their edit ids, and still undo one by one; no other edit carries a batch; and a field inside an entity is
+ * set's batch, the first of their edit ids, and still undo one by one or as one set at one revision, a copy to two entities one entity
+ * at a time; no other edit carries a batch, so
+ * its set is itself; and a field inside an entity is
  * refused as the same field at the top would be. A finding of one entity goes to that entity's part.
  */
 import { describe, expect, test } from 'bun:test';
@@ -627,6 +629,51 @@ describe('the draft over entities', () => {
     expect(undone.draft?.entities?.['api']?.gates).toEqual([{ name: 'test', run: 'bun test' }]);
     expect(undone.draft?.entities?.['api']?.agents).toBeUndefined();
     expect(undone.edits.map((edit) => edit.undone)).toEqual([false, false, true]);
+  });
+
+  test('a copy\'s set undoes at once at one revision, each edit logged as its own Undo, and a set with none standing is refused', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+    board.editDraft(setupId, { by: 'user', revision: 0, edits: [{ edit: { target: 'review', value: { name: 'Review' } }, summary: 'Review.' }] }, AT);
+    board.editDraft(setupId, {
+      by: 'user', revision: 1, edits: COPY_TO_API.map((edit) => ({ edit, summary: 'Copied from web.' })), isACopy: true
+    }, AT);
+    board.undoDraftEdit(setupId, 'E2', AT);
+
+    const { setup, logged } = board.undoDraftBatch(setupId, 'E2', AT);
+
+    expect(setup.draftRevision).toBe(4);
+    expect(setup.edits.map((edit) => edit.undone)).toEqual([false, true, true]);
+    expect(setup.draft?.entities?.['api']?.gates).toEqual([]);
+    expect(setup.draft?.entities?.['api']?.agents).toBeUndefined();
+    expect(logged.map((record) => record.kind)).toEqual(['pipeline-draft-undone']);
+    expect(logged.map((record) => record.fields)).toEqual([{ editId: 'E3', field: 'entity:api/role:builder', revision: 4 }]);
+    expect(refusalDetailOf(() => board.undoDraftBatch(setupId, 'E3', AT))).toEqual({ reason: 'setup-edit-already-undone', setupId, editId: 'E3' });
+    expect(refusalDetailOf(() => board.undoDraftBatch(setupId, 'E9', AT))).toEqual({ reason: 'unknown-setup-edit', setupId, editId: 'E9' });
+
+    const alone = board.undoDraftBatch(setupId, 'E1', AT);
+    expect(alone.setup.edits.map((edit) => edit.undone)).toEqual([true, true, true]);
+    expect(alone.logged.map((record) => record.fields)).toEqual([{ editId: 'E1', field: 'review', revision: 5 }]);
+  });
+
+  test('a copy to two entities undoes as one set per entity, leaving the other entity\'s edits standing', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_OVER_ENTITIES);
+    const copyToWeb: PipelineDraftEdit = { target: 'within-entity', entityKey: 'web', edit: { target: 'gate', name: 'lint', value: { name: 'lint', run: 'bun run lint' } } };
+    board.editDraft(setupId, {
+      by: 'user', revision: 0, edits: [...COPY_TO_API, copyToWeb].map((edit) => ({ edit, summary: 'Copied gates.' })), isACopy: true
+    }, AT);
+
+    const { setup, logged } = board.undoDraftBatch(setupId, 'E1', AT);
+
+    expect(setup.edits.map((edit) => [edit.editId, edit.batch, edit.undone])).toEqual([['E1', 'E1', true], ['E2', 'E1', true], ['E3', 'E1', false]]);
+    expect(logged.map((record) => record.fields)).toEqual([
+      { editId: 'E1', field: 'entity:api/gate:test', revision: 2 },
+      { editId: 'E2', field: 'entity:api/role:builder', revision: 2 },
+    ]);
+    expect(setup.draft?.entities?.['web']?.gates.map((gate) => gate.name)).toEqual(['test', 'lint']);
+
+    const web = board.undoDraftBatch(setupId, 'E3', AT);
+    expect(web.setup.edits.map((edit) => edit.undone)).toEqual([true, true, true]);
+    expect(web.setup.draft?.entities?.['web']?.gates.map((gate) => gate.name)).toEqual(['test']);
   });
 
   test('a gate named apart from its field, and a prepare order that is not a reorder, are refused inside an entity', () => {
