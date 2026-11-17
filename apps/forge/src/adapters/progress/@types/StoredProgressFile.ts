@@ -115,6 +115,15 @@ export interface StoredProgressFile {
   overseerFirstStartedAt?: string;
   branchNamespace?:        string;
   tasks:                   StoredTask[];
+  needs?:                  StoredDeclaredNeed[];
+}
+
+export interface StoredDeclaredNeed {
+  jobId:     string;
+  ticketIds: string[];
+  entity:    string;
+  title:     string;
+  body:      string;
 }
 
 export interface StoredDecisionQuestionOption {

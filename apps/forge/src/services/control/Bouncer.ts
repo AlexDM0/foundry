@@ -2,10 +2,12 @@
  * Which relayed control commands each job role may run, as a pure table over the job record and the command (design section 4.4). The
  * role and the job id come from the Hatch folder's job record, never from the request; an admitted filing comes back stamped with both.
  */
+import { TicketAcceptanceUtil }                                      from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 import type { Incident }                                             from '../../lib/tracker-model/@types/Incident.ts';
 import type { JobRole }                                              from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey }                                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketStatus }                                         from '../../lib/tracker-model/@types/Ticket.ts';
+import { NeedUtil }                                                  from '../../lib/tracker-model/utils/NeedUtil.ts';
 import { TicketIdUtil }                                              from '../../lib/tracker-model/utils/TicketIdUtil.ts';
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { RoleCommandRefusalReason }                             from '../../shared/@types/RoleCommandRefusalReason.ts';
@@ -28,6 +30,8 @@ export interface RelayingJob {
   setupId:                          string | null;
   /** For a pipeline agent of one entity's part of that record: the entity; absent for the forge's session. */
   setupEntity?:                     EntityKey;
+  /** The entity whose stage the job runs; absent on a forge without entities. */
+  entity?:                          EntityKey;
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -117,8 +121,22 @@ function questionOptionsOfOwnJob(job: RelayingJob, command: ControlCommandOf<'qu
   return { verdict: 'admitted', command: { ...command, jobId: job.id } };
 }
 
+/**
+ * Only the builder of an entity's stage declares a need, and only a complete one: what its ticket needs to be readied. The fields are read
+ * as untrusted JSON, so one that is no text is an incomplete need.
+ */
+function needVerdictOf(job: RelayingJob, command: ControlCommandOf<'need-declare'>): BouncerVerdict {
+  if (job.role !== 'builder' || job.entity === undefined) return refused('need-outside-an-entity');
+  const fields: readonly unknown[] = [command.entity, command.title, command.bodyText];
+  if (!fields.every((field) => typeof field === 'string')) return refused('need-incomplete');
+  const declaration = { entity: command.entity, title: command.title, body: command.bodyText };
+  if (NeedUtil.gapsOf(declaration, TicketAcceptanceUtil.readinessGapsOf).length > 0) return refused('need-incomplete');
+  return { verdict: 'admitted', command: { ...command, jobId: job.id } };
+}
+
 function workerVerdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
   if (command.kind === 'question-options') return questionOptionsOfOwnJob(job, command);
+  if (command.kind === 'need-declare') return needVerdictOf(job, command);
   if (command.kind !== 'ticket-add') return refused('command-not-allowed-for-role');
   if (!workerFilingIsShaped(command)) return refused('worker-filing-flag');
   if (job.filedTickets.length >= WORKER_FILINGS_PER_JOB) return refused('worker-filing-limit');

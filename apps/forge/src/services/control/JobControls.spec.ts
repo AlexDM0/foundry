@@ -8,7 +8,8 @@
  * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
  * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
  * request is refused `intake-empty` unless a picture carries it. Option notes, like a title, name their job; their fields reach the Board
- * as untrusted JSON, which refuses a malformed note in words.
+ * as untrusted JSON, which refuses a malformed note in words. A need names its build job too, and its body is read as `ticket ready` reads a
+ * draft's.
  */
 import {
   afterEach,
@@ -534,5 +535,46 @@ describe('question options', () => {
     expect(refusalDetailOf(() => apply(board, command))).toEqual({
       reason: 'question-options-malformed', jobId: 'J1', field: 'options', problem: 'not-a-list'
     });
+  });
+});
+
+describe('need declare', () => {
+  function entityBuildBoard(): Board {
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress' })], pipeline: entityPipelineFixture() });
+    board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main', entity: 'web', stage: 1
+    }, AT);
+    return board;
+  }
+
+  const NEED: ControlCommandOf<'need-declare'> = {
+    kind: 'need-declare', jobId: 'J1', entity: 'design-system', title: 'Export the basket total', bodyText: COMPLETE_BODY
+  };
+
+  test('keeps the need on the board for the named job and logs nothing', () => {
+    const board = entityBuildBoard();
+    expect(loggedKindsOf(apply(board, NEED))).toEqual([]);
+    expect(board.needs()).toEqual([{
+      jobId: 'J1', ticketIds: ['001'], entity: 'design-system', title: 'Export the basket total', body: COMPLETE_BODY
+    }]);
+  });
+
+  test('a body without a Brief is refused need-incomplete by the readiness reading', () => {
+    const board = entityBuildBoard();
+    const withoutBrief = { ...NEED, bodyText: '## Acceptance\nA1. The basket shows its total.\n' };
+    expect(refusalDetailOf(() => apply(board, withoutBrief))).toEqual({ reason: 'need-incomplete', jobId: 'J1', gaps: ['brief-missing'] });
+  });
+
+  test('naming no job is refused need-declare-without-job, worded by the adapter', () => {
+    const { jobId: _jobId, ...withoutJob } = NEED;
+    let refusal: unknown;
+    try {
+      apply(entityBuildBoard(), withoutJob);
+    } catch (thrown) {
+      refusal = thrown;
+    }
+    expect(refusal).toBeInstanceOf(OperationRefusal);
+    expect((refusal as OperationRefusal).detail).toEqual({ kind: 'need-declare-without-job' });
+    expect(OperationRefusalWordingUtil.messageOf(refusal as OperationRefusal)).toStartWith('Name the build job that declares the need, as J4.');
   });
 });

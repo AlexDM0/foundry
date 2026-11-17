@@ -7,6 +7,7 @@ import type { GateProfileRun }               from './GateProfile.ts';
 import type { Incident }                     from './Incident.ts';
 import type { Job }                          from './Job.ts';
 import type { LogRecord, LogRecordFieldsOf } from './LogRecord.ts';
+import type { DeclaredNeed }                 from './Need.ts';
 import type { Pipeline }                     from './Pipeline.ts';
 import type { PipelineSetup }                from './PipelineSetup.ts';
 import type { PlaybookStep }                 from './PlaybookStep.ts';
@@ -252,4 +253,10 @@ export interface TrackerCleared extends Logged {
   removedTaskCount:     number;
   survivingTicketCount: number;
   removedEpicCount:     number;
+}
+
+/** `changed` is false for a declaration the job already made, with the same entity, title and body. */
+export interface NeedDeclared extends Logged {
+  need:    Readonly<DeclaredNeed>;
+  changed: boolean;
 }

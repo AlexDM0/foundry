@@ -1,4 +1,7 @@
-/** Whether the parsed `jobs` and `nextJobId` of a progress.json are in the current format, and if not, the reason naming the offending field. */
+/**
+ * Whether the parsed `jobs`, `nextJobId` and `needs` of a progress.json are in the current format, and if not, the reason naming the offending
+ * field.
+ */
 import { JsonRecordUtil } from '../../../lib/json-record/JsonRecordUtil.ts';
 import {
   FIRST_WATCHER_INSTANCE,
@@ -163,4 +166,27 @@ function jobsProblemOf(document: Record<string, unknown>): string | null {
   return null;
 }
 
-export const StoredJobValidationUtil = { jobProblem, jobsProblemOf } as const;
+function needProblem(value: unknown, index: number): string | null {
+  const path = `needs[${index}]`;
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
+  if (!jobIdIsWellFormed(value['jobId'])) return `${path}.jobId is ${JSON.stringify(value['jobId'])}, and it has to be ${JOB_ID_PREFIX} and a whole number`;
+  if (!listOfTextIsWellFormed(value['ticketIds'])) return `${path}.ticketIds is not a list of ticket ids`;
+  for (const field of ['entity', 'title', 'body']) {
+    if (typeof value[field] !== 'string') return `${path}.${field} is not a string`;
+  }
+  return null;
+}
+
+/** `null` when the needs build jobs declared are absent or well formed, each in order. */
+function needsProblemOf(document: Record<string, unknown>): string | null {
+  const { needs } = document;
+  if (needs === undefined) return null;
+  if (!Array.isArray(needs)) return 'needs is present but not an array';
+  for (const [index, need] of needs.entries()) {
+    const problem = needProblem(need, index);
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
+export const StoredJobValidationUtil = { jobProblem, jobsProblemOf, needsProblemOf } as const;

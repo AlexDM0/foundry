@@ -10,6 +10,7 @@ import type {
   JobIntake,
   Airlock
 } from '../../../lib/tracker-model/@types/Job.ts';
+import type { DeclaredNeed }           from '../../../lib/tracker-model/@types/Need.ts';
 import type { QuestionOptionNotes }    from '../../../lib/tracker-model/@types/OptionConsequences.ts';
 import type { Task, TaskPhase }        from '../../../lib/tracker-model/@types/Task.ts';
 import type { TrackerProgress }        from '../../../lib/tracker-model/@types/TrackerProgress.ts';
@@ -25,6 +26,7 @@ import type {
   StoredJob,
   StoredJobEventCursor,
   StoredAirlock,
+  StoredDeclaredNeed,
   StoredProgressFile,
   StoredTask,
   StoredTaskPhase
@@ -54,7 +56,12 @@ const KNOWN_PROGRESS_KEYS = {
   overseerFirstStartedAt: true,
   branchNamespace:        true,
   tasks:                  true,
+  needs:                  true,
 } as const satisfies Record<keyof TrackerProgress | keyof StoredProgressFile, true>;
+
+const KNOWN_NEED_KEYS = {
+  jobId: true, ticketIds: true, entity: true, title: true, body: true
+} as const satisfies Record<keyof DeclaredNeed | keyof StoredDeclaredNeed, true>;
 
 const KNOWN_JOB_KEYS = {
   id:                 true,
@@ -313,6 +320,12 @@ function jobOf(stored: StoredJob): Job {
   });
 }
 
+function needOf(stored: StoredDeclaredNeed): DeclaredNeed {
+  return readInFileOrder(stored, KNOWN_NEED_KEYS, {
+    jobId: stored.jobId, ticketIds: [...stored.ticketIds], entity: stored.entity, title: stored.title, body: stored.body
+  });
+}
+
 function progressOf(document: StoredProgressFile): TrackerProgress {
   return readInFileOrder(document, KNOWN_PROGRESS_KEYS, {
     trackerId:  document.trackerId,
@@ -333,6 +346,7 @@ function progressOf(document: StoredProgressFile): TrackerProgress {
     ...(document.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: document.overseerFirstStartedAt }),
     ...(document.branchNamespace === undefined ? {} : { branchNamespace: document.branchNamespace }),
     tasks:      document.tasks.map(taskOf),
+    ...(document.needs === undefined ? {} : { needs: document.needs.map(needOf) }),
   });
 }
 
@@ -441,6 +455,12 @@ function storedJobOf(job: Job): StoredJob {
   });
 }
 
+function storedNeedOf(need: DeclaredNeed): StoredDeclaredNeed {
+  return writtenInModelOrder(need, [], {
+    jobId: need.jobId, ticketIds: [...need.ticketIds], entity: need.entity, title: need.title, body: need.body
+  });
+}
+
 /** `version` first, then every key in the progress's order. */
 function storedDocumentOf(progress: TrackerProgress): StoredProgressFile {
   return writtenInModelOrder(progress, ['version'], {
@@ -463,6 +483,7 @@ function storedDocumentOf(progress: TrackerProgress): StoredProgressFile {
     ...(progress.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: progress.overseerFirstStartedAt }),
     ...(progress.branchNamespace === undefined ? {} : { branchNamespace: progress.branchNamespace }),
     tasks:      progress.tasks.map(storedTaskOf),
+    ...(progress.needs === undefined ? {} : { needs: progress.needs.map(storedNeedOf) }),
   });
 }
 

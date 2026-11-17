@@ -32,11 +32,15 @@ interface BodyField {
   emptied: string | null;
 }
 
-/** The command field each kind carries its body in: a ticket's or epic's markdown, or the whole constitution the pipeline agent drafts. */
+/**
+ * The command field each kind carries its body in: a ticket's, need's or epic's markdown, or the whole constitution the pipeline agent
+ * drafts.
+ */
 const BODY_FIELD_OF_KIND: Readonly<Partial<Record<ControlCommand['kind'], BodyField>>> = {
   'ticket-add':                  { field: 'bodyText', emptied: null },
   'ticket-edit':                 { field: 'bodyText', emptied: null },
   'epic-add':                    { field: 'bodyText', emptied: '' },
+  'need-declare':                { field: 'bodyText', emptied: '' },
   'pipeline-constitution-draft': { field: 'markdown', emptied: '' },
 };
 

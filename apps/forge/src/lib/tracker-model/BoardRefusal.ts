@@ -1,6 +1,7 @@
 /** Why the Board refused a change: a reason code and the facts, never a sentence. The caller words it. */
 import type { GatePhase }                                                  from './@types/GatePhase.ts';
 import type { JobKind, JobMoveTarget, JobState }                           from './@types/Job.ts';
+import type { NeedGap }                                                    from './@types/Need.ts';
 import type { PipelineSetupMode, PipelineSetupStep, SourceAnnotationKind } from './@types/PipelineSetup.ts';
 import type { TaskStatus }                                                 from './@types/Task.ts';
 import type {
@@ -63,6 +64,13 @@ export type BoardRefusalDetail =
   | { reason: 'entity-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
   | { reason: 'entity-unchanged'; ticketId: string; entity: string }
   | { reason: 'entity-without-reason'; ticketId: string }
+  /** A need declared by a job that is not a build job of an entity, as every job of a forge without entities. */
+  | { reason: 'need-outside-an-entity-build'; jobId: string }
+  /** `entityKeys` is empty when the pipeline names no entity. */
+  | { reason: 'need-entity-unknown'; jobId: string; entity: string; entityKeys: readonly string[] }
+  | { reason: 'need-of-own-entity'; jobId: string; entity: string }
+  | { reason: 'need-incomplete'; jobId: string; gaps: readonly NeedGap[] }
+  | { reason: 'need-limit-reached'; jobId: string; limit: number }
   | { reason: 'agents-of-a-settled-ticket'; ticketId: string; status: TicketStatus }
   | { reason: 'agents-unchanged'; ticketId: string; status: TicketStatus; agents: AgentPair }
   | { reason: 'hold-of-a-settled-ticket'; ticketId: string; status: TicketStatus; action: 'hold' | 'unhold' }

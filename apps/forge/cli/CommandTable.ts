@@ -27,6 +27,7 @@ export const COMMAND_TABLE = {
   decisions:      async () => (await import('./decisions/DecisionsCommand.ts')).decisionsCommand,
   decide:         async () => (await import('./decisions/DecideCommand.ts')).decideCommand,
   question:       async () => (await import('./decisions/QuestionCommand.ts')).questionCommand,
+  need:           async () => (await import('./needs/NeedCommand.ts')).needCommand,
   incidents:      async () => (await import('./incidents/IncidentsCommand.ts')).incidentsCommand,
   incident:       async () => (await import('./incidents/IncidentCommand.ts')).incidentCommand,
   jobs:           async () => (await import('./jobs/JobsCommand.ts')).jobsCommand,

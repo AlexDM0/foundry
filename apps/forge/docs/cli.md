@@ -1374,6 +1374,7 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | `decisions [--json]` | The open decisions for User, read from `progress.json` (no lock, nothing written), in opening order, each question's options lettered `a`, `b`, `c` as `decide` takes them. `--json` prints `{decisions}`, each `{id, kind, ticketIds, jobId, askedBy, requestId, questions, context, openedAt}`. |
 | `decide <decision> <letters>... \| -- <text> [--json]` | Answer an open decision through the write pipeline, with the Overseer up or down: one choice of option letters per question (`decide E7 b`; `decide E7 b ac` when the second question is multi-select, its labels joined by `, `), or free text after `--` for a decision asking one question. The first answer wins; [the refusals and delivery](#decide) are below. |
 | `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with the Overseer up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: the Overseer stamps its own. [What the notes hold and where they go](#question-options) is below. |
+| `need declare <J> "<title>" --entity <key> --body <text> \| --body-file <path> [--json]` | Keep a build job's need for another entity in `progress.json`'s `needs`, through the write pipeline and logged nothing, with the Overseer up or down; the Overseer files it as that entity's ticket. Under the declaring job it names no job: the Overseer stamps its own. [What a need holds and its refusals](#need-declare) are below. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
 | `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session. A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
@@ -1417,6 +1418,28 @@ forge question options -- '{"question": "Which export format?", "options": [{"la
 - When the job's question opens a decision or an incident, each option takes the facts of the note with its question
   text and its label, as `touches`, `tradeOff` and `acceptanceEffect` on the option, and the notes leave the job. An
   option no note names keeps its label and description alone. Notes for a question never asked leave with the job.
+
+#### `need declare`
+
+On a forge with entities, a build job changes only its own entity's homes. When the work needs a change in another
+entity, the builder declares a need instead of making the change, and its job's ticket waits for the need's ticket:
+
+```sh
+forge need declare "Export the basket total" --entity shared --body-file need.md
+```
+
+- The body is the body of the need's ticket: a numbered `## Acceptance` that holds the intended use and a `## Brief`
+  with a non-blank line, read as `ticket ready` reads a draft. A blank entity or title, or a body that lacks either
+  section, is refused `need-incomplete`, naming each gap (`entity-missing`, `title-missing`, `acceptance-unnumbered`,
+  `brief-missing`).
+- Only a live build job that runs an entity's stage declares one; any other job, as every job of a forge without
+  entities, is refused `need-outside-an-entity-build`. The entity is one the pipeline names (`need-entity-unknown`),
+  and never the job's own (`need-of-own-entity`).
+- A need for the entity and title the job declared before replaces that need's body, and the same body is nothing to
+  do. A job declares at most five needs (`need-limit-reached`).
+- A relayed declaration is admitted only from a builder whose job runs an entity's stage, and only complete
+  (`need-outside-an-entity`, `need-incomplete`), before the hold.
+- The need is only recorded: no ticket is filed and nothing is logged.
 
 ### Jobs and sessions
 
@@ -1798,6 +1821,8 @@ variables](#environment-variables)).
 - **Identity:** a request names no job and no role. The Overseer takes both from the Hatch folder's job record and
   refuses a request carrying either `hatch-identity-mismatch`.
 - **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
+- **Needs:** an admitted `need declare` is stamped with the declaring job; only a builder of an entity's stage relays
+  one.
 
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
 > terminal.
@@ -2016,6 +2041,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `overseerFirstStartedAt` | yes | The Overseer's first start on this board, kept by `clear`. |
 | `branchNamespace` | yes | The namespace the board's branches are named under, written by `namespace`; absent, the branches have bare names. |
 | `tasks` | no | The rows. |
+| `needs` | yes | The needs build jobs declared with `need declare`, in declaring order, each `{jobId, ticketIds, entity, title, body}`: the declaring job, its tickets, which wait for the need, the entity the need is for, and the title and body of the ticket it becomes. Written only by a declaration, so a forge without entities never writes it. |
 
 <details>
 <summary>A job's keys</summary>

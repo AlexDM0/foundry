@@ -1,7 +1,8 @@
-import type { Decision } from './Decision.ts';
-import type { Incident } from './Incident.ts';
-import type { Job }      from './Job.ts';
-import type { Task }     from './Task.ts';
+import type { Decision }     from './Decision.ts';
+import type { Incident }     from './Incident.ts';
+import type { Job }          from './Job.ts';
+import type { DeclaredNeed } from './Need.ts';
+import type { Task }         from './Task.ts';
 
 /** `relative` forms are stored raw (`"-2h"`, `"start"`, `"now"`) and resolved against an explicit `now` at layout time. */
 export type ViewRange =
@@ -44,4 +45,6 @@ export interface TrackerProgress {
   /** The namespace the board's branches are named under; absent on a board that never set one, whose branches have bare names. */
   branchNamespace?:        string;
   tasks:                   Task[];
+  /** The needs build jobs declared for other entities, in declaring order; absent on a board where no job declared one. */
+  needs?:                  DeclaredNeed[];
 }

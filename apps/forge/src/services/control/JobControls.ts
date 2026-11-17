@@ -50,6 +50,13 @@ function noteQuestionOptions(command: ControlCommandOf<'question-options'>, chan
   return change.board.noteQuestionOptions(command.jobId, { question: command.question, options: command.options });
 }
 
+/** Recorded only: the Overseer files the need as its entity's ticket. The body is read as `ticket ready` reads a draft's. */
+function declareNeed(command: ControlCommandOf<'need-declare'>, change: TrackerChange) {
+  if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'need-declare-without-job' });
+  const declaration = { entity: command.entity, title: command.title, body: command.bodyText };
+  return change.board.declareNeed(command.jobId, declaration, TicketAcceptanceUtil.readinessGapsOf);
+}
+
 function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChange) {
   if (command.incidentId !== undefined) requireIncidentAllows(change, command.incidentId, command);
   return handledUnder(change, command.incidentId, 'job-fresh', change.board.requestJobStop(command.jobId, 'fresh', change.at));
@@ -80,4 +87,5 @@ export const JOB_CONTROLS = {
   'intake-close':          closeIntake,
   'intake-title':          titleIntake,
   'question-options':      noteQuestionOptions,
+  'need-declare':          declareNeed,
 } as const;

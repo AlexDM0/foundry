@@ -22,6 +22,7 @@ import type {
   JobChanged,
   LifecycleAdvanced,
   Logged,
+  NeedDeclared,
   PipelineApplyChanged,
   PipelineChanged,
   PipelineSetupChanged,
@@ -98,7 +99,8 @@ import type {
   LogRecord,
   LogRecordFieldsOf
 } from './@types/LogRecord.ts';
-import type { QuestionOptionNotes } from './@types/OptionConsequences.ts';
+import type { DeclaredNeed, NeedDeclaration } from './@types/Need.ts';
+import type { QuestionOptionNotes }           from './@types/OptionConsequences.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -178,6 +180,7 @@ import type { SteppedJobState }                        from './Jobs.ts';
 import { Jobs }                                        from './Jobs.ts';
 import type { Logger }                                 from './Logger.ts';
 import { MergeQueueMarks }                             from './MergeQueueMarks.ts';
+import { Needs }                                       from './Needs.ts';
 import { PipelineSetups }                              from './PipelineSetups.ts';
 import type { PlaybookFacts }                          from './Playbook.ts';
 import { Playbook }                                    from './Playbook.ts';
@@ -274,6 +277,8 @@ export class Board {
 
   private readonly jobControls: JobControls;
 
+  private readonly needRules: Needs;
+
   private readonly incidentMoves: IncidentMoves;
 
   private readonly findings: Findings;
@@ -309,6 +314,7 @@ export class Board {
     this.incidentRules      = new Incidents(this.records, this.decisionRules);
     this.agentQuestions     = new AgentQuestions(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.ticketEdits);
     this.jobControls        = new JobControls(this.records, this.jobRules, this.decisionRules, this.ticketSettings, this.agentQuestions);
+    this.needRules          = new Needs(this.records, this.jobRules);
     this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);
     this.ticketForecasts    = new TicketForecasts(this.records, this.jobRules, this.mergeQueueMarks);
     this.incidentMoves      = new IncidentMoves({
@@ -388,6 +394,19 @@ export class Board {
   /** An agent's notes for the options of a question it is about to ask, kept on its job until the question opens a decision. */
   noteQuestionOptions(jobId: string, notes: unknown): JobChanged {
     return this.jobControls.noteQuestionOptions(jobId, notes);
+  }
+
+  /**
+   * A build job's need for another entity, kept for the Overseer to file as that entity's ticket. `readinessGapsOf` reads the body as
+   * `ticket ready` does.
+   */
+  declareNeed(jobId: string, declaration: NeedDeclaration, readinessGapsOf: (body: string) => readonly ReadinessGap[]): NeedDeclared {
+    return this.needRules.declareNeed(jobId, declaration, readinessGapsOf);
+  }
+
+  /** The needs build jobs declared, in declaring order. */
+  needs(): readonly Readonly<DeclaredNeed>[] {
+    return this.needRules.needs();
   }
 
   /** Removes and gives back the job's notes for the questions of one request, matched by each question's text. */

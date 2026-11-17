@@ -39,6 +39,7 @@ const COMMANDS_WITH_A_SUBCOMMAND = new Set([
   'job',
   'intake',
   'question',
+  'need',
   'incident',
   'worktree',
   'gate',

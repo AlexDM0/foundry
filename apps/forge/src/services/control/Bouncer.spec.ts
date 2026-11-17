@@ -2,8 +2,9 @@
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
  * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, its entity rule (its own draft or any ticket ready for
  * review or pending, stamped with its job), the own-job stamp on the `question-options` of every
- * role that asks User, the pipeline agent's setup moves stamped with its job, its setup and, for an entity's session, its entity (every
- * other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's
+ * role that asks User, a builder's need for another entity (only from the builder of an entity's stage, only complete, stamped
+ * with its job; incomplete covering a field that is no text), the pipeline agent's setup moves stamped with its job, its setup and,
+ * for an entity's session, its entity (every other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's
  * incident moves, and the planted
  * forgeries (a `role`, a `jobId` or an admission in the command).
  * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
@@ -193,6 +194,43 @@ describe('option notes', () => {
 
   test('an assistant, which never asks User, is refused its question-options', () => {
     expect(Bouncer.verdictOf(jobOf('assistant'), command).verdict).toBe('refused');
+  });
+});
+
+describe('a need for another entity', () => {
+  const NEED: ControlCommandOf<'need-declare'> = {
+    kind:     'need-declare',
+    entity:   'shared',
+    title:    'Export the basket total',
+    bodyText: '## Acceptance\n\nA1. The web app reads the basket total.\n\n## Brief\n\nAlex Example needs the total.\n',
+  };
+
+  test('the builder of an entity\'s stage declares a complete need, stamped with its own job', () => {
+    expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web' }), NEED)).toEqual({ verdict: 'admitted', command: { ...NEED, jobId: 'J12' } });
+  });
+
+  test('a builder of a forge without entities, and a reviewer of an entity, are refused need-outside-an-entity', () => {
+    expect(Bouncer.verdictOf(jobOf('builder'), NEED)).toEqual({ verdict: 'refused', reason: 'need-outside-an-entity' });
+    expect(Bouncer.verdictOf(jobOf('reviewer', { entity: 'web' }), NEED)).toEqual({ verdict: 'refused', reason: 'need-outside-an-entity' });
+  });
+
+  test.each(['product-owner', 'pipeline-agent', 'assistant'] as const)('a %s is refused it', (role) => {
+    expect(Bouncer.verdictOf(jobOf(role, { entity: 'web' }), NEED).verdict).toBe('refused');
+  });
+
+  test.each([
+    ['a blank entity', { entity: ' ' }],
+    ['a blank title', { title: '' }],
+    ['no numbered Acceptance', { bodyText: '## Acceptance\n\nThe total.\n\n## Brief\n\nNeeded.\n' }],
+    ['no Brief', { bodyText: '## Acceptance\n\nA1. The total.\n' }],
+    ['a title that is no text', { title: 7 }],
+  ] as const)('a need with %s is refused need-incomplete', (_caseName, overrides) => {
+    const command = { ...NEED, ...overrides } as unknown as ControlCommand;
+    expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web' }), command)).toEqual({ verdict: 'refused', reason: 'need-incomplete' });
+  });
+
+  test('a need naming a job of its own choosing is refused hatch-identity-mismatch', () => {
+    expect(Bouncer.verdictOf(jobOf('builder', { entity: 'web' }), { ...NEED, jobId: 'J1' })).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 });
 

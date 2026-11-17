@@ -23,6 +23,7 @@ import { INCIDENT_SUBCOMMAND_NAMES }   from './incidents/IncidentCommand.ts';
 import { INTAKE_SUBCOMMAND_NAMES }     from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }        from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }      from './merges/MergeCommand.ts';
+import { NEED_SUBCOMMAND_NAMES }       from './needs/NeedCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }    from './overseer/OverseerCommand.ts';
 import { PIPELINE_SUBCOMMAND_NAMES }   from './pipeline/PipelineCommand.ts';
 import { LOGIN_ITEM_SUBCOMMAND_NAMES } from './setup/login-item/LoginItemCommand.ts';
@@ -91,6 +92,7 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'gate') return subcommandVerbsOf(command, GATE_SUBCOMMAND_NAMES);
     if (command === 'intake') return [command, ...subcommandVerbsOf(command, INTAKE_SUBCOMMAND_NAMES)];
     if (command === 'question') return subcommandVerbsOf(command, QUESTION_SUBCOMMAND_NAMES);
+    if (command === 'need') return subcommandVerbsOf(command, NEED_SUBCOMMAND_NAMES);
     if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
     if (command === 'login-item') return subcommandVerbsOf(command, LOGIN_ITEM_SUBCOMMAND_NAMES);

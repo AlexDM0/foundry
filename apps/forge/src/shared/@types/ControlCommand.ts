@@ -161,6 +161,11 @@ export type ControlCommand =
   | { kind: 'intake-title'; jobId?: string; title: string }
   /** An agent's notes for the options of the question it asks next; relayed without `jobId`, the role policy stamps its own job. */
   | { kind: 'question-options'; jobId?: string; question: string; options: OptionNote[] }
+  /**
+   * A build job's need for another entity: that entity, a title and the body of the ticket it becomes, with a numbered `## Acceptance` that
+   * holds the intended use and a `## Brief`. Relayed by the builder without `jobId`: the role policy stamps its own job.
+   */
+  | { kind: 'need-declare'; jobId?: string; entity: EntityKey; title: string; bodyText: string }
   | { kind: 'concurrency-set'; limit: number }
   /** Machine-wide, never a board change: the Overseer writes `<monitor>/machine-limits.json`; applied to a board it is refused as runtime only. */
   | { kind: 'machine-agent-limit-set'; limit: number }

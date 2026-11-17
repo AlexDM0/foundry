@@ -148,6 +148,8 @@ function documentHeaderProblemOf(candidate: unknown): string | null {
   }
   const jobsProblem = StoredJobValidationUtil.jobsProblemOf(candidate);
   if (jobsProblem !== null) return jobsProblem;
+  const needsProblem = StoredJobValidationUtil.needsProblemOf(candidate);
+  if (needsProblem !== null) return needsProblem;
   const decisionsProblem = StoredDecisionAndIncidentValidationUtil.decisionsAndIncidentsProblemOf(candidate);
   if (decisionsProblem !== null) return decisionsProblem;
   if (!Array.isArray(candidate['tasks'])) return 'tasks is not an array';

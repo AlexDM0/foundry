@@ -704,6 +704,14 @@ never carries it.
                               opens takes them by question text and label, and a later note for
                               the same question replaces it (question-options-malformed for a
                               note that is not well formed). Under the asking job it names no job.
+  need declare <J> "<title>" --entity <key> --body <text> | --body-file <path> [--json]
+                              A build job's need for another entity: a title, and a body with a
+                              numbered ## Acceptance that holds the intended use and a ## Brief.
+                              Kept on the board for the Overseer to file as that entity's ticket;
+                              the same entity and title again replaces the body. Refused
+                              need-outside-an-entity-build (not a build job of an entity),
+                              need-entity-unknown, need-of-own-entity, need-incomplete and
+                              need-limit-reached. Under the declaring job it names no job.
 
   incidents [--json]          The open incidents for the Assistant, in opening order,
                               each with its facts, the moves its kind allows and its default.

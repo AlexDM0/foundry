@@ -255,6 +255,13 @@ on standard input with `--file <path>` or `--file -`.
 - `pipeline ready` only tells User that the step can continue. It does not move a step.
 - The pipeline agent may also run `{{program}} question options`. It cannot run a ticket command.
 
+In a forge with entities, a builder changes only the homes of its own entity. When the work needs a change in a
+different entity, do not make that change. Declare a need with
+`{{program}} need declare "<title>" --entity <key> --body-file <path>`. The body is the body of a ticket: a numbered
+`## Acceptance` that gives the intended use, and a `## Brief`. Under the job, do not name the job: the Overseer adds
+it. The Overseer refuses a need that is not complete, a need for the entity of the job, and a need from a job that is
+not a build job of an entity.
+
 ## Where a review bar is drawn
 
 A review job's bar stores the ticket it reviews in its `reviewOf` field. On the Progress tab a review pass is drawn

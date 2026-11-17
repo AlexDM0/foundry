@@ -126,6 +126,7 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
       .map((ticket) => ticket.frontmatter.id),
     setupId: served?.setup.setupId ?? null,
     ...(served === null || served.entityKey === null ? {} : { setupEntity: served.entityKey }),
+    ...(job.entity === undefined ? {} : { entity: job.entity }),
   };
 }
 

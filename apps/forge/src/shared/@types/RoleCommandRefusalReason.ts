@@ -8,4 +8,6 @@ export type RoleCommandRefusalReason =
   | 'not-own-draft-or-unclaimed-ticket'
   | 'incident-move-not-allowed'
   | 'incident-target-mismatch'
-  | 'job-serves-no-setup';
+  | 'job-serves-no-setup'
+  | 'need-outside-an-entity'
+  | 'need-incomplete';

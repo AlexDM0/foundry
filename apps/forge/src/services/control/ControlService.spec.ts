@@ -95,7 +95,14 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'pipeline-agent-advise': { kind: 'pipeline-agent-advise' },
   'intake-close':          { kind: 'intake-close', jobId: 'J3', proposedDraftSets: [['4', '5']] },
   'intake-title':          { kind: 'intake-title', jobId: 'J3', title: 'Example basket' },
-  'question-options':      {
+  'need-declare':          {
+    kind:     'need-declare',
+    jobId:    'J3',
+    entity:   'shared',
+    title:    'Export the basket total',
+    bodyText: '## Acceptance\n\nA1. The web app reads the basket total.\n\n## Brief\n\nAlex Example needs the total.\n',
+  },
+  'question-options': {
     kind: 'question-options', jobId: 'J3', question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: 'Lighter, less sturdy.' }]
   },
   'overseer-pause':            { kind: 'overseer-pause' },

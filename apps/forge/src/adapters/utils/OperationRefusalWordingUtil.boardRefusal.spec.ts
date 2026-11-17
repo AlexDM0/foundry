@@ -186,6 +186,29 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Ticket #002\'s entity was not changed: it needs --reason. Say why the ticket belongs to that entity. Nothing was written.',
   ],
   [
+    { reason: 'need-outside-an-entity-build', jobId: 'J3' },
+    'Job J3 declared no need: only a build job of an entity declares one. Nothing was written.',
+  ],
+  [
+    {
+      reason: 'need-entity-unknown', jobId: 'J3', entity: 'shop', entityKeys: ['root', 'web']
+    },
+    'Job J3 declared no need for shop: the pipeline names no such entity, only root, web. Nothing was written.',
+  ],
+  [
+    { reason: 'need-of-own-entity', jobId: 'J3', entity: 'web' },
+    'Job J3 declared no need for web: it builds in that entity, so it makes the change itself. Nothing was written.',
+  ],
+  [
+    { reason: 'need-incomplete', jobId: 'J3', gaps: ['title-missing', 'acceptance-unnumbered'] },
+    'Job J3 declared no need: the need is incomplete: it has no title (title-missing), and its `## Acceptance` holds no numbered item '
+      + '(acceptance-unnumbered). Nothing was written.',
+  ],
+  [
+    { reason: 'need-limit-reached', jobId: 'J3', limit: 5 },
+    'Job J3 declared no need: it has already declared 5, as many as one job may. Nothing was written.',
+  ],
+  [
     { reason: 'claim-under-review', ticketId: '004', reviewBarTaskId: 7 },
     'Ticket #004 is under review: its review row #7 is in progress. Nothing was written.',
   ],
@@ -416,7 +439,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 54;
+const REFUSAL_REASON_COUNT = 59;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

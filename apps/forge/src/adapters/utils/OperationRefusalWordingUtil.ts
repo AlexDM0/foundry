@@ -4,6 +4,7 @@
  */
 import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { JobMoveTarget }                                from '../../lib/tracker-model/@types/Job.ts';
+import type { NeedGap }                                      from '../../lib/tracker-model/@types/Need.ts';
 import type { TaskStatus }                                   from '../../lib/tracker-model/@types/Task.ts';
 import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../lib/tracker-model/@types/Ticket.ts';
 import type { BoardRefusalDetail }                           from '../../lib/tracker-model/BoardRefusal.ts';
@@ -58,6 +59,13 @@ function legalSourcesText(targetStatus: TicketStatus): string {
 const READINESS_GAP_TEXT: Readonly<Record<ReadinessGap, string>> = {
   'acceptance-unnumbered': 'its `## Acceptance` holds no numbered item (acceptance-unnumbered)',
   'brief-missing':         'it has no `## Brief` with a non-blank line (brief-missing)',
+};
+
+const NEED_GAP_TEXT: Readonly<Record<NeedGap, string>> = {
+  'entity-missing':        'it names no entity (entity-missing)',
+  'title-missing':         'it has no title (title-missing)',
+  'acceptance-unnumbered': READINESS_GAP_TEXT['acceptance-unnumbered'],
+  'brief-missing':         READINESS_GAP_TEXT['brief-missing'],
 };
 
 function incompleteTicketText(incompleteTicket: IncompleteTicket): string {
@@ -422,6 +430,20 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'entity-without-reason':
       return `Ticket #${detail.ticketId}'s entity was not changed: ${adviceFor(channel, 'it needs --reason', 'it needs a reason')}. `
         + `Say why the ticket belongs to that entity. ${NOTHING_WAS_WRITTEN}`;
+    case 'need-outside-an-entity-build':
+      return `Job ${detail.jobId} declared no need: only a build job of an entity declares one. ${NOTHING_WAS_WRITTEN}`;
+    case 'need-entity-unknown':
+      return detail.entityKeys.length === 0
+        ? `Job ${detail.jobId} declared no need for ${detail.entity}: the pipeline names no entity. ${NOTHING_WAS_WRITTEN}`
+        : `Job ${detail.jobId} declared no need for ${detail.entity}: the pipeline names no such entity, only ${detail.entityKeys.join(', ')}. `
+          + NOTHING_WAS_WRITTEN;
+    case 'need-of-own-entity':
+      return `Job ${detail.jobId} declared no need for ${detail.entity}: it builds in that entity, so it makes the change itself. ${NOTHING_WAS_WRITTEN}`;
+    case 'need-incomplete':
+      return `Job ${detail.jobId} declared no need: the need is incomplete: ${detail.gaps.map((gap) => NEED_GAP_TEXT[gap]).join(', and ')}. `
+        + NOTHING_WAS_WRITTEN;
+    case 'need-limit-reached':
+      return `Job ${detail.jobId} declared no need: it has already declared ${detail.limit}, as many as one job may. ${NOTHING_WAS_WRITTEN}`;
     case 'agents-of-a-settled-ticket':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `and its agents were not changed: no agent will work it again. ${NOTHING_WAS_WRITTEN}`;
@@ -750,6 +772,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `Name the product-owner job whose intake to title, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'question-options-without-job':
       return `Name the job whose question the option notes are for, as J4. ${NOTHING_WAS_WRITTEN}`;
+    case 'need-declare-without-job':
+      return `Name the build job that declares the need, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-setup-command':
       return `The ${detail.commandKind} command's ${detail.field} is missing or is not of its shape. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-draft-invalid':
@@ -816,6 +840,8 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'incident-move-not-allowed':         'it is legal only as a move the named delivered incident allows',
   'incident-target-mismatch':          'the named incident is about another job or ticket',
   'job-serves-no-setup':               'this job is the agent of no open pipeline setup record',
+  'need-outside-an-entity':            'only a build job of an entity declares a need',
+  'need-incomplete':                   'a need names its entity and a title, and its body holds a numbered ## Acceptance and a ## Brief',
 };
 
 /** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */

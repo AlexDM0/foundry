@@ -48,6 +48,7 @@ import { INCIDENT_SUBCOMMAND_NAMES }                                            
 import { INTAKE_SUBCOMMAND_NAMES }                                                                   from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }                                                                      from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                                                    from './merges/MergeCommand.ts';
+import { NEED_SUBCOMMAND_NAMES }                                                                     from './needs/NeedCommand.ts';
 import { OVERSEE_SUBCOMMAND_NAMES }                                                                  from './overseer/OverseerCommand.ts';
 import { PIPELINE_SUBCOMMAND_NAMES }                                                                 from './pipeline/PipelineCommand.ts';
 import { LOGIN_ITEM_SUBCOMMAND_NAMES }                                                               from './setup/login-item/LoginItemCommand.ts';
@@ -59,6 +60,8 @@ import { WORKTREE_SUBCOMMAND_NAMES }                                            
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const CONSTITUTION_TEXT = '# Example Agency\n\n- Keep the basket page fast.\n';
+
+const NEED_BODY_TEXT = '## Acceptance\n\nA1. The web app reads the basket total.\n\n## Brief\n\nAlex Example needs the total.\n';
 
 const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonly string[] } = {
   'ticket-add':                 ['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low', '--body', '## Report\nSeen.\n'],
@@ -99,6 +102,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'intake-close':               ['intake', 'close', '--set', '1'],
   'intake-title':               ['intake', 'title', '--', 'Example basket'],
   'question-options':           ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],
+  'need-declare':               ['need', 'declare', 'Export the basket total', '--entity', 'shared', '--body', NEED_BODY_TEXT],
   'overseer-pause':             ['oversee', 'pause'],
   'overseer-resume':            ['oversee', 'resume'],
   'overseer-stop':              ['oversee', 'stop', '--now'],
@@ -243,6 +247,7 @@ function everyVerb(): string[] {
     if (command === 'gate') return GATE_SUBCOMMAND_NAMES.map((subcommand) => `gate ${subcommand}`);
     if (command === 'intake') return [command, ...INTAKE_SUBCOMMAND_NAMES.map((subcommand) => `intake ${subcommand}`)];
     if (command === 'question') return QUESTION_SUBCOMMAND_NAMES.map((subcommand) => `question ${subcommand}`);
+    if (command === 'need') return NEED_SUBCOMMAND_NAMES.map((subcommand) => `need ${subcommand}`);
     if (command === 'pipeline') return PIPELINE_SUBCOMMAND_NAMES.map((subcommand) => `pipeline ${subcommand}`);
     if (command === 'machine') return MACHINE_SUBCOMMAND_NAMES.map((subcommand) => `machine ${subcommand}`);
     if (command === 'login-item') return LOGIN_ITEM_SUBCOMMAND_NAMES.map((subcommand) => `login-item ${subcommand}`);
@@ -286,6 +291,16 @@ describeWhenGitIsRecorded('relayed verbs', () => {
     expect(request?.command).toEqual({ kind: 'pipeline-constitution-draft', markdown: '', sources: [] });
     const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(request));
     expect(reading).toMatchObject({ verdict: 'read', command: { kind: 'pipeline-constitution-draft', markdown: CONSTITUTION_TEXT, sources: [] } });
+  });
+
+  test('a need carries its body beside the command, and names no job', async () => {
+    const context = jobContext();
+    expect(await runCommandLine(ARGUMENTS_OF_KIND['need-declare'], context)).toBe(0);
+    const [request] = requestsWritten();
+    expect(request?.bodyText).toBe(NEED_BODY_TEXT);
+    expect(request?.command).toEqual({
+      kind: 'need-declare', entity: 'shared', title: 'Export the basket total', bodyText: ''
+    });
   });
 
   test('a misshapen payload is refused before anything is relayed, naming the field', async () => {

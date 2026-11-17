@@ -82,8 +82,15 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'entity-of-a-ticket-past-pending': { reason: 'entity-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
   'entity-unchanged':                { reason: 'entity-unchanged', ticketId: '004', entity: 'web' },
   'entity-without-reason':           { reason: 'entity-without-reason', ticketId: '004' },
-  'agents-of-a-settled-ticket':      { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
-  'agents-unchanged':                {
+  'need-outside-an-entity-build':    { reason: 'need-outside-an-entity-build', jobId: 'J3' },
+  'need-entity-unknown':             {
+    reason: 'need-entity-unknown', jobId: 'J3', entity: 'shop', entityKeys: ['root', 'web']
+  },
+  'need-of-own-entity':         { reason: 'need-of-own-entity', jobId: 'J3', entity: 'web' },
+  'need-incomplete':            { reason: 'need-incomplete', jobId: 'J3', gaps: ['title-missing', 'brief-missing'] },
+  'need-limit-reached':         { reason: 'need-limit-reached', jobId: 'J3', limit: 5 },
+  'agents-of-a-settled-ticket': { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
+  'agents-unchanged':           {
     reason: 'agents-unchanged', ticketId: '004', status: 'pending', agents: { model: 'opus', effort: 'medium' }
   },
   'hold-of-a-settled-ticket': {
@@ -297,6 +304,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'intake-close-without-job':         { kind: 'intake-close-without-job' },
   'intake-title-without-job':         { kind: 'intake-title-without-job' },
   'question-options-without-job':     { kind: 'question-options-without-job' },
+  'need-declare-without-job':         { kind: 'need-declare-without-job' },
   'picture-unknown':                  { kind: 'picture-unknown', pictureId: 'example-picture' },
   'too-many-pictures':                { kind: 'too-many-pictures', pictureCount: 9, limit: 8 },
   'picture-too-large':                { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },

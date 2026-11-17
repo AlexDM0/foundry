@@ -109,7 +109,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 [Customs](../glossary.md#customs).
 
 <details open>
-<summary>54 sentences</summary>
+<summary>59 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -157,6 +157,11 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and its entity was not changed: it is set only while` | `entity-of-a-ticket-past-pending` | `ticket entity` past `pending`. | Leave it, or abandon and refile. | |
 | `entity was not changed: it already is` | `entity-unchanged` | The ticket has that entity. | Nothing. | |
 | `entity was not changed: it needs --reason` | `entity-without-reason` | `ticket entity` with a blank reason. | Say why the ticket belongs to that entity. | |
+| `declared no need: only a build job of an entity declares one` | `need-outside-an-entity-build` | `need declare` for a job that is not a build job, or runs no entity's stage, as every job of a forge without entities. | Nothing: make the change in the job's own ticket, or file a ticket. | [cli.md](../cli.md#need-declare) |
+| `declared no need for <key>: the pipeline names` | `need-entity-unknown` | `need declare` named a key the pipeline's entities do not have. | Name a key the sentence lists. | [cli.md](../cli.md#need-declare) |
+| `it builds in that entity, so it makes the change itself` | `need-of-own-entity` | `need declare` named the job's own entity. | Make the change in the job. | [cli.md](../cli.md#need-declare) |
+| `declared no need: the need is incomplete` | `need-incomplete` | A blank entity or title, or a body without a numbered `## Acceptance` or a `## Brief` with a non-blank line. | Write what the sentence names, and declare it again. | [cli.md](../cli.md#need-declare) |
+| `as many as one job may` | `need-limit-reached` | The job declared five needs. | Put the rest in the Handoff. | [cli.md](../cli.md#need-declare) |
 | `and its agents were not changed: no agent will work it again` | `agents-of-a-settled-ticket` | `ticket agent` on a `delivered` or `abandoned` ticket. | Nothing. | |
 | `and its agents were not changed: they already run on` | `agents-unchanged` | The ticket has that model and effort. | Nothing. | |
 | `so there is nothing to <hold or unhold>` | `hold-of-a-settled-ticket` | `ticket hold` or `unhold` on a `delivered` or `abandoned` ticket. | Nothing. | |
@@ -181,7 +186,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>22 sentences</summary>
+<summary>23 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -196,6 +201,7 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | |
 | `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
+| `Name the build job that declares the need` | `need-declare-without-job` | A `need-declare` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#need-declare) |
 | `Name the job whose question the option notes are for` | `question-options-without-job` | A `question-options` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#question-options) |
 | `The intake request is blank and carries no picture` | `intake-empty` | An `intake-start` control command whose text is only spaces and that names no picture, sent through the API. The terminal refuses earlier with a usage line. | Write the request, or attach a picture. | [overseer-api.md](overseer-api.md#commands) |
 | `and only a product-owner intake takes pictures` | `pictures-not-taken` | A `job-message` naming pictures to a job that is not a product owner, the Assistant included. | Send the message as text. | [overseer-api.md](overseer-api.md#commands) |
@@ -435,7 +441,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 [reviewer](../glossary.md#reviewer), [Handoff](../glossary.md#handoff).
 
 <details open>
-<summary>11 sentences</summary>
+<summary>13 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -444,6 +450,8 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `this job has already filed as many findings as one job may` | `worker-filing-limit` | `WORKER_FILINGS_PER_JOB` (10) reached. | Put the rest in the Handoff. | |
 | `it changes only a draft ticket this job filed` | `not-own-draft` | A product owner reached for a ticket it did not file, or one past `draft`. | Touch only its own draft tickets. | |
 | `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `pending`. | Assign only its own draft tickets and tickets ready for review or pending. | |
+| `only a build job of an entity declares a need` | `need-outside-an-entity` | A session that is not the builder of an entity's stage relayed `need declare`. | Nothing to do from the job: report the change in the Handoff. | [cli.md](../cli.md#need-declare) |
+| `a need names its entity and a title, and its body holds` | `need-incomplete` | A builder relayed a need with a blank entity or title, or a body without a numbered `## Acceptance` or a `## Brief`. | Write the missing part, and declare the need again. | [cli.md](../cli.md#need-declare) |
 | `this job is the agent of no open pipeline setup record` | `job-serves-no-setup` | A pipeline agent relayed a setup move while no open record names its job as the agent. | Nothing to do from the job: the record was started over or applied. | |
 | `it is legal only as a move the named delivered incident allows` | `incident-move-not-allowed` | The incident was not delivered to this Assistant, or does not allow the move. A terminal move under `--incident` prints it too, and so do `incident answer`, `incident note` and `incident escalate` on a kind that does not list them, with no `--incident` flag involved. Some listed moves cannot succeed. | Use a move the incident allows. | |
 | `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | A pipeline agent's request names a `setupId`; the Overseer stamps the record the agent serves. A `jobId`, `role` or `admission` never gets here: the Hatch format check below catches these fields first. | Send the verb with no setup id under the job. | |
