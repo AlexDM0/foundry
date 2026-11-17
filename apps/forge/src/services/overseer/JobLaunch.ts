@@ -43,6 +43,7 @@ import type {
 import type { DecisionDraft, DecisionWording }                                                    from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                                                             from '../../lib/tracker-model/Board.ts';
 import { FRESH_AGENT_CAUSE, STOPPED_BY_USER_CAUSE }                                               from '../../lib/tracker-model/JobControls.ts';
+import { PARKED_HOLD_PREFIX }                                                                     from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { GATE_CACHE_REPORTS }                                                                     from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import { FIRST_WATCHER_INSTANCE, HANDOFF_RED_INTERRUPTION }                                       from '../../lib/tracker-model/constants/JobStates.ts';
 import { EntityOwnershipUtil, type PipelineEntities }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
@@ -83,7 +84,10 @@ import {
 import { type GateConfinement, GateRun } from '../lifecycle/GateRun.ts';
 import type { SharedRepositoryLanding }  from '../lifecycle/Landing.ts';
 import {
+  CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE,
   MergeRun,
+  PACKAGE_RETURNS_AGREED,
+  SECOND_RETURN_PARK_CAUSE,
   type MergeSides,
   type ReReviewVerdict,
   type TargetMergeSettlement
@@ -1763,10 +1767,15 @@ function settleMainMerge(hold: HoldContext, job: Readonly<Job>, observation: Bui
 /**
  * The review ends `does-not-hold` and its ticket goes back `in-progress`, as a review whose claim did not hold: the builder's session is
  * resumed with the handover kept in the review's job folder, and the return counts in its handoff cycle, which parks the ticket past its resumes.
+ * A package review runs while its ticket stays in progress, so only its bar closes.
  */
 function returnToBuilder(hold: HoldContext, job: Readonly<Job>, cause: string): void {
   const { board, at } = hold.change;
   endJob(hold, job, { outcome: 'does-not-hold', cause });
+  if (TicketStageUtil.stageOfJob(job)?.name === 'package-review') {
+    hold.logged.push(...board.closeStageReviewBars(ticketIdOf(job), at).logged);
+    return;
+  }
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-progress', { checksLegality: true }, at).logged);
 }
 
@@ -1792,6 +1801,57 @@ function returnRedTargetGate(hold: HoldContext, job: Readonly<Job>, gate: Extrac
   returnToBuilder(hold, job, BUILD_JOB_CAUSES.targetGateRed);
 }
 
+/**
+ * A crossing ticket's review sent back by its catch-up goes to the entity that owns the cause (E66), not to whichever builder ran last; a
+ * review's catch-up runs only the gates of the review's own entity, so a red gate has no files and is that entity's to fix. A package review
+ * goes back to its package's build when only the package's files conflict. The home review goes back to `adapt` when no sealed package's
+ * file conflicts, and to the package's build when only that package's files conflict, its seal lifted and the return counted; a second
+ * return parks it (E45). A conflict that no one stage may resolve, such as one in a package's and in the home's files, parks the ticket for
+ * User. Nothing for any other review.
+ */
+function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflictedFiles: readonly string[]): void {
+  const { board, at } = hold.change;
+  const ticketId = ticketIdOf(job);
+  const rowStage = board.ticketStageOf(ticketId);
+  const entities = board.pipeline()?.entities;
+  const homeEntity = board.tickets().find((ticket) => ticket.frontmatter.id === ticketId)?.frontmatter.entity;
+  if (rowStage === null || entities === undefined || homeEntity === undefined) return;
+  if (rowStage.name === 'package-review') {
+    const part = MergeRun.firstConflictPartOf({ entities, homeEntity, sealedPackages: [rowStage.entity] }, conflictedFiles);
+    if (part === null || (part.packageEntity === rowStage.entity && !part.leavesTheMergeOpen)) {
+      board.moveTicketStage(ticketId, { name: 'package-build', entity: rowStage.entity }, at);
+      return;
+    }
+    parkTheCatchUp(hold, ticketId, CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE, conflictedFiles);
+    return;
+  }
+  if (rowStage.name !== 'review') return;
+  const part = MergeRun.firstConflictPartOf({ entities, homeEntity, sealedPackages: Object.keys(board.ticketSealsOf(ticketId)) }, conflictedFiles);
+  if (part === null || part.packageEntity === null) {
+    board.moveTicketStage(ticketId, { name: 'adapt', entity: homeEntity }, at);
+    return;
+  }
+  if (part.leavesTheMergeOpen) {
+    parkTheCatchUp(hold, ticketId, CONFLICT_WITHOUT_ONE_OWNER_PARK_CAUSE, conflictedFiles);
+    return;
+  }
+  if (board.ticketPackageReturnsOf(ticketId) < PACKAGE_RETURNS_AGREED) {
+    board.returnTicketToPackage(ticketId, part.packageEntity, at);
+    return;
+  }
+  parkTheCatchUp(hold, ticketId, SECOND_RETURN_PARK_CAUSE, conflictedFiles);
+}
+
+/** The ticket of a review sent back by its catch-up, parked for User with the conflicted files as the decision's context. */
+function parkTheCatchUp(hold: HoldContext, ticketId: string, parkCause: string, conflictedFiles: readonly string[]): void {
+  const { board, at } = hold.change;
+  const draft: DecisionDraft = { kind: 'parked', ticketIds: [ticketId], jobId: null };
+  hold.logged.push(...board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${parkCause}`, at).logged);
+  hold.logged.push(...board.openDecision({
+    ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: conflictedFiles.join(' ')
+  }, at).logged);
+}
+
 /** In the hold, once a review job is installed: its reviewer starts only on a branch that holds the target tip it was checked against. */
 function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: TargetCatchUp): void {
   const { board, at } = hold.change;
@@ -1808,6 +1868,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
       mkdirSync(jobFolder, { recursive: true });
       writeFileAtomically(join(jobFolder, JOB_FILES.targetConflict), `${JSON.stringify({ targetTip: catchUp.targetTip, conflictedFiles: catchUp.conflictedFiles })}\n`);
       returnToBuilder(hold, job, BUILD_JOB_CAUSES.targetConflict);
+      routeCatchUpToItsOwner(hold, job, catchUp.conflictedFiles);
       return;
     }
     case 'gated': {
@@ -1819,8 +1880,10 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
       }
       if (gate.ran) hold.logged.push(...board.recordGateRan(gateRanFieldsOf(gate, gate.outcome), at).logged);
       if (gate.outcome === 'passed') hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
-      else if (gate.outcome === 'failed') returnRedTargetGate(hold, job, gate);
-      else {
+      else if (gate.outcome === 'failed') {
+        returnRedTargetGate(hold, job, gate);
+        routeCatchUpToItsOwner(hold, job, []);
+      } else {
         openIncidentFor(hold, job, 'gate-cannot-run', { tree: gate.treeId, gate: gate.step ?? '' });
         endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.gateCannotRun });
       }

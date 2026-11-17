@@ -1,7 +1,8 @@
 /**
  * A crossing ticket's stage and seals on its row. What matters: a ticket whose row stores no stage reads none and is in `build`, so its
  * first move is into a package build; a move the stage table does not allow is refused as a programming error and leaves the row as it
- * was; a seal is added beside the seals the row holds; and a package review's bar is closed without a move of the ticket.
+ * was; a seal is added beside the seals the row holds; a package review's bar is closed without a move of the ticket; and a package return
+ * lifts only that package's seal, counts the return and goes back to the package's build, from `adapt` or the home review only.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -61,5 +62,42 @@ describe('a crossing ticket\'s row', () => {
 
     expect(board.tasks().filter((task) => task.reviewOf === '001').map((task) => task.status)).toEqual(['delivered']);
     expect(board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+  });
+
+  test('a package return lifts only that package\'s seal, counts the return and goes back to the package\'s build', () => {
+    const board = boardWithTheShopTicket();
+    board.moveTicketStage('001', { name: 'package-build', entity: UI_KIT.key }, AT);
+    board.moveTicketStage('001', { name: 'package-review', entity: UI_KIT.key }, AT);
+    board.sealTicketPackage('001', UI_KIT.key, 'example-seal', AT);
+    board.sealTicketPackage('001', 'example-icons', 'example-icons-seal', AT);
+    board.moveTicketStage('001', { name: 'review', entity: SHOP.key }, AT);
+
+    board.returnTicketToPackage('001', UI_KIT.key, AT);
+
+    expect(board.ticketStageOf('001')).toEqual({ name: 'package-build', entity: UI_KIT.key });
+    expect(board.ticketSealsOf('001')).toEqual({ 'example-icons': 'example-icons-seal' });
+    expect(board.ticketPackageReturnsOf('001')).toBe(1);
+  });
+
+  test('a package return of the one sealed package leaves the row with no seals key', () => {
+    const board = boardWithTheShopTicket();
+    board.moveTicketStage('001', { name: 'package-build', entity: UI_KIT.key }, AT);
+    board.moveTicketStage('001', { name: 'package-review', entity: UI_KIT.key }, AT);
+    board.sealTicketPackage('001', UI_KIT.key, 'example-seal', AT);
+    board.moveTicketStage('001', { name: 'adapt', entity: SHOP.key }, AT);
+
+    board.returnTicketToPackage('001', UI_KIT.key, AT);
+
+    expect(board.tasks()[0]).not.toHaveProperty('seals');
+    expect(board.ticketPackageReturnsOf('001')).toBe(1);
+  });
+
+  test('refuses a package return from a stage that is not adapt or the home review and keeps the row', () => {
+    const board = boardWithTheShopTicket();
+    board.moveTicketStage('001', { name: 'package-build', entity: UI_KIT.key }, AT);
+    board.moveTicketStage('001', { name: 'package-review', entity: UI_KIT.key }, AT);
+
+    expect(() => board.returnTicketToPackage('001', UI_KIT.key, AT)).toThrow('cannot return to a package build from the stage package-review');
+    expect(board.ticketPackageReturnsOf('001')).toBe(0);
   });
 });

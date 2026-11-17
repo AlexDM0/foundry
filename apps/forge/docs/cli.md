@@ -1686,6 +1686,20 @@ From the package build on, a job whose branch no longer holds a sealed change is
 `sealed-change-altered`, which sends the session back once, as any other V17 refusal of a job of an entity. The
 Airlock's merge and conflict work are exempt.
 
+A crossing ticket's conflict and red gates go to the entity that owns them. In its Airlock, the files of a sealed
+package that conflict go first to that package's builder, which stages them and leaves the merge open while other
+files still conflict; the home's last worker resolves the rest and commits the one merge. The Airlock agent of an
+entity runs that entity's stage, so it resumes that stage's newest session. A resolution that a package's builder took
+part in goes to that package's conflict re-reviewer whatever its size; the home's goes to the home's above
+`airlock.reReview`. A red gate on the merged tree aborts the merge and ends the merge job `failed`: a sealed package's
+gate, or a gate of an entity that consumes it, as `package-gate-red`, which lifts the package's seal, counts the return
+in `packageReturns` and moves the row to that package's `package-build`; any other as `home-gate-red`, which moves the
+row to the home `adapt`. Either way the ticket goes `in-progress`, and its newest ended build job's folder keeps the red
+handoff that the next build takes over. A second package return holds the ticket `parked:second-return` with a `parked`
+decision. The review's catch-up is routed the same way: a package review's goes back to its `package-build`, and the
+home review's goes to `adapt`, or for a conflict in a sealed package's files back to that package. A group's landing
+gates only the entities it changes; the entities that consume them are gated when the release lands on the main line.
+
 | what happens | what shows | moves for User or the Assistant |
 | --- | --- | --- |
 | worktree creation, the install line or a gating prepare step fails, or a gating prepare step changes a tracked file | incident `setup-failed`; the job ends `stopped` | `worktree repair`, `ticket park` |

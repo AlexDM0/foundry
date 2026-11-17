@@ -376,13 +376,15 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
 
 /**
  * The ticket's builder or reviewer resumed into the Airlock is told the conflict, with the target tip and the conflicted files, or the
- * red gate on the merged tree. A fresh agent in place of a session that could not resume first reads the instruction files of the role
- * it stands in for, then the ticket, its Handoff and Review; a resumed session read them at its own launch.
+ * red gate on the merged tree; a package's builder that resolves its part of a crossing ticket's conflict is told to leave the merge open.
+ * A fresh agent in place of a session that could not resume first reads the instruction files of the role it stands in for, then the
+ * ticket, its Handoff and Review; a resumed session read them at its own launch.
  */
 function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
   const role = job.role ?? job.kind;
+  const conflictTemplate = airlock.leavesTheMergeOpen === true ? 'AirlockOpenMergeMessage.md' : 'AirlockConflictMessage.md';
   const task = airlock.phase === 'resolving' || airlock.redHandoff === null
-    ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockConflictMessage.md'), 'utf8'), {
+    ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', conflictTemplate), 'utf8'), {
       ticketId:        ticket.id,
       role,
       jobId:           job.id,

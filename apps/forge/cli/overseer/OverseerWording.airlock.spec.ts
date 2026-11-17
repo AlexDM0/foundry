@@ -5,7 +5,8 @@
  * files of the role it stands in for, and is also given the ticket with its Handoff and Review, and its role's full budget; a conflict
  * re-reviewer reads its instruction files, filled as a first review round's, before the re-review the Airlock asks of it, or the merge
  * before User's code review, which never names the Airlock; and a session resumed on a conflicted merge before User's code review is told
- * the tip to merge again and where the conflicted files are named.
+ * the tip to merge again and where the conflicted files are named. A package's builder that resolves its part of a crossing ticket's
+ * conflict is told to stage its files only and to leave the merge open, never to commit it (E64).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -80,6 +81,17 @@ describe('a resumed agent on a conflict', () => {
     expect(message).toContain('AskUserQuestion is not available');
     expect(message).toContain(`You have ${RED_HANDOFF_RESUME_CALL_BUDGET} calls`);
     expect(message).not.toContain('Example handoff.');
+  });
+});
+
+describe('a package\'s builder on its part of a crossing ticket\'s conflict', () => {
+  const message = messageOf({ ...CONFLICT, conflictedFiles: ['packages/tokens/Colour.ts'], leavesTheMergeOpen: true }, 'builder');
+
+  test('is told to resolve and stage its files only and to leave the merge open for the worker after it (E64)', () => {
+    for (const fact of ['#012', CONFLICT.targetTip, CONFLICT.branchTip, CONFLICT.worktree, '- packages/tokens/Colour.ts']) expect(message).toContain(fact);
+    expect(message).toContain('Do not commit the merge');
+    expect(message).not.toContain('Commit the merge as it stands');
+    expect(message).not.toMatch(/\{\{\w+\}\}/);
   });
 });
 

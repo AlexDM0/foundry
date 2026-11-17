@@ -55,8 +55,11 @@ function beforeTheMergeIn(ticketId: string, conflicts: boolean): RecordedGitStep
 /** A merge-in stopped on its conflict, aborted and reset to the ticket's branch tip. */
 const abortedMergeIn = mergeInAborted(MAIN_TIP, TICKET_TIP);
 
-/** What V10 asks of the resolution the Airlock agent committed as `MERGED_TIP`: nothing unmerged, a clean check and the recorded parents. */
-const soundResolution: RecordedGitStage = [
+/**
+ * What V10 asks of the resolution the Airlock agent committed as `MERGED_TIP`: nothing unmerged, a clean check of `conflictedFiles` and the
+ * recorded parents.
+ */
+const soundResolutionOf = (conflictedFiles: readonly string[]): RecordedGitStage => [
   { gitArguments: ['ls-files', '-u'], answeredAs: GIT_CALL_SHAPES.NO_UNMERGED_PATH },
   {
     gitArguments: ['rev-list', '--merges', '--reverse', `${TICKET_TIP}..HEAD`, `^${MAIN_TIP}`],
@@ -65,7 +68,7 @@ const soundResolution: RecordedGitStage = [
   },
   { gitArguments: ['config', '--get', 'core.whitespace'], answeredAs: GIT_CALL_SHAPES.WHITESPACE_RULE_UNSET },
   {
-    gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', CONFLICTED_FILE],
+    gitArguments: ['-c', 'core.whitespace=cr-at-eol', 'diff', '--check', TICKET_TIP, 'HEAD', '--', ...conflictedFiles],
     answeredAs:   GIT_CALL_SHAPES.CHECK_OF_A_CLEAN_CRLF_RESOLUTION,
   },
   {
@@ -74,6 +77,11 @@ const soundResolution: RecordedGitStage = [
     filledIn:     { [RECORDED_PLACEHOLDERS.COMMIT]: MERGED_TIP, [RECORDED_PLACEHOLDERS.FIRST_TIP]: TICKET_TIP, [RECORDED_PLACEHOLDERS.SECOND_TIP]: MAIN_TIP },
   },
 ];
+
+const soundResolution = soundResolutionOf([CONFLICTED_FILE]);
+
+/** The NUL a `-z` list of git paths separates them with, as one recorded path placeholder holds several. */
+const PATH_SEPARATOR = '\0';
 
 /** More planted ids, for a main line or a branch that moves while a case runs. */
 export const MOVED_AIRLOCK_IDS = {
@@ -104,6 +112,8 @@ export interface MainLineLanding {
   changedPath?:   string;
   /** What else answers once the branch landed, such as the next candidate's reads. */
   afterLanding?:  RecordedGitStage;
+  /** What else answers before the landing, merged in or not, such as the paths a landing with entities gates. */
+  beforeLanding?: RecordedGitStage;
 }
 
 export interface MainLineAnswers {
@@ -112,7 +122,7 @@ export interface MainLineAnswers {
   mergedIn:         RecordedGitStage;
 }
 
-function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLanding'>>, commit: string, landed: RecordedGitStage): RecordedGitStep[] {
+function landingOn(landing: Required<Omit<MainLineLanding, 'headTree' | 'afterLanding' | 'beforeLanding'>>, commit: string, landed: RecordedGitStage): RecordedGitStep[] {
   const {
     repository, mainTip, checkedOut, checkout, changedPath
   } = landing;
@@ -182,6 +192,7 @@ function mainLineAnswersOf(landing: MainLineLanding): MainLineAnswers {
     commitResolved(branchTip, branchTip),
     ancestryAsked(mainTip, branchTip, holdsMainLine),
     treeRead(branchTip, branchTree),
+    ...landing.beforeLanding ?? [],
   ];
   const resetToTheBranchTip = { gitArguments: ['reset', '--hard', '--quiet', branchTip], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT, movesTo: beforeTheMerge };
   beforeTheMerge.push(
@@ -239,6 +250,28 @@ export const AirlockAnswerSets = {
       ...mergeInOfAConflict(MAIN_TIP),
     ];
   },
+
+  /** The branch and the main line both changed each of `conflictedFiles`: the merge-in in the ticket worktree stops on them. */
+  conflictingMergeInOf: (ticketId: string, conflictedFiles: readonly string[]): RecordedGitStage => [
+    ...beforeTheMergeIn(ticketId, true),
+    ancestryAsked(MAIN_TIP, TICKET_TIP, false),
+    mergedIn(MAIN_TIP, conflictedFiles.join(PATH_SEPARATOR)),
+    unmergedFilesRead(conflictedFiles.join(PATH_SEPARATOR)),
+  ],
+
+  /** A worker staged its own files and left the merge open on the ticket's tip, `remainingFiles` still unmerged for the next one. */
+  mergeLeftOpen: (remainingFiles: readonly string[]): RecordedGitStage => [
+    commitResolved('MERGE_HEAD', MAIN_TIP),
+    commitResolved('HEAD', TICKET_TIP),
+    unmergedFilesRead(remainingFiles.join(PATH_SEPARATOR)),
+  ],
+
+  /** The last worker committed the merge as `MERGED_TIP`, and V10 passes for every one of `conflictedFiles`. */
+  mergeCommittedOver: (conflictedFiles: readonly string[]): RecordedGitStage => [
+    revisionMissing('MERGE_HEAD'),
+    ...soundResolutionOf(conflictedFiles),
+    commitResolved('HEAD', MERGED_TIP),
+  ],
 
   /** The branch and the main line both changed `shared.txt`: the merge-in in the ticket worktree stops on the conflict. */
   conflictingMergeIn: (ticketId: string): RecordedGitStage => [

@@ -3,8 +3,12 @@
  * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
  * reviewer starts only once the build phase's gates are green on the merged tree, run from a manifest of its own, at once when that phase
  * has none; a red gate and a conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge
- * and resets the worktree to the branch tip. The folders are real; git answers from recorded answer sets, one for each state of the
- * worktree, the launcher is fake, and the spec ends the Watchers itself.
+ * and resets the worktree to the branch tip. A crossing ticket's review sends its catch-up to the entity that owns the cause (E66): a
+ * conflict in a sealed package's files returns the ticket to the package's build, its seal lifted and the return counted, a second such
+ * return parks it, and a conflict in home files goes back to `adapt`; a package review's catch-up that conflicts in the package's files
+ * goes back to its package's build, the ticket left in progress; and a conflict no one stage may resolve, in a package's and the home's
+ * files, parks the ticket for User. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the
+ * launcher is fake, and the spec ends the Watchers itself.
  */
 import {
   mkdirSync,
@@ -77,8 +81,35 @@ interface CatchUpScene {
   jobFolder:      () => string;
 }
 
-/** The builder of #001 built on `ticket-001`, ended `built`, and its review job stands installed in `preparing`, its reviewer not started. */
-function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
+const SHOP_AND_TOKENS: Pipeline = {
+  ...PIPELINE,
+  entities: {
+    shop: {
+      kind: 'app', home: ['/apps/shop'], prepare: [], gates: PIPELINE.gates, phases: PIPELINE.phases, review: { name: 'Review' }, whitelist: ['tokens'], dependsOn: ['tokens'],
+    },
+    tokens: {
+      kind: 'package', home: ['/packages/tokens'], prepare: [], gates: PIPELINE.gates, phases: PIPELINE.phases, review: { name: 'Review' },
+    },
+  },
+};
+
+/** The stage moves of a ticket of the shop that crossed into `tokens` up to its home review, `packageRuns` times, with its seal. */
+function crossIntoTokens(board: Board, packageRuns: number): void {
+  for (let run = 0; run < packageRuns; run += 1) {
+    if (run === 0) board.moveTicketStage('001', { name: 'package-build', entity: 'tokens' }, AT);
+    else board.returnTicketToPackage('001', 'tokens', AT);
+    board.moveTicketStage('001', { name: 'package-review', entity: 'tokens' }, AT);
+    board.sealTicketPackage('001', 'tokens', 'example-tokens-seal', AT);
+    board.moveTicketStage('001', { name: 'review', entity: 'shop' }, AT);
+  }
+}
+
+/**
+ * The builder of #001 built on `ticket-001`, ended `built`, and its review job stands installed in `preparing`, its reviewer not started.
+ * With `packageRuns`, #001 is a ticket of the shop that crossed into `tokens` that many times and the job is its home review; with
+ * `reviewsThePackage`, #001 crossed into `tokens` and the job is the package's review, the ticket still in progress.
+ */
+function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThePackage = false): CatchUpScene {
   const repository = realpathSync(createScratchDirectory('catch-up'));
   const monitorFolder = createScratchDirectory('m');
   folders.push(repository, monitorFolder);
@@ -87,7 +118,13 @@ function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
   const worktree = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001');
   mkdirSync(worktree, { recursive: true });
   const trackerDirectory = join(repository, '.example-tracker');
-  const { progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-review', task: 1 })] });
+  const crossing = packageRuns > 0 || reviewsThePackage;
+  const status = reviewsThePackage ? 'in-progress' : 'in-review';
+  const { progress, tickets } = boardFixture({
+    tickets: [ticketFixture({
+      id: '001', status, task: 1, ...(crossing ? { entity: 'shop' } : {})
+    })]
+  });
   const logRecords: LogRecord[] = [];
   const board = new Board({
     progress, tickets, epics: [], logger: createLogger((record) => logRecords.push(record)), pipeline
@@ -97,8 +134,14 @@ function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
   }, AT);
   for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(build.job.id, state, AT);
   board.endJob(build.job.id, { outcome: 'built' }, AT);
+  if (packageRuns > 0) crossIntoTokens(board, packageRuns);
+  if (reviewsThePackage) {
+    board.moveTicketStage('001', { name: 'package-build', entity: 'tokens' }, AT);
+    board.moveTicketStage('001', { name: 'package-review', entity: 'tokens' }, AT);
+  }
+  const reviewScope = reviewsThePackage ? { entity: 'tokens', stage: 3 } : { entity: 'shop', stage: 5 };
   const review = board.launchJob({
-    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: TARGET
+    kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: 1, target: TARGET, ...(crossing ? reviewScope : {})
   }, AT);
   board.startReviewBar('001', { round: 1, owner: review.job.id }, AT);
   board.moveJob(review.job.id, 'preparing', AT);
@@ -119,6 +162,12 @@ function catchUpScene(pipeline: Pipeline = PIPELINE): CatchUpScene {
     gateSlots,
     log:                  () => undefined,
     processStarts,
+    decisionWordingOf:    () => ({
+      questions: [{
+        question: 'Example?', header: 'Example', multiSelect: false, options: []
+      }],
+      context: '',
+    }),
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const pass = async (): Promise<void> => {
@@ -162,13 +211,13 @@ function cleanlyMerged(scene: CatchUpScene): RecordedGitStep[] {
   ];
 }
 
-function stoppedOnAConflict(scene: CatchUpScene): RecordedGitStep[] {
+function stoppedOnAConflict(scene: CatchUpScene, conflictedFile = 'shared.txt'): RecordedGitStep[] {
   return [
     commitResolved(`refs/heads/${TARGET}`, TARGET_TIP),
     commitResolved('HEAD', BRANCH_TIP),
     commitResolved('MERGE_HEAD', TARGET_TIP),
     commitResolved(BRANCH_TIP, BRANCH_TIP),
-    unmergedFilesRead('shared.txt'),
+    unmergedFilesRead(conflictedFile),
     { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
     { gitArguments: ['reset', '--hard', '--quiet', BRANCH_TIP], answeredAs: GIT_CALL_SHAPES.HARD_RESET_TO_A_COMMIT },
     ...linkedWorktreeRead(scene.worktree, scene.repository),
@@ -303,4 +352,67 @@ testWhenGitIsRecorded('with no build gates the reviewer starts once the merge is
 
   expect(scene.reviewJob()?.state).toBe('running');
   expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'target-merge')]);
+});
+
+/** A crossing ticket's home review, or its package's review, whose catch-up stopped on a conflict in `conflictedFile`, settled. */
+async function crossingConflictScene(conflictedFile: string, packageRuns = 1, reviewsThePackage = false): Promise<CatchUpScene> {
+  const scene = catchUpScene(SHOP_AND_TOKENS, reviewsThePackage ? 0 : packageRuns, reviewsThePackage);
+  recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
+  await scene.pass();
+  endMergeWatcher(scene, CONFLICT_EXIT_CODE);
+  recordedGit.answerFrom(stoppedOnAConflict(scene, conflictedFile));
+  await scene.pass();
+  await scene.pass();
+  return scene;
+}
+
+testWhenGitIsRecorded('a crossing ticket\'s conflict in a sealed package\'s files returns it to the package\'s build, its seal lifted (E66)', async () => {
+  const scene = await crossingConflictScene('packages/tokens/Colour.ts');
+
+  expect(scene.reviewJob()).toBeUndefined();
+  expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'package-build', entity: 'tokens' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({});
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(1);
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s conflict in home files goes back to adapt, not to whichever builder ran last (E66)', async () => {
+  const scene = await crossingConflictScene('apps/shop/Cart.ts');
+
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'adapt', entity: 'shop' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({ tokens: 'example-tokens-seal' });
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s conflict in package files that would be its second package return parks it (E66, E45)', async () => {
+  const scene = await crossingConflictScene('packages/tokens/Colour.ts', 2);
+
+  expect(scene.board.tickets()[0]?.frontmatter.hold).toBe('parked:second-return');
+  expect(scene.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'review', entity: 'shop' });
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s package review whose catch-up conflicts goes back to the package\'s build, still in progress (E66)', async () => {
+  const scene = await crossingConflictScene('packages/tokens/Colour.ts', 0, true);
+
+  expect(scene.reviewJob()).toBeUndefined();
+  expect(scene.board.tickets()[0]?.frontmatter.status).toBe('in-progress');
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'package-build', entity: 'tokens' });
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(0);
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s home review whose catch-up conflicts in a package\'s and the home\'s files parks it for User (E66)', async () => {
+  const scene = await crossingConflictScene(['packages/tokens/Colour.ts', 'apps/shop/Cart.ts'].join('\0'));
+
+  expect(scene.board.tickets()[0]?.frontmatter.hold).toBe('parked:conflict-without-one-owner');
+  expect(scene.board.decisions().map((decision) => decision.kind)).toEqual(['parked']);
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'review', entity: 'shop' });
+  expect(scene.board.ticketSealsOf('001')).toEqual({ tokens: 'example-tokens-seal' });
+  expect(scene.board.ticketPackageReturnsOf('001')).toBe(0);
+});
+
+testWhenGitIsRecorded('a crossing ticket\'s package review whose catch-up conflicts in home files parks it: no package stage changes them (E66)', async () => {
+  const scene = await crossingConflictScene('apps/shop/Cart.ts', 0, true);
+
+  expect(scene.board.tickets()[0]?.frontmatter.hold).toBe('parked:conflict-without-one-owner');
+  expect(scene.board.ticketStageOf('001')).toEqual({ name: 'package-review', entity: 'tokens' });
 });

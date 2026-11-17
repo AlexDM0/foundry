@@ -251,6 +251,7 @@ export function createRecordedAirlocksHarness(
       context: ''
     }),
     keepAirlockFacts:       (mergeJob, facts) => keptAirlockFacts.set(mergeJob.id, facts),
+    keptAirlockFactOf:      (mergeJob, name) => keptAirlockFacts.get(mergeJob.id)?.[name] ?? null,
     jobFolderOf:            (job) => join(repository, '.example-tracker', 'jobs', job.id),
     jobFolderOfId:          (jobId) => join(repository, '.example-tracker', 'jobs', jobId),
     redHandoffResumes:      2,

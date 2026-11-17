@@ -18,9 +18,34 @@ type KeptConflictReading = { verdict: 'kept'; conflictedFiles: string[] } | { ve
 
 const AIRLOCK_FACTS_FILE = 'airlock-facts.json';
 
+/**
+ * The names of the kept facts: the files the next agent resolves; on a crossing ticket's conflict split by owner, whether it leaves the
+ * merge open for the worker after it (E64) and the files the workers before it resolved, newline-separated.
+ */
+export const AIRLOCK_FACT_NAMES = Object.freeze({
+  conflictedFiles:     'conflictedFiles',
+  leavesTheMergeOpen:  'leavesTheMergeOpen',
+  filesResolvedBefore: 'filesResolvedBefore',
+});
+
+/** The value a kept fact holds when it is true. */
+export const KEPT_FACT_TRUE = 'true';
+
 function keep(mergeJobFolder: string, facts: Readonly<Record<string, string>>): void {
   mkdirSync(mergeJobFolder, { recursive: true });
   writeFileAtomically(join(mergeJobFolder, AIRLOCK_FACTS_FILE), `${JSON.stringify(facts)}\n`);
+}
+
+/** One kept fact; `null` when it was not kept or the facts cannot be read. */
+function keptFactOf(mergeJobFolder: string, name: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(join(mergeJobFolder, AIRLOCK_FACTS_FILE), 'utf8'));
+    if (typeof parsed !== 'object' || parsed === null || !Object.hasOwn(parsed, name)) return null;
+    const value: unknown = (parsed as Record<string, unknown>)[name];
+    return typeof value === 'string' ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 function keptConflictsOf(mergeJobFolder: string): KeptConflictReading {
@@ -58,4 +83,5 @@ function conflictedFilesOf(
 export const AirlockFactsFile = Object.freeze({
   conflictedFilesOf,
   keep,
+  keptFactOf,
 });

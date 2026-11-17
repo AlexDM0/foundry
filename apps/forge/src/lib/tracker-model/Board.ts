@@ -544,6 +544,14 @@ export class Board {
     return this.ticketStageRows.sealTicketPackage(ticketId, packageEntity, seal, at);
   }
 
+  ticketPackageReturnsOf(ticketId: string): number {
+    return this.ticketStageRows.ticketPackageReturnsOf(ticketId);
+  }
+
+  returnTicketToPackage(ticketId: string, packageEntity: string, at: string): Readonly<Task> {
+    return this.ticketStageRows.returnTicketToPackage(ticketId, packageEntity, at);
+  }
+
   closeStageReviewBars(ticketId: string, at: string): Logged {
     return this.ticketStageRows.closeStageReviewBars(ticketId, at);
   }

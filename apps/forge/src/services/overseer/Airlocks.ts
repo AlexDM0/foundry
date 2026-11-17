@@ -3,7 +3,8 @@
  * tip, the ticket's last worker resumed for a conflict or a red merged tree, the conditional conflict re-review of a large resolution, the
  * gate on the merged tree and the compare-and-swap landing. The main line lands in the main checkout; a group's tickets and its refreshes
  * land in the group's own worktree, and its release ticket lands the bundle on the main line. Every phase is written on the merge job's
- * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops.
+ * slot in its own hold, and every outcome ends the job or opens what User or the Assistant answers, so nothing loops. A ticket that crossed
+ * into packages has its conflict and its red merged tree routed to the entity that owns them (strategy 5.7).
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join }                                 from 'node:path';
@@ -42,18 +43,27 @@ import { PENDING_APPLY_REQUEST_STATES }                                      fro
 import { EntityOwnershipUtil, type PipelineEntities }                        from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { MergeQueueUtil, type MergeForecast }                                from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
 import { PipelineUtil }                                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketStageUtil }                                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { BranchNames }                                                  from '../../shared/BranchNames.ts';
 import type { AirlockLimits }                                                from '../../shared/constants/AirlockLimits.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                    from '../../shared/constants/OverseerLimits.ts';
 import { EntityFoldersUtil }                                                 from '../../shared/utils/EntityFoldersUtil.ts';
 import { entityAssignmentRequestOf }                                         from '../control/EntityAssignmentRequest.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
-import { MergeRun }                                                          from '../lifecycle/MergeRun.ts';
-import { ConstitutionCommits, type ConstitutionFileCommit }                  from './ConstitutionCommits.ts';
-import { GroupWorktrees }                                                    from './GroupWorktrees.ts';
-import { CONSTITUTION_FILE_PATH, InstructionFiles }                          from './InstructionFiles.ts';
-import { JobResumption }                                                     from './JobResumption.ts';
-import { RED_HANDOFF_FILES, RedHandoff }                                     from './RedHandoff.ts';
+import {
+  MergeRun,
+  PACKAGE_RETURNS_AGREED,
+  SECOND_RETURN_PARK_CAUSE,
+  type ConflictPart,
+  type CrossingLanding,
+  type RedGateOwner
+} from '../lifecycle/MergeRun.ts';
+import { AIRLOCK_FACT_NAMES, KEPT_FACT_TRUE }               from './AirlockFactsFile.ts';
+import { ConstitutionCommits, type ConstitutionFileCommit } from './ConstitutionCommits.ts';
+import { GroupWorktrees }                                   from './GroupWorktrees.ts';
+import { CONSTITUTION_FILE_PATH, InstructionFiles }         from './InstructionFiles.ts';
+import { JobResumption }                                    from './JobResumption.ts';
+import { RED_HANDOFF_FILES, RedHandoff }                    from './RedHandoff.ts';
 
 export interface AirlockHold {
   board: Board;
@@ -106,6 +116,8 @@ export interface AirlocksContext {
   decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
   keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
+  /** One fact kept beside the merge job; `null` when none was kept under that name. */
+  keptAirlockFactOf:      (mergeJob: Readonly<Job>, name: string) => string | null;
   /** The job's own folder, where a merge-gate fixer's red handoff is written for its resumed session. */
   jobFolderOf:            (job: Readonly<Job>) => string;
   /** An ended job's folder, where a stale green turned red is written for the next session of its kind. */
@@ -175,15 +187,36 @@ function mergedTreeWasLastPassed(
 /** The parked hold a merged tree leaves when it is still red after the agent's resumes. */
 const MERGE_GATE_RED_PARK_CAUSE = 'merge-gate-red';
 
+/** How a crossing ticket's merge job ends when its red merged tree sends the ticket back to the package's or the home's stage (E65). */
+const RED_GATE_RETURN_CAUSES = { package: 'package-gate-red', home: 'home-gate-red' } as const satisfies Readonly<Record<RedGateOwner['owner'], string>>;
+
+/** What a merged tree's gate leaves the Airlock to do outside its hold. */
+type RedMergedTreeSettlement =
+  | { verdict: 'settled' }
+  | { verdict: 'park' }
+  | { verdict: 'return-to-owner'; owner: RedGateOwner; homeEntity: EntityKey };
+
+const PACKAGE_BUILD_STAGE_NUMBER  = TicketStageUtil.stageNumberOf('package-build');
+const PACKAGE_REVIEW_STAGE_NUMBER = TicketStageUtil.stageNumberOf('package-review');
+
+/** Who an Airlock agent is: its role, and on a pipeline with entities the entity and stage it runs, which its session and sandbox follow. */
+interface AirlockAgentScope {
+  role:    JobRole;
+  entity?: EntityKey;
+  stage?:  number;
+}
+
+type EntityAndStage = Readonly<{ entity?: EntityKey; stage?: number }>;
+
 /** The Airlock agents launched under one merge job, in launch order, and the newest one's ending. */
 interface AirlockAgentHistory {
   /**
    * The conflict or red handoff launches and the red resumes; a fresh agent in place of one that could not resume adds none, and neither
-   * does a conflict re-reviewer, a fresh session of its own.
+   * does a conflict re-reviewer, a fresh session of its own, or a package's builder with no session of that package's build to resume.
    */
   resumes:       number;
   freshAgentIds: ReadonlySet<string>;
-  newestEnding:  { jobId: string; outcome: string; attempt: number; role: JobRole | null } | null;
+  newestEnding:  ({ jobId: string; outcome: string; attempt: number; role: JobRole | null } & EntityAndStage) | null;
 }
 
 export interface DeclinedCleanup {
@@ -275,13 +308,18 @@ function staleGreenGatedEntitiesOf(board: Board, ticketId: string): readonly Ent
 }
 
 /**
- * The landing's gate set: the entities the fast-forward to the merged tree changes and their consumers. When git cannot name the paths,
- * every entity's gates run.
+ * The landing's gate set: the entities the fast-forward to the merged tree changes and their consumers. On a group's branch only the
+ * entities it changes: their consumers run at the group's release, which lands all of it on the main line (E68). When git cannot name the
+ * paths, or a group's landing changes no entity's paths, every entity's gates run.
  */
-function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string): readonly EntityKey[] {
+function landingGatedEntitiesOf(entities: PipelineEntities, worktree: string, targetTip: string, landsOnTheMainLine: boolean): readonly EntityKey[] {
   const changedPaths = pathsTheFastForwardChangesOf(worktree, targetTip);
   if (changedPaths === null) return Object.keys(entities);
-  return EntityOwnershipUtil.gatedEntitiesOf(entities, changedPaths.map((gitPath) => `/${gitPath}`));
+  const repositoryPaths = changedPaths.map((gitPath) => `/${gitPath}`);
+  if (landsOnTheMainLine) return EntityOwnershipUtil.gatedEntitiesOf(entities, repositoryPaths);
+  const changedEntities = EntityOwnershipUtil.pathsByOwnerOf(entities, repositoryPaths);
+  const ownEntities = Object.keys(entities).filter((entityKey) => changedEntities.has(entityKey));
+  return ownEntities.length === 0 ? Object.keys(entities) : ownEntities;
 }
 
 function reportFieldOf(report: unknown, field: string): unknown {
@@ -407,23 +445,93 @@ function pathsTheFastForwardChangesOf(directory: string, commit: string): string
   return changed.standardOutput.split('\0').filter((path) => path !== '');
 }
 
+function entityAndStageOf(launch: EntityAndStage): EntityAndStage {
+  return { ...(launch.entity === undefined ? {} : { entity: launch.entity }), ...(launch.stage === undefined ? {} : { stage: launch.stage }) };
+}
+
 /**
  * The ticket's last worker from history, whatever the pipeline says now; with none ended, its reviewer, or its builder with no review
- * step.
+ * step. On a pipeline with entities it runs the entity and stage its launch logged, so its own session is resumed: the home's worker (E63).
  */
-function airlockAgentRoleOf(board: Board, ticketId: string): JobRole {
-  return JobResumption.lastWorkerOf(board.logRecordsSoFar(), ticketId)?.role ?? (board.pipeline()?.review === undefined ? 'builder' : 'reviewer');
+function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
+  const logRecords = board.logRecordsSoFar();
+  const lastWorker = JobResumption.lastWorkerOf(logRecords, ticketId);
+  const role: JobRole = lastWorker?.role ?? (board.pipeline()?.review === undefined ? 'builder' : 'reviewer');
+  if (board.pipeline()?.entities === undefined || lastWorker === null) return { role };
+  const launch = logRecords.find((record) => record.kind === 'job-launched' && record.jobId === lastWorker.jobId);
+  return launch?.kind === 'job-launched' ? { role, ...entityAndStageOf(launch.fields) } : { role };
+}
+
+/** A sealed package's part goes to that package's builder (E62); the home's part to the home's worker. */
+function conflictPartScopeOf(part: Readonly<ConflictPart>, homeScope: AirlockAgentScope): AirlockAgentScope {
+  return part.packageEntity === null ? homeScope : { role: 'builder', entity: part.packageEntity, stage: PACKAGE_BUILD_STAGE_NUMBER };
+}
+
+/** What the agent of one part of a conflict is told through the kept facts; a ticket that crossed into no package keeps only its files. */
+function conflictPartFactsOf(part: Readonly<ConflictPart>, filesResolvedBefore: readonly string[]): Record<string, string> {
+  return {
+    [AIRLOCK_FACT_NAMES.conflictedFiles]: part.files.join('\n'),
+    ...(part.leavesTheMergeOpen ? { [AIRLOCK_FACT_NAMES.leavesTheMergeOpen]: KEPT_FACT_TRUE } : {}),
+    ...(filesResolvedBefore.length === 0 ? {} : { [AIRLOCK_FACT_NAMES.filesResolvedBefore]: filesResolvedBefore.join('\n') }),
+  };
+}
+
+/** A ticket that crossed into packages, as its landing reads it; `null` for every other ticket, whose Airlock runs as it always did. */
+function crossingLandingOf(board: Board, ticketId: string): CrossingLanding | null {
+  const entities = board.pipeline()?.entities;
+  if (entities === undefined || board.ticketStageOf(ticketId) === null) return null;
+  const homeEntity = board.tickets().find((ticket) => ticket.frontmatter.id === ticketId)?.frontmatter.entity;
+  return homeEntity === undefined ? null : { entities, homeEntity, sealedPackages: Object.keys(board.ticketSealsOf(ticketId)) };
+}
+
+/** The agents launched under the merge job, in launch order, as their launches logged them. */
+function airlockAgentLaunchesOf(board: Board, job: Readonly<Job>): ({ role: JobRole | null } & EntityAndStage)[] {
+  return board.logRecordsSoFar().flatMap((record) => (
+    record.kind === 'job-launched' && record.fields.parentJobId === job.id ? [{ role: record.fields.role, ...entityAndStageOf(record.fields) }] : []
+  ));
+}
+
+/**
+ * The conflict re-reviewer a resolution still needs, in order: the home's, as today, when its resolution is too large to merge unread; then
+ * one of each package whose builder resolved a part, whatever its size (E62). `null` once each one needed was launched.
+ */
+function nextConflictReReviewerOf(board: Board, job: Readonly<Job>, homeNeedsAReReview: boolean): AirlockAgentScope | null {
+  const launches = airlockAgentLaunchesOf(board, job);
+  const reReviewedEntities = launches.filter((launch) => launch.role === 'conflict-re-reviewer').map((launch) => launch.entity);
+  const homeScope = homeWorkerScopeOf(board, ticketIdOf(job));
+  const homeReReviewer: AirlockAgentScope = { ...entityAndStageOf(homeScope), role: 'conflict-re-reviewer' };
+  const resolvedPackages = [...new Set(launches.flatMap((launch) => (launch.stage === PACKAGE_BUILD_STAGE_NUMBER && launch.entity !== undefined ? [launch.entity] : [])))];
+  const queue: AirlockAgentScope[] = [
+    ...(homeNeedsAReReview ? [homeReReviewer] : []),
+    ...resolvedPackages.map((packageEntity): AirlockAgentScope => ({ role: 'conflict-re-reviewer', entity: packageEntity, stage: PACKAGE_REVIEW_STAGE_NUMBER })),
+  ];
+  return queue.find((reReviewer) => !reReviewedEntities.includes(reReviewer.entity)) ?? null;
+}
+
+/**
+ * A package's builder in the Airlock resumes the newest session of that package's build (E62), as its launch states it; with none to
+ * resume it starts a fresh session of its own, the same test the launch's budget statement makes.
+ */
+function startsAFreshSession(
+  board: Board, jobId: string, launch: Readonly<{ kind: Job['kind']; role: Job['role']; ticketIds: readonly string[]; parentJobId: Job['parentJobId'] }> & EntityAndStage
+): boolean {
+  const subject = {
+    id: jobId, kind: launch.kind, role: launch.role, ticketIds: [...launch.ticketIds], parentJobId: launch.parentJobId, ...entityAndStageOf(launch)
+  };
+  return JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), subject) === jobId;
 }
 
 function airlockAgentHistoryOf(board: Board, job: Readonly<Job>): AirlockAgentHistory {
-  const launchByJobId = new Map<string, { attempt: number; role: JobRole | null }>();
+  const launchByJobId = new Map<string, { attempt: number; role: JobRole | null } & EntityAndStage>();
   const freshAgentIds = new Set<string>();
   let resumes = 0;
   let newestEnding: AirlockAgentHistory['newestEnding'] = null;
   for (const record of board.logRecordsSoFar()) {
     if (record.kind === 'job-launched' && record.fields.parentJobId === job.id) {
-      launchByJobId.set(record.jobId, { attempt: record.fields.attempt, role: record.fields.role });
-      if (newestEnding?.outcome === 'replaced' || record.fields.role === 'conflict-re-reviewer') freshAgentIds.add(record.jobId);
+      launchByJobId.set(record.jobId, { attempt: record.fields.attempt, role: record.fields.role, ...entityAndStageOf(record.fields) });
+      const isFresh = newestEnding?.outcome === 'replaced' || record.fields.role === 'conflict-re-reviewer'
+        || (record.fields.stage === PACKAGE_BUILD_STAGE_NUMBER && startsAFreshSession(board, record.jobId, record.fields));
+      if (isFresh) freshAgentIds.add(record.jobId);
       else resumes += 1;
     }
     if (record.kind === 'job-resumed' && launchByJobId.has(record.jobId) && record.fields.cause === HANDOFF_RED_INTERRUPTION) resumes += 1;
@@ -465,10 +573,10 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * The newest ended job of the kind the policy launches next for a stale green outside the Airlock: its reviewer, or its builder with no
-   * review step. Unlike the Airlock's last worker, this follows the pipeline, since that next session is the one taking the handoff over.
+   * review step. Unlike the Airlock's last worker, this follows the pipeline, since that next session is the one taking the handoff over. A
+   * crossing ticket sent back from its landing names the build kind: its package's or its home's builder takes the handoff over.
    */
-  function newestAgentJobIdOf(board: Board, ticketId: string): string | null {
-    const kind = board.pipeline()?.review === undefined ? 'build' : 'review';
+  function newestAgentJobIdOf(board: Board, ticketId: string, kind: 'build' | 'review' = board.pipeline()?.review === undefined ? 'build' : 'review'): string | null {
     const agentJobIds = new Set<string>();
     let newest: string | null = null;
     for (const record of board.logRecordsSoFar()) {
@@ -482,8 +590,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * The red handoff the next session of that agent's kind takes over, kept in the ended job's folder. It is one more resume of that job's own
    * ladder; past the resumes allowed nothing is written, and the answer is false.
    */
-  function writeStaleGreenHandoff(board: Board, ticketId: string, red: StaleGreenRed): boolean {
-    const jobId = newestAgentJobIdOf(board, ticketId);
+  function writeStaleGreenHandoff(board: Board, ticketId: string, red: StaleGreenRed, takenOverByABuild = false): boolean {
+    const jobId = takenOverByABuild ? newestAgentJobIdOf(board, ticketId, 'build') : newestAgentJobIdOf(board, ticketId);
     if (jobId === null) return true;
     const resume = (RedHandoff.redHandoffFactsOf(context.jobFolderOfId(jobId))?.resume ?? 0) + 1;
     if (resume > context.redHandoffResumes) return false;
@@ -533,15 +641,19 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return;
     }
     if (gate.outcome === 'failed') {
-      // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff.
+      // With a review phase the ticket waits in review, unqueued, for its next reviewer; without one its builder takes the red handoff. A
+      // crossing ticket goes back to the stage of the entity that owns the red gate (E65).
       const branchRef = `refs/heads/${context.branchNames.ticketBranchOf(ticketId)}`;
-      returnStaleGreenRed(hold, ticketId, {
+      const red: StaleGreenRed = {
         treeId,
         step:   gate.step ?? '',
         ...(gate.entity === undefined ? {} : { entity: gate.entity }),
         output: gate.output,
         commit: GitProcess.resolvedCommitOf(context.repositoryRoot, branchRef) ?? '',
-      });
+      };
+      const landing = crossingLandingOf(hold.board, ticketId);
+      if (landing === null) returnStaleGreenRed(hold, ticketId, red);
+      else returnRedGateToItsOwner(hold, ticketId, { owner: MergeRun.redGateOwnerOf(landing, gate.entity), homeEntity: landing.homeEntity }, red);
       return;
     }
     hold.board.openIncident({
@@ -702,8 +814,11 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (merge.verdict === 'conflicted') {
       await context.hold((hold) => {
-        context.keepAirlockFacts(job, { conflictedFiles: merge.conflictedFiles.join('\n') });
-        launchAirlockAgent(hold, job, 1, airlockAgentRoleOf(hold.board, ticketIdOf(job)));
+        const landing = crossingLandingOf(hold.board, ticketIdOf(job));
+        const part = (landing === null ? null : MergeRun.firstConflictPartOf(landing, merge.conflictedFiles))
+          ?? { packageEntity: null, files: merge.conflictedFiles, leavesTheMergeOpen: false };
+        context.keepAirlockFacts(job, conflictPartFactsOf(part, []));
+        launchAirlockAgent(hold, job, 1, conflictPartScopeOf(part, homeWorkerScopeOf(hold.board, ticketIdOf(job))));
         setPhase(hold, job, 'resolving');
       });
       return true;
@@ -716,9 +831,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * The ticket's last worker goes into the Airlock worktree, its own session resumed, or a conflict re-reviewer as a fresh session; a fresh
    * agent of the same role in place of one that could not resume carries the same attempt.
    */
-  function launchAirlockAgent(hold: AirlockHold, job: Readonly<Job>, attempt: number, role: JobRole): void {
+  function launchAirlockAgent(hold: AirlockHold, job: Readonly<Job>, attempt: number, scope: AirlockAgentScope): void {
     hold.board.launchJob({
-      kind: 'merge-agent', role, ticketIds: job.ticketIds, parentJobId: job.id, attempt, target: slotOf(job).target,
+      kind: 'merge-agent', role: scope.role, ticketIds: job.ticketIds, parentJobId: job.id, attempt, target: slotOf(job).target, ...entityAndStageOf(scope),
     }, hold.at);
   }
 
@@ -740,7 +855,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
     if (admission.landsUngated) return true;
     // Only a pipeline with entities asks git which paths the landing changes.
-    const gatedEntities = admission.entities === null ? undefined : landingGatedEntitiesOf(admission.entities, worktree, slotOf(job).targetTip);
+    const gatedEntities = admission.entities === null
+      ? undefined
+      : landingGatedEntitiesOf(admission.entities, worktree, slotOf(job).targetTip, slotOf(job).target === mainLine);
     if (gatedEntities !== undefined && isTheBranchTree && await context.hold((hold) => {
       if (!mergedTreeWasLastPassed(hold.board, job, treeId, isTheBranchTree, gatedEntities)) return false;
       setPhase(hold, job, 'landing');
@@ -749,7 +866,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const {
       outcome, step, entity, output, stamp, cacheReports
     } = await context.gateMergedTree(worktree, treeId, 'merge', gatedEntities);
-    const resumesSpent = await context.hold((hold) => {
+    const settled = await context.hold((hold): RedMergedTreeSettlement => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
       const agent = mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {
@@ -757,11 +874,17 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         if (isTheBranchTree) hold.board.recordPipelineJudgedBy(ticketIdOf(job), treeId, stamp, hold.at);
         if (agent !== undefined) hold.board.endJob(agent.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? treeId }, hold.at);
         setPhase(hold, job, 'landing');
-        return false;
+        return { verdict: 'settled' };
       }
-      if (outcome === 'failed') return isRefresh(job) || resumeOrSpendTheAgent(hold, job, agent, {
-        step: step ?? '', ...(entity === undefined ? {} : { entity }), output, worktree
-      });
+      if (outcome === 'failed') {
+        if (isRefresh(job)) return { verdict: 'park' };
+        const landing = crossingLandingOf(hold.board, ticketIdOf(job));
+        if (landing !== null) return { verdict: 'return-to-owner', owner: MergeRun.redGateOwnerOf(landing, entity), homeEntity: landing.homeEntity };
+        const resumesSpent = resumeOrSpendTheAgent(hold, job, agent, {
+          step: step ?? '', ...(entity === undefined ? {} : { entity }), output, worktree
+        });
+        return { verdict: resumesSpent ? 'park' : 'settled' };
+      }
       hold.board.openIncident({
         kind:        MERGE_GATE_INCIDENT_KINDS[outcome],
         ticketIds:   job.ticketIds,
@@ -769,10 +892,46 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         facts:       { tree: treeId, gate: step ?? '' },
         defaultMove: 'gate-retry',
       }, hold.at);
-      return false;
+      return { verdict: 'settled' };
     });
-    if (resumesSpent) await abortAndPark(job, tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+    if (settled.verdict === 'park') await abortAndPark(job, tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+    if (settled.verdict === 'return-to-owner') {
+      await returnRedMergedTreeToItsOwner(job, settled, {
+        treeId, step: step ?? '', ...(entity === undefined ? {} : { entity }), output, commit: MergeRun.headOf(worktree) ?? ''
+      });
+    }
     return true;
+  }
+
+  /** A crossing ticket's red merged tree goes to the entity that owns the red gate (E65): the merge aborts, and its ticket is returned. */
+  async function returnRedMergedTreeToItsOwner(
+    job: Readonly<Job>, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed
+  ): Promise<void> {
+    const ticketId = ticketIdOf(job);
+    await freeSlot(job, { outcome: 'failed', cause: RED_GATE_RETURN_CAUSES[route.owner.owner] }, (hold) => {
+      hold.board.setTicketMergeQueued(ticketId, false, hold.at);
+      returnRedGateToItsOwner(hold, ticketId, route, red);
+    });
+  }
+
+  /**
+   * In the hold: a crossing ticket's red gate, on its merged tree or on its stale green, goes to the entity that owns the gate (E65). The
+   * ticket returns to the package's build, its seal lifted and the return counted, or to the home's `adapt`, and that stage's builder takes
+   * the red handoff over. A second package return parks the ticket for User (E45), and so does a red gate past the builder's resumes.
+   */
+  function returnRedGateToItsOwner(hold: AirlockHold, ticketId: string, route: Readonly<{ owner: RedGateOwner; homeEntity: EntityKey }>, red: StaleGreenRed): void {
+    const { owner } = route;
+    const parkCause = owner.owner === 'package' && hold.board.ticketPackageReturnsOf(ticketId) >= PACKAGE_RETURNS_AGREED
+      ? SECOND_RETURN_PARK_CAUSE
+      : writeStaleGreenHandoff(hold.board, ticketId, red, true) ? null : RED_RESUMES_SPENT_CAUSE;
+    if (parkCause !== null) {
+      hold.board.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${parkCause}`, hold.at);
+      openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
+      return;
+    }
+    if (owner.owner === 'package') hold.board.returnTicketToPackage(ticketId, owner.packageEntity, hold.at);
+    else hold.board.moveTicketStage(ticketId, { name: 'adapt', entity: route.homeEntity }, hold.at);
+    hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
   }
 
   /**
@@ -806,7 +965,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         interruptedInstance: agent?.watcherInstance ?? 0,
       }, red.output);
     }
-    if (agent === undefined) launchAirlockAgent(hold, job, 1, airlockAgentRoleOf(hold.board, ticketIdOf(job)));
+    if (agent === undefined) launchAirlockAgent(hold, job, 1, homeWorkerScopeOf(hold.board, ticketIdOf(job)));
     else hold.board.interruptJob(agent.id, HANDOFF_RED_INTERRUPTION, hold.at);
     setPhase(hold, job, 'fixing');
     return false;
@@ -838,7 +997,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     if (agent !== undefined) return settleAirlockAgent(job, agent, history);
     const ending = history.newestEnding;
     if (ending?.outcome === 'replaced') {
-      await context.hold((hold) => launchAirlockAgent(hold, job, ending.attempt, ending.role ?? airlockAgentRoleOf(hold.board, ticketIdOf(job))));
+      await context.hold((hold) => launchAirlockAgent(
+        hold, job, ending.attempt, ending.role === null ? homeWorkerScopeOf(hold.board, ticketIdOf(job)) : { role: ending.role, ...entityAndStageOf(ending) }
+      ));
       return true;
     }
     await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
@@ -849,7 +1010,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * At its budget or on `cannot-resolve` the merge is refused; on `resolved` the agent waits through the gate of the merged tree, so a red
    * one resumes the same session and a pass ends it `resolved`. A resolution V10 refuses, or, for a tracker in a project folder, V5, V17 or
    * V13 on the report of a resolution or of a red gate's fix, refuses the merge. A sound resolution that changed more lines than the merge
-   * train's re-review threshold goes to a conflict re-reviewer first.
+   * train's re-review threshold goes to a conflict re-reviewer first, and one a package's builder took part in goes to that package's
+   * conflict re-reviewer too (E62). A crossing ticket's worker that left the merge open hands it on to the next part's worker (E64).
    */
   async function settleAirlockAgent(job: Readonly<Job>, agent: Readonly<Job>, history: AirlockAgentHistory): Promise<boolean> {
     const reading = context.mergeAgentReadingOf(agent);
@@ -873,23 +1035,65 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const worktree      = slotWorktreeOf(job);
     const resolvedFiles = reportFieldOf(reading.report, 'resolvedFiles');
     const resolvedFileList = Array.isArray(resolvedFiles) ? resolvedFiles.map(String) : [];
-    if (slotOf(job).phase === 'resolving' && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), resolvedFileList)) {
+    const isResolving = slotOf(job).phase === 'resolving';
+    const landing = isResolving ? await context.hold((hold) => crossingLandingOf(hold.board, ticketIdOf(job))) : null;
+    // Only a crossing ticket's conflict is split by owner, so only its resolution asks git whether the merge was left open.
+    if (landing !== null && MergeRun.mergeIsInProgress(worktree)) return handOnTheOpenMerge(job, agent, landing, resolvedFileList, notes);
+    const filesResolvedBefore = filesResolvedBeforeOf(job);
+    if (isResolving && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), [...filesResolvedBefore, ...resolvedFileList])) {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
       return true;
     }
     if (await refusedOutsideProjectScope(job, worktree, resolvedFileList, `The resolution of job ${agent.id}`)) return true;
-    const reReview = slotOf(job).phase === 'resolving' ? await context.hold((hold) => hold.board.pipeline()?.airlock?.reReview ?? null) : null;
+    const reReview = isResolving ? await context.hold((hold) => hold.board.pipeline()?.airlock?.reReview ?? null) : null;
     // Fail closed: a resolution whose size git cannot tell is re-reviewed.
     const resolutionLines = reReview === null ? null : context.resolutionLinesOf(worktree);
+    const homeNeedsAReReview = reReview !== null && (resolutionLines === null || resolutionLines > reReview.thresholdLines);
     await context.hold((hold) => {
-      if (reReview !== null && (resolutionLines === null || resolutionLines > reReview.thresholdLines)) {
+      const reReviewer = isResolving ? nextConflictReReviewerOf(hold.board, job, homeNeedsAReReview) : null;
+      if (reReviewer !== null) {
         hold.board.endJob(agent.id, { outcome: 'resolved', commit: MergeRun.headOf(worktree) ?? '' }, hold.at);
-        launchAirlockAgent(hold, job, 1, 'conflict-re-reviewer');
+        launchAirlockAgent(hold, job, 1, reReviewer);
         setPhase(hold, job, 're-reviewing');
         return;
       }
       hold.board.moveJob(agent.id, 'gating', hold.at);
       setPhase(hold, job, 'gating');
+    });
+    return true;
+  }
+
+  /** A list of files kept as one fact, newline-separated; none when the fact was not kept. */
+  function keptFileListOf(job: Readonly<Job>, factName: string): string[] {
+    return (context.keptAirlockFactOf(job, factName) ?? '').split('\n').filter((path) => path !== '');
+  }
+
+  /** The files the workers before the current one resolved, on a crossing ticket's conflict split by owner; none for every other merge. */
+  function filesResolvedBeforeOf(job: Readonly<Job>): string[] {
+    return keptFileListOf(job, AIRLOCK_FACT_NAMES.filesResolvedBefore);
+  }
+
+  /**
+   * A worker that left the merge open hands it on (E64): the files of its own part and of the parts before it resolved, whatever its report
+   * lists, and the rest still unmerged, the next part's worker is launched in the same worktree, the home's last, which commits the one
+   * merge. Anything else refuses the merge, so a worker that hands on its own part unresolved is never launched again on it.
+   */
+  async function handOnTheOpenMerge(
+    job: Readonly<Job>, agent: Readonly<Job>, landing: Readonly<CrossingLanding>, resolvedFiles: readonly string[], notes: string
+  ): Promise<boolean> {
+    const sides = MergeRun.sidesOf(job, slotOf(job));
+    const ownPartFiles = keptFileListOf(job, AIRLOCK_FACT_NAMES.conflictedFiles);
+    const filesResolvedBefore = [...new Set([...filesResolvedBeforeOf(job), ...ownPartFiles, ...resolvedFiles])];
+    const verdict = ownPartFiles.length === 0 ? { verdict: 'unresolved' } as const : MergeRun.openMergeVerdictOf(slotWorktreeOf(job), sides, filesResolvedBefore);
+    if (verdict.verdict === 'unresolved') {
+      await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
+      return true;
+    }
+    await context.hold((hold) => {
+      const part = MergeRun.firstConflictPartOf(landing, verdict.remainingFiles) ?? { packageEntity: null, files: verdict.remainingFiles, leavesTheMergeOpen: false };
+      hold.board.endJob(agent.id, { outcome: 'resolved', commit: sides.startTip }, hold.at);
+      context.keepAirlockFacts(job, conflictPartFactsOf(part, filesResolvedBefore));
+      launchAirlockAgent(hold, job, 1, conflictPartScopeOf(part, homeWorkerScopeOf(hold.board, ticketIdOf(job))));
     });
     return true;
   }
@@ -920,9 +1124,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   }
 
   /**
-   * A re-review whose report holds goes on to the gate of the merged tree, its agent waiting through it as a resolver does, so a red gate
-   * resumes it; an invalid report, a moved history, a claim that still does not hold or, for a tracker in a project folder, a fix V5, V17 or
-   * V13 refuses, refuses the merge.
+   * A re-review whose report holds goes on to the next re-review the resolution needs, or to the gate of the merged tree, its agent waiting
+   * through it as a resolver does, so a red gate resumes it; an invalid report, a moved history, a claim that still does not hold or, for a
+   * tracker in a project folder, a fix V5, V17 or V13 refuses, refuses the merge.
    */
   async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
     const worktree = slotWorktreeOf(job);
@@ -940,6 +1144,13 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (await refusedOutsideProjectScope(job, worktree, [], `The conflict re-review of job ${agent.id}`)) return true;
     await context.hold((hold) => {
+      // A home re-review, when needed, came first: only the packages' re-reviews can follow (E62).
+      const nextReReviewer = nextConflictReReviewerOf(hold.board, job, false);
+      if (nextReReviewer !== null) {
+        hold.board.endJob(agent.id, { outcome: 'reviewed', commit: MergeRun.headOf(worktree) ?? '' }, hold.at);
+        launchAirlockAgent(hold, job, 1, nextReReviewer);
+        return;
+      }
       hold.board.moveJob(agent.id, 'gating', hold.at);
       setPhase(hold, job, 'gating');
     });

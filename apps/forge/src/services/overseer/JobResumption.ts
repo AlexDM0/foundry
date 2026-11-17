@@ -236,13 +236,15 @@ export interface LastWorker {
 
 /**
  * Read from history, never from the pipeline, so a review step removed since still gives the reviewer. A conflict re-reviewer is never
- * the last worker of a later merge: a freed Airlock slot puts the branch back at its own tip, so its fixes are gone with the merge.
+ * the last worker of a later merge: a freed Airlock slot puts the branch back at its own tip, so its fixes are gone with the merge. With a
+ * `scope`, only a worker of that entity and stage counts, such as a crossed package's builder.
  */
-function lastWorkerOf(logRecords: readonly LogRecord[], ticketId: string): LastWorker | null {
+function lastWorkerOf(logRecords: readonly LogRecord[], ticketId: string, scope?: SessionScope): LastWorker | null {
   const launchedWorkers = new Map<string, Omit<LastWorker, 'jobId'>>();
   let lastWorker: LastWorker | null = null;
   for (const record of logRecords) {
-    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) && record.fields.role !== null) {
+    if (record.kind === 'job-launched' && record.fields.ticketIds.includes(ticketId) && record.fields.role !== null
+      && (scope === undefined || runsTheSameEntityAndStage(sessionScopeOf(record.fields), scope))) {
       const { kind, role } = record.fields;
       if (kind === 'build' || kind === 'review') launchedWorkers.set(record.jobId, { kind, role });
     }
@@ -259,7 +261,10 @@ interface AirlockAgentPredecessors {
   siblingWasReplaced: boolean;
 }
 
-/** A last worker of another entity or stage than the Airlock agent's is no worker it stands in for. */
+/**
+ * A last worker of another entity or stage than the Airlock agent's is no worker it stands in for. An Airlock agent of an entity stands in
+ * for the newest worker of its own entity and stage, so a package's builder resolving its part of a conflict resumes its session (E62).
+ */
 function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Omit<SessionOwnerSubject, 'kind'>): AirlockAgentPredecessors {
   const ownLaunchIndex         = logRecords.findIndex((record) => record.kind === 'job-launched' && record.jobId === job.id);
   const recordsBeforeOwnLaunch = ownLaunchIndex === -1 ? logRecords : logRecords.slice(0, ownLaunchIndex);
@@ -270,7 +275,8 @@ function airlockAgentPredecessorsOf(logRecords: readonly LogRecord[], job: Omit<
     if (record.kind === 'job-ended' && siblingJobIds.has(record.jobId) && record.fields.outcome === 'replaced') siblingWasReplaced = true;
   }
   const [ticketId] = job.ticketIds;
-  const lastWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(recordsBeforeOwnLaunch, ticketId);
+  const workerScope = job.entity === undefined ? undefined : sessionScopeOf(job);
+  const lastWorker = job.role === 'conflict-re-reviewer' || ticketId === undefined ? null : lastWorkerOf(recordsBeforeOwnLaunch, ticketId, workerScope);
   const newestWorker = lastWorker !== null && runsTheSameEntityAndStage(launchScopeOf(recordsBeforeOwnLaunch, lastWorker.jobId), job) ? lastWorker : null;
   return { newestWorker, siblingWasReplaced };
 }

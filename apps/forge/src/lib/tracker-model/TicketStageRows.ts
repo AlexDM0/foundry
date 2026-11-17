@@ -43,6 +43,29 @@ export class TicketStageRows {
     return row;
   }
 
+  /** How many times the ticket returned to a package build; none before its first return. */
+  ticketPackageReturnsOf(ticketId: string): number {
+    return this.rowOf(ticketId)?.packageReturns ?? 0;
+  }
+
+  /**
+   * A package return (E41, E65): the package's seal is lifted, the return is counted and the ticket goes back to the package's build. Only a
+   * move the stage table counts as a package return is taken; any other is a programming error and leaves the row as it was.
+   */
+  returnTicketToPackage(ticketId: string, packageEntity: string, at: string): Readonly<Task> {
+    const row = this.records.ensureTaskForTicket(this.records.requireTicket(ticketId), at);
+    const currentStageName = row.stage?.name ?? STAGE_OF_A_ROW_WITHOUT_ONE;
+    if (!TicketStageUtil.stageMoveIsAPackageReturn(currentStageName, 'package-build')) {
+      throw new Error(`Ticket #${ticketId} cannot return to a package build from the stage ${currentStageName}.`);
+    }
+    const remainingSeals = Object.fromEntries(Object.entries(row.seals ?? {}).filter(([sealedEntity]) => sealedEntity !== packageEntity));
+    if (Object.keys(remainingSeals).length === 0) delete row.seals;
+    else row.seals = remainingSeals;
+    row.packageReturns = (row.packageReturns ?? 0) + 1;
+    row.stage = { name: 'package-build', entity: packageEntity };
+    return row;
+  }
+
   /** A package review that ends moves no ticket status, so its bar is closed here, as a move of the ticket closes the bar of a home review. */
   closeStageReviewBars(ticketId: string, at: string): Logged {
     return { logged: this.reviewBars.closeInProgressReviewBars([ticketId], at).logged };

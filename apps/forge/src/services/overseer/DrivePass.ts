@@ -61,8 +61,13 @@ import { writeTracker, type TrackerChange }                                    f
 import { requireProgressFile }                                                 from '../tracker/TrackerReader.ts';
 import type { Workspace }                                                      from '../tracker/Workspace.ts';
 import { AgentSlots }                                                          from './AgentSlots.ts';
-import { AirlockFactsFile, type AirlockAgentPhase }                            from './AirlockFactsFile.ts';
-import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot }                 from './AirlockSandboxIncident.ts';
+import {
+  AIRLOCK_FACT_NAMES,
+  AirlockFactsFile,
+  KEPT_FACT_TRUE,
+  type AirlockAgentPhase
+} from './AirlockFactsFile.ts';
+import { AirlockSandboxIncident, type UnmadeAirlockAgentRoot } from './AirlockSandboxIncident.ts';
 import {
   type AirlockHoldRunner,
   createAirlocks,
@@ -184,16 +189,18 @@ export interface ReviewFindingsFacts {
 /** What an Airlock agent is sent in for: the conflict of the merge-in, the re-review of its resolution, or the red gate on the merged tree. */
 export interface AirlockFacts {
   /** `before-human-code-review` for a conflict re-reviewer under a build or review job in `merging-main`, outside any Airlock. */
-  mergePlacement:  'airlock' | 'before-human-code-review';
-  worktree:        string;
-  branchTip:       string;
-  targetTip:       string;
-  phase:           AirlockAgentPhase;
-  conflictedFiles: readonly string[];
+  mergePlacement:      'airlock' | 'before-human-code-review';
+  worktree:            string;
+  branchTip:           string;
+  targetTip:           string;
+  phase:               AirlockAgentPhase;
+  conflictedFiles:     readonly string[];
   /** The newest red gate on the merged tree; `null` before one. */
-  redHandoff:      RedHandoffFacts | null;
+  redHandoff:          RedHandoffFacts | null;
   /** `false` for a fresh agent in place of a ticket agent whose session could not be resumed. */
-  resumesSession:  boolean;
+  resumesSession:      boolean;
+  /** A package's builder resolving its part of a crossing ticket's conflict: it leaves the merge open for the worker after it (E64). */
+  leavesTheMergeOpen?: true;
 }
 
 export interface DrivePassRequest {
@@ -735,6 +742,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
   const phase          = airlockAgentPhaseOf(board, job);
   const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
+  const leavesTheMergeOpen = phase === 'resolving' && AirlockFactsFile.keptFactOf(mergeJobFolder, AIRLOCK_FACT_NAMES.leavesTheMergeOpen) === KEPT_FACT_TRUE;
   return {
     mergePlacement:  'airlock',
     worktree:        checkout,
@@ -744,6 +752,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
     conflictedFiles: conflicts.conflictedFiles,
     redHandoff:      RedHandoff.redHandoffFactsOf(mergeJobFolder),
     resumesSession,
+    ...(leavesTheMergeOpen ? { leavesTheMergeOpen } : {}),
   };
 }
 
@@ -1255,6 +1264,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     stopMergeAgent:        async (job) => { await stopSession(job.id, job.watcherInstance); },
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), facts),
+    keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), name),
     jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
     jobFolderOfId:         (jobId) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
