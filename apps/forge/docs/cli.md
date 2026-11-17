@@ -1655,7 +1655,14 @@ a proposal in the homes of the whitelisted packages; V17 still refuses a branch 
 (`changed-only-outside-home-and-reach`). Once its gates pass, the paths the branch changed past its target are sorted
 by owner. With no whitelisted package among the owners, the build settles as above. Otherwise its `## Handoff` is
 written, it ends `built`, the ticket stays `in-progress`, and the row's `stage` moves to the `package-build` of the
-first package, a package before the packages that consume it:
+first package, a package before the packages that consume it.
+
+The `## Handoff` of a crossing ticket has one part per stage that built, each under its own heading, such as
+`### Stage 2, package build of ui-kit`, in stage order. A stage replaces only its own part. The Acceptance evidence is
+under `### Acceptance evidence`, written by stage 1 and replaced by `adapt` when it runs, so the last home build stage
+owns it; a package build keeps it. Each move of the row's `stage` logs `stage-started`, each seal `seal-set`; a move
+from `adapt` or the home `review` back to a `package-build` is a package return, which lifts that package's seal
+(`seal-lifted`), counts in the row's `packageReturns` and logs `package-return`.
 
 - **Package build (stage 2).** The package's builder answers for the commits since the first job of its stage, so a
   retry after a refused job still answers for that job's commits, under the package's homes and `reach`. Commits that
@@ -1664,7 +1671,10 @@ first package, a package before the packages that consume it:
   `exposedSurfaceChanged`, else it fails `no-report`. Its gate run checks the package's gates, then the gates of each
   entity that consumes the package but the home entity, each from its own first home and named `<entity>: <gate>`; a
   red one is the package builder's red handoff. Gated green, it ends `built`, keeps the statement in its job folder as
-  `stage-statement.json`, and the row moves to the `package-review`.
+  `stage-statement.json`, and the row moves to the `package-review`. A package builder whose constitution forbids the
+  change reports `refused` with its `refusedReason` (E22): the job ends `refused`, its branch and commits kept, and the
+  `package-refused` decision opens with the reason as its context and holds the ticket. Only a package build may
+  report `refused`.
 - **Package review (stage 3).** Its report must also give `exposedSurfaceConfirmed`, true when the build's statement is
   right. It settles its round as any review: its record and findings, and a further round when its fixes pass the
   package's own `review.reReview` threshold, rounds counted in this stage only. It writes no `## Review` section and
@@ -2189,7 +2199,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets), `need-for-root` (a declared need is for the `root` entity and `root` has no gates; the owner makes the change or declines), `need-closes-circle` (a declared need would close a circle in `dependsOn`; it is refused), `need-abandoned` (the ticket filed for a need was abandoned; the waiting ticket continues without it or is abandoned), `work-in-other-entity` (all the work of a ticket belongs to another entity; the ticket moves there or is abandoned) or `whitelist-removed-mid-crossing` (a package left the whitelist while a ticket crossed into it; the ticket finishes under the old whitelist or the package change becomes a need). |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets), `need-for-root` (a declared need is for the `root` entity and `root` has no gates; the owner makes the change or declines), `need-closes-circle` (a declared need would close a circle in `dependsOn`; it is refused), `need-abandoned` (the ticket filed for a need was abandoned; the waiting ticket continues without it or is abandoned), `work-in-other-entity` (all the work of a ticket belongs to another entity; the ticket moves there or is abandoned), `whitelist-removed-mid-crossing` (a package left the whitelist while a ticket crossed into it; the ticket finishes under the old whitelist or the package change becomes a need), `package-refused` (a package build refused the package change its constitution forbids; its `context` holds the reason; the package change is dropped, becomes a need, or the ticket is abandoned), `second-return` (a crossing ticket would return to a package build a second time; the owner agreed to one way back, so the ticket stays at its stage; its `context` names the package) or `dependent-broken` (a dependent entity's gate is still red in a package build once the red handoff's resumes are spent, so the package change breaks that dependent; the job ends `failed` with cause `gate-failed`, its `context` names the gate, and the owner files tickets for the dependents in one `group` with this ticket). `package-refused`, `second-return` and `dependent-broken` hold the tickets they name. |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `quiet-job` or `setup-snapshot-touched`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
@@ -2560,6 +2570,10 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-network-set` | `ticketId` | `domains`: empty when the line was cleared |
 | `entity-assigned` | `ticketId` | `entity`: the entity key; `reason`; `by`: `product-owner` or `user` |
 | `need-declared` | `ticketId` | `entity`: the entity key of the needed work; `title`; `byJob`: the id of the declaring job |
+| `stage-started` | `ticketId` | `stage`: the stage a crossing ticket's row moved into; `entity`: the entity whose agents run it |
+| `seal-set` | `ticketId` | `entity`: the sealed package; `seal`: the hash the row stores |
+| `seal-lifted` | `ticketId` | `entity`: the package whose seal a package return lifted |
+| `package-return` | `ticketId` | `entity`: the package the ticket returned to; `fromStage`: `adapt` or `review`; `returns`: the row's `packageReturns` after it |
 | `ticket-release-marked` | `ticketId` | `group` |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
 

@@ -1,18 +1,21 @@
 /**
  * A ticket of the shop that crosses into the package `ui-kit`, stage by stage, on the entity-forge fixture with the shop whitelisting the
- * package: each stage job verified by Customs against the fixture's recorded git, gated green and settled. What matters, by strategy 5.2
- * to 5.6: stage 1 may write a proposal in the whitelisted package, and once gated, the paths its branch changed are sorted by owner, so the
+ * package: each stage job verified by Customs against the fixture's recorded git, gated green and settled. What matters, by strategy 5.2 to
+ * 5.6: stage 1 may write a proposal in the whitelisted package, and once gated, the paths its branch changed are sorted by owner, so the
  * package's build is the next stage and the ticket stays in progress; a branch that stayed in the shop settles as it always has (E10); a
  * change to an entity that is neither home nor whitelisted is still sent back (E11); a stage 1 that changed only the package is sent back
  * as work of another entity (E15). The package build answers only for its own commits, may commit nothing (E20) or reshape the package
  * (E21), is sent back for a change outside the package, then fails, also when all its commits lie outside the package, which is no work of
  * another entity (E23), and a retry still answers for the failed job's commits; it must state what the package exposes (E40). Its gate run
- * checks the package, then the package's dependents but the home, and a red one is its red handoff (E25, E26). The package review settles
- * its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31), and one that
- * does not hold sends the package build back (E34); one that holds seals the ticket's own change to the package, a lockfile change of its
- * stages among it (E3), and runs the home review when the build stated no change of what the package exposes and the review confirmed it,
- * else `adapt` (E40, C15), and must confirm or correct the statement. A later stage whose branch no longer holds the sealed change is sent
- * back once, then fails (E33); `adapt` that kept the seal reaches its gates and hands over to the home review.
+ * checks the package, then the package's dependents but the home, and a red one is its red handoff (E25, E26); a dependent's gate still red
+ * once the resumes are spent ends the job and opens `dependent-broken`, while the package's own goes the red handoff's way. The package
+ * review settles its rounds and record as any review: it may fix in the package (E30), is granted a round by the package's re-review (E31),
+ * and one that does not hold sends the package build back (E34); one that holds seals the ticket's own change to the package, a lockfile
+ * change of its stages among it (E3), and runs the home review when the build stated no change of what the package exposes and the review
+ * confirmed it, else `adapt` (E40, C15), and must confirm or correct the statement. A later stage whose branch no longer holds the sealed
+ * change is sent back once, then fails (E33); `adapt` that kept the seal reaches its gates and hands over to the home review. The `##
+ * Handoff` holds one part per stage that built, each stage writing only its own, and a package build that refuses the change ends `refused`
+ * with a `package-refused` decision that holds the ticket (E22).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path, { join }                             from 'node:path';
@@ -135,13 +138,15 @@ interface StageJob {
 
 /** Where a stage job's session started, as the scenario names its commits, and its report beside the head it ran on. */
 interface StageRun {
-  readonly scenario:      EntityForgeScenario;
-  readonly startCommit:   string;
-  readonly reportOf:      (headCommit: string) => Record<string, unknown>;
+  readonly scenario:           EntityForgeScenario;
+  readonly startCommit:        string;
+  readonly reportOf:           (headCommit: string) => Record<string, unknown>;
   /** A scope resume this job already spent on an earlier V17 refusal. */
-  readonly scopeResumed?: boolean;
+  readonly scopeResumed?:      boolean;
   /** The gate of the job's run that is red, by its name in the run; every gate passes when absent. */
-  readonly redGate?:      string;
+  readonly redGate?:           string;
+  /** The red handoffs of the job's gates before this run, each resumed; none when absent. */
+  readonly redHandoffsBefore?: number;
 }
 
 function runOf(scenarioName: keyof typeof ENTITY_FORGE_SCENARIOS, startCommit: string, reportOf: StageRun['reportOf']): StageRun {
@@ -220,6 +225,22 @@ function runStage(ticket: CrossingTicket, stageJob: StageJob, run: StageRun): { 
       scopeResumed:        true,
     }, 'V17 refused');
   }
+  if (run.redHandoffsBefore !== undefined) {
+    RedHandoff.writeRedHandoff(jobFolder, {
+      kind:                'gate',
+      name:                run.redGate ?? '',
+      command:             null,
+      fixCommand:          null,
+      commit:              '',
+      exitCode:            1,
+      batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+      fullLogPath:         null,
+      resume:              run.redHandoffsBefore,
+      resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+      interruptedInstance: 1,
+      callBudget:          50,
+    }, 'Example red gate.');
+  }
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === SHOP_TICKET.id)?.body ?? '';
   const startCommit = commits[run.startCommit] ?? '';
   const jobStart = { startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketBody), launchSnapshot: launchSnapshotOf(worktree) };
@@ -274,7 +295,7 @@ describeWhenGitIsRecorded('stage 1 of a shop that whitelists the package', () =>
     expect(whereTheJobWent).toBe('built: ');
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
     expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-progress');
-    expect(shopTicketOf(ticket.board)?.body).toContain('## Handoff\n\nExample handoff.');
+    expect(shopTicketOf(ticket.board)?.body).toContain(`## Handoff\n\n### Stage 1, build of ${SHOP.key}\n\nExample handoff.`);
   });
 
   test('that changed only the shop\'s files settles as a build always has: the ticket goes to review with no stage (E10)', () => {
@@ -370,6 +391,51 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
 
     expect(runStage(ticket, PACKAGE_BUILDER, run).whereTheJobWent).toBe(`interrupted: ${ADMIN.key}: verify`);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+  });
+
+  test('whose dependent\'s gate is still red once the resumes are spent ends and opens dependent-broken naming the gate (E26)', () => {
+    const run: StageRun = {
+      ...runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', builtReportOf({ exposedSurfaceChanged: false })),
+      redGate:           `${ADMIN.key}: verify`,
+      redHandoffsBefore: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+    };
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+
+    expect(runStage(ticket, PACKAGE_BUILDER, run).whereTheJobWent).toBe('failed: gate-failed');
+    expect(ticket.board.decisions()).toMatchObject([{ kind: 'dependent-broken', ticketIds: [SHOP_TICKET.id], context: `${ADMIN.key}: verify` }]);
+    expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
+  });
+
+  test('whose own gate is still red once the resumes are spent goes the red handoff\'s way and opens no dependent-broken (E26)', () => {
+    const run: StageRun = {
+      ...runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', builtReportOf({ exposedSurfaceChanged: false })),
+      redGate:           'verify',
+      redHandoffsBefore: LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
+    };
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+
+    expect(runStage(ticket, PACKAGE_BUILDER, run).whereTheJobWent).toBe('interrupted: verify');
+    expect(ticket.board.decisions()).toEqual([]);
+  });
+
+  test('writes its own part of the Handoff after stage 1\'s, which it keeps', () => {
+    const ticket = crossingTicketOf();
+    runStage(ticket, SHOP_BUILD, runOf('SHOP_TICKET_INTO_UI_KIT', '<start>', builtReportOf()));
+    runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', builtReportOf({ exposedSurfaceChanged: false, handoff: 'Example package handoff.' })));
+
+    expect(shopTicketOf(ticket.board)?.body).toContain(
+      `## Handoff\n\n### Stage 1, build of ${SHOP.key}\n\nExample handoff.\n\n### Stage 2, package build of ${UI_KIT.key}\n\nExample package handoff.\n`
+    );
+  });
+
+  test('that refuses the change ends refused and opens package-refused with its reason, which holds the ticket (E22)', () => {
+    const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
+    const refused = builtReportOf({ outcome: 'refused', exposedSurfaceChanged: false, refusedReason: 'The constitution forbids a second export.' });
+    const { whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<shop ticket tip>', refused));
+
+    expect(whereTheJobWent).toBe('refused: ');
+    expect(ticket.board.decisions()).toMatchObject([{ kind: 'package-refused', ticketIds: [SHOP_TICKET.id], context: 'The constitution forbids a second export.' }]);
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(PACKAGE_BUILD);
   });
 
@@ -490,6 +556,7 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     expect(whereTheJobWent).toBe('built: ');
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(HOME_REVIEW);
     expect(shopTicketOf(ticket.board)?.frontmatter.status).toBe('in-review');
+    expect(shopTicketOf(ticket.board)?.body).toContain(`## Handoff\n\n### Stage 4, adapt of ${SHOP.key}\n\nExample handoff.\n`);
   });
 
   test('the home review of a branch that no longer holds the sealed change is sent back once, then fails (E33)', () => {

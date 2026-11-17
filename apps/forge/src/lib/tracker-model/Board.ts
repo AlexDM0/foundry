@@ -536,20 +536,32 @@ export class Board {
     return this.ticketStageRows.ticketSealsOf(ticketId);
   }
 
-  moveTicketStage(ticketId: string, stage: TicketStage, at: string): Readonly<Task> {
+  moveTicketStage(ticketId: string, stage: TicketStage, at: string): Logged {
     return this.ticketStageRows.moveTicketStage(ticketId, stage, at);
   }
 
-  sealTicketPackage(ticketId: string, packageEntity: string, seal: string, at: string): Readonly<Task> {
+  /**
+   * A crossing ticket goes back into the package build of `packageEntity` (E41, E65) once. A second return opens `second-return` instead,
+   * which holds the ticket at its stage until User answers (E45); one already open is not opened again.
+   */
+  returnTicketToThePackage(ticketId: string, packageEntity: string, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): Logged {
+    const packageBuild: TicketStage = { name: 'package-build', entity: packageEntity };
+    if (!this.ticketStageRows.stageMoveIsASecondPackageReturn(ticketId, packageBuild)) return this.moveTicketStage(ticketId, packageBuild, at);
+    const draft: DecisionDraft = { kind: 'second-return', ticketIds: [ticketId], jobId: null };
+    if (this.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.includes(ticketId))) return { logged: [] };
+    return {
+      logged: this.openDecision({
+        ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft), context: packageEntity
+      }, at).logged
+    };
+  }
+
+  sealTicketPackage(ticketId: string, packageEntity: string, seal: string, at: string): Logged {
     return this.ticketStageRows.sealTicketPackage(ticketId, packageEntity, seal, at);
   }
 
   ticketPackageReturnsOf(ticketId: string): number {
     return this.ticketStageRows.ticketPackageReturnsOf(ticketId);
-  }
-
-  returnTicketToPackage(ticketId: string, packageEntity: string, at: string): Readonly<Task> {
-    return this.ticketStageRows.returnTicketToPackage(ticketId, packageEntity, at);
   }
 
   closeStageReviewBars(ticketId: string, at: string): Logged {

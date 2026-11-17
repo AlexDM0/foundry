@@ -2,7 +2,8 @@
  * One table of reports, each with the verdict its schema must give: the validator and the draft-07 document are one source, so the table
  * holds both. The cases that matter are the shapes the design removed or constrained: no `blockedOn`, a `blocked` report needing its
  * reason, a `needs-declared` builder outcome, no `file-ticket`, a filed finding naming a ticket or a request id, and `reportKind` only
- * beside `cannot-resolve`; a package stage's report states, and confirms or corrects, what the package exposes, and no other report does.
+ * beside `cannot-resolve`; a package stage's report states, and confirms or corrects, what the package exposes, and no other report does;
+ * only a package build refuses the work (E22), and only with its reason.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -102,6 +103,15 @@ const REPORT_TABLE: ReadonlyArray<[name: string, schema: JsonSchema, report: unk
   ['a package builder report that states nothing of what the package exposes (E40)', PACKAGE_BUILDER_REPORT_SCHEMA, BUILT, false],
   ['a package builder report stating it as text', PACKAGE_BUILDER_REPORT_SCHEMA, { ...BUILT, exposedSurfaceChanged: 'no' }, false],
   ['a builder report of any other stage stating it', BUILDER_REPORT_SCHEMA, { ...BUILT, exposedSurfaceChanged: false }, false],
+  ['a package builder report refusing the change with its reason (E22)', PACKAGE_BUILDER_REPORT_SCHEMA, {
+    ...BUILT, outcome: 'refused', exposedSurfaceChanged: false, refusedReason: 'The constitution forbids a second export.'
+  }, true],
+  ['a package builder report refusing the change without a reason', PACKAGE_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'refused', exposedSurfaceChanged: false }, false],
+  ['a package builder report refusing the change with an empty reason', PACKAGE_BUILDER_REPORT_SCHEMA, {
+    ...BUILT, outcome: 'refused', exposedSurfaceChanged: false, refusedReason: ''
+  }, false],
+  ['a blocked package builder report still needing its reason', PACKAGE_BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'blocked', exposedSurfaceChanged: false }, false],
+  ['a builder report of any other stage refusing the change', BUILDER_REPORT_SCHEMA, { ...BUILT, outcome: 'refused', refusedReason: 'Forbidden.' }, false],
   ['a package reviewer report confirming the statement', PACKAGE_REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, true],
   ['a package reviewer report that neither confirms nor corrects it (E40)', PACKAGE_REVIEWER_REPORT_SCHEMA, REVIEWED, false],
   ['a reviewer report of any other stage confirming it', REVIEWER_REPORT_SCHEMA, { ...REVIEWED, exposedSurfaceConfirmed: true }, false],

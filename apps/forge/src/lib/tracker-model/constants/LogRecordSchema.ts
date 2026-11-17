@@ -148,6 +148,13 @@ export const LOG_RECORD_SCHEMA = {
   'entity-assigned':                 { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
   // A build stage's job of the ticket declared work it needs in another entity; the Overseer files that work as its own ticket.
   'need-declared':                   { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
+  // A crossing ticket's row moved into `stage`, run by the agents of `entity`; a stage job never moves the ticket's status.
+  'stage-started':                   { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
+  // A package review sealed the ticket's own change to package `entity`; `seal` is its hash, as the row stores it.
+  'seal-set':                        { subject: 'ticket', fields: { entity: 'text', seal: 'text' } },
+  'seal-lifted':                     { subject: 'ticket', fields: { entity: 'text' } },
+  // The ticket went back from `fromStage` to the package build of `entity`; `returns` counts every package return of the ticket.
+  'package-return':                  { subject: 'ticket', fields: { entity: 'text', fromStage: 'text', returns: 'count' } },
   'ticket-check-command-restamped':  { subject: 'ticket', fields: { command: 'check-command' } },
   'epic-added':                      { subject: 'epic', fields: { title: 'text' } },
   'epic-edited':                     { subject: 'epic', fields: { title: 'text' } },

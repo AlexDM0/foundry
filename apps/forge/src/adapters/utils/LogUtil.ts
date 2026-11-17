@@ -141,6 +141,15 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} belongs to entity ${record.fields.entity}: ${record.fields.reason}`;
     case 'need-declared':
       return `Ticket #${record.ticketId} needs work in entity ${record.fields.entity}, declared by job ${record.fields.byJob}: ${record.fields.title}`;
+    case 'stage-started':
+      return `Ticket #${record.ticketId} started the stage ${record.fields.stage} of entity ${record.fields.entity}`;
+    case 'seal-set':
+      return `Ticket #${record.ticketId} sealed its change to entity ${record.fields.entity}`;
+    case 'seal-lifted':
+      return `Ticket #${record.ticketId} lifted the seal of its change to entity ${record.fields.entity}`;
+    case 'package-return':
+      return `Ticket #${record.ticketId} returned from the stage ${record.fields.fromStage} to the package build of entity ${record.fields.entity} `
+        + `(package return ${record.fields.returns})`;
     case 'ticket-check-command-restamped':
       return record.fields.command === null
         ? `Ticket #${record.ticketId} restamped with no check command`

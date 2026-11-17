@@ -109,7 +109,7 @@ function crossIntoTokens(board: Board, packageRuns = 1): CrossedTicket {
   let packageBuildJobId = '';
   for (let run = 0; run < packageRuns; run += 1) {
     if (run === 0) board.moveTicketStage('001', PACKAGE_BUILD, HARNESS_AT);
-    else board.returnTicketToPackage('001', 'tokens', HARNESS_AT);
+    else board.moveTicketStage('001', PACKAGE_BUILD, HARNESS_AT);
     packageBuildJobId = ranStageJob(board, 'build', PACKAGE_BUILD, 2, 'built');
     board.moveTicketStage('001', PACKAGE_REVIEW, HARNESS_AT);
     ranStageJob(board, 'review', PACKAGE_REVIEW, 3, 'reviewed');

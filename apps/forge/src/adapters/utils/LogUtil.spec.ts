@@ -20,7 +20,7 @@ const {
  * a `ticket` or `task` verb, `range`, `concurrency`, `dispatcher`, `clear --yes`), and copy its text from the `log` in progress.json.
  * Rows no command reaches easily (a hold or abandon without a reason, two dependencies at once) are read from the wording in
  * bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. A kind newer than bc42604, such as
- * `entity-assigned` or `need-declared`, was taken from `LogUtil` when it was added.
+ * `entity-assigned`, `need-declared` or a crossing ticket's stage records, was taken from `LogUtil` when it was added.
  */
 const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [{ kind: 'note', fields: { text: 'Example note from the orchestrator' } }, 'Example note from the orchestrator'],
@@ -59,6 +59,16 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   [
     { kind: 'need-declared', ticketId: '001', fields: { entity: 'api', title: 'Example basket total endpoint', byJob: 'J3' } },
     'Ticket #001 needs work in entity api, declared by job J3: Example basket total endpoint',
+  ],
+  [
+    { kind: 'stage-started', ticketId: '001', fields: { stage: 'package-build', entity: 'ui' } },
+    'Ticket #001 started the stage package-build of entity ui',
+  ],
+  [{ kind: 'seal-set', ticketId: '001', fields: { entity: 'ui', seal: 'example-seal' } }, 'Ticket #001 sealed its change to entity ui'],
+  [{ kind: 'seal-lifted', ticketId: '001', fields: { entity: 'ui' } }, 'Ticket #001 lifted the seal of its change to entity ui'],
+  [
+    { kind: 'package-return', ticketId: '001', fields: { entity: 'ui', fromStage: 'adapt', returns: 1 } },
+    'Ticket #001 returned from the stage adapt to the package build of entity ui (package return 1)',
   ],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: 'waiting on design' } }, 'Ticket #001 held: waiting on design'],
   [{ kind: 'ticket-held', ticketId: '001', fields: { reason: '' } }, 'Ticket #001 held'],
@@ -136,7 +146,7 @@ const SENTENCE_FOR_RECORD: readonly (readonly [LogRecordContent, string])[] = [
   ],
 ];
 
-const RECORD_KIND_COUNT = 34;
+const RECORD_KIND_COUNT = 38;
 
 test('every kind of record reads as the sentence the log held before there were records', () => {
   expect(new Set(SENTENCE_FOR_RECORD.map(([record]) => record.kind)).size, 'the table covers every kind').toBe(RECORD_KIND_COUNT);
@@ -283,6 +293,13 @@ describe('the entry the page reads', () => {
       ],
       [
         { kind: 'need-declared', ticketId: '003', fields: { entity: 'api', title: 'Like #005', byJob: 'J3' } },
+        { taskIds: [], ticketIds: ['003'] },
+      ],
+      [{ kind: 'stage-started', ticketId: '003', fields: { stage: 'adapt', entity: 'web' } }, { taskIds: [], ticketIds: ['003'] }],
+      [{ kind: 'seal-set', ticketId: '003', fields: { entity: 'ui', seal: 'like-005' } }, { taskIds: [], ticketIds: ['003'] }],
+      [{ kind: 'seal-lifted', ticketId: '003', fields: { entity: 'ui' } }, { taskIds: [], ticketIds: ['003'] }],
+      [
+        { kind: 'package-return', ticketId: '003', fields: { entity: 'ui', fromStage: 'review', returns: 2 } },
         { taskIds: [], ticketIds: ['003'] },
       ],
       [{ kind: 'ticket-unheld', ticketId: '001', fields: {} }, { taskIds: [], ticketIds: ['001'] }],

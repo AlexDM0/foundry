@@ -929,7 +929,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       openDecision(hold, 'parked', [ticketId], tailOf(red.output, context.limits.CHECK_OUTPUT_TAIL_LINES));
       return;
     }
-    if (owner.owner === 'package') hold.board.returnTicketToPackage(ticketId, owner.packageEntity, hold.at);
+    if (owner.owner === 'package') hold.board.returnTicketToThePackage(ticketId, owner.packageEntity, context.decisionWordingOf, hold.at);
     else hold.board.moveTicketStage(ticketId, { name: 'adapt', entity: route.homeEntity }, hold.at);
     hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
   }

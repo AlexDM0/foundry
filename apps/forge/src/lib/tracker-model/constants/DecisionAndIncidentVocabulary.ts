@@ -23,6 +23,9 @@ export const DECISION_KINDS = [
   'need-abandoned',
   'work-in-other-entity',
   'whitelist-removed-mid-crossing',
+  'package-refused',
+  'second-return',
+  'dependent-broken',
 ] as const satisfies readonly DecisionKind[];
 
 /** Who opens a decision beside an agent of a job role. */

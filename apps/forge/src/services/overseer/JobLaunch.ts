@@ -12,6 +12,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import { TicketHandoffUtil }            from '../../adapters/tickets/utils/TicketHandoffUtil.ts';
 import type { AgentAdapter }            from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
 import { confinedLineOf }               from '../../lib/gate-confinement/ConfinedLine.ts';
@@ -375,6 +376,10 @@ function treeStopAtEndOf(job: Readonly<Job>): { treeStopAtEndGraceMilliseconds?:
 const AGENT_CONFIG_DECISION = 'branch-touches-agent-config';
 
 const WORK_IN_OTHER_ENTITY_DECISION = 'work-in-other-entity';
+
+const PACKAGE_REFUSED_DECISION = 'package-refused';
+
+const DEPENDENT_BROKEN_DECISION = 'dependent-broken';
 
 /** The scope check's refusal of a job of an entity whose branch changed nothing in its own folders. */
 const ONLY_OUTSIDE_THE_ENTITY = 'changed-only-outside-home-and-reach';
@@ -1037,14 +1042,32 @@ function reportFieldOf(report: unknown, field: string): unknown {
   return typeof report === 'object' && report !== null && Object.hasOwn(report, field) ? (report as Record<string, unknown>)[field] : undefined;
 }
 
-/** The Handoff code writes from a verified report: the builder's own handoff, then each Acceptance item's evidence. */
-function handoffSectionOf(report: unknown): string {
+function acceptanceEvidenceLinesOf(report: unknown): string[] {
   const acceptance = reportFieldOf(report, 'acceptance');
-  const evidenceLines = (Array.isArray(acceptance) ? acceptance : []).map((entry) => {
+  return (Array.isArray(acceptance) ? acceptance : []).map((entry) => {
     const state = reportFieldOf(entry, 'state') === 'waiver-proposed' ? ' waiver proposed' : '';
     return `- ${String(reportFieldOf(entry, 'item'))}${state} — ${String(reportFieldOf(entry, 'evidence'))}`;
   });
+}
+
+/** The Handoff code writes from a verified report: the builder's own handoff, then each Acceptance item's evidence. */
+function handoffSectionOf(report: unknown): string {
+  const evidenceLines = acceptanceEvidenceLinesOf(report);
   return `## Handoff\n\n${String(reportFieldOf(report, 'handoff') ?? '').trim()}\n${evidenceLines.length === 0 ? '' : `\n${evidenceLines.join('\n')}\n`}`;
+}
+
+/**
+ * The ticket body with the Handoff of a verified build. A build of a crossing ticket replaces only its own stage's part, and only a home
+ * build stage writes the Acceptance evidence, so the last one owns it; a ticket that stays in one entity gets the whole section, as always.
+ */
+function bodyWithBuildHandoffOf(ticketBody: string, job: Readonly<Job>, report: unknown, ticketCrosses: boolean): string {
+  const jobStage = TicketStageUtil.stageOfJob(job);
+  if (!ticketCrosses || jobStage === null) return bodyWithHandoffOf(ticketBody, handoffSectionOf(report));
+  return bodyWithHandoffOf(ticketBody, TicketHandoffUtil.handoffSectionWithStagePartOf(ticketBody, {
+    stage:              jobStage,
+    text:               String(reportFieldOf(report, 'handoff') ?? ''),
+    acceptanceEvidence: jobStage.name === 'package-build' ? null : acceptanceEvidenceLinesOf(report),
+  }));
 }
 
 /** The body with its `## Handoff` section, the filing template's guidance included, replaced by code's; appended when it has none. */
@@ -1149,6 +1172,10 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     endJobOnItsNeeds(hold, job);
     return;
   }
+  if (outcome === 'refused') {
+    endJobOnItsRefusal(hold, job, String(reportFieldOf(observation.report, 'refusedReason') ?? ''));
+    return;
+  }
   const verdict = clearCustoms(subject);
   if (verdict.verdict === 'refused' && SCOPE_REFUSALS.includes(verdict.reason) && job.entity !== undefined && scopeResumeSpent(hold.context, job)) {
     if (verdict.reason === ONLY_OUTSIDE_THE_ENTITY) openWorkInOtherEntityDecision(hold, job, verdict.facts);
@@ -1188,6 +1215,44 @@ function endJobOnItsNeeds(hold: HoldContext, job: Readonly<Job>): void {
   const filed = NeedTickets.fileNeedsOf(hold.change, job, hold.context.decisionWordingOf);
   hold.logged.push(...filed.logged);
   endJob(hold, job, filed.filedNeedCount === 0 ? { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport } : { outcome: 'needs-declared' });
+}
+
+/**
+ * A package build whose constitution forbids the package change ends `refused` (E22), its branch and commits kept, and opens
+ * `package-refused` with its reason, which holds the ticket until User answers. Only a package build's report can say `refused`.
+ */
+function endJobOnItsRefusal(hold: HoldContext, job: Readonly<Job>, refusedReason: string): void {
+  const { board, at } = hold.change;
+  if (TicketStageUtil.stageOfJob(job)?.name !== 'package-build') {
+    endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport });
+    return;
+  }
+  const draft: DecisionDraft = { kind: PACKAGE_REFUSED_DECISION, ticketIds: job.ticketIds, jobId: null };
+  hold.logged.push(...board.openDecision({
+    ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: refusedReason
+  }, at).logged);
+  endJob(hold, job, { outcome: 'refused' });
+}
+
+/**
+ * A package build's gate of a dependent entity, named `<entity>: <gate>`, still red once the red handoff's resumes are spent: the package
+ * builder cannot hold the package change without breaking that dependent (E26).
+ */
+function dependentGateIsRedPastItsResumes(hold: HoldContext, job: Readonly<Job>, gateName: string): boolean {
+  const entities = hold.change.board.pipeline()?.entities;
+  if (entities === undefined || job.entity === undefined || TicketStageUtil.stageOfJob(job)?.name !== 'package-build') return false;
+  const gateIsADependents = EntityOwnershipUtil.dependentsOf(entities, [job.entity]).some((entityKey) => gateName.startsWith(`${entityKey}: `));
+  const resumes = RedHandoff.redHandoffFactsOf(jobFolderOf(hold.context.workspace, job))?.resume ?? 0;
+  return gateIsADependents && resumes >= LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING;
+}
+
+/** User files tickets for the dependents in one group with this ticket; the decision names the red gate and holds the ticket. */
+function openDependentBrokenDecision(hold: HoldContext, job: Readonly<Job>, gateName: string): void {
+  const { board, at } = hold.change;
+  const draft: DecisionDraft = { kind: DEPENDENT_BROKEN_DECISION, ticketIds: job.ticketIds, jobId: null };
+  hold.logged.push(...board.openDecision({
+    ...draft, askedBy: 'overseer', requestId: null, questions: hold.context.decisionWordingOf(draft).questions, context: gateName
+  }, at).logged);
 }
 
 /**
@@ -1382,6 +1447,11 @@ function settleJudgedGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<G
   }
   if (gate.outcome === 'failed') {
     hold.context.log(`The ${gate.step ?? ''} gate of job ${job.id} (#${ticketIdOf(job)}) is red on ${gate.treeId}; its output is in ${GATE_LOG_FILE}.`);
+    if (dependentGateIsRedPastItsResumes(hold, job, gate.step ?? '')) {
+      openDependentBrokenDecision(hold, job, gate.step ?? '');
+      endJob(hold, job, { outcome: 'failed', cause: BUILD_JOB_CAUSES.gateFailed });
+      return false;
+    }
     const pipelineGate = gate.manifest?.gates.find((candidate) => candidate.name === gate.step);
     interruptOnRedHandoff(hold, job, {
       kind:        'gate',
@@ -1416,7 +1486,7 @@ function buildMergesMainFirst(board: Board): boolean {
 function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, headCommit: string): void {
   const { board, at } = hold.change;
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job))?.body ?? '';
-  const body = { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(report)), appends: false };
+  const body = { text: bodyWithBuildHandoffOf(ticketBody, job, report, board.ticketStageOf(ticketIdOf(job)) !== null), appends: false };
   hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
@@ -1444,6 +1514,9 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
   if (jobStage === null) return false;
   if (jobStage.name === 'package-build') {
     const exposedSurfaceChanged = reportFieldOf(report, 'exposedSurfaceChanged') !== false;
+    const packageBuildBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
+    const body = { text: bodyWithBuildHandoffOf(packageBuildBody, job, report, true), appends: false };
+    hold.logged.push(...board.editTicket(ticketId, { body, allowsPastPending: true }, at).logged);
     CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-build', exposedSurfaceChanged });
     endJob(hold, job, { outcome: 'built', commit: headCommit });
     board.moveTicketStage(ticketId, { name: 'package-review', entity: jobStage.entity }, at);
@@ -1462,7 +1535,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
   const [firstPackage] = crossedPackages;
   if (firstPackage === undefined) return false;
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
-  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithHandoffOf(ticketBody, handoffSectionOf(report)), appends: false }, allowsPastPending: true }, at).logged);
+  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, allowsPastPending: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   board.moveTicketStage(ticketId, { name: 'package-build', entity: firstPackage }, at);
   return true;
@@ -1836,7 +1909,7 @@ function routeCatchUpToItsOwner(hold: HoldContext, job: Readonly<Job>, conflicte
     return;
   }
   if (board.ticketPackageReturnsOf(ticketId) < PACKAGE_RETURNS_AGREED) {
-    board.returnTicketToPackage(ticketId, part.packageEntity, at);
+    board.returnTicketToThePackage(ticketId, part.packageEntity, hold.context.decisionWordingOf, at);
     return;
   }
   parkTheCatchUp(hold, ticketId, SECOND_RETURN_PARK_CAUSE, conflictedFiles);

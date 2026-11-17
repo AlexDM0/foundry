@@ -2,10 +2,15 @@
  * One record of every kind, as the Board's own changes log them, so a spec pinning what log.jsonl stores reads the Board's key order rather
  * than a hand-written copy of it. Test-only: nothing that ships may import `src/testing/`.
  */
-import type { LogRecord }                                     from '../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                         from '../lib/tracker-model/Board.ts';
-import { boardFixture, entityPipelineFixture, ticketFixture } from './BoardFixtures.ts';
-import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen }            from './GreenQueue.ts';
+import type { LogRecord } from '../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }     from '../lib/tracker-model/Board.ts';
+import {
+  boardFixture,
+  entityPipelineFixture,
+  taskFixture,
+  ticketFixture
+} from './BoardFixtures.ts';
+import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from './GreenQueue.ts';
 
 /** The sha256 of an obviously synthetic picture: the Board stores the id as given and never reads the store. */
 const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
@@ -76,6 +81,25 @@ function logEveryGateProfileRecordKind(board: Board, at: string): void {
 function entityAssignedRecordsOf(at: string): LogRecord[] {
   const { board, records } = boardFixture({ tickets: [ticketFixture({ id: '003', status: 'draft' })], pipeline: entityPipelineFixture() });
   board.setTicketEntity('003', { entity: 'web', reason: 'The search page lives in the web app', by: 'product-owner' }, at);
+  return records;
+}
+
+/**
+ * A crossing ticket in `adapt` whose package review sealed its change, which then returns to the package build: the return lifts the seal
+ * and counts, and the package build starts, each logging its own kind once.
+ */
+function crossingStageRecordsOf(at: string): LogRecord[] {
+  const { board, records } = boardFixture({
+    pipeline: entityPipelineFixture(),
+    tasks:    [taskFixture({
+      id: 1, ticket: '005', status: 'in-progress', stage: { name: 'adapt', entity: 'web' }
+    })],
+    tickets: [ticketFixture({
+      id: '005', title: 'Example basket badge', status: 'in-progress', task: 1, entity: 'web'
+    })],
+  });
+  board.sealTicketPackage('005', 'design-system', 'example-seal', at);
+  board.moveTicketStage('005', { name: 'package-build', entity: 'design-system' }, at);
   return records;
 }
 
@@ -263,6 +287,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     requestId: 'request-5', commandKind: 'ticket-add', outcome: 'done', ticketIds: ['001']
   }, at);
   board.recordNeedDeclared('002', { entity: 'api', title: 'Example cart total endpoint', byJob: 'J1' }, at);
+  records.push(...crossingStageRecordsOf(at));
   logEverySetupRecordKind(board, at);
   logEveryGateProfileRecordKind(board, at);
   board.clearTracker({ ticketsSurvive: true }, at);

@@ -97,7 +97,7 @@ const SHOP_AND_TOKENS: Pipeline = {
 function crossIntoTokens(board: Board, packageRuns: number): void {
   for (let run = 0; run < packageRuns; run += 1) {
     if (run === 0) board.moveTicketStage('001', { name: 'package-build', entity: 'tokens' }, AT);
-    else board.returnTicketToPackage('001', 'tokens', AT);
+    else board.moveTicketStage('001', { name: 'package-build', entity: 'tokens' }, AT);
     board.moveTicketStage('001', { name: 'package-review', entity: 'tokens' }, AT);
     board.sealTicketPackage('001', 'tokens', 'example-tokens-seal', AT);
     board.moveTicketStage('001', { name: 'review', entity: 'shop' }, AT);

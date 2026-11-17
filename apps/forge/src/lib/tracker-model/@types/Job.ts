@@ -64,6 +64,8 @@ export type JobOutcome =
   | 'wound-down'
   /** A stage declared a need on another entity; its branch and commits stay. */
   | 'needs-declared'
+  /** A package build refused the package change its constitution forbids; its reason is in the `package-refused` decision. */
+  | 'refused'
   | 'failed'
   | 'blocked'
   | 'replaced'

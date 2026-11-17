@@ -8,12 +8,14 @@
  * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
  * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
  * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and a stopped stage job's
- * successor stays in its stage (E75); and a usage limit holds a ticket between stages (E76).
+ * successor stays in its stage (E75); a usage limit holds a ticket between stages (E76); and an open decision of the package stages
+ * (`package-refused`, `second-return`, `dependent-broken`) holds the ticket it names until User answers (E22, E45, E26).
  */
 import { describe, expect, test } from 'bun:test';
 
 import { ENTITY_FORGE_ENTITIES }              from '../../testing/EntityForgeFixture.ts';
 import { mutatedModuleOf, type SourceMutant } from '../../testing/SourceMutant.ts';
+import type { Decision }                      from './@types/Decision.ts';
 import type { LogRecord }                     from './@types/LogRecord.ts';
 import type { PlaybookStep }                  from './@types/PlaybookStep.ts';
 import type { TicketStage }                   from './@types/Task.ts';
@@ -88,6 +90,12 @@ function entityFacts(overrides: Parameters<typeof factsWith>[0] = {}): ReturnTyp
 function packageBuildOf(ticketId: string, attempt: number = 1): PlaybookStep {
   return {
     kind: 'launch-build', ticketId, attempt, base: 'main', entity: UI_KIT.key, stage: 2
+  };
+}
+
+function openDecisionOf(kind: Decision['kind']): Decision {
+  return {
+    id: 'E1', kind, ticketIds: ['001'], jobId: null, askedBy: 'overseer', requestId: null, questions: [], context: '', openedAt: '2026-11-17T12:00:00+01:00',
   };
 }
 
@@ -301,6 +309,11 @@ const CLAIMS: StageClaim[] = [
     }), [packageBuildOf('001', 2)]),
     mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
   },
+  ...(['package-refused', 'second-return', 'dependent-broken'] as const).map((kind) => ({
+    name:   `an open ${kind} decision holds the crossing ticket it names`,
+    holds:  (policy: typeof Playbook) => launchesExactly(policy, entityFacts({ tickets: [crossingTicket(PACKAGE_BUILD)], decisions: [openDecisionOf(kind)] }), []),
+    mutant: policyLine('[\'package-refused\', \'second-return\', \'dependent-broken\']', '[]'),
+  })),
   {
     name:  'E76: a usage limit holds a ticket between stages, with no stage rule of its own',
     holds: (policy) => {

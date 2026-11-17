@@ -397,6 +397,8 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - A row's `history` holds only what the tool watched.
 - An Overseer build job's `## Handoff` is code's: written from the builder's verified report only after its gate passes,
   replacing the section the filing template left; a builder never edits its ticket file (`docs/cli.md`, "A build job").
+  A crossing ticket's `## Handoff` has one part for each stage that built, and a stage replaces only its own part. The
+  last home build stage writes the Acceptance evidence.
 - A review row belongs to its ticket by `reviewOf` alone. The Bridge reads which rows are bars from the Board facts,
   and a bar's name only to order a ticket's bars.
 - Apply commits the constitutions to the main line through an Airlock job of kind `constitution-commit`, in one commit:

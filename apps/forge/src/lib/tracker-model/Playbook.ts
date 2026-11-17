@@ -47,6 +47,9 @@ const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = [
   'waiver', 'branch-touches-agent-config', 'forced-stop-refused', 'budget-reached', 'need-for-root', 'need-closes-circle', 'need-abandoned', 'work-in-other-entity'
 ];
 
+/** The decisions a crossing ticket's package stages open, which hold it the same way. */
+const CROSSING_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['package-refused', 'second-return', 'dependent-broken'];
+
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];
   jobs:                        readonly Readonly<Job>[];
@@ -381,6 +384,7 @@ function ticketIsHeld(ticket: PlaybookTicket, facts: PlaybookFacts): boolean {
   if (ticket.hold !== undefined || ticket.mergeQueued === true) return true;
   if (facts.observations.ticketIdsTouchingAgentConfig.includes(ticket.id)) return true;
   if (facts.decisions.some((decision) => TICKET_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(ticket.id))) return true;
+  if (facts.decisions.some((decision) => CROSSING_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(ticket.id))) return true;
   // A question whose job ended holds its ticket until answered, whatever else holds it, so no fresh agent races the answer.
   if (facts.decisions.some((decision) => decision.kind === 'agent-question' && decision.jobId === null && decision.ticketIds.includes(ticket.id))) return true;
   if (facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id))) return true;

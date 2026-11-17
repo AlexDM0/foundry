@@ -26,7 +26,10 @@ export type DecisionKind =
   | 'need-closes-circle'
   | 'need-abandoned'
   | 'work-in-other-entity'
-  | 'whitelist-removed-mid-crossing';
+  | 'whitelist-removed-mid-crossing'
+  | 'package-refused'
+  | 'second-return'
+  | 'dependent-broken';
 
 /** The consequences only once the asking agent noted them with `question options`. */
 export interface DecisionQuestionOption extends OptionConsequences {

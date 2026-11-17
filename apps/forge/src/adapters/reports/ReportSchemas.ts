@@ -76,15 +76,32 @@ export const BUILDER_REPORT_SCHEMA: JsonSchema = {
   ...BLOCKED_NEEDS_ITS_REASON,
 };
 
+const PACKAGE_BUILDER_REPORT_PROPERTIES: Readonly<Record<string, JsonSchema>> = {
+  ...BUILDER_REPORT_PROPERTIES,
+  outcome:               { enum: ['built', 'blocked', 'cannot-build', 'wound-down', 'needs-declared', 'refused'] },
+  exposedSurfaceChanged: { type: 'boolean' },
+  refusedReason:         NULLABLE_TEXT,
+};
+
+const PACKAGE_BUILDER_REQUIRED_PROPERTIES = Object.keys(PACKAGE_BUILDER_REPORT_PROPERTIES).filter((property) => property !== 'refusedReason');
+
+const REFUSED_NEEDS_ITS_REASON: JsonSchema = {
+  if:   { properties: { outcome: { const: 'refused' } } },
+  then: { properties: { refusedReason: { type: 'string', minLength: 1 } }, required: ['refusedReason'] },
+};
+
 /**
  * Stage 2 of a crossing ticket, the package build: a builder report that also states whether what the package exposes changed from the
- * stage 1 proposal (A1). The statement and the package reviewer's confirmation decide whether the adapt stage runs (C15).
+ * stage 1 proposal (A1). The statement and the package reviewer's confirmation decide whether the adapt stage runs (C15). `refused`, with
+ * its reason, ends a package build whose constitution forbids the change (E22); only a package build may report it.
  */
 export const PACKAGE_BUILDER_REPORT_SCHEMA: JsonSchema = {
   $schema: DRAFT_07,
   title:   'package builder report',
-  ...closedObject({ ...BUILDER_REPORT_PROPERTIES, exposedSurfaceChanged: { type: 'boolean' } }),
+  ...closedObject(PACKAGE_BUILDER_REPORT_PROPERTIES, PACKAGE_BUILDER_REQUIRED_PROPERTIES),
   ...BLOCKED_NEEDS_ITS_REASON,
+  // The subset has no `allOf`: a one-entry `anyOf` holds the second condition beside the first.
+  anyOf:   [REFUSED_NEEDS_ITS_REASON],
 };
 
 const FINDING_DESCRIPTION: Readonly<Record<string, JsonSchema>> = {
