@@ -156,6 +156,7 @@ const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> =
   'draft list':         ['draft', 'list'],
   'hook bash-domains':  ['hook', 'bash-domains', '--allow', 'registry.example.com'],
   'hook session-start': ['hook', 'session-start'],
+  'hook stage-edits':   ['hook', 'stage-edits', '--allow', '/example/worktree/apps/example'],
   'version':            ['version'],
   'oversee status':     ['oversee', 'status'],
   'decisions':          ['decisions'],
@@ -239,7 +240,7 @@ function everyVerb(): string[] {
     if (command === 'epic') return EPIC_SUBCOMMAND_NAMES.map((subcommand) => `epic ${subcommand}`);
     if (command === 'draft') return DRAFT_SUBCOMMAND_NAMES.map((subcommand) => `draft ${subcommand}`);
     if (command === 'oversee') return [command, ...OVERSEE_SUBCOMMAND_NAMES.map((subcommand) => `oversee ${subcommand}`)];
-    if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
+    if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start', 'hook stage-edits'];
     if (command === 'job') return JOB_SUBCOMMAND_NAMES.map((subcommand) => `job ${subcommand}`);
     if (command === 'incident') return INCIDENT_SUBCOMMAND_NAMES.map((subcommand) => `incident ${subcommand}`);
     if (command === 'worktree') return WORKTREE_SUBCOMMAND_NAMES.map((subcommand) => `worktree ${subcommand}`);

@@ -918,6 +918,7 @@ function launchWatcher(
     if (notice !== null) request.log(notice);
   }
   if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
+  if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
   WatcherFleet.writeLaunchFiles(request.platformPorts, {
     jobFolder,
     instance:           job.watcherInstance,

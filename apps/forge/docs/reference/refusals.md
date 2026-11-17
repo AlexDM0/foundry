@@ -77,6 +77,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 | `nothing-to-do <request>` | 0 | The Overseer read the request, and the change was already made. |
 | `done <request>` | 0 | The Overseer applied the request. |
 | A deny in the JSON of `hook bash-domains` | 0 | The guard on a ticket's `network` line denied a tool call. A hook that errored would let the call through, so every failure answers deny. |
+| A deny in the JSON of `hook stage-edits` | 0 | The guard on the folders of a stage of a job of an entity denied an `Edit` or `Write`. A hook that errored would let the call through, so every failure answers deny. |
 
 ## Every printed refusal
 

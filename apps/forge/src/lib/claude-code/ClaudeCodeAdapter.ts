@@ -5,17 +5,17 @@
 import { createHash } from 'node:crypto';
 import { join }       from 'node:path';
 
-import type { AgentAdapter }                                       from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, StandingReply }                     from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                 from '../agent-launch/AgentLaunchRequest.ts';
-import type { AgentDefinition, NetworkDomainGuard, WorkerProfile } from '../agent-launch/WorkerProfile.ts';
-import { PORTABLE_GIT_SETTINGS }                                   from '../git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                        from '../git/utils/GitArgumentsUtil.ts';
-import type { AgentHostFacts }                                     from './AgentHostFacts.ts';
-import { agentHostFactsFor }                                       from './AgentHostFactsFor.ts';
-import { CLAUDE_API_KEY_VARIABLE }                                 from './ClaudeApiKeyVariable.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }                           from './ClaudeConfigFolder.ts';
-import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES }           from './ClaudeStreamLines.ts';
+import type { AgentAdapter }                             from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan, StandingReply }           from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                       from '../agent-launch/AgentLaunchRequest.ts';
+import type { AgentDefinition, WorkerProfile }           from '../agent-launch/WorkerProfile.ts';
+import { PORTABLE_GIT_SETTINGS }                         from '../git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                              from '../git/utils/GitArgumentsUtil.ts';
+import type { AgentHostFacts }                           from './AgentHostFacts.ts';
+import { agentHostFactsFor }                             from './AgentHostFactsFor.ts';
+import { CLAUDE_API_KEY_VARIABLE }                       from './ClaudeApiKeyVariable.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                 from './ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES } from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
 const CLAUDE_PROGRAM_NAME = 'claude';
@@ -118,7 +118,10 @@ function allowRulesOf(facts: AgentHostFacts, profile: WorkerProfile, workingDire
 function denyRulesOf(facts: AgentHostFacts, profile: WorkerProfile): string[] {
   const loopbackFetches = profile.webNetworkDomains === 'any' ? LOOPBACK_DOMAINS.map((domain) => `WebFetch(domain:${domain})`) : [];
   // A guard whose program did not resolve cannot start, so every call it would check is denied instead of let through.
-  const unguardable = profile.networkDomainGuard?.programPath === null ? guardedToolNamesOf(facts) : [];
+  const unguardable = [
+    ...profile.networkDomainGuard?.programPath === null ? guardedToolNamesOf(facts) : [],
+    ...profile.stageEditGuard?.programPath === null ? FILE_CHANGING_TOOL_NAMES : [],
+  ];
   // Auto mode lets Edit and Write reach any path no deny rule names, so the allow rules of a stage's folders alone confine nothing.
   return [
     ...[...profile.deniedWritableRoots, ...profile.deniedEditRoots ?? []].flatMap((root) => fileRulesOf(facts, FILE_CHANGING_TOOL_NAMES, root)),
@@ -166,10 +169,25 @@ function guardedToolNamesOf(facts: AgentHostFacts): string[] {
   return [...facts.shellToolNames, WEB_FETCH_TOOL_NAME];
 }
 
+interface ToolCallGuard {
+  readonly programPath: string | null;
+  readonly arguments:   readonly string[];
+}
+
 /** Exec form: Claude Code spawns the absolute program with its arguments and no shell, so no PATH lookup or shell quoting decides it. */
-function preToolUseHooksOf(facts: AgentHostFacts, programPath: string, guard: NetworkDomainGuard): Record<string, unknown> {
-  const hook = { type: 'command', command: programPath, args: [...guard.arguments] };
-  return { PreToolUse: guardedToolNamesOf(facts).map((matcher) => ({ matcher, hooks: [hook] })) };
+function guardEntriesOf(guard: ToolCallGuard | null | undefined, matchers: readonly string[]): Record<string, unknown>[] {
+  if (guard === null || guard === undefined || guard.programPath === null) return [];
+  const hook = { type: 'command', command: guard.programPath, args: [...guard.arguments] };
+  return matchers.map((matcher) => ({ matcher, hooks: [hook] }));
+}
+
+/** The network guard before every shell and WebFetch call, then a stage's edit guard before every Edit and Write; no key without either. */
+function hooksOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string, unknown> {
+  const preToolUse = [
+    ...guardEntriesOf(profile.networkDomainGuard, guardedToolNamesOf(facts)),
+    ...guardEntriesOf(profile.stageEditGuard, FILE_CHANGING_TOOL_NAMES),
+  ];
+  return preToolUse.length === 0 ? {} : { hooks: { PreToolUse: preToolUse } };
 }
 
 /** A confined request on a host whose sandbox settings do not apply is refused, so no session meant to be confined starts without them. */
@@ -181,8 +199,6 @@ function sandboxSettingsOf(facts: AgentHostFacts, request: AgentLaunchRequest): 
 
 function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): Record<string, unknown> {
   const { profile } = request;
-  const guard = profile.networkDomainGuard;
-  const hooks = guard === null || guard.programPath === null ? {} : { hooks: preToolUseHooksOf(facts, guard.programPath, guard) };
   return {
     includeCoAuthoredBy: false,
     attribution:         { commit: '', pr: '' },
@@ -190,7 +206,7 @@ function settingsOf(facts: AgentHostFacts, configFolder: string, request: AgentL
     claudeMdExcludes:    instructionFileExclusionsOf(facts, profile, configFolder),
     ...sandboxSettingsOf(facts, request),
     permissions:         { allow: allowRulesOf(facts, profile, request.workingDirectory), deny: denyRulesOf(facts, profile) },
-    ...hooks,
+    ...hooksOf(facts, profile),
   };
 }
 

@@ -25,6 +25,8 @@ export interface WorkerProfile {
   readonly stageFolders?:            readonly string[];
   /** The checkout's paths outside `stageFolders` at launch, which Edit and Write are denied; Bash still writes them, and Customs judges what it left. */
   readonly deniedEditRoots?:         readonly string[];
+  /** The guard run before every Edit and Write of a stage, which denies a path outside `stageFolders` made after launch too; present with them. */
+  readonly stageEditGuard?:          StageEditGuard;
   /**
    * The main checkout's folders above a checkout nested in it, whose instruction files and rules would reach the session beside the
    * checkout's own copies; absent when the session reads them as a session at its repository's root always has.
@@ -48,6 +50,16 @@ export interface NetworkDomainGuard {
   readonly allowedDomains: readonly string[];
   readonly programPath:    string | null;
   readonly arguments:      readonly string[];
+}
+
+/**
+ * A program that denies an Edit or Write whose path lies outside `stageFolders`, spawned as a `NetworkDomainGuard` is: its arguments
+ * already carry the folders, and `programPath` is `null` when the guard cannot start, so the adapter then denies every Edit and Write.
+ */
+export interface StageEditGuard {
+  readonly stageFolders: readonly string[];
+  readonly programPath:  string | null;
+  readonly arguments:    readonly string[];
 }
 
 export interface AgentDefinition {

@@ -2150,13 +2150,24 @@ function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'work
   return verdict.verdict === 'found' ? verdict.command : null;
 }
 
-/** Called for a launch whose guard renders no hook, so the owner reads why the job's Bash, PowerShell and WebFetch calls are denied. */
-function logUnstartableGuard(context: Pick<JobLaunchContext, 'programCommand' | 'workspace' | 'log'>, job: Readonly<Job>): void {
+/** The guards an Overseer renders into a job's settings: the network guard and, for a job of an entity, the stage edit guard. */
+type ToolCallGuardKind = 'network' | 'stage-edits';
+
+const UNSTARTABLE_GUARD_WORDS: Readonly<Record<ToolCallGuardKind, { guard: string; calls: string }>> = {
+  'network':     { guard: 'network guard', calls: 'Bash, PowerShell and WebFetch' },
+  'stage-edits': { guard: 'stage edit guard', calls: 'Edit and Write' },
+};
+
+/** Called for a launch whose guard renders no hook, so the owner reads why the calls it would check are denied. */
+function logUnstartableGuard(
+  context: Pick<JobLaunchContext, 'programCommand' | 'workspace' | 'log'>, job: Readonly<Job>, guardKind: ToolCallGuardKind = 'network'
+): void {
   const verdict = GuardCommand.guardCommandOf(context.programCommand, context.workspace.rootDirectory);
   const reason = verdict.verdict === 'refused'
     ? GuardCommand.refusalReasonOf(verdict, context.workspace.rootDirectory)
     : 'its command is not an absolute runtime path';
-  context.log(`The network guard of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its Bash, PowerShell and WebFetch calls are denied: ${reason}.`);
+  const { guard, calls } = UNSTARTABLE_GUARD_WORDS[guardKind];
+  context.log(`The ${guard} of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its ${calls} calls are denied: ${reason}.`);
 }
 
 /** What a worker's stored `writes` are judged by at launch: the Overseer's `PATH` and the host's path rules. */

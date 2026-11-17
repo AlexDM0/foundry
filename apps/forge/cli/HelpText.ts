@@ -167,6 +167,15 @@ never carries it.
                               It skips the install-version check, runs under a job, and exits 0
                               whatever happens, answering deny on any failure.
 
+  hook stage-edits            Keep the Edit and Write calls of a job of an entity inside its
+      --allow <folder>        stage's folders: the PreToolUse guard an Overseer renders into the
+                              settings of such a job. It denies, through the hook's JSON on standard
+                              output, an Edit or Write whose \`file_path\` lies outside every
+                              \`--allow\` folder (one per flag), a path made after the job started
+                              included. Any other tool is denied; a path inside passes silently and
+                              is granted nothing. It skips the install-version check, runs under a
+                              job, and exits 0 whatever happens, answering deny on any failure.
+
   usage [--since <when>]      What this project's subagents cost, read out of the transcripts the
       [--transcripts <folder>]
       [--json]                harness wrote for them, a workflow's agents under

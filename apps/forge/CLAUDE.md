@@ -124,7 +124,7 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   mismatch is its one detail). Every printed refusal is worded by the one refusal-wording util in `src/adapters/`,
   which no service imports.
 - Exit codes: 0 done or nothing to do; 1 an actionable refusal or unknown command; 2 `unrepaired` or any other
-  throw. An adapter maps them, `cli/Main.ts` applies the mapping, `agent-progress.ts` exits. Four deliberate exit-0
+  throw. An adapter maps them, `cli/Main.ts` applies the mapping, `agent-progress.ts` exits. Five deliberate exit-0
   failures are under Deviations.
 
 ### Runtime
@@ -337,6 +337,7 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 | One reference per fact. | `resources/templates/Reference.md`, installed as `.forge/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
 | A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing SessionStart hook would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
+| A failure exits non-zero. | `hook stage-edits` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the Edit and Write of a job of an entity inside its stage's folders. |
 | A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
 | A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
@@ -356,12 +357,14 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   `clear`.
 - The network guard (`hook bash-domains`) starts only from a program outside the tracked folder.
   `src/services/overseer/GuardCommand.ts` refuses a runtime or an entry script inside it, and the job's `Bash`,
-  `PowerShell` and `WebFetch` calls are then denied. The owner keeps this guard as it is. Thus the installed forge
+  `PowerShell` and `WebFetch` calls are then denied. The stage edit guard (`hook stage-edits`) of a job of an entity
+  starts from the same program; when it cannot, the job's `Edit` and `Write` calls are denied. The owner keeps this
+  guard as it is. Thus the installed forge
   that runs this repository's trackers is a second clone outside this repository, updated by pulling.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
-  (`cli/Main.spec.ts`); `hook session-start` and `hook bash-domains` skip it; `oversee status` and
-  `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
+  (`cli/Main.spec.ts`); `hook session-start`, `hook bash-domains` and `hook stage-edits` skip it; `oversee status`
+  and `oversee stop` skip it, so an Overseer whose install changed can still be inspected and stopped.
   `stop` skips it for the same reason. `machine` and `login-item` skip it, because they write no file of
   the install. `start` checks the repository that it starts.
 - The `--json` answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry

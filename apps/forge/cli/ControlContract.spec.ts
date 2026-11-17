@@ -96,8 +96,8 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
     if (command === 'login-item') return subcommandVerbsOf(command, LOGIN_ITEM_SUBCOMMAND_NAMES);
-    // The measurement events retire as `hook`; the network guard an Overseer renders into a job's settings stays.
-    if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start'];
+    // The measurement events retire as `hook`; the guards an Overseer renders into a job's settings stay.
+    if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start', 'hook stage-edits'];
     return [command];
   });
 }

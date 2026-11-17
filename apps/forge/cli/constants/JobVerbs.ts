@@ -17,6 +17,7 @@ export const READ_ONLY_VERBS_UNDER_A_JOB: readonly string[] = [
   'draft list',
   'hook bash-domains',
   'hook session-start',
+  'hook stage-edits',
   'version',
   'oversee status',
   'decisions',

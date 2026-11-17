@@ -1,8 +1,10 @@
 /**
  * A session of a stage of a job of an entity (E18). Auto mode lets Edit and Write reach any path no deny rule names, so what matters is
  * both sides: the allow rules name the stage's folders and files, each as itself and as a folder, never the whole worktree; and every
- * denied edit root is a deny rule for Edit and Write. Bash is not stopped there: the sandbox's writes stay the profile's own. A profile
- * without stage folders renders as it always did.
+ * denied edit root is a deny rule for Edit and Write. The deny rules name only the paths at launch, so the stage edit guard runs before
+ * every Edit and Write in exec form, beside the network guard when there is one; a guard that cannot start denies Edit and Write
+ * outright. Bash is not stopped there: the sandbox's writes stay the profile's own. A profile without stage folders renders as it always
+ * did, with no hook.
  */
 import { join } from 'node:path';
 
@@ -36,15 +38,26 @@ const PROFILE: WorkerProfile = {
   networkDomainGuard:     null,
 };
 
+const STAGE_FOLDERS = [`${WORKTREE}/apps/example`, `${WORKTREE}/bun.lock`];
+const GUARD_RUNTIME = `${HOME}/.bun/bin/bun`;
+const STAGE_GUARD_ARGUMENTS = [`${HOME}/forge/agent-progress.ts`, 'hook', 'stage-edits', '--allow', `${WORKTREE}/apps/example`, '--allow', `${WORKTREE}/bun.lock`];
+
 const STAGE_PROFILE: WorkerProfile = {
   ...PROFILE,
-  stageFolders:    [`${WORKTREE}/apps/example`, `${WORKTREE}/bun.lock`],
+  stageFolders:    STAGE_FOLDERS,
   deniedEditRoots: [`${WORKTREE}/packages`, `${WORKTREE}/scripts`],
+  stageEditGuard:  { stageFolders: STAGE_FOLDERS, programPath: GUARD_RUNTIME, arguments: STAGE_GUARD_ARGUMENTS },
 };
+
+interface RenderedHook {
+  matcher: string;
+  hooks:   { type: string; command: string; args: string[] }[];
+}
 
 interface RenderedSettings {
   permissions: { allow: string[]; deny: string[] };
   sandbox:     { filesystem: { allowWrite: string[]; denyWrite: string[] } };
+  hooks?:      { PreToolUse: RenderedHook[] };
 }
 
 function settingsOf(profile: WorkerProfile): RenderedSettings {
@@ -94,6 +107,32 @@ describe('a stage of a job of an entity', () => {
 
   test('leaves the sandbox\'s writes as they were, so Bash is not stopped there', () => {
     expect(settingsOf(STAGE_PROFILE).sandbox.filesystem).toEqual(settingsOf(PROFILE).sandbox.filesystem);
+  });
+});
+
+describe('E18: the stage edit guard', () => {
+  const stageHook = { type: 'command', command: GUARD_RUNTIME, args: STAGE_GUARD_ARGUMENTS };
+
+  test('runs before every Edit and Write in exec form, so a name made after launch outside the stage is denied at once', () => {
+    expect(settingsOf(STAGE_PROFILE).hooks?.PreToolUse).toEqual([{ matcher: 'Edit', hooks: [stageHook] }, { matcher: 'Write', hooks: [stageHook] }]);
+  });
+
+  test('runs beside the network guard, which keeps its own matchers', () => {
+    const networkGuard = { allowedDomains: ['registry.example.com'], programPath: GUARD_RUNTIME, arguments: ['hook', 'bash-domains', '--allow', 'registry.example.com'] };
+    const matchers = settingsOf({ ...STAGE_PROFILE, networkDomainGuard: networkGuard }).hooks?.PreToolUse.map((entry) => entry.matcher);
+    expect(matchers).toEqual(['Bash', 'PowerShell', 'WebFetch', 'Edit', 'Write']);
+  });
+
+  test('that cannot start denies Edit and Write outright and renders no hook', () => {
+    const settings = settingsOf({ ...STAGE_PROFILE, stageEditGuard: { stageFolders: STAGE_FOLDERS, programPath: null, arguments: STAGE_GUARD_ARGUMENTS } });
+    expect(settings.permissions.deny).toEqual(expect.arrayContaining(['Edit', 'Write']));
+    expect(settings.hooks).toBeUndefined();
+  });
+
+  test('is absent for a profile without stage folders, which renders no hooks key and denies Edit and Write nothing outright', () => {
+    const settings = settingsOf(PROFILE);
+    expect(settings.hooks).toBeUndefined();
+    expect(settings.permissions.deny).not.toContain('Edit');
   });
 });
 

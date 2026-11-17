@@ -14,6 +14,7 @@ import type {
   CommitSigning,
   NetworkDomainGuard,
   SandboxDenyShape,
+  StageEditGuard,
   WorkerProfile
 } from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
@@ -343,7 +344,8 @@ function pathIsBelow(folder: string, repositoryPath: string): boolean {
 /**
  * The repository paths outside a stage's own, each as high in the tree as it holds nothing the stage may change. Only the folders on the
  * way to a home or a `reach` path are read, their names at launch with the next folder of each such path. Those folders are never denied
- * themselves, so a name made after launch directly in one of them (the worktree root, `/apps`) is open to Edit and Write; Customs judges it.
+ * themselves, so a name made after launch directly in one of them (the worktree root, `/apps`) is named by no rule: the stage edit guard
+ * denies it.
  */
 function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: FolderEntries): string[] {
   const { entities, entityKey } = stage;
@@ -368,16 +370,30 @@ function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: 
   return deniedUnder('');
 }
 
+/** The `hook stage-edits` guard of a stage (E18), which denies an Edit or Write outside its folders, a name made after launch included. */
+function stageEditGuardOf(stageFolders: readonly string[], guardCommand: readonly string[] | null): StageEditGuard {
+  const [runtimePath, ...leadingArguments] = guardCommand ?? [];
+  return {
+    stageFolders: [...stageFolders],
+    programPath:  runtimePath ?? null,
+    arguments:    [...leadingArguments, 'hook', 'stage-edits', ...stageFolders.flatMap((folder) => ['--allow', folder])],
+  };
+}
+
 /**
- * A job of an entity: Edit and Write reach its stage's folders, and every other path of the worktree at launch is denied them; a name made
- * later in a folder on the way to a stage's folder is not, as `deniedEditPathsOf` says.
+ * A job of an entity: Edit and Write reach its stage's folders, every other path of the worktree at launch is denied them by a rule, and
+ * the stage edit guard denies the rest, a name made later in a folder on the way to a stage's folder included.
  */
-function stageEditProfileOf(facts: Pick<SandboxFacts, 'worktree' | 'stageEntity'>, folderEntries: FolderEntries): Pick<WorkerProfile, 'stageFolders' | 'deniedEditRoots'> {
+function stageEditProfileOf(
+  facts: Pick<SandboxFacts, 'worktree' | 'stageEntity' | 'guardCommand'>, folderEntries: FolderEntries
+): Pick<WorkerProfile, 'stageFolders' | 'deniedEditRoots' | 'stageEditGuard'> {
   if (facts.stageEntity === undefined) return {};
   const absolutePathOf = (repositoryPath: string): string => join(facts.worktree, repositoryPath);
+  const stageFolders = stageRepositoryPathsOf(facts.stageEntity).map(absolutePathOf);
   return {
-    stageFolders:    stageRepositoryPathsOf(facts.stageEntity).map(absolutePathOf),
+    stageFolders,
     deniedEditRoots: deniedEditPathsOf(facts.stageEntity, facts.worktree, folderEntries).map(absolutePathOf),
+    stageEditGuard:  stageEditGuardOf(stageFolders, facts.guardCommand),
   };
 }
 
@@ -556,4 +572,5 @@ export const WorkerProfiles = Object.freeze({
   commitSigningOf,
   unsignedCommitNoticeOf,
   networkDomainGuardOf,
+  stageEditGuardOf,
 });

@@ -392,7 +392,7 @@ These commands do not take the refusal above:
 | `init`, `update` | They lift the refusal. They refuse, at exit 1 with the same paragraph and writing nothing, only files a later program installed, so an older program never writes its files over a later one's, and a directory at the file's path, which they could not replace. |
 | `help`, `version` | They run; neither checks. |
 | `status` | It never refuses and says nothing about a mismatch, because its output is what scripts read. The refusal first shows at the next command. |
-| `hook session-start`, `hook bash-domains` | They skip the check, so a mismatch changes nothing: each answers at exit 0. |
+| `hook session-start`, `hook bash-domains`, `hook stage-edits` | They skip the check, so a mismatch changes nothing: each answers at exit 0. |
 | `oversee status`, `oversee stop`, `stop` | They run, so an Overseer whose install changed can still be inspected and stopped. |
 | `machine`, `login-item` | They run: neither writes a file of the repository's install. |
 | `start` | It checks the repository it starts, which `--repository` may name, not the working directory. |
@@ -1281,6 +1281,7 @@ Each table prints these figures per group. "Review passes" is the printed label 
 |---|---|
 | `hook session-start` | Print `session-instructions.md` for the session Claude Code is starting. `init` and `update` wire it as the `SessionStart` hook in `.claude/settings.local.json`, which a job's `--setting-sources project` never loads. It prints nothing under a job, skips the install version check, and exits 0 whatever happens, printing nothing on failure. |
 | `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the `PreToolUse` guard an Overseer renders into a job's settings for a role with a `network` line, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
+| `hook stage-edits --allow <folder>…` | Keep the `Edit` and `Write` calls of a job of an entity inside its stage's folders: the `PreToolUse` guard an Overseer renders into the settings of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
 | `usage [--since <when>] [--transcripts <folder>] [--json]` | What this repository's subagents cost, read out of the transcripts the harness wrote for them under `~/.claude/projects/` (`$CLAUDE_CONFIG_DIR/projects/` when that variable is set): one row per agent, oldest first, then the cohort summary. It writes nothing and takes no lock; a repository with no transcripts is one sentence at exit 0. [The columns and flags](#usage) are below. |
 
 #### `hook bash-domains`
@@ -1304,6 +1305,23 @@ session's `PATH` cannot let a call through. When the program does not resolve at
 |---|---|---|
 | macOS, Linux | Each call's `allowed_domains`, the domains auto mode may add to the sandbox's strict network allowlist. | The URL host. |
 | Windows | Nothing to check: no sandbox exists, so a call carries no `allowed_domains` and the network of a shell call is not limited. | The URL host. |
+
+#### `hook stage-edits`
+
+It denies, through the hook's JSON on standard output (`hookSpecificOutput.permissionDecision` `deny`, with a reason),
+an `Edit` or `Write` whose `file_path` lies outside every `--allow` folder. A relative `file_path` is placed by the
+call's `cwd`, and `..` is resolved before the check. A stage file such as `/bun.lock` is a folder of its own. A path
+inside a folder passes, printing nothing and granting nothing; any other tool is denied.
+
+The deny rules of a stage name the worktree's paths outside its folders as they stood at launch. A name made later
+directly in a folder on the way to a stage folder, such as the worktree root or `/apps`, is named by no rule, and this
+guard denies an `Edit` or `Write` of it at once. A job without an entity gets no such guard.
+
+It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
+answers deny on any failure: no input, input that is not a JSON object, no `file_path`, a relative `file_path` with no
+absolute `cwd`, no `--allow`, a folder that is not an absolute path, an unknown option. The Overseer renders it in exec
+form, before every `Edit` and `Write` call, as it renders `hook bash-domains`; when the program does not resolve at
+launch, the job's settings deny `Edit` and `Write` outright instead.
 
 #### `usage`
 
@@ -1944,8 +1962,8 @@ counts as under a job with both `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY` set (
 variables](#environment-variables)).
 
 - **Direct:** `help`, `status`, `usage`, `review-stats`, `ticket show|list`, `epic show|list`, `draft show|list`,
-  `hook bash-domains`, `hook session-start`, `version`, `oversee status`, `decisions`, `incidents`, `merges`, `jobs`,
-  `job show|attach`, `gate list` and `concurrency` with no argument, which only reads, run as usual.
+  `hook bash-domains`, `hook session-start`, `hook stage-edits`, `version`, `oversee status`, `decisions`, `incidents`,
+  `merges`, `jobs`, `job show|attach`, `gate list` and `concurrency` with no argument, which only reads, run as usual.
 - **Relayed:** a verb of a control command parses its arguments as usual, then, before any install-version check, writes
   `<hatch>/requests/<requestId>.json` atomically, `{hatchFormatVersion: 1, requestId, command, bodyText?}`, and waits
   for `<hatch>/replies/<requestId>.json`, up to `HATCH_REPLY_TRIES` times `HATCH_REPLY_INTERVAL_MILLISECONDS` apart. It
@@ -2018,7 +2036,7 @@ the owner's macOS and Linux machines only; it is no part of the product.
 
 | code | meaning | examples |
 |---|---|---|
-| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` run, a deny answered through its JSON |
+| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
 | **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or pending, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed or a `version.json` naming a retired agent host, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
 | **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, an Overseer whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 

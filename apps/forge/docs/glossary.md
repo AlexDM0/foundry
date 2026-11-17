@@ -556,7 +556,8 @@ A spec that reads the real tree and fails when a rule is broken, proving first t
 ### guard hook
 
 The `PreToolUse` hook `forge hook bash-domains`, which refuses network domains off the list that [auto
-mode](#auto-mode)'s classifier would grant.
+mode](#auto-mode)'s classifier would grant. Its sibling `forge hook stage-edits` refuses an `Edit` or `Write` outside
+the folders of a stage of a job of an entity.
 
 ### Handoff
 

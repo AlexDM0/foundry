@@ -4,9 +4,10 @@
  * `.claude` folder of every entity home is denied, also made before a launch under `mount-points` (E7); and a stage's Edit and Write are
  * allowed its entity's homes and `reach` alone, every other path of the worktree at launch denied them as high in the tree as it holds
  * nothing the stage may change, a deeper home of another entity included (E18). The folders on the way to a stage's folder (the worktree
- * root, `/apps`) are not denied themselves, so a name made in them after launch is not denied: that limit of E18 is pinned here, and
- * Customs judges such a change. The root entity reaches every path no other entity owns. The worktree's names are a planted listing, so a
- * home that is absent at launch shows that its folders are still reached.
+ * root, `/apps`) are not denied themselves, so no rule names a name made in them after launch: the stage edit guard, run with the stage's
+ * folders and from the guard command, denies it, and a forge without entities gets no such guard. The root entity reaches every path no
+ * other entity owns. The worktree's names are a planted listing, so a home that is absent at launch shows that its folders are still
+ * reached.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -105,6 +106,7 @@ describe('a forge without entities', () => {
     expect(profile).toEqual(WorkerProfiles.profileOf('builder', FACTS, NO_TOOLCHAIN));
     expect(Object.keys(profile)).not.toContain('stageFolders');
     expect(Object.keys(profile)).not.toContain('deniedEditRoots');
+    expect(Object.keys(profile)).not.toContain('stageEditGuard');
   });
 
   test('gives a job without an entity the board\'s toolchain', () => {
@@ -183,6 +185,18 @@ describe('E18: the Edit and Write of a stage', () => {
     expect(profile.deniedEditRoots).toEqual(['/.git', '/apps/example', '/apps/gaia/widgets', '/package.json', '/packages', '/scripts']
       .map((path) => `${WORKTREE}${path}`));
     expect(profile.deniedWritableRoots).not.toContain(`${WORKTREE}/scripts`);
+  });
+
+  test('are guarded by hook stage-edits with the stage\'s folders, run by the guard command, or by no program when it cannot start', () => {
+    const guardCommand = ['/example/bun', '/example/forge/agent-progress.ts'];
+    const guarded = WorkerProfiles.profileOf('builder', { ...factsOfJob('gaia'), guardCommand }, NO_TOOLCHAIN, undefined, PLANTED_WORKTREE);
+    expect(guarded.stageEditGuard).toEqual({
+      stageFolders: [`${WORKTREE}/apps/gaia`, `${WORKTREE}/bun.lock`],
+      programPath:  '/example/bun',
+      arguments:    ['/example/forge/agent-progress.ts', 'hook', 'stage-edits', '--allow', `${WORKTREE}/apps/gaia`, '--allow', `${WORKTREE}/bun.lock`],
+    });
+    const unguardable = WorkerProfiles.profileOf('reviewer', factsOfJob('gaia'), NO_TOOLCHAIN, undefined, PLANTED_WORKTREE);
+    expect(unguardable.stageEditGuard?.programPath).toBeNull();
   });
 
   test('of a root entity job reach the whole worktree', () => {
