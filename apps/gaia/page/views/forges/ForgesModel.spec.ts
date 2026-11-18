@@ -123,6 +123,10 @@ function fleetWithOneForgeIn(condition: FleetDocumentCondition, changes: Partial
   };
 }
 
+function withoutGaiasForgeProgram(fleetDocument: FleetDocument): FleetDocument {
+  return { ...fleetDocument, settings: { ...fleetDocument.settings, forgeProgramPath: null }, gaia: { ...fleetDocument.gaia, forgeProgramInUse: null } };
+}
+
 function pendingSender(): CommandSender {
   return senderOver([() => new Promise<Response>(() => undefined)]);
 }
@@ -256,11 +260,15 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   test('an unreachable forge can still be stopped, by the forge program, and a dormant one cannot be started without a forge program', () => {
     const [unreachable] = contentOf(fleetWithOneForgeIn('unreachable')).rows;
     expect(unreachable?.buttons.map((button) => button.kind === 'waiting' || button.disabled)).toEqual([false, false]);
-    const noProgram = fleetWithOneForgeIn('dormant');
-    const withoutProgram = { ...noProgram, settings: { ...noProgram.settings, forgeProgramPath: null }, gaia: { ...noProgram.gaia, forgeProgramInUse: null } };
-    const [dormant] = contentOf(withoutProgram).rows;
+    const [dormant] = contentOf(withoutGaiasForgeProgram(fleetWithOneForgeIn('dormant', { program: null }))).rows;
     expect(dormant?.buttons).toMatchObject([{ label: 'Start', disabled: true }]);
     expect(dormant?.detailText).toBe('the forge program was not found');
+  });
+
+  test('a dormant forge whose registry entry names its program can be started while Gaia\'s settings name none', () => {
+    const [dormant] = contentOf(withoutGaiasForgeProgram(fleetWithOneForgeIn('dormant', { program: '/Users/alexexample/.bun/bin/forge' }))).rows;
+    expect(dormant?.buttons).toMatchObject([{ label: 'Start', disabled: false }]);
+    expect(dormant?.detailText).not.toBe('the forge program was not found');
   });
 });
 

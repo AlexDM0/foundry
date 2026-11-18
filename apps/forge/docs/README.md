@@ -62,6 +62,7 @@ If something is wrong right now, start here.
 | Document | Its question |
 | --- | --- |
 | [Remote state, login and cloud workers](research/remote-state/findings.md) | What would it take to keep state in a remote database, log a user in at `init`, and run jobs on cloud sessions? ([page with diagrams](research/remote-state/findings.html)) |
+| [Compounding: the data to gather and what it would improve](research/compounding/data-and-improvements.md) | What must forge record to say where a period's tokens and time went, grade a delivered feature, replay it under another configuration, and name what to improve? |
 | [Entities: one forge for a monorepo](../../../docs/monorepo/research/monorepo-entities/strategy.md) | How does one forge at the root of a monorepo give every app and package its own constitution, pipeline and agents? ([page](../../../docs/monorepo/research/monorepo-entities/strategy.html), [the pipeline builder's monorepo mode](../../../docs/monorepo/research/monorepo-entities/pipeline-builder-monorepo-mode.md)) |
 
 ## Names

@@ -1,0 +1,1762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hephaestus, Talos and Gaia: the forge core apart from its interface</title>
+<style>
+:root {
+  --paper: #FAF9F5; --card: #FFFFFF; --ink: #3D3D3A; --ink-soft: #5F5E5A; --ink-faint: #8A887F; --rule: #E6E1D4;
+  --coral: #993C1D; --coral-wash: #FAECE7; --blue: #185FA5; --blue-wash: #E6F1FB; --amber-wash: #FAEEDA; --code: #F1EFE8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1F1E1B; --card: #272622; --ink: #E9E6DC; --ink-soft: #BDB9AC; --ink-faint: #8F8C80; --rule: #3A3832;
+    --coral: #F0997B; --coral-wash: #3A241C; --blue: #85B7EB; --blue-wash: #1B2B3D; --amber-wash: #3A2E18; --code: #33312B;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+code { font: 0.86em/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--code); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+.layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+.sidebar { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 28px 20px 28px 24px; border-right: 1px solid var(--rule); }
+.sidebar-title { font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: var(--ink-faint); margin: 0 0 14px; }
+.search { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; }
+.search:focus-visible, .filter:focus-visible, a:focus-visible, th:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.search-status { min-height: 20px; margin: 6px 2px 10px; font-size: 12px; color: var(--ink-faint); }
+.navigation { list-style: none; margin: 0; padding: 0; }
+.navigation a { display: flex; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 6px; color: var(--ink-soft); text-decoration: none; font-size: 14px; line-height: 1.35; }
+.navigation a:hover { background: var(--code); }
+.navigation a.is-current { background: var(--coral-wash); color: var(--coral); font-weight: 500; }
+.navigation a.is-without-match { opacity: 0.35; }
+.navigation-number { flex: 0 0 18px; font-variant-numeric: tabular-nums; color: var(--ink-faint); font-size: 12px; }
+.match-count { margin-left: auto; font-size: 11px; background: var(--amber-wash); border-radius: 10px; padding: 0 7px; }
+main { padding: 44px 48px 80px; min-width: 0; }
+.page-head h1 { font-size: 30px; line-height: 1.2; font-weight: 500; margin: 0 0 16px; letter-spacing: -0.01em; max-width: 21em; }
+.status { color: var(--ink-soft); font-size: 15px; max-width: 46em; margin: 0 0 24px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 12px; }
+.fact { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; }
+.fact-count { font-size: 26px; font-weight: 500; line-height: 1.1; color: var(--coral); font-variant-numeric: tabular-nums; }
+.fact-label { font-size: 13px; color: var(--ink-soft); }
+section { padding-top: 34px; margin-top: 34px; border-top: 1px solid var(--rule); }
+section[hidden] { display: none; }
+h2 { font-size: 22px; font-weight: 500; line-height: 1.3; margin: 0 0 14px; display: flex; gap: 12px; align-items: baseline; }
+.section-number { font-size: 13px; color: var(--coral); background: var(--coral-wash); border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+h3 { font-size: 17px; font-weight: 500; margin: 28px 0 10px; }
+p, ul, ol { max-width: 46em; }
+li { margin: 4px 0; }
+li > ul, li > ol { margin: 4px 0; }
+strong { font-weight: 500; color: var(--ink); }
+.diagram { margin: 22px 0 26px; max-width: 760px; }
+.diagram svg { display: block; width: 100%; height: auto; }
+.diagram figcaption { font-size: 13px; color: var(--ink-faint); margin-top: 8px; max-width: 54em; }
+.table-tools { display: flex; align-items: center; gap: 10px; margin: 16px 0 6px; }
+.filter { font: inherit; font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; width: min(320px, 100%); }
+.filter-status { font-size: 12px; color: var(--ink-faint); }
+.table-scroll { overflow-x: auto; margin: 6px 0 20px; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
+th { text-align: left; font-weight: 500; color: var(--ink-soft); background: var(--code); padding: 9px 12px; white-space: nowrap; cursor: pointer; user-select: none; }
+th[aria-sort="ascending"]::after { content: ' ↑'; }
+th[aria-sort="descending"]::after { content: ' ↓'; }
+td { padding: 9px 12px; border-top: 1px solid var(--rule); vertical-align: top; }
+td:first-child { min-width: 11em; }
+tr[hidden], li[hidden] { display: none; }
+.citation { font-size: 0.72em; margin-left: 1px; }
+.citation a { text-decoration: none; }
+h1 .citation, h3 .citation { font-size: 13px; font-weight: 400; }
+mark { background: var(--amber-wash); color: inherit; border-radius: 3px; padding: 0 1px; }
+.sources ol { padding-left: 1.4em; }
+.sources li { margin: 10px 0; }
+.sources li:target { background: var(--amber-wash); border-radius: 6px; }
+.source-label { display: block; font-weight: 500; }
+.source-detail { display: block; font-size: 14px; color: var(--ink-soft); }
+.comment-add { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); color: var(--ink-soft); font: inherit; font-size: 13px; line-height: 1; vertical-align: middle; cursor: pointer; opacity: 0; }
+.comment-add::before { content: '+'; }
+.comment-add.has-comments { opacity: 1; padding: 0 7px; background: var(--amber-wash); border-color: transparent; color: var(--ink); }
+.comment-add.has-comments::before { content: attr(data-count); }
+[data-block]:hover > .comment-add, [data-block]:hover > td > .comment-add, [data-block]:hover > figcaption > .comment-add, .comment-add:focus-visible { opacity: 1; }
+@media (hover: none) { .comment-add { opacity: 1; } }
+.is-commented:not(tr) { box-shadow: -3px 0 0 var(--coral); }
+tr.is-commented > td:first-child { box-shadow: inset 3px 0 0 var(--coral); }
+.comments-toggle { position: fixed; right: 20px; bottom: 20px; z-index: 10; font: inherit; font-size: 14px; font-weight: 500; color: var(--paper); background: var(--coral); border: 0; border-radius: 20px; padding: 9px 16px; cursor: pointer; }
+.comments-panel { position: fixed; top: 0; right: 0; z-index: 20; width: min(400px, 100vw); height: 100vh; overflow-y: auto; background: var(--card); border-left: 1px solid var(--rule); padding: 20px; }
+@media (min-width: 1100px) { body.comments-are-open .layout { margin-left: 0; margin-right: 400px; } body.comments-are-open .comments-toggle { display: none; } }
+.comments-panel[hidden], .selection-comment[hidden], #comment-form[hidden] { display: none; }
+.comments-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.comments-head h2 { margin: 0; font-size: 18px; }
+.comments-panel button { font: inherit; font-size: 13px; color: var(--ink); background: var(--code); border: 1px solid var(--rule); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.comments-panel button.is-primary { color: var(--paper); background: var(--coral); border-color: transparent; }
+.comments-panel button:focus-visible, .comments-toggle:focus-visible, .selection-comment:focus-visible, .comments-panel textarea:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.comments-panel label { display: block; font-size: 13px; color: var(--ink-soft); margin: 10px 0 4px; }
+.comments-panel textarea { width: 100%; font: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+#comments-json, #comments-import { font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+.comment-context, .comment-quote { font-size: 13px; color: var(--ink-soft); border-left: 3px solid var(--rule); padding-left: 10px; margin: 6px 0; max-width: none; }
+.comment-form-actions, .comment-actions, .comments-export-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.comment-form-error, .comments-status { font-size: 12px; color: var(--ink-soft); }
+.comments-hint { font-size: 13px; color: var(--ink-soft); max-width: none; }
+.comments-list { list-style: none; margin: 14px 0; padding: 0; }
+.comments-list > li { border-top: 1px solid var(--rule); padding: 12px 0; margin: 0; }
+.comment-place { font-size: 12px; color: var(--ink-faint); }
+.comment-body { margin: 6px 0 0; font-size: 14px; white-space: pre-wrap; max-width: none; }
+.comments-export { border-top: 1px solid var(--rule); padding-top: 12px; }
+.comments-export details { margin-top: 12px; font-size: 13px; }
+.selection-comment { position: absolute; z-index: 30; font: inherit; font-size: 13px; font-weight: 500; color: var(--paper); background: var(--coral); border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--rule); padding: 20px 16px; }
+  .navigation { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  main { padding: 28px 16px 60px; }
+  .page-head h1 { font-size: 24px; }
+}
+@media print {
+  .sidebar, .table-tools, .comments-toggle, .comments-panel, .selection-comment, .comment-add { display: none; }
+  .layout { display: block; }
+  section { break-inside: avoid-page; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" aria-label="Sections of the plan">
+<p class="sidebar-title">The plan</p>
+<input id="plan-search" class="search" type="search" placeholder="Search the plan" aria-label="Search the plan">
+<p id="search-status" class="search-status" aria-live="polite"></p>
+<ol class="navigation">
+<li><a href="#section-1" data-section="1"><span class="navigation-number">1</span>The shape<span class="match-count" hidden></span></a></li>
+<li><a href="#section-2" data-section="2"><span class="navigation-number">2</span>Decisions<span class="match-count" hidden></span></a></li>
+<li><a href="#section-3" data-section="3"><span class="navigation-number">3</span>The forge<span class="match-count" hidden></span></a></li>
+<li><a href="#section-4" data-section="4"><span class="navigation-number">4</span>The store and the contract<span class="match-count" hidden></span></a></li>
+<li><a href="#section-5" data-section="5"><span class="navigation-number">5</span>Ports and adapters<span class="match-count" hidden></span></a></li>
+<li><a href="#section-6" data-section="6"><span class="navigation-number">6</span>The user in the workflow<span class="match-count" hidden></span></a></li>
+<li><a href="#section-7" data-section="7"><span class="navigation-number">7</span>Interruption and recovery<span class="match-count" hidden></span></a></li>
+<li><a href="#section-8" data-section="8"><span class="navigation-number">8</span>Gaia<span class="match-count" hidden></span></a></li>
+<li><a href="#section-9" data-section="9"><span class="navigation-number">9</span>Kept possible, not built<span class="match-count" hidden></span></a></li>
+<li><a href="#section-10" data-section="10"><span class="navigation-number">10</span>What is removed<span class="match-count" hidden></span></a></li>
+<li><a href="#section-11" data-section="11"><span class="navigation-number">11</span>Migration<span class="match-count" hidden></span></a></li>
+<li><a href="#section-12" data-section="12"><span class="navigation-number">12</span>Open items and risks<span class="match-count" hidden></span></a></li>
+<li><a href="#sources" data-section="sources"><span class="navigation-number"></span>Sources<span class="match-count" hidden></span></a></li>
+</ol>
+</nav>
+<main>
+<header class="page-head">
+<h1>Hephaestus, Talos and Gaia: the forge core apart from its interface<sup class="citation"><a href="#source-1">[1]</a></sup></h1>
+<p class="status">Nothing here is built. Statements about today&#39;s code come from forge at <code>ddeb7707</code><sup class="citation"><a href="#source-2">[2]</a></sup>.</p>
+<div class="facts"><div class="fact"><span class="fact-count">34</span><span class="fact-label">decisions</span></div><div class="fact"><span class="fact-count">2</span><span class="fact-label">items to decide</span></div><div class="fact"><span class="fact-count">10</span><span class="fact-label">migration stages</span></div><div class="fact"><span class="fact-count">13</span><span class="fact-label">risks</span></div></div>
+</header>
+<section id="section-1" data-section="1"><h2><span class="section-number">1</span>The shape</h2>
+<p>Today one process, the Overseer, does two jobs: it runs the pipeline, and it serves the interface (the Bridge page, its
+HTTP API, browser sessions, rendered HTML). This plan separates the two and renames the parts.</p>
+<ul>
+<li><strong>The forge</strong> is Hephaestus and Talos, with the CLI as its command surface. It is headless, it has a version, it owns the
+data model and the stored formats, and it runs the whole flow alone.<ul>
+<li><strong>Hephaestus</strong> is the Overseer, renamed, without the interface. One per board. It runs the pipeline and talks to the
+operating system and to Talos.</li>
+<li><strong>Talos</strong> takes the Watcher&#39;s place. One per board: the commander of every agent and every other child process of
+that board. It starts them, keeps their event logs and reports back.</li>
+</ul>
+</li>
+<li><strong>Gaia</strong> is the one interface server of a machine. It inventories the local forges, displays them and forwards the
+user&#39;s instructions. It facilitates the forges; no forge needs it.</li>
+<li><strong>One narrow path joins them:</strong> the API that Hephaestus serves, with versioned reads and one command endpoint. Gaia
+never touches the store. It runs the forge&#39;s CLI only for what it runs today: starting, stopping and setting up a
+forge. Inside the forge, the CLI and Hephaestus meet in the store.</li>
+</ul>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 494" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>The forge and its interface</title>
+  <desc>Gaia sends commands to Hephaestus's API and reads documents and events from it, and runs the CLI to start, stop and set up a forge. Inside the forge, the CLI writes commands to the store, Hephaestus watches the store and writes state, and Hephaestus drives Talos, which commands every child process of the board.</desc>
+  <defs>
+    <marker id="arrowhead-layers" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="492" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">The forge and its interface</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Gaia talks to one API: versioned reads and a command endpoint</text>
+
+  <path d="M270,148 L270,176 L160,176 L160,246" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="215" y="170" font-size="11" fill="#73726c" text-anchor="middle">start, stop, set up</text>
+  <path d="M350,148 L350,246" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="342" y="192" font-size="11" fill="#73726c" text-anchor="end">commands</text>
+  <path d="M400,250 L400,152" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="408" y="180" font-size="11" fill="#73726c">documents, events</text>
+
+  <path d="M135,306 L135,360" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="143" y="338" font-size="11" fill="#73726c">commands</text>
+  <path d="M310,364 L310,310" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="302" y="338" font-size="11" fill="#73726c" text-anchor="end">watches</text>
+  <path d="M370,306 L370,360" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+  <text x="378" y="338" font-size="11" fill="#73726c">state</text>
+  <path d="M432,278 L458,278" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-layers)"/>
+
+  <rect x="210" y="92" width="260" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="116" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Gaia</text>
+  <text x="340" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">inventories, displays, forwards</text>
+
+  <rect x="40" y="200" width="600" height="270" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="60" y="226" font-size="14" font-weight="500" fill="#3d3d3a">The forge</text>
+  <text x="620" y="226" font-size="12" fill="#73726c" text-anchor="end">headless, versioned, runs alone</text>
+
+  <rect x="60" y="250" width="150" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="135" y="274" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">CLI</text>
+  <text x="135" y="292" font-size="12" fill="#5F5E5A" text-anchor="middle">every state change</text>
+
+  <rect x="242" y="250" width="190" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="337" y="274" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hephaestus</text>
+  <text x="337" y="292" font-size="12" fill="#993C1D" text-anchor="middle">runs the pipeline</text>
+
+  <rect x="462" y="250" width="160" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="542" y="274" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Talos</text>
+  <text x="542" y="292" font-size="12" fill="#185FA5" text-anchor="middle">commands every child</text>
+
+  <rect x="60" y="364" width="372" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="246" y="388" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">The store, behind the store port</text>
+  <text x="246" y="406" font-size="12" fill="#854F0B" text-anchor="middle">records on local files first</text>
+
+  <text x="60" y="448" font-size="12" fill="#73726c">Agents under Talos change state through the same CLI. Machine-wide limits stay shared files.</text>
+</svg><figcaption>Gaia sends commands to Hephaestus&#39;s API and reads documents and events from it, and runs the CLI to start, stop and
+set up a forge. Inside the forge, the CLI writes commands to the store, Hephaestus watches the store and writes state,
+and Hephaestus drives Talos, which commands every child process of the board.</figcaption></figure>
+<p>The Bridge as a separate program goes away: its views become part of Gaia, in one design. The name Zeus is reserved for a future allocator
+of tickets across the forges of a team; nothing of it is built.</p>
+</section>
+<section id="section-2" data-section="2"><h2><span class="section-number">2</span>Decisions</h2>
+<ol>
+<li>The Overseer becomes Hephaestus, without the interface. Talos takes the Watcher&#39;s place.</li>
+<li>Hephaestus and Talos are the forge. They have no interface, they own the data models and the stored formats, they
+have a version, and they run the entire flow without Gaia.</li>
+<li>Stored formats are versioned, as they are in agent-progress.</li>
+<li>One Talos per board commands every agent of that board, in place of one Watcher per job instance. It is a separate
+process and outlives a Hephaestus restart. Hephaestus supports one Talos version.</li>
+<li>Talos is lightweight: it starts agents with the context it is given, and it reports questions and state back.</li>
+<li>Talos has a protocol version of its own, apart from its package version, bumped when Talos&#39;s interface changes. The
+handshake carries the version that Hephaestus requires. A Talos of another version quits and the right one starts.</li>
+<li>Talos quits cleanly when it has to quit: it waits for each agent&#39;s turn to end, for at most 10 seconds of real time.
+Losing a few turns per agent in the worst case is acceptable.</li>
+<li>Talos persists its state either way. An agent that it recorded as paused is resumed automatically.</li>
+<li>Talos holds a supervision lease of one minute, measured in real time, which Hephaestus renews every 15 seconds. A
+Talos that Hephaestus has not contacted for one minute stops its agents.</li>
+<li>The lease counts the time a machine spent asleep, but sleep alone stops no agent. After a wake, Talos waits one
+renewal interval for Hephaestus to make contact before it stops its agents, or two where the interval is shorter
+than five seconds. A sleeping laptop on which nothing crashed causes no interruption and no recovery.</li>
+<li>The forge cannot ask the user anything by itself. A user question halts its ticket, is persisted so it survives a
+reboot, and is never decided by the forge. The forge follows a fixed, programmed workflow, and the user is a step
+in it. The forge keeps each question with its context, its choices and a recommendation, and Gaia shows it. The
+session that asked is parked and frees its slot; the answer resumes it.</li>
+<li>The forge is robust against reboots: what the pipeline decides from is persisted, not held in memory.</li>
+<li>Every start is a recovery, but recovery is not automatic: the forge makes its record truthful by itself and waits
+for an instruction before it starts interrupted work again.</li>
+<li>A crash is a bug. It is fixed, not retried. A crash of Talos stops everything of its board. A crashed forge leaves
+a log complete enough to trace the crash back, Gaia alerts the user, and the forge stays off until the user starts
+it again.</li>
+<li>A network error does not end an agent. The agent&#39;s own retry handles it; Talos has no retry of its own. When
+those retries run out, Talos recognises that the agent ended on a network outage and reports it, and Gaia shows
+it.</li>
+<li>The forge uses ports and adapters for three things: the operating system (macOS first), the agent (Claude Code
+first) and storage (local files first; a database later).</li>
+<li>A remote, shared setup for a team is not built. The design only keeps it possible.</li>
+<li>There is one interface server, in Gaia. Gaia inventories, displays and forwards instructions. It shows local forges
+only; a read-only status view of remote forges may come later.</li>
+<li>Gaia reads a local forge through a small, versioned read API and forwards instructions through the forge&#39;s command
+endpoint, kept beside it. Forge and Gaia stay released apart,
+meeting only through system versions, as the monorepo design<sup class="citation"><a href="#source-3">[3]</a></sup> has them.</li>
+<li>A forge is self-contained. It sets its own number of agents and it comes back after a reboot by its own means. Gaia
+may start a forge as a facilitation, never as a responsibility. The machine-wide agent limit stays, and Gaia may
+offer a control for it.</li>
+<li>Gaia warns when a forge goes down.</li>
+<li>Outside Hephaestus, state changes through a command: a CLI verb, as with agent-progress, or the forge&#39;s command
+endpoint.</li>
+<li>Intake and pipeline setup are sessions the forge hosts, and both can also be invoked as a skill in the user&#39;s own
+agent. They deliver files or call CLI commands.</li>
+<li>The Assistant does not start by default. What it should own is decided later from accumulated data.</li>
+<li>Flint&#39;s brain is left out of the core.</li>
+<li>Eventually, all of the user&#39;s work is done through Gaia.</li>
+<li>Gaia and the Bridge become one design and one interface, a unified whole. A single forge can be maximized, also in
+a browser tab of its own. Nothing is embedded by iframe.</li>
+<li><code>apps/forge</code> stays the home of the core, and the Bridge&#39;s code moves into Gaia.</li>
+<li>The lease stops agents only: an install or gate line runs to its end. A gate runs for at most 15 minutes of real
+time and is then stopped.</li>
+<li>An agent that crashed while the forge did not is resumed twice. After that its job waits for an instruction;
+nothing starts it again by itself.</li>
+<li>Gaia shows the running and the newest version of Hephaestus and of Talos, and offers to restart each cleanly.</li>
+<li>Nothing that exists has to be kept. Forge runs nowhere that matters yet, so stored names, stored formats and
+installed surfaces change outright, and existing boards are set up anew.</li>
+<li>A new package is an architectural decision, taken before the work starts. A ticket names the packages it may
+create, and a running builder never introduces one.</li>
+<li>No forge does this refactoring. Orchestrated Opus sessions in this repository do it, outside both trackers.</li>
+</ol>
+</section>
+<section id="section-3" data-section="3"><h2><span class="section-number">3</span>The forge</h2>
+<h3>3.1 Hephaestus</h3>
+<p>One process per board, started by the user, by the forge&#39;s own login item, or by Gaia on request. It keeps what the
+Overseer does today, minus everything that serves a client.</p>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 664" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Inside Hephaestus</title>
+  <desc>Gaia reaches Hephaestus through its API server, and hosted agents reach it through the Hatch inbox, which relays their CLI verbs. Both feed one control service, which applies every command. The pipeline loop runs one pass at a time and drives the job lifecycle, the Airlocks, and presence and recovery. Hephaestus reaches the outside through the operating system port, the agent port, the store port and Talos.</desc>
+  <defs>
+    <marker id="arrowhead-hephaestus" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="662" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Inside Hephaestus</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">commands come in at the top, the pipeline runs in the middle, ports reach out below</text>
+
+  <path d="M185,140 L185,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M495,140 L495,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M185,264 L185,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M495,264 L495,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M340,344 L340,368" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M150,424 L150,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M340,424 L340,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M530,424 L530,448" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M124,524 L124,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M268,524 L268,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M412,524 L412,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+  <path d="M556,524 L556,556" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-hephaestus)"/>
+
+  <rect x="60" y="92" width="250" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="185" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Gaia</text>
+  <text x="185" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">reads and commands</text>
+
+  <rect x="370" y="92" width="250" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="495" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Hosted agents</text>
+  <text x="495" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">CLI verbs, relayed</text>
+
+  <rect x="40" y="172" width="600" height="352" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="60" y="198" font-size="14" font-weight="500" fill="#3d3d3a">Hephaestus</text>
+  <text x="620" y="198" font-size="12" fill="#73726c" text-anchor="end">one per board</text>
+
+  <rect x="60" y="212" width="250" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="185" y="234" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">API server</text>
+  <text x="185" y="252" font-size="12" fill="#993C1D" text-anchor="middle">reads, streams, command endpoint</text>
+
+  <rect x="370" y="212" width="250" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="495" y="234" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hatch inbox</text>
+  <text x="495" y="252" font-size="12" fill="#993C1D" text-anchor="middle">agents' commands, judged by role</text>
+
+  <rect x="60" y="292" width="560" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="314" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Control service</text>
+  <text x="340" y="332" font-size="12" fill="#993C1D" text-anchor="middle">one service applies every command</text>
+
+  <rect x="60" y="372" width="560" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="394" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Pipeline loop</text>
+  <text x="340" y="412" font-size="12" fill="#993C1D" text-anchor="middle">one pass at a time, following the Playbook</text>
+
+  <rect x="60" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="150" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Job lifecycle</text>
+  <text x="150" y="492" font-size="12" fill="#993C1D" text-anchor="middle">worktree, Customs, gates</text>
+
+  <rect x="250" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Airlocks</text>
+  <text x="340" y="492" font-size="12" fill="#993C1D" text-anchor="middle">merge, gate, land</text>
+
+  <rect x="440" y="452" width="180" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="530" y="474" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Presence and recovery</text>
+  <text x="530" y="492" font-size="12" fill="#993C1D" text-anchor="middle">Baton, heartbeat, reconcile</text>
+
+  <rect x="60" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="124" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">OS port</text>
+  <text x="124" y="600" font-size="12" fill="#854F0B" text-anchor="middle">macOS first</text>
+
+  <rect x="204" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="268" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Agent port</text>
+  <text x="268" y="600" font-size="12" fill="#854F0B" text-anchor="middle">Claude Code first</text>
+
+  <rect x="348" y="560" width="128" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="412" y="582" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Store port</text>
+  <text x="412" y="600" font-size="12" fill="#854F0B" text-anchor="middle">local files first</text>
+
+  <rect x="492" y="560" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="556" y="582" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Talos</text>
+  <text x="556" y="600" font-size="12" fill="#185FA5" text-anchor="middle">launch plans, lease</text>
+
+  <text x="60" y="640" font-size="12" fill="#73726c">No page, no browser session and no rendered HTML: everything that serves a client lives in Gaia.</text>
+</svg><figcaption>Inside Hephaestus. Gaia reaches it through the API server; hosted agents reach it through the Hatch inbox,
+which relays their CLI verbs. One control service applies every command. The pipeline loop runs one pass at a time and drives the
+job lifecycle, the Airlocks, and presence and recovery. Below it are the operating system port, the agent port, the
+store port and Talos.</figcaption></figure>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Today&#39;s code (paths from <code>apps/forge/</code>)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Take in tickets from the store and judge readiness from state</td>
+<td><code>src/services/tracker/</code>, <code>src/lib/tracker-model/</code></td>
+</tr>
+<tr>
+<td>The pipeline loop: one serial pass at a time, following the Playbook inside one hold</td>
+<td><code>src/services/overseer/DrivePass.ts</code>, <code>src/lib/tracker-model/Playbook.ts</code></td>
+</tr>
+<tr>
+<td>Job lifecycle: worktree, install line, builder, Customs, gates, Handoff</td>
+<td><code>src/services/overseer/JobLaunch.ts</code>, <code>src/services/lifecycle/</code></td>
+</tr>
+<tr>
+<td>Airlocks: merge in, gate the merged tree, land by compare-and-swap; the constitution commit</td>
+<td><code>src/services/overseer/Airlocks.ts</code>, <code>ConstitutionCommits.ts</code></td>
+</tr>
+<tr>
+<td>Agent launch: the vendor adapter renders the launch plan and every input line</td>
+<td><code>src/lib/agent-launch/</code>, <code>src/lib/claude-code/</code>, <code>JobControlDelivery.ts</code>, <code>AnswerDelivery.ts</code></td>
+</tr>
+<tr>
+<td>Talos: start it at the required protocol version, reconnect to it at start, hand it launch plans, renew its lease</td>
+<td><code>WatcherFleet.ts</code>, <code>WatcherBundle.ts</code>, <code>Regrouping.ts</code>, all replaced</td>
+</tr>
+<tr>
+<td>Machine-wide caps: agent slots, gate slots, the usage marker</td>
+<td><code>AgentSlots.ts</code>, <code>GateRunSlots.ts</code>, <code>MachineAgentLimit.ts</code>, <code>UsageLimits.ts</code></td>
+</tr>
+<tr>
+<td>Apply commands, from the store and from agents under a job (the Hatch, judged by the Bouncer)</td>
+<td><code>src/services/control/</code>, <code>HatchInbox.ts</code></td>
+</tr>
+<tr>
+<td>The Baton: one Hephaestus per board, and the checked pass to a successor</td>
+<td><code>Baton.ts</code>, <code>BatonPass.ts</code></td>
+</tr>
+<tr>
+<td>Confinement plans for sessions and for gate lines</td>
+<td><code>WorkerProfiles.ts</code>, <code>ProcessWatcherSandbox.ts</code>, <code>src/lib/gate-confinement/</code></td>
+</tr>
+</tbody></table></div>
+<p>Changed or new in Hephaestus:</p>
+<ul>
+<li><strong>Presence.</strong> The Baton record already holds the process identity, its start stamp, the boot identity and the code
+version (<code>Baton.ts</code>). What is missing is a heartbeat, and a record that a stop or a Baton pass completed.</li>
+<li><strong>Recovery on instruction.</strong> Today the Playbook resumes interrupted jobs by itself. This plan reverses that
+(section 7).</li>
+<li><strong>Lease renewal</strong> to Talos, every 15 seconds (section 3.2).</li>
+</ul>
+<p>The HTTP server shrinks to what Gaia needs (section 8): the reads (versions, identity and presence, the documents, the
+event, job and gate-profile streams, job files and pictures) and the command endpoint, on the loopback address.
+Versions, identity and the summary are open today; the rest sits behind the token. Leaving Hephaestus, for Gaia or for
+nowhere: browser sessions and session codes, the Bridge bundle build, Markdown rendering to HTML, and Flint&#39;s brain.</p>
+<h3>3.2 Talos</h3>
+<p>One process per board, the commander of every child process of that board: the agents, and the install and gate
+lines. It is detached and outlives a Hephaestus restart. It stays lightweight and knows no vendor: Hephaestus hands it
+a launch plan, and Talos starts the child from it and reports back.</p>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 606" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Inside Talos</title>
+  <desc>Hephaestus reaches Talos over one socket. Inside Talos, the protocol part does the handshake at one protocol version and the lease part counts one minute between renewals. A launcher starts each child in a process group of its own, an input relay passes messages and standing replies, and a stopper does the clean quit. An output reader writes every line to an event log and a child record persists each child's identity and status. Below Talos run its children: agent sessions, gate lines and install lines.</desc>
+  <defs>
+    <marker id="arrowhead-talos" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="604" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Inside Talos</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">a lightweight commander: it starts, relays, records and stops, and knows no vendor</text>
+
+  <path d="M340,140 L340,184" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-talos)"/>
+  <text x="350" y="166" font-size="11" fill="#73726c">one socket: launch plans, input, state</text>
+  <path d="M148,460 L148,496" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-talos)"/>
+  <path d="M340,460 L340,496" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-talos)"/>
+  <path d="M532,460 L532,496" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-talos)"/>
+
+  <rect x="215" y="92" width="250" height="48" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="113" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hephaestus</text>
+  <text x="340" y="130" font-size="12" fill="#993C1D" text-anchor="middle">starts Talos, renews the lease</text>
+
+  <rect x="40" y="188" width="600" height="272" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="60" y="214" font-size="14" font-weight="500" fill="#3d3d3a">Talos</text>
+  <text x="620" y="214" font-size="12" fill="#73726c" text-anchor="end">one per board</text>
+
+  <rect x="60" y="228" width="270" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="195" y="250" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Protocol</text>
+  <text x="195" y="268" font-size="12" fill="#185FA5" text-anchor="middle">handshake at one protocol version</text>
+
+  <rect x="350" y="228" width="270" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="485" y="250" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Lease</text>
+  <text x="485" y="268" font-size="12" fill="#185FA5" text-anchor="middle">one minute, renewed every 15 seconds</text>
+
+  <rect x="60" y="308" width="176" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="148" y="330" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Launcher</text>
+  <text x="148" y="348" font-size="12" fill="#185FA5" text-anchor="middle">a process group per child</text>
+
+  <rect x="252" y="308" width="176" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340" y="330" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Input relay</text>
+  <text x="340" y="348" font-size="12" fill="#185FA5" text-anchor="middle">messages, standing replies</text>
+
+  <rect x="444" y="308" width="176" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="532" y="330" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Stopper</text>
+  <text x="532" y="348" font-size="12" fill="#185FA5" text-anchor="middle">clean quit within 10 seconds</text>
+
+  <rect x="60" y="388" width="270" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="195" y="410" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Output reader</text>
+  <text x="195" y="428" font-size="12" fill="#854F0B" text-anchor="middle">every line to the child's event log</text>
+
+  <rect x="350" y="388" width="270" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="485" y="410" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Child record</text>
+  <text x="485" y="428" font-size="12" fill="#854F0B" text-anchor="middle">persisted: identity and status</text>
+
+  <rect x="60" y="500" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="148" y="522" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">claude -p</text>
+  <text x="148" y="540" font-size="12" fill="#5F5E5A" text-anchor="middle">agent session</text>
+
+  <rect x="252" y="500" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="522" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">gate line</text>
+  <text x="340" y="540" font-size="12" fill="#5F5E5A" text-anchor="middle">confined command</text>
+
+  <rect x="444" y="500" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="532" y="522" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">install line</text>
+  <text x="532" y="540" font-size="12" fill="#5F5E5A" text-anchor="middle">confined command</text>
+
+  <text x="60" y="582" font-size="12" fill="#73726c">Amber is on disk. Hephaestus reads an agent's question out of that agent's event log.</text>
+</svg><figcaption>Inside Talos. Hephaestus reaches it over one socket. A protocol part does the handshake at one protocol version and a
+lease part counts one minute between renewals. A launcher, an input relay and a stopper act on the children. An output
+reader writes each child&#39;s event log and a child record persists each child&#39;s identity and status. Its children are
+agent sessions, gate lines and install lines.</figcaption></figure>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Responsibility</th>
+<th>Today, in each Watcher (<code>src/lib/watcher/</code>)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Start each child from the launch plan it is given, in a process group of its own</td>
+<td>One Watcher process per child (<code>Watcher.ts</code>, <code>WatcherLaunch.ts</code>)</td>
+</tr>
+<tr>
+<td>Append every line a child writes to its standard output to that child&#39;s event log, synced to disk when a client asks for the durable entries and at the close</td>
+<td><code>events-&lt;instance&gt;.ndjson</code></td>
+</tr>
+<tr>
+<td>Report each child&#39;s state and an agent&#39;s question to Hephaestus</td>
+<td>State frames; Hephaestus reads the question out of the event log</td>
+</tr>
+<tr>
+<td>Pass input to an agent: a message, an answer, an interrupt</td>
+<td><code>write</code> frames</td>
+</tr>
+<tr>
+<td>Answer the standing replies of a launch plan: it refuses every tool-permission request but the question tool</td>
+<td>Launch file, rendered by <code>ClaudeCodeAdapter.ts</code></td>
+</tr>
+<tr>
+<td>Recognise the endings a launch plan names, first of all an ending on a network outage, and report them</td>
+<td>Does not exist: the Overseer&#39;s stream mapper reads a budget stop, a rate limit and a refused key, and every other failed result is one generic failure</td>
+</tr>
+<tr>
+<td>Stop a child&#39;s process tree and record its end</td>
+<td><code>Watcher.ts</code></td>
+</tr>
+<tr>
+<td>Persist its state: every child, its process identity and its status</td>
+<td>A claim file per Watcher</td>
+</tr>
+</tbody></table></div>
+<p>What changes against the Watcher:</p>
+<ul>
+<li><strong>One commander in place of a fleet.</strong> Today each job instance has its own Watcher, started from a bundle pinned to
+its code version, and the Overseer keeps reading Watchers of older protocol versions through a legacy reader until
+they end. All of that goes. Hephaestus speaks to exactly one Talos, at exactly one protocol version.</li>
+<li><strong>A protocol version of its own,</strong> bumped by hand when Talos&#39;s interface changes. The first frame of the
+handshake carries the version that Hephaestus requires, and that frame never changes shape, since it is how two
+versions learn that they differ. On a mismatch, in either direction, Talos quits cleanly, and Hephaestus, which has the
+current code, starts the right Talos. A downgrade is covered by the same rule. A change inside Talos that leaves its
+interface alone restarts nothing by itself: Gaia shows the running and the newest version, and the user restarts
+Talos cleanly from there (section 8).</li>
+<li><strong>A clean quit.</strong> Talos asks each agent to stop at the end of its turn, waits at most 10 seconds of real
+time, and then stops what is still running. A line is stopped at once and run again later. The worst case is a few
+lost turns per agent.</li>
+<li><strong>Persisted state.</strong> Talos records each child&#39;s status on disk whatever happens. An agent recorded as
+paused by a clean quit is resumed automatically through the new Talos, under the usual rules for slots and the usage
+limit. This is workflow: it is never counted as a crash and it waits for no instruction. The same record is what lets
+Hephaestus find and stop the orphans of a Talos that crashed.</li>
+<li><strong>A crash of Talos stops everything.</strong> Every child of the board stops or is orphaned. Hephaestus stops
+the orphans from the record, marks their jobs interrupted, writes the crash log and stops: a bug, and the forge
+stays off.</li>
+</ul>
+<p><strong>The supervision lease.</strong> Today the Watcher has no check that an Overseer is alive, so an agent whose Overseer is gone
+runs on with nobody routing its questions, watching its spend or noticing that it hangs. With the lease, a Talos that
+has had no contact from Hephaestus for one minute stops its agents, with the clean quit above. Their jobs count as
+interrupted and wait for an instruction; they are not paused. Talos itself stays, and waits for a Hephaestus. The
+lease stops agents only: an install or gate line runs to its end, and a gate is stopped after 15 minutes of real time.</p>
+<p>A naive lease makes a healthy forge stop its own agents. The lease is safe only with all of this:</p>
+<ul>
+<li><strong>A wake that is not an expiry.</strong> The lease runs on the wall clock, so after a sleep it has lapsed on
+paper, for a Hephaestus that is alive as much as for one that is gone. Talos therefore never stops its agents on the
+first look after a gap in its own running. It gives Hephaestus one renewal interval to make contact, or two where
+the interval is shorter than five seconds. The interval is 15 seconds. A renewal arrives: nothing happens. None
+arrives: Hephaestus is gone, the sleep counted, and Talos stops its agents. Talos sees the gap by itself, as two of its
+own timer ticks that lie far apart, so a suspended process is covered the same way.</li>
+<li><strong>An end of its own.</strong> Today a Watcher that is gone while its job runs with no result is recorded as <code>agent-crashed</code>
+or <code>watcher-lost</code>, and a session that exits cleanly with no report ends its job as failed. Two counted crashes
+(<code>agent-crashed</code>, <code>watcher-lost</code>) back to back on jobs of different tickets, with no verified ending between them,
+pause the board with an outage decision. A lease end and a clean quit each need an end reason and an interruption
+cause of their own that is not counted as a crash.</li>
+<li><strong>Renewal that the pass cannot starve.</strong> Git runs synchronously with no timeout (<code>GitProcess.ts</code>), a worktree add and
+the landing fast-forward among it, so a timer on Hephaestus&#39;s event loop does not fire during them. Renewal runs
+outside the loop, or every synchronous step is bounded well below the lease.</li>
+<li><strong>Margin through a Baton pass.</strong> The whole pass may take about 150 seconds (<code>BATON_PASS_OUTCOME_TRIES</code>), and after the
+release there is a wait of up to 60 seconds, the length of the lease, with no clear renewer. The successor renews from
+the moment it takes the Baton.</li>
+<li><strong>No vendor in Talos.</strong> The request to stop at the end of a turn and the interrupt are a vendor&#39;s input lines, so they
+arrive in the launch plan like a standing reply. So do the patterns of the endings that Talos recognises.</li>
+<li><strong>What a stop leaves behind.</strong> An agent stopped in the middle of a git command leaves an <code>index.lock</code> that only the
+worktree repair removes today. A resume after a stop has to clear it.</li>
+</ul>
+<p><strong>Recognising an ending on a network outage.</strong> Claude Code retries a failed call ten times by default and writes a
+line for each retry. When the retries run out, its closing result line is marked as an error and carries, as fields,
+that the cause was an API error and either that the host could not be reached or the status the server answered with
+(a 5xx or a 529). The agent adapter renders these as patterns in the launch plan, and Talos matches them on the
+fields of the child&#39;s own lines, never on free text, which a model can imitate. Talos reports the ending under a name
+of its own, so the job is not counted as failed or crashed. Today&#39;s standing replies compare only texts and booleans,
+so the patterns also need numbers and the count of retry lines.</p>
+<h3>3.3 Processes on a machine</h3>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 540" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Processes on a machine</title>
+  <desc>One Gaia per machine and one Hephaestus per board; Gaia calls Hephaestus's API for reads and commands. Hephaestus starts one Talos per board at the required protocol version and renews its lease. Talos commands every child: claude sessions and gate lines. Talos and its children outlive a Hephaestus restart, and Talos stops its agents after one minute without contact.</desc>
+  <defs>
+    <marker id="arrowhead-processes" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="538" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Processes on a machine</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">what runs, and what a Hephaestus restart leaves running</text>
+
+  <text x="340" y="176" font-size="11" fill="#73726c" text-anchor="middle">Gaia calls this API: reads and commands</text>
+
+  <path d="M340,252 L340,312" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-processes)"/>
+  <text x="350" y="280" font-size="11" fill="#73726c">starts it at the required version, renews the lease</text>
+
+  <path d="M340,372 L340,408" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-processes)"/>
+  <path d="M340,390 L148,390 L148,408" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-processes)"/>
+  <path d="M340,390 L532,390 L532,408" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-processes)"/>
+
+  <rect x="235" y="92" width="210" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="116" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Gaia</text>
+  <text x="340" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">one per machine</text>
+
+  <rect x="235" y="196" width="210" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="220" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hephaestus</text>
+  <text x="340" y="238" font-size="12" fill="#993C1D" text-anchor="middle">one per board, its API on loopback</text>
+
+  <rect x="40" y="296" width="600" height="220" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+
+  <rect x="190" y="316" width="300" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340" y="340" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Talos</text>
+  <text x="340" y="358" font-size="12" fill="#185FA5" text-anchor="middle">one per board, commands every child</text>
+
+  <rect x="58" y="412" width="180" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="148" y="434" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">claude -p</text>
+  <text x="148" y="452" font-size="12" fill="#5F5E5A" text-anchor="middle">builder session</text>
+
+  <rect x="250" y="412" width="180" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="434" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">gate line</text>
+  <text x="340" y="452" font-size="12" fill="#5F5E5A" text-anchor="middle">confined command</text>
+
+  <rect x="442" y="412" width="180" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="532" y="434" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">claude -p</text>
+  <text x="532" y="452" font-size="12" fill="#5F5E5A" text-anchor="middle">reviewer session</text>
+
+  <text x="58" y="488" font-size="12" fill="#73726c">This frame outlives a Hephaestus restart, as long as the Talos protocol version stays the same.</text>
+  <text x="58" y="504" font-size="12" fill="#73726c">Talos stops its agents after one minute without contact from Hephaestus.</text>
+</svg><figcaption>One Gaia per machine. Per board, one Hephaestus that serves its API on the loopback address, and one Talos that it
+starts at the required protocol version. Talos commands every child: claude sessions and gate lines. Talos and its
+children outlive a Hephaestus restart, and Talos stops its agents after one minute without contact from
+Hephaestus.</figcaption></figure>
+<ul>
+<li>Hephaestus keeps one loopback port, for reads and commands. The bearer token and the Host and Origin guards stay.
+No browser reaches it: Gaia&#39;s server is the only client, so the browser sessions and the page&#39;s content security
+policy leave with the Bridge.</li>
+<li>Talos and its children outlive a Hephaestus restart, for up to the lease. They do not outlive a change of Talos&#39;s
+protocol version: that is a clean quit and an automatic resume.</li>
+<li>Not every child is under a Watcher today. The Overseer spawns merged-tree gates, gate-profile runs and pipeline checks
+itself, each in its own process group, and keeps the set of them in memory. They die or are orphaned with it. They go
+under Talos with every other child (section 7).</li>
+<li>Machine-wide state stays what it is today: files under the monitor folder with no process behind them (slots, the
+usage marker, the agent limit, the registry). Each forge enforces them on itself. Nothing of it moves into Gaia.</li>
+</ul>
+<h3>3.4 The CLI</h3>
+<p>The CLI is the command-line face of the forge&#39;s contract and stays a first-class surface, also when the user no longer
+types it:</p>
+<ul>
+<li>the user, or a skill in the user&#39;s own agent, runs a verb and it writes through the store;</li>
+<li>an agent hosted under Talos runs the same verb, which relays through the Hatch and passes the Bouncer&#39;s role policy;</li>
+<li>machine setup (<code>init</code>, <code>update</code>, the login item, the machine limit) stays CLI, and Gaia forwards to it as it does today.</li>
+</ul>
+<p>Rule: outside Hephaestus, state changes only through a command. No skill and no agent writes a record file itself. This
+is close to today: the build and review prompts carry the ticket&#39;s text and forbid editing the ticket file, the product
+owner files through verbs, and the <code>forge-po</code> skill forbids writing under the data folder with a file tool.</p>
+<p>The CLI must also carry everything a forge needs with Gaia closed: showing that a forge is off after a crash, with its
+crash log, starting it again and resuming interrupted work.</p>
+<h3>3.5 The agents a forge hosts</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>In this plan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Builder, reviewer, merge agent</td>
+<td>Pipeline jobs under Talos, as today</td>
+</tr>
+<tr>
+<td>Intake (product owner) and pipeline setup (pipeline agent)</td>
+<td>Each has one definition, a skill. The forge can host it under Talos, confined, on a command; the user can invoke the same skill in an agent of their own. Records leave it only through CLI commands; files are inputs to a command or repository files. Intake already works this way: its hosted session starts by invoking the product owner&#39;s skill. Pipeline setup has no skill today, only the prompts under <code>resources/prompts/</code></td>
+</tr>
+<tr>
+<td>Assistant</td>
+<td>Stays in the code and does not start unless a board turns it on. This needs two changes: today a pass boots one whenever none is live and nothing holds it (<code>Playbook.ts</code>), and the <code>no-assistant</code> default fires only when no Assistant can come up (a usage limit, a failed authentication, a reached budget, repeated failed boots), not when one is switched off. Without a new trigger, incidents would sit open</td>
+</tr>
+<tr>
+<td>Flint&#39;s brain</td>
+<td>Left out of the new core. Its only transport is an HTTP endpoint that goes away, and its log records stay readable. Flint the sprite is interface and moves with the Bridge&#39;s views</td>
+</tr>
+</tbody></table></div>
+</section>
+<section id="section-4" data-section="4"><h2><span class="section-number">4</span>The store and the contract</h2>
+<p>The forge has one contract with three parts. It is shaped so that it can cross a network later:</p>
+<ul>
+<li><strong>Commands in.</strong> File a ticket, answer a question, change the pipeline, stop the forge, resume a ticket. One service
+already applies 76 command kinds<sup class="citation"><a href="#source-2">[2]</a></sup> for the CLI, the Hatch and the HTTP endpoint alike (<code>src/services/control/</code>). Outside
+Hephaestus a command is a CLI verb or a call to the command endpoint; both reach that one service.</li>
+<li><strong>Documents out.</strong> The board, a ticket, a job&#39;s progress, the forge&#39;s presence. Hephaestus assembles them and serves
+them over the read API, so derived state is built once, on the forge&#39;s side. This is what the Overseer does today for
+the Bridge.</li>
+<li><strong>A subscription</strong> to changes: the event and job streams of the read API.</li>
+</ul>
+<p>The store sits inside the forge, behind a port that the CLI and Hephaestus use in-process:</p>
+<ul>
+<li><strong>Local adapter</strong>, built now: on files. It wraps today&#39;s tracker stores, the tracker lock and the single hold of
+<code>writeTracker</code>. It is the only code that names the path of a record.</li>
+<li><strong>Remote adapter</strong>, not built: a client of a forge&#39;s API. The forge behind it owns the database; no client holds
+database credentials, and validation runs in one place.</li>
+</ul>
+<p>One limit of this port: <strong>Hephaestus&#39;s own pass is not made of commands.</strong> It changes the board
+directly inside one hold (<code>endJob</code>, <code>interruptJob</code>, <code>openIncident</code>) and runs git inside that hold. So the port has two
+faces: commands for the CLI, and a board transaction for Hephaestus. A remote adapter cannot carry a hold that spans a
+git fast-forward; the remote future needs that pass redesigned, which this plan does not do.</p>
+<p>Because Hephaestus serves the documents, fields that exist only in its memory (notices, the runtime state, the quiet
+counts) reach a reader, and no outside process reads the board&#39;s files. The Overseer&#39;s own reader of the board state
+takes no lock today (<code>docs/reference/overseer-api.md</code>), so a served document can still show a change half written.</p>
+<p>What stays outside the store, under the operating system port, because it is local by nature: worktrees and the agent&#39;s
+working tree, Talos&#39;s launch files, sockets and event logs, slot files, and the vendor&#39;s configuration files. A reader
+gets a job&#39;s live output from the read API&#39;s job stream, never by knowing where an event log is.</p>
+<p>Consequences:</p>
+<ul>
+<li><strong>Hand-editing stored records ends.</strong> It overturns today&#39;s local rule that tickets are hand-edited between runs<sup class="citation"><a href="#source-4">[4]</a></sup>.</li>
+<li><strong>Version.</strong> The read API keeps the system versions and the compatibility registry it has today, so an endpoint can be
+served at two versions side by side. The stored formats keep their own versions inside the local adapter.</li>
+<li><strong><code>packages/forge-contracts</code></strong> already holds 9 command kinds, the summary and monitor documents and the versions, and
+Gaia imports it. The board and ticket documents that the Bridge&#39;s views read are not in it; adding them is a change of
+the system version.</li>
+<li><strong>Gaia&#39;s commands stay under the system versions.</strong> The command endpoint keeps what it has today: the token, and the
+refusal of commands while an install change holds launches. The contract package holds 9 of the 76 command kinds; the
+views need more of them there, which only adds and so raises the minor version.</li>
+</ul>
+</section>
+<section id="section-5" data-section="5"><h2><span class="section-number">5</span>Ports and adapters</h2>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 438" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Ports and adapters of the forge</title>
+  <desc>The forge core calls three ports. The operating system port has a macOS adapter proven first and Linux and Windows adapters that exist today and are kept. The agent port has a Claude Code adapter and other vendors later. The store port is new, with a local files adapter first and a remote forge API adapter later.</desc>
+  <defs>
+    <marker id="arrowhead-ports" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="436" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Ports and adapters of the forge</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">solid: exists or built first · dashed: later</text>
+
+  <path d="M340,148 L340,192" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+  <path d="M340,170 L140,170 L140,192" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+  <path d="M340,170 L540,170 L540,192" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+
+  <path d="M140,252 L140,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+  <path d="M340,252 L340,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+  <path d="M540,252 L540,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-ports)"/>
+
+  <rect x="140" y="92" width="400" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="116" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Forge core: Hephaestus and Talos</text>
+  <text x="340" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">calls ports; names no platform, no vendor, no record path</text>
+
+  <rect x="50" y="196" width="180" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="140" y="220" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Operating system port</text>
+  <text x="140" y="238" font-size="12" fill="#993C1D" text-anchor="middle">processes, git, sandbox</text>
+
+  <rect x="250" y="196" width="180" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="340" y="220" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Agent port</text>
+  <text x="340" y="238" font-size="12" fill="#993C1D" text-anchor="middle">launch, input, events</text>
+
+  <rect x="450" y="196" width="180" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="540" y="220" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Store port (new)</text>
+  <text x="540" y="238" font-size="12" fill="#993C1D" text-anchor="middle">commands, documents, watch</text>
+
+  <rect x="50" y="292" width="180" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="140" y="314" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">macOS</text>
+  <text x="140" y="332" font-size="12" fill="#185FA5" text-anchor="middle">new work proven here first</text>
+
+  <rect x="250" y="292" width="180" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="340" y="314" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Claude Code</text>
+  <text x="340" y="332" font-size="12" fill="#185FA5" text-anchor="middle">the one adapter today</text>
+
+  <rect x="450" y="292" width="180" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="540" y="314" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Local files</text>
+  <text x="540" y="332" font-size="12" fill="#185FA5" text-anchor="middle">built first</text>
+
+  <rect x="50" y="362" width="180" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="140" y="384" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Linux, Windows</text>
+  <text x="140" y="402" font-size="12" fill="#185FA5" text-anchor="middle">exist today, kept</text>
+
+  <rect x="250" y="362" width="180" height="52" rx="8" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="340" y="384" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Other vendors</text>
+  <text x="340" y="402" font-size="12" fill="#5F5E5A" text-anchor="middle">later</text>
+
+  <rect x="450" y="362" width="180" height="52" rx="8" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="540" y="384" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Remote forge API</text>
+  <text x="540" y="402" font-size="12" fill="#5F5E5A" text-anchor="middle">later</text>
+</svg><figcaption>The forge core calls three ports. The operating system port has a macOS adapter first and Linux and Windows adapters
+that exist today. The agent port has a Claude Code adapter first and other vendors later. The store port has a local
+files adapter first and a remote adapter later. The first two ports exist in today&#39;s code; the store port does
+not.</figcaption></figure>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Today</th>
+<th>Work in this plan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Operating system</td>
+<td>Exists. <code>platformPortsFor</code> builds one frozen record of ports with darwin, linux and win32 adapters; <code>src/PlatformBoundary.spec.ts</code> refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows</td>
+<td>Carries over. &quot;macOS first&quot; means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only</td>
+</tr>
+<tr>
+<td>Agent</td>
+<td>Mostly exists. <code>AgentAdapter</code> in <code>src/lib/agent-launch/</code> is the port, <code>src/lib/claude-code/</code> the one adapter</td>
+<td>Close the leaks: <code>ClaudeTranscripts.ts</code> inside the Overseer&#39;s services, the install-time hook entry in a repository&#39;s <code>.claude/settings.local.json</code>, the <code>bash-domains</code> hook, and session confinement resting on the vendor&#39;s own sandbox. Retry policy is the adapter&#39;s: it sets what the vendor exposes. A skill becomes &quot;an instruction bundle the adapter can load&quot;</td>
+</tr>
+<tr>
+<td>Store</td>
+<td>Does not exist. Files are the most pervasive dependency in forge</td>
+<td>New (section 4). Defined with a contract spec that any adapter must pass, the convention the platform adapters already use</td>
+</tr>
+</tbody></table></div>
+<p>Building a port with one adapter goes against the conventions&#39; rule that code is generalised on its second consumer.
+For the store that is deliberate; it takes a row in the Deviations table when it is built.</p>
+</section>
+<section id="section-6" data-section="6"><h2><span class="section-number">6</span>The user in the workflow</h2>
+<p>The forge never decides a user&#39;s question. It records the question and moves on.</p>
+<ul>
+<li><strong>A question parks its job.</strong> The forge keeps the question with its context, its choices and a recommendation, and
+Gaia shows it to the user. The session holds no slot, the ticket shows that it waits for the user, and the other
+tickets continue. An answer, written as a command from Gaia or the CLI, resumes the session.</li>
+<li><strong>Two scopes of halt, both persisted.</strong> A question, a conflict or a review outcome halts one ticket. A refused API key,
+a reached budget or an install mismatch halts the board, as today.</li>
+<li><strong>Planned waits are not halts.</strong> A usage limit that resets at a known time, a free slot, an answered question: the
+workflow continues by itself when the condition clears.</li>
+</ul>
+</section>
+<section id="section-7" data-section="7"><h2><span class="section-number">7</span>Interruption and recovery</h2>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 528" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>What a start finds, and what follows</title>
+  <desc>Hephaestus starts and reconciles the record. If a stop or a handover is on record as completed, it ended on purpose. If the boot session differs from the presence record, the machine went down. Otherwise the forge crashed, which is a bug: the forge stayed off until the user started it again, and the crash log is kept. In every case work starts again only on the user's instruction.</desc>
+  <defs>
+    <marker id="arrowhead-recovery" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="526" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">What a start finds, and what follows</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">reconciling is automatic; starting work again waits for an instruction</text>
+
+  <path d="M175,148 L175,176" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <path d="M175,236 L175,264" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <text x="184" y="254" font-size="11" fill="#73726c">no</text>
+  <path d="M175,324 L175,352" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <text x="184" y="342" font-size="11" fill="#73726c">no</text>
+  <path d="M175,412 L175,440" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <text x="184" y="430" font-size="11" fill="#73726c">the user started it again</text>
+
+  <path d="M280,208 L406,208" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <text x="344" y="202" font-size="11" fill="#73726c" text-anchor="middle">yes</text>
+  <path d="M280,296 L406,296" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <text x="344" y="290" font-size="11" fill="#73726c" text-anchor="middle">yes</text>
+
+  <path d="M515,322 L515,440" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+  <path d="M620,208 L634,208 L634,470 L624,470" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-recovery)"/>
+
+  <rect x="70" y="92" width="210" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="175" y="116" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Hephaestus starts</text>
+  <text x="175" y="134" font-size="12" fill="#5F5E5A" text-anchor="middle">reads the store, reconciles</text>
+
+  <rect x="70" y="180" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="175" y="204" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Stop or handover on record?</text>
+  <text x="175" y="222" font-size="12" fill="#185FA5" text-anchor="middle">recorded as completed</text>
+
+  <rect x="410" y="182" width="210" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="515" y="204" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Ended on purpose</text>
+  <text x="515" y="222" font-size="12" fill="#854F0B" text-anchor="middle">after a stop, interrupted tickets wait</text>
+
+  <rect x="70" y="268" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="175" y="292" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Different boot session?</text>
+  <text x="175" y="310" font-size="12" fill="#185FA5" text-anchor="middle">against the presence record</text>
+
+  <rect x="410" y="270" width="210" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="515" y="292" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">The machine went down</text>
+  <text x="515" y="310" font-size="12" fill="#854F0B" text-anchor="middle">interrupted tickets wait</text>
+
+  <rect x="70" y="356" width="210" height="56" rx="8" fill="#FCEBEB" stroke="#F3D2D2"/>
+  <text x="175" y="380" font-size="14" font-weight="500" fill="#791F1F" text-anchor="middle">The forge crashed: a bug</text>
+  <text x="175" y="398" font-size="12" fill="#A32D2D" text-anchor="middle">stayed off, crash log kept</text>
+
+  <rect x="70" y="444" width="550" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="345" y="468" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Work starts again only on the user's instruction</text>
+  <text x="345" y="486" font-size="12" fill="#5F5E5A" text-anchor="middle">resume, start fresh or park: for one ticket, or for everything interrupted</text>
+</svg><figcaption>How a start is classified. A stop or a handover completed on record means it ended on purpose. A different boot
+session means the machine went down. The same boot session with neither on record means the forge crashed. In the first
+two cases the interrupted tickets wait for an instruction; after a crash the forge stays off until the user starts it again, and the
+crash log is kept.</figcaption></figure>
+<p><strong>Where the code stands.</strong> Much of this exists, and it is automatic today:</p>
+<ul>
+<li><code>interrupted</code> is a job state with eight causes, among them <code>watcher-lost</code>, <code>agent-crashed</code>, <code>reboot</code>, <code>usage-limit</code>,
+<code>answer-delivery</code> and <code>handoff-red</code>.</li>
+<li>At start, Regrouping contacts every live Watcher, stops the orphans of a dead one, and records a foreign boot as the
+cause <code>reboot</code>. The boot identity (<code>kern.bootsessionuuid</code> on macOS, <code>boot_id</code> on Linux) is already stored in the Baton,
+the Watcher record and the slot files.</li>
+<li>The Playbook then resumes by itself: a crash up to <code>JOB_RESUMES_BEFORE_FRESH</code> times, a reboot, an answer delivery or a
+usage limit whatever the count. A real-system spec covers the crash, reboot and update matrix
+(<code>CrashMatrix.integration.spec.ts</code>).</li>
+</ul>
+<p>So recovery on instruction, and no retry after a crash, fill no gap. They reverse tested behaviour, in every project
+that runs forge. Since nothing that exists has to be kept, the change is made outright.</p>
+<p><strong>Every start is a recovery.</strong> There is no special shutdown path to trust: a stop is treated as if the power went out,
+and a start reads the store and continues from it.</p>
+<p><strong>Recovery has two halves.</strong></p>
+<ul>
+<li><em>Reconcile, automatic.</em> Hephaestus makes the record truthful: a job with no live Talos is marked interrupted, a landing
+that did complete is recorded, dead slots are released, orphaned process groups are stopped. It starts no work.</li>
+<li><em>Resume, on instruction.</em> Resuming a session, running a gate line again or retrying a merge waits for the user: one
+instruction for a ticket, or one for everything interrupted. <code>job-lost</code> and <code>resume-failed</code> exist as incident kinds
+today, with fresh and park among their moves.</li>
+</ul>
+<p><strong>Which interruptions wait for an instruction</strong> has to be listed, because &quot;interrupted&quot; covers routine workflow too:</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Today</th>
+<th>In this plan</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>answer-delivery</code>, <code>handoff-red</code>, <code>usage-limit</code></td>
+<td>Resumes by itself</td>
+<td>Unchanged: these are steps of the workflow</td>
+</tr>
+<tr>
+<td>Paused by a clean quit of Talos for a new protocol version</td>
+<td>Does not exist</td>
+<td>Resumes by itself: a step of the workflow</td>
+</tr>
+<tr>
+<td><code>reboot</code>, a stop on purpose, a lease end</td>
+<td>Resumes by itself</td>
+<td>Waits for an instruction</td>
+</tr>
+<tr>
+<td><code>agent-crashed</code>, <code>watcher-lost</code> (the agent&#39;s side died, the forge did not)</td>
+<td>Resumes twice, then starts fresh</td>
+<td>Resumes twice, then waits for an instruction</td>
+</tr>
+<tr>
+<td><code>authentication-failed</code>, <code>forced-stop-refused</code></td>
+<td>Does not resume by itself: a refused key opens a board decision that holds every launch, and a refused forced stop never resumes</td>
+<td>Unchanged</td>
+</tr>
+<tr>
+<td>The forge crashed: Hephaestus, or Talos</td>
+<td>Resumes by itself</td>
+<td>A bug: the forge stays off until the user starts it again</td>
+</tr>
+</tbody></table></div>
+<p><strong>What kind of start it is</strong> is recorded, because only one kind is a bug:</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Evidence at the start</th>
+<th>Meaning</th>
+<th>What follows</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>A Baton pass completed on record</td>
+<td>A handover, not a stop</td>
+<td>Nothing is interrupted</td>
+</tr>
+<tr>
+<td>A stop completed on record</td>
+<td>Stopped on purpose</td>
+<td>Interrupted tickets wait for an instruction</td>
+</tr>
+<tr>
+<td>The boot session differs from the one in the Baton</td>
+<td>The machine went down</td>
+<td>Interrupted tickets wait for an instruction</td>
+</tr>
+<tr>
+<td>Same boot session, neither on record</td>
+<td>The forge crashed</td>
+<td>A bug. The forge stayed off until this start, which the user made, and its interrupted tickets wait for an instruction. The crash log is kept (active jobs and their steps, the tail of the log, the uncaught error where there was one)</td>
+</tr>
+</tbody></table></div>
+<p>Known misreadings of this table, not solved here: a crash followed by a reboot before the next start reads as &quot;the
+machine went down&quot;, which is the usual path on a laptop and hides the bug; a stop on record followed by a wedged process
+that is killed reads as &quot;on purpose&quot; and hides a hang; a kill by the user or by the operating system for memory leaves the
+forge off as a bug. Judging a crash by how stale the heartbeat is against the boot time narrows the first.</p>
+<p><strong>What reconcile cannot see today.</strong> Merged-tree gates, gate-profile runs and pipeline checks are children of the
+Overseer itself. On disk they leave a gate slot that names the Overseer&#39;s process and counts as free once that process
+is gone, and, for profile runs and pipeline checks, a board record and a worktree that the next start marks stopped and
+removes without stopping the process. After a crash the next Hephaestus can gate a worktree again while the orphan
+still runs. They move under Talos, whose persisted record names every child.</p>
+<p><strong>Failure handling in one list.</strong></p>
+<ul>
+<li><em>Network trouble:</em> the agent&#39;s own retry. When the retries run out, Talos reports an ending on a network outage,
+the job is not counted as failed or crashed, and Gaia shows it. What follows is open (section 12).</li>
+<li><em>Usage limit, parked question, busy slot:</em> planned waits that end by themselves.</li>
+<li><em>Machine down, or stopped on purpose:</em> reconciled; interrupted tickets wait.</li>
+<li><em>Forge crash:</em> a bug, with a crash log, an alert in Gaia and at the CLI, and no retry: the forge stays off until
+the user starts it again.</li>
+<li><em>Agent crash, the forge still up:</em> resumed twice, then it waits for an instruction.</li>
+<li><em>Hephaestus silent for the lease:</em> Talos stops its agents, which then count as interrupted, not as crashed.</li>
+<li><em>Talos at another protocol version:</em> a clean quit, the right Talos starts, and the paused agents resume by themselves.</li>
+<li><em>Talos crash:</em> a bug, like a crash of Hephaestus. Everything of the board stops and the forge stays off.</li>
+<li><em>A pass that fails,</em> for example because another process held the lock past its five seconds: retried at the next
+wake-up today. It is neither a crash nor an interruption and needs its own name.</li>
+</ul>
+<p>Retrying an expected condition a counted number of times is workflow. Retrying after something that should never happen
+hides it.</p>
+<p><strong>What must be persisted</strong> is known in part. Held only in memory today: the event replay buffer, the pass state and
+fingerprint, the merge-forecast and main-line caches, the install-watch answer, the quiet-job counts, the Assistant&#39;s
+quiet watch, the notices and the runtime state, and the in-process gate children. Whether every Airlock step is safe to
+redo or detectable as done has not been traced.</p>
+</section>
+<section id="section-8" data-section="8"><h2><span class="section-number">8</span>Gaia</h2>
+<p>Gaia inventories, displays and forwards. The test for anything proposed for Gaia: does every forge still do its full job
+with Gaia closed?</p>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 590" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Inside Gaia</title>
+  <desc>A browser shows Gaia as one window in one design, and can show one forge maximized in a tab of its own. Inside Gaia, the interface has an inventory of forges, the board views that came from the Bridge, conversations with hosted agents and warnings. Gaia's server is the only client of a forge. It has a forge client that speaks one forge version, a registry reader and a CLI runner. Below Gaia are each forge's Hephaestus API, the registry file and the forge CLI.</desc>
+  <defs>
+    <marker id="arrowhead-gaia" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="588" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Inside Gaia</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">one interface for every forge of the machine, in one design, with no embedded page</text>
+
+  <path d="M195,140 L195,168" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M485,140 L485,168" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M340,264 L340,288" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M340,344 L340,368" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M148,444 L148,480" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M340,444 L340,480" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+  <path d="M532,444 L532,480" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-gaia)"/>
+
+  <rect x="60" y="92" width="270" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="195" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Browser window</text>
+  <text x="195" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">every forge, side by side</text>
+
+  <rect x="350" y="92" width="270" height="48" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="485" y="113" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">A tab of its own</text>
+  <text x="485" y="130" font-size="12" fill="#5F5E5A" text-anchor="middle">one forge, maximized</text>
+
+  <rect x="40" y="172" width="600" height="272" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="60" y="198" font-size="14" font-weight="500" fill="#3d3d3a">Gaia</text>
+  <text x="620" y="198" font-size="12" fill="#73726c" text-anchor="end">one per machine</text>
+
+  <rect x="60" y="212" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="124" y="234" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Inventory</text>
+  <text x="124" y="252" font-size="12" fill="#185FA5" text-anchor="middle">every local forge</text>
+
+  <rect x="204" y="212" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="268" y="234" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Board views</text>
+  <text x="268" y="252" font-size="12" fill="#185FA5" text-anchor="middle">from the Bridge</text>
+
+  <rect x="348" y="212" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="412" y="234" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Conversations</text>
+  <text x="412" y="252" font-size="12" fill="#185FA5" text-anchor="middle">hosted agents</text>
+
+  <rect x="492" y="212" width="128" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="556" y="234" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Warnings</text>
+  <text x="556" y="252" font-size="12" fill="#185FA5" text-anchor="middle">a forge is down</text>
+
+  <rect x="60" y="292" width="560" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="314" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Gaia's server</text>
+  <text x="340" y="332" font-size="12" fill="#5F5E5A" text-anchor="middle">serves the interface; the only client of a forge</text>
+
+  <rect x="60" y="372" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="148" y="394" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Forge client</text>
+  <text x="148" y="412" font-size="12" fill="#5F5E5A" text-anchor="middle">one forge version</text>
+
+  <rect x="252" y="372" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="394" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Registry reader</text>
+  <text x="340" y="412" font-size="12" fill="#5F5E5A" text-anchor="middle">which forges exist</text>
+
+  <rect x="444" y="372" width="176" height="52" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="532" y="394" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">CLI runner</text>
+  <text x="532" y="412" font-size="12" fill="#5F5E5A" text-anchor="middle">start, stop, set up</text>
+
+  <rect x="60" y="484" width="176" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="148" y="506" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Hephaestus API</text>
+  <text x="148" y="524" font-size="12" fill="#993C1D" text-anchor="middle">reads and commands</text>
+
+  <rect x="252" y="484" width="176" height="52" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="340" y="506" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Registry file</text>
+  <text x="340" y="524" font-size="12" fill="#854F0B" text-anchor="middle">forges register themselves</text>
+
+  <rect x="444" y="484" width="176" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="532" y="506" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">forge CLI</text>
+  <text x="532" y="524" font-size="12" fill="#993C1D" text-anchor="middle">the forge's own verbs</text>
+
+  <text x="60" y="566" font-size="12" fill="#73726c">Gaia holds no pipeline state: with Gaia closed, every forge still does its full job.</text>
+</svg><figcaption>Inside Gaia. A browser shows every forge in one window, or one forge maximized in a tab of its own. The interface
+holds the inventory, the board views that came from the Bridge, conversations with hosted agents and warnings. Gaia&#39;s
+server is the only client of a forge, with a forge client at one forge version, a registry reader and a CLI runner.
+Below are each Hephaestus API, the registry file and the forge CLI.</figcaption></figure>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Gaia does</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Inventory the forges of this machine</td>
+<td>The registry file, as today. A forge registers itself; Gaia identifies a project by its forge</td>
+</tr>
+<tr>
+<td>Display a board, its progress and its agents&#39; output</td>
+<td>The read API of that forge&#39;s Hephaestus. The Bridge&#39;s views become Gaia&#39;s own, in one design, and keep reading what they read today</td>
+</tr>
+<tr>
+<td>Show one forge maximized</td>
+<td>The same views at full size, in the window or in a browser tab of its own. It is a route of Gaia, never an embedded page</td>
+</tr>
+<tr>
+<td>Forward the user&#39;s instructions</td>
+<td>Posts the command to that forge&#39;s command endpoint. Validation, role policy and effect are the forge&#39;s. The same command from a CLI verb does the same thing</td>
+</tr>
+<tr>
+<td>Start or stop a forge, set the machine limit</td>
+<td>Through the CLI, as today. A facilitation</td>
+</tr>
+<tr>
+<td>Alert that a forge crashed or is down, and what is interrupted</td>
+<td>Watches presence. It alerts and offers to start the forge; it never restarts one by itself</td>
+</tr>
+<tr>
+<td>Show that an agent ended on a network outage</td>
+<td>The job&#39;s ending, as Talos reported it, in the read API</td>
+</tr>
+<tr>
+<td>Show the running and the newest version of Hephaestus and of Talos, and restart each cleanly</td>
+<td>The versions come from the read API and the installed program. A clean restart of Hephaestus is a Baton pass; of Talos, a clean quit with automatic resume</td>
+</tr>
+</tbody></table></div>
+<p>How Gaia reaches a forge today, in three ways. It runs the forge&#39;s CLI (<code>start</code>, <code>stop</code>, <code>init</code>, <code>update</code> and the
+like), which stays. It embeds each Overseer&#39;s Bridge in an iframe, with session codes, the embed message channel and
+the <code>frame-ancestors</code> record: all of that goes. And it calls the Overseer over HTTP: versions, identity and the summary
+with no token, and with the token the monitor snapshot and stream, commands (which also start and stop Flint&#39;s brain)
+and session codes. The reads and the command call stay, and the session codes go with the iframe.</p>
+<p>What the API keeps, because the views use it today: the board state, the event stream, the job transcript and
+gate-profile streams, job files (the report, the gate log), pictures and their upload, the summary and the monitor
+snapshot, identity and versions, the command endpoint and the nudge. What it loses: the session routes, the page itself
+and Flint&#39;s ask route. What needs a new home: <code>forge open</code> and the <code>progress.html</code> stub lose their target, because a
+forge may not name Gaia (<code>src/ClientNames.spec.ts</code>).</p>
+<p>What this path gives and costs:</p>
+<ul>
+<li><strong>Two programs, released apart.</strong> Forge and Gaia stay released apart and meet through system versions; Gaia keeps
+supporting one forge version and testing against recorded answers of the forge&#39;s API<sup class="citation"><a href="#source-5">[5]</a></sup>.</li>
+<li><strong>A forge that is down can be neither displayed nor instructed from Gaia.</strong> Gaia lists it from the registry, says that
+it is down and offers to start it. The CLI still writes to the store with no Hephaestus running.</li>
+<li><strong>A warning reaches only someone looking at Gaia.</strong> With Gaia closed, a forge that is off after a crash would sit in
+silence, so the CLI shows it too (section 3.4).</li>
+<li><strong>Conversations with hosted agents need nothing new in the forge.</strong> A message to an intake or a pipeline setup session
+is a command that exists (<code>job-message</code>), a picture goes up through the upload route that exists (for an intake
+session only, as today), and the agent&#39;s output is the job stream.</li>
+</ul>
+</section>
+<section id="section-9" data-section="9"><h2><span class="section-number">9</span>Kept possible, not built</h2>
+<p>For a team sharing one forge through a remote store, each member&#39;s forge would work the tickets allocated to it, in
+full, and each member&#39;s Gaia would show their own forges. An allocator (Zeus) would decide the allocation. To keep that
+possible, the design carries four small seams and nothing more:</p>
+<ol>
+<li>The contract&#39;s outside face is made of commands, documents and a subscription, so a remote adapter is a client of an
+API.</li>
+<li>A ticket can carry which forge runs it, defaulting to the one forge. Zeus is whoever writes that field.</li>
+<li>Landing stays one step with a compare-and-swap contract. Forge&#39;s git code makes no fetch, pull or push call today,
+so landing is local; nothing else may assume a local main line.</li>
+<li>A forge&#39;s own capacity is a fact it can publish.</li>
+</ol>
+<p>Left out on purpose: claiming and leases between forges, a merge queue, identity and permissions, schema migration of a
+shared store, relaying live agent output, offline work, and the redesign of Hephaestus&#39;s pass that a remote store needs
+(section 4).</p>
+</section>
+<section id="section-10" data-section="10"><h2><span class="section-number">10</span>What is removed</h2>
+<ul>
+<li>From Hephaestus: <code>BrowserSessions</code> and the session routes, the Bridge bundle build, the render service&#39;s HTML, the
+Flint brain files. The server, the command route, the event broker and the monitor stream stay.</li>
+<li>From the system: the Bridge as a program, and the embed machinery between Gaia and a Bridge (the iframe, session
+codes, the message channel, the <code>frame-ancestors</code> records).</li>
+<li>From practice: hand-editing a stored record.</li>
+</ul>
+</section>
+<section id="section-11" data-section="11"><h2><span class="section-number">11</span>Migration</h2>
+<figure class="diagram"><svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 680 710" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Migration stages</title>
+  <desc>Ten stages in order, coloured by where the work lands. Across the repository: stage 0, trace and decide, stage 1, close the monorepo migration, and stage 9, the rename. In forge: stage 2, Talos the commander, stage 3, presence and recovery, stage 4, the package extraction, stage 5, the store port, and stage 8, shrinking the HTTP surface. In Gaia: stage 6, the views one at a time, and stage 7, conversations with hosted agents.</desc>
+  <defs>
+    <marker id="arrowhead-migration" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="708" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Migration stages</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">the rename goes last; the views move before the HTTP surface shrinks</text>
+
+  <path d="M340,136 L340,147" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,194 L340,205" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,252 L340,263" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,310 L340,321" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,368 L340,379" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,426 L340,437" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,484 L340,495" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,542 L340,553" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+  <path d="M340,600 L340,611" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#arrowhead-migration)"/>
+
+  <rect x="60" y="92" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="119" font-size="14" font-weight="500" fill="#444441">0  Trace and decide</text>
+  <text x="600" y="119" font-size="12" fill="#5F5E5A" text-anchor="end">recovery as built; standing decisions revised</text>
+
+  <rect x="60" y="150" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="177" font-size="14" font-weight="500" fill="#444441">1  Close the monorepo migration</text>
+  <text x="600" y="177" font-size="12" fill="#5F5E5A" text-anchor="end">no moving base</text>
+
+  <rect x="60" y="208" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="235" font-size="14" font-weight="500" fill="#712B13">2  Talos, the commander</text>
+  <text x="600" y="235" font-size="12" fill="#993C1D" text-anchor="end">one per board, protocol version, lease</text>
+
+  <rect x="60" y="266" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="293" font-size="14" font-weight="500" fill="#712B13">3  Presence and recovery</text>
+  <text x="600" y="293" font-size="12" fill="#993C1D" text-anchor="end">resume on instruction; a crash stays off</text>
+
+  <rect x="60" y="324" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="351" font-size="14" font-weight="500" fill="#712B13">4  Extract the packages</text>
+  <text x="600" y="351" font-size="12" fill="#993C1D" text-anchor="end">tracker model, documents, commands</text>
+
+  <rect x="60" y="382" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="409" font-size="14" font-weight="500" fill="#712B13">5  Store port</text>
+  <text x="600" y="409" font-size="12" fill="#993C1D" text-anchor="end">local adapter, contract spec</text>
+
+  <rect x="60" y="440" width="560" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="80" y="467" font-size="14" font-weight="500" fill="#0C447C">6  Gaia hosts the views</text>
+  <text x="600" y="467" font-size="12" fill="#185FA5" text-anchor="end">one view at a time; HTTP still runs</text>
+
+  <rect x="60" y="498" width="560" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="80" y="525" font-size="14" font-weight="500" fill="#0C447C">7  Conversations with hosted agents</text>
+  <text x="600" y="525" font-size="12" fill="#185FA5" text-anchor="end">intake and pipeline setup in Gaia</text>
+
+  <rect x="60" y="556" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="583" font-size="14" font-weight="500" fill="#712B13">8  Shrink the HTTP surface</text>
+  <text x="600" y="583" font-size="12" fill="#993C1D" text-anchor="end">reads and commands stay; version major</text>
+
+  <rect x="60" y="614" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="641" font-size="14" font-weight="500" fill="#444441">9  Rename the Overseer</text>
+  <text x="600" y="641" font-size="12" fill="#5F5E5A" text-anchor="end">one commit, boards set up anew</text>
+
+  <text x="60" y="684" font-size="12" fill="#73726c">Grey: across the repository.  Coral: in forge.  Blue: in Gaia (stage 7: both).</text>
+</svg><figcaption>Ten stages in order, coloured by where the work lands. Across the repository: trace and decide, close the monorepo
+migration, and the rename at the very end. In forge: Talos the commander, presence and recovery, the package
+extraction, the store port, and shrinking the HTTP surface. In Gaia: the views, one at a time, and conversations
+with hosted agents.</figcaption></figure>
+<p>No forge does this work. Orchestrated Opus sessions in this repository do every stage, outside both trackers, so no
+tracker&#39;s reach limits a stage and one change may span both apps and the packages. The owner takes the decisions of
+stage 0. Each stage ends with <code>bun run verify</code> green at the root and a forge that works end to end on a scratch
+board.</p>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>What</th>
+<th>Where</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0. Trace and decide</td>
+<td>Trace recovery from what exists (<code>CrashMatrix.integration.spec.ts</code>, <code>Regrouping.ts</code>, <code>JobResumption.ts</code>) and what an Airlock leaves half done. Record a real session that ends on an outage. The owner settles the items to decide of section 12, and names the packages that stage 4 creates</td>
+<td>The repository</td>
+<td>M</td>
+</tr>
+<tr>
+<td>1. Close the monorepo migration</td>
+<td>Whatever <code>docs/monorepo/migration.md</code> still has open, so this work does not start on a moving base</td>
+<td>The repository</td>
+<td>S</td>
+</tr>
+<tr>
+<td>2. Talos, the commander</td>
+<td>One Talos per board in place of the Watcher fleet: its protocol version and the handshake, the persisted state, the clean quit, the lease with an end of its own, and every child under it, the Overseer&#39;s own gate runs among them. The fleet, the pinned bundles and the legacy reader go. A gate is bounded at 15 minutes. The ending patterns and the ending on a network outage. No mixed fleet is supported: existing boards are set up anew</td>
+<td>forge</td>
+<td>L</td>
+</tr>
+<tr>
+<td>3. Presence and recovery</td>
+<td>The heartbeat and the completed stop and handover on record; reconcile, then resume on instruction; the crash log and the forge that stays off; two resumes of a crashed agent and no more; the CLI path to see a crash, start again and resume</td>
+<td>forge</td>
+<td>L</td>
+</tr>
+<tr>
+<td>4. Extract the packages</td>
+<td>The tracker model (about 110 files, imported by path from about 280 forge files) and the board documents become packages, since a package imports nothing from <code>apps/</code> and the views need them in Gaia. The import-direction guard and the Bridge&#39;s include list change with it. Which packages exist is settled in stage 0</td>
+<td>forge</td>
+<td>XL</td>
+</tr>
+<tr>
+<td>5. Store port</td>
+<td>The port&#39;s two faces and the local adapter with its contract spec, around today&#39;s stores, lock and hold. The CLI and Hephaestus go through it; nothing else names a record path</td>
+<td>forge</td>
+<td>M</td>
+</tr>
+<tr>
+<td>6. Gaia hosts the views</td>
+<td>The Bridge is about 525 tracked files with 67 DOM specs<sup class="citation"><a href="#source-2">[2]</a></sup>, more code than the Overseer&#39;s services. Move it one view at a time into Gaia&#39;s own design, each shipped alone, reading the forge&#39;s API and sending commands to it through Gaia&#39;s server. The Bridge keeps running beside it until the last view has moved</td>
+<td>Gaia</td>
+<td>XL</td>
+</tr>
+<tr>
+<td>7. Conversations with hosted agents</td>
+<td>Intake and pipeline setup in Gaia: the <code>job-message</code> command in, the job stream out, pictures through the upload route. A skill for pipeline setup, as intake has one</td>
+<td>forge and Gaia</td>
+<td>M</td>
+</tr>
+<tr>
+<td>8. Shrink the HTTP surface</td>
+<td>Delete the sessions, the bundle build, the embed machinery and Flint&#39;s ask route; the reads and the command endpoint stay. Take the Assistant off by default with its new trigger; remove Flint&#39;s brain. A major change of the system version; Gaia records again</td>
+<td>forge</td>
+<td>M</td>
+</tr>
+<tr>
+<td>9. Rename</td>
+<td>Overseer to Hephaestus in identifiers, wording, docs and every stored and installed name: about 835 tracked files<sup class="citation"><a href="#source-2">[2]</a></sup> in both apps, the contract package and the root&#39;s rules, in one commit; existing boards are set up anew. The Watcher&#39;s name goes with its code in stage 2: Talos is Talos from its first line</td>
+<td>The repository</td>
+<td>M</td>
+</tr>
+</tbody></table></div>
+<p><strong>The rename takes the stored and installed names with it.</strong> Nothing that exists has to be kept, so these change in
+the same commit and existing boards are set up anew:</p>
+<ul>
+<li>on a board: <code>overseerState</code> in <code>progress.json</code>, <code>overseerOnly</code> in <code>pipeline.json</code>, the <code>overseer-*</code> and
+<code>watcher-lost</code> records of the log;</li>
+<li>on the machine: the registry&#39;s <code>overseer</code> key that Gaia reads, the login item&#39;s label, the <code>oversee</code> verb that the
+login item and a Baton pass&#39;s successor are started with, and the installed surface.</li>
+</ul>
+<p>The Watcher&#39;s own files (its bundles, <code>watcher-&lt;n&gt;.json</code>, the socket folder) end with the Watcher in stage 2: Talos
+writes its files under its own name from the start.</p>
+</section>
+<section id="section-12" data-section="12"><h2><span class="section-number">12</span>Open items and risks</h2>
+<h3>To decide</h3>
+<ol>
+<li><strong>What follows an ending on a network outage.</strong> Talos recognises the ending and Gaia shows it. Open is what the
+forge does next: resume the session by itself once the vendor is reachable, which needs a probe on a real-time
+interval because an outage names no reset time, or wait for an instruction from the user.</li>
+<li><strong>An install line has no bound.</strong> A gate is bounded at 15 minutes; nothing bounds an install line.</li>
+</ol>
+<h3>Risks</h3>
+<ol>
+<li><strong>The lease can stop a healthy forge&#39;s agents</strong> unless every condition of section 3.2 holds. It is the riskiest
+single piece.</li>
+<li><strong>The lease proves that Hephaestus is alive, not that it makes progress.</strong> During a merged-tree gate, for up to its
+15 minutes, nothing is routed and the lease still renews, unless the pass hands the gate to Talos and carries on.</li>
+<li><strong>Recovery on instruction reverses tested behaviour</strong> and stalls where today&#39;s forge carries on. Which interruption
+causes wait is listed in section 7.</li>
+<li><strong>The start classification misreads common cases</strong> (section 7).</li>
+<li><strong>A half-finished landing.</strong> What an Airlock leaves half done has not been traced.</li>
+<li><strong>A failed pass is not a crash.</strong> A pass that fails on a held lock is retried today, and with the CLI, Hephaestus
+and agents all taking the lock that happens more often. It needs a name of its own.</li>
+<li><strong>The store port has one adapter,</strong> and its command face cannot carry Hephaestus&#39;s own pass.</li>
+<li><strong>The contract package holds 9 of the 76 command kinds.</strong> Each view that moves to Gaia brings the kinds it sends, so
+the contract grows with stage 6.</li>
+<li><strong>Stages 4 and 6 are each far larger</strong> than a rename suggests.</li>
+<li><strong>A forge that is down shows nothing but its name</strong> in Gaia and takes no instruction from it.</li>
+<li><strong>The other platforms.</strong> Linux and Windows adapters exist, with no real-system recordings.</li>
+<li><strong>One Talos is one point of failure for a board.</strong></li>
+<li><strong>The outage signal is only partly public.</strong> No session that ended on an outage has been recorded; the signal
+is read from the schemas inside Claude Code 2.1.326. The field that says the host could not be reached is marked
+internal there and may change with a version. A plain timeout carries no typed kind and looks like any other
+failed result, and the result line alone does not prove that retries ran out. What Talos does not recognise goes
+down today&#39;s failure path.</li>
+</ol>
+</section>
+<section id="sources" class="sources" data-section="sources">
+<h2>Sources</h2>
+<ol>
+<li id="source-1"><span class="source-label">docs/monorepo/hephaestus-talos.md</span><span class="source-detail">The plan this page presents, with its diagram sources in docs/monorepo/figures/hephaestus-talos/.</span></li>
+<li id="source-2"><span class="source-label">forge source at commit ddeb7707</span><span class="source-detail">apps/forge/src, apps/forge/cli, apps/forge/bridge, apps/forge/resources and packages/forge-contracts: every statement about how the code works today.</span></li>
+<li id="source-3"><span class="source-label">docs/monorepo/design.md</span><span class="source-detail">The monorepo design and its numbered decisions, among them that forge and Gaia are released apart.</span></li>
+<li id="source-4"><span class="source-label">apps/forge/CLAUDE.md</span><span class="source-detail">forge's rules: stored files, the clock rules, the deviations, the local rules for tickets.</span></li>
+<li id="source-5"><span class="source-label">apps/gaia/CLAUDE.md</span><span class="source-detail">Gaia's rules: one supported forge version, recordings of a forge.</span></li>
+</ol>
+</section>
+</main>
+</div>
+<button id="comments-toggle" class="comments-toggle" type="button" aria-expanded="false" aria-controls="comments-panel">Comments (<span id="comments-count">0</span>)</button>
+<button id="selection-comment" class="selection-comment" type="button" hidden>Comment on selection</button>
+<aside id="comments-panel" class="comments-panel" aria-label="Comments on the plan" hidden>
+<div class="comments-head"><h2>Comments</h2><button id="comments-close" type="button">Close</button></div>
+<form id="comment-form" hidden>
+<p id="comment-context" class="comment-context"></p>
+<label for="comment-text">Comment</label>
+<textarea id="comment-text" rows="4"></textarea>
+<div class="comment-form-actions"><button type="submit" class="is-primary">Save comment</button><button type="button" id="comment-cancel">Cancel</button><span id="comment-form-error" class="comment-form-error" aria-live="polite"></span></div>
+</form>
+<p id="comments-hint" class="comments-hint">Point at a paragraph, a list item, a table row or a diagram and press its + button, or select some text and press "Comment on selection". Comments live in this page only until it is reloaded, so copy the JSON before leaving.</p>
+<ol id="comments-list" class="comments-list"></ol>
+<div class="comments-export">
+<div class="comments-export-actions"><button id="comments-copy" type="button" class="is-primary">Copy JSON</button><button id="comments-download" type="button">Download JSON</button><span id="comments-status" class="comments-status" aria-live="polite"></span></div>
+<label for="comments-json">The JSON to paste into the conversation</label>
+<textarea id="comments-json" rows="7" readonly></textarea>
+<details><summary>Load comments from JSON exported earlier</summary>
+<label for="comments-import">Exported JSON</label>
+<textarea id="comments-import" rows="4"></textarea>
+<div class="comment-form-actions"><button id="comments-load" type="button">Load</button><span id="comments-load-status" class="comments-status" aria-live="polite"></span></div>
+</details>
+</div>
+</aside>
+<script id="page-data" type="application/json">{"title":"Hephaestus, Talos and Gaia: the forge core apart from its interface","plan":"docs/monorepo/hephaestus-talos.md","planVersion":"c75672b68b4d","sections":[{"number":"1","title":"The shape"},{"number":"2","title":"Decisions"},{"number":"3","title":"The forge"},{"number":"4","title":"The store and the contract"},{"number":"5","title":"Ports and adapters"},{"number":"6","title":"The user in the workflow"},{"number":"7","title":"Interruption and recovery"},{"number":"8","title":"Gaia"},{"number":"9","title":"Kept possible, not built"},{"number":"10","title":"What is removed"},{"number":"11","title":"Migration"},{"number":"12","title":"Open items and risks"}],"sources":[{"label":"docs/monorepo/hephaestus-talos.md","detail":"The plan this page presents, with its diagram sources in docs/monorepo/figures/hephaestus-talos/."},{"label":"forge source at commit ddeb7707","detail":"apps/forge/src, apps/forge/cli, apps/forge/bridge, apps/forge/resources and packages/forge-contracts: every statement about how the code works today."},{"label":"docs/monorepo/design.md","detail":"The monorepo design and its numbered decisions, among them that forge and Gaia are released apart."},{"label":"apps/forge/CLAUDE.md","detail":"forge's rules: stored files, the clock rules, the deviations, the local rules for tickets."},{"label":"apps/gaia/CLAUDE.md","detail":"Gaia's rules: one supported forge version, recordings of a forge."}]}</script>
+<script>
+const pageData = JSON.parse(document.getElementById('page-data').textContent);
+const sections = [...document.querySelectorAll('main section[data-section]')];
+const navigationLinks = [...document.querySelectorAll('.navigation a')];
+
+function textOf(element) { return element.textContent.toLowerCase(); }
+
+// Scroll spy: the section nearest the top of the window is the current one.
+const visibleSections = new Set();
+const sectionObserver = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) visibleSections.add(entry.target); else visibleSections.delete(entry.target);
+  }
+  const current = sections.find((section) => visibleSections.has(section));
+  for (const link of navigationLinks) link.classList.toggle('is-current', current !== undefined && link.dataset.section === current.dataset.section);
+}, { rootMargin: '0px 0px -70% 0px' });
+for (const section of sections) sectionObserver.observe(section);
+
+// Search across the plan: sections with no match are hidden, and the navigation shows the matches of each section.
+const searchInput = document.getElementById('plan-search');
+const searchStatus = document.getElementById('search-status');
+function countMatches(text, query) {
+  let count = 0;
+  for (let position = text.indexOf(query); position !== -1; position = text.indexOf(query, position + query.length)) count += 1;
+  return count;
+}
+searchInput.addEventListener('input', () => {
+  const query = searchInput.value.trim().toLowerCase();
+  let total = 0;
+  let matchingSections = 0;
+  for (const section of sections) {
+    const matches = query === '' ? 0 : countMatches(textOf(section), query);
+    const link = navigationLinks.find((candidate) => candidate.dataset.section === section.dataset.section);
+    const badge = link.querySelector('.match-count');
+    section.hidden = query !== '' && matches === 0;
+    link.classList.toggle('is-without-match', query !== '' && matches === 0);
+    badge.hidden = matches === 0;
+    badge.textContent = String(matches);
+    total += matches;
+    if (matches > 0) matchingSections += 1;
+  }
+  searchStatus.textContent = query === '' ? '' : total === 0 ? 'No match in the plan.' : total + ' matches in ' + matchingSections + ' of ' + sections.length + ' sections';
+});
+
+// A filter box above every long table and long list, and sorting on a click of a column head.
+function addFilter(container, items, noun) {
+  const tools = document.createElement('div');
+  tools.className = 'table-tools';
+  const input = document.createElement('input');
+  input.type = 'search';
+  input.className = 'filter';
+  input.placeholder = 'Filter these ' + items.length + ' ' + noun;
+  input.setAttribute('aria-label', 'Filter these ' + noun);
+  const status = document.createElement('span');
+  status.className = 'filter-status';
+  status.setAttribute('aria-live', 'polite');
+  tools.append(input, status);
+  container.before(tools);
+  input.addEventListener('input', () => {
+    const query = input.value.trim().toLowerCase();
+    let shown = 0;
+    for (const item of items) {
+      item.hidden = query !== '' && !textOf(item).includes(query);
+      if (!item.hidden) shown += 1;
+    }
+    status.textContent = query === '' ? '' : shown + ' of ' + items.length + ' shown';
+  });
+}
+
+const SMALLEST_FILTERED_ROW_COUNT = 6;
+const SMALLEST_FILTERED_ITEM_COUNT = 10;
+for (const wrapper of document.querySelectorAll('.table-scroll')) {
+  const body = wrapper.querySelector('tbody');
+  const rows = [...body.rows];
+  if (rows.length >= SMALLEST_FILTERED_ROW_COUNT) addFilter(wrapper, rows, 'rows');
+  wrapper.querySelectorAll('th').forEach((head, columnIndex) => {
+    head.tabIndex = 0;
+    head.title = 'Sort by this column';
+    const sort = () => {
+      const descending = head.getAttribute('aria-sort') === 'ascending';
+      for (const other of wrapper.querySelectorAll('th')) other.removeAttribute('aria-sort');
+      head.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
+      const sorted = [...body.rows].sort((a, b) => a.cells[columnIndex].textContent.localeCompare(b.cells[columnIndex].textContent, undefined, { numeric: true }));
+      body.append(...(descending ? sorted.reverse() : sorted));
+    };
+    head.addEventListener('click', sort);
+    head.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); sort(); } });
+  });
+}
+for (const list of document.querySelectorAll('main section > ol, main section > ul')) {
+  const items = [...list.children];
+  if (items.length >= SMALLEST_FILTERED_ITEM_COUNT) addFilter(list, items, 'items');
+}
+
+// Comments: kept in memory only, placed on a block or on selected text, and exported as JSON to paste elsewhere.
+const LONGEST_QUOTE_CHARACTERS = 280;
+const KIND_BY_TAG = { P: 'paragraph', LI: 'list item', TR: 'table row', FIGURE: 'diagram', H3: 'heading' };
+const comments = [];
+let nextCommentNumber = 1;
+let pendingTarget = null;
+let editedComment = null;
+let commentsAreUnsaved = false;
+
+const commentsPanel = document.getElementById('comments-panel');
+const commentsToggle = document.getElementById('comments-toggle');
+const commentForm = document.getElementById('comment-form');
+const commentText = document.getElementById('comment-text');
+const commentContext = document.getElementById('comment-context');
+const commentFormError = document.getElementById('comment-form-error');
+const commentsList = document.getElementById('comments-list');
+const commentsJson = document.getElementById('comments-json');
+const commentsStatus = document.getElementById('comments-status');
+const selectionButton = document.getElementById('selection-comment');
+
+function shortened(text) {
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  return collapsed.length > LONGEST_QUOTE_CHARACTERS ? collapsed.slice(0, LONGEST_QUOTE_CHARACTERS) + '…' : collapsed;
+}
+function ownTextOf(block) {
+  if (block.tagName === 'TR') return shortened([...block.cells].map((cell) => cell.textContent).join(' | '));
+  if (block.tagName === 'FIGURE') return shortened(block.querySelector('svg title').textContent + ': ' + block.querySelector('figcaption').textContent);
+  const copy = block.cloneNode(true);
+  for (const nested of copy.querySelectorAll('ul, ol, .citation')) nested.remove();
+  return shortened(copy.textContent);
+}
+function placeOf(block) {
+  const section = block.closest('section[data-section]');
+  const known = pageData.sections.find((candidate) => candidate.number === section.dataset.section);
+  const subsection = [...section.querySelectorAll('h3')].filter((heading) => heading === block || (heading.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0).pop();
+  return {
+    section: known === undefined ? 'Sources' : known.number + '. ' + known.title,
+    subsection: subsection === undefined ? null : shortened(ownTextOf(subsection)),
+  };
+}
+
+const commentableBlocks = [...document.querySelectorAll('main section[data-section] :is(p, li, tbody tr, figure, h3)')].filter((block) => !(block.tagName === 'P' && block.parentElement.tagName === 'LI'));
+const blockCountBySection = new Map();
+for (const block of commentableBlocks) {
+  const sectionNumber = block.closest('section[data-section]').dataset.section;
+  const index = (blockCountBySection.get(sectionNumber) ?? 0) + 1;
+  blockCountBySection.set(sectionNumber, index);
+  block.dataset.block = 'section-' + sectionNumber + '-block-' + index;
+  const addButton = document.createElement('button');
+  addButton.type = 'button';
+  addButton.className = 'comment-add';
+  addButton.setAttribute('aria-label', 'Comment on this ' + KIND_BY_TAG[block.tagName]);
+  addButton.addEventListener('click', () => openCommentForm({ block, target: KIND_BY_TAG[block.tagName], quote: ownTextOf(block) }));
+  if (block.tagName === 'TR') block.cells[0].append(addButton);
+  else if (block.tagName === 'FIGURE') block.querySelector('figcaption').append(addButton);
+  else block.insertBefore(addButton, block.querySelector(':scope > ul, :scope > ol'));
+}
+
+function setPanelOpen(open) {
+  commentsPanel.hidden = !open;
+  document.body.classList.toggle('comments-are-open', open);
+  commentsToggle.setAttribute('aria-expanded', String(open));
+}
+function closeCommentForm() {
+  commentForm.hidden = true;
+  commentText.value = '';
+  commentFormError.textContent = '';
+  pendingTarget = null;
+  editedComment = null;
+}
+function openCommentForm(target, comment) {
+  pendingTarget = target;
+  editedComment = comment ?? null;
+  commentContext.textContent = target.quote;
+  commentText.value = comment === undefined ? '' : comment.comment;
+  commentFormError.textContent = '';
+  commentForm.hidden = false;
+  setPanelOpen(true);
+  commentText.focus();
+}
+
+function exportedComments() {
+  return {
+    plan: pageData.plan,
+    planVersion: pageData.planVersion,
+    exportedAt: new Date().toISOString(),
+    comments: comments.map((comment) => ({ number: comment.number, section: comment.section, subsection: comment.subsection, target: comment.target, block: comment.blockId, quote: comment.quote, comment: comment.comment })),
+  };
+}
+function markBlocks() {
+  for (const block of commentableBlocks) {
+    const count = comments.filter((comment) => comment.blockId === block.dataset.block).length;
+    const addButton = block.querySelector('.comment-add');
+    block.classList.toggle('is-commented', count > 0);
+    addButton.classList.toggle('has-comments', count > 0);
+    addButton.dataset.count = String(count);
+  }
+}
+function renderComments() {
+  commentsList.replaceChildren(...comments.map((comment) => {
+    const item = document.createElement('li');
+    const place = document.createElement('div');
+    place.className = 'comment-place';
+    place.textContent = '#' + comment.number + ' · ' + comment.section + (comment.subsection === null ? '' : ' · ' + comment.subsection) + ' · ' + comment.target;
+    const quote = document.createElement('p');
+    quote.className = 'comment-quote';
+    quote.textContent = comment.quote;
+    const body = document.createElement('p');
+    body.className = 'comment-body';
+    body.textContent = comment.comment;
+    const actions = document.createElement('div');
+    actions.className = 'comment-actions';
+    const block = commentableBlocks.find((candidate) => candidate.dataset.block === comment.blockId);
+    const showButton = document.createElement('button');
+    showButton.type = 'button';
+    showButton.textContent = 'Show in the plan';
+    showButton.disabled = block === undefined;
+    showButton.addEventListener('click', () => { block.closest('section').hidden = false; block.scrollIntoView({ block: 'center' }); });
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.textContent = 'Edit';
+    editButton.addEventListener('click', () => openCommentForm({ block, target: comment.target, quote: comment.quote }, comment));
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.textContent = 'Delete';
+    deleteButton.addEventListener('click', () => { comments.splice(comments.indexOf(comment), 1); commentsAreUnsaved = comments.length > 0; renderComments(); });
+    actions.append(showButton, editButton, deleteButton);
+    item.append(place, quote, body, actions);
+    return item;
+  }));
+  document.getElementById('comments-count').textContent = String(comments.length);
+  document.getElementById('comments-hint').hidden = comments.length > 0;
+  commentsJson.value = JSON.stringify(exportedComments(), null, 2);
+  markBlocks();
+}
+
+commentForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const text = commentText.value.trim();
+  if (text === '') { commentFormError.textContent = 'Write a comment first.'; commentText.focus(); return; }
+  if (editedComment !== null) editedComment.comment = text;
+  else {
+    const place = pendingTarget.block === undefined ? { section: 'The whole plan', subsection: null } : placeOf(pendingTarget.block);
+    comments.push({ number: nextCommentNumber, blockId: pendingTarget.block === undefined ? null : pendingTarget.block.dataset.block, section: place.section, subsection: place.subsection, target: pendingTarget.target, quote: pendingTarget.quote, comment: text });
+    nextCommentNumber += 1;
+  }
+  commentsAreUnsaved = true;
+  closeCommentForm();
+  renderComments();
+});
+commentText.addEventListener('input', () => { commentFormError.textContent = ''; });
+document.getElementById('comment-cancel').addEventListener('click', closeCommentForm);
+commentsToggle.addEventListener('click', () => setPanelOpen(commentsPanel.hidden));
+document.getElementById('comments-close').addEventListener('click', () => setPanelOpen(false));
+
+// Selected text: a button beside the selection comments on exactly those words.
+document.addEventListener('mouseup', (event) => {
+  if (event.target === selectionButton) return;
+  const selection = document.getSelection();
+  const selectedText = selection === null ? '' : selection.toString().trim();
+  const anchor = selection === null || selection.anchorNode === null ? null : (selection.anchorNode.nodeType === Node.ELEMENT_NODE ? selection.anchorNode : selection.anchorNode.parentElement);
+  const block = anchor === null ? null : anchor.closest('[data-block]');
+  if (selectedText === '' || block === null) { selectionButton.hidden = true; return; }
+  const box = selection.getRangeAt(0).getBoundingClientRect();
+  selectionButton.style.left = Math.max(8, box.left + window.scrollX) + 'px';
+  selectionButton.style.top = (box.bottom + window.scrollY + 6) + 'px';
+  selectionButton.hidden = false;
+  selectionButton.onclick = () => {
+    selectionButton.hidden = true;
+    openCommentForm({ block, target: 'selected text', quote: shortened(selectedText) });
+  };
+});
+
+function copyJsonByHand() {
+  commentsJson.focus();
+  commentsJson.select();
+  return document.execCommand('copy');
+}
+document.getElementById('comments-copy').addEventListener('click', async () => {
+  let copied = false;
+  try { await navigator.clipboard.writeText(commentsJson.value); copied = true; } catch { copied = copyJsonByHand(); }
+  commentsStatus.textContent = copied ? 'Copied ' + comments.length + ' comments.' : 'Copy the selected text by hand.';
+  if (copied) commentsAreUnsaved = false;
+});
+document.getElementById('comments-download').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([commentsJson.value], { type: 'application/json' }));
+  link.download = 'hephaestus-talos-comments.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+  commentsAreUnsaved = false;
+  commentsStatus.textContent = 'Downloaded ' + comments.length + ' comments.';
+});
+document.getElementById('comments-load').addEventListener('click', () => {
+  const loadStatus = document.getElementById('comments-load-status');
+  let loaded;
+  try { loaded = JSON.parse(document.getElementById('comments-import').value); } catch { loaded = null; }
+  if (loaded === null || !Array.isArray(loaded.comments)) { loadStatus.textContent = 'This is not JSON that this page exported.'; return; }
+  for (const entry of loaded.comments) {
+    if (typeof entry.comment !== 'string' || typeof entry.quote !== 'string') continue;
+    if (comments.some((comment) => comment.comment === entry.comment && comment.quote === entry.quote && comment.blockId === (entry.block ?? null))) continue;
+    comments.push({ number: nextCommentNumber, blockId: typeof entry.block === 'string' ? entry.block : null, section: String(entry.section ?? ''), subsection: entry.subsection ?? null, target: String(entry.target ?? 'paragraph'), quote: entry.quote, comment: entry.comment });
+    nextCommentNumber += 1;
+  }
+  loadStatus.textContent = 'Loaded. The page now holds ' + comments.length + ' comments.' + (loaded.planVersion === pageData.planVersion ? '' : ' They were written against another version of the plan.');
+  renderComments();
+});
+window.addEventListener('beforeunload', (event) => { if (commentsAreUnsaved) event.preventDefault(); });
+renderComments();
+</script>
+</body>
+</html>

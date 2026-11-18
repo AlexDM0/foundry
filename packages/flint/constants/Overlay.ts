@@ -10,6 +10,8 @@ export const OVERLAY = {
   PAGE_PART_NAME:         'page',
   STACK_LEVEL:            1000,
   OCCLUSION_CLIP_ID:      'flint-occlusion',
+  /** The clip that holds all of a confined Flint inside the box it stands in. */
+  CONFINEMENT_CLIP_ID:    'flint-confinement',
   /** Far wider than any page, so the visible side of an occluding edge is never cut off. */
   OCCLUSION_EXTENT_UNITS: 100000,
 } as const;

@@ -17,7 +17,7 @@
  * pipeline question never covers the setup by itself. A board with no readable pipeline shows the Pipeline tab alone, routes there even
  * from a stored Kanban, and its header is in setup; a board with one shows Pipeline last and routes `#pipeline` to the view. Flint's brain
  * is wired through: a board whose brain runs gives Flint its director for the run's time left and a board where it ended takes it back,
- * the mark's double click sends `flint-brain-start`, and the Agents tab shows the brain's card.
+ * and its controls are hidden for now: the mark's double click sends nothing and the Agents tab shows no brain card.
  */
 import {
   act,
@@ -1000,21 +1000,21 @@ describe('Flint\'s brain', () => {
     expect(brainCalls.slice(callsWhileRunning)).toEqual(['stopped']);
   });
 
-  test('a double click on Forge\'s mark sends flint-brain-start, and the Agents tab shows the brain\'s card', async () => {
+  test('the brain\'s controls are hidden: a double click on Forge\'s mark sends nothing, and the Agents tab shows no brain card', async () => {
     const bridge = fakeBridge();
     window.location.hash = '#agents';
     await renderedLive(bridge, { ...BOARD, flintBrain: { reading: OFF_FLINT_BRAIN, runs: [] } });
-    expect(screen.queryByRole('region', { name: 'Flint\'s brain' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Forge' }).querySelector('title')).toBeNull();
     await act(async () => {
       fireEvent.doubleClick(screen.getByRole('img', { name: 'Forge' }));
       await Promise.resolve();
     });
-    expect(bridge.sent).toEqual([{ kind: 'flint-brain-start' }]);
+    expect(bridge.sent).toEqual([]);
     await act(async () => {
       bridge.stream().onEvent('board', { ...BOARD, flintBrain: { reading: exampleFlintBrain({ state: 'starting', startedBy: 'bridge' }), runs: [] } });
       await Promise.resolve();
     });
-    expect(screen.getByRole('region', { name: 'Flint\'s brain' }).textContent).toContain('Starting');
+    expect(screen.queryByRole('region', { name: 'Flint\'s brain' })).toBeNull();
     window.location.hash = '';
   });
 });

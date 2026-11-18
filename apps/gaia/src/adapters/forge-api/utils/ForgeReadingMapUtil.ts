@@ -200,6 +200,7 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
     codeVersion:       overseer.codeVersion,
     lastReportedAt:    readAt,
     overseerStartedAt: overseer.startedAt,
+    program:           registryFacts.program,
     lastCommand:       registryFacts.lastCommand,
     lastChangedAt:     registryFacts.lastChangedAt,
     concurrency:       {
@@ -246,6 +247,7 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
     codeVersion:       identity.codeVersion,
     lastReportedAt:    readAt,
     overseerStartedAt: null,
+    program:           registryFacts.program,
     lastCommand:       registryFacts.lastCommand,
     lastChangedAt:     registryFacts.lastChangedAt,
     concurrency:       null,
@@ -300,6 +302,7 @@ function unreadReadingOf(
     codeVersion:       identity?.codeVersion ?? null,
     lastReportedAt:    null,
     overseerStartedAt: null,
+    program:           registryFacts.program,
     lastCommand:       registryFacts.lastCommand,
     lastChangedAt:     registryFacts.lastChangedAt,
     concurrency:       null,

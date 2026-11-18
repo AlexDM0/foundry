@@ -1,7 +1,8 @@
 /**
  * The Bridge's host of Flint in a happy-dom document, on manual frames and stubbed boxes, with a recording brain to read what Flint
  * perceives. What matters: one overlay, hidden from assistive technology and blind to the pointer, so Flint blocks no click below it, and
- * the home corner beside it; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
+ * the home corner beside it; Flint stays in its box, so it is drawn only inside the home corner, its body takes no press and a drag on it
+ * carries nothing; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
  * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues, the
  * turns a history brings never, since they are past; a press
  * on the composer makes the thread the habitat Flint visits; in the Agents view an agent that works is copied, Flint walking below
@@ -182,6 +183,29 @@ describe('the page', () => {
     expect(elementOf('.bridge-flint-home').getAttribute('aria-hidden')).toBe('true');
   });
 
+  test('Flint stays in its box: drawn only inside the home corner, its body takes no press, and a drag on it carries nothing', () => {
+    const frames = createManualFlintFrames();
+    render(<Host boardStore={null} frames={frames}><Chat turns={[]} /></Host>);
+    placeChat();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    expect(overlay().querySelector(':scope > g')?.getAttribute('clip-path')).toBe('url(#flint-confinement)');
+    const clip = overlay().querySelector('#flint-confinement rect');
+    const clipInPixels = ['x', 'y', 'width', 'height'].map((name) => Math.round(Number(clip?.getAttribute(name)) * PIXELS_FOR_ONE_UNIT));
+    expect(clipInPixels).toEqual([1064, 732, 112, 56]);
+    const body = overlay().querySelector('path[pointer-events]');
+    if (body === null) throw new Error('no body in the overlay');
+    expect(body.getAttribute('pointer-events')).toBe('none');
+    fireEvent.pointerDown(body, {
+      button: 0, pointerId: 1, clientX: 1110, clientY: 770
+    });
+    fireEvent.pointerMove(document, { pointerId: 1, clientX: 400, clientY: 300 });
+    advanceFor(frames, FRAME_MILLISECONDS);
+    expect(elementOf('ol.bridge-chat-thread').hasAttribute('data-sprite-drop-target')).toBe(false);
+    fireEvent.pointerUp(document, { pointerId: 1, clientX: 400, clientY: 300 });
+    advanceFor(frames, 3000);
+    expect(handle().livesIn()).toBeNull();
+  });
+
   test('the chat thread is the chat habitat, and its card a workplace', () => {
     render(<Host boardStore={null} frames={createManualFlintFrames()}><Chat turns={[]} /></Host>);
     expect(elementOf('ol.bridge-chat-thread').getAttribute('data-sprite-habitat')).toBe('chat');
@@ -312,7 +336,7 @@ describe('the agent panel habitat', () => {
     expect(Math.abs(figureX() - JOB_CELL_CENTRE_UNITS)).toBeLessThanOrEqual(4);
   });
 
-  test('after the agents were idle and Flint slept at home, an agent that works again is copied once Flint is back', () => {
+  test('after the agents were idle and Flint slept at home, an agent that works again does not wake it: Flint reacts only to its box', () => {
     const entries = new Map([[STORED_HABITAT_KEY, '1:agent-panel']]);
     const frames = createManualFlintFrames();
     const boardStore = boardStoreOver(entries);
@@ -333,7 +357,7 @@ describe('the agent panel habitat', () => {
     page.rerender(<Host boardStore={boardStore} frames={frames}><Agents jobs={[working]} /></Host>);
     placeAgents();
     advanceFor(frames, 30000);
-    expect(Math.abs(figureX() - JOB_CELL_CENTRE_UNITS)).toBeLessThanOrEqual(4);
+    expect([figureX() > HOME_CORNER_LEFT_UNITS, handle().livesIn()]).toEqual([true, null]);
   });
 });
 
@@ -412,14 +436,14 @@ describe('a view below the host', () => {
     return <div ref={bar}><button type="button" onClick={layBar}>Lay the bar</button></div>;
   }
 
-  test('reaches Flint with useFlintPerform and one of its own elements', () => {
+  test('reaches Flint with useFlintPerform, which refuses one of its own elements while Flint lives in another box', () => {
     const verdicts: string[] = [];
     const onVerdicts = (given: readonly string[]): void => {
       verdicts.push(...given);
     };
     render(<Host boardStore={null} frames={createManualFlintFrames()}><TimelineBar onVerdicts={onVerdicts} /></Host>);
     fireEvent.click(screen.getByRole('button', { name: 'Lay the bar' }));
-    expect(verdicts).toEqual(['performed', 'needs-an-element']);
+    expect(verdicts).toEqual(['outside-its-box', 'needs-an-element']);
   });
 });
 

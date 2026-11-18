@@ -4,8 +4,8 @@
  * strip, and the tab bar, its tabs counting what waits on User, with whatever the shell puts at its right end. In a frame, `board.css`
  * keeps the tab bar alone. In setup, while the board has no readable pipeline, the header is the title row (the mark, the title, the
  * Setting up pill, the new-code notice, the theme button) over the setup step bar: no figures, no Waiting on User pill, no Overseer
- * controls, no activity strip and no tabs. Out of setup, a double click on Forge's mark wakes Flint's brain while the forge runs one that
- * sleeps, its refusal shown beside the brand.
+ * controls, no activity strip and no tabs. Out of setup, while the brain's controls are shown, a double click on Forge's mark wakes Flint's
+ * brain while the forge runs one that sleeps, its refusal shown beside the brand.
  */
 
 import { ForgeMark }                          from 'brand/ForgeMark';
@@ -16,6 +16,7 @@ import { Tabs, type LinkTabItem }             from 'design-system/Tabs';
 import { Text }                               from 'design-system/Text';
 import { useState, type ReactNode }           from 'react';
 
+import type { FlintBrainControls }                             from '../flint/FlintBrainControls.ts';
 import { StateToneUtil }                                       from '../utils/StateToneUtil.ts';
 import type { TimestampSlices }                                from '../utils/TimeUtil.ts';
 import type { QuestionNotifier }                               from '../views/questions/QuestionAlerts.ts';
@@ -38,28 +39,30 @@ import type {
 import { WaitingOnUserPill } from './WaitingOnUserPill.tsx';
 
 export interface HeaderProps {
-  readonly project:          string;
-  readonly model:            HeaderModel;
-  readonly selectedTab:      BridgeTab;
+  /** `hidden` takes the wake of Flint's brain off Forge's mark; the default is `shown`. */
+  readonly flintBrainControls?: FlintBrainControls;
+  readonly project:             string;
+  readonly model:               HeaderModel;
+  readonly selectedTab:         BridgeTab;
   /** The tabs the board shows, in order. */
-  readonly shownTabs:        readonly BridgeTab[];
-  readonly themeChoice:      ThemeChoice;
-  readonly onThemeChoice:    (choice: ThemeChoice) => void;
+  readonly shownTabs:           readonly BridgeTab[];
+  readonly themeChoice:         ThemeChoice;
+  readonly onThemeChoice:       (choice: ThemeChoice) => void;
   /** While the event stream is down the strip's dots go quiet and its times stand still. */
-  readonly activityIsLive:   boolean;
+  readonly activityIsLive:      boolean;
   /** A ticket detail or the question panel is open; it holds the page's one Flint slot, so the strip shows none. */
-  readonly sidePanelIsOpen:  boolean;
-  readonly clock:            BridgeClock;
+  readonly sidePanelIsOpen:     boolean;
+  readonly clock:               BridgeClock;
   /** What the tab bar holds at its right end: the finished-work filter on a board tab. */
-  readonly tabBarEnd?:       ReactNode;
+  readonly tabBarEnd?:          ReactNode;
   /** A figure pointing at a Kanban lane was followed; the link itself opens the tab. */
-  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
+  readonly onShowLane?:         (lane: HeaderFigureLane) => void;
   /** `null` before the first board, which shows no pill. */
-  readonly waitingOnUser:    WaitingOnUser | null;
-  readonly tabCounts:        TabCounts;
-  readonly questionNotifier: QuestionNotifier;
+  readonly waitingOnUser:       WaitingOnUser | null;
+  readonly tabCounts:           TabCounts;
+  readonly questionNotifier:    QuestionNotifier;
   /** The page's stamp slices the inbox shows full stamps by; `null` on a board that serves no page. */
-  readonly timestampSlices:  TimestampSlices | null;
+  readonly timestampSlices:     TimestampSlices | null;
 }
 
 export const TAB_LABELS: Readonly<Record<BridgeTab, string>> = {
@@ -244,7 +247,7 @@ function SetupHeader({
 
 export function Header({
   project, model, selectedTab, shownTabs, themeChoice, onThemeChoice, activityIsLive, sidePanelIsOpen, clock, tabBarEnd, onShowLane,
-  waitingOnUser, tabCounts, questionNotifier, timestampSlices
+  waitingOnUser, tabCounts, questionNotifier, timestampSlices, flintBrainControls = 'shown'
 }: HeaderProps) {
   if (model.setupSteps !== null) {
     return <SetupHeader project={project} model={model} setupSteps={model.setupSteps} themeChoice={themeChoice} onThemeChoice={onThemeChoice} />;
@@ -252,7 +255,7 @@ export function Header({
   return (
     <header className="bridge-header">
       <div className="bridge-head-title-row">
-        <FlintBrainWakingBrand wakes={model.flintBrainWakes} />
+        <FlintBrainWakingBrand wakes={flintBrainControls === 'shown' && model.flintBrainWakes} />
         <span className="bridge-head-divider" aria-hidden="true" />
         <h1 className="bridge-title">{project}</h1>
         <StatusPill model={model} />

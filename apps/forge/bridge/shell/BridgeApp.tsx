@@ -4,7 +4,7 @@
  * the bundle it holds may no longer match the API. A refused session code, or a session the Overseer no longer knows, raises the session
  * banner in place of the wait for a board. Everything it reaches outside the page arrives in `services`, so a DOM spec fakes it. Flint,
  * the sprite of the agents, lives over the whole page, its habitat stored with the board's preferences, and answers each change of the
- * board, of the stream and each command the Overseer refuses.
+ * board, of the stream and each command the Overseer refuses. For now the controls of Flint's brain are hidden (`FLINT_BRAIN_CONTROLS`).
  */
 import { EmptyState }       from 'design-system/EmptyState';
 import type { FlintHandle } from 'flint';
@@ -28,6 +28,7 @@ import type { SessionExchangeOutcome }                                          
 import type { TranscriptFollower }                                                       from '../conversation/TranscriptLog.tsx';
 import type { BoardReading }                                                             from '../flint/BoardOccasionModel.ts';
 import { BridgeFlint, type BridgeFlintBrain, type FlintFrameSource }                     from '../flint/BridgeFlint.tsx';
+import type { FlintBrainControls }                                                       from '../flint/FlintBrainControls.ts';
 import { boardPreferenceStoreOf, sharedPreferenceStoreOf, type PreferenceStorage }       from '../preferences/PreferenceStore.ts';
 import { FinishedWorkUtil }                                                              from '../utils/FinishedWorkUtil.ts';
 import { TimeUtil }                                                                      from '../utils/TimeUtil.ts';
@@ -131,6 +132,9 @@ const PANEL_ENTER_ANIMATION = 'bridge-panel-enter';
 
 /** The board's preference holding the incident defaults this viewer marked seen. */
 const SEEN_INCIDENT_DEFAULTS_CHOICE_NAME = 'seen-incident-defaults';
+
+/** `shown` puts the wake of Flint's brain back on Forge's mark and the brain's card back in Agents. */
+const FLINT_BRAIN_CONTROLS: FlintBrainControls = 'hidden';
 
 /** A board that serves no ended jobs: one constant, so the Agents view sees no change between two such boards. */
 const NO_ENDED_JOBS: NonNullable<BoardStateDocument['endedJobs']> = Object.freeze([]);
@@ -476,6 +480,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
               tabCounts={tabCounts}
               questionNotifier={services.questionNotifier}
               timestampSlices={boardState?.page?.payload.limits ?? null}
+              flintBrainControls={FLINT_BRAIN_CONTROLS}
             />
             <main
               ref={mainPanelRef}
@@ -507,6 +512,7 @@ export function BridgeApp({ services, sessionExchangeOutcome = 'no-code' }: Brid
                       endedJobs={boardState.endedJobs ?? NO_ENDED_JOBS}
                       overseer={boardState.overseer}
                       flintBrain={flintBrainReading}
+                      flintBrainControls={FLINT_BRAIN_CONTROLS}
                     />
                   )
                   : null}

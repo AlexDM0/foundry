@@ -19,7 +19,7 @@ export const FLINT_OVERLAY_ATTRIBUTE = 'data-flint';
 
 /** Each contract carries its own version; a change of shape or meaning raises it. */
 export const FLINT_CONTRACT_VERSIONS = Object.freeze({
-  spriteHabitat:    4,
+  spriteHabitat:    5,
   spriteIntents:    3,
   spriteAttendants: 1,
   storedHabitat:    1,
@@ -62,6 +62,14 @@ export type FlintSteering = typeof FLINT_STEERINGS[number];
 export function isFlintSteering(value: string): value is FlintSteering {
   return (FLINT_STEERINGS as readonly string[]).includes(value);
 }
+
+/**
+ * Where Flint may be, as the host sets it. `roams-the-page`: Flint comes around a habitat's corner, the user can carry it and it plays
+ * with the pointer. `stays-in-its-box`: all of Flint is drawn inside the box it stands in (its home or the habitat it lives in), every
+ * visit pops in through an edge, it reads no pointer, so it is never carried and never plays with the pointer, and it hears only the cues
+ * of the box it lives in and takes only an element inside that box.
+ */
+export type FlintConfinement = 'roams-the-page' | 'stays-in-its-box';
 
 /** A host's cue name, such as `idle` or `agent-is-writing`. */
 export type SpriteCue = string;

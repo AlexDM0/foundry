@@ -113,6 +113,7 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
       root:              String(snapshot['root']),
       overseerUrl:       'http://127.0.0.1:4951/',
       overseerProcessId: 48_107,
+      program:           null,
       lastCommand:       null,
       lastChangedAt:     null,
     },

@@ -75,6 +75,8 @@ export interface ForgeReading {
   /** The stamp of the newest whole answer, shown as "as last reported"; never compared. */
   lastReportedAt:    string | null;
   overseerStartedAt: string | null;
+  /** The forge program the registry names for this forge, which Gaia starts it with before the one in its settings; `null` when it names none. */
+  program:           string | null;
   /** The registry's record of the last forge command in this repository and its stamp. */
   lastCommand:       string | null;
   lastChangedAt:     string | null;

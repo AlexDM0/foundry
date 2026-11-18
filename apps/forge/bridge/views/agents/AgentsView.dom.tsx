@@ -16,7 +16,7 @@
  * controls and its transcript, takes a message in its foot only where the job takes one, drops a half-typed message once another job is
  * selected, and × routes the panel closed. Flint's brain has its own card after the worker card, outside its slot meter and its count, in
  * each state the forge reports: starting and running with Stop, which posts `flint-brain-stop`, a running one counting down each second,
- * an ended or refused one in the forge's words; and none while it is off or on a forge without it.
+ * an ended or refused one in the forge's words; and none while it is off, on a forge without it or while its controls are hidden.
  */
 import {
   act,
@@ -45,6 +45,7 @@ import type {
 import type { CommandOutcome, ControlCommandBody }                                         from '../../api/CommandClient.ts';
 import type { EventStreamHandlers }                                                        from '../../api/EventStreamClient.ts';
 import type { TranscriptEntryDocument, TranscriptStreamHandlers, TranscriptStreamOptions } from '../../api/TranscriptStreamClient.ts';
+import type { FlintBrainControls }                                                         from '../../flint/FlintBrainControls.ts';
 import { BridgeApp }                                                                       from '../../shell/BridgeApp.tsx';
 import type { BridgeClock }                                                                from '../../shell/BridgeClock.ts';
 import { ControlSurroundingsContext }                                                      from '../../shell/ControlAvailability.ts';
@@ -169,6 +170,7 @@ interface RenderOptions {
   /** The question panel shows over the view, holding the page's one Flint slot. */
   readonly questionPanelIsShown?: boolean;
   readonly flintBrain?:           MonitorFlintBrainDocument | null;
+  readonly flintBrainControls?:   FlintBrainControls;
 }
 
 interface AgentsSurroundings {
@@ -206,6 +208,7 @@ function agentsSurroundingsOf(options: RenderOptions): AgentsSurroundings {
           timestampSlices={EXAMPLE_TIMESTAMP_SLICES}
           followTranscript={transcripts.follow}
           flintBrain={options.flintBrain ?? null}
+          {...(options.flintBrainControls === undefined ? {} : { flintBrainControls: options.flintBrainControls })}
         />
       </QuestionPanelShownContext.Provider>
     </ControlSurroundingsContext.Provider>
@@ -728,6 +731,12 @@ describe('Flint\'s brain\'s card', () => {
     expect(card('Agents').querySelector('.agents-slot-figure')?.textContent).toBe('2 / 5');
     clock.advance(5);
     expect(brainRow().querySelector('.agents-brain-countdown')?.textContent).toBe('1m 50s left');
+  });
+
+  test('with the brain\'s controls hidden, a running brain shows no card, so no Stop', () => {
+    renderAgents([BUILD_JOB], { flintBrain: RUNNING, flintBrainControls: 'hidden' });
+    expect(screen.getAllByRole('region').map((region) => region.getAttribute('aria-label'))).toEqual(['Agents', 'Sessions']);
+    expect(screen.queryByRole('button', { name: 'Stop Flint\'s brain' })).toBeNull();
   });
 
   test('Stop posts flint-brain-stop, also while the brain starts', async () => {

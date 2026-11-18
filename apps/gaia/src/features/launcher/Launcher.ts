@@ -1,10 +1,11 @@
 /**
  * `gaia launch` (PLAN 9.2): probes Gaia's health on the port; starts `gaia serve` as an owned child when nothing answers and opens the
  * browser at once on the splash, which it moves on as the server and its forges answer; moves the window to Gaia's page with a session
- * code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no window is left, stops
- * the browser and the server it started. Every wait is a bounded number of tries at an injectable interval, and every refusal or failure
- * is shown in a dialog; a window User closes before the page opens closes Gaia quietly. A launch from a Gaia.app installed for another
- * install version refuses before it starts anything (conventions section 9).
+ * code asked for only once the window exists; follows the window through the browser's debugging pipe; and when no window of Gaia's is
+ * left, stops the browser and the server it started, whatever other window the browser still shows on Gaia's profile. Every wait is a
+ * bounded number of tries at an injectable interval, and every refusal or failure is shown in a dialog; a window User closes before the
+ * page opens closes Gaia quietly. A launch from a Gaia.app installed for another install version refuses before it starts anything
+ * (conventions section 9).
  */
 import { appBundleFolderName, type AppBundleInfoReading } from '../../adapters/app-bundle/AppBundleInfoFile.ts';
 import type { GaiaServerClient, HealthReading }           from '../../adapters/gaia-server/GaiaServerClient.ts';
@@ -170,15 +171,15 @@ interface StartedBrowser {
   readonly windowWatch: BrowserWindowWatch;
 }
 
-/** Whether a listing holds a window; a browser that does not answer lists none. */
-async function windowIsListed(windowWatch: BrowserWindowWatch): Promise<boolean> {
-  const targetsAnswer = await windowWatch.pageTargets();
-  return targetsAnswer.verdict === 'listed' && targetsAnswer.pageTargets.length > 0;
-}
-
 export function createLauncher(options: LauncherOptions): Launcher {
   const waits = options.waits ?? LAUNCH_WAITS;
   const latch = stopLatchOf(options.untilStopRequested, options.timers);
+
+  /** Whether the browser lists a window of Gaia's; a browser that does not answer lists none. */
+  async function gaiaWindowIsListed(windowWatch: BrowserWindowWatch, openedTarget: PageTarget): Promise<boolean> {
+    const targetsAnswer = await windowWatch.pageTargets();
+    return targetsAnswer.verdict === 'listed' && LaunchAddressUtil.gaiaWindowIsAmong(targetsAnswer.pageTargets, openedTarget, options.port);
+  }
 
   function showDialog(verdict: Exclude<LaunchVerdict, { readonly verdict: 'closed' }>): LaunchVerdict {
     const dialogRun = LaunchAddressUtil.dialogRunOf(launchMessageOf(verdict, options.port));
@@ -244,20 +245,24 @@ export function createLauncher(options: LauncherOptions): Launcher {
     return 'not-found';
   }
 
-  /** Counts listings in a row that hold no window: a browser lists none for a moment while one window replaces another. */
-  function windowAbsenceOf(windowWatch: BrowserWindowWatch): { readonly windowIsGone: () => Promise<boolean> } {
+  /** Counts listings in a row that hold no window of Gaia's: a browser lists none for a moment while one window replaces another. */
+  function windowAbsenceOf(windowWatch: BrowserWindowWatch, openedTarget: PageTarget): { readonly windowIsGone: () => Promise<boolean> } {
     let listingsWithoutWindow = 0;
     return {
       windowIsGone: async () => {
-        listingsWithoutWindow = await windowIsListed(windowWatch) ? 0 : listingsWithoutWindow + 1;
+        listingsWithoutWindow = await gaiaWindowIsListed(windowWatch, openedTarget) ? 0 : listingsWithoutWindow + 1;
         return listingsWithoutWindow >= waits.windowGonePolls;
       },
     };
   }
 
-  /** Follows the window until it is gone, the launcher is asked to end, or the server the launch started has ended. */
-  async function untilWindowCloses(windowWatch: BrowserWindowWatch, ownedServer: FollowedChild | null): Promise<QuietEnding | 'server-stopped'> {
-    const windowAbsence = windowAbsenceOf(windowWatch);
+  /** Follows Gaia's window until it is gone, the launcher is asked to end, or the server the launch started has ended. */
+  async function untilWindowCloses(
+    windowWatch: BrowserWindowWatch,
+    openedTarget: PageTarget,
+    ownedServer: FollowedChild | null,
+  ): Promise<QuietEnding | 'server-stopped'> {
+    const windowAbsence = windowAbsenceOf(windowWatch, openedTarget);
     for (;;) {
       if (await latch.afterDelay(waits.windowWatchIntervalMilliseconds) === 'stop-requested') return 'stop-requested';
       if (ownedServer?.hasEnded() === true) return 'server-stopped';
@@ -274,7 +279,7 @@ export function createLauncher(options: LauncherOptions): Launcher {
   async function pageOpenedIn(windowWatch: BrowserWindowWatch, splashTarget: PageTarget, sessionCode: string): Promise<'opened' | 'page-not-opened' | 'window-closed'> {
     const pageNavigation = await windowWatch.navigate(splashTarget, LaunchAddressUtil.pageAddressOf(options.port, sessionCode));
     if (pageNavigation.verdict === 'navigated') return 'opened';
-    return await windowIsListed(windowWatch) ? 'page-not-opened' : 'window-closed';
+    return await gaiaWindowIsListed(windowWatch, splashTarget) ? 'page-not-opened' : 'window-closed';
   }
 
   /**
@@ -299,15 +304,16 @@ export function createLauncher(options: LauncherOptions): Launcher {
     const pageOpening = await pageOpenedIn(browser.windowWatch, splashTarget, sessionCode);
     if (pageOpening !== 'opened') return closedAfter(pageOpening, browser, null);
 
-    return closedAfter(await untilWindowCloses(browser.windowWatch, null), browser, null);
+    return closedAfter(await untilWindowCloses(browser.windowWatch, splashTarget, null), browser, null);
   }
 
   /** The server's first Gaia answer, or why there is none: the server ended, the tries ran out, the window closed, or a stop was asked. */
   async function serverAnswer(
     server: FollowedChild,
     windowWatch: BrowserWindowWatch,
+    splashTarget: PageTarget,
   ): Promise<Extract<HealthReading, { readonly verdict: 'gaia-answers' }> | LaunchFailure | QuietEnding> {
-    const windowAbsence = windowAbsenceOf(windowWatch);
+    const windowAbsence = windowAbsenceOf(windowWatch, splashTarget);
     for (let i = 0; i < waits.serverStartTries; i++) {
       if (server.hasEnded()) return 'server-ended';
       const healthReading = await options.gaiaServer.healthReadingFor(options.port);
@@ -330,7 +336,7 @@ export function createLauncher(options: LauncherOptions): Launcher {
     splashAddress: string,
     firstCounts: ForgeCounts | null,
   ): Promise<WaitOutcome | 'window-closed' | 'server-stopped'> {
-    const windowAbsence = windowAbsenceOf(windowWatch);
+    const windowAbsence = windowAbsenceOf(windowWatch, splashTarget);
     let shownCounts = firstCounts;
     await windowWatch.navigate(splashTarget, LaunchAddressUtil.splashStepAddressOf(splashAddress, 'looking', shownCounts));
     for (let i = 0; i < waits.forgeLookTries && !forgesAllAnswered(shownCounts); i++) {
@@ -361,7 +367,7 @@ export function createLauncher(options: LauncherOptions): Launcher {
     const splashTarget = LaunchAddressUtil.splashTargetAmong(pageTargets, splashAddress);
     if (splashTarget === null) return closedAfter('window-not-found', browser, server);
 
-    const answer = await serverAnswer(server, browser.windowWatch);
+    const answer = await serverAnswer(server, browser.windowWatch, splashTarget);
     if (typeof answer === 'string') return closedAfter(answer, browser, server);
     const lookOutcome = await lookForForges(server, browser.windowWatch, splashTarget, splashAddress, answer.forgeCounts);
     if (lookOutcome !== 'elapsed') return closedAfter(lookOutcome, browser, server);
@@ -373,7 +379,7 @@ export function createLauncher(options: LauncherOptions): Launcher {
     const pageOpening = await pageOpenedIn(browser.windowWatch, splashTarget, sessionCode);
     if (pageOpening !== 'opened') return closedAfter(pageOpening, browser, server);
 
-    return closedAfter(await untilWindowCloses(browser.windowWatch, server), browser, server);
+    return closedAfter(await untilWindowCloses(browser.windowWatch, splashTarget, server), browser, server);
   }
 
   /** A plist that holds no install version reads as another version's: the launch fails closed. */

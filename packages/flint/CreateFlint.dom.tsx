@@ -10,7 +10,10 @@
  * target nor visited; Flint stops, hidden, while the tab is hidden or its place is off the screen, and a habitat with no box sends it home
  * instead; a brain answers in place of the rule director
  * for its maximum time only, never while Flint sleeps, never twice at once, and an answer off the list is answered by the rule director;
- * the handle tells the kind of the habitat Flint lives in; `destroy` stops everything, after which a new Flint may be made.
+ * the handle tells the kind of the habitat Flint lives in; `destroy` stops everything, after which a new Flint may be made. A Flint that
+ * stays in its box is drawn only inside the box it stands in, which follows that box at any window size and on a visit; the pointer
+ * changes nothing about it, so no drag carries it and no click starts play with the pointer; it takes only an element inside the box it
+ * lives in, and only the cues of that box end its quiet.
  */
 import {
   afterEach,
@@ -538,5 +541,109 @@ describe('the brain', () => {
     handle.startBrain(brain, 60000);
     advanceFor(frames, 3100);
     expect(brain.digests[0]).toMatchObject({ habitatKind: 'chat', content: { facts: { agentsRunning: 2 } }, isAsleep: false });
+  });
+});
+
+describe('a Flint that stays in its box', () => {
+  const STAYS_IN_ITS_BOX: Partial<FlintOptions> = { confinement: 'stays-in-its-box' };
+
+  /** The clip on the scaled group that holds all of Flint, its x, y, width and height in overlay units; null when there is none. */
+  function confinementOf(root: HTMLElement): readonly (string | null)[] | null {
+    const scaled = overlayOf(root).querySelector(':scope > g');
+    if (scaled?.getAttribute('clip-path') !== 'url(#flint-confinement)') return null;
+    const rectangle = overlayOf(root).querySelector('#flint-confinement rect');
+    return ['x', 'y', 'width', 'height'].map((name) => rectangle?.getAttribute(name) ?? null);
+  }
+
+  test('is drawn only inside its home\'s box, which follows the box at a new window size; a Flint that roams is not clipped', () => {
+    const { root, frames, home } = madeOnPage(STAYS_IN_ITS_BOX);
+    frames.advance(16);
+    expect(confinementOf(root)).toEqual(['900', '600', '200', '100']);
+    placeAt(home, 700, 500, 150, 80);
+    frames.advance(16);
+    expect(confinementOf(root)).toEqual(['700', '500', '150', '80']);
+    created.splice(0).forEach((handle) => handle.destroy());
+    const roaming = madeOnPage();
+    roaming.frames.advance(16);
+    expect(confinementOf(roaming.root)).toBeNull();
+  });
+
+  test('the pointer changes nothing: the body is blind to it, a drag carries nothing and a click starts no play', () => {
+    const positionsOf = (pressesAndMoves: boolean): readonly { readonly x: number; readonly y: number }[] => {
+      const { root, frames, chat } = madeOnPage(STAYS_IN_ITS_BOX);
+      frames.advance(16);
+      expect(bodyOf(root).getAttribute('pointer-events')).toBe('none');
+      if (pressesAndMoves) {
+        pointer('pointerdown', bodyOf(root), 1000, 670);
+        pointer('pointermove', document, 400, 300);
+      }
+      frames.advance(16);
+      expect(chat.hasAttribute('data-sprite-drop-target')).toBe(false);
+      if (pressesAndMoves) {
+        pointer('pointerup', document, 400, 300);
+        pointer('pointerdown', bodyOf(root), 1000, 670);
+        pointer('pointerup', document, 1000, 670);
+        pointer('pointermove', document, 1090, 650);
+      }
+      const positions = [figurePositionOf(root)];
+      for (let i = 0; i < 10; i++) {
+        advanceFor(frames, 300);
+        positions.push(figurePositionOf(root));
+      }
+      created.splice(0).forEach((handle) => handle.destroy());
+      return positions;
+    };
+    expect(positionsOf(true)).toEqual(positionsOf(false));
+  });
+
+  test('a visit pops in through an edge and is drawn only inside the habitat\'s box', () => {
+    const {
+      handle, root, frames, chat
+    } = madeOnPage(STAYS_IN_ITS_BOX);
+    frames.advance(16);
+    focusIn(chat);
+    handle.perform('visit');
+    frames.advance(16);
+    expect(confinementOf(root)).toEqual(['200', '200', '400', '300']);
+    advanceFor(frames, 7000);
+    expect(handle.livesIn()).toBe('chat');
+    const { x } = figurePositionOf(root);
+    expect(x > 200 && x < 600).toBe(true);
+  });
+
+  test('takes only an element inside the box it lives in; an element outside is refused and changes nothing', () => {
+    const { handle, frames, home } = madeOnPage(STAYS_IN_ITS_BOX);
+    const outsideBar = document.createElement('div');
+    document.body.appendChild(outsideBar);
+    placeAt(outsideBar, 300, 300, 160, 10);
+    const insideBar = document.createElement('div');
+    home.appendChild(insideBar);
+    placeAt(insideBar, 920, 640, 160, 10);
+    frames.advance(16);
+    expect(handle.perform('lay-bar-along', outsideBar)).toBe('outside-its-box');
+    expect(handle.perform('grab', outsideBar)).toBe('outside-its-box');
+    expect(handle.perform('grab')).toBe('performed');
+    expect(handle.perform('lay-bar-along', insideBar)).toBe('performed');
+  });
+
+  test('only the cues of the box it lives in end its quiet', () => {
+    const quietWhenAskedOf = (options: Partial<FlintOptions>): number | undefined => {
+      const { handle, frames, chat } = madeOnPage(options);
+      const digests: PerceptionDigest[] = [];
+      frames.advance(16);
+      handle.startBrain({
+        nextIntent: (digest) => {
+          digests.push(digest);
+          return 'wander';
+        },
+      }, 60000);
+      advanceFor(frames, 2000);
+      handle.cue(chat, 'agent-is-writing');
+      advanceFor(frames, 1100);
+      created.splice(0).forEach((made) => made.destroy());
+      return digests[0]?.quietMilliseconds;
+    };
+    expect(quietWhenAskedOf(STAYS_IN_ITS_BOX)).toBeGreaterThan(2000);
+    expect(quietWhenAskedOf({})).toBeLessThan(2000);
   });
 });

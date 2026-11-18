@@ -45,6 +45,8 @@ describe('the recorded browser window watch', () => {
     expect(await watch.navigate(splashTarget, 'http://127.0.0.1:4790/')).toEqual({ verdict: 'navigated' });
     recorded.enterSituation('navigation-refused');
     expect(await watch.navigate(splashTarget, 'http://127.0.0.1:4790/')).toMatchObject({ verdict: 'refused' });
+    recorded.enterSituation('other-window-left');
+    expect(await watch.pageTargets()).toEqual({ verdict: 'listed', pageTargets: [{ targetId: expect.not.stringMatching(splashTarget.targetId), url: 'about:blank' }] });
     recorded.enterSituation('window-closed');
     expect(await watch.pageTargets()).toEqual({ verdict: 'listed', pageTargets: [] });
     recorded.enterSituation('browser-ended');
@@ -54,6 +56,7 @@ describe('the recorded browser window watch', () => {
       'window-open: page targets',
       'window-open: navigate',
       'navigation-refused: navigate',
+      'other-window-left: page targets',
       'window-closed: page targets',
       'browser-ended: page targets',
     ]);

@@ -22,10 +22,11 @@ import type {
 } from '../BrowserWindowWatch.ts';
 
 /**
- * `window-open`: one window, the splash, is listed. `navigation-refused`: the window is listed and refuses a navigation. `window-closed`:
- * the browser runs and lists no window. `browser-ended`: the browser is gone, and its pipe answers nothing.
+ * `window-open`: one window, the splash, is listed. `navigation-refused`: the window is listed and refuses a navigation.
+ * `other-window-left`: the splash's window is closed, and the browser lists only another window on the same profile. `window-closed`: the
+ * browser runs and lists no window. `browser-ended`: the browser is gone, and its pipe answers nothing.
  */
-export const BROWSER_WINDOW_SITUATIONS = ['window-open', 'navigation-refused', 'window-closed', 'browser-ended'] as const;
+export const BROWSER_WINDOW_SITUATIONS = ['window-open', 'navigation-refused', 'other-window-left', 'window-closed', 'browser-ended'] as const;
 
 export type BrowserWindowSituation = typeof BROWSER_WINDOW_SITUATIONS[number];
 

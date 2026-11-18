@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="710" viewBox="0 0 680 710" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Migration stages</title>
+  <desc>Ten stages in order, coloured by where the work lands. Across the repository: stage 0, trace and decide, stage 1, close the monorepo migration, and stage 9, the rename. In forge: stage 2, Talos the commander, stage 3, presence and recovery, stage 4, the package extraction, stage 5, the store port, and stage 8, shrinking the HTTP surface. In Gaia: stage 6, the views one at a time, and stage 7, conversations with hosted agents.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="708" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Migration stages</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">the rename goes last; the views move before the HTTP surface shrinks</text>
+
+  <path d="M340,136 L340,147" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,194 L340,205" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,252 L340,263" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,310 L340,321" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,368 L340,379" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,426 L340,437" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,484 L340,495" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,542 L340,553" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M340,600 L340,611" fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="60" y="92" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="119" font-size="14" font-weight="500" fill="#444441">0  Trace and decide</text>
+  <text x="600" y="119" font-size="12" fill="#5F5E5A" text-anchor="end">recovery as built; standing decisions revised</text>
+
+  <rect x="60" y="150" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="177" font-size="14" font-weight="500" fill="#444441">1  Close the monorepo migration</text>
+  <text x="600" y="177" font-size="12" fill="#5F5E5A" text-anchor="end">no moving base</text>
+
+  <rect x="60" y="208" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="235" font-size="14" font-weight="500" fill="#712B13">2  Talos, the commander</text>
+  <text x="600" y="235" font-size="12" fill="#993C1D" text-anchor="end">one per board, protocol version, lease</text>
+
+  <rect x="60" y="266" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="293" font-size="14" font-weight="500" fill="#712B13">3  Presence and recovery</text>
+  <text x="600" y="293" font-size="12" fill="#993C1D" text-anchor="end">resume on instruction; a crash stays off</text>
+
+  <rect x="60" y="324" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="351" font-size="14" font-weight="500" fill="#712B13">4  Extract the packages</text>
+  <text x="600" y="351" font-size="12" fill="#993C1D" text-anchor="end">tracker model, documents, commands</text>
+
+  <rect x="60" y="382" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="409" font-size="14" font-weight="500" fill="#712B13">5  Store port</text>
+  <text x="600" y="409" font-size="12" fill="#993C1D" text-anchor="end">local adapter, contract spec</text>
+
+  <rect x="60" y="440" width="560" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="80" y="467" font-size="14" font-weight="500" fill="#0C447C">6  Gaia hosts the views</text>
+  <text x="600" y="467" font-size="12" fill="#185FA5" text-anchor="end">one view at a time; HTTP still runs</text>
+
+  <rect x="60" y="498" width="560" height="44" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="80" y="525" font-size="14" font-weight="500" fill="#0C447C">7  Conversations with hosted agents</text>
+  <text x="600" y="525" font-size="12" fill="#185FA5" text-anchor="end">intake and pipeline setup in Gaia</text>
+
+  <rect x="60" y="556" width="560" height="44" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
+  <text x="80" y="583" font-size="14" font-weight="500" fill="#712B13">8  Shrink the HTTP surface</text>
+  <text x="600" y="583" font-size="12" fill="#993C1D" text-anchor="end">reads and commands stay; version major</text>
+
+  <rect x="60" y="614" width="560" height="44" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="80" y="641" font-size="14" font-weight="500" fill="#444441">9  Rename the Overseer</text>
+  <text x="600" y="641" font-size="12" fill="#5F5E5A" text-anchor="end">one commit, boards set up anew</text>
+
+  <text x="60" y="684" font-size="12" fill="#73726c">Grey: across the repository.  Coral: in forge.  Blue: in Gaia (stage 7: both).</text>
+</svg>

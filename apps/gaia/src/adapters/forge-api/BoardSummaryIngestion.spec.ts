@@ -17,6 +17,7 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
   root:              '/Users/alexexample/development/example-project',
   overseerUrl:       'http://127.0.0.1:54795/',
   overseerProcessId: 21_008,
+  program:           null,
   lastCommand:       'open',
   lastChangedAt:     '2026-11-12T09:00:00.000Z',
 };
@@ -97,6 +98,7 @@ describe('a summary at the known version', () => {
         codeVersion:       '3a6e9e6043da',
         lastReportedAt:    EXAMPLE_READ_STAMP,
         overseerStartedAt: null,
+        program:           null,
         lastCommand:       'open',
         lastChangedAt:     '2026-11-12T09:00:00.000Z',
         concurrency:       null,

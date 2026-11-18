@@ -345,7 +345,12 @@ function stopReaches(forge: FleetDocumentForge): boolean {
 interface RowSurroundings {
   readonly fleetDocument:         FleetDocument;
   readonly surroundings:          ForgesSurroundings;
-  readonly forgeProgramIsMissing: boolean;
+  readonly gaiaHasNoForgeProgram: boolean;
+}
+
+/** Gaia starts a forge with the program its registry entry names, else the one in its settings, as the server does. */
+function forgeProgramIsMissingFor(forge: FleetDocumentForge, { gaiaHasNoForgeProgram }: RowSurroundings): boolean {
+  return forge.program === null && gaiaHasNoForgeProgram;
 }
 
 /** The Stop dialog stays only under a row that still offers a Stop that reaches its forge; a forge stopped meanwhile drops it. */
@@ -382,7 +387,7 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
         kind: 'stop', button, label: 'Stop', disabled: isBusy || !stopReaches(forge)
       };
     case 'start':
-      return commandButton(button, 'Start', { kind: 'forge-start', trackerId }, isBusy || rowSurroundings.forgeProgramIsMissing, 'primary');
+      return commandButton(button, 'Start', { kind: 'forge-start', trackerId }, isBusy || forgeProgramIsMissingFor(forge, rowSurroundings), 'primary');
     case 'open':
       if (!ForgeContractUtil.canOpenInPlace(forge)) return null;
       return {
@@ -459,7 +464,7 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition,
     case 'starting':
       return `forge start${DETAIL_SEPARATOR}waiting for its API`;
     case 'dormant': {
-      if (rowSurroundings.forgeProgramIsMissing) return 'the forge program was not found';
+      if (forgeProgramIsMissingFor(forge, rowSurroundings)) return 'the forge program was not found';
       const stoppedClock = StampTextUtil.clockTextAtReadingOf(forge.lastChangedAt, clock);
       return stoppedClock === null ? null : `stopped ${stoppedClock}`;
     }
@@ -645,7 +650,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     conditionWord:  ForgeTextUtil.conditionWordInSentenceCaseOf(shownCondition),
     conditionTone:  conditionToneOf(shownCondition),
     detailText:     versions === null || versions.subline === null ? detailTextOf(forge, shownCondition, rowSurroundings) : null,
-    detailFace:     detailFaceOf(shownCondition, rowSurroundings.forgeProgramIsMissing),
+    detailFace:     detailFaceOf(shownCondition, forgeProgramIsMissingFor(forge, rowSurroundings)),
     agents:         agentsCellOf(forge, rowSurroundings),
     waitingCount:   workIsRead ? waitingCountShownOf(forge) : null,
     workIsRead,
@@ -845,7 +850,7 @@ function emptySentenceOf(fleetDocument: FleetDocument, rows: readonly ForgeRow[]
 
 function forgesContentOf(fleetDocument: FleetDocument, surroundings: ForgesSurroundings): ForgesContent {
   const hiddenTrackerIds = hiddenTrackerIdsOf(fleetDocument);
-  const rowSurroundings: RowSurroundings = { fleetDocument, surroundings, forgeProgramIsMissing: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) };
+  const rowSurroundings: RowSurroundings = { fleetDocument, surroundings, gaiaHasNoForgeProgram: AddRepositoryForm.forgeProgramIsMissingIn(fleetDocument) };
   const shownForges = fleetDocument.forges.filter((forge) => !hiddenTrackerIds.has(forge.trackerId));
   const tableForges = shownForges.filter((forge) => forge.condition !== 'missing');
   const rows = tableForges.map((forge) => rowOf(forge, rowSurroundings));

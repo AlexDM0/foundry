@@ -16,7 +16,8 @@
  * `aria-current="step"` and which says which step this is; with a pipeline set the Pipeline tab is last and the status details hold only
  * the usage windows the facts carry, and never the confinement. A double click on Forge's mark sends `flint-brain-start` while the forge
  * runs a brain that sleeps, says so on the mark, sends nothing while the brain starts or runs, on a forge without it or while controls may
- * not act, takes the start while launches are held, and shows a refusal verbatim beside the brand.
+ * not act, takes the start while launches are held, shows a refusal verbatim beside the brand, and neither says nor sends anything while
+ * the brain's controls are hidden.
  */
 import {
   act,
@@ -37,6 +38,7 @@ import type { ReactElement } from 'react';
 import type { BoardStateDocument, IdentifiedRecord } from '../@types/BoardStateDocument.ts';
 import type { CommandOutcome, ControlCommandBody }   from '../api/CommandClient.ts';
 import type { ConnectionState }                      from '../api/EventStreamClient.ts';
+import type { FlintBrainControls }                   from '../flint/FlintBrainControls.ts';
 import {
   boardStateFixture,
   exampleAgentJob,
@@ -94,24 +96,25 @@ function tickingClock(startsAt: Date = FIXTURE_NOW): { clock: BridgeClock; advan
 }
 
 interface HeaderSurroundings {
-  readonly themeChoice?:     ThemeChoice;
-  readonly onThemeChoice?:   (choice: ThemeChoice) => void;
-  readonly activityIsLive?:  boolean;
-  readonly clock?:           BridgeClock;
-  readonly connection?:      ConnectionState;
-  readonly onShowLane?:      (lane: HeaderFigureLane) => void;
-  readonly notifier?:        QuestionNotifier;
+  readonly themeChoice?:        ThemeChoice;
+  readonly onThemeChoice?:      (choice: ThemeChoice) => void;
+  readonly activityIsLive?:     boolean;
+  readonly clock?:              BridgeClock;
+  readonly connection?:         ConnectionState;
+  readonly onShowLane?:         (lane: HeaderFigureLane) => void;
+  readonly notifier?:           QuestionNotifier;
   /** The board the pill and the tab counts read; without it the header shows no pill and no count. */
-  readonly waitingBoard?:    WaitingOnUserFixtureBoard;
+  readonly waitingBoard?:       WaitingOnUserFixtureBoard;
   /** Every tab but Pipeline unless given: the board says nothing of a pipeline. */
-  readonly shownTabs?:       readonly BridgeTab[];
+  readonly shownTabs?:          readonly BridgeTab[];
   /** The Kanban unless given. */
-  readonly selectedTab?:     BridgeTab;
-  readonly sidePanelIsOpen?: boolean;
+  readonly selectedTab?:        BridgeTab;
+  readonly sidePanelIsOpen?:    boolean;
+  readonly flintBrainControls?: FlintBrainControls;
   /** Enabled unless given. */
-  readonly availability?:    ControlAvailability;
+  readonly availability?:       ControlAvailability;
   /** What the Overseer answers each command; applied unless given. */
-  readonly outcome?:         CommandOutcome;
+  readonly outcome?:            CommandOutcome;
 }
 
 function headerElementOf(state: BoardStateDocument, surroundings: HeaderSurroundings, sent: ControlCommandBody[]): ReactElement {
@@ -144,6 +147,7 @@ function headerElementOf(state: BoardStateDocument, surroundings: HeaderSurround
         tabCounts={waitingBoard === undefined || waitingOnUser === null ? {} : WaitingOnUserModel.tabCountsOf(waitingBoard, waitingOnUser)}
         questionNotifier={surroundings.notifier ?? NO_NOTIFIER}
         timestampSlices={state.page?.payload.limits ?? null}
+        {...(surroundings.flintBrainControls === undefined ? {} : { flintBrainControls: surroundings.flintBrainControls })}
       />
     </ControlSurroundingsContext.Provider>
   );
@@ -700,6 +704,13 @@ describe('Flint\'s brain on Forge\'s mark', () => {
     const whileHeld = renderedHeader(boardWithBrain(OFF_FLINT_BRAIN), { availability: 'install-held' });
     await doubleClickedMark();
     expect(whileHeld).toEqual([{ kind: 'flint-brain-start' }]);
+  });
+
+  test('with the brain\'s controls hidden, the mark of a sleeping brain neither says it wakes nor sends anything', async () => {
+    const sent = renderedHeader(boardWithBrain(OFF_FLINT_BRAIN), { flintBrainControls: 'hidden' });
+    expect(screen.getByRole('img', { name: 'Forge' }).querySelector('title')).toBeNull();
+    await doubleClickedMark();
+    expect(sent).toEqual([]);
   });
 
   test('a refused start shows the Overseer\'s sentence verbatim beside the brand', async () => {

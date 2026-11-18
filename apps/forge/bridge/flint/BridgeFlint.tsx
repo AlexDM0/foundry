@@ -7,7 +7,8 @@
  * the board occasions, which Flint answers wherever it is (`bridge/flint/UseBoardOccasions.ts`); and Flint's brain, its second director
  * over the ask route while the board says the Overseer runs it, until its run ends (`bridge/flint/FlintBrainDirector.ts`). The habitats
  * are the components below it that call `useFlintHabitat`; a component below it that starts an intent with one of its own elements calls
- * `useFlintPerform`. Every choice here is the host's, and easy to change.
+ * `useFlintPerform`. For now Flint stays in its box (`FLINT_CONFINEMENT`): it shows only inside its home or the slot it lives in, nobody
+ * carries it and it ignores the pointer. Every choice here is the host's, and easy to change.
  */
 
 import type { FlintHandle, FlintOptions } from 'flint';
@@ -32,6 +33,9 @@ import { createVisitTargetTracker }         from './VisitTargetTracker.ts';
 
 /** Flint is 40 by 50 units; at this size it takes 30 by 37.5 pixels. */
 const PIXELS_FOR_ONE_UNIT = 0.75;
+
+/** `roams-the-page` lets Flint come around a habitat's corner, be carried by the pointer and play with it again. */
+const FLINT_CONFINEMENT: NonNullable<FlintOptions['confinement']> = 'stays-in-its-box';
 
 export type FlintFrameSource = NonNullable<FlintOptions['frameSource']>;
 
@@ -103,6 +107,7 @@ export function BridgeFlint({
         <Flint
           home={home}
           pixelsForOneUnit={PIXELS_FOR_ONE_UNIT}
+          confinement={FLINT_CONFINEMENT}
           visitTarget={visitTargetTracker.visitTarget}
           {...(storage === null ? {} : { storage })}
           {...(frameSource === undefined ? {} : { frameSource })}

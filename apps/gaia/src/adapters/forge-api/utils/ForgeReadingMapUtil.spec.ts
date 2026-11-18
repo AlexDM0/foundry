@@ -20,6 +20,7 @@ const REGISTRY_FACTS: ForgeRegistryFacts = {
   root:              '/Users/alexexample/development/example-agency',
   overseerUrl:       'http://127.0.0.1:4987/',
   overseerProcessId: 4242,
+  program:           '/Users/alexexample/.bun/bin/forge',
   lastCommand:       'ticket ready',
   lastChangedAt:     '2026-11-12T08:00:00.000Z',
 };
