@@ -155,8 +155,8 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
       version 3, with that prepare step, gates and reach.
 - [x] Login items for both trackers, from the installed clone (owner). Evidence: `~/Library/LaunchAgents` held
       `com.forge.overseer.1dc461b1-cdeb-4cdf-bc38-2cc5b8cd9757.plist` and
-      `com.forge.overseer.4c2d0ab1-b194-4578-a175-800a56ca477d.plist` on 2026-11-18; the Hephaestus and Talos run
-      removes them while the trackers stay stopped.
+      `com.forge.overseer.4c2d0ab1-b194-4578-a175-800a56ca477d.plist` on 2026-11-18; the owner
+      removes them at gate G3 of the Hephaestus and Talos run, while the trackers stay stopped.
 - [x] `gaia install-app` from `apps/gaia` (owner). Evidence: `~/Applications/Gaia.app` exists.
 - [-] Smoke: both Overseers start through Gaia, both Bridges serve, one trivial ticket per tracker lands, and the other tracker's gate
       replays the untouched app from the cache (Claude). Closed without a tick, superseded: both trackers

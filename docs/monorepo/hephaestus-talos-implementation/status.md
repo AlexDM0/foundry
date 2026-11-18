@@ -25,8 +25,8 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-A | WP0.2 | landed | (no commit) | Green baseline at `5b68d0ad` (main `e9b5d057` plus the stale-spec fix): 9 files, 235 pass, 0 fail. 12 resume-by-itself cases listed, incl. the 4 the stage file missed. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-0/recovery-baseline.txt` |
 | 0-A | WP0.3 | owner | | Gate G1: the owner records it |
 | 0-B | WP0.4 | waiting | | |
-| 0-C | WP0.5 | waiting | | |
-| 0-D | WP1.1 | waiting | | |
+| 0-C | WP0.5 | landed | 7dc5dbed | Design holds decisions 35 to 52; migration figure and HTML page rendered again (no script renders the page: a one-off renderer did). Left stale: the migration figure's caption in the design still puts stage 8 in forge only; whoever changes it renders the page again |
+| 0-D | WP1.1 | landed | a99381c1 | Migration checklist closed, no open item |
 | 0-E | WP1.2 | waiting | | |
 | 0-F | Refresh the plan | landed | | Ran before 0-A on the owner's word; stage files now checked against `0a648b2b`. Runs again only if WP1.2 lands another branch |
 | 0-G | WP1.3 | waiting | | |
