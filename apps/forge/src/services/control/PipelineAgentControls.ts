@@ -4,13 +4,15 @@
  * constitution go to; the payload is untrusted JSON, read through its closed schema, and refused `malformed-setup-command` naming
  * the field before the Board is touched; every other refusal is found before the Board changes too, since a relayed command shares the
  * Overseer's hold, which a refusal does not undo. None of them messages the agent: it made the move. The agent's first proposal also records what
- * the snapshot's tree cannot hold on every OS.
+ * the snapshot's tree cannot hold on every OS. A layout finding of the forge's session can start a first setup's `entities` step, only for a
+ * tracker at its repository's root, since only that tracker holds entities.
  */
 import { type PayloadReading, SetupPayloadSchemas }                       from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
 import type { PipelineSetupChanged }                                      from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { EntityKey }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandKind, ControlCommandOf }                      from '../../shared/@types/ControlCommand.ts';
 import { TreePortability }                                                from '../lifecycle/TreePortability.ts';
+import { projectLocationOf }                                              from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }                                             from '../tracker/TrackerPipeline.ts';
 import { refuseMalformedSetupCommand, requireStorableDraft, textFieldOf } from './PipelineSetupControls.ts';
 
@@ -31,10 +33,19 @@ function readPayload<Value>(commandKind: ControlCommandKind, reading: PayloadRea
   return reading.value;
 }
 
+/** Only a tracker at its repository's root holds entities; the place is read only for a layout finding of the forge's session. */
+function findingMayProposeEntities(topic: string, entityKey: EntityKey | undefined, change: TrackerChange): boolean {
+  return topic === 'layout' && entityKey === undefined && projectLocationOf(change.workspace.rootDirectory).projectPrefix === '';
+}
+
 function recordFinding(command: ControlCommandOf<'pipeline-finding-record'>, change: TrackerChange): PipelineSetupChanged {
-  const setupId = textFieldOf(command, 'setupId');
-  const finding = readPayload(command.kind, SetupPayloadSchemas.findingReadingOf(payloadOf(command)));
-  return change.board.recordFinding(setupId, finding, change.at, stampedEntityOf(command));
+  const setupId   = textFieldOf(command, 'setupId');
+  const finding   = readPayload(command.kind, SetupPayloadSchemas.findingReadingOf(payloadOf(command)));
+  const entityKey = stampedEntityOf(command);
+  const recorded  = change.board.recordFinding(setupId, finding, change.at, entityKey);
+  if (!findingMayProposeEntities(finding.topic, entityKey, change)) return recorded;
+  const walking = change.board.walkEntitiesStepAfterLayout(setupId, change.at);
+  return { setup: walking.setup, logged: [...recorded.logged, ...walking.logged] };
 }
 
 function askQuestion(command: ControlCommandOf<'pipeline-question-ask'>, change: TrackerChange): PipelineSetupChanged {

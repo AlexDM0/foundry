@@ -64,6 +64,7 @@ import {
   FINDING_ID_PREFIX,
   FIRST_SETUP_ITEM_NUMBER,
   FIRST_SETUP_NUMBER,
+  LAYOUT_FINDINGS_PROPOSING_ENTITIES,
   MINIMUM_SETUP_QUESTION_OPTIONS,
   PENDING_APPLY_REQUEST_STATES,
   PIPELINE_SETUP_STEPS,
@@ -98,6 +99,21 @@ const SOURCE_TICK_OF_KIND: Readonly<Record<SourceAnnotationKind, keyof Constitut
 const FIRST_SETUP_STEP_STATES: Readonly<PipelineSetupStepStates> = {
   billing: 'done', research: 'in-progress', constitution: 'not-started', design: 'not-started', apply: 'not-started'
 };
+
+/** The step states with `entities` not started, in the order the steps are walked. */
+function stepStatesWalkingEntitiesOf(stepStates: Readonly<PipelineSetupStepStates>): PipelineSetupStepStates {
+  const {
+    billing, research, constitution, design, apply
+  } = stepStates;
+  return {
+    billing, research, entities: 'not-started', constitution, design, apply
+  };
+}
+
+/** Research is still the current step: a first setup opens there, and billing reopens before it. */
+function researchIsCurrent(setup: Readonly<PipelineSetup>): boolean {
+  return setup.currentStep === 'billing' || setup.currentStep === 'research';
+}
 
 function stepIndexOf(step: PipelineSetupStep): number {
   return PIPELINE_SETUP_STEPS.indexOf(step);
@@ -389,6 +405,21 @@ export class PipelineSetups {
     this.store(setup);
     const fields = { findingId, topic: recording.topic };
     return { logged: [this.records.logger.log({ kind: 'pipeline-finding-recorded', setupId, fields }, at)], setup };
+  }
+
+  /**
+   * A first setup walks the `entities` step once the forge's research found several stand-alone codebases, while research is the current
+   * step: the step proposes monorepo mode, and User can decline it there. Every other record stays as it is and logs nothing.
+   */
+  walkEntitiesStepAfterLayout(setupId: string, at: string): PipelineSetupChanged {
+    const setup = this.requireMovableSetup(setupId);
+    const layoutFindingCount = setup.findings.filter((finding) => finding.topic === 'layout').length;
+    const walksTheStep = setup.mode === 'setup' && setup.stepStates.entities === undefined && researchIsCurrent(setup)
+      && layoutFindingCount >= LAYOUT_FINDINGS_PROPOSING_ENTITIES;
+    if (!walksTheStep) return { logged: [], setup };
+    setup.stepStates = stepStatesWalkingEntitiesOf(setup.stepStates);
+    this.store(setup);
+    return { logged: [this.stepMovedRecord(setup, 'entities', [], at)], setup };
   }
 
   /**

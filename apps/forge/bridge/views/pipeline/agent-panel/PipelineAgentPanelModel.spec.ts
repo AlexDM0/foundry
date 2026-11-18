@@ -5,8 +5,8 @@
  * sends the chosen letters or the Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with
  * every recommended one, a single one keeps one letter, and Other excludes the letters, since the control contract takes either letters or
  * a text; a message goes to the agent's job; a flow node's question cards are only its open ones; the agent strip waits on User with the
- * ask cue on any step whose own question is open, then reads on research, drafts on the constitution and designs or has its proposal ready
- * on the design, and once the agent's job stopped it shows no work at all.
+ * ask cue on any step whose own question is open, then reads on research, proposes on the entities step, drafts on the constitution and
+ * designs or has its proposal ready on the design, and once the agent's job stopped it shows no work at all.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -177,11 +177,13 @@ describe('the agent strip', () => {
     const working = { questions: answeredQuestions, readyToContinue: ['research' as const] };
     expect([
       PipelineAgentPanelModel.agentStripOf('research', working, 'running'),
+      PipelineAgentPanelModel.agentStripOf('entities', working, 'running'),
       PipelineAgentPanelModel.agentStripOf('constitution', working, 'running'),
       PipelineAgentPanelModel.agentStripOf('design', working, 'running'),
       PipelineAgentPanelModel.agentStripOf('design', { ...working, readyToContinue: ['design'] }, 'running'),
     ].map(partsOf)).toEqual([
       ['Reading the repository', 'research-slot', 'agent-reads'],
+      ['Proposing the entities', 'research-slot', 'agent-reads'],
       ['Drafting the constitution', 'constitution-slot', null],
       ['Designing the pipeline', 'pipeline-design-slot', 'agent-thinks'],
       ['Proposal ready', 'pipeline-design-slot', 'agent-is-done'],
@@ -192,7 +194,8 @@ describe('the agent strip', () => {
     const stripOf = (step: SetupQuestion['step']) => PipelineAgentPanelModel.agentStripOf(
       step, { questions: [openQuestionOn(step)], readyToContinue: ['research', 'design'] }, 'running'
     );
-    expect((['research', 'constitution', 'design'] as const).map((step) => partsOf(stripOf(step)))).toEqual([
+    expect((['research', 'entities', 'constitution', 'design'] as const).map((step) => partsOf(stripOf(step)))).toEqual([
+      ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
       ['Waiting for your answer', 'research-slot', 'agent-waits-on-user'],
       ['Waiting for your answer', 'constitution-slot', 'agent-waits-on-user'],
       ['Waiting for your answer', 'pipeline-design-slot', 'agent-waits-on-user'],

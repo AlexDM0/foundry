@@ -95,6 +95,8 @@ test('a draft edit carries each changed field with its value now as JSON, so the
 });
 
 test.each([
+  ['research', 'entities', '### Entities'],
+  ['entities', 'constitution', '### Constitution'],
   ['research', 'constitution', '### Constitution'],
   ['constitution', 'design', '### Pipeline design'],
 ] as const)('a Continue from %s carries the block of the %s step', (step, currentStep, heading) => {

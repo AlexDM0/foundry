@@ -31,7 +31,10 @@ export const RESEARCH_FINDING_TOPICS = ['stack', 'scripts', 'conventions', 'cont
 
 export const GATE_CANDIDACIES = ['gate', 'not-a-gate', 'unsure'] as const satisfies readonly GateCandidacy[];
 
-export const SETUP_QUESTION_STEPS = ['research', 'constitution', 'design'] as const satisfies readonly SetupQuestionStep[];
+export const SETUP_QUESTION_STEPS = ['research', 'entities', 'constitution', 'design'] as const satisfies readonly SetupQuestionStep[];
+
+/** A first setup walks the `entities` step once research found this many stand-alone codebases: several, so monorepo mode can pay off. */
+export const LAYOUT_FINDINGS_PROPOSING_ENTITIES = 2;
 
 export const SETUP_QUESTION_SUBJECT_KINDS = ['node', 'gate', 'rule', 'finding'] as const satisfies readonly SetupQuestionSubjectKind[];
 

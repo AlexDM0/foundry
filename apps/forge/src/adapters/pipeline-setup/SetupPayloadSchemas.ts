@@ -324,7 +324,7 @@ function proposalReadingOf(payload: unknown): PayloadReading<SummarisedDraftEdit
   });
 }
 
-/** Only a step the agent works on: research, constitution or design. */
+/** Only a step the agent works on: research, entities, constitution or design. */
 function readyStepReadingOf(payload: unknown): PayloadReading<SetupQuestionStep> {
   return readingOf(() => oneOf(SETUP_QUESTION_STEPS, closedRecordAt(payload, '', READY_STEP_KEYS), '', 'step'));
 }

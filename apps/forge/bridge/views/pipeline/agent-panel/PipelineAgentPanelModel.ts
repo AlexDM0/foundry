@@ -80,6 +80,9 @@ export interface AgentStripView {
 
 const RESEARCH_STRIP: AgentStripView = { text: 'Reading the repository', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_READS, };
 
+/** On the entities step the agent turns the layout research found into entities, in the research slot. */
+const ENTITIES_STRIP: AgentStripView = { text: 'Proposing the entities', flintHabitat: FLINT_SLOT_HABITATS.research, flintCue: FLINT_SLOT_CUES.AGENT_READS, };
+
 const CONSTITUTION_STRIP: AgentStripView = { text: 'Drafting the constitution', flintHabitat: FLINT_SLOT_HABITATS.constitution, flintCue: null, };
 
 const DESIGNING_STRIP: AgentStripView = { text: 'Designing the pipeline', flintHabitat: FLINT_SLOT_HABITATS.pipelineDesign, flintCue: FLINT_SLOT_CUES.AGENT_THINKS, };
@@ -96,6 +99,7 @@ const STOPPED_TEXT = 'Stopped';
 
 const WORKING_STRIPS: Readonly<Record<SetupQuestionStep, AgentStripView>> = Object.freeze({
   research:     RESEARCH_STRIP,
+  entities:     ENTITIES_STRIP,
   constitution: CONSTITUTION_STRIP,
   design:       DESIGNING_STRIP,
 });

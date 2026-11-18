@@ -323,7 +323,7 @@ export function EntitiesStep({
     >
       <PipelineAgentPanel
         setup={setup}
-        step="research"
+        step="entities"
         followTranscript={followTranscript}
         todayCalendarDate={TimeUtil.calendarDateOf(now.getTime())}
         composerPlaceholder="Correct the layout, for example: apps/legacy is not used"

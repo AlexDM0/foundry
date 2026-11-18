@@ -1225,7 +1225,7 @@ agent may relay only these and `question options`; every ticket verb and every o
 | `pipeline ask` (`pipeline-question-ask`) | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` | Ask User a setup question `Q<n>`, logged `pipeline-question-asked`: two to four options (`setup-question-option-count`), lettered `a` on in order, and exactly one recommended letter unless `multiple` (`setup-question-without-recommendation`, `several-letters-on-single-select-setup-question`). An option offering "Other" is refused: the Bridge offers free text itself. |
 | `pipeline draft-constitution` (`pipeline-constitution-draft`) | `{markdown, sources: [{lineText, occurrence, kind, path}]}` | Store the whole constitution byte for byte, logged `pipeline-constitution-set` by the agent. Refused: an empty text (`constitution-empty`), one over 20,000 characters (`constitution-too-long`), a source whose line the text does not hold `occurrence` times (`constitution-source-unanchored`), two sources on one line (`constitution-source-repeated`), a source of a kind the record's SOURCES ticks do not select (`constitution-source-not-ticked`; with no constitution yet, the ticks are `contributing` and `research`), and a source path outside the repository. Under a job the markdown travels beside the command, as a ticket body does. |
 | `pipeline propose` (`pipeline-draft-propose`) | `{edits: [{field, value, summary}]}` | Edit the draft in one move, logged `pipeline-draft-edited` by the agent, each edit with its own summary sentence. A field outside the record's closed list is refused, and so is a draft `pipeline.json`'s validator would refuse (`pipeline-draft-invalid`), checked before the record changes. The agent's first proposal also records each [tree finding](#gate-profiles) of the snapshot as a `note` finding. |
-| `pipeline ready <step>` (`pipeline-step-ready`) | none: `research`, `constitution` or `design` | Suggest that User may continue the current step, kept in `readyToContinue` and logged `pipeline-step-ready-suggested` once; it moves no step. Another step is refused `setup-step-not-current`. |
+| `pipeline ready <step>` (`pipeline-step-ready`) | none: `research`, `entities`, `constitution` or `design` | Suggest that User may continue the current step, kept in `readyToContinue` and logged `pipeline-step-ready-suggested` once; it moves no step. Another step is refused `setup-step-not-current`. |
 
 ### Review statistics
 
@@ -2569,7 +2569,10 @@ On a forge over entities the record also holds, each written only once set:
   and gates, their folders read under the entity's first home: the check's start carries it as `entityHome`, which the
   record does not store. `openedAtEntity` names the entity an update or advise opened at, the level whose session a
   resume opens. `stepStates.entities` exists only once the record walks the `entities` step, between `research` and
-  `constitution`.
+  `constitution`. A first setup starts to walk it, `not-started`, when the forge's session records its second `layout`
+  finding while `research` (or `billing`) is the current step, logged `pipeline-setup-step-moved`; only a tracker at its
+  repository's root does, and a record without two `layout` findings walks today's steps. A question and `pipeline
+  ready` may name the `entities` step.
 - Only one record is open at a time: a second opening is refused (`setup-in-progress`). Only a step at or before the
   current one reopens (`setup-step-not-reached`). Reopening a step sets every later `done` step to `needs-recheck`,
   never `not-started`; Continue on that step sets it `done`, the only way out of a recheck. In a first setup, User's

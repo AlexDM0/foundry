@@ -61,7 +61,8 @@ export interface ResearchFinding {
   needsRecheck: boolean;
 }
 
-export type SetupQuestionStep = Extract<PipelineSetupStep, 'research' | 'constitution' | 'design'>;
+/** The steps the pipeline agent works on, where it asks and suggests a Continue. */
+export type SetupQuestionStep = Extract<PipelineSetupStep, 'research' | 'entities' | 'constitution' | 'design'>;
 
 export type SetupQuestionSubjectKind = 'node' | 'gate' | 'rule' | 'finding';
 

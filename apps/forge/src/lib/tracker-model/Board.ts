@@ -1101,6 +1101,11 @@ export class Board {
     return this.pipelineSetups.recordFinding(setupId, recording, at, entityKey);
   }
 
+  /** A first setup walks the `entities` step once the forge's research found several stand-alone codebases; else nothing changes. */
+  walkEntitiesStepAfterLayout(setupId: string, at: string): PipelineSetupChanged {
+    return this.pipelineSetups.walkEntitiesStepAfterLayout(setupId, at);
+  }
+
   askSetupQuestion(setupId: string, asking: SetupQuestionAsking, at: string, entityKey?: EntityKey): PipelineSetupChanged {
     return this.pipelineSetups.askSetupQuestion(setupId, asking, at, entityKey);
   }

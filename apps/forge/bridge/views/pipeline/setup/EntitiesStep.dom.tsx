@@ -5,7 +5,8 @@
  * continues the step with no entity; a fold sends the package's removal and the target's new homes as one gesture; a gesture that would
  * leave a refusal of the shared validator sends nothing and shows the API sentence of that refusal before Continue, whose fix sends the
  * held change and the fix together; a key the field codec cannot name makes no edit and says why; choosing the root's gates adds the root
- * entity; and how a crossing runs is read-only.
+ * entity; how a crossing runs is read-only; and the agent's question at the entities step shows in the panel, while a research question
+ * stays on the research step.
  */
 import {
   act,
@@ -214,6 +215,32 @@ describe('a key the draft edit cannot name', () => {
     expect(keyField.value).toBe('shop/web');
     expect(keyField.getAttribute('aria-invalid')).toBe('true');
     expect(within(rowOf('web')).getByText('A key cannot hold "/"')).toBeDefined();
+  });
+});
+
+describe('the agent\'s question', () => {
+  test('a question at the entities step is a card in the panel, answered as any card; a research question stays on research', async () => {
+    const askedOn = (questionId: string, step: 'research' | 'entities', question: string) => ({
+      questionId,
+      step,
+      subject:     null,
+      question,
+      context:     '',
+      multiple:    false,
+      answer:      null,
+      recommended: ['a'],
+      options:     [{ letter: 'a', text: 'Fold it into the root' }, { letter: 'b', text: 'Keep it as a package' }],
+    });
+    const questions = [askedOn('Q1', 'research', 'Do the tests need the network?'), askedOn('Q2', 'entities', 'Is docs an entity of its own?')];
+    const controls = renderEntities(entitiesStepBoardOf({ questions }));
+    const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
+
+    expect(within(panel).queryByRole('group', { name: /Do the tests need the network/u })).toBeNull();
+    const card = within(panel).getByRole('group', { name: /Is docs an entity of its own/u });
+    await clickSettled(within(card).getByRole('button', { name: 'Answer' }));
+    expect(controls.sent).toEqual([{
+      kind: 'pipeline-setup-answer', setupId: 'S1', questionId: 'Q2', answer: { form: 'letters', choices: ['a'] }
+    }]);
   });
 });
 

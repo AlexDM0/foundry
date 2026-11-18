@@ -2,7 +2,7 @@
   "stamp": {
     "boundary": "src/services/overseer/InstallChangeWatch.ts",
     "system": "agent-progress",
-    "version": "install version 35",
+    "version": "install version 36",
     "os": "darwin"
   },
   "answers": [
@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"e8db9e29f6f2\",\n  \"installVersion\": 35,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
+        "stdout": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"59e21f8b83aa\",\n  \"installVersion\": 36,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
         "stderr": ""
       }
     },

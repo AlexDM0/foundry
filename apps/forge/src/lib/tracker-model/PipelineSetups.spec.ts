@@ -9,7 +9,10 @@
  * set's batch, the first of their edit ids, and still undo one by one or as one set at one revision, a copy to two entities one entity
  * at a time; no other edit carries a batch, so
  * its set is itself; and a field inside an entity is
- * refused as the same field at the top would be. A finding of one entity goes to that entity's part.
+ * refused as the same field at the top would be. A finding of one entity goes to that entity's part. A first setup starts to walk the
+ * `entities` step at the forge's second layout finding while research is current, and nothing else starts it: one layout finding, an
+ * update, an entity's finding or a record past research keep today's steps, unchanged and unlogged. The agent asks at the `entities` step,
+ * and User's answer there from a later step reopens it.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -333,6 +336,88 @@ describe('the entities step', () => {
     expect(logged.map((record) => record.fields)).toEqual([{
       step: 'research', state: 'in-progress', currentStep: 'research', needsRecheck: ['entities']
     }]);
+  });
+
+  function layoutFinding(folder: string): ResearchFindingRecording {
+    return {
+      topic: 'layout', label: folder, value: 'Example app', sourcePaths: [`${folder}/package.json`], script: null
+    };
+  }
+
+  test('a first setup walks the entities step once the forge\'s research records a second layout finding, which logs the step', () => {
+    const { board, setupId } = openedBoard();
+
+    board.recordFinding(setupId, layoutFinding('apps/web'), AT);
+    expect(board.walkEntitiesStepAfterLayout(setupId, AT).logged).toEqual([]);
+    expect(Object.hasOwn(openSetupOf(board).stepStates, 'entities')).toBe(false);
+
+    board.recordFinding(setupId, layoutFinding('packages/ui'), AT);
+    const { setup, logged } = board.walkEntitiesStepAfterLayout(setupId, AT);
+
+    expect(Object.entries(setup.stepStates)).toEqual([
+      ['billing', 'done'],
+      ['research', 'in-progress'],
+      ['entities', 'not-started'],
+      ['constitution', 'not-started'],
+      ['design', 'not-started'],
+      ['apply', 'not-started'],
+    ]);
+    expect(logged.map((record) => record.kind)).toEqual(['pipeline-setup-step-moved']);
+    expect(logged.map((record) => record.fields)).toEqual([{
+      step: 'entities', state: 'not-started', currentStep: 'research', needsRecheck: []
+    }]);
+    expect(board.walkEntitiesStepAfterLayout(setupId, AT).logged).toEqual([]);
+    expect(board.continueSetupStep(setupId, 'research', AT).setup.currentStep).toBe('entities');
+    expect(openSetupOf(board).stepStates.entities).toBe('in-progress');
+  });
+
+  test('a first setup without two layout findings of the forge keeps today\'s steps, and its record stays as it was', () => {
+    const { board, setupId } = openedBoard();
+    board.recordFinding(setupId, {
+      topic: 'stack', label: 'Bun', value: '1.3', sourcePaths: ['package.json'], script: null
+    }, AT);
+    board.recordFinding(setupId, layoutFinding('apps/web'), AT, 'web');
+    board.recordFinding(setupId, layoutFinding('packages/ui'), AT, 'ui');
+    const before = structuredClone(openSetupOf(board));
+
+    expect(board.walkEntitiesStepAfterLayout(setupId, AT)).toEqual({ logged: [], setup: before });
+    expect(openSetupOf(board)).toEqual(before);
+    expect(board.continueSetupStep(setupId, 'research', AT).setup.currentStep).toBe('constitution');
+  });
+
+  test('an update, and a first setup past its research, never start to walk the entities step', () => {
+    const updated = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_PIPELINE);
+    const past    = openedBoard();
+    past.board.continueSetupStep(past.setupId, 'research', AT);
+
+    for (const { board, setupId } of [updated, past]) {
+      board.recordFinding(setupId, layoutFinding('apps/web'), AT);
+      board.recordFinding(setupId, layoutFinding('packages/ui'), AT);
+      expect(board.walkEntitiesStepAfterLayout(setupId, AT).logged).toEqual([]);
+      expect(Object.hasOwn(openSetupOf(board).stepStates, 'entities')).toBe(false);
+    }
+  });
+
+  test('the agent asks at the entities step, and User\'s answer from the constitution reopens it', () => {
+    const { board, setupId } = boardWalkingEntities();
+    board.continueSetupStep(setupId, 'research', AT);
+    const asking = {
+      step:               'entities',
+      subject:            { kind: 'finding', reference: 'F1' },
+      question:           'Is docs an entity of its own?',
+      context:            'It has no build.',
+      optionTexts:        ['Fold it into the root', 'Keep it as a package'],
+      recommendedLetters: ['a'],
+      multiple:           false,
+    } as const;
+
+    const { logged } = board.askSetupQuestion(setupId, asking, AT);
+    expect(logged.map((record) => record.fields)).toEqual([{ questionId: 'Q1', step: 'entities' }]);
+    expect(openSetupOf(board).questions.map((question) => question.step)).toEqual(['entities']);
+
+    board.continueSetupStep(setupId, 'entities', AT);
+    board.answerSetupQuestion(setupId, 'Q1', { letters: ['a'] }, AT);
+    expect([openSetupOf(board).currentStep, openSetupOf(board).stepStates.entities]).toEqual(['entities', 'in-progress']);
   });
 
   test('a finding with an entity key goes to that entity\'s part, created the first time, numbered with the forge\'s findings', () => {

@@ -19,7 +19,7 @@ result into the setup record. Do not name the setup record: the Overseer adds it
 | `{{program}} pipeline ask` | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` |
 | `{{program}} pipeline draft-constitution` | `{markdown, sources: [{lineText, occurrence, kind, path}]}` |
 | `{{program}} pipeline propose` | `{edits: [{field, value, summary}]}` |
-| `{{program}} pipeline ready <step>` | no payload; the step is `research`, `constitution` or `design` |
+| `{{program}} pipeline ready <step>` | no payload; the step is `research`, `entities`, `constitution` or `design` |
 
 When the Overseer refuses a command, it prints the reason. Correct the payload and send the command again. Do not send
 a command again when it printed `queued`: the Overseer applies it later.

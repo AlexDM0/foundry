@@ -5,7 +5,8 @@
  * design rules and the gate history on a stored pipeline; the confinement claims as the platform holds them; and the grammar its lines run
  * in, filled from the shell line port's `lineGrammar`. The constitution block asks for one whole document whose sources travel only in
  * the `sources` list. An entity's session reads that it works on its entity only, and its entity's findings, questions and constitution
- * in place of the forge's; the forge's session reads no such line.
+ * in place of the forge's; the forge's session reads no such line. The entities block turns the layout findings into `entity:<key>`
+ * proposals, leaves the root, the whitelist and the reach to User, and asks and suggests a Continue at the `entities` step.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -139,6 +140,7 @@ describe('the current step\'s block', () => {
   test.each([
     ['billing', '### Research'],
     ['research', '### Research'],
+    ['entities', '### Entities'],
     ['constitution', '### Constitution'],
     ['design', '### Pipeline design'],
     ['apply', '### Pipeline design'],
@@ -164,6 +166,20 @@ describe('the current step\'s block', () => {
     expect(message).toContain('2026-11-12T10:00:00+01:00 green tree 4b825dc');
     expect(message).toContain('"run": "bun test"');
     expect(message).not.toContain('# Installed');
+  });
+
+  test('the entities block proposes an entity per layout finding, leaves the root, whitelist and reach to User, and asks at its step', () => {
+    const message = firstMessageOf(factsWith({ setup: setupAt('entities') }));
+
+    expect(message).toContain('Use the `layout` findings of the setup record.');
+    expect(message).toContain('Give each entity one edit of the field `entity:<key>`. The value is `{kind, home, summary?}`.');
+    expect(message).toContain('also give the\n  edit `entity:<key>/depends-on`.');
+    expect(message).toContain('Do not propose an entity for the root of the repository.');
+    expect(message).toContain('Do not propose a whitelist or a reach. User sets them in this step.');
+    expect(message).toContain('Give the question the\nstep `entities`.');
+    expect(message).toContain('pipeline ready entities`');
+    expect(message).toContain('the step is `research`, `entities`, `constitution` or `design`');
+    expect(message).not.toContain('### Research');
   });
 
   test('the constitution block asks for one whole document, its sources only in the sources list', () => {

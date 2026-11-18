@@ -6,9 +6,18 @@
  * one that leaves a draft the `pipeline.json` validator refuses, is refused; the constitution is stored byte for byte, and an empty,
  * overlong, unanchored or doubly sourced one, one with a malformed source path, or one naming a source whose SOURCES tick is off, is
  * refused; a ready step is a suggestion only; and only the first proposal reads the snapshot's tree from git's index, each finding a note.
+ * The forge session's second layout finding starts a first setup's `entities` step in a tracker at its repository's root only: a tracker
+ * in a folder holds no entities, so its record keeps today's steps. The agent asks and suggests a Continue at the `entities` step.
  * Every refusal leaves the record and the log untouched: a relayed command shares the Overseer's hold, which a refusal does not undo.
  */
-import { describe, expect, test } from 'bun:test';
+import { mkdirSync } from 'node:fs';
+import { join }      from 'node:path';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
 import type { PipelineSetup }                                    from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { BoardRefusal }                                          from '../../lib/tracker-model/BoardRefusal.ts';
@@ -18,6 +27,7 @@ import { OperationRefusal }                                      from '../../sha
 import { boardFixture, type BoardFixture }                       from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                from '../../testing/EchoedControlContext.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
 import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                                     from '../tracker/Workspace.ts';
@@ -33,10 +43,10 @@ const recordedGit = useRecordedGit();
 
 const CONSTITUTION_TEXT = '# Example Agency\r\n\r\n- Keep it small.\r\n- Keep it small.\r\n';
 
-function changeOf(fixture: BoardFixture): TrackerChange {
+function changeOf(fixture: BoardFixture, projectDirectory = '/example-agency/storefront'): TrackerChange {
   return {
     board:                          fixture.board,
-    workspace:                      workspacePathsFor('/example-agency/storefront'),
+    workspace:                      workspacePathsFor(projectDirectory),
     at:                             CHANGED_AT,
     malformedTickets:               [],
     malformedEpics:                 [],
@@ -139,6 +149,67 @@ describe('a finding', () => {
     expect(fixture.board.pipelineSetup()?.findings).toEqual([{
       findingId: 'F1', topic: 'scripts', label: 'Unit tests', value: 'bun test', sourcePaths: ['package.json'], script: null, needsRecheck: false
     }]);
+  });
+});
+
+describe('a layout finding', () => {
+  const scratchDirectories: string[] = [];
+
+  afterEach(() => {
+    for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
+  });
+
+  /** A checkout with a `.git` folder at its root, and the project folder of the tracker in it: the root itself or `apps/web`. */
+  function projectDirectoryIn(projectPrefix: '' | 'apps/web'): string {
+    const checkout = createScratchDirectory('layout-finding');
+    scratchDirectories.push(checkout);
+    mkdirSync(join(checkout, '.git'));
+    mkdirSync(join(checkout, 'apps', 'web'), { recursive: true });
+    return join(checkout, projectPrefix);
+  }
+
+  function recordLayoutOf(fixture: BoardFixture, projectDirectory: string, folders: readonly string[]): void {
+    for (const folder of folders) {
+      ControlService.apply({
+        kind: 'pipeline-finding-record', jobId: 'J4', setupId: 'S1', topic: 'layout', label: folder, value: 'Example app', sourcePaths: [`${folder}/package.json`], script: null
+      }, changeOf(fixture, projectDirectory), ECHOED_CONTROL_CONTEXT);
+    }
+  }
+
+  test('a second one of the forge\'s session starts the entities step in a tracker at its repository\'s root, and logs it', () => {
+    const fixture = boardAt('research');
+    recordLayoutOf(fixture, projectDirectoryIn(''), ['apps/web']);
+    expect(Object.hasOwn(fixture.board.pipelineSetup()?.stepStates ?? {}, 'entities')).toBe(false);
+
+    recordLayoutOf(fixture, projectDirectoryIn(''), ['packages/ui']);
+
+    expect(fixture.board.pipelineSetup()?.stepStates.entities).toBe('not-started');
+    expect(fixture.records.map((record) => record.kind)).toEqual(['pipeline-finding-recorded', 'pipeline-finding-recorded', 'pipeline-setup-step-moved']);
+  });
+
+  test('a tracker in a folder keeps today\'s steps, whatever layout its research records', () => {
+    const fixture = boardAt('research');
+    recordLayoutOf(fixture, projectDirectoryIn('apps/web'), ['apps/web', 'packages/ui', 'packages/api-client']);
+
+    expect(Object.hasOwn(fixture.board.pipelineSetup()?.stepStates ?? {}, 'entities')).toBe(false);
+    expect(fixture.records.map((record) => record.kind)).toEqual(Array.from({ length: 3 }, () => 'pipeline-finding-recorded'));
+  });
+
+  test('the agent asks a question and suggests a Continue at the entities step', () => {
+    const fixture = boardAt('research');
+    recordLayoutOf(fixture, projectDirectoryIn(''), ['apps/web', 'packages/ui']);
+    apply(fixture, {
+      kind: 'pipeline-setup-step', setupId: 'S1', step: 'research', move: 'continue'
+    });
+
+    apply(fixture, question({ step: 'entities', subject: { kind: 'finding', reference: 'F2' }, question: 'Is ui a package of its own?' }));
+    apply(fixture, {
+      kind: 'pipeline-step-ready', jobId: 'J4', setupId: 'S1', step: 'entities'
+    });
+
+    const setup = fixture.board.pipelineSetup();
+    expect(setup?.questions.map((asked) => [asked.questionId, asked.step, asked.subject])).toEqual([['Q1', 'entities', { kind: 'finding', reference: 'F2' }]]);
+    expect([setup?.currentStep, setup?.readyToContinue]).toEqual(['entities', ['entities']]);
   });
 });
 

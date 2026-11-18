@@ -29,4 +29,5 @@ Record each fact one time. When a finding needs a recheck, read its paths again.
 finding.
 
 When you recorded the findings, run `{{program}} pipeline ready research`. User reads the findings and corrects them
-in the chat. Then User continues to the constitution.
+in the chat. Then User continues to the next step. In the first setup of the board, when you recorded more than one
+`layout` finding, the next step is the entities step. Else the next step is the constitution.

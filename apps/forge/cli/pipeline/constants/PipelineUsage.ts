@@ -30,5 +30,5 @@ export const PIPELINE_AGENT_USAGE = {
   'ask':                `${PROGRAM} pipeline ask [<S>] (-- <json> | --file <path>|-) [--json]`,
   'draft-constitution': `${PROGRAM} pipeline draft-constitution [<S>] (-- <json> | --file <path>|-) [--json]`,
   'propose':            `${PROGRAM} pipeline propose [<S>] (-- <json> | --file <path>|-) [--json]`,
-  'ready':              `${PROGRAM} pipeline ready [<S>] research|constitution|design [--json]`,
+  'ready':              `${PROGRAM} pipeline ready [<S>] research|entities|constitution|design [--json]`,
 } as const;
