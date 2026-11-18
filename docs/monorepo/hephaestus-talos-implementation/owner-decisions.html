@@ -49,7 +49,7 @@ body.only-unanswered .decision:not([data-answer="unanswered"]) { display: none; 
 <body>
 <main>
   <h1>Owner decisions</h1>
-  <p class="lead">Every decision the implementation plan of Hephaestus, Talos and Gaia leaves to the owner: 71 in 7 stage files. Each has a recommended default. Answer here, then copy the JSON at the bottom. Answers live only in this page until they are copied or downloaded.</p>
+  <p class="lead">Every decision the implementation plan of Hephaestus, Talos and Gaia leaves to the owner: 71 in 7 stage files, and 14 more the plan refresh raised. Each has a recommended default. Answer here, then copy the JSON at the bottom. Answers live only in this page until they are copied or downloaded.</p>
   <p class="lead">The two open items of the design, what follows an ending on a network outage and a time bound for an install line, are asked once, under stages 0 and 1. The 6 later items that only point back at them are left out.</p>
   <div class="toolbar">
     <span class="progress" id="progress" aria-live="polite"></span>
@@ -1327,6 +1327,224 @@ approves it before it lands.</p>
       </label>
     </article>
   </section>
+  <section class="stage" data-stage="Raised by the plan refresh">
+    <div class="stage-head">
+      <h2>Raised by the plan refresh <span class="stage-file">status.md</span></h2>
+      <span class="stage-progress" aria-live="polite"></span>
+      <button type="button" class="accept-stage">Accept this stage's defaults</button>
+    </div>
+    <p>The stage files were rechecked against the code after <code>entities/integration</code> landed on <code>main</code>. These 14 questions came out of that check; the stage files that raised them say so.</p>
+
+    <article class="decision" data-identifier="R.1" data-answer="unanswered">
+      <header><span class="identifier">R.1</span><h3>Where forge's refusal wording lives</h3></header>
+      <div class="body"><p>Since the entities work the Bridge reaches <code>src/shared/OperationRefusal.ts</code>, three <code>src/shared/@types</code> files, <code>OperationRefusalWordingUtil.ts</code> (also the CLI's wording), <code>StatusWordingUtil.ts</code>, <code>TicketPhraseUtil.ts</code>, <code>ExecutableRefusalCause</code> and <code>ExecutableResolver.ts</code>. Stages 0, 4 and 6 disagree on where they go. Recommended default: stage 4 moves them into <code>board-readings</code>, so Gaia words a refusal as forge's API does from one module (stage 6, item 12). Alternative: WP6.1 serves the refusals as worded facts in the board document and the wording stays in forge.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.1</legend>
+        <label><input type="radio" name="answer-R.1" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.1" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.1" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.1"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.2" data-answer="unanswered">
+      <header><span class="identifier">R.2</span><h3>Six shared constants with no package</h3></header>
+      <div class="body"><p><code>ProductNames</code>, <code>RootOverrideVariable</code>, <code>DispatchProtocol</code>, <code>OverseerLimits</code>, <code>OverseerApiContracts</code> and <code>TimestampSlices</code> are reached by the Bridge but placed in no stage-4 package, so the Bridge's include list cannot shrink to packages only. Recommended default: into <code>board-readings</code>, with the wording that reads them (stage 0, item 3).</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.2</legend>
+        <label><input type="radio" name="answer-R.2" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.2" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.2" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.2"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.3" data-answer="unanswered">
+      <header><span class="identifier">R.3</span><h3>Gaia's supported forge version until stage 6</h3></header>
+      <div class="body"><p>Gaia's <code>SUPPORTED_FORGE_VERSION</code> is 1.1 while forge is at 1.18 after the entities work; <code>bun run check</code> only warns. Recommended default: Gaia stays at 1.1 and warns until stage 6, as S4.6 says, since raising it needs Gaia's forge recordings taken again on a scratch forge. Alternative: catch Gaia up before stage 2.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.3</legend>
+        <label><input type="radio" name="answer-R.3" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.3" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.3" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.3"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.4" data-answer="unanswered">
+      <header><span class="identifier">R.4</span><h3>The version of the <code>forge-contracts</code> package</h3></header>
+      <div class="body"><p>It is still <code>1.0.0</code> although forge's system version went from 1.1 to 1.18, and its README makes a system minor a package minor. Recommended default: WP4.4 raises it one minor, to <code>1.1.0</code>, as written. Alternative: first align it with the system minors.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.4</legend>
+        <label><input type="radio" name="answer-R.4" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.4" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.4" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.4"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.5" data-answer="unanswered">
+      <header><span class="identifier">R.5</span><h3>Keep the vocabulary-package option open (S4.1)</h3></header>
+      <div class="body"><p>The Bridge now reaches 37 model files, not 26, among them <code>BoardRefusal.ts</code> and eight utils, so a vocabulary package would have to take those too. Recommended default: build stage 0's two packages and reconsider before stage 6, where a Gaia guard can keep Gaia's imports from <code>tracker-model</code> to types, constants, <code>BoardRefusal</code> and the utils the views read.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.5</legend>
+        <label><input type="radio" name="answer-R.5" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.5" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.5" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.5"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.6" data-answer="unanswered">
+      <header><span class="identifier">R.6</span><h3>Resume lifting an <code>interrupted:merge</code> hold</h3></header>
+      <div class="body"><p>On the entities branch an unhold resets the failed passes per entity and stage, the builder's return from review and the return from declared needs. Recommended default: resume lifts the hold through <code>Board.liftInterruptedHold</code>, logs <code>ticket-interrupted-hold-lifted</code> and keeps those counts, with no fresh attempt (stage 3, item 9). Alternative: resume acts as an unhold and resets them.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.6</legend>
+        <label><input type="radio" name="answer-R.6" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.6" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.6" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.6"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.7" data-answer="unanswered">
+      <header><span class="identifier">R.7</span><h3>What the store's <code>reads.readPipeline()</code> answers</h3></header>
+      <div class="body"><p>Recommended default: the stored pipeline, as today. Alternative: the same reading <code>writeTracker</code> opens the Board on. They differ in a tracker in a folder with entities: there the pipeline reads as malformed inside a write but as readable to observe, the gate runs and <code>gate list</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.7</legend>
+        <label><input type="radio" name="answer-R.7" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.7" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.7" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.7"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.8" data-answer="unanswered">
+      <header><span class="identifier">R.8</span><h3>Who records the fake agent's network-outage scenario</h3></header>
+      <div class="body"><p>Recording it re-runs every Claude probe of <code>bun run record src/testing/fake-agent/</code>, P22's real model call among them, against the installed <code>claude</code>, which no session may start. Recommended default: the owner runs the recording once WP2.2's probe case exists; until then WP2.8 holds the recognition against stage 0's fixture and only stage 2's verification step 7 waits.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.8</legend>
+        <label><input type="radio" name="answer-R.8" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.8" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.8" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.8"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.9" data-answer="unanswered">
+      <header><span class="identifier">R.9</span><h3>Flint's <code>watcher-spark</code> attendant in stage 2</h3></header>
+      <div class="body"><p>It shows one spark per agent in flight and carries the Watcher's name as Flint's own vocabulary (<code>packages/flint/attendants/watcher-spark/</code>, <code>bridge/flint/</code>). Recommended default: keep the name in stage 2 (WP2.16 item 5); a rename belongs with Flint's design docs and the owner names it.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.9</legend>
+        <label><input type="radio" name="answer-R.9" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.9" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.9" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.9"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.10" data-answer="unanswered">
+      <header><span class="identifier">R.10</span><h3>The launch's <code>workingDirectory</code> in Talos's child record</h3></header>
+      <div class="body"><p>The new <code>SessionPlace.ts</code> reads a resumed session's first start folder from <code>launch-1.json</code>, which Talos removes. Recommended default: Talos's child record keeps <code>workingDirectory</code>, as stage 2 now builds. Alternative: the Overseer keeps that fact in a job-folder file of its own.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.10</legend>
+        <label><input type="radio" name="answer-R.10" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.10" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.10" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.10"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.11" data-answer="unanswered">
+      <header><span class="identifier">R.11</span><h3><code>gate assistant</code> with no stored pipeline</h3></header>
+      <div class="body"><p>WP8.9 adds a refusal <code>assistant-without-pipeline</code>, so <code>gate assistant</code> mirrors <code>gate approval</code>. Recommended default: refuse, as built. Alternative: the switch works with no pipeline.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.11</legend>
+        <label><input type="radio" name="answer-R.11" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.11" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.11" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.11"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.12" data-answer="unanswered">
+      <header><span class="identifier">R.12</span><h3>One pipeline format at stage 9 (S8-9.14)</h3></header>
+      <div class="body"><p><code>pipeline.json</code> is now read in versions 2, 3 and 4 (4 for entities). Recommended default: S8-9.14 still holds: one format, the new number 5, read and written alone, since boards are set up anew; the Deviations row on versions 2, 3 and 4 (<code>apps/forge/CLAUDE.md:335</code>) is deleted. Alternative: keep the entity and non-entity split.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.12</legend>
+        <label><input type="radio" name="answer-R.12" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.12" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.12" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.12"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.13" data-answer="unanswered">
+      <header><span class="identifier">R.13</span><h3>The constitution preview under S8-9.17</h3></header>
+      <div class="body"><p>The board's constitution and each entity's would become Markdown that Gaia renders, like ticket bodies. Recommended default: yes, the same decision as S8-9.17: Gaia's page renders it with <code>marked</code>.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.13</legend>
+        <label><input type="radio" name="answer-R.13" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.13" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.13" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.13"></textarea>
+      </label>
+    </article>
+
+    <article class="decision" data-identifier="R.14" data-answer="unanswered">
+      <header><span class="identifier">R.14</span><h3><code>.readme-graphics/</code> and <code>marked</code></h3></header>
+      <div class="body"><p><code>.readme-graphics/render-readme.js</code> imports <code>marked</code>. If the folder stays (S8-9.10), WP8.8 cannot drop <code>marked</code> from forge's <code>package.json</code> without breaking that script. Recommended default: follow S8-9.10 and delete the folder, so <code>marked</code> goes. Alternative: keep the folder and keep <code>marked</code> as a development dependency for it.</p>
+</div>
+      <fieldset>
+        <legend class="visually-hidden">Answer for R.14</legend>
+        <label><input type="radio" name="answer-R.14" value="default"> Accept the recommended default</label>
+        <label><input type="radio" name="answer-R.14" value="other"> A different answer</label>
+        <label><input type="radio" name="answer-R.14" value="unanswered" checked> Not answered</label>
+      </fieldset>
+      <label class="note-label">Note <span class="note-hint">(needed for a different answer)</span>
+        <textarea class="note" rows="2" aria-label="Note for R.14"></textarea>
+      </label>
+    </article>
+  </section>
   <section class="export" aria-labelledby="export-heading">
     <h2 id="export-heading">Answers as JSON</h2>
     <div class="row">
@@ -1342,7 +1560,7 @@ approves it before it lands.</p>
     </details>
   </section>
 </main>
-<script type="application/json" id="sheet-data">{"sheet":"docs/monorepo/hephaestus-talos-implementation/owner-decisions.html","sourceVersion":"dd37edd3db8c","decisions":[{"id":"S0-1.1","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":1,"title":"What the forge does after an agent ended on a network outage"},{"id":"S0-1.2","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":2,"title":"Whether an install line gets a time bound"},{"id":"S0-1.3","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":3,"title":"The packages stage 4 creates"},{"id":"S0-1.4","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":4,"title":"Where the board and ticket documents live"},{"id":"S0-1.5","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":5,"title":"entities/integration (52 commits, 399 files, forge 1.9 to 1.11)"},{"id":"S0-1.6","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":6,"title":"The live trackers during stages 2 to 9"},{"id":"S0-1.7","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":7,"title":"The uncommitted clock-rule edits in both apps&#39; CLAUDE.md"},{"id":"S0-1.8","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":8,"title":"claude/project-thread-dw1bcu"},{"id":"S0-1.9","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":9,"title":"The migration&#39;s open items"},{"id":"S0-1.10","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":10,"title":"Recordings B and C of WP0.3"},{"id":"S0-1.11","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":11,"title":"The corrections of WP0.1"},{"id":"S2.3","stage":"Stage 2","file":"stage-2-talos.md","item":3,"title":"Whether the 15-minute gate bound counts a sleep"},{"id":"S2.4","stage":"Stage 2","file":"stage-2-talos.md","item":4,"title":"lease-ended before stage 3"},{"id":"S2.5","stage":"Stage 2","file":"stage-2-talos.md","item":5,"title":"The stored cause watcher-lost"},{"id":"S2.6","stage":"Stage 2","file":"stage-2-talos.md","item":6,"title":"The identity document&#39;s key and the system version"},{"id":"S2.7","stage":"Stage 2","file":"stage-2-talos.md","item":7,"title":"The lease proves that the Overseer lives, not that it makes progress"},{"id":"S2.8","stage":"Stage 2","file":"stage-2-talos.md","item":8,"title":"The minimum number of retry lines"},{"id":"S2.9","stage":"Stage 2","file":"stage-2-talos.md","item":9,"title":"Renaming Job.watcherInstance in this stage"},{"id":"S2.10","stage":"Stage 2","file":"stage-2-talos.md","item":10,"title":"The rest of the agent port&#39;s work"},{"id":"S2.11","stage":"Stage 2","file":"stage-2-talos.md","item":11,"title":"A Talos just started that answers another protocol version"},{"id":"S2.12","stage":"Stage 2","file":"stage-2-talos.md","item":12,"title":"When Talos syncs an event log"},{"id":"S2.13","stage":"Stage 2","file":"stage-2-talos.md","item":13,"title":"The Overseer&#39;s own gates across its restart"},{"id":"S3.3","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":3,"title":"What a crash suspected before a reboot does"},{"id":"S3.4","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":4,"title":"Whether an unexpected error in a pass is a crash"},{"id":"S3.5","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":5,"title":"What an instructed resume does to the crash count"},{"id":"S3.6","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":6,"title":"Whether a retried merge, refresh or constitution commit after a waiting start waits too"},{"id":"S3.7","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":7,"title":"Whether the verb is resume"},{"id":"S3.8","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":8,"title":"How Gaia learns that a forge that is down crashed"},{"id":"S4.1","stage":"Stage 4","file":"stage-4-packages.md","item":1,"title":"The package boundaries"},{"id":"S4.2","stage":"Stage 4","file":"stage-4-packages.md","item":2,"title":"The vendor adapter reads LocalTimeUtil, which moves into board-readings"},{"id":"S4.3","stage":"Stage 4","file":"stage-4-packages.md","item":3,"title":"TimestampSlices.ts joins board-readings"},{"id":"S4.4","stage":"Stage 4","file":"stage-4-packages.md","item":4,"title":"Flint&#39;s brain stays out of the contract&#39;s board document"},{"id":"S4.5","stage":"Stage 4","file":"stage-4-packages.md","item":5,"title":"Which command kinds join the contract"},{"id":"S4.6","stage":"Stage 4","file":"stage-4-packages.md","item":6,"title":"Gaia stays at the forge version stage 3 left"},{"id":"S4.7","stage":"Stage 4","file":"stage-4-packages.md","item":7,"title":"The root rules&#39; tracker reach"},{"id":"S4.8","stage":"Stage 4","file":"stage-4-packages.md","item":8,"title":"What the model exports"},{"id":"S5.1","stage":"Stage 5","file":"stage-5-store-port.md","item":1,"title":"The by-hand verbs become command kinds"},{"id":"S5.2","stage":"Stage 5","file":"stage-5-store-port.md","item":2,"title":"The by-hand kinds stay off the command endpoint"},{"id":"S5.3","stage":"Stage 5","file":"stage-5-store-port.md","item":3,"title":"A ticket&#39;s and an epic&#39;s filePath"},{"id":"S5.4","stage":"Stage 5","file":"stage-5-store-port.md","item":4,"title":"The registry&#39;s progressJson"},{"id":"S5.5","stage":"Stage 5","file":"stage-5-store-port.md","item":5,"title":"Stage 3&#39;s presence, heartbeat, fatal-error and crash files"},{"id":"S5.6","stage":"Stage 5","file":"stage-5-store-port.md","item":6,"title":"The read side as a third part of the port"},{"id":"S5.7","stage":"Stage 5","file":"stage-5-store-port.md","item":7,"title":"Pictures"},{"id":"S6-7.1","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":1,"title":"Specs of the moved views"},{"id":"S6-7.2","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":2,"title":"The board&#39;s stylesheets under Gaia&#39;s style contract"},{"id":"S6-7.3","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":3,"title":"Flint in Gaia"},{"id":"S6-7.4","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":4,"title":"Mapping the board document in Gaia&#39;s server"},{"id":"S6-7.5","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":5,"title":"forge open and the progress.html stub"},{"id":"S6-7.7","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":7,"title":"A question&#39;s recommendation as a field"},{"id":"S6-7.8","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":8,"title":"The forge route&#39;s header"},{"id":"S6-7.9","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":9,"title":"When apps/forge/bridge/ is deleted"},{"id":"S6-7.10","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":10,"title":"Rule files a person changes"},{"id":"S8-9.1","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":1,"title":"forge open and progress.html"},{"id":"S8-9.2","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":2,"title":"The Assistant&#39;s switch: where and how"},{"id":"S8-9.3","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":3,"title":"A live Assistant when the switch goes off"},{"id":"S8-9.4","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":4,"title":"The cause name"},{"id":"S8-9.5","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":5,"title":"Flint&#39;s brain&#39;s log records"},{"id":"S8-9.6","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":6,"title":"The vendor records of a brain turn"},{"id":"S8-9.7","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":7,"title":"Raising forge&#39;s and Gaia&#39;s minimum to 2.0"},{"id":"S8-9.8","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":8,"title":"Endpoint versions at 2.0 and 3.0"},{"id":"S8-9.9","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":9,"title":"The word &quot;Bridge&quot; after stage 8"},{"id":"S8-9.10","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":10,"title":".readme-graphics/ and the Bridge screenshots"},{"id":"S8-9.11","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":11,"title":"Which tracker reaches design-system, flint and brand"},{"id":"S8-9.12","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":12,"title":"The verb&#39;s new name"},{"id":"S8-9.13","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":13,"title":"The login item&#39;s label"},{"id":"S8-9.14","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":14,"title":"Stored format versions at stage 9"},{"id":"S8-9.15","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":15,"title":"A major version for forge (3.0) and for Gaia in stage 9"},{"id":"S8-9.16","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":16,"title":"Historical documents"},{"id":"S8-9.17","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":17,"title":"Where Markdown is rendered after stage 8"},{"id":"S8-9.18","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":18,"title":"Steps on the owner&#39;s machine around stage 9"},{"id":"S8-9.19","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":19,"title":"Rule files a person changes"}]}</script>
+<script type="application/json" id="sheet-data">{"sheet":"docs/monorepo/hephaestus-talos-implementation/owner-decisions.html","sourceVersion":"dd37edd3db8c","decisions":[{"id":"S0-1.1","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":1,"title":"What the forge does after an agent ended on a network outage"},{"id":"S0-1.2","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":2,"title":"Whether an install line gets a time bound"},{"id":"S0-1.3","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":3,"title":"The packages stage 4 creates"},{"id":"S0-1.4","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":4,"title":"Where the board and ticket documents live"},{"id":"S0-1.5","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":5,"title":"entities/integration (52 commits, 399 files, forge 1.9 to 1.11)"},{"id":"S0-1.6","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":6,"title":"The live trackers during stages 2 to 9"},{"id":"S0-1.7","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":7,"title":"The uncommitted clock-rule edits in both apps&#39; CLAUDE.md"},{"id":"S0-1.8","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":8,"title":"claude/project-thread-dw1bcu"},{"id":"S0-1.9","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":9,"title":"The migration&#39;s open items"},{"id":"S0-1.10","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":10,"title":"Recordings B and C of WP0.3"},{"id":"S0-1.11","stage":"Stages 0 and 1","file":"stage-0-1-trace-and-base.md","item":11,"title":"The corrections of WP0.1"},{"id":"S2.3","stage":"Stage 2","file":"stage-2-talos.md","item":3,"title":"Whether the 15-minute gate bound counts a sleep"},{"id":"S2.4","stage":"Stage 2","file":"stage-2-talos.md","item":4,"title":"lease-ended before stage 3"},{"id":"S2.5","stage":"Stage 2","file":"stage-2-talos.md","item":5,"title":"The stored cause watcher-lost"},{"id":"S2.6","stage":"Stage 2","file":"stage-2-talos.md","item":6,"title":"The identity document&#39;s key and the system version"},{"id":"S2.7","stage":"Stage 2","file":"stage-2-talos.md","item":7,"title":"The lease proves that the Overseer lives, not that it makes progress"},{"id":"S2.8","stage":"Stage 2","file":"stage-2-talos.md","item":8,"title":"The minimum number of retry lines"},{"id":"S2.9","stage":"Stage 2","file":"stage-2-talos.md","item":9,"title":"Renaming Job.watcherInstance in this stage"},{"id":"S2.10","stage":"Stage 2","file":"stage-2-talos.md","item":10,"title":"The rest of the agent port&#39;s work"},{"id":"S2.11","stage":"Stage 2","file":"stage-2-talos.md","item":11,"title":"A Talos just started that answers another protocol version"},{"id":"S2.12","stage":"Stage 2","file":"stage-2-talos.md","item":12,"title":"When Talos syncs an event log"},{"id":"S2.13","stage":"Stage 2","file":"stage-2-talos.md","item":13,"title":"The Overseer&#39;s own gates across its restart"},{"id":"S3.3","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":3,"title":"What a crash suspected before a reboot does"},{"id":"S3.4","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":4,"title":"Whether an unexpected error in a pass is a crash"},{"id":"S3.5","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":5,"title":"What an instructed resume does to the crash count"},{"id":"S3.6","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":6,"title":"Whether a retried merge, refresh or constitution commit after a waiting start waits too"},{"id":"S3.7","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":7,"title":"Whether the verb is resume"},{"id":"S3.8","stage":"Stage 3","file":"stage-3-presence-recovery.md","item":8,"title":"How Gaia learns that a forge that is down crashed"},{"id":"S4.1","stage":"Stage 4","file":"stage-4-packages.md","item":1,"title":"The package boundaries"},{"id":"S4.2","stage":"Stage 4","file":"stage-4-packages.md","item":2,"title":"The vendor adapter reads LocalTimeUtil, which moves into board-readings"},{"id":"S4.3","stage":"Stage 4","file":"stage-4-packages.md","item":3,"title":"TimestampSlices.ts joins board-readings"},{"id":"S4.4","stage":"Stage 4","file":"stage-4-packages.md","item":4,"title":"Flint&#39;s brain stays out of the contract&#39;s board document"},{"id":"S4.5","stage":"Stage 4","file":"stage-4-packages.md","item":5,"title":"Which command kinds join the contract"},{"id":"S4.6","stage":"Stage 4","file":"stage-4-packages.md","item":6,"title":"Gaia stays at the forge version stage 3 left"},{"id":"S4.7","stage":"Stage 4","file":"stage-4-packages.md","item":7,"title":"The root rules&#39; tracker reach"},{"id":"S4.8","stage":"Stage 4","file":"stage-4-packages.md","item":8,"title":"What the model exports"},{"id":"S5.1","stage":"Stage 5","file":"stage-5-store-port.md","item":1,"title":"The by-hand verbs become command kinds"},{"id":"S5.2","stage":"Stage 5","file":"stage-5-store-port.md","item":2,"title":"The by-hand kinds stay off the command endpoint"},{"id":"S5.3","stage":"Stage 5","file":"stage-5-store-port.md","item":3,"title":"A ticket&#39;s and an epic&#39;s filePath"},{"id":"S5.4","stage":"Stage 5","file":"stage-5-store-port.md","item":4,"title":"The registry&#39;s progressJson"},{"id":"S5.5","stage":"Stage 5","file":"stage-5-store-port.md","item":5,"title":"Stage 3&#39;s presence, heartbeat, fatal-error and crash files"},{"id":"S5.6","stage":"Stage 5","file":"stage-5-store-port.md","item":6,"title":"The read side as a third part of the port"},{"id":"S5.7","stage":"Stage 5","file":"stage-5-store-port.md","item":7,"title":"Pictures"},{"id":"S6-7.1","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":1,"title":"Specs of the moved views"},{"id":"S6-7.2","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":2,"title":"The board&#39;s stylesheets under Gaia&#39;s style contract"},{"id":"S6-7.3","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":3,"title":"Flint in Gaia"},{"id":"S6-7.4","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":4,"title":"Mapping the board document in Gaia&#39;s server"},{"id":"S6-7.5","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":5,"title":"forge open and the progress.html stub"},{"id":"S6-7.7","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":7,"title":"A question&#39;s recommendation as a field"},{"id":"S6-7.8","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":8,"title":"The forge route&#39;s header"},{"id":"S6-7.9","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":9,"title":"When apps/forge/bridge/ is deleted"},{"id":"S6-7.10","stage":"Stages 6 and 7","file":"stage-6-7-gaia-views.md","item":10,"title":"Rule files a person changes"},{"id":"S8-9.1","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":1,"title":"forge open and progress.html"},{"id":"S8-9.2","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":2,"title":"The Assistant&#39;s switch: where and how"},{"id":"S8-9.3","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":3,"title":"A live Assistant when the switch goes off"},{"id":"S8-9.4","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":4,"title":"The cause name"},{"id":"S8-9.5","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":5,"title":"Flint&#39;s brain&#39;s log records"},{"id":"S8-9.6","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":6,"title":"The vendor records of a brain turn"},{"id":"S8-9.7","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":7,"title":"Raising forge&#39;s and Gaia&#39;s minimum to 2.0"},{"id":"S8-9.8","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":8,"title":"Endpoint versions at 2.0 and 3.0"},{"id":"S8-9.9","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":9,"title":"The word &quot;Bridge&quot; after stage 8"},{"id":"S8-9.10","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":10,"title":".readme-graphics/ and the Bridge screenshots"},{"id":"S8-9.11","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":11,"title":"Which tracker reaches design-system, flint and brand"},{"id":"S8-9.12","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":12,"title":"The verb&#39;s new name"},{"id":"S8-9.13","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":13,"title":"The login item&#39;s label"},{"id":"S8-9.14","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":14,"title":"Stored format versions at stage 9"},{"id":"S8-9.15","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":15,"title":"A major version for forge (3.0) and for Gaia in stage 9"},{"id":"S8-9.16","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":16,"title":"Historical documents"},{"id":"S8-9.17","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":17,"title":"Where Markdown is rendered after stage 8"},{"id":"S8-9.18","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":18,"title":"Steps on the owner&#39;s machine around stage 9"},{"id":"S8-9.19","stage":"Stages 8 and 9","file":"stage-8-9-shrink-and-rename.md","item":19,"title":"Rule files a person changes"},{"id":"R.1","stage":"Raised by the plan refresh","file":"status.md","item":1,"title":"Where forge&#39;s refusal wording lives"},{"id":"R.2","stage":"Raised by the plan refresh","file":"status.md","item":2,"title":"Six shared constants with no package"},{"id":"R.3","stage":"Raised by the plan refresh","file":"status.md","item":3,"title":"Gaia&#39;s supported forge version until stage 6"},{"id":"R.4","stage":"Raised by the plan refresh","file":"status.md","item":4,"title":"The version of the forge-contracts package"},{"id":"R.5","stage":"Raised by the plan refresh","file":"status.md","item":5,"title":"Keep the vocabulary-package option open (S4.1)"},{"id":"R.6","stage":"Raised by the plan refresh","file":"status.md","item":6,"title":"Resume lifting an interrupted:merge hold"},{"id":"R.7","stage":"Raised by the plan refresh","file":"status.md","item":7,"title":"What the store&#39;s reads.readPipeline() answers"},{"id":"R.8","stage":"Raised by the plan refresh","file":"status.md","item":8,"title":"Who records the fake agent&#39;s network-outage scenario"},{"id":"R.9","stage":"Raised by the plan refresh","file":"status.md","item":9,"title":"Flint&#39;s watcher-spark attendant in stage 2"},{"id":"R.10","stage":"Raised by the plan refresh","file":"status.md","item":10,"title":"The launch&#39;s workingDirectory in Talos&#39;s child record"},{"id":"R.11","stage":"Raised by the plan refresh","file":"status.md","item":11,"title":"gate assistant with no stored pipeline"},{"id":"R.12","stage":"Raised by the plan refresh","file":"status.md","item":12,"title":"One pipeline format at stage 9 (S8-9.14)"},{"id":"R.13","stage":"Raised by the plan refresh","file":"status.md","item":13,"title":"The constitution preview under S8-9.17"},{"id":"R.14","stage":"Raised by the plan refresh","file":"status.md","item":14,"title":".readme-graphics/ and marked"}]}</script>
 <script>
 const sheetData = JSON.parse(document.getElementById('sheet-data').textContent);
 const decisionCards = [...document.querySelectorAll('.decision')];

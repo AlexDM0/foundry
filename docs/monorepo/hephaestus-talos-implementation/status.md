@@ -151,7 +151,7 @@ Both were already red at `3e6cb660`; the default suite skips `*.integration.spec
 
 No product change and no `bun run record` is needed for either.
 
-## Owner questions the refresh raised (for gate G2, beyond `owner-decisions.html`)
+## Owner questions the refresh raised (for gate G2; also on `owner-decisions.html` as R.1 to R.14)
 
 1. Where forge's refusal wording that the Bridge now reaches lives (`src/shared/OperationRefusal.ts`, three `src/shared/@types` files, `OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`, `TicketPhraseUtil.ts`, `ExecutableRefusalCause`, `ExecutableResolver.ts`). Proposed default: `packages/board-readings`, moved in stage 4.
 2. Six shared constants the Bridge reaches (`ProductNames`, `RootOverrideVariable`, `DispatchProtocol`, `OverseerLimits`, `OverseerApiContracts`, `TimestampSlices`) have no stage-4 home. Proposed default: `packages/board-readings`.
