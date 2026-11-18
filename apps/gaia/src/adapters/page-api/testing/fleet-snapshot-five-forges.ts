@@ -180,6 +180,7 @@ const STOREFRONT_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Moving the postcode check into the address form\'s own validator.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J2',
   },
   {
@@ -203,6 +204,7 @@ const STOREFRONT_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Asked E2 and waits for the answer.',
     waitingOnDecisionId: 'E2',
+    interruption:        null,
     route:               '#agents/J3',
   },
   {
@@ -226,6 +228,7 @@ const STOREFRONT_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the gallery before adding the zoom.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J4',
   },
   {
@@ -249,6 +252,7 @@ const STOREFRONT_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Running verify on the cart badge branch.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J6',
   },
 ];
@@ -275,6 +279,7 @@ const INVOICE_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Adding the totals row to the PDF footer.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J11',
   },
   {
@@ -298,6 +303,7 @@ const INVOICE_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J12',
   },
   {
@@ -321,6 +327,7 @@ const INVOICE_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the rounding rules against their spec.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J14',
   },
 ];
@@ -347,6 +354,7 @@ const WIKI_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Mapping the importer\'s fields to citation records.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J2',
   },
 ];
@@ -373,6 +381,7 @@ const MOBILE_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Verifying the offline queue before review.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J5',
   },
   {
@@ -396,6 +405,7 @@ const MOBILE_AGENTS: AgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the permission prompt flow.',
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               '#agents/J7',
   },
 ];
@@ -828,6 +838,7 @@ const STOREFRONT_BRAIN_ROW: FleetAgentRow = {
   messagesWaiting:     null,
   lastLine:            null,
   waitingOnDecisionId: null,
+  interruption:        null,
   route:               null,
 };
 

@@ -32,12 +32,13 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * ticket-already-in-a-group refusals, the ticket-grouped and dependent-fix-filed records, the fix-ticket option of the dependent-broken
  * decision, a package build's dependentsFixedInGroup start key, the reach-inside-another-home reason of a pipeline-draft-invalid
  * refusal, and install version 35; 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's non-converging
- * review against the pipeline of the stage its review ran in, and adds install version 36, whose installed surface is 35's. Each minor only adds.
+ * review against the pipeline of the stage its review ran in, and adds install version 36, whose installed surface is 35's; 1.19 adds a monitor
+ * job's interruption cause. Each minor only adds.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 18 },
+  current:          { major: 1, minor: 19 },
   minimumSupported: { major: 0, minor: 0 },
 };

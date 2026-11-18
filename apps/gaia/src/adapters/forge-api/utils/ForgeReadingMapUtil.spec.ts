@@ -3,8 +3,8 @@
  * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
  * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a
  * brain only from a snapshot, absent for a forge without Flint; an ended brain's activity entry keeping its kind and tokens; a summary's
- * usage with no current window; and a newer contract's reading with no fact of any document. The whole mappings are held by the
- * ingestion specs against the fixtures.
+ * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; and a newer contract's reading with
+ * no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -163,6 +163,43 @@ describe('the activity of a snapshot read in full', () => {
     const activity = [{ ...entry, kind: 'flint-brain', tokens: 2960 }, entry, { ...entry, kind: 'example-new-kind', tokens: null }];
     const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ activity }), REGISTRY_FACTS, IDENTITY, 'stamp');
     expect(reading.activity.map(({ kind, tokens }) => [kind, tokens])).toEqual([['flint-brain', 2960], [null, null], [null, null]]);
+  });
+});
+
+const INTERRUPTED_MONITOR_JOB = {
+  id:                  'J4',
+  kind:                'build',
+  role:                'builder',
+  state:               'interrupted',
+  ticketIds:           ['004'],
+  ticketTitle:         'Example checkout flow',
+  attempt:             1,
+  startedAt:           '2026-11-12T08:00:00.000Z',
+  calls:               3,
+  callBudget:          null,
+  tokens:              1200,
+  toolCalls:           2,
+  lastToolCall:        null,
+  runningSubagents:    0,
+  silentSweeps:        0,
+  quiet:               false,
+  turn:                null,
+  messagesWaiting:     0,
+  lastLine:            null,
+  waitingOnDecisionId: null,
+  interruption:        'network-outage',
+  route:               '#agents/J4',
+} as const satisfies MonitorSnapshotDocument['jobs'][number];
+
+describe('the interruption of a job', () => {
+  test('is the monitor job\'s cause on its agent row, and null on the row of a summary\'s job, which carries none', () => {
+    const fullReading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ jobs: [INTERRUPTED_MONITOR_JOB] }), REGISTRY_FACTS, IDENTITY, 'stamp');
+    expect(fullReading.agents.map(({ jobId, interruption }) => [jobId, interruption])).toEqual([['J4', 'network-outage']]);
+    const summaryJob = {
+      id: 'J4', kind: 'build', role: 'builder', state: 'interrupted', ticketIds: ['004'], tokens: 1200
+    };
+    const summary = { ...summaryAt('serving', false), jobs: [summaryJob] };
+    expect(ForgeReadingMapUtil.countsOnlyReadingOf(summary, REGISTRY_FACTS, IDENTITY, 'stamp').agents.map(({ interruption }) => interruption)).toEqual([null]);
   });
 });
 

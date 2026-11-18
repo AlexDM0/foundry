@@ -12,6 +12,7 @@ import type { Job }                           from './@types/Job.ts';
 import type { LifecycleLimits }               from './@types/LifecycleLimits.ts';
 import type { LogRecord }                     from './@types/LogRecord.ts';
 import type { PlaybookStep }                  from './@types/PlaybookStep.ts';
+import type { TicketStatus }                  from './@types/Ticket.ts';
 import type { PlaybookFacts }                 from './Playbook.ts';
 import { Playbook }                           from './Playbook.ts';
 import {
@@ -171,6 +172,52 @@ const STAGED_BUILD_SENT_BACK_BY_THREE_REVIEWS: LogRecord[] = [
 const RED_INTERRUPTED_STAGE_TWO_BUILD = jobFixture({
   id: 'J2', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', entity: 'ui', stage: 2
 });
+
+const JOB_STATES_MODULE = 'src/lib/tracker-model/constants/JobStates.ts';
+
+/** One interrupted job of each path `crashBoundStepsOf` and `productOwnerStepsOf` take, with the ticket status its kind runs in. */
+const INTERRUPTED_JOBS_OF_EACH_PATH: readonly { job: Job; ticketStatus: TicketStatus }[] = [
+  { job: INTERRUPTED_BUILD, ticketStatus: 'in-progress' },
+  {
+    job: jobFixture({
+      id: 'J2', kind: 'review', role: 'reviewer', ticketIds: ['001'], state: 'interrupted'
+    }),
+    ticketStatus: 'in-review',
+  },
+  { job: { ...LIVE_ASSISTANT, state: 'interrupted' }, ticketStatus: 'in-progress' },
+  { job: interruptedPipelineAgentJob(), ticketStatus: 'in-progress' },
+  {
+    job: jobFixture({
+      id: 'J8', kind: 'product-owner', role: 'product-owner', target: null, state: 'interrupted'
+    }),
+    ticketStatus: 'in-progress',
+  },
+];
+
+/** The line of `crashBoundStepsOf` or of `productOwnerStepsOf` that holds the job, so its removal resumes or replaces it. */
+function heldInterruptionLineOf(job: Job): SourceMutant {
+  return job.kind === 'product-owner'
+    ? policyLine('  if (interruptionIsHeldFromResuming(job)) return [];\n  return resumesAreHeld', '  return resumesAreHeld')
+    : policyLine('    if (interruptionIsHeldFromResuming(job)) return [];\n    if (SESSION_JOB_KINDS', '    if (SESSION_JOB_KINDS');
+}
+
+/**
+ * A job that ended on a network outage or a lease end waits for User's resume, whatever its kind. The outage claims watch the Playbook's
+ * line fail; the lease-end claims watch the cause's place on the held list fail.
+ */
+function heldInterruptionClaims(): PolicyClaim[] {
+  return (['network-outage', 'lease-ended'] as const).flatMap((cause) => INTERRUPTED_JOBS_OF_EACH_PATH.map(({ job, ticketStatus }): PolicyClaim => {
+    const heldJob: Job = { ...job, interruption: cause };
+    return {
+      name:   `a ${heldJob.kind} job interrupted ${cause} is neither resumed nor replaced`,
+      facts:  factsWith({ tickets: [ticketOf('001', ticketStatus)], jobs: heldJob.kind === 'assistant' ? [heldJob] : [LIVE_ASSISTANT, heldJob] }),
+      holds:  (steps) => !steps.some((step) => 'jobId' in step && step.jobId === heldJob.id),
+      mutant: cause === 'network-outage'
+        ? heldInterruptionLineOf(heldJob)
+        : { modulePath: JOB_STATES_MODULE, find: '= [\'network-outage\', \'lease-ended\'] as const', replace: '= [\'network-outage\'] as const' },
+    };
+  }));
+}
 
 const USAGE_LIMIT_AHEAD: LifecycleLimits = { ...FIXTURE_LIMITS, usageResetsAt: '2026-10-28T11:00:00+01:00' };
 
@@ -378,6 +425,17 @@ const CLAIMS: PolicyClaim[] = [
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'replace-job',
     mutant: policyLine('    if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: \'replace-job\', jobId: job.id }];\n', ''),
   },
+  ...heldInterruptionClaims(),
+  {
+    name:   'a job interrupted by a clean quit of Talos resumes whatever its crash count',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'talos-paused', crashResumes: 5 }] }),
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
+    mutant: {
+      modulePath: JOB_STATES_MODULE,
+      find:       '= [\'watcher-lost\', \'agent-crashed\'] as const',
+      replace:    '= [\'watcher-lost\', \'agent-crashed\', \'talos-paused\'] as const',
+    },
+  },
   {
     name:   'the second failed pass parks the ticket, rework between them kept, and opens no incident',
     facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: TWO_FAILED_PASSES_WITH_REWORK_BETWEEN }),
@@ -453,6 +511,35 @@ const CLAIMS: PolicyClaim[] = [
     facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 2), interruptedRecord('J1', 'reboot'), interruptedRecord('J2', 'reboot')] }),
     holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
     mutant: policyLine('record.kind !== \'job-interrupted\' || !isCrash(record.fields.cause)', 'record.kind !== \'job-interrupted\''),
+  },
+  {
+    name:   'a network outage and a lease end are never counted toward an outage',
+    facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 2), interruptedRecord('J1', 'network-outage'), interruptedRecord('J2', 'lease-ended')] }),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    mutant: {
+      modulePath: JOB_STATES_MODULE,
+      find:       '= [\'watcher-lost\', \'agent-crashed\'] as const',
+      replace:    '= [\'watcher-lost\', \'agent-crashed\', \'network-outage\', \'lease-ended\'] as const',
+    },
+  },
+  {
+    name:  'a network outage or a lease end between two crashes breaks no run',
+    facts: factsWith({
+      logRecords: [
+        ...CRASHES_ON_TWO_TICKETS.slice(0, 3),
+        launchedRecord('J3', 'build', ['003']),
+        launchedRecord('J4', 'build', ['004']),
+        interruptedRecord('J3', 'network-outage'),
+        interruptedRecord('J4', 'lease-ended'),
+        interruptedRecord('J2', 'watcher-lost'),
+      ],
+    }),
+    holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-overseer open-decision',
+    mutant: policyLine(
+      '    if (record.kind !== \'job-interrupted\' || !isCrash(record.fields.cause)) continue;\n',
+      '    if (record.kind === \'job-interrupted\' && !isCrash(record.fields.cause)) crashedTicketKeys = [];\n'
+        + '    if (record.kind !== \'job-interrupted\' || !isCrash(record.fields.cause)) continue;\n',
+    ),
   },
   {
     name:   'a verified job ending between two crashes breaks the run',

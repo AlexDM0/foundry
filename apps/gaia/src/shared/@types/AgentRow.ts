@@ -28,5 +28,7 @@ export interface AgentRow {
   messagesWaiting:     number | null;
   lastLine:            string | null;
   waitingOnDecisionId: string | null;
+  /** Why the forge's job stands interrupted, as its monitor names it; `null` while it is not, and from a summary. */
+  interruption:        string | null;
   route:               string | null;
 }

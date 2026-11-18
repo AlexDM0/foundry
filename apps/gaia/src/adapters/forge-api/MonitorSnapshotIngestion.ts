@@ -3,6 +3,7 @@
  * at that number, map to a `ForgeReading` at fidelity `full`. A snapshot at another version maps nothing of itself; nor does a malformed
  * one, or one that names another forge.
  */
+import { MONITOR_INTERRUPTION_CAUSES } from 'forge-contracts/MonitorInterruptionCauses';
 import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
@@ -85,6 +86,7 @@ const JOB_SHAPE = {
   messagesWaiting:     'whole-number',
   lastLine:            NULLABLE_TEXT,
   waitingOnDecisionId: NULLABLE_TEXT,
+  interruption:        { optional: { nullable: { oneOf: MONITOR_INTERRUPTION_CAUSES } } },
   route:               'text',
 } as const satisfies ShapeOf<MonitorJobDocument>;
 

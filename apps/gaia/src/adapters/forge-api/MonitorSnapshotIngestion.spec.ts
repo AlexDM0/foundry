@@ -3,7 +3,8 @@
  * contract 3, read through the forge client. What matters: each brain
  * state reads as the forge reports it, an ended brain's run as one activity entry with its tokens, and a forge without Flint as reporting
  * no brain; the snapshot of the Storefront at work maps to its frozen reading below; a warning keeps its kind, `assistant-down` becoming a
- * notice; the current usage window is read; a job's turn and a lost launch stamp read as the forge sends them; a snapshot at a newer
+ * notice; the current usage window is read; a job's turn, its interruption cause and a lost launch stamp read as the forge sends them, a
+ * job of a forge before 1.19, which sends no cause, as having none, a cause outside the contract's list as malformed; a snapshot at a newer
  * `monitorVersion` maps nothing of itself, so no attention entry leaks from it, and one at an older version, monitor 2 included, is older
  * than Gaia reads; a malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
  */
@@ -147,6 +148,7 @@ const RECORDED_READING: ForgeReading = {
       messagesWaiting:     0,
       lastLine:            null,
       waitingOnDecisionId: null,
+      interruption:        null,
       route:               '#agents/J1',
     },
   ],
@@ -352,6 +354,31 @@ describe('the snapshot of Example Storefront at work', () => {
       ['J3', 'between-turns', null],
     ]);
     expect(ingestion().readingOf({ ...snapshot, jobs: [{ ...assistantJob, turn: 7 }] }, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['jobs[0].turn'] });
+  });
+
+  test('reads a job\'s interruption cause onto its agent row, no cause from a forge before 1.19, and a cause outside the contract\'s list as malformed', async () => {
+    const snapshot = await storefrontSnapshot();
+    const [assistantJob] = snapshot['jobs'] as Record<string, unknown>[];
+    const { interruption: _interruptionOfNewerForge, ...jobOfForgeBeforeInterruptionCauses } = { ...assistantJob, interruption: null };
+    const jobs = [
+      {
+        ...assistantJob, id: 'J2', state: 'interrupted', interruption: 'network-outage'
+      },
+      {
+        ...assistantJob, id: 'J3', state: 'interrupted', interruption: 'lease-ended'
+      },
+      { ...assistantJob, id: 'J4', interruption: null },
+      { ...jobOfForgeBeforeInterruptionCauses, id: 'J5' },
+    ];
+    const reading = ingestion().readingOf({ ...snapshot, jobs }, EXAMPLE_READ_STAMP);
+    expect(reading.verdict === 'readable' ? reading.reading.agents.map(({ jobId, interruption }) => [jobId, interruption]) : null).toEqual([
+      ['J2', 'network-outage'],
+      ['J3', 'lease-ended'],
+      ['J4', null],
+      ['J5', null],
+    ]);
+    expect(ingestion().readingOf({ ...snapshot, jobs: [{ ...assistantJob, interruption: 'watcher-lost' }] }, EXAMPLE_READ_STAMP))
+      .toEqual({ verdict: 'malformed', invalidKeys: ['jobs[0].interruption'] });
   });
 
   test('stamps the reading with the moment it was read, the snapshot carrying no stamp of its own', async () => {

@@ -162,6 +162,7 @@
       "messagesWaiting": 0,
       "lastLine": null,
       "waitingOnDecisionId": "E1",
+      "interruption": null,
       "route": "#agents/J1"
     },
     {
@@ -187,6 +188,7 @@
       "messagesWaiting": 0,
       "lastLine": null,
       "waitingOnDecisionId": null,
+      "interruption": null,
       "route": "#agents/J2"
     },
     {
@@ -210,6 +212,7 @@
       "messagesWaiting": 1,
       "lastLine": "Example Assistant line",
       "waitingOnDecisionId": null,
+      "interruption": null,
       "route": "#agents/J3"
     },
     {
@@ -233,6 +236,7 @@
       "messagesWaiting": 0,
       "lastLine": "Example request",
       "waitingOnDecisionId": null,
+      "interruption": null,
       "route": "#agents/J4"
     },
     {
@@ -256,6 +260,7 @@
       "messagesWaiting": 0,
       "lastLine": null,
       "waitingOnDecisionId": null,
+      "interruption": null,
       "route": "#agents/J5"
     },
     {
@@ -281,6 +286,7 @@
       "messagesWaiting": 0,
       "lastLine": null,
       "waitingOnDecisionId": null,
+      "interruption": null,
       "route": "#agents/J6"
     }
   ],

@@ -79,6 +79,8 @@ export type JobOutcome =
  * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost Watcher whose child tree
  * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
  * `authentication-failed` is a session whose API key was refused: it resumes once User answers the decision that names the failure.
+ * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of an Overseer that lost
+ * its lease) and `network-outage` (the agent ended on an outage its retries did not outlast) wait for User's resume.
  */
 export type InterruptionCause =
   | 'watcher-lost'
@@ -88,7 +90,10 @@ export type InterruptionCause =
   | 'usage-limit'
   | 'handoff-red'
   | 'forced-stop-refused'
-  | 'authentication-failed';
+  | 'authentication-failed'
+  | 'talos-paused'
+  | 'lease-ended'
+  | 'network-outage';
 
 /**
  * `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`.

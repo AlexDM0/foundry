@@ -12,6 +12,7 @@ import type {
   MonitorAttentionStampWord,
   MonitorFlintBrainDocument,
   MonitorEntityDocument,
+  MonitorInterruptionCause,
   MonitorJobDocument,
   MonitorJobEntityKeys,
   MonitorJobTurn as MonitorJobTurnDocument,
@@ -91,6 +92,8 @@ export interface MonitorJob extends MonitorJobDocument, MonitorJobEntityKeys {
   /** The newest line of an Assistant's or a product owner's session; `null` for every other job. */
   readonly lastLine:            string | null;
   readonly waitingOnDecisionId: string | null;
+  /** The cause while the job is `interrupted`; the board keeps the last cause after a resume, the snapshot does not. */
+  readonly interruption:        MonitorInterruptionCause | null;
   readonly route:               string;
   /** Only on a job of an entity: the entity whose stage it runs. */
   readonly entity?:             string;

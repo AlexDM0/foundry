@@ -4,12 +4,13 @@
  * window a session reported, the newest log entries a person cares about, worded as the Bridge words a log entry, and Flint's brain, which
  * is no job and so never in `jobs`. On a forge with entities only, its entities, each open ticket's entity and stage, and each job's.
  */
-import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+import type { MonitorFlintBrainDocument, MonitorInterruptionCause } from 'forge-contracts/MonitorSnapshotDocument';
 
 import { LogUtil }                       from '../../adapters/utils/LogUtil.ts';
 import { LocalTimeUtil }                 from '../../lib/local-time/LocalTimeUtil.ts';
 import type { Decision }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                 from '../../lib/tracker-model/@types/Incident.ts';
+import type { InterruptionCause }        from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordKind } from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                    from '../../lib/tracker-model/Board.ts';
@@ -207,6 +208,21 @@ const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
 const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
 
+/** Every model cause as the contract spells it, so a new cause fails the compiler until it is mapped. */
+const MONITOR_INTERRUPTION_CAUSE_OF_CAUSE: Readonly<Record<InterruptionCause, MonitorInterruptionCause>> = {
+  'watcher-lost':          'child-lost',
+  'agent-crashed':         'agent-crashed',
+  'reboot':                'reboot',
+  'answer-delivery':       'answer-delivery',
+  'usage-limit':           'usage-limit',
+  'handoff-red':           'handoff-red',
+  'forced-stop-refused':   'forced-stop-refused',
+  'authentication-failed': 'authentication-failed',
+  'talos-paused':          'talos-paused',
+  'lease-ended':           'lease-ended',
+  'network-outage':        'network-outage',
+};
+
 /** The Bridge route a record's subject opens: its question, its ticket or draft on the Kanban, its job or the Assistant; `null` for the board's own. */
 function activityRouteOf(record: LogRecord): string | null {
   if ('decisionId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.QUESTIONS, record.decisionId);
@@ -256,6 +272,7 @@ function jobOf(job: JobWithLiveFacts, decisions: readonly Decision[], incidents:
     messagesWaiting:     live.messagesWaiting,
     lastLine:            live.lastLine?.text ?? null,
     waitingOnDecisionId: OpenDecisionsUtil.answeringOrderOf(decisions).find((decision) => decision.jobId === job.id)?.id ?? null,
+    interruption:        job.state === 'interrupted' && job.interruption !== undefined ? MONITOR_INTERRUPTION_CAUSE_OF_CAUSE[job.interruption] : null,
     route:               BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.AGENTS, job.id),
     ...jobEntityKeysOf(job),
   };

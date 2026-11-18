@@ -326,6 +326,20 @@ describe('the moves a job logs', () => {
     ]);
   });
 
+  test.each(['talos-paused', 'lease-ended', 'network-outage'] as const)('a resume after a %s interruption counts no crash', (cause) => {
+    const { board, records } = boardWithTicket();
+    const { job }            = board.launchJob(BUILD_LAUNCH, AT);
+    board.moveJob(job.id, 'running', AT);
+    board.interruptJob(job.id, cause, AT);
+    board.moveJob(job.id, 'running', AT);
+
+    expect(board.jobById(job.id)).toMatchObject({ watcherInstance: 2, crashResumes: 0, interruption: cause });
+    expect(records.slice(1).map(({ kind, fields }) => [kind, fields])).toEqual([
+      ['job-interrupted', { cause, watcherInstance: 1 }],
+      ['job-resumed', { watcherInstance: 2, cause }],
+    ]);
+  });
+
   test('a job awaiting an answer resumes into running in the next Watcher instance', () => {
     const { board } = boardWithTicket();
     const jobId     = jobInState(board, 'awaiting-answer');

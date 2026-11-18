@@ -106,6 +106,7 @@ function agentRowOfMonitorJob(job: MonitorJobDocument): AgentRow {
     messagesWaiting:     job.messagesWaiting,
     lastLine:            job.lastLine,
     waitingOnDecisionId: job.waitingOnDecisionId,
+    interruption:        job.interruption ?? null,
     route:               job.route,
   };
 }
@@ -133,6 +134,7 @@ function agentRowOfSummaryJob(job: SummaryJobDocument): AgentRow {
     messagesWaiting:     null,
     lastLine:            null,
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               null,
   };
 }

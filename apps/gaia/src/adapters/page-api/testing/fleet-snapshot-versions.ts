@@ -68,6 +68,7 @@ const WIKI_J21: AgentRow = {
   messagesWaiting:     0,
   lastLine:            'Asked E7 and waits for the answer.',
   waitingOnDecisionId: 'E7',
+  interruption:        null,
   route:               '#agents/J21',
 };
 

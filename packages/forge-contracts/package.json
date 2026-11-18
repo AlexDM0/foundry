@@ -9,6 +9,7 @@
     "./IdentityDocument": "./@types/IdentityDocument.ts",
     "./BoardSummaryDocument": "./@types/BoardSummaryDocument.ts",
     "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
+    "./MonitorInterruptionCauses": "./constants/MonitorInterruptionCauses.ts",
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
     "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
     "./EmbedMode": "./constants/EmbedMode.ts",

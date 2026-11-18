@@ -10,7 +10,8 @@
  * entry, of the category `agent` with its kind and tokens, and today's tokens counting the running run and the ended one. On a forge with
  * entities the snapshot adds its entities in the pipeline's order, each open ticket's entity and stage in board order (a delivered or
  * abandoned ticket left out, an unassigned or uncrossed one `null`), and each job's entity with its stage's name only where set; a forge
- * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture.
+ * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture. A job's `interruption` is its cause, spelt as the
+ * contract spells it, only while it is `interrupted`: a job that runs again after one serves `null`.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -290,6 +291,35 @@ describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
   test('the attention list holds every kind once', () => {
     expect(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE).attention.map((entry) => entry.kind).toSorted()).toEqual([
       'draft-ticket', 'escalated-question', 'filing-draft', 'merge-accept', 'question', 'review',
+    ]);
+  });
+});
+
+const INTERRUPTION_JOBS: JobWithLiveFacts[] = [
+  jobWith({
+    id: 'J1', ticketIds: ['001'], state: 'interrupted', interruption: 'network-outage'
+  }, {}, '2026-11-12T10:00:00+01:00'),
+  jobWith({
+    id: 'J2', ticketIds: ['002'], state: 'interrupted', interruption: 'lease-ended'
+  }, {}, '2026-11-12T10:00:00+01:00'),
+  jobWith({
+    id: 'J3', ticketIds: ['003'], state: 'interrupted', interruption: 'watcher-lost'
+  }, {}, '2026-11-12T10:00:00+01:00'),
+  jobWith({
+    id: 'J4', ticketIds: ['004'], state: 'running', interruption: 'network-outage'
+  }, {}, '2026-11-12T10:00:00+01:00'),
+];
+
+const INTERRUPTION_SOURCE: MonitorSnapshotSource = { ...SOURCE, state: { ...STATE, jobs: INTERRUPTION_JOBS } as unknown as BoardState };
+
+describe('a job\'s interruption in the monitor snapshot', () => {
+  test('is the cause of an interrupted job as the contract spells it, and null once the job runs again', () => {
+    const { jobs } = MonitorSnapshotAssembly.monitorSnapshotOf(INTERRUPTION_SOURCE);
+    expect(jobs.map(({ id, interruption }) => ({ id, interruption }))).toEqual([
+      { id: 'J1', interruption: 'network-outage' },
+      { id: 'J2', interruption: 'lease-ended' },
+      { id: 'J3', interruption: 'child-lost' },
+      { id: 'J4', interruption: null },
     ]);
   });
 });

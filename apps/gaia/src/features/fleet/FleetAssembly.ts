@@ -80,6 +80,7 @@ function brainRowOf(trackerId: string, brain: ForgeBrain): FleetAgentRow {
     messagesWaiting:     null,
     lastLine:            null,
     waitingOnDecisionId: null,
+    interruption:        null,
     route:               null,
   };
 }

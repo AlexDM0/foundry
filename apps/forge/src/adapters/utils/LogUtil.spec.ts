@@ -211,6 +211,12 @@ describe('the Overseer and its jobs', () => {
     expect(identified.text).toBe(sentence);
     expect(identified.ticketIds).toEqual([...ticketIds]);
   });
+
+  test.each(['talos-paused', 'lease-ended', 'network-outage'] as const)('an interruption by %s prints the cause as stored and names no command', (cause) => {
+    const sentence = sentenceOf({ kind: 'job-interrupted', jobId: 'J3', fields: { cause, watcherInstance: 1 } });
+    expect(sentence).toBe(`Job J3 interrupted (${cause}) in Watcher instance 1`);
+    expect(sentence).not.toMatch(/\bforge\b|--|\bresume\b/);
+  });
 });
 
 test('the reach and the branch namespace read as what they set, an empty reach as cleared', () => {

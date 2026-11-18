@@ -11,21 +11,26 @@ import type {
   JobKind,
   JobOutcome
 } from './@types/Job.ts';
-import type { LifecycleLimits }                                                                  from './@types/LifecycleLimits.ts';
-import type { LogRecord }                                                                        from './@types/LogRecord.ts';
-import type { EntityKey }                                                                        from './@types/Pipeline.ts';
-import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
-import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
-import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
-import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
-import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
-import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
-import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
-import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
-import { LaunchSlotUtil }                                                                        from './utils/LaunchSlotUtil.ts';
-import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
-import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
-import { TicketStageUtil }                                                                       from './utils/TicketStageUtil.ts';
+import type { LifecycleLimits }                    from './@types/LifecycleLimits.ts';
+import type { LogRecord }                          from './@types/LogRecord.ts';
+import type { EntityKey }                          from './@types/Pipeline.ts';
+import type { PlaybookObservations, PlaybookStep } from './@types/PlaybookStep.ts';
+import type { TicketStage, TicketStageName }       from './@types/Task.ts';
+import type { TicketPriority, TicketStatus }       from './@types/Ticket.ts';
+import type { OverseerState }                      from './@types/TrackerProgress.ts';
+import {
+  CRASH_INTERRUPTION_CAUSES,
+  FORCED_STOP_REFUSED_INTERRUPTION,
+  HANDOFF_RED_INTERRUPTION,
+  INTERRUPTION_CAUSES_HELD_FROM_RESUMING
+} from './constants/JobStates.ts';
+import { TICKET_STATUSES_THAT_CLOSE_A_TICKET } from './constants/Statuses.ts';
+import { ConcurrencyUtil }                     from './utils/ConcurrencyUtil.ts';
+import { FailedPassUtil }                      from './utils/FailedPassUtil.ts';
+import { LaunchSlotUtil }                      from './utils/LaunchSlotUtil.ts';
+import { TicketDefaultsUtil }                  from './utils/TicketDefaultsUtil.ts';
+import { TicketDependencyUtil }                from './utils/TicketDependencyUtil.ts';
+import { TicketStageUtil }                     from './utils/TicketStageUtil.ts';
 
 export interface PlaybookTicket {
   id:           string;
@@ -147,6 +152,12 @@ interface IndexedPlaybookFacts extends PlaybookFacts {
 
 function isCrash(cause: InterruptionCause | undefined): boolean {
   return cause !== undefined && (CRASH_INTERRUPTION_CAUSES as readonly InterruptionCause[]).includes(cause);
+}
+
+/** A network outage or a lease end waits for User's resume: neither a resume nor a replacement comes by itself. */
+function interruptionIsHeldFromResuming(job: Readonly<Job>): boolean {
+  return job.state === 'interrupted' && job.interruption !== undefined
+    && (INTERRUPTION_CAUSES_HELD_FROM_RESUMING as readonly InterruptionCause[]).includes(job.interruption);
 }
 
 function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): JobLaunchesByJobId {
@@ -421,6 +432,7 @@ function productOwnerStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: L
   if (crashResumesAreSpent(job, limits)) {
     return [{ kind: awaitsAnAnswer ? 'await-answer' : 'refresh-intake', jobId: job.id }];
   }
+  if (interruptionIsHeldFromResuming(job)) return [];
   return resumesAreHeld || awaitsAnAnswer ? [] : [{ kind: 'resume-job', jobId: job.id }];
 }
 
@@ -478,6 +490,7 @@ function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits,
     .flatMap((job) => productOwnerStepsOf(job, facts, limits, resumesAreHeld));
   return [...productOwnerSteps, ...settledJobs.filter((job) => job.state === 'interrupted' && job.kind !== 'product-owner').flatMap((job): PlaybookStep[] => {
     if (job.interruption === HANDOFF_RED_INTERRUPTION) return redHandoffStepsOf(job, facts, limits, resumesAreHeld);
+    if (interruptionIsHeldFromResuming(job)) return [];
     if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job', jobId: job.id }];
     if (crashResumesAreSpent(job, limits)) return [{ kind: 'replace-job', jobId: job.id }];
     if (job.kind === 'pipeline-agent') return holds.pipelineAgentResumesAreHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];

@@ -6,6 +6,8 @@
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
+import type { MONITOR_INTERRUPTION_CAUSES } from '../constants/MonitorInterruptionCauses.ts';
+
 
 export type MonitorAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
 
@@ -14,6 +16,8 @@ export type MonitorAttentionStampWord = 'opened' | 'filed' | 'ready since' | 're
 export type MonitorAttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
 
 export type MonitorJobTurn = 'between-turns' | 'mid-turn';
+
+export type MonitorInterruptionCause = typeof MONITOR_INTERRUPTION_CAUSES[number];
 
 export type MonitorActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
 
@@ -82,6 +86,8 @@ export interface MonitorJobDocument {
   readonly messagesWaiting:     number;
   readonly lastLine:            string | null;
   readonly waitingOnDecisionId: string | null;
+  /** The cause while the job is `interrupted`, from forge 1.19, absent from an older forge; `null` in every other state. */
+  readonly interruption?:       MonitorInterruptionCause | null;
   readonly route:               string;
 }
 

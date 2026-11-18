@@ -51,6 +51,7 @@ const WIKI_COUNTS_ONLY_J2: AgentRow = {
   messagesWaiting:     null,
   lastLine:            null,
   waitingOnDecisionId: null,
+  interruption:        null,
   route:               null,
 };
 
