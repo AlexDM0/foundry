@@ -27,6 +27,13 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Assumptions to confirm
 
+- The agent-port packages WP2.21 to WP2.32 (planned 2026-11-18 on the owner's rule "all connections to actual claude
+  should be in ports and adapters") rest on nine choices of behaviour the owner has not settled, listed as assumptions
+  1 to 9 in `stage-2-talos.md`, "Needs the owner": the Bridge's billing step names no variable; `update` and `setup`
+  stop cleaning up install version 16 and the global skill links (setup becomes 1/3 to 3/3); `decisions` prints
+  "(recommended)"; new refusal and `init` wording; the shell-network sentence; the guard's words; help names no vendor
+  path; an agent with its own sandbox is confined by it, forge's only when it has none; the `usage` help wording.
+  Each package that builds one moves it here when it lands.
 - WP2.11: Gaia keeps reading monitor snapshots of forges older than 1.19, so `interruption` is an optional contract key
   (`?? null` in `agentRowOfMonitorJob`). Confirm when stage 6 raises `SUPPORTED_FORGE_VERSION` and retakes Gaia's
   forge answers whether the key becomes required.
@@ -208,6 +215,13 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 9-A | WP9.5 | waiting | | |
 
 ## Where the code differed from a stage file
+- The agent-port plan (`49c7fa93` rule, `ba5192bb` plan, `7725c98b` rows; measurement in the main checkout's
+  `.claude/.evidence/hephaestus-talos/port-rule/reaches.md`, 46 reaches, none closed by an earlier package) failed
+  its check three times. The third check found one real contradiction (WP2.22 allowlisted `WorkerProfile.ts` while
+  three places forbade any key under `src/lib/agent-launch/`) and small slips; the orchestrator had them corrected
+  as a carve-out until WP2.27, read the diff and landed the plan rather than block twelve packages on a document
+  contradiction with one clear resolution. WP2.21 moved to group 2-D2 (after WP2.7, which was already being built).
+  The guard WP2.22 lands first with today's reaches allowlisted line by line; each later package removes its lines.
 - WP2.5: `clientFrameOf` answers a `ReceivedClientFrame` (`@types/TalosFrame.ts`), whose `launch` holds the raw
   `unknown` launch (not `ClientFrame | null`): `childLaunchOf` needs the board folder, and a malformed launch is still
   answered with a `done` carrying its own `frameId`. `childLaunchOf(value, boardFolder)` takes no `endpointFits?`: a
