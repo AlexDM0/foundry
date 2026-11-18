@@ -600,6 +600,12 @@ export class Board {
     return this.mergeQueueMarks.greenPhaseOf(ticketId);
   }
 
+  /** The pipeline a ticket's own work reads (`PipelineUtil.ticketPipelineOf`); `null` with none stored. */
+  ticketPipelineOf(ticketId: string): Readonly<Pipeline> | null {
+    const { pipeline } = this.records;
+    return pipeline === null ? null : PipelineUtil.ticketPipelineOf(pipeline, this.records.ticketRecordById(ticketId)?.frontmatter.entity);
+  }
+
   /** Whether the ticket's build goes on to a review: its entity's review on a pipeline with entities, the pipeline's own on any other. */
   reviewIsSetFor(ticketId: string): boolean {
     return PipelineUtil.ticketReviewIsSet(this.records.pipeline, this.records.ticketRecordById(ticketId)?.frontmatter.entity);

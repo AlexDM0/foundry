@@ -2088,11 +2088,13 @@ function userStopEndingOf(job: Readonly<Job>): Parameters<Board['endJob']>[1] | 
   return job.stopRequest === 'stop' ? { outcome: 'stopped', cause: STOPPED_BY_USER_CAUSE } : null;
 }
 
-/** A reviewer's bar: its round, and on a forge with entities its stage, named by the review of the stage's entity. */
+/** A reviewer's bar: its round, and on a forge with entities its stage, named by the review of the stage's entity, else of the ticket's own. */
 function reviewBarRequestOf(board: Board, job: Readonly<Job>): ReviewBarRequest {
   const stage    = TicketStageUtil.stageOfJob(job);
   const pipeline = board.pipeline();
-  const review   = stage === null || pipeline === null ? pipeline?.review : PipelineUtil.pipelineOfEntity(pipeline, stage.entity)?.review;
+  const review   = stage === null || pipeline === null
+    ? board.ticketPipelineOf(ticketIdOf(job))?.review
+    : PipelineUtil.pipelineOfEntity(pipeline, stage.entity)?.review;
   return {
     round: job.attempt, owner: job.id, ...(review?.name === undefined ? {} : { label: review.name }), ...(stage === null ? {} : { stage })
   };

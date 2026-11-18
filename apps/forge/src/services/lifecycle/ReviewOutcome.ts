@@ -174,11 +174,15 @@ function recordedRoundsOf(board: Board, job: Readonly<Job>): { round: number; fi
     : []));
 }
 
-/** The pipeline whose review sets the rework threshold: for a ticket that crosses into a package, the reviewing entity's (E31). */
+/**
+ * The pipeline whose review sets the rework threshold: for a ticket that crosses into a package, the reviewing entity's (E31); for any
+ * other, the ticket's own (`Board.ticketPipelineOf`), its entity's on a pipeline with entities.
+ */
 function reviewingPipelineOf(board: Board, job: Readonly<Job>): Readonly<Pipeline> | null {
   const pipeline = board.pipeline();
   const jobStage = board.ticketStageOf(ticketIdOf(job)) === null ? null : TicketStageUtil.stageOfJob(job);
-  if (pipeline === null || jobStage === null) return pipeline;
+  if (pipeline === null) return null;
+  if (jobStage === null) return board.ticketPipelineOf(ticketIdOf(job));
   return PipelineUtil.pipelineOfEntity(pipeline, jobStage.entity) ?? pipeline;
 }
 
@@ -351,27 +355,49 @@ function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string
 /** A failed pass takes no round verdict, and a granted one is converging: neither was refused another round. */
 const VERDICTS_TAKING_NO_REFUSED_ROUND: readonly string[] = ['round-requested', 'does-not-hold'];
 
+type ReviewRecordedRecord = Extract<LogRecord, { kind: 'review-recorded' }>;
+
 /**
- * The tickets whose newest review reworked past the threshold yet was refused another round: the findings are not converging. A pipeline
- * whose review has no re-review grants no round, so no ticket is refused one.
+ * The pipeline whose review a recorded pass ran: on a bar of a stage, the stage's entity's, the one Settle measured the pass against;
+ * otherwise the ticket's own (`Board.ticketPipelineOf`).
  */
-function nonConvergingTicketIdsOf(records: readonly LogRecord[], pipeline: Readonly<Pipeline> | null, fallbackLimits: RoundLimits): string[] {
-  const thresholdLines = RoundVerdictUtil.roundLimitsOf(pipeline, fallbackLimits).REWORK_ROUND_THRESHOLD_LINES;
-  if (thresholdLines === null) return [];
-  const newestByTicketId = new Map<string, Extract<LogRecord, { kind: 'review-recorded' }>>();
+function recordedReviewPipelineOf(board: Board, record: ReviewRecordedRecord): Readonly<Pipeline> | null {
+  const pipeline = board.pipeline();
+  const barStage = board.tasks().find((task) => task.id === record.taskId)?.stage;
+  if (pipeline === null || barStage === undefined) return board.ticketPipelineOf(record.ticketId);
+  return PipelineUtil.pipelineOfEntity(pipeline, barStage.entity) ?? board.ticketPipelineOf(record.ticketId);
+}
+
+/**
+ * The tickets whose newest review reworked past the threshold yet was refused another round: the findings are not converging. Each newest
+ * review is measured against the threshold of the pipeline whose review it ran (`recordedReviewPipelineOf`); a review with no re-review
+ * grants no round, so no ticket of it is refused one.
+ */
+function nonConvergingTicketIdsOf(
+  records: readonly LogRecord[], reviewedPipelineOf: (record: ReviewRecordedRecord) => Readonly<Pipeline> | null, fallbackLimits: RoundLimits
+): string[] {
+  const thresholdLinesOf = (record: ReviewRecordedRecord): number | null => {
+    return RoundVerdictUtil.roundLimitsOf(reviewedPipelineOf(record), fallbackLimits).REWORK_ROUND_THRESHOLD_LINES;
+  };
+  const newestByTicketId = new Map<string, ReviewRecordedRecord>();
   for (const record of records) {
     if (record.kind === 'review-recorded') newestByTicketId.set(record.ticketId, record);
     if (record.kind === 'ticket-delivered' || record.kind === 'ticket-abandoned') newestByTicketId.delete(record.ticketId);
   }
   return [...newestByTicketId.values()]
-    .filter((record) => record.fields.totalReworkedCodeLines > thresholdLines && !VERDICTS_TAKING_NO_REFUSED_ROUND.includes(record.fields.verdict))
+    .filter((record) => {
+      const thresholdLines = thresholdLinesOf(record);
+      return thresholdLines !== null && record.fields.totalReworkedCodeLines > thresholdLines && !VERDICTS_TAKING_NO_REFUSED_ROUND.includes(record.fields.verdict);
+    })
     .map((record) => record.ticketId)
     .sort();
 }
 
 export const ReviewOutcome = Object.freeze({
   settleReviewPass,
+  reviewingPipelineOf,
   actOnWaiverAnswer,
+  recordedReviewPipelineOf,
   nonConvergingTicketIdsOf,
   bodyWithWaivedItems,
 });

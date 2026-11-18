@@ -4,14 +4,15 @@
  * with nothing current; Customs and its gates name the build phase's gates; a review phase that is not set adds no review step, and merge
  * approval adds a step only until User accepted; a group's ticket integrates into its group's branch while its release ticket lands; the
  * attempt and round are the Playbook's own, so a builder a review sent back keeps its attempt; targets are `null` without a target rule; and
- * a dependent lists the other dependencies it still waits on, while an unready ticket is no dependent.
+ * a dependent lists the other dependencies it still waits on, while an unready ticket is no dependent. On a pipeline with entities, Customs
+ * names the build gates of the ticket's own entity, never the forge's empty top level.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, ticketFixture }             from '../../testing/BoardFixtures.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from '../../testing/GreenQueue.ts';
 import type { JobLaunch }                          from './@types/Job.ts';
-import type { Pipeline }                           from './@types/Pipeline.ts';
+import type { Pipeline, PipelineEntity }           from './@types/Pipeline.ts';
 import type { Ticket, TicketStatus }               from './@types/Ticket.ts';
 import type { TicketForecast }                     from './@types/TicketForecast.ts';
 import type { MergeTargetOf }                      from './AirlockClaims.ts';
@@ -84,6 +85,20 @@ describe('the steps of a ticket nothing runs on', () => {
     };
     const board = boardOf([ticketFixture({ id: '001', status: 'pending' })], pipeline);
     expect(forecastOf(board, '001')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['test', 'typecheck'], jobId: null });
+  });
+
+  test('on a pipeline with entities, Customs names the build gates of the ticket\'s own entity, not the forge\'s top level', () => {
+    const entityOf = (gateName: string, home: string): PipelineEntity => ({
+      kind:    'app',
+      home:    [home],
+      prepare: [],
+      gates:   [{ name: gateName, run: `bun run ${gateName}` }],
+      phases:  { build: [gateName], review: [], merge: [gateName] },
+    });
+    const pipeline: Pipeline = { ...PIPELINE_WITHOUT_REVIEW, entities: { 'web': entityOf('gate:web', '/apps/web'), 'api': entityOf('gate:api', '/apps/api') } };
+    const board = boardOf([ticketFixture({ id: '001', status: 'pending', entity: 'web' }), ticketFixture({ id: '002', status: 'pending', entity: 'api' })], pipeline);
+    expect(forecastOf(board, '001')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['gate:web'], jobId: null });
+    expect(forecastOf(board, '002')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['gate:api'], jobId: null });
   });
 
   test('an in-progress ticket whose build failed launches the next attempt', () => {

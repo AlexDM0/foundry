@@ -65,7 +65,7 @@ export class TicketForecasts {
 
   private stepsOf(ticket: Readonly<TicketFrontmatter>, reading: ForecastReading): ForecastSteps {
     const launchNumbers = reading.launchNumbers.get(ticket.id) ?? { buildAttempt: 1, reviewRound: FIRST_REVIEW_ROUND };
-    const gateNames     = PipelineUtil.gatesOfPhase(reading.pipeline, 'build').map((gate) => gate.name);
+    const gateNames     = PipelineUtil.gatesOfPhase(PipelineUtil.ticketPipelineOf(reading.pipeline, ticket.entity), 'build').map((gate) => gate.name);
     const reviewIsSet   = PipelineUtil.ticketReviewIsSet(reading.pipeline, ticket.entity);
     const target        = reading.targetOf === null ? null : reading.targetOf(ticket);
     const approvalSteps: TicketForecastStep[] = reading.pipeline.approvals?.merge === true && !this.mergeQueueMarks.ticketIsMergeAccepted(ticket.id)

@@ -307,7 +307,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const outcome = settle(reviewJobAtRound(2), report([claim('A1', 'holds'), claim('A2', 'holds')], [{ ...findingInANewFile, commit: secondFix }]));
 
     expect(outcome.move).toBe('merge-queued');
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual(['001']);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, (record) => ReviewOutcome.recordedReviewPipelineOf(board, record), LIFECYCLE_LIMITS)).toEqual(['001']);
   });
 
   test('a failed pass over the threshold takes no round verdict, so it shows no rounds-not-converging', () => {
@@ -315,7 +315,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'does-not-hold')]));
 
     expect(outcome).toMatchObject({ move: 'fixer', reworkedLines: OVER_THRESHOLD_LINES });
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, (record) => ReviewOutcome.recordedReviewPipelineOf(board, record), LIFECYCLE_LIMITS)).toEqual([]);
   });
 
   test('a review with no re-review grants no round at any rework: the pass queues to merge and shows no rounds-not-converging', () => {
@@ -325,7 +325,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
 
     expect(outcome).toMatchObject({ move: 'merge-queued', reworkedLines: OVER_THRESHOLD_LINES });
     expect(recordsOfKind('job-ended').map((record) => record.fields.outcome)).toEqual(['reviewed']);
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, (record) => ReviewOutcome.recordedReviewPipelineOf(board, record), LIFECYCLE_LIMITS)).toEqual([]);
   });
 
   test('the re-review threshold of the pipeline is honoured: rework of exactly its lines is refused a round', () => {
@@ -334,7 +334,7 @@ describeWhenGitIsRecorded('a review pass settled by code', () => {
     const outcome = settle(reviewJobAtRound(1), report([claim('A1', 'holds'), claim('A2', 'holds')]));
 
     expect(outcome).toMatchObject({ move: 'merge-queued', reworkedLines: OVER_THRESHOLD_LINES });
-    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, board.pipeline(), LIFECYCLE_LIMITS)).toEqual([]);
+    expect(ReviewOutcome.nonConvergingTicketIdsOf(logRecords, (record) => ReviewOutcome.recordedReviewPipelineOf(board, record), LIFECYCLE_LIMITS)).toEqual([]);
   });
 
   test('a waiver proposal opens a waiver decision, keeps the ticket out of the merge queue and holds every launch on it', () => {

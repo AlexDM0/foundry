@@ -1417,6 +1417,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           AssistantSession.deliverIncidentsWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory, change.at);
         }
         request.afterHoldPhase?.('lifecycle', change.board);
+        const recordedReviewPipelineOf = (record: Parameters<typeof ReviewOutcome.recordedReviewPipelineOf>[1]): ReturnType<typeof ReviewOutcome.recordedReviewPipelineOf> => {
+          return ReviewOutcome.recordedReviewPipelineOf(change.board, record);
+        };
         // Also credits every job this hold ended, since its `job-ended` record is already in the log the scan reads.
         const endedJobIdsExaminedThisPass = EndedJobTokens.creditJobsTheLogEndedUncredited(change.board, endedJobTokensContext, endedJobIdsExamined, change.at);
         return {
@@ -1429,7 +1432,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           usageResetsAt,
           attributionTicketIds:         JobLaunch.attributionTicketIdsOf([...change.storedLogRecords, ...buildJobRecords]),
           agentConfigHeldTicketIds:     agentConfigHold.held,
-          nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), change.board.pipeline(), LIFECYCLE_LIMITS),
+          nonConvergingTicketIds:       ReviewOutcome.nonConvergingTicketIdsOf(change.board.logRecordsSoFar(), recordedReviewPipelineOf, LIFECYCLE_LIMITS),
           ticketsWaitingForMachineSlot: steps.filter((step) => step.kind === 'await-machine-slot').length,
           waiverAnswersAwaitAPass,
         };

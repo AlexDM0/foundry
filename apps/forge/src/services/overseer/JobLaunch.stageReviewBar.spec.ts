@@ -1,7 +1,8 @@
 /**
  * The bar a launched reviewer starts, on the entity-forge fixture's pipeline where the shop crosses into the package. What matters: a
  * reviewer of a stage starts a bar that stores its stage, named by the review of the stage's entity with the entity before it and numbered
- * by the job's round within the stage; a reviewer on a forge without entities starts the bar it always started, named by the forge's review.
+ * by the job's round within the stage; a reviewer of a ticket that crosses into no package is named by its own entity's review, never the
+ * forge's top level; a reviewer on a forge without entities starts the bar it always started, named by the forge's review.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -44,6 +45,17 @@ describe('the bar a launched reviewer starts', () => {
     const bar = barOfALaunchedReviewer(entityForgePipelineOf('shop-crosses-into-ui-kit'), 2, { entity: UI_KIT.key, stage: 3 });
 
     expect(bar).toMatchObject({ name: 'Review 2 #001 — Example checkout page (ui-kit: review)', reviewBarRound: 2, stage: { name: 'package-review', entity: UI_KIT.key }, });
+  });
+
+  test('of a ticket that crosses into no package is named by its own entity\'s review, not the top level\'s, and stores no stage', () => {
+    const pipeline = entityForgePipelineOf('strict-isolation');
+    const shop     = pipeline.entities?.[SHOP.key];
+    if (shop === undefined) throw new Error('The entity-forge fixture has no shop entity.');
+    const entities = { ...pipeline.entities, [SHOP.key]: { ...shop, review: { name: 'Shop pass' } } };
+    const bar = barOfALaunchedReviewer({ ...pipeline, review: { name: 'Top-level pass' }, entities }, 1);
+
+    expect(bar?.name).toBe('Review 1 #001 — Example checkout page (Shop pass)');
+    expect(bar === undefined ? null : Object.hasOwn(bar, 'stage')).toBe(false);
   });
 
   test('on a forge without entities is named by the forge\'s review and stores no stage', () => {

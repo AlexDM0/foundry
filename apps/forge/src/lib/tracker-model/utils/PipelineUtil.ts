@@ -239,6 +239,15 @@ function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): P
   };
 }
 
+/**
+ * The single pipeline a ticket's own work reads its gates, prepare steps and review from: on a pipeline with entities its entity's, the
+ * top level for a ticket of no entity or of one the pipeline no longer holds; on any other the pipeline itself.
+ */
+function ticketPipelineOf(pipeline: Readonly<Pipeline>, entityKey: EntityKey | undefined): Readonly<Pipeline> {
+  if (pipeline.entities === undefined || entityKey === undefined) return pipeline;
+  return pipelineOfEntity(pipeline, entityKey) ?? pipeline;
+}
+
 /** Whether a ticket's build goes on to a review: on a pipeline with entities its entity's review decides, on any other the pipeline's own. */
 function ticketReviewIsSet(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): boolean {
   if (pipeline === null) return false;
@@ -257,6 +266,7 @@ export const PipelineUtil = Object.freeze({
   minimalPipelineOf,
   phaseHashOf,
   pipelineOfEntity,
+  ticketPipelineOf,
   ticketReviewIsSet,
   resolvedInstructionsOf,
   writablePathsOf,

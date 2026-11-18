@@ -9,7 +9,8 @@
  * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
  * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none. A gate
  * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it. Whether a ticket's build goes on to a review
- * is its entity's review on a pipeline with entities, whatever the forge's own, and the pipeline's own review on any other.
+ * is its entity's review on a pipeline with entities, whatever the forge's own, and the pipeline's own review on any other. A ticket's own
+ * gates, prepare steps and review are read from its entity's pipeline on a pipeline with entities, from the pipeline itself on any other.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -344,6 +345,27 @@ describe('whether a ticket is reviewed', () => {
     expect(PipelineUtil.ticketReviewIsSet(MIXED_REVIEWS, undefined)).toBe(true);
     expect(PipelineUtil.ticketReviewIsSet(ENTITIES_PIPELINE, undefined)).toBe(false);
     expect(PipelineUtil.ticketReviewIsSet(null, 'example')).toBe(false);
+  });
+});
+
+describe('the pipeline a ticket\'s own work reads', () => {
+  test('is its entity\'s on a pipeline with entities: its gates, prepare steps and review, not the empty top level', () => {
+    const ticketPipeline = PipelineUtil.ticketPipelineOf(ENTITIES_PIPELINE, 'example');
+    expect(ticketPipeline).toEqual(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'example') ?? ENTITIES_PIPELINE);
+    expect(ticketPipeline).not.toBe(ENTITIES_PIPELINE);
+    expect(PipelineUtil.gatesOfPhase(ticketPipeline, 'build').map((gate) => gate.name)).toEqual(['verify']);
+    expect(ticketPipeline.prepare.map((step) => step.name)).toEqual(['install']);
+    expect(ticketPipeline.review).toEqual({ name: 'review' });
+  });
+
+  test('is the top level for a ticket of no entity or of one the pipeline does not hold', () => {
+    expect(PipelineUtil.ticketPipelineOf(ENTITIES_PIPELINE, undefined)).toBe(ENTITIES_PIPELINE);
+    expect(PipelineUtil.ticketPipelineOf(ENTITIES_PIPELINE, 'unknown')).toBe(ENTITIES_PIPELINE);
+  });
+
+  test('is the pipeline itself on a pipeline without entities, whatever entity the ticket names', () => {
+    expect(PipelineUtil.ticketPipelineOf(FULL_PIPELINE, undefined)).toBe(FULL_PIPELINE);
+    expect(PipelineUtil.ticketPipelineOf(FULL_PIPELINE, 'example')).toBe(FULL_PIPELINE);
   });
 });
 

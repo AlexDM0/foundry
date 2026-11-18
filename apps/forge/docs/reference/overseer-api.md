@@ -506,7 +506,7 @@ decides nothing. `src/lib/tracker-model/Playbook.forecast.spec.ts` holds its fir
 | Step `kind` | Fields | When |
 | --- | --- | --- |
 | `build` | `attempt`, `jobId` | A build, its attempt as the Playbook's `launch-build` carries it; `jobId` `null` until a builder takes it |
-| `customs-and-gates` | `gateNames`, `jobId` | Customs checks the handoff and runs the pipeline's gates; `jobId` names the build job while it is `in-customs` or `gating` |
+| `customs-and-gates` | `gateNames`, `jobId` | Customs checks the handoff and runs the build gates of the ticket's pipeline, its entity's on a pipeline with `entities`; `jobId` names the build job while it is `in-customs` or `gating` |
 | `review` | `round`, `jobId` | Only with a review phase set; skipped for a ticket queued to land |
 | `merge-approval` | `target` | Only with merge approval on, until User accepted the ticket |
 | `land` | `target` | A ticket of no group, or a group's release ticket, onto the main line |

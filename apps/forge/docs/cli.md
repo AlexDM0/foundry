@@ -1989,10 +1989,11 @@ Each return to the builder counts with its red handoffs, so the return past the 
 `red-resumes-spent`. The review job checks only once, against the tip it recorded: a target that moves after the check
 is merged in by the Airlock.
 
-The threshold is the `pipeline.json` `review.reReview.thresholdLines`. A review with no `reReview` grants no further
-round at any rework, and shows no `rounds-not-converging` notice. With no readable `pipeline.json`, the threshold is
-`REWORK_ROUND_THRESHOLD_LINES` (750). Round 2 needs only the rework over the threshold; from round 3 on, the findings
-must also converge.
+The threshold is the `pipeline.json` `review.reReview.thresholdLines`. On a pipeline with `entities` it is the ticket's
+own entity's, or for a stage of a crossing ticket the reviewing entity's, never the top level's. A review with no
+`reReview` grants no further round at any rework, and shows no `rounds-not-converging` notice. With no readable
+`pipeline.json`, the threshold is `REWORK_ROUND_THRESHOLD_LINES` (750). Round 2 needs only the rework over the
+threshold; from round 3 on, the findings must also converge.
 
 | the review | what the Overseer does |
 | --- | --- |
