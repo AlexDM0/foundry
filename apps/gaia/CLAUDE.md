@@ -317,9 +317,16 @@ src/
   A constructor does no work.
 - **Every write of a file a reader may hold open is atomic**: temporary file beside the target,
   flush, rename. Never truncate then write.
-- **A clock decides nothing.** Identity is a content hash; staleness is a set difference or a version
-  number. Timestamps are recorded and displayed, never compared, except where an exception is
-  stated in the code it applies to.
+- **A clock gives no fact.** Identity is a content hash. Staleness of data is a set difference or a
+  version. The order of work is a sequence number. A timestamp is recorded and shown, and it can
+  order or select only what is shown.
+- **A clock measures real time**: a connection, a heartbeat, a timeout, a grace time, a lifetime, a
+  poll interval, a sync interval, an animation, and an instant that an outside system names. Use a
+  clock where a thing that runs now must answer, report or end in an actual time.
+- **A limit that looks back on work is a count** of calls, sessions, rounds, resumes, tries or
+  failed passes, never an elapsed time. A project with no work for a week did nothing wrong: after
+  that week each count reads the same.
+- Where code does not obey these three clock rules, a comment at its site says so.
 - **Index a record keyed by outside text through an own-property check**, never a bare lookup.
 
 ## 9. Generated and installed artifacts

@@ -171,8 +171,14 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - A record keyed by outside text is indexed through `Object.hasOwn`.
 - A command takes everything (directory, now, streams, stdin, prompt, platform, home) from its `CommandContext`.
 - Every write of a file a reader may hold open goes through the atomic-file package.
-- A clock decides nothing: identity is a content hash, staleness a set difference or version; timestamps are only
-  recorded and shown. Each exception says so in a comment at its site.
+- A clock gives no fact. Identity is a content hash. Staleness of data is a set difference or a version. The order of
+  work is a sequence number. A timestamp is recorded and shown, and it can order or select only what is shown.
+- A clock measures real time: a connection, a heartbeat, a timeout, a grace time, a lifetime, a poll interval, a sync
+  interval, an animation, and an instant that an outside system names. Use a clock where a thing that runs now must
+  answer, report or end in an actual time.
+- A limit that looks back on work is a count of calls, sessions, rounds, resumes, tries or failed passes, never an
+  elapsed time. A project with no work for a week did nothing wrong: after that week each count reads the same.
+- Where code does not obey these three clock rules, a comment at its site says so.
 
 ### Generated and installed files
 
@@ -338,14 +344,11 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 | A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing SessionStart hook would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
 | A failure exits non-zero. | `hook stage-edits` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the Edit and Write of a job of an entity inside its stage's folders. |
-| A clock decides nothing. | No launch, resume or Assistant delivery happens before the usage marker's `resetsAt`, and the Overseer wakes a DrivePass at it (`src/lib/tracker-model/Playbook.ts`, `src/services/overseer/DrivePass.ts`). | The vendor names its reset as a time, and only a clock can honour it. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
-| A clock decides nothing. | A session code that `open` issued buys no Bridge session after `SESSION_CODE_LIFETIME_MILLISECONDS` (`src/services/overseer/BrowserSessions.ts`). | A code read from a redirect file or a terminal must stop working soon after `open` issued it. |
-| A clock decides nothing. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). | A hung session makes no calls, so no count of its own bounds it; sweeps come at an interval, and the incident only asks. |
+| A clock measures real time. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). An Assistant that is quiet in a turn for the same number of sweeps is ended (`src/services/overseer/AssistantSession.ts`). The two watches count sweeps and read no clock. | The two watches are older than this rule. A running session must report in an actual time, so each watch becomes a time bound; this change is not done. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
 | Code starts beside its only consumer. | `packages/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. `packages/design-system/` is a workspace package, not a folder of the Bridge. | The owner ordered the design system first, so the views share one set of parts. The owner decided that the design system is a portable package, like Flint. |
 | Code starts beside its only consumer. | `packages/flint/` is a workspace package, not a folder of the Bridge. | The owner decided that Flint is a portable package. |
-| A clock decides nothing. | Flint makes decisions from the elapsed time of its frame source: it falls asleep after a quiet time, it stops cursor play after some seconds with no pointer movement, and it stops the brain after the maximum time that the host gives to `startBrain`. | These times are animation times. The frame source gives them, and a spec gives its own frame source. Flint reads no clock. |
 | `bridge/styles/tokens.css` holds every colour. | `packages/flint/constants/Palette.ts` holds the default colour of each `--flint-*` custom property. The Bridge sets the `--flint-*` properties from its tokens in `bridge/styles/tokens.css`, with the same values in the light and the dark theme. | Flint is a portable package. It must show its colours on a page that sets no property. |
 
 ## Local rules
