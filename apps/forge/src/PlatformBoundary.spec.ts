@@ -89,8 +89,12 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root carries the platform, so a spec can choose it.',
   'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
     'The Watcher has no CommandContext; its binary is its composition root.',
+  'talos.ts: process-platform: process.exit(await runTalos(Bun.argv.slice(2), clock, process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
+    'Talos has no CommandContext; its binary is its composition root.',
   'src/lib/talos/SynchronousCallsThread.ts: platform-property: supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);':
     'A worker has no context; the start message carries the platform from Talos, and the thread hands it straight to the selector.',
+  'src/lib/talos/SynchronousCallsThread.ts: platform-property: localEndpoint = localEndpointFor(request.platform, \'\');':
+    'The same start message gives the endpoint selector the platform, so the endpoint is prepared and released on the thread.',
   'setup.ts: process-platform: platform: process.platform, checkoutDirectory: import.meta.dir, homeDirectory: homedir(), runningBun: process.execPath':
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
   'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
@@ -210,7 +214,7 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths.length).toBeGreaterThan(400);
     expect(SOURCES.length).toBeGreaterThan(shippingPaths.length);
     expect(shippingPaths).toEqual(expect.arrayContaining([
-      'agent-progress.ts', 'watcher.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts', 'bridge/Main.tsx',
+      'agent-progress.ts', 'watcher.ts', 'talos.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts', 'bridge/Main.tsx',
     ]));
     expect(shippingPaths).not.toContain('src/PlatformBoundary.spec.ts');
   });
@@ -242,6 +246,7 @@ describe('the scan saw the tree', () => {
       'src/lib/git/GitProcess.ts',
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
+      'src/lib/talos/Talos.ts',
       'src/lib/watcher/Watcher.ts',
       'src/services/lifecycle/GateRun.ts',
       'src/services/overseer/GpgDirectories.ts',

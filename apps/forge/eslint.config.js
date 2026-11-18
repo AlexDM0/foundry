@@ -24,7 +24,7 @@ const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/*
 const CONFINED_REACHES = [
   {
     shippingOnly: true,
-    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts', 'src/services/overseer/HeldSlotCreateFor.ts'],
+    allowedIn:    ['cli/CommandContext.ts', 'watcher.ts', 'talos.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts', 'src/services/overseer/HeldSlotCreateFor.ts'],
     property:     { object: 'process', property: 'platform', message: 'Take the platform as a parameter; only the selectors decide on it.' },
   },
   {
@@ -33,9 +33,9 @@ const CONFINED_REACHES = [
     importName:   { name: 'node:fs', importNames: ['chmodSync'], message: 'Restrict a file through the OwnerOnlyFiles port.' },
   },
   {
-    // src/shared/Environment.integration.spec.ts tests the getters themselves, and watcher.ts, whose bundle reaches no src/shared, reads
+    // src/shared/Environment.integration.spec.ts tests the getters themselves, and watcher.ts and talos.ts, which reach no src/shared, read
     // SystemRoot and the variables a launch copies (both Deviations).
-    allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.integration.spec.ts', 'watcher.ts'],
+    allowedIn: ['src/shared/Environment.ts', 'src/shared/Environment.integration.spec.ts', 'watcher.ts', 'talos.ts'],
     property:  { object: 'process', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
   {
@@ -44,8 +44,8 @@ const CONFINED_REACHES = [
     property:  { object: 'Bun', property: 'env', message: 'Read the environment through src/shared/Environment.ts.' },
   },
   {
-    allowedIn: ['agent-progress.ts', 'watcher.ts', 'setup.ts'],
-    property:  { object: 'process', property: 'exit', message: 'Only agent-progress.ts, watcher.ts and setup.ts exit; return an exit code.' },
+    allowedIn: ['agent-progress.ts', 'watcher.ts', 'talos.ts', 'setup.ts'],
+    property:  { object: 'process', property: 'exit', message: 'Only agent-progress.ts, watcher.ts, talos.ts and setup.ts exit; return an exit code.' },
   },
   { allowedIn: [], property: { object: 'process', property: 'chdir', message: 'Never change the working directory; pass a directory instead.' } },
   {
@@ -113,8 +113,8 @@ export default [
     rules: confinedReachRules(site, site.endsWith('.spec.ts') ? CONFINED_REACHES_OF_SPECS : CONFINED_REACHES),
   })),
   {
-    files:   ['src/**/*.ts', 'cli/**/*.ts', 'agent-progress.ts', 'watcher.ts'],
-    ignores: [...SPECS_AND_TESTING_FOLDERS, 'cli/CommandContext.ts', 'watcher.ts'],
+    files:   ['src/**/*.ts', 'cli/**/*.ts', 'agent-progress.ts', 'watcher.ts', 'talos.ts'],
+    ignores: [...SPECS_AND_TESTING_FOLDERS, 'cli/CommandContext.ts', 'watcher.ts', 'talos.ts'],
     rules:   {
       'no-restricted-syntax': [
         'error',

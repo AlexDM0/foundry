@@ -41,7 +41,7 @@ import { OverseerRemote }                                 from './OverseerRemote
 const NATIVE_PORTS = nativePlatformPorts();
 const EXAMPLE_LOG_DESCRIPTOR = 7;
 const DESCENDANT_END_MARGIN_MILLISECONDS = 500;
-const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['gate', 'supervised-child', 'watcher', 'overseer', 'successor'];
+const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['gate', 'supervised-child', 'watcher', 'talos', 'overseer', 'successor'];
 
 interface ChildStreams {
   detached: unknown;
@@ -115,7 +115,7 @@ describe('the Windows answer per child kind', () => {
     expect(WINDOWS_SUPERVISED_CHILD_SPAWN).toEqual({ detached: false, windowsHide: true, stderr: 'pipe' });
   });
 
-  test.each(['watcher', 'overseer', 'successor'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
+  test.each(['watcher', 'talos', 'overseer', 'successor'] as const)('a %s, a Bun program, stays detached and hidden', (childKind) => {
     expect(supervision.spawnOptionsFor(childKind)).toEqual({ detached: true, windowsHide: true });
   });
 

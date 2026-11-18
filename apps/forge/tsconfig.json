@@ -27,5 +27,5 @@
 
     "skipLibCheck": true
   },
-  "include": ["agent-progress.ts", "watcher.ts", "launcher.ts", "setup.ts", "cli/**/*.ts", "src/**/*.ts"]
+  "include": ["agent-progress.ts", "watcher.ts", "talos.ts", "launcher.ts", "setup.ts", "cli/**/*.ts", "src/**/*.ts"]
 }

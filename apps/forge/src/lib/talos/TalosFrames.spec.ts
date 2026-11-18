@@ -81,11 +81,15 @@ describe('helloFrameOf', () => {
       .toEqual({ kind: 'hello', requiredProtocolVersion: 2, secret: 'example-secret' });
   });
 
+  test('reads a hello of version 0 as a hello, so its client is answered version-mismatch', () => {
+    expect(helloFrameOf('{"kind":"hello","requiredProtocolVersion":0,"secret":"s"}')).toEqual({ kind: 'hello', requiredProtocolVersion: 0, secret: 's' });
+  });
+
   test.each([
     ['another frame', '{"kind":"stop-lines","frameId":1}'],
     ['a hello with no secret', '{"kind":"hello","requiredProtocolVersion":1}'],
     ['a hello with a fractional version', '{"kind":"hello","requiredProtocolVersion":1.5,"secret":"s"}'],
-    ['a hello with a version of 0', '{"kind":"hello","requiredProtocolVersion":0,"secret":"s"}'],
+    ['a hello with a negative version', '{"kind":"hello","requiredProtocolVersion":-1,"secret":"s"}'],
     ['not JSON', 'hello'],
   ])('reads %s as no hello', (_title, line) => {
     expect(helloFrameOf(line)).toBeNull();

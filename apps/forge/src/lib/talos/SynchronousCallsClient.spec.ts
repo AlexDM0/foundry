@@ -1,6 +1,7 @@
 /**
  * The main thread's proxy over a fake transport. What matters: each answer settles the promise of its own `callId`, whatever order answers
- * come in; a `failed` answer rejects only its own call; and calls are posted in the order they are made, each with a new `callId`.
+ * come in; a `failed` answer rejects only its own call; calls are posted in the order they are made, each with a new `callId`; and a thread
+ * that died rejects every pending call and every later one, since Talos ends on a failed call and would otherwise wait for ever.
  */
 import { expect, test } from 'bun:test';
 
@@ -9,9 +10,17 @@ import { createSynchronousCalls, SynchronousCallFailedError, type SynchronousCal
 
 const EXAMPLE_IDENTITY = { processId: 4242, startStamp: '1800000000', bootIdentity: 'example-boot' };
 
-function fakeTransport(): { transport: SynchronousCallsTransport; posted: SynchronousCallRequest[]; answer: (answer: SynchronousCallAnswer) => void } {
+interface FakeTransport {
+  readonly transport: SynchronousCallsTransport;
+  readonly posted:    SynchronousCallRequest[];
+  readonly answer:    (answer: SynchronousCallAnswer) => void;
+  readonly die:       (reason: string) => void;
+}
+
+function fakeTransport(): FakeTransport {
   const posted: SynchronousCallRequest[] = [];
   const listeners: Array<(answer: SynchronousCallAnswer) => void> = [];
+  const failureListeners: Array<(reason: string) => void> = [];
   return {
     transport: {
       post: (request) => {
@@ -20,10 +29,16 @@ function fakeTransport(): { transport: SynchronousCallsTransport; posted: Synchr
       onAnswer: (listener) => {
         listeners.push(listener);
       },
+      onFailure: (listener) => {
+        failureListeners.push(listener);
+      },
     },
     posted,
     answer: (answer) => {
       for (const listener of listeners) listener(answer);
+    },
+    die: (reason) => {
+      for (const listener of failureListeners) listener(reason);
     },
   };
 }
@@ -80,4 +95,25 @@ test('an answer of no pending call is ignored', async () => {
   answer({ callId: callIdOf(posted[0]) + 1, verdict: 'done', value: 'stray' });
   answer({ callId: callIdOf(posted[0]), verdict: 'done', value: null });
   expect(await started).toBeNull();
+});
+
+test('a thread that died rejects every pending call with its reason, and every later call without posting it', async () => {
+  const {
+    transport, posted, answer, die
+  } = fakeTransport();
+  const calls = createSynchronousCalls(transport);
+  const pendingIdentity = calls.identityOf(EXAMPLE_IDENTITY.processId);
+  const pendingRecord = calls.writeRecord('/scratch/example/child-1.json', '{}\n', false);
+  die('the synchronous-calls thread failed: example uncaught error');
+  answer({ callId: callIdOf(posted[0]), verdict: 'done', value: EXAMPLE_IDENTITY });
+  const laterAppend = calls.appendText('/scratch/example/talos-1.log', 'a line\n');
+
+  const failures = await Promise.all([pendingIdentity, pendingRecord, laterAppend].map((call) => call.then(() => null, (error: unknown) => error)));
+  expect(failures.map((failure) => failure instanceof SynchronousCallFailedError)).toEqual([true, true, true]);
+  expect(failures).toEqual([
+    expect.objectContaining({ call: 'identity-of', reason: 'the synchronous-calls thread failed: example uncaught error' }),
+    expect.objectContaining({ call: 'write-record', reason: 'the synchronous-calls thread failed: example uncaught error' }),
+    expect.objectContaining({ call: 'append-text', reason: 'the synchronous-calls thread failed: example uncaught error' }),
+  ]);
+  expect(posted.map((request) => request.call)).toEqual(['identity-of', 'write-record']);
 });

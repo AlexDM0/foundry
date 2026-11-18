@@ -1,0 +1,54 @@
+{
+  "stamp": {
+    "boundary": "src/lib/talos/Talos.ts",
+    "system": "operating system",
+    "version": "Darwin 25.6.0",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "append-event, no event log open at the path",
+      "answer": {
+        "verdict": "failed",
+        "reason": "no event log is open at <path>"
+      }
+    },
+    {
+      "callShape": "identity-of <caller>",
+      "answer": {
+        "processId": "<caller>",
+        "startStamp": "1795042316",
+        "bootIdentity": "C0CC056D-D849-4FE2-BE41-AAA79B712A3D"
+      }
+    },
+    {
+      "callShape": "stop-tree <identity> ask <its tree members>, a sleeping process born as the leader of its own group",
+      "answer": {
+        "verdict": "signalled"
+      }
+    },
+    {
+      "callShape": "tree-members-of <identity>, a sleeping process born as the leader of its own group",
+      "answer": [
+        {
+          "processId": "<process>",
+          "parentProcessId": "<caller>",
+          "processGroupId": "<process>",
+          "startStamp": "1795042326"
+        }
+      ]
+    },
+    {
+      "callShape": "write-record exclusive, the file absent",
+      "answer": "created"
+    },
+    {
+      "callShape": "write-record exclusive, the file present",
+      "answer": "already-exists"
+    },
+    {
+      "callShape": "write-record not exclusive, the file present",
+      "answer": "replaced"
+    }
+  ]
+}

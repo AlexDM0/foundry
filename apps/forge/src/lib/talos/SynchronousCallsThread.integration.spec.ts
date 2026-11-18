@@ -2,8 +2,9 @@
  * The synchronous-calls thread as a real Bun worker. What matters: it reads this process's identity through the real process table; it
  * appends event-log entries that read back whole once the log is synced and closed; a call that throws answers `failed` and the thread
  * goes on; a queue of process-tree calls that outlasts a short main-thread timer runs off the main thread, so the timer fires in time,
- * before the last answer; and a worker keeps the code it loaded at its start when its modules change on disk afterwards, which is why
- * Talos starts it once.
+ * before the last answer; a worker keeps the code it loaded at its start when its modules change on disk afterwards, which is why
+ * Talos starts it once; the endpoint is prepared and released on the thread; and a terminated worker, one that throws uncaught and one
+ * that exits each reject every pending call, so a Talos whose thread died ends instead of waiting for ever.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -174,6 +175,41 @@ test('while the worker works through a queue of process-tree calls longer than a
   } finally {
     sleeper.kill('SIGKILL');
   }
+});
+
+test('the worker prepares an endpoint in a folder it creates and releases it', async () => {
+  const calls = await startedCalls();
+  const monitorFolder = scratchFolder('h');
+  const endpoint = nativePlatformPorts().localEndpoint.endpointOf({
+    monitorFolder, trackerId: 'tracker-example', name: 'talos', instance: 1
+  });
+  expect(await calls.prepareEndpoint(endpoint)).toEqual({ verdict: 'done' });
+  expect(await calls.releaseEndpoint(endpoint)).toEqual({ verdict: 'done' });
+});
+
+test('a terminated worker rejects the calls it left pending and every later call', async () => {
+  const calls = await startedCalls();
+  const worker = workers.at(-1);
+  if (worker === undefined) throw new Error('no worker was started');
+  const queuedReadings = Array.from({ length: QUEUED_TREE_READINGS }, () => calls.identityOf(process.pid));
+  worker.terminate();
+  const reasons = await Promise.all([...queuedReadings, calls.identityOf(process.pid)].map(failureReasonOf));
+  expect(new Set(reasons)).toEqual(new Set(['the synchronous-calls thread was terminated']));
+});
+
+test.each([
+  ['throws uncaught', 'throw new Error(\'the planted thread failed\');', 'the synchronous-calls thread failed: '],
+  ['exits', 'process.exit(1);', 'the synchronous-calls thread closed'],
+])('a worker whose thread %s rejects the call it left pending and every later call', async (_title, dyingStatement, reasonStart) => {
+  const folder = scratchFolder('dying-thread');
+  const threadEntryPath = join(folder, 'DyingThread.ts');
+  writeFileSync(threadEntryPath, `addEventListener('message', () => {\n  ${dyingStatement}\n});\n`);
+  const worker = startSynchronousCallsWorker(Bun.pathToFileURL(threadEntryPath));
+  workers.push(worker);
+  const calls = createSynchronousCalls(worker);
+  const pendingReason = await failureReasonOf(calls.identityOf(process.pid));
+  expect(pendingReason.startsWith(reasonStart)).toBe(true);
+  expect(await failureReasonOf(calls.identityOf(process.pid))).toBe(pendingReason);
 });
 
 test('a started worker keeps the code it loaded when its modules change on disk, and only a worker started again reads the change', async () => {

@@ -27,7 +27,8 @@ export type SpecRequirement =
   | 'scratch-root-outside-tmp'
   | 'chrome'
   | 'macos'
-  | 'not-root';
+  | 'not-root'
+  | 'process-suspension';
 
 /** The boundary of `BOUNDARY_SPECS` whose recording for this OS a spec playing it needs. */
 export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundaryRequirement, string>> = {
@@ -120,6 +121,7 @@ const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
   'chrome':                   () => chromeExecutablePath() !== null,
   'macos':                    () => process.platform === 'darwin',
   'not-root':                 notRunningAsRoot,
+  'process-suspension':       () => process.platform !== 'win32',
   'git-recording':            recordingIsPresent('git-recording'),
   'process-table-recording':  recordingIsPresent('process-table-recording'),
   'local-endpoint-recording': recordingIsPresent('local-endpoint-recording'),
@@ -135,6 +137,7 @@ const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
   'chrome':                   'Chrome is missing',
   'macos':                    'this machine is not macOS',
   'not-root':                 'this run is root, which no permission bit refuses',
+  'process-suspension':       'this platform has no SIGSTOP and SIGCONT to suspend a process',
   'git-recording':            unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['git-recording'], process.platform),
   'process-table-recording':  unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
   'local-endpoint-recording': unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
@@ -249,6 +252,11 @@ export function testWhenOnMacOs(claim: string, body: SpecBody, timeoutMillisecon
 /** For a spec proving that a permission bit refuses a write; `src/SpecSkips.spec.ts` holds the exact list of its callers. */
 export function testWhenNotRunningAsRoot(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('not-root', claim, body, timeoutMilliseconds);
+}
+
+/** For a spec that suspends a process with SIGSTOP and continues it with SIGCONT, which Windows has no form of. */
+export function testWhenProcessesCanBeSuspended(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet('process-suspension', claim, body, timeoutMilliseconds);
 }
 
 export function skippedSpecsSoFar(): readonly SkippedSpec[] {

@@ -29,6 +29,7 @@ type ImportViolation =
   | 'flint-reached-beside-its-entry-files'
   | 'binary-imports-beyond-cli'
   | 'watcher-binary-imports-beyond-its-package'
+  | 'talos-binary-imports-beyond-its-package'
   | 'test-helper-imported-outside-its-allowlist'
   | 'lib-imports-an-undeclared-package'
   | 'tracker-model-reaches-outside-itself'
@@ -39,6 +40,7 @@ type ImportViolation =
 type Layer =
   | 'binary'
   | 'watcher-binary'
+  | 'talos-binary'
   | 'launcher-binary'
   | 'setup-binary'
   | 'lib'
@@ -67,6 +69,8 @@ interface Finding {
 const BINARY_PATH = 'agent-progress.ts';
 const WATCHER_BINARY_PATH = 'watcher.ts';
 const WATCHER_PACKAGE_FOLDER = 'src/lib/watcher/';
+const TALOS_BINARY_PATH = 'talos.ts';
+const TALOS_PACKAGE_FOLDER = 'src/lib/talos/';
 /** The installed command `setup.ts` compiles, which starts `agent-progress.ts`; it reaches only `src/shared/` for the runtime arguments. */
 const LAUNCHER_BINARY_PATH = 'launcher.ts';
 /** Machine setup, which the bootstrap scripts start; it reaches only its own steps under `cli/setup/`. */
@@ -85,6 +89,7 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   'binary':            ['cli'],
   // Narrowed further to its own package by directionFinding.
   'watcher-binary':    ['lib'],
+  'talos-binary':      ['lib'],
   'launcher-binary':   ['shared'],
   'setup-binary':      ['cli'],
   'lib':               ['lib'],
@@ -219,6 +224,7 @@ const workspacePackageOf = memoisedPerPath((path: string): WorkspacePackageDecla
 const layerOf = memoisedPerPath((path: string): Layer => {
   if (path === BINARY_PATH) return 'binary';
   if (path === WATCHER_BINARY_PATH) return 'watcher-binary';
+  if (path === TALOS_BINARY_PATH) return 'talos-binary';
   if (path === LAUNCHER_BINARY_PATH) return 'launcher-binary';
   if (path === SETUP_BINARY_PATH) return 'setup-binary';
   const [topFolder, layerFolder, unitFolder] = path.split('/');
@@ -334,6 +340,9 @@ function directionFinding(edge: ImportEdge, targetPath: string, allowlists: Allo
   if (fromLayer === 'watcher-binary' && !isInside(targetPath, WATCHER_PACKAGE_FOLDER)) {
     return edgeFinding(edge, 'watcher-binary-imports-beyond-its-package', `${WATCHER_BINARY_PATH} imports only ${WATCHER_PACKAGE_FOLDER}`);
   }
+  if (fromLayer === 'talos-binary' && !isInside(targetPath, TALOS_PACKAGE_FOLDER)) {
+    return edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PACKAGE_FOLDER}`);
+  }
   if (testingFolderOf(targetPath) !== null || LAYER_REACH[fromLayer].includes(targetLayer)) return null;
   if (fromLayer === 'binary') {
     return edgeFinding(edge, 'binary-imports-beyond-cli', `${BINARY_PATH} imports only cli/`);
@@ -437,13 +446,16 @@ function edgeFindingsOf(
     const watcherBinaryVerdict = layerOf(edge.fromPath) === 'watcher-binary'
       ? edgeFinding(edge, 'watcher-binary-imports-beyond-its-package', `${WATCHER_BINARY_PATH} imports only ${WATCHER_PACKAGE_FOLDER}`)
       : null;
+    const talosBinaryVerdict = layerOf(edge.fromPath) === 'talos-binary'
+      ? edgeFinding(edge, 'talos-binary-imports-beyond-its-package', `${TALOS_BINARY_PATH} imports only ${TALOS_PACKAGE_FOLDER}`)
+      : null;
     const unexportedEntryVerdict = edge.target.kind === 'unexported-workspace-entry'
       ? edgeFinding(edge, 'workspace-entry-not-exported', 'the package.json of its workspace package exports no such entry')
       : null;
     const undeclaredPackageVerdict = edge.target.kind === 'undeclared-workspace-package'
       ? edgeFinding(edge, 'workspace-package-not-declared', 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency')
       : null;
-    return [libVerdict, watcherBinaryVerdict, unexportedEntryVerdict, undeclaredPackageVerdict];
+    return [libVerdict, watcherBinaryVerdict, talosBinaryVerdict, unexportedEntryVerdict, undeclaredPackageVerdict];
   }
   const targetPath = edge.target.path;
   const programExitVerdict = programExitFinding(edge, targetPath);
@@ -646,6 +658,7 @@ describe('the scan itself', () => {
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
     expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'process-identity', 'talos']);
+    expect(declaredLibDependenciesOf(GRAPH).get('talos')).toEqual(['atomic-file', 'json-record', 'owner-only-files', 'process-identity']);
   });
 
   test('it resolves the design-system package\'s specifiers through its package.json exports, each source entry exists and the Bridge uses them', () => {
@@ -886,6 +899,16 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'watcher.ts': importing('./src/lib/watcher/Watcher.ts') })).toEqual([]);
   });
 
+  test('the Talos binary importing anything but its package, another lib package and a builtin included, and not its package', () => {
+    expect(plantedSentencesOf({ 'talos.ts': importing('./src/lib/watcher/Watcher.ts') })).toEqual([
+      'talos-binary-imports-beyond-its-package — talos.ts:1 imports src/lib/watcher/Watcher.ts: talos.ts imports only src/lib/talos/',
+    ]);
+    expect(plantedSentencesOf({ 'talos.ts': importing('node:fs') })).toEqual([
+      'talos-binary-imports-beyond-its-package — talos.ts:1 imports node:fs: talos.ts imports only src/lib/talos/',
+    ]);
+    expect(plantedSentencesOf({ 'talos.ts': importing('./src/lib/talos/Talos.ts') })).toEqual([]);
+  });
+
   test('a test-only folder imported by shipped code, by a spec outside its allowlist or with no entry at all, and not by an allowed spec', () => {
     expect(plantedSentencesOf({ 'src/shared/PlantedValue.ts': importing('../testing/ScratchWorkspace.ts') })).toEqual([
       'test-helper-imported-outside-its-allowlist — src/shared/PlantedValue.ts:1 imports src/testing/ScratchWorkspace.ts: '
@@ -1036,6 +1059,10 @@ describe('the imports of the tree', () => {
 
   test('watcher.ts imports only src/lib/watcher/', () => {
     expect(sentencesAbout(FINDINGS, 'watcher-binary-imports-beyond-its-package')).toEqual([]);
+  });
+
+  test('talos.ts imports only src/lib/talos/', () => {
+    expect(sentencesAbout(FINDINGS, 'talos-binary-imports-beyond-its-package')).toEqual([]);
   });
 
   test('nothing that ships imports a testing folder, and each testing folder is imported only by the specs its entry names', () => {

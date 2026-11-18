@@ -1,6 +1,6 @@
 /**
  * The entry module of Talos's synchronous-calls thread, a Bun `Worker` whose import is the invocation: every process-table read, signal,
- * record write and event-log append runs here, one at a time in arrival order, so Talos's main loop never blocks on one.
+ * record write, event-log append and endpoint preparation runs here, one at a time in arrival order, so Talos's main loop never blocks on one.
  */
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname }                   from 'node:path';
@@ -10,6 +10,8 @@ import type { ProcessSupervision }                            from '../process-i
 import { processSupervisionFor }                              from '../process-identity/ProcessSupervisionFor.ts';
 import type { SynchronousCallAnswer, SynchronousCallRequest } from './@types/SynchronousCall.ts';
 import { createEventLogWriter, type EventLogWriter }          from './EventLog.ts';
+import type { LocalEndpoint }                                 from './LocalEndpoint.ts';
+import { localEndpointFor }                                   from './LocalEndpointFor.ts';
 
 interface OpenEventLog {
   readonly writer: EventLogWriter;
@@ -18,6 +20,7 @@ interface OpenEventLog {
 
 function synchronousCallAnswerer(): (request: SynchronousCallRequest) => SynchronousCallAnswer {
   let supervision: ProcessSupervision | null = null;
+  let localEndpoint: LocalEndpoint | null = null;
   const openEventLogs = new Map<string, OpenEventLog>();
   // Calls run one at a time, so one stamp serves every writer: the entry being appended carries its own.
   let stampOfTheEntryBeingAppended = '';
@@ -25,6 +28,11 @@ function synchronousCallAnswerer(): (request: SynchronousCallRequest) => Synchro
   function startedSupervision(): ProcessSupervision {
     if (supervision === null) throw new Error('the synchronous-calls thread answers no process call before its start');
     return supervision;
+  }
+
+  function startedEndpoint(): LocalEndpoint {
+    if (localEndpoint === null) throw new Error('the synchronous-calls thread answers no endpoint call before its start');
+    return localEndpoint;
   }
 
   function openEventLogAt(eventLogPath: string): OpenEventLog {
@@ -37,6 +45,8 @@ function synchronousCallAnswerer(): (request: SynchronousCallRequest) => Synchro
     switch (request.call) {
       case 'start':
         supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);
+        // Talos binds the endpoint its start file names and never draws one, so it has no pipe name prefix to give.
+        localEndpoint = localEndpointFor(request.platform, '');
         return null;
       case 'identity-of':
         return startedSupervision().identityOf(request.processId);
@@ -77,6 +87,10 @@ function synchronousCallAnswerer(): (request: SynchronousCallRequest) => Synchro
         mkdirSync(dirname(request.path), { recursive: true });
         appendFileSync(request.path, request.text);
         return null;
+      case 'prepare-endpoint':
+        return startedEndpoint().prepareEndpoint(request.endpoint);
+      case 'release-endpoint':
+        return startedEndpoint().releaseEndpoint(request.endpoint);
     }
   }
 

@@ -3,6 +3,7 @@ import type { ExclusiveCreation }                                 from '../../at
 import type { ChildEnd, ProcessIdentity, ProcessTreeStopOutcome } from '../../process-identity/ProcessIdentity.ts';
 import type { ProcessStopStage, ProcessTreeMember }               from '../../process-identity/ProcessSupervision.ts';
 import type { EventLogEntry }                                     from '../EventLog.ts';
+import type { EndpointOutcome }                                   from '../LocalEndpoint.ts';
 
 export type SynchronousCallRequest =
   | { callId: number; call: 'start'; platform: string; systemRoot: string | null }
@@ -14,7 +15,9 @@ export type SynchronousCallRequest =
   | { callId: number; call: 'append-event'; eventLogPath: string; entry: EventLogEntry }
   | { callId: number; call: 'sync-and-close-event-log'; eventLogPath: string }
   | { callId: number; call: 'write-record'; path: string; text: string; exclusive: boolean }
-  | { callId: number; call: 'append-text'; path: string; text: string };
+  | { callId: number; call: 'append-text'; path: string; text: string }
+  | { callId: number; call: 'prepare-endpoint'; endpoint: string }
+  | { callId: number; call: 'release-endpoint'; endpoint: string };
 
 export type SynchronousCallAnswer =
   | { callId: number; verdict: 'done'; value: unknown }
@@ -37,4 +40,6 @@ export interface SynchronousCallValues {
   'sync-and-close-event-log': null;
   'write-record':             RecordWriteOutcome;
   'append-text':              null;
+  'prepare-endpoint':         EndpointOutcome;
+  'release-endpoint':         EndpointOutcome;
 }

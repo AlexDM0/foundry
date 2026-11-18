@@ -13,6 +13,7 @@ const WINDOWS_SPAWN_OF_CHILD_KIND: Readonly<Record<SupervisedChildKind, Supervis
   'gate':             WINDOWS_SUPERVISED_CHILD_SPAWN,
   'supervised-child': WINDOWS_SUPERVISED_CHILD_SPAWN,
   'watcher':          WINDOWS_BUN_PROGRAM_SPAWN,
+  'talos':            WINDOWS_BUN_PROGRAM_SPAWN,
   'overseer':         WINDOWS_BUN_PROGRAM_SPAWN,
   'successor':        WINDOWS_BUN_PROGRAM_SPAWN,
 });

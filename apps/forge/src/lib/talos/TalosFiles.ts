@@ -1,7 +1,4 @@
-/**
- * Where Talos and the endpoints keep their files. The `src/lib/talos` package depends on `src/lib/atomic-file`, `src/lib/json-record`,
- * `src/lib/owner-only-files` and `src/lib/process-identity`.
- */
+/** Where Talos and the endpoints keep their files. */
 import { join } from 'node:path';
 
 import { PRIVATE_FOLDER_NAME, TALOS_FOLDER_NAME } from './constants/TalosProtocol.ts';

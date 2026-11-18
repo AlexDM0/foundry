@@ -33,11 +33,12 @@ const REAL_MODULE_PATTERN = /^(?:node:)?(?:child_process|net|http|https|http2|dg
 const BUN_MODULE = 'bun';
 /**
  * The real helper exports the derivation from the spec helpers cannot find: the tooling's probes, which start a process through a
- * dispatch table; helpers that reach a socket, a build or a Watcher through a shipping module, which the scan does not follow; and
+ * dispatch table; helpers that reach a socket, a build, a Watcher or Talos through a shipping module, which the scan does not follow; and
  * helpers that build or signal a process, which are no call forms.
  */
 const NAMED_REAL_HELPER_EXPORTS = [
   'connectIsRefused',
+  'connectToTalos',
   'connectToWatcher',
   'describeWhenGitMergeTreeStdinIsPresent',
   'installedVersionOf',

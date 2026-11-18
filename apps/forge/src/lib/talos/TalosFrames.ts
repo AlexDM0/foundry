@@ -40,7 +40,8 @@ export function helloFrameOf(line: string): HelloFrame | null {
   if (parsed === null || ownFieldOf(parsed, 'kind') !== 'hello') return null;
   const requiredProtocolVersion = ownFieldOf(parsed, 'requiredProtocolVersion');
   const secret = ownFieldOf(parsed, 'secret');
-  if (!isWholeNumberAtLeast(requiredProtocolVersion, 1) || typeof secret !== 'string') return null;
+  // Any whole version is a hello, so a client of another protocol, an older one included, is answered `version-mismatch`.
+  if (!isWholeNumberAtLeast(requiredProtocolVersion, 0) || typeof secret !== 'string') return null;
   return { kind: 'hello', requiredProtocolVersion, secret };
 }
 

@@ -40,6 +40,14 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'A negative: an ended Watcher does not exit unacknowledged, so there is no state to wait on; load only shortens what the window watches.',
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts: const timer = setTimeout(() => resolve(false), NEVER_ARRIVES_WAIT_MILLISECONDS);':
     'A negative recorded as an answer: the end of a connection never reaches a client that does not read, so there is no state to wait on.',
+  'src/lib/talos/TalosMainThread.spec.ts: [\'a blocking sleep\', \'Bun.sleepSync(50);\', \'sleepSync\'],':
+    'A line planted in a scanned source text, never run: the main-thread guard must name it.',
+  'src/lib/talos/TalosMainThread.spec.ts: [\'an atomics wait\', \'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);\', \'Atomics.wait\'],':
+    'The same planted form.',
+  'src/lib/talos/ChildSupervisor.spec.ts: await Bun.sleep(IDENTITY_HELD_PAST_A_LEADERLESS_STOP_MILLISECONDS);':
+    'A negative: a stop that does not wait for the identity ends unseen, so there is no state to wait on; load only shortens what the hold covers.',
+  'src/lib/talos/Talos.lines.integration.spec.ts: const SLEEPS_PAST_THE_BOUND = \'await Bun.sleep(1200);\';':
+    'The script of a line that must outlast its bound in wall time while Talos is suspended; the case waits on the mark it leaves.',
   'src/lib/talos/SynchronousCallsThread.integration.spec.ts: setTimeout(() => resolve(performance.now()), MAIN_THREAD_TIMER_MILLISECONDS);':
     'The timer is what the case measures: its lateness shows whether the main thread stayed free while the worker worked through a queue of tree calls.',
   'src/services/overseer/WatcherFleet.integration.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
