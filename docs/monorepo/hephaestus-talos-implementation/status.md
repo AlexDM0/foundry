@@ -11,10 +11,14 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### For tomorrow, with real sessions
 
-- G1's second half, after WP2.2: in `apps/forge`, add `'network-outage'` to `CLAUDE_WIRE_SCENARIOS`
-  (`src/lib/claude-code/RecordedClaudeLines.ts`), then `bun run record src/testing/fake-agent/` (it also reruns P22,
-  one real model call), and commit the name and `src__testing__fake-agent.json` together. Prompting script:
-  main checkout `.claude/.evidence/hephaestus-talos/stage-2/fake-agent-outage/`. Holds up stage 2's verification
+- G1's second half, after WP2.2: run the prompting script
+  `.claude/.evidence/hephaestus-talos/stage-2/fake-agent-outage/record-fake-agent-outage.sh` (main checkout; it takes
+  the repository root, defaulting to the integration worktree). It adds `'network-outage'` to `CLAUDE_WIRE_SCENARIOS`
+  (`apps/forge/src/testing/fake-agent/RecordedClaudeLines.ts`), runs `bun run record src/testing/fake-agent/` in
+  `apps/forge` (one real model call for P22; the stamp moves from claude 2.1.323 to 2.1.327), checks the 529 session
+  against WP2.2's assumption, checks every line of `NETWORK_OUTAGE_FAKE_AGENT_STEPS` resolves, runs the specs and
+  `verify:forge`, then commits the name and `src/testing/recordings/darwin/src__testing__fake-agent.json` together
+  after Enter. No spec plays the fake's outage steps yet. Holds up stage 2's verification
   step 7, WP3.14's outage row and WP6.26's recorded situation.
 
 ### Assumptions to confirm
@@ -33,7 +37,11 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
-(none)
+- WP2.4 renamed forge's owner-only folder from `watchers` to `private`; Gaia's specs and recordings still show a token
+  path under `.forge-monitor/watchers/` (`apps/gaia/src/WholeFlow.spec.ts:188`, `RegistryFile.spec.ts:41`, the
+  `forge-registry.json` recording). Nothing breaks (Gaia reads `tokenPath` from the registry), but the examples are
+  stale; Gaia's side can refresh them. WP2.4 also hand-edited three frozen fixtures (`FrozenDarwinWorkerProfiles.json`,
+  `cli/FrozenPlatformPorts.json`, `frozen-session-settings.json`) for the rename only.
 
 ## Gates
 
@@ -65,7 +73,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-A | WP2.1 | landed | fe0217a6 | `LineConditions.ts`, `EndingPatterns.ts` in `src/lib/talos/`; specs use vendor-free field names (port rule); `createEndingRecognition` takes a `null` closing line; no header "depends on" sentence yet |
 | 2-A | WP2.2 | landed | 5f084a29 | Ending values are `CLAUDE_CODE_SESSION_ENDINGS` in `src/lib/claude-code/ClaudeStreamLines.ts` (not `ClaudeCodeAdapter.ts`: ImportDirection lets only `CommandContext` import the adapter). Switch is `FORGE_FAKE_AGENT_NETWORK_OUTAGE`. `network-outage` is not yet in `CLAUDE_WIRE_SCENARIOS` (owner's recording). `ClaudeStreamFixtures.spec.ts` matches with a spec-local copy of WP2.1's matcher; replace with an import (WP2.17 or WP2.18) |
 | 2-A | WP2.3 | landed | 849f1f0a | `createSupervisionLease(bounds, wallNowMilliseconds)` as in Interfaces; `WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS`, `LeaseStanding`, `LeaseBounds` are exported from `SupervisionLease.ts`: WP2.5 moves the constant into `constants/TalosProtocol.ts` and imports it here |
-| 2-B | WP2.4 | waiting | | |
+| 2-B | WP2.4 | landed | 0aa10391 | Second round (first: dead `FROZEN_ENDPOINT_*` exports, stale wording). `PRIVATE_FOLDER_NAME` and `privateFolderOf` live in `TalosFiles.ts` (WP2.5 may move the constant into `constants/TalosProtocol.ts`); `TalosFiles.ts` carries the package header (depends on `atomic-file`, `owner-only-files`). Test-only `src/testing/IdleWatcherSocket.ts` keeps talos specs off `src/lib/watcher`; WP2.15 deletes it. `WatcherBundleClosure.spec.ts` now follows declared packages transitively |
 | 2-C | WP2.5 | waiting | | |
 | 2-C | WP2.6 | waiting | | |
 | 2-C | WP2.11 | waiting | | |
