@@ -28,12 +28,15 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * package-return job outcome with the adapt builder's package return reason and entity, the need-for-sealed-package refusal, the adapt,
  * package-review-findings and package-refused stage statements, the fresh-branch-started job marker, option labels on the entity decisions'
  * questions, the whitelist-removed-mid-crossing decision the Overseer opens, the second-return decision for a second package return from a
- * red gate or a review catch-up, and install version 34. Each minor only adds.
+ * red gate or a review catch-up, and install version 34; 1.17 adds the ticket-group command, the group-of-a-settled-ticket and
+ * ticket-already-in-a-group refusals, the ticket-grouped and dependent-fix-filed records, the fix-ticket option of the dependent-broken
+ * decision, a package build's dependentsFixedInGroup start key, the reach-inside-another-home reason of a pipeline-draft-invalid
+ * refusal, and install version 35. Each minor only adds.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 16 },
+  current:          { major: 1, minor: 17 },
   minimumSupported: { major: 0, minor: 0 },
 };
