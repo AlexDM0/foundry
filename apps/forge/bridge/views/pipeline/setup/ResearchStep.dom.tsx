@@ -320,7 +320,7 @@ describe('research per entity', () => {
     const panel = screen.getByRole('complementary', { name: 'Pipeline agent' });
     expect(within(panel).getByText('Pipeline agent · web')).toBeDefined();
     expect(within(panel).getByRole('group', { name: /Do web's browser tests need the API/u })).toBeDefined();
-    expect(transcripts.followedJobs()).toContain('J5');
+    await waitFor(() => expect(transcripts.followedJobs()).toContain('J5'));
   });
 
   test('a stopped session without findings says so', async () => {
