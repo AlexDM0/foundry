@@ -9,13 +9,13 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { AgentAdapter }                   from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, StandingReply } from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }             from '../agent-launch/AgentLaunchRequest.ts';
-import { POSIX_LAUNCH_ENVIRONMENT }            from '../agent-launch/PosixLaunchEnvironment.ts';
-import { WINDOWS_LAUNCH_ENVIRONMENT }          from '../agent-launch/WindowsLaunchEnvironment.ts';
-import type { WorkerProfile }                  from '../agent-launch/WorkerProfile.ts';
-import type { AgentHostFacts }                 from './AgentHostFacts.ts';
+import { AGENT_ENDING_NAMES, type AgentAdapter } from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan, StandingReply }   from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }               from '../agent-launch/AgentLaunchRequest.ts';
+import { POSIX_LAUNCH_ENVIRONMENT }              from '../agent-launch/PosixLaunchEnvironment.ts';
+import { WINDOWS_LAUNCH_ENVIRONMENT }            from '../agent-launch/WindowsLaunchEnvironment.ts';
+import type { WorkerProfile }                    from '../agent-launch/WorkerProfile.ts';
+import type { AgentHostFacts }                   from './AgentHostFacts.ts';
 import {
   CLAUDE_NESTING_VARIABLES,
   claudeCodeAdapterFor,
@@ -507,6 +507,56 @@ describe('the standing reply', () => {
   test('leaves the recorded AskUserQuestion request, and every other recorded line, unanswered', () => {
     const lines = fixtureLines('ask-user-question-live-answer.stdout.jsonl');
     expect(lines.map((line) => replyFor(line, standingReplies)).filter((reply) => reply !== null)).toEqual([]);
+  });
+});
+
+describe('the session endings, for every session kind', () => {
+  const EXPECTED_ENDINGS: Pick<AgentLaunchPlan, 'closingLine' | 'endingPatterns' | 'quitAtTurnEnd'> = {
+    closingLine:    { allOf: [{ test: 'equals', path: 'type', value: 'result' }], anyOf: [], noneOf: [] },
+    endingPatterns: [{
+      name:               'network-outage',
+      closingLineMatches: {
+        allOf: [
+          { test: 'equals', path: 'type', value: 'result' },
+          { test: 'equals', path: 'is_error', value: true },
+          { test: 'equals', path: 'terminal_reason', value: 'api_error' },
+        ],
+        anyOf: [
+          { test: 'equals', path: 'api_error', value: 'connection_failed' },
+          {
+            test: 'number-between', path: 'api_error_status', least: 500, most: 599
+          },
+        ],
+        noneOf: [],
+      },
+      countedLineMatches: {
+        allOf:  [{ test: 'equals', path: 'type', value: 'system' }, { test: 'equals', path: 'subtype', value: 'api_retry' }],
+        anyOf:  [],
+        noneOf: [],
+      },
+      minimumCountedLines: 1,
+    }],
+    quitAtTurnEnd: { act: 'close-input' },
+  };
+  const ROLES: readonly Role[] = ['builder', 'reviewer', 'airlock-agent', 'product-owner', 'assistant'];
+  const SESSION_KINDS: readonly (readonly [string, AgentLaunchRequest])[] = [
+    ...ROLES.map((role) => [`a fresh ${role}`, requestOf(role)] as const),
+    ...ROLES.map((role) => [`a resumed ${role}`, requestOf(role, { resume: true })] as const),
+    ['a session with no tool, as Flint\'s brain is one', requestOf('assistant', { profile: { ...profileOf('assistant'), availableTools: 'none' } })],
+    ['a session billed to an API account', requestOf('builder', { billing: { mode: 'api' } })],
+  ];
+
+  test.each(SESSION_KINDS)('%s carries the closing result line, the network outage pattern and a closed stdin as its quit', (_kind, request) => {
+    const plan = CLAUDE_CODE_ADAPTER.planOf(request);
+    expect({ closingLine: plan.closingLine, endingPatterns: plan.endingPatterns, quitAtTurnEnd: plan.quitAtTurnEnd }).toEqual(EXPECTED_ENDINGS);
+  });
+
+  test('names every ending by a name the Overseer maps to a cause', () => {
+    for (const pattern of CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')).endingPatterns) expect<readonly string[]>(AGENT_ENDING_NAMES).toContain(pattern.name);
+  });
+
+  test('keeps the one standing reply beside them', () => {
+    expect(CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')).standingReplies).toHaveLength(1);
   });
 });
 

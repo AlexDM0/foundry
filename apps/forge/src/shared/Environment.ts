@@ -47,6 +47,13 @@ export function fakeAgentReports(): boolean {
   return switchIsOn(FAKE_AGENT_REPORTS_VARIABLE);
 }
 
+export const FAKE_AGENT_NETWORK_OUTAGE_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}FAKE_AGENT_NETWORK_OUTAGE`;
+
+/** Under the fake-agent switch, each fake session ends its first turn on a network outage, its retries spent, as P23 recorded. */
+export function fakeAgentEndsOnNetworkOutage(): boolean {
+  return switchIsOn(FAKE_AGENT_NETWORK_OUTAGE_VARIABLE);
+}
+
 export function overseerPollIntervalVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`;
 }

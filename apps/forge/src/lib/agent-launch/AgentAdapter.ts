@@ -9,6 +9,11 @@ import type { AgentLaunchRequest }                       from './AgentLaunchRequ
 import type { AgentQuestion, AgentSessionEvent }         from './AgentSessionEvent.ts';
 import type { SandboxDenyShape }                         from './WorkerProfile.ts';
 
+/** The names an adapter may give an ending in its plan's `endingPatterns`, each of which the Overseer maps to a cause. */
+export const AGENT_ENDING_NAMES = ['network-outage'] as const;
+
+export type AgentEndingName = typeof AGENT_ENDING_NAMES[number];
+
 export interface AgentCapabilities {
   readonly chatTurns:     boolean;
   readonly questions:     boolean;

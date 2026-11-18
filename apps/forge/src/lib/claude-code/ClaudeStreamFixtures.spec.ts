@@ -9,6 +9,9 @@ import { join }                      from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import type { PlanFieldCondition, PlanLineConditions } from '../agent-launch/AgentLaunchPlan.ts';
+import { CLAUDE_CODE_SESSION_ENDINGS }                 from './ClaudeStreamLines.ts';
+
 type StreamRecord = Readonly<Record<string, unknown>>;
 
 const FIXTURES_FOLDER = join(import.meta.dir, 'testing', 'fixtures');
@@ -188,6 +191,54 @@ function retryLinesOf(records: readonly StreamRecord[]): StreamRecord[] {
   return recordsOfType(records, 'system').filter((record) => record['subtype'] === 'api_retry');
 }
 
+/** A spec-only copy of Talos's field matching: dotted paths through own properties, `===`, `includes`, a finite number in bounds. */
+function valueAtPath(record: StreamRecord, path: string): unknown {
+  let value: unknown = record;
+  for (const key of path.split('.')) {
+    if (typeof value !== 'object' || value === null || !Object.hasOwn(value, key)) return undefined;
+    value = (value as StreamRecord)[key];
+  }
+  return value;
+}
+
+function fieldMeets(record: StreamRecord, condition: PlanFieldCondition): boolean {
+  const value = valueAtPath(record, condition.path);
+  if (condition.test === 'equals') return value === condition.value;
+  if (condition.test === 'one-of') return (condition.values as readonly unknown[]).includes(value);
+  return typeof value === 'number' && Number.isFinite(value) && condition.least <= value && value <= condition.most;
+}
+
+function lineMeets(record: StreamRecord, conditions: PlanLineConditions): boolean {
+  return conditions.allOf.every((condition) => fieldMeets(record, condition))
+    && (conditions.anyOf.length === 0 || conditions.anyOf.some((condition) => fieldMeets(record, condition)))
+    && !conditions.noneOf.some((condition) => fieldMeets(record, condition));
+}
+
+interface RecognisedEnding {
+  name:                string;
+  closingLineSequence: number;
+  countedLines:        number;
+}
+
+/** The endings the Claude Code plan's patterns recognise in a stream, each count reset at every closing line. */
+function recognisedEndingsOf(records: readonly StreamRecord[]): RecognisedEnding[] {
+  const { closingLine, endingPatterns } = CLAUDE_CODE_SESSION_ENDINGS;
+  if (closingLine === null) throw new Error('the Claude Code plan names no closing line');
+  const counts = endingPatterns.map(() => 0);
+  const recognised: RecognisedEnding[] = [];
+  records.forEach((record, sequence) => {
+    endingPatterns.forEach((pattern, index) => {
+      if (pattern.countedLineMatches !== null && lineMeets(record, pattern.countedLineMatches)) counts[index] = (counts[index] ?? 0) + 1;
+    });
+    if (!lineMeets(record, closingLine)) return;
+    const matchedIndex = endingPatterns.findIndex((pattern, index) => lineMeets(record, pattern.closingLineMatches) && (counts[index] ?? 0) >= pattern.minimumCountedLines);
+    const matched = endingPatterns[matchedIndex];
+    if (matched !== undefined) recognised.push({ name: matched.name, closingLineSequence: sequence, countedLines: counts[matchedIndex] ?? 0 });
+    counts.fill(0);
+  });
+  return recognised;
+}
+
 describe('network-outage-retries-spent (P23, Claude Code 2.1.327)', () => {
   const stdout = recordsOf('network-outage-retries-spent.stdout.jsonl');
   const retryLines = retryLinesOf(stdout);
@@ -227,5 +278,32 @@ describe('network-outage-retries-spent (P23, Claude Code 2.1.327)', () => {
       expect(retryLine['error_status']).not.toBe(429);
       expect(retryLine['error']).not.toBe('rate_limit');
     }
+  });
+
+  test('is recognised as network-outage by the Claude Code plan\'s pattern on its closing line, with its own retry count', () => {
+    expect(recognisedEndingsOf(stdout)).toEqual([{ name: 'network-outage', closingLineSequence: stdout.length - 1, countedLines: retryLines.length }]);
+  });
+
+  test('the pattern recognises no ending in the 429 rejection, nor in a session whose result is no error', () => {
+    expect(recognisedEndingsOf(recordsOf('rate-limit-rejected.stdout.jsonl'))).toEqual([]);
+    expect(onlyResult(recordsOf('ask-user-question-live-answer.stdout.jsonl'))['is_error']).toBe(false);
+    expect(recognisedEndingsOf(recordsOf('ask-user-question-live-answer.stdout.jsonl'))).toEqual([]);
+  });
+
+  const closingLine = onlyResult(stdout);
+  const overloadClosingLine: StreamRecord = Object.fromEntries(Object.entries({ ...closingLine, api_error_status: 529 }).filter(([key]) => key !== 'api_error'));
+  const connectionFailedClosingLine: StreamRecord = { ...closingLine, api_error: 'connection_failed', api_error_status: null };
+  const oneRetryLine = retryLines[0] ?? {};
+
+  test.each([['a provider overload, status 529', overloadClosingLine], ['an unreachable host, connection_failed', connectionFailedClosingLine]])(
+    'one api_retry line before a closing line of %s is a network outage; the closing line alone is none',
+    (_description, plantedClosingLine) => {
+      expect(recognisedEndingsOf([oneRetryLine, plantedClosingLine])).toEqual([{ name: 'network-outage', closingLineSequence: 1, countedLines: 1 }]);
+      expect(recognisedEndingsOf([plantedClosingLine])).toEqual([]);
+    },
+  );
+
+  test('a retry line counts only toward the closing line after it, never toward a later one', () => {
+    expect(recognisedEndingsOf([oneRetryLine, closingLine, closingLine])).toEqual([{ name: 'network-outage', closingLineSequence: 1, countedLines: 1 }]);
   });
 });

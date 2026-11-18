@@ -6,12 +6,12 @@
  */
 import { join } from 'node:path';
 
-import type { AgentAdapter }                             from '../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }                          from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                       from '../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                            from '../lib/agent-launch/AgentSessionEvent.ts';
-import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES } from '../lib/claude-code/ClaudeStreamLines.ts';
-import { recordedLineOf, recordedSessionOf }             from './fake-agent/RecordedClaudeLines.ts';
+import type { AgentAdapter }                                                          from '../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }                                                       from '../lib/agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                                    from '../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                                                         from '../lib/agent-launch/AgentSessionEvent.ts';
+import { CLAUDE_CODE_CAPABILITIES, CLAUDE_CODE_SESSION_ENDINGS, CLAUDE_STREAM_LINES } from '../lib/claude-code/ClaudeStreamLines.ts';
+import { recordedLineOf, recordedSessionOf }                                          from './fake-agent/RecordedClaudeLines.ts';
 
 export type FakeAgentStep =
   /** A selector of a recorded line, printed filled with its values; `{{HEAD}}` becomes the working directory's HEAD commit. */
@@ -81,6 +81,30 @@ export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze(
   { kind: 'await-line' },
 ]);
 
+/** As many as `CLAUDE_CODE_MAX_RETRIES=2` gave the recorded outage session B of P23. */
+const FAKE_NETWORK_OUTAGE_RETRIES = 2;
+
+/**
+ * A session that starts, sees its requests fail until its retries are spent, and ends its turn on the outage result P23 recorded; then it
+ * waits, as a session does, until its stdin closes. Its retry lines need the recording's `network-outage` session.
+ */
+export const NETWORK_OUTAGE_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([
+  { kind: 'print', line: fakeStartedLineSelectorOf('fake-session') },
+  ...Array.from({ length: FAKE_NETWORK_OUTAGE_RETRIES }, (_unused, index) => ({
+    kind: 'print',
+    line: JSON.stringify({
+      type: 'system', subtype: 'api_retry', attempt: index + 1, max_retries: FAKE_NETWORK_OUTAGE_RETRIES
+    }),
+  } as const)),
+  {
+    kind: 'print',
+    line: JSON.stringify({
+      type: 'result', subtype: 'success', is_error: true, api_error: 'connection_failed', api_error_status: null, terminal_reason: 'api_error'
+    }),
+  },
+  { kind: 'await-line' },
+]);
+
 /** The move every fake brain turn answers: on Flint's own lists, as the Bridge's digest names them. */
 export const FAKE_FLINT_BRAIN_ANSWER = Object.freeze({ intent: 'wave', emote: 'happy' });
 
@@ -133,6 +157,8 @@ export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_
         environment:     request.environment,
         files:           [{ path: scenarioPath, text: JSON.stringify(sessionSteps) }],
         standingReplies: [],
+        // The fake prints Claude Code's lines, so a Talos of a scratch forge recognises their endings by Claude Code's own patterns.
+        ...CLAUDE_CODE_SESSION_ENDINGS,
       };
     },
     sessionIdOf: (scope, jobId) => `fake-${scope}-${jobId}`,

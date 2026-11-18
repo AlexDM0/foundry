@@ -15,6 +15,7 @@ import {
   claudeConfigFolder,
   claudeConfigFolderVariable,
   executableSearchPath,
+  fakeAgentEndsOnNetworkOutage,
   fakeAgentIsOn,
   fakeAgentKeepsWorking,
   fakeAgentReports,
@@ -22,11 +23,17 @@ import {
   launchingProgram,
   overseerJobId
 } from '../src/shared/Environment.ts';
-import { PLATFORM_HOST_FACTS }                                                  from '../src/shared/PlatformHostFacts.ts';
-import { ToolRuntimeUtil }                                                      from '../src/shared/ToolRuntimeUtil.ts';
-import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES }                 from '../src/shared/constants/OverseerLimits.ts';
-import { DEFAULT_FAKE_AGENT_STEPS, fakeAgentAdapter, WORKING_FAKE_AGENT_STEPS } from '../src/testing/FakeAgentAdapter.ts';
-import { fakeReportingSessions }                                                from '../src/testing/FakeReportingSessions.ts';
+import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
+import { ToolRuntimeUtil }                                      from '../src/shared/ToolRuntimeUtil.ts';
+import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/OverseerLimits.ts';
+import {
+  DEFAULT_FAKE_AGENT_STEPS,
+  fakeAgentAdapter,
+  type FakeAgentStep,
+  NETWORK_OUTAGE_FAKE_AGENT_STEPS,
+  WORKING_FAKE_AGENT_STEPS
+} from '../src/testing/FakeAgentAdapter.ts';
+import { fakeReportingSessions } from '../src/testing/FakeReportingSessions.ts';
 
 export interface CommandContext {
   currentDirectory:        string;
@@ -70,8 +77,13 @@ export interface CommandContext {
 /** The one place outside `src/lib/claude-code/` the vendor's adapter is chosen; a spec-spawned binary always gets the fake. */
 export function agentAdapterOfThisProcess(): AgentAdapter {
   if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());
-  const steps = fakeAgentKeepsWorking() ? WORKING_FAKE_AGENT_STEPS : DEFAULT_FAKE_AGENT_STEPS;
+  const steps = fakeAgentStepsOfThisProcess();
   return fakeAgentReports() ? fakeAgentAdapter(steps, fakeReportingSessions().stepsOf) : fakeAgentAdapter(steps);
+}
+
+function fakeAgentStepsOfThisProcess(): readonly FakeAgentStep[] {
+  if (fakeAgentEndsOnNetworkOutage()) return NETWORK_OUTAGE_FAKE_AGENT_STEPS;
+  return fakeAgentKeepsWorking() ? WORKING_FAKE_AGENT_STEPS : DEFAULT_FAKE_AGENT_STEPS;
 }
 
 function onStopSignalOfThisProcess(stopSignals: readonly NodeJS.Signals[], listener: () => void): () => void {

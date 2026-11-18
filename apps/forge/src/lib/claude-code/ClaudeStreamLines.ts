@@ -1,6 +1,7 @@
 /**
  * The stream-json lines Claude Code reads and writes once a session runs: the events read from its stdout and each line a Watcher sends its
- * stdin, apart from the command line that starts it, so a scripted session speaking the same lines needs no launch plan of Claude's.
+ * stdin, and how its lines tell a turn's end and how the session ended, apart from the command line that starts it, so a scripted session
+ * speaking the same lines needs no launch plan of Claude's.
  */
 import type {
   AgentAdapter,
@@ -8,8 +9,9 @@ import type {
   AgentPicture,
   SentLine
 }                                 from '../agent-launch/AgentAdapter.ts';
-import type { AgentQuestion }   from '../agent-launch/AgentSessionEvent.ts';
-import { claudeStreamEventsOf } from './ClaudeStreamMapper.ts';
+import type { AgentLaunchPlan, PlanEndingPattern, PlanLineConditions } from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentQuestion }                                          from '../agent-launch/AgentSessionEvent.ts';
+import { claudeStreamEventsOf }                                        from './ClaudeStreamMapper.ts';
 
 const INTERRUPT_REQUEST_ID = 'interrupt';
 
@@ -104,3 +106,44 @@ export const CLAUDE_STREAM_LINES: Pick<AgentAdapter, 'eventsOf' | 'chatLineOf' |
   interruptLineOf,
   sentLineOf,
 });
+
+/** Every turn of a stream-json session ends on one `result` line. */
+const CLOSING_LINE: PlanLineConditions = { allOf: [{ test: 'equals', path: 'type', value: 'result' }], anyOf: [], noneOf: [] };
+
+const SERVER_ERROR_STATUS_LEAST = 500;
+const SERVER_ERROR_STATUS_MOST = 599;
+
+/**
+ * A session whose own retries ran out on an unreachable host or a provider overload (P23), told by the closing line's fields and at least
+ * one `api_retry` line before it, never by its text. The overload's 5xx status is not recorded yet: it rests on the 429 result's shape.
+ */
+const NETWORK_OUTAGE_ENDING: PlanEndingPattern = {
+  name:               'network-outage',
+  closingLineMatches: {
+    allOf: [
+      { test: 'equals', path: 'type', value: 'result' },
+      { test: 'equals', path: 'is_error', value: true },
+      { test: 'equals', path: 'terminal_reason', value: 'api_error' },
+    ],
+    anyOf: [
+      { test: 'equals', path: 'api_error', value: 'connection_failed' },
+      {
+        test: 'number-between', path: 'api_error_status', least: SERVER_ERROR_STATUS_LEAST, most: SERVER_ERROR_STATUS_MOST
+      },
+    ],
+    noneOf: [],
+  },
+  countedLineMatches: {
+    allOf:  [{ test: 'equals', path: 'type', value: 'system' }, { test: 'equals', path: 'subtype', value: 'api_retry' }],
+    anyOf:  [],
+    noneOf: [],
+  },
+  minimumCountedLines: 1,
+};
+
+/** How a Claude Code session's turn ends, how it ended, and how it is wound down: a closed stdin ends it once its turn is done. */
+export const CLAUDE_CODE_SESSION_ENDINGS: Pick<AgentLaunchPlan, 'closingLine' | 'endingPatterns' | 'quitAtTurnEnd'> = {
+  closingLine:    CLOSING_LINE,
+  endingPatterns: [NETWORK_OUTAGE_ENDING],
+  quitAtTurnEnd:  { act: 'close-input' },
+};

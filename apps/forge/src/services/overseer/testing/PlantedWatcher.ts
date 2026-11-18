@@ -31,7 +31,7 @@ function plantLiveWatcher(request: PlantedWatcherRequest): string {
     watcherCodeVersion: 'code-example',
     workingDirectory:   request.trackerDirectory,
     plan:               {
-      argv: ['true'], environment: {}, files: [], standingReplies: []
+      argv: ['true'], environment: {}, files: [], standingReplies: [], closingLine: null, endingPatterns: [], quitAtTurnEnd: null
     },
   });
   const record: WatcherRecord = {

@@ -5,17 +5,17 @@
 import { createHash } from 'node:crypto';
 import { join }       from 'node:path';
 
-import type { AgentAdapter }                             from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, StandingReply }           from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                       from '../agent-launch/AgentLaunchRequest.ts';
-import type { AgentDefinition, WorkerProfile }           from '../agent-launch/WorkerProfile.ts';
-import { PORTABLE_GIT_SETTINGS }                         from '../git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                              from '../git/utils/GitArgumentsUtil.ts';
-import type { AgentHostFacts }                           from './AgentHostFacts.ts';
-import { agentHostFactsFor }                             from './AgentHostFactsFor.ts';
-import { CLAUDE_API_KEY_VARIABLE }                       from './ClaudeApiKeyVariable.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }                 from './ClaudeConfigFolder.ts';
-import { CLAUDE_CODE_CAPABILITIES, CLAUDE_STREAM_LINES } from './ClaudeStreamLines.ts';
+import type { AgentAdapter }                                                          from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan, StandingReply }                                        from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                                    from '../agent-launch/AgentLaunchRequest.ts';
+import type { AgentDefinition, WorkerProfile }                                        from '../agent-launch/WorkerProfile.ts';
+import { PORTABLE_GIT_SETTINGS }                                                      from '../git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                                                           from '../git/utils/GitArgumentsUtil.ts';
+import type { AgentHostFacts }                                                        from './AgentHostFacts.ts';
+import { agentHostFactsFor }                                                          from './AgentHostFactsFor.ts';
+import { CLAUDE_API_KEY_VARIABLE }                                                    from './ClaudeApiKeyVariable.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                              from './ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_CAPABILITIES, CLAUDE_CODE_SESSION_ENDINGS, CLAUDE_STREAM_LINES } from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
 const CLAUDE_PROGRAM_NAME = 'claude';
@@ -333,6 +333,7 @@ function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunc
       ...reportSchemaFiles,
     ],
     standingReplies: [DENY_EVERY_PERMISSION_BUT_A_QUESTION],
+    ...CLAUDE_CODE_SESSION_ENDINGS,
   };
 }
 
