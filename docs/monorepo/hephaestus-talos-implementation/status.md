@@ -10,7 +10,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | G0 | passed | Owner said go on 2026-11-18; branch `hephaestus-talos` |
 | G1 | owner | WP0.3: the owner records recordings A and B; later the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
-| G3 | waiting | Before WP1.2: the owner stops both trackers and removes their login items |
+| G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
 | G4 | waiting | End of WP2.13; optionally after WP3.14, WP5.10 and WP5.15 |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | waiting | Before and after stage 9: the owner's machine steps only |
@@ -27,7 +27,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-B | WP0.4 | waiting | | |
 | 0-C | WP0.5 | landed | 7dc5dbed | Design holds decisions 35 to 52; migration figure and HTML page rendered again (no script renders the page: a one-off renderer did). Left stale: the migration figure's caption in the design still puts stage 8 in forge only; whoever changes it renders the page again |
 | 0-D | WP1.1 | landed | a99381c1 | Migration checklist closed, no open item |
-| 0-E | WP1.2 | waiting | | |
+| 0-E | WP1.2 | landed | (no commit) | Six ticket worktrees removed, their branches kept, uncommitted work saved as patches; `entities/integration` and `claude/project-thread-dw1bcu` gone. `main` still `e9b5d057`. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-1/` |
 | 0-F | Refresh the plan | landed | | Ran before 0-A on the owner's word; stage files now checked against `0a648b2b`. Runs again only if WP1.2 lands another branch |
 | 0-G | WP1.3 | waiting | | |
 | 2-A | WP2.1 | waiting | | |
