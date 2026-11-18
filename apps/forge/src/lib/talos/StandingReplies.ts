@@ -1,14 +1,17 @@
 /**
  * A rule that answers a child's stdout line while nobody watches: every `whenAllEqual` dotted path of the line holds its value and no
- * `whenNoneEqual` path does. Its `replyTemplate` has `{{request_id}}` filled from the line's own `request_id`.
+ * `whenNoneEqual` path does.
  */
 export interface StandingReply {
-  readonly whenAllEqual:  Readonly<Record<string, string | boolean>>;
-  readonly whenNoneEqual: Readonly<Record<string, string | boolean>>;
-  readonly replyTemplate: string;
+  readonly whenAllEqual:          Readonly<Record<string, string | boolean>>;
+  readonly whenNoneEqual:         Readonly<Record<string, string | boolean>>;
+  /** Its `{{request-identifier}}` is filled from the line's string at `requestIdentifierPath`. */
+  readonly replyTemplate:         string;
+  /** `null` for a template with no placeholder. */
+  readonly requestIdentifierPath: string | null;
 }
 
-const REQUEST_IDENTIFIER_PLACEHOLDER = '{{request_id}}';
+const REQUEST_IDENTIFIER_PLACEHOLDER = '{{request-identifier}}';
 
 function parsedObjectOf(line: string): Record<string, unknown> | null {
   try {
@@ -26,8 +29,8 @@ function valueAtDottedPath(record: Record<string, unknown>, dottedPath: string):
 }
 
 /**
- * The reply the first matching rule writes, or `null`: a line that is not a JSON object, matches no rule, or lacks the string
- * `request_id` its template needs is never answered, so whatever no rule names, a question above all, waits for the Overseer.
+ * The reply the first matching rule writes, or `null`: a line that is not a JSON object, matches no rule, or lacks the string at the
+ * request identifier path its template needs is never answered, so whatever no rule names, a question above all, waits for the Overseer.
  */
 export function standingReplyFor(line: string, standingReplies: readonly StandingReply[]): string | null {
   const record = parsedObjectOf(line);
@@ -37,7 +40,7 @@ export function standingReplyFor(line: string, standingReplies: readonly Standin
     && !Object.entries(rule.whenNoneEqual).some(([path, value]) => holds(path, value)));
   if (matchingRule === undefined) return null;
   if (!matchingRule.replyTemplate.includes(REQUEST_IDENTIFIER_PLACEHOLDER)) return matchingRule.replyTemplate;
-  const requestIdentifier = record['request_id'];
+  const requestIdentifier = matchingRule.requestIdentifierPath === null ? undefined : valueAtDottedPath(record, matchingRule.requestIdentifierPath);
   if (typeof requestIdentifier !== 'string') return null;
   // The placeholder sits inside a JSON string, so the identifier goes in escaped as one.
   const escapedRequestIdentifier = JSON.stringify(requestIdentifier).slice(1, -1);
@@ -49,7 +52,12 @@ export function standingReplyOf(value: unknown): StandingReply | null {
   const isConditionRecord = (item: unknown): item is Record<string, string | boolean> => typeof item === 'object' && item !== null && !Array.isArray(item)
     && Object.values(item).every((condition) => typeof condition === 'string' || typeof condition === 'boolean');
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
-  const { whenAllEqual, whenNoneEqual, replyTemplate } = value as Record<string, unknown>;
+  const {
+    whenAllEqual, whenNoneEqual, replyTemplate, requestIdentifierPath
+  } = value as Record<string, unknown>;
   if (!isConditionRecord(whenAllEqual) || !isConditionRecord(whenNoneEqual) || typeof replyTemplate !== 'string') return null;
-  return { whenAllEqual, whenNoneEqual, replyTemplate };
+  if (typeof requestIdentifierPath !== 'string' && requestIdentifierPath !== null) return null;
+  return {
+    whenAllEqual, whenNoneEqual, replyTemplate, requestIdentifierPath
+  };
 }

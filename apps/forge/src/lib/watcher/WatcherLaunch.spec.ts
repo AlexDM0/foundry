@@ -12,11 +12,13 @@ import { WATCHER_PROTOCOL_VERSION }                                 from './cons
 const ENDPOINT = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, MACOS_SOCKET_PATH_LIMIT_BYTES);
 
 const WELL_FORMED = {
-  kind:               'agent' as const,
-  argv:               ['/bin/echo', 'hello'],
-  environment:        { PATH: '/bin' },
-  workingDirectory:   '/tmp',
-  standingReplies:    [{ whenAllEqual: { type: 'control_request' }, whenNoneEqual: {}, replyTemplate: 'reply' }],
+  kind:             'agent' as const,
+  argv:             ['/bin/echo', 'hello'],
+  environment:      { PATH: '/bin' },
+  workingDirectory: '/tmp',
+  standingReplies:  [{
+    whenAllEqual: { type: 'control_request' }, whenNoneEqual: {}, replyTemplate: 'reply', requestIdentifierPath: null
+  }],
   protocolVersion:    WATCHER_PROTOCOL_VERSION,
   jobId:              'J-1',
   watcherCodeVersion: 'code-1',
@@ -47,7 +49,8 @@ test.each([
   ['an empty argv', JSON.stringify({ ...WELL_FORMED, argv: [] }), 'argv'],
   ['a numeric environment value', JSON.stringify({ ...WELL_FORMED, environment: { COUNT: 1 } }), 'environment'],
   ['no working directory', JSON.stringify({ ...WELL_FORMED, workingDirectory: null }), 'workingDirectory'],
-  ['a rule with no template', JSON.stringify({ ...WELL_FORMED, standingReplies: [{ whenAllEqual: {}, whenNoneEqual: {} }] }), 'standingReplies'],
+  ['a rule with no template', JSON.stringify({ ...WELL_FORMED, standingReplies: [{ whenAllEqual: {}, whenNoneEqual: {}, requestIdentifierPath: null }] }), 'standingReplies'],
+  ['a rule with no request identifier path', JSON.stringify({ ...WELL_FORMED, standingReplies: [{ whenAllEqual: {}, whenNoneEqual: {}, replyTemplate: 'r' }] }), 'standingReplies'],
   ['a newer protocol', JSON.stringify({ ...WELL_FORMED, protocolVersion: WATCHER_PROTOCOL_VERSION + 1 }), 'protocolVersion'],
   ['a protocol below the supported ones', JSON.stringify({ ...WELL_FORMED, protocolVersion: 0 }), 'protocolVersion'],
   ['a protocol that is no number', JSON.stringify({ ...WELL_FORMED, protocolVersion: '2' }), 'protocolVersion'],

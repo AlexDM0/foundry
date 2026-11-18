@@ -6,10 +6,20 @@
 import { describe, expect, test } from 'bun:test';
 
 import { type ChildLaunch, childIdOf, childLaunchOf } from './ChildLaunch.ts';
+import type { StandingReply }                         from './StandingReplies.ts';
 
 const BOARD_FOLDER = '/example/board/.forge';
 
 const CLOSING_LINE = { allOf: [{ test: 'equals', path: 'kind', value: 'finished' }], anyOf: [], noneOf: [] } as const;
+
+const PERMISSION_GRANTED_REPLY: StandingReply = {
+  whenAllEqual:          { kind: 'permission-asked' },
+  whenNoneEqual:         {},
+  replyTemplate:         '{"kind":"permission-granted","askId":"{{request-identifier}}"}',
+  requestIdentifierPath: 'askId',
+};
+
+const REPLY_WITHOUT_REQUEST_IDENTIFIER_PATH = { whenAllEqual: { kind: 'permission-asked' }, whenNoneEqual: {}, replyTemplate: '{"kind":"permission-granted"}' };
 
 const AGENT_LAUNCH: ChildLaunch = {
   childFolder:          'jobs/J1',
@@ -21,7 +31,7 @@ const AGENT_LAUNCH: ChildLaunch = {
   environmentFromTalos: { EXAMPLE_KEY: 'EXAMPLE_KEY' },
   workingDirectory:     '/example/worktree',
   verbatimArguments:    false,
-  standingReplies:      [{ whenAllEqual: { kind: 'permission-asked' }, whenNoneEqual: {}, replyTemplate: '{"kind":"permission-granted"}' }],
+  standingReplies:      [PERMISSION_GRANTED_REPLY],
   closingLine:          CLOSING_LINE,
   endingPatterns:       [{
     name: 'network-outage', closingLineMatches: CLOSING_LINE, countedLineMatches: null, minimumCountedLines: 0
@@ -101,7 +111,12 @@ describe('a malformed launch', () => {
     ['no environmentFromTalos', { environmentFromTalos: undefined }, 'environmentFromTalos'],
     ['a relative working directory', { workingDirectory: 'worktree' }, 'workingDirectory'],
     ['no verbatimArguments', { verbatimArguments: undefined }, 'verbatimArguments'],
-    ['a malformed standing reply', { standingReplies: [{ whenAllEqual: { type: 1 }, whenNoneEqual: {}, replyTemplate: '' }] }, 'standingReplies'],
+    ['a malformed standing reply', {
+      standingReplies: [{
+        whenAllEqual: { type: 1 }, whenNoneEqual: {}, replyTemplate: '', requestIdentifierPath: null
+      }]
+    }, 'standingReplies'],
+    ['a standing reply without its request identifier path', { standingReplies: [REPLY_WITHOUT_REQUEST_IDENTIFIER_PATH] }, 'standingReplies'],
     ['malformed closing-line conditions', { closingLine: { allOf: [] } }, 'closingLine'],
     ['a malformed ending pattern', { endingPatterns: [{ name: 'Outage' }] }, 'endingPatterns'],
     ['a quit act of two lines', { quitAtTurnEnd: { act: 'write-line', line: 'one\ntwo' } }, 'quitAtTurnEnd'],

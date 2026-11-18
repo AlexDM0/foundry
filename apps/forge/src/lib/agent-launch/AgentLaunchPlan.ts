@@ -24,12 +24,15 @@ export interface LaunchFile {
 
 /**
  * How a Watcher answers a session while nobody is there: a stdout line whose every `whenAllEqual` dotted path holds its value, and none of whose
- * `whenNoneEqual` paths does, is answered with `replyTemplate`, its `{{request_id}}` filled from the line's `request_id`.
+ * `whenNoneEqual` paths does, is answered with `replyTemplate`.
  */
 export interface StandingReply {
-  readonly whenAllEqual:  Readonly<Record<string, string | boolean>>;
-  readonly whenNoneEqual: Readonly<Record<string, string | boolean>>;
-  readonly replyTemplate: string;
+  readonly whenAllEqual:          Readonly<Record<string, string | boolean>>;
+  readonly whenNoneEqual:         Readonly<Record<string, string | boolean>>;
+  /** Its `{{request-identifier}}` is filled from the line's string at `requestIdentifierPath`. */
+  readonly replyTemplate:         string;
+  /** `null` for a template with no placeholder. */
+  readonly requestIdentifierPath: string | null;
 }
 
 /** A test on one field of a stdout line, read by its dotted path through the line's own properties. */

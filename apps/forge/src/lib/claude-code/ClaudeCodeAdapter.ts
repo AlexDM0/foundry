@@ -314,8 +314,9 @@ const DENY_EVERY_PERMISSION_BUT_A_QUESTION: StandingReply = {
   whenNoneEqual: { 'request.tool_name': QUESTION_TOOL_NAME },
   replyTemplate: JSON.stringify({
     type:     'control_response',
-    response: { subtype: 'success', request_id: '{{request_id}}', response: { behavior: 'deny', message: STANDING_DENIAL_MESSAGE } },
+    response: { subtype: 'success', request_id: '{{request-identifier}}', response: { behavior: 'deny', message: STANDING_DENIAL_MESSAGE } },
   }),
+  requestIdentifierPath: 'request_id',
 };
 
 function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): AgentLaunchPlan {

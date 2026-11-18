@@ -31,9 +31,10 @@ const PERMISSION_REQUEST = '{"type":"control_request","request_id":"r-1","reques
 const QUESTION_REQUEST = '{"type":"control_request","request_id":"r-2","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion"}}';
 
 const DENY_ALL_BUT_QUESTIONS: StandingReply = {
-  whenAllEqual:  { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
-  whenNoneEqual: { 'request.tool_name': 'AskUserQuestion' },
-  replyTemplate: '{"type":"control_response","request_id":"{{request_id}}","behavior":"deny"}',
+  whenAllEqual:          { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
+  whenNoneEqual:         { 'request.tool_name': 'AskUserQuestion' },
+  replyTemplate:         '{"type":"control_response","request_id":"{{request-identifier}}","behavior":"deny"}',
+  requestIdentifierPath: 'request_id',
 };
 
 let currentWatcherJob: WatcherJob | null = null;

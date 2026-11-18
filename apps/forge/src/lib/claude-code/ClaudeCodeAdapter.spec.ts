@@ -489,7 +489,8 @@ function replyFor(line: string, standingReplies: readonly StandingReply[]): stri
     .reduce<unknown>((value, key) => (typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[key] : undefined), record);
   const reply = standingReplies.find((candidate) => Object.entries(candidate.whenAllEqual).every(([path, value]) => valueAt(path) === value)
     && !Object.entries(candidate.whenNoneEqual).some(([path, value]) => valueAt(path) === value));
-  return reply === undefined ? null : reply.replyTemplate.replace('{{request_id}}', String(record['request_id']));
+  if (reply === undefined) return null;
+  return reply.requestIdentifierPath === null ? reply.replyTemplate : reply.replyTemplate.replace('{{request-identifier}}', String(valueAt(reply.requestIdentifierPath)));
 }
 
 function fixtureLines(name: string): string[] {
@@ -498,6 +499,11 @@ function fixtureLines(name: string): string[] {
 
 describe('the standing reply', () => {
   const { standingReplies } = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder'));
+
+  test('names request_id as the path of its request identifier', () => {
+    expect(standingReplies.map((reply) => reply.requestIdentifierPath)).toEqual(['request_id']);
+    expect(standingReplies[0]?.replyTemplate).toContain('{{request-identifier}}');
+  });
 
   test('denies a can_use_tool for any tool but AskUserQuestion, under its own request id', () => {
     const reply = replyFor('{"type":"control_request","request_id":"r-7","request":{"subtype":"can_use_tool","tool_name":"WebFetch","input":{}}}', standingReplies);
