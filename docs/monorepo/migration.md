@@ -4,9 +4,10 @@ The one checklist for moving forge and Gaia into forge's repository: every step 
 decisions still open. The reasoning behind the layout, Part B (forge in a part of a repository) and the release rules is the monorepo
 design, `docs/monorepo/design.md`; where the two differ, this checklist holds.
 
-Status as of 2026-11-16, on branch `monorepo/integration`: P0 to P6 gated green, the fixes before the go gated green and P7
-rehearsed on a copy of the live tracker; P7 waits for the owner's go. Merge bases: forge
-`main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
+Status as of 2026-11-18: landed. P0 to P8 are done and on `main`. The root tracker is gone; forge's tracker lives in `apps/forge`
+and Gaia's in `apps/gaia`, both stopped for the Hephaestus and Talos run until their boards are set up anew
+(`docs/monorepo/hephaestus-talos.md`, decision 46). The installed forge runs from a second clone, `~/.forge-program`. Merge bases:
+forge `main` `db64ed0a`, Gaia `main` `1418f76`. Claude does every lane, in its own worktree `.claude/worktrees/<lane>` on branch
 `monorepo/<lane>`, merged into `monorepo/integration` in the order its phase lists. Forge's `main` moves only in P7, by fast-forward,
 after the owner's go. Nothing is pushed. Each phase ends with a gate in the integration worktree: a clean
 `bun install --frozen-lockfile`, `bun run verify`, one `bun run verify -- --force`, the phase's own checks and a clean `git status`.
@@ -111,7 +112,7 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
 - [x] The rehearsal's two open findings, processes listed with `ps` in a gate and the pipeline agent's turn-end check, moved to the
       backlog below.
 
-### P6. Docs close-out and the owner's review (Claude, then the owner) — gated green, waiting for the owner's go
+### P6. Docs close-out and the owner's review (Claude, then the owner) — done
 
 - [x] DOC-root: the root `CLAUDE.md` names each app's rules, each package's README and the one constitution, the two trackers with
       their homes, namespaces, reach and gates, turbo as how everything verifies, and where worktrees and evidence live; the root
@@ -129,33 +130,46 @@ The gate records are in the main checkout's `.claude/.evidence/monorepo-migratio
       the Assistant and the product owner, which work on no branch.
 - [x] P7 rehearsed end to end on a scratch clone with a copy of the live tracker: both trackers landed a ticket through gates that run
       `test` and `test:dom`, and a planted false pass was refused at the merge.
-- [ ] The owner reviews `git log --oneline main..monorepo/integration` and the gate records, and gives the go for P7.
+- [x] The owner reviews `git log --oneline main..monorepo/integration` and the gate records, and gives the go for P7.
+      Evidence: P7 landed.
 
-### P7. Land and operate (the owner's go) — not started
+### P7. Land and operate (the owner's go) — done
 
 Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude runs no forge verb in this repository: the steps marked
 "owner" are a command list Claude hands over, unless the owner's go names each one for Claude.
 
-- [ ] Quiesce again (Claude).
-- [ ] Fast-forward `main` to `monorepo/integration`; install; verify (Claude).
-- [ ] The installed forge: a second clone outside the monorepo, its `setup.sh`, updated by pulling (owner).
-- [ ] Forge's tracker to `apps/forge/.forge`, `forge update`, then namespace `forge`; remove what the root tracker installed at the
-      root (owner).
+- [x] Quiesce again (Claude).
+- [x] Fast-forward `main` to `monorepo/integration`; install; verify (Claude).
+- [x] The installed forge: a second clone outside the monorepo, its `setup.sh`, updated by pulling (owner). Evidence:
+      `~/.forge-program` at `28a319c8`.
+- [x] Forge's tracker to `apps/forge/.forge`, `forge update`, then namespace `forge`; remove what the root tracker installed at the
+      root (owner). Evidence: no `.forge` or `.forge-worktrees` at the root; `apps/forge/.forge/pipeline.json` at version 3.
 - [x] Before the gates below run `test` and `test:dom`: the suites list processes with `pgrep` (Claude).
-- [ ] Gates for forge's tracker, each with `--in /`: prepare `bun install --frozen-lockfile`; `gate add verify --in / --writes
+- [x] Gates for forge's tracker, each with `--in /`: prepare `bun install --frozen-lockfile`; `gate add verify --in / --writes
       <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json --defined-by /bun.lock -- bun run gate:forge`; the
       Overseer-only merge gate `cache:audit`; reach `/packages/*` that forge owns, `/package.json`, `/bun.lock`, `/turbo.json` (owner).
-- [ ] Gaia's tracker: `forge init` in `apps/gaia`, namespace `gaia`, reach `/packages/design-system`, `/packages/system-versions` and
-      the root workspace files; the same gates with `gate:gaia` (owner).
-- [ ] Login items for both trackers, from the installed clone (owner).
-- [ ] `gaia install-app` from `apps/gaia` (owner).
-- [ ] Smoke: both Overseers start through Gaia, both Bridges serve, one trivial ticket per tracker lands, and the other tracker's gate
-      replays the untouched app from the cache (Claude).
-- [ ] Gaia's old checkout stays read-only; its handoffs, evidence and `docs/gaia-strategy.html` are copied into the monorepo's ignored
-      folders; then the worktree `graphite-orange-handoff-ebd9dc` goes (Claude).
-- [ ] Whether to carry the Claude Code memory of Gaia's project into forge's (owner).
+      Evidence: `apps/forge/.forge/pipeline.json` holds the prepare step, the gates `bun run gate:forge` and `bun run cache:audit` in
+      `/`, and the reach the root `CLAUDE.md` names.
+- [x] Gaia's tracker: `forge init` in `apps/gaia`, namespace `gaia`, reach `/packages/design-system`, `/packages/system-versions` and
+      the root workspace files; the same gates with `gate:gaia` (owner). Evidence: `apps/gaia/.forge/pipeline.json` at
+      version 3, with that prepare step, gates and reach.
+- [x] Login items for both trackers, from the installed clone (owner). Evidence: `~/Library/LaunchAgents` held
+      `com.forge.overseer.1dc461b1-cdeb-4cdf-bc38-2cc5b8cd9757.plist` and
+      `com.forge.overseer.4c2d0ab1-b194-4578-a175-800a56ca477d.plist` on 2026-11-18; the Hephaestus and Talos run
+      removes them while the trackers stay stopped.
+- [x] `gaia install-app` from `apps/gaia` (owner). Evidence: `~/Applications/Gaia.app` exists.
+- [-] Smoke: both Overseers start through Gaia, both Bridges serve, one trivial ticket per tracker lands, and the other tracker's gate
+      replays the untouched app from the cache (Claude). Closed without a tick, superseded: both trackers
+      stop and their boards are set up anew (`hephaestus-talos.md`, decision 46), and every stage of that run ends on a scratch forge
+      instead.
+- [x] Gaia's old checkout stays read-only; its handoffs, evidence and `docs/gaia-strategy.html` are copied into the monorepo's ignored
+      folders; then the worktree `graphite-orange-handoff-ebd9dc` goes (Claude). Evidence: `git worktree list`
+      shows no `graphite-orange-handoff-ebd9dc`, and the main checkout's `.claude/.evidence/gaia/` holds `gaia-strategy.html`
+      and Gaia's handoff folders.
+- [x] Whether to carry the Claude Code memory of Gaia's project into forge's (owner). Evidence: forge's Claude Code project
+      memory holds Gaia's notes (`gaia-contract-versioning.md`, `gaia-flint-decision.md`, `gaia-forge-requirements.md`).
 
-### P8. Forge 1.1 and the last recordings — gated green on `p8/integration` (Claude), B15 open
+### P8. Forge 1.1 and the last recordings — done, on `main` (Claude)
 
 - [x] Flint's brain (G1 to G4, V7) as forge 1.1; the identity's `contracts.control` stays 1, as clients built for 1.0 compare it for
       equality, and system version 1.1 announces the brain's two commands.
@@ -169,7 +183,7 @@ Only the owner runs `init`, `update` or `clear` on a live tracker, and Claude ru
       carries the brain, and Gaia's relayed start and stop run and end it on the fake agent, `startedBy` `api`.
 - [x] No rollback to forge 1.0 past a brain run: 1.1's `flint-brain-ended` log record is one a 1.0 forge cannot read, so a board
       whose brain has run reads its log only on 1.1 or newer (forge's runbook, Updating).
-- [ ] B15 as forge 1.2, waiting for the owner's monorepo design.
+- [-] B15 as forge 1.2, waiting for the owner's monorepo design. Closed without a tick, superseded: see Decisions.
 
 ## Backlog
 
@@ -192,16 +206,20 @@ Defaults Claude takes unless the owner says otherwise: the design-system package
 carries `flintBrain: null` from forge 1.0; Gaia's tracker reaches `packages/design-system` and `packages/system-versions` only; Gaia's
 old checkout stays untouched.
 
-Still open:
+Decided by the run on 2026-11-18:
 
-1. Restart after Update forge, for an older forge, needs a program route forge does not have.
-2. Forge's rules say a change that invalidates a rule updates it, but Customs keeps forge's agents out of `.claude/rules/`: either those
-   changes are the owner's, or the rules move to a path agents may change.
-3. `CodeVersion` hashes the whole root `bun.lock`, so a dependency Gaia adds shows forge's Overseer newer code: hash only forge's part,
-   or word the notice.
-4. Install version 29 asks every board, also in other projects, to run `forge update` once: the builder's and reviewer's briefs name
-   the ticket branch through the namespace. On a board without a namespace the branch they name is unchanged, but forge's one exact
-   manifest per board, and an older forge that would drive a namespaced board on bare branches, keep the bump.
+1. B15, `repositoryRoot` and `projectPrefix` in the registry and the monitor snapshot: superseded, since Gaia identifies a project by
+   its forge (`docs/monorepo/hephaestus-talos.md`, section 8).
+2. Restart after Update forge, for an older forge, needs a program route forge does not have: closed, since Gaia supports exactly one
+   forge version (`apps/gaia/CLAUDE.md:36-38`) and nothing is kept (`hephaestus-talos.md`, decision 32).
+3. Forge's rules say a change that invalidates a rule updates it, but Customs keeps forge's agents out of `.claude/rules/`: decided by
+   `apps/forge/CLAUDE.md:281-284`, the owner changes those files outside a ticket.
+4. `CodeVersion` hashes the whole root `bun.lock`: built, it hashes only the program's part of the lockfile (`CodeVersion.ts:3`), held
+   by `CodeVersion.spec.ts`.
+5. Install version 29 asks every board to run `forge update` once: closed, since the boards are set up anew (`hephaestus-talos.md`,
+   decisions 32 and 46).
+
+Still open: nothing.
 
 ## Forge requirements, apart from the merge
 
