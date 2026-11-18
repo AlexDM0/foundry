@@ -93,6 +93,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-C | WP2.6 | landed | 100a2f4d | Second round. The main thread numbers and stamps every event-log entry; the thread refuses a skipped sequence or a missing `at`. Gap for WP2.7: the real worker transport has no listener for the worker's `error` or exit, and `terminate()` leaves pending calls unsettled, so a dead worker hangs every call; WP2.7's item 10 (a failed call ends Talos with exit 2) must add it. `apps/forge/CLAUDE.md`'s 'No work at module load' row already names the thread (WP2.17 needs no new row) |
 | 2-C | WP2.11 | landed | acf4243d | Second round. Forge 1.19. `MonitorJobDocument.interruption` is optional in the contract (Gaia still supports forge 1.1 and its recordings lack the key); `MONITOR_INTERRUPTION_CAUSES` in `packages/forge-contracts/constants/MonitorInterruptionCauses.ts`. Gap for WP2.13: `AssistantSession.endDownAssistants` (`AssistantSession.ts:127-140`, from `DrivePass.ts:1373`) still replaces an Assistant interrupted by a network outage or lease end, so the Playbook's new hold is skipped for it in production |
 | 2-D | WP2.7 | waiting | | |
+| 2-D2 | WP2.21 | waiting | | |
 | 2-E | WP2.8 | waiting | | |
 | 2-F | WP2.9 | waiting | | |
 | 2-F | WP2.10 | waiting | | |
@@ -103,6 +104,17 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-J | WP2.20 | waiting | | |
 | 2-K | WP2.15 | waiting | | |
 | 2-L | WP2.16 | waiting | | |
+| 2-L2 | WP2.22 | waiting | | |
+| 2-L3 | WP2.23 | waiting | | |
+| 2-L4 | WP2.24 | waiting | | |
+| 2-L5 | WP2.25 | waiting | | |
+| 2-L6 | WP2.26 | waiting | | |
+| 2-L7 | WP2.27 | waiting | | |
+| 2-L8 | WP2.28 | waiting | | |
+| 2-L9 | WP2.29 | waiting | | |
+| 2-L10 | WP2.30 | waiting | | |
+| 2-L11 | WP2.31 | waiting | | |
+| 2-L12 | WP2.32 | waiting | | |
 | 2-M | WP2.17 | waiting | | |
 | 2-N | WP2.18 | waiting | | |
 | 3-A | WP3.1 | waiting | | |
