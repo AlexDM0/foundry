@@ -84,7 +84,11 @@ packages/system-versions/   version comparison, for both apps and the contract
     those retries run out, Talos recognises that the agent ended on a network outage and reports it, and Gaia shows
     it.
 16. The forge uses ports and adapters for three things: the operating system (macOS first), the agent (Claude Code
-    first) and storage (local files first; a database later).
+    first) and storage (local files first; a database later). The owner's rule of 2026-11-18 binds everything built
+    from now on: every connection to Claude goes through the agent port. Nothing outside the agent port's adapter
+    starts the `claude` program, reads its transcripts or stream, writes its settings or hooks, or knows its ending
+    patterns, flags, environment variables or file layout; Hephaestus, Talos, the Playbook, the CLI and Gaia speak to
+    the port only, and the fake agent is an adapter of the same port.
 17. A remote, shared setup for a team is not built. The design only keeps it possible.
 18. There is one interface server, in Gaia. Gaia inventories, displays and forwards instructions. It shows local forges
     only; a read-only status view of remote forges may come later.
@@ -404,6 +408,14 @@ not.](figures/hephaestus-talos/ports.png)
 | Operating system | Exists. `platformPortsFor` builds one frozen record of ports with darwin, linux and win32 adapters; `src/PlatformBoundary.spec.ts` refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows | Carries over. "macOS first" means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only |
 | Agent | Mostly exists. `AgentAdapter` in `src/lib/agent-launch/` is the port, `src/lib/claude-code/` the one adapter | Close the leaks: `ClaudeTranscripts.ts` inside the Overseer's services, the install-time hook entry in a repository's `.claude/settings.local.json`, the `bash-domains` hook, and session confinement resting on the vendor's own sandbox. Retry policy is the adapter's: it sets what the vendor exposes. A skill becomes "an instruction bundle the adapter can load" |
 | Store | Does not exist. Files are the most pervasive dependency in forge | New (section 4). Defined with a contract spec that any adapter must pass, the convention the platform adapters already use |
+
+The agent port is bound by the owner's rule of 2026-11-18 (`hephaestus-talos-implementation/owner-answers.md`): all
+connections to actual Claude are in ports and adapters. Nothing outside the agent port's adapter (`src/lib/claude-code/`
+and the adapter files of the agent port in `apps/forge`) starts the `claude` program, reads its transcripts or stream,
+writes its settings or hooks, or knows its ending patterns, flags, environment variables or file layout. Hephaestus,
+Talos, the Playbook, the CLI and Gaia speak to the port only; the fake agent is an adapter of the same port. The rule
+binds everything built from now on, and the leaks the Agent row lists are now in scope to close; work packages for
+them follow.
 
 Building a port with one adapter goes against the conventions' rule that code is generalised on its second consumer.
 For the store that is deliberate; it takes a row in the Deviations table when it is built.

@@ -13,6 +13,12 @@ decisions and for every stage file; where a stage file disagrees with it, this f
 - Nothing stays compatible: no older board, stored format, verb, link form or client is read or kept.
 - The coding conventions (`~/coding-conventions-new.md`) hold. Code that belongs to an app stays in that app. Code is
   hoisted to `packages/` only when two apps really consume it, and is generalized first.
+- **Every connection to Claude goes through the agent port** (2026-11-18). The owner's words: "all connections to
+  actual claude should be in ports and adapters". Nothing outside the agent port's adapter (`src/lib/claude-code/` and
+  the adapter files of the agent port in `apps/forge`) starts the `claude` program, reads its transcripts or stream,
+  writes its settings or hooks, or knows its ending patterns, flags, environment variables or file layout. Hephaestus
+  (today the Overseer), Talos, the Playbook, the CLI and Gaia speak to the port only. The fake agent is an adapter of
+  the same port.
 
 ## The monorepo
 
