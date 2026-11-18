@@ -114,6 +114,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/lib/talos/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/talos/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/talos/WindowsPipeEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/talos/SynchronousCallsThread.ts', specs: ['src/lib/talos/SynchronousCallsThread.integration.spec.ts'] },
   { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/WatcherSocketServer.ts', specs: ['src/lib/watcher/Watcher.protocol.integration.spec.ts'] },
   {

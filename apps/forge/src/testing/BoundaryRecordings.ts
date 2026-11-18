@@ -84,6 +84,7 @@ export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   'src/lib/shell-line/':                         OPERATING_SYSTEM,
   'src/lib/talos/LocalEndpointFor.ts':           OPERATING_SYSTEM,
   'src/lib/talos/PosixSocketEndpoint.ts':        OPERATING_SYSTEM,
+  'src/lib/talos/SynchronousCallsThread.ts':     OPERATING_SYSTEM,
   'src/lib/talos/UnsupportedLocalEndpoint.ts':   OPERATING_SYSTEM,
   'src/lib/watcher/Watcher.ts':                  OPERATING_SYSTEM,
   'src/lib/watcher/WatcherSocketServer.ts':      OPERATING_SYSTEM,

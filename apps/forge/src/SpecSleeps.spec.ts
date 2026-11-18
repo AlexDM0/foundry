@@ -40,6 +40,8 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'A negative: an ended Watcher does not exit unacknowledged, so there is no state to wait on; load only shortens what the window watches.',
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts: const timer = setTimeout(() => resolve(false), NEVER_ARRIVES_WAIT_MILLISECONDS);':
     'A negative recorded as an answer: the end of a connection never reaches a client that does not read, so there is no state to wait on.',
+  'src/lib/talos/SynchronousCallsThread.integration.spec.ts: setTimeout(() => resolve(performance.now()), MAIN_THREAD_TIMER_MILLISECONDS);':
+    'The timer is what the case measures: its lateness shows whether the main thread stayed free while the worker worked through a queue of tree calls.',
   'src/services/overseer/WatcherFleet.integration.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
     'Settling inside the bound is the claim: a send that does not read waits out the 2 s frame timeout, ten times the bound.',
   'src/services/overseer/WatcherFleet.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':

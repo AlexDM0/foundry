@@ -89,6 +89,8 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root carries the platform, so a spec can choose it.',
   'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
     'The Watcher has no CommandContext; its binary is its composition root.',
+  'src/lib/talos/SynchronousCallsThread.ts: platform-property: supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);':
+    'A worker has no context; the start message carries the platform from Talos, and the thread hands it straight to the selector.',
   'setup.ts: process-platform: platform: process.platform, checkoutDirectory: import.meta.dir, homeDirectory: homedir(), runningBun: process.execPath':
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
   'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
