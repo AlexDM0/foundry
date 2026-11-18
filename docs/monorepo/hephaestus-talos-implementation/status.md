@@ -3,6 +3,38 @@
 The orchestrator's memory of the run (see `orchestrator.md`). Integration branch: `hephaestus-talos`, cut from `main` at
 `e9b5d057` on 2026-11-18. States: `waiting`, `running`, `landed`, `blocked`, `owner`.
 
+## Where the night run stands
+
+The owner is away for the night (2026-11-18). His words: "build all you can, we can test with actual sessions
+tomorrow" and "make a best effort guess on how that works during build if needed to continue". The run builds through
+stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed on the machine before stage 9).
+
+### For tomorrow, with real sessions
+
+- G1's second half, after WP2.2: in `apps/forge`, add `'network-outage'` to `CLAUDE_WIRE_SCENARIOS`
+  (`src/lib/claude-code/RecordedClaudeLines.ts`), then `bun run record src/testing/fake-agent/` (it also reruns P22,
+  one real model call), and commit the name and `src__testing__fake-agent.json` together. Prompting script:
+  main checkout `.claude/.evidence/hephaestus-talos/stage-2/fake-agent-outage/`. Holds up stage 2's verification
+  step 7, WP3.14's outage row and WP6.26's recorded situation.
+
+### Assumptions to confirm
+
+- WP2.2: a provider overload (529), once its retries are spent, ends on a `result` line with `is_error` true,
+  `terminal_reason` `api_error` and `api_error_status` 500 to 599, after at least one `api_retry` line. Rests on the
+  429 result's shape (`rate-limit-rejected.stdout.jsonl`) and decision 35. Kept in `NETWORK_OUTAGE_ENDING` and
+  `SERVER_ERROR_STATUS_LEAST`/`MOST` in `ClaudeStreamLines.ts`. Confirm from the P19 `network-outage` recording above.
+- WP2.2: the fake outage scenario plays 2 retries (`FAKE_NETWORK_OUTAGE_RETRIES`, after recording B with
+  `CLAUDE_CODE_MAX_RETRIES=2`); its result selector fills `connection_failed` and a null status into the recorded
+  529 result line. Confirm by playing `NETWORK_OUTAGE_FAKE_AGENT_STEPS` once the recording lands.
+
+### Blocked
+
+(none)
+
+### Worth a look
+
+(none)
+
 ## Gates
 
 | Gate | State | Note |
@@ -30,9 +62,9 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-E | WP1.2 | landed | (no commit) | Six ticket worktrees removed, their branches kept, uncommitted work saved as patches; `entities/integration` and `claude/project-thread-dw1bcu` gone. `main` still `e9b5d057`. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-1/` |
 | 0-F | Refresh the plan | landed | | Ran before 0-A on the owner's word; stage files now checked against `0a648b2b`. Runs again only if WP1.2 lands another branch |
 | 0-G | WP1.3 | landed | (no commit) | Stage 0-1 gate green at `046794d5` (and `710ae4f9`, a status-only change): verify, cold `verify -- --force` (30/30, forge 8639 pass), `gate:forge`, `gate:gaia`, the five named specs, repository state; `main` still `e9b5d057` |
-| 2-A | WP2.1 | waiting | | |
-| 2-A | WP2.2 | waiting | | |
-| 2-A | WP2.3 | waiting | | |
+| 2-A | WP2.1 | landed | fe0217a6 | `LineConditions.ts`, `EndingPatterns.ts` in `src/lib/talos/`; specs use vendor-free field names (port rule); `createEndingRecognition` takes a `null` closing line; no header "depends on" sentence yet |
+| 2-A | WP2.2 | landed | 5f084a29 | Ending values are `CLAUDE_CODE_SESSION_ENDINGS` in `src/lib/claude-code/ClaudeStreamLines.ts` (not `ClaudeCodeAdapter.ts`: ImportDirection lets only `CommandContext` import the adapter). Switch is `FORGE_FAKE_AGENT_NETWORK_OUTAGE`. `network-outage` is not yet in `CLAUDE_WIRE_SCENARIOS` (owner's recording). `ClaudeStreamFixtures.spec.ts` matches with a spec-local copy of WP2.1's matcher; replace with an import (WP2.17 or WP2.18) |
+| 2-A | WP2.3 | landed | 849f1f0a | `createSupervisionLease(bounds, wallNowMilliseconds)` as in Interfaces; `WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS`, `LeaseStanding`, `LeaseBounds` are exported from `SupervisionLease.ts`: WP2.5 moves the constant into `constants/TalosProtocol.ts` and imports it here |
 | 2-B | WP2.4 | waiting | | |
 | 2-C | WP2.5 | waiting | | |
 | 2-C | WP2.6 | waiting | | |
@@ -139,20 +171,6 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 9-A | WP9.3 | waiting | | |
 | 9-A | WP9.4 | waiting | | |
 | 9-A | WP9.5 | waiting | | |
-
-## For tomorrow, with real sessions
-
-The owner's word for the night (2026-11-18): "build all you can, we can test with actual sessions tomorrow". Steps that
-need a real `claude` session are skipped and listed here.
-
-- G1's second half: the fake agent's outage scenario, `bun run record src/testing/fake-agent/` (after WP2.2).
-
-## Assumptions to confirm
-
-The owner's word for the night: "make a best effort guess on how that works during build if needed to continue". Each
-guess: what was assumed, what it rests on, the package and code that builds on it, how to confirm it.
-
-(none yet)
 
 ## Where the code differed from a stage file
 
