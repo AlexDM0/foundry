@@ -9,9 +9,14 @@ import type {
   AgentPicture,
   SentLine
 }                                 from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, PlanEndingPattern, PlanLineConditions } from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentQuestion }                                          from '../agent-launch/AgentSessionEvent.ts';
-import { claudeStreamEventsOf }                                        from './ClaudeStreamMapper.ts';
+import type {
+  AgentLaunchPlan,
+  PlanEndingPattern,
+  PlanLineConditions,
+  StandingReply
+} from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentQuestion }                       from '../agent-launch/AgentSessionEvent.ts';
+import { claudeStreamEventsOf, QUESTION_TOOL_NAME } from './ClaudeStreamMapper.ts';
 
 const INTERRUPT_REQUEST_ID = 'interrupt';
 
@@ -140,6 +145,19 @@ const NETWORK_OUTAGE_ENDING: PlanEndingPattern = {
   },
   minimumCountedLines: 1,
 };
+
+const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
+
+/** Every permission request but a question is denied while nobody watches; a question waits for the Overseer. */
+export const CLAUDE_CODE_STANDING_REPLIES: readonly StandingReply[] = Object.freeze([{
+  whenAllEqual:  { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
+  whenNoneEqual: { 'request.tool_name': QUESTION_TOOL_NAME },
+  replyTemplate: JSON.stringify({
+    type:     'control_response',
+    response: { subtype: 'success', request_id: '{{request-identifier}}', response: { behavior: 'deny', message: STANDING_DENIAL_MESSAGE } },
+  }),
+  requestIdentifierPath: 'request_id',
+}]);
 
 /** How a Claude Code session's turn ends, how it ended, and how it is wound down: a closed stdin ends it once its turn is done. */
 export const CLAUDE_CODE_SESSION_ENDINGS: Pick<AgentLaunchPlan, 'closingLine' | 'endingPatterns' | 'quitAtTurnEnd'> = {

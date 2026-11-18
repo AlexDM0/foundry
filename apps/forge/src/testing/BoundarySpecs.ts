@@ -120,7 +120,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
       'src/lib/talos/SynchronousCallsThread.integration.spec.ts',
+      'src/lib/talos/Talos.agents.integration.spec.ts',
+      'src/lib/talos/Talos.cleanQuit.integration.spec.ts',
       'src/lib/talos/Talos.handshake.integration.spec.ts',
+      'src/lib/talos/Talos.lease.integration.spec.ts',
       'src/lib/talos/Talos.lines.integration.spec.ts',
     ],
   },

@@ -6,12 +6,17 @@
  */
 import { join } from 'node:path';
 
-import type { AgentAdapter }                                                          from '../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }                                                       from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                                    from '../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                                                         from '../lib/agent-launch/AgentSessionEvent.ts';
-import { CLAUDE_CODE_CAPABILITIES, CLAUDE_CODE_SESSION_ENDINGS, CLAUDE_STREAM_LINES } from '../lib/claude-code/ClaudeStreamLines.ts';
-import { recordedLineOf, recordedSessionOf }                                          from './fake-agent/RecordedClaudeLines.ts';
+import type { AgentAdapter }       from '../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }    from '../lib/agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest } from '../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }      from '../lib/agent-launch/AgentSessionEvent.ts';
+import {
+  CLAUDE_CODE_CAPABILITIES,
+  CLAUDE_CODE_SESSION_ENDINGS,
+  CLAUDE_CODE_STANDING_REPLIES,
+  CLAUDE_STREAM_LINES
+} from '../lib/claude-code/ClaudeStreamLines.ts';
+import { recordedLineOf, recordedSessionOf } from './fake-agent/RecordedClaudeLines.ts';
 
 export type FakeAgentStep =
   /** A selector of a recorded line, printed filled with its values; `{{HEAD}}` becomes the working directory's HEAD commit. */
@@ -39,6 +44,11 @@ export function fakeStartedLine(sessionId: string): string {
 export function fakeQuestionLine(requestId: string, questions: readonly AgentQuestion[]): string {
   const request = { subtype: 'can_use_tool', tool_name: 'AskUserQuestion', input: { questions } };
   return recordedLineOf(JSON.stringify({ type: 'control_request', request_id: requestId, request }));
+}
+
+/** A permission request for a tool other than the question tool, as the recorded question request with that tool named. */
+export function fakePermissionRequestLine(requestId: string): string {
+  return recordedLineOf(JSON.stringify({ type: 'control_request', request_id: requestId, request: { subtype: 'can_use_tool', tool_name: 'Bash', display_name: 'Bash' } }));
 }
 
 export function fakeResultLine(structuredReport: unknown): string {
@@ -156,8 +166,8 @@ export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_
         argv:            [process.execPath, FAKE_AGENT_CHILD_PATH, scenarioPath],
         environment:     request.environment,
         files:           [{ path: scenarioPath, text: JSON.stringify(sessionSteps) }],
-        standingReplies: [],
-        // The fake prints Claude Code's lines, so a Talos of a scratch forge recognises their endings by Claude Code's own patterns.
+        // The fake prints Claude Code's lines, so a Talos of a scratch forge answers and recognises them by Claude Code's own rules.
+        standingReplies: CLAUDE_CODE_STANDING_REPLIES,
         ...CLAUDE_CODE_SESSION_ENDINGS,
       };
     },

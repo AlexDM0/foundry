@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import type { DoneFrame, TalosFrame }            from '../lib/talos/@types/TalosFrame.ts';
 import type { ChildLaunch }                      from '../lib/talos/ChildLaunch.ts';
 import { type ChildRecord, childRecordOf }       from '../lib/talos/ChildRecord.ts';
 import { type EventLogEntry, eventLogEntriesOf } from '../lib/talos/EventLog.ts';
@@ -46,6 +47,18 @@ const SCRATCH_TALOS_BOUNDS = {
 
 export type SpawnedTalos = Bun.Subprocess<'ignore', 'pipe', 'pipe'>;
 
+/** A spawned Talos with one attached client, which numbers the frames it sends. */
+export interface ServingTalos {
+  readonly talos:       SpawnedTalos;
+  readonly client:      TalosProtocolClient;
+  /** Sends the frame with the next frame id and answers its `done`. */
+  readonly send:        (frame: object) => Promise<DoneFrame>;
+  /** Sends the frame with the next frame id and answers that id, waiting for nothing. */
+  readonly sendAndGoOn: (frame: object) => number;
+  /** Quits Talos cleanly and answers its exit code. */
+  readonly quit:        () => Promise<number>;
+}
+
 export interface ScratchTalos {
   readonly boardFolder:    string;
   readonly endpointOf:     (startNumber: number) => string;
@@ -55,6 +68,8 @@ export interface ScratchTalos {
   readonly connect:        (startNumber: number) => Promise<TalosProtocolClient>;
   /** Connected, with a `hello` of the given protocol and the secret sent and its `welcome` received. */
   readonly attach:         (startNumber: number) => Promise<TalosProtocolClient>;
+  /** Its start file written with the bounds given, Talos spawned and a client attached. */
+  readonly serve:          (startNumber: number, bounds?: Partial<TalosStartFile>) => Promise<ServingTalos>;
   /** A line launch of `bun -e <childScript>`, run in the board folder with the spec run's environment. */
   readonly lineLaunch:     (childFolder: string, instance: number, childScript: string, changes?: Partial<ChildLaunch>) => ChildLaunch;
   readonly talosRecordOf:  (startNumber: number) => TalosRecord | null;
@@ -93,35 +108,71 @@ export function createScratchTalos(): ScratchTalos {
     return reading.verdict === 'read' ? reading.record : null;
   };
   const talosLogOf = (startNumber: number): string => textOrAbsence(talosLogPathOf(boardFolder, startNumber));
+  const writeStartFile = (startNumber: number, bounds: Partial<TalosStartFile> = {}): void => {
+    const secretFilePath = join(monitorFolder, `talos-${startNumber}.secret`);
+    writeFileSync(secretFilePath, SCRATCH_TALOS_SECRET);
+    const startFile: TalosStartFile = {
+      formatVersion: TALOS_START_FILE_FORMAT_VERSION,
+      startNumber,
+      boardFolder,
+      endpoint:      endpointOf(startNumber),
+      secretFilePath,
+      codeVersion:   SCRATCH_TALOS_CODE_VERSION,
+      ...SCRATCH_TALOS_BOUNDS,
+      ...bounds,
+    };
+    const startFilePath = startFilePathOf(boardFolder, startNumber);
+    mkdirSync(dirname(startFilePath), { recursive: true });
+    writeFileSync(startFilePath, talosStartFileTextOf(startFile));
+  };
+  const spawnTalos = (startNumber: number): SpawnedTalos => Bun.spawn([process.execPath, TALOS_BINARY_PATH, boardFolder, String(startNumber)], {
+    stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', env: inheritedEnvironment()
+  });
+  const attach = async (startNumber: number): Promise<TalosProtocolClient> => {
+    const client = await connect(startNumber);
+    client.send({ kind: 'hello', requiredProtocolVersion: TALOS_PROTOCOL_VERSION, secret: SCRATCH_TALOS_SECRET });
+    await client.nextFrame((frame) => frame.kind === 'welcome');
+    return client;
+  };
+  const exitCodeOf = (talos: SpawnedTalos, startNumber: number): Promise<number> => {
+    // `exitCode` stays null for a Talos a signal ended; `exited` answers for both.
+    let exitCode: number | undefined;
+    void talos.exited.then((code) => {
+      exitCode = code;
+    });
+    return firstValueOf(() => exitCode, () => `Talos exiting; its log: ${talosLogOf(startNumber)}; its record: ${textOrAbsence(talosRecordPathOf(boardFolder, startNumber))}`);
+  };
   return {
     boardFolder,
     endpointOf,
-    writeStartFile: (startNumber, bounds = {}) => {
-      const secretFilePath = join(monitorFolder, `talos-${startNumber}.secret`);
-      writeFileSync(secretFilePath, SCRATCH_TALOS_SECRET);
-      const startFile: TalosStartFile = {
-        formatVersion: TALOS_START_FILE_FORMAT_VERSION,
-        startNumber,
-        boardFolder,
-        endpoint:      endpointOf(startNumber),
-        secretFilePath,
-        codeVersion:   SCRATCH_TALOS_CODE_VERSION,
-        ...SCRATCH_TALOS_BOUNDS,
-        ...bounds,
-      };
-      const startFilePath = startFilePathOf(boardFolder, startNumber);
-      mkdirSync(dirname(startFilePath), { recursive: true });
-      writeFileSync(startFilePath, talosStartFileTextOf(startFile));
-    },
-    spawnTalos: (startNumber) => Bun.spawn([process.execPath, TALOS_BINARY_PATH, boardFolder, String(startNumber)], {
-      stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', env: inheritedEnvironment()
-    }),
+    writeStartFile,
+    spawnTalos,
     connect,
-    attach: async (startNumber) => {
-      const client = await connect(startNumber);
-      client.send({ kind: 'hello', requiredProtocolVersion: TALOS_PROTOCOL_VERSION, secret: SCRATCH_TALOS_SECRET });
-      await client.nextFrame((frame) => frame.kind === 'welcome');
-      return client;
+    attach,
+    serve: async (startNumber, bounds = {}) => {
+      writeStartFile(startNumber, bounds);
+      const talos = spawnTalos(startNumber);
+      const client = await attach(startNumber);
+      let lastFrameId = 0;
+      const sendAndGoOn = (frame: object): number => {
+        lastFrameId += 1;
+        client.send({ ...frame, frameId: lastFrameId });
+        return lastFrameId;
+      };
+      const send = async (frame: object): Promise<DoneFrame> => {
+        const frameId = sendAndGoOn(frame);
+        return await client.nextFrame((received: TalosFrame) => received.kind === 'done' && received.frameId === frameId) as DoneFrame;
+      };
+      return {
+        talos,
+        client,
+        send,
+        sendAndGoOn,
+        quit: async () => {
+          await send({ kind: 'quit', reason: 'restart' });
+          return exitCodeOf(talos, startNumber);
+        },
+      };
     },
     lineLaunch: (childFolder, instance, childScript, changes = {}) => ({
       childFolder,
@@ -158,14 +209,7 @@ export function createScratchTalos(): ScratchTalos {
       return reading.verdict === 'read' ? reading.entries : [];
     },
     talosLogOf,
-    exitCodeOf: (talos, startNumber) => {
-      // `exitCode` stays null for a Talos a signal ended; `exited` answers for both.
-      let exitCode: number | undefined;
-      void talos.exited.then((code) => {
-        exitCode = code;
-      });
-      return firstValueOf(() => exitCode, () => `Talos exiting; its log: ${talosLogOf(startNumber)}; its record: ${textOrAbsence(talosRecordPathOf(boardFolder, startNumber))}`);
-    },
+    exitCodeOf,
     remove: async () => {
       await stopProcessesReachingInto(boardFolder);
       removeScratchDirectory(boardFolder);

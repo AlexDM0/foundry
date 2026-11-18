@@ -12,13 +12,16 @@ import type { DoneFrame, ReceivedClientFrame, WelcomeFrame } from './@types/Talo
 import {
   type ChildFrameVerdict,
   type ChildSpawnRequest,
+  type ChildStandardInput,
   type ChildSupervisor,
   createChildSupervisor,
   type SpawnedChild
 } from './ChildSupervisor.ts';
-import { createLaunchRegistry } from './LaunchRegistry.ts';
-import type { LocalEndpoint }   from './LocalEndpoint.ts';
-import { localEndpointFor }     from './LocalEndpointFor.ts';
+import { endAgentsAtTurnEnd, PERFORMANCE_TIMER, runCleanQuit } from './CleanQuit.ts';
+import { createLaunchRegistry }                                from './LaunchRegistry.ts';
+import type { LocalEndpoint }                                  from './LocalEndpoint.ts';
+import { localEndpointFor }                                    from './LocalEndpointFor.ts';
+import { createSupervisionLease }                              from './SupervisionLease.ts';
 import {
   createSynchronousCalls,
   type SynchronousCalls,
@@ -31,10 +34,15 @@ import {
   talosLogPathOf,
   talosRecordPathOf
 } from './TalosFiles.ts';
-import { type TalosQuitReason, type TalosRecord, talosRecordTextOf } from './TalosRecord.ts';
-import { type TalosSocketServer, listenOnTalosSocket }               from './TalosSocketServer.ts';
-import { type TalosStartFile, talosStartFileOf }                     from './TalosStartFile.ts';
-import { TALOS_PROTOCOL_VERSION, TALOS_RECORD_FORMAT_VERSION }       from './constants/TalosProtocol.ts';
+import {
+  type LeaseRenewer,
+  type TalosQuitReason,
+  type TalosRecord,
+  talosRecordTextOf
+} from './TalosRecord.ts';
+import { type TalosSocketServer, listenOnTalosSocket }         from './TalosSocketServer.ts';
+import { type TalosStartFile, talosStartFileOf }               from './TalosStartFile.ts';
+import { TALOS_PROTOCOL_VERSION, TALOS_RECORD_FORMAT_VERSION } from './constants/TalosProtocol.ts';
 
 const TALOS_DONE_EXIT_CODE    = 0;
 const TALOS_REFUSED_EXIT_CODE = 1;
@@ -59,13 +67,28 @@ export interface TalosClock {
   readonly wallNowMilliseconds: () => number;
 }
 
+/** A flush or an end may settle later; one that fails tells of a child already gone, which its exit reports. */
+function settleQuietly(outcome: unknown): void {
+  if (outcome instanceof Promise) outcome.catch(() => undefined);
+}
+
+function standardInputOf(sink: Bun.FileSink): ChildStandardInput {
+  return {
+    writeLine: (line) => {
+      sink.write(`${line}\n`);
+      settleQuietly(sink.flush());
+    },
+    close: () => settleQuietly(sink.end()),
+  };
+}
+
 function spawnChildWith(spawnOptions: SupervisedSpawnOptions): (request: ChildSpawnRequest) => SpawnedChild {
   return (request) => {
     const child = Bun.spawn({
       cmd:                      [...request.argv],
       cwd:                      request.workingDirectory,
       env:                      { ...request.environment },
-      stdin:                    'ignore',
+      stdin:                    request.takesInput ? 'pipe' : 'ignore',
       stdout:                   'pipe',
       stderr:                   'pipe',
       windowsVerbatimArguments: request.verbatimArguments,
@@ -73,6 +96,7 @@ function spawnChildWith(spawnOptions: SupervisedSpawnOptions): (request: ChildSp
     });
     return {
       processId:      child.pid,
+      standardInput:  typeof child.stdin === 'object' && child.stdin !== null ? standardInputOf(child.stdin) : null,
       standardOutput: child.stdout,
       standardError:  child.stderr,
       exited:         child.exited,
@@ -227,16 +251,46 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
     const quit = async (reason: TalosQuitReason): Promise<void> => {
       if (quitting) return;
       quitting = true;
-      await writeTalosRecord({ state: 'quitting', quitReason: reason });
-      await supervisor.pauseEveryLine();
-      if (tickTimer !== null) clearInterval(tickTimer);
-      server?.close();
-      await calls.releaseEndpoint(startFile.endpoint);
-      await writeTalosRecord({ state: 'quit' });
-      finish(TALOS_DONE_EXIT_CODE);
+      await runCleanQuit({
+        children:         supervisor,
+        waitMilliseconds: startFile.cleanQuitWaitMilliseconds,
+        timer:            PERFORMANCE_TIMER,
+        markQuitting:     () => writeTalosRecord({ state: 'quitting', quitReason: reason }),
+        finishQuit:       async () => {
+          if (tickTimer !== null) clearInterval(tickTimer);
+          server?.close();
+          await calls.releaseEndpoint(startFile.endpoint);
+          await writeTalosRecord({ state: 'quit' });
+          finish(TALOS_DONE_EXIT_CODE);
+        },
+      });
     };
     const quitAndFailOnThrow = (reason: TalosQuitReason): void => {
       quit(reason).catch(fail);
+    };
+
+    const lease = createSupervisionLease({
+      leaseMilliseconds:           startFile.leaseMilliseconds,
+      renewalIntervalMilliseconds: startFile.renewalIntervalMilliseconds,
+      tickMilliseconds:            startFile.tickMilliseconds,
+      tickGapMilliseconds:         startFile.tickGapMilliseconds,
+    }, clock.wallNowMilliseconds());
+    let lastRenewer: LeaseRenewer | null = null;
+    // Each change of standing, never each renewal, so a held lease costs no write.
+    const recordLeaseStandingWhenChanged = async (): Promise<void> => {
+      const standing = lease.standing();
+      if (standing !== record.lease.standing) await writeTalosRecord({ lease: { standing, lastRenewer } });
+    };
+    const tick = (): void => {
+      const wallNowMilliseconds = clock.wallNowMilliseconds();
+      supervisor.ticked(wallNowMilliseconds);
+      if (quitting) return;
+      const leaseEnded = lease.ticked(wallNowMilliseconds) === 'lease-ended';
+      recordLeaseStandingWhenChanged().catch(fail);
+      if (!leaseEnded) return;
+      endAgentsAtTurnEnd({
+        children: supervisor, reason: 'lease-ended', waitMilliseconds: startFile.cleanQuitWaitMilliseconds, timer: PERFORMANCE_TIMER
+      }).catch(fail);
     };
 
     const verdictOf = async (frame: ReceivedClientFrame): Promise<ChildFrameVerdict> => {
@@ -249,9 +303,11 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
         case 'stop-lines':
           return supervisor.stopLines();
         case 'input':
-          return supervisor.input(frame.childId);
+          return supervisor.input(frame.childId, frame.input);
         case 'lease-renewal':
-          // Talos holds no lease yet, so a renewal is taken and changes nothing.
+          lastRenewer = frame.renewer;
+          lease.renewed(clock.wallNowMilliseconds());
+          await recordLeaseStandingWhenChanged();
           return { verdict: 'done' };
         case 'quit':
           quitAndFailOnThrow(frame.reason);
@@ -281,7 +337,7 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
     }
     ({ server } = listening);
     await writeTalosRecord({ state: 'serving', endpoint: startFile.endpoint });
-    tickTimer = setInterval(() => supervisor.ticked(clock.wallNowMilliseconds()), startFile.tickMilliseconds);
+    tickTimer = setInterval(tick, startFile.tickMilliseconds);
   };
   serve().catch(fail);
   return exitCode;

@@ -5,17 +5,22 @@
 import { createHash } from 'node:crypto';
 import { join }       from 'node:path';
 
-import type { AgentAdapter }                                                          from '../agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan, StandingReply }                                        from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                                                    from '../agent-launch/AgentLaunchRequest.ts';
-import type { AgentDefinition, WorkerProfile }                                        from '../agent-launch/WorkerProfile.ts';
-import { PORTABLE_GIT_SETTINGS }                                                      from '../git/constants/GitConventions.ts';
-import { GitArgumentsUtil }                                                           from '../git/utils/GitArgumentsUtil.ts';
-import type { AgentHostFacts }                                                        from './AgentHostFacts.ts';
-import { agentHostFactsFor }                                                          from './AgentHostFactsFor.ts';
-import { CLAUDE_API_KEY_VARIABLE }                                                    from './ClaudeApiKeyVariable.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                              from './ClaudeConfigFolder.ts';
-import { CLAUDE_CODE_CAPABILITIES, CLAUDE_CODE_SESSION_ENDINGS, CLAUDE_STREAM_LINES } from './ClaudeStreamLines.ts';
+import type { AgentAdapter }                   from '../agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }                from '../agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }             from '../agent-launch/AgentLaunchRequest.ts';
+import type { AgentDefinition, WorkerProfile } from '../agent-launch/WorkerProfile.ts';
+import { PORTABLE_GIT_SETTINGS }               from '../git/constants/GitConventions.ts';
+import { GitArgumentsUtil }                    from '../git/utils/GitArgumentsUtil.ts';
+import type { AgentHostFacts }                 from './AgentHostFacts.ts';
+import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
+import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
+import {
+  CLAUDE_CODE_CAPABILITIES,
+  CLAUDE_CODE_SESSION_ENDINGS,
+  CLAUDE_CODE_STANDING_REPLIES,
+  CLAUDE_STREAM_LINES
+} from './ClaudeStreamLines.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
 const CLAUDE_PROGRAM_NAME = 'claude';
@@ -75,7 +80,6 @@ const UUID_VARIANT_MASK = 0b0011;
 const HEXADECIMAL_RADIX = 16;
 const LOOPBACK_DOMAINS = ['localhost', '127.0.0.1'] as const;
 const WEB_FETCH_TOOL_NAME = 'WebFetch';
-const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
 
 /** The session id a job keeps across every Watcher instance and resume: a UUID formatted from `sha256(scope + "\n" + jobId)`. */
 export function claudeSessionIdOf(scope: string, jobId: string): string {
@@ -309,16 +313,6 @@ function jsonTextOf(value: unknown): string {
 }
 
 /** Every permission request but a question is denied at once, so no session waits on a Watcher nobody watches. */
-const DENY_EVERY_PERMISSION_BUT_A_QUESTION: StandingReply = {
-  whenAllEqual:  { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
-  whenNoneEqual: { 'request.tool_name': QUESTION_TOOL_NAME },
-  replyTemplate: JSON.stringify({
-    type:     'control_response',
-    response: { subtype: 'success', request_id: '{{request-identifier}}', response: { behavior: 'deny', message: STANDING_DENIAL_MESSAGE } },
-  }),
-  requestIdentifierPath: 'request_id',
-};
-
 function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): AgentLaunchPlan {
   const pathOf = (fileName: string): string => join(request.jobFilesDirectory, fileName);
   const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_JOB_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
@@ -333,7 +327,7 @@ function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunc
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.role), text: request.roleBrief },
       ...reportSchemaFiles,
     ],
-    standingReplies: [DENY_EVERY_PERMISSION_BUT_A_QUESTION],
+    standingReplies: CLAUDE_CODE_STANDING_REPLIES,
     ...CLAUDE_CODE_SESSION_ENDINGS,
   };
 }

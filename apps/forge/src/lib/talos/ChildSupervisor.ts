@@ -1,11 +1,18 @@
 /**
- * The children of one Talos: each launched line runs under the port's spawn, its stdout lines go to its event log, its stderr to its log,
- * and its record follows it from `starting` to `ended`. A stop lists the tree first and signals it through the synchronous-calls thread; a
- * line past its time bound is stopped, the gaps in Talos's ticks added to its allowance and left out of its run time. It runs lines only.
+ * The children of one Talos: each launched child runs under the port's spawn, its stdout lines go to its event log, its stderr to its log,
+ * and its record follows it from `starting` to `ended`. An agent takes input, has its requests answered by its standing replies and its
+ * named endings recognised; what Talos does to its input or process goes to its event log first. A stop lists the tree first and signals
+ * it through the synchronous-calls thread; a line past its time bound is stopped, the gaps in Talos's ticks added to its allowance and left
+ * out of its run time. The clean quit's parts work over every child at once.
  */
-import type { ProcessIdentity }                       from '../process-identity/ProcessIdentity.ts';
-import type { ProcessStopStage, ProcessTreeMember }   from '../process-identity/ProcessSupervision.ts';
-import type { FrameRefusalReason, StateFrame }        from './@types/TalosFrame.ts';
+import type { ProcessIdentity }                     from '../process-identity/ProcessIdentity.ts';
+import type { ProcessStopStage, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';
+import type {
+  ChildInput,
+  ClientEntry,
+  FrameRefusalReason,
+  StateFrame
+} from './@types/TalosFrame.ts';
 import { childIdOf, childLaunchOf, type ChildLaunch } from './ChildLaunch.ts';
 import {
   type ChildEnd,
@@ -13,12 +20,16 @@ import {
   childRecordTextOf,
   type ChildState
 } from './ChildRecord.ts';
+import { createEndingRecognition, type EndingRecognition, type RecognisedEnding }                         from './EndingPatterns.ts';
 import type { EventOrigin }                                                                               from './EventLog.ts';
 import type { LaunchRegistry }                                                                            from './LaunchRegistry.ts';
+import { parsedLineOf }                                                                                   from './LineConditions.ts';
+import { standingReplyForParsedLine }                                                                     from './StandingReplies.ts';
 import { forEachLine }                                                                                    from './StreamLines.ts';
 import { gapLengthOf }                                                                                    from './SupervisionLease.ts';
 import type { SynchronousCalls }                                                                          from './SynchronousCallsClient.ts';
 import { type ChildFiles, childFilesOf }                                                                  from './TalosFiles.ts';
+import { clientEntryLineOf }                                                                              from './TalosFrames.ts';
 import { CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS, CHILD_RECORD_FORMAT_VERSION, EVENT_LOG_FORMAT_VERSION } from './constants/TalosProtocol.ts';
 
 const TREE_SWEEP_INTERVAL_MILLISECONDS = 100;
@@ -29,11 +40,20 @@ export interface ChildSpawnRequest {
   readonly workingDirectory:  string;
   readonly environment:       Readonly<Record<string, string>>;
   readonly verbatimArguments: boolean;
+  /** An agent's stdin is piped; a line's is closed. */
+  readonly takesInput:        boolean;
 }
 
-/** A child as the spawn port gives it: its stdin is closed, its stdout and stderr are piped. */
+/** A child's piped stdin; either call may throw once the child closed it or ended. */
+export interface ChildStandardInput {
+  readonly writeLine: (line: string) => void;
+  readonly close:     () => void;
+}
+
+/** A child as the spawn port gives it: its stdin piped when it takes input and closed otherwise, its stdout and stderr piped. */
 export interface SpawnedChild {
   readonly processId:      number;
+  readonly standardInput:  ChildStandardInput | null;
   readonly standardOutput: ReadableStream<Uint8Array>;
   readonly standardError:  ReadableStream<Uint8Array> | null;
   readonly exited:         Promise<number | null>;
@@ -65,24 +85,50 @@ export type ChildFrameVerdict =
   | { verdict: 'done' | 'already-done' }
   | { verdict: 'refused'; reason: FrameRefusalReason };
 
-export interface ChildSupervisor {
-  /** Answers once the child runs, or once it ended without running. */
-  readonly launch:         (launchValue: unknown) => Promise<ChildFrameVerdict>;
-  readonly stop:           (childId: string, graceMilliseconds: number) => ChildFrameVerdict;
-  readonly input:          (childId: string) => ChildFrameVerdict;
-  readonly stopLines:      () => ChildFrameVerdict;
-  readonly ticked:         (wallNowMilliseconds: number) => void;
-  /** The clean quit's part for lines: launches in flight finish, then every live line is stopped at once and ends `paused`. */
-  readonly pauseEveryLine: () => Promise<void>;
+/** Why Talos asked an agent to quit at the end of its turn: a clean quit, or a supervision lease nobody renewed. */
+export type AgentQuitReason = 'paused' | 'lease-ended';
+
+/** The agents one quit act went to, and only those: an agent launched while their wait runs is none of theirs. */
+export interface AgentsAskedToQuit {
+  /** Stops each of them still live and unstopped at once; it ends for the reason its quit act noted. */
+  readonly stopLive:     () => void;
+  /** Settles once each of their ends is recorded and its stop sent its last signal. */
+  readonly endsRecorded: () => Promise<void>;
 }
 
-type EndReasonOverride = 'time-bound' | 'paused';
+/** The children as the clean quit works over them; every part leaves alone a child whose stop was already asked for. */
+export interface QuittingChildren {
+  /** Refuses every later launch with `quitting` and settles once the launches in flight answered. */
+  readonly refuseLaunches:          () => Promise<void>;
+  /** Stops every live line at once; each ends `paused`. */
+  readonly pauseLiveLines:          () => void;
+  /** Applies each live agent's quit act once, the act first in its event log, and notes the reason it ends for. */
+  readonly quitLiveAgentsAtTurnEnd: (reason: AgentQuitReason) => AgentsAskedToQuit;
+  /** Settles once every child's end is recorded and its stop sent its last signal. */
+  readonly everyEndRecorded:        () => Promise<void>;
+}
+
+export interface ChildSupervisor extends QuittingChildren {
+  /** Answers once the child runs, or once it ended without running. */
+  readonly launch:    (launchValue: unknown) => Promise<ChildFrameVerdict>;
+  readonly stop:      (childId: string, graceMilliseconds: number) => ChildFrameVerdict;
+  /** Answers once the input is in the agent's event log and applied. */
+  readonly input:     (childId: string, input: ChildInput) => Promise<ChildFrameVerdict>;
+  readonly stopLines: () => ChildFrameVerdict;
+  readonly ticked:    (wallNowMilliseconds: number) => void;
+}
+
+type EndReasonOverride = 'time-bound' | AgentQuitReason;
 
 interface SupervisedChild {
   readonly childId:                string;
   readonly launch:                 ChildLaunch;
   readonly files:                  ChildFiles;
+  /** `null` for a line, which nothing reads for an ending. */
+  readonly recognition:            EndingRecognition | null;
   record:                          ChildRecord;
+  standardInput:                   ChildStandardInput | null;
+  quitActApplied:                  boolean;
   leader:                          ProcessIdentity | null;
   /** The tree at its last listing: what still reaches a group once the child that parented it died. */
   treeMembers:                     readonly ProcessTreeMember[];
@@ -113,29 +159,58 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
   const children = new Map<string, SupervisedChild>();
   const launchesInFlight = new Set<Promise<unknown>>();
   let lastTickWallMilliseconds = context.wallNowMilliseconds();
-  let pausing = false;
+  let launchesRefused = false;
+  let markQuittingBegun = (): void => undefined;
+  const quittingBegun = new Promise<void>((resolve) => {
+    markQuittingBegun = resolve;
+  });
 
   const isLive = (child: SupervisedChild): boolean => child.record.state !== 'ended' && !child.exited;
+  const isAgent = (child: SupervisedChild): boolean => child.launch.kind === 'agent';
 
   function logLine(text: string): void {
     void calls.appendText(context.talosLogPath, `${text}\n`);
   }
 
-  /** Written first, then broadcast, so a client that hears of a state reads it in the record. */
-  async function changeRecord(child: SupervisedChild, changes: Partial<ChildRecord>): Promise<void> {
-    child.record = { ...child.record, ...changes };
-    const changedRecord = child.record;
-    await calls.writeRecord(child.files.recordPath, childRecordTextOf(changedRecord), false);
+  function broadcastStateOf(child: SupervisedChild, recognisedEnding: RecognisedEnding | null): void {
+    const { state, end } = child.record;
     context.broadcastState({
-      kind: 'state', childId: child.childId, state: changedRecord.state, end: changedRecord.end, recognisedEnding: null
+      kind: 'state', childId: child.childId, state, end, recognisedEnding
     });
   }
 
-  function appendEvent(child: SupervisedChild, origin: EventOrigin, line: string): void {
+  /** Written first, then broadcast, so a client that hears of a state reads it in the record. */
+  async function changeRecord(child: SupervisedChild, changes: Partial<ChildRecord>): Promise<void> {
+    child.record = { ...child.record, ...changes };
+    await calls.writeRecord(child.files.recordPath, childRecordTextOf(child.record), false);
+    broadcastStateOf(child, null);
+  }
+
+  /** The sequence is taken at once, so the queue to the thread keeps the log in the order the main thread saw. */
+  function appendEvent(child: SupervisedChild, origin: EventOrigin, line: string): Promise<unknown> {
     child.lastSequence += 1;
-    void calls.appendEvent(child.files.eventLogPath, {
+    return calls.appendEvent(child.files.eventLogPath, {
       sequence: child.lastSequence, origin, line, at: context.stampNow()
     });
+  }
+
+  function appendClientEntry(child: SupervisedChild, entry: ClientEntry): Promise<unknown> {
+    return appendEvent(child, 'client', clientEntryLineOf(entry));
+  }
+
+  /** A child that closed its stdin or ended answers through its exit, never through this. */
+  function actOnStandardInput(child: SupervisedChild, act: (standardInput: ChildStandardInput) => void): void {
+    if (child.standardInput === null) return;
+    try {
+      act(child.standardInput);
+    } catch {
+      // The input is already closed, by an earlier act or by the child's end.
+    }
+  }
+
+  function applyInput(child: SupervisedChild, input: ChildInput): void {
+    if (input.act === 'write-line') actOnStandardInput(child, (standardInput) => standardInput.writeLine(input.line));
+    else actOnStandardInput(child, (standardInput) => standardInput.close());
   }
 
   /** This listing, or `[]` when it cannot be read: the kept listing only finds groups again, because a signal needs a fresh answer. */
@@ -165,16 +240,37 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     }
   }
 
-  /** The tree is listed first, because the walk through parent ids finds nothing once the child died; `ask` and `force` follow, each after the grace. */
-  function stopChild(child: SupervisedChild, graceMilliseconds: number): void {
+  /** The grace of a tree stop at an agent's end, over at once when a quit begins: a quit is bounded by its own wait and the sweep alone. */
+  function treeStopAtEndGraceElapsed(graceMilliseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(resolve, graceMilliseconds);
+      void quittingBegun.then(() => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * The tree is listed first, because the walk through parent ids finds nothing once the child died, and an agent's stdin is closed next;
+   * `ask` and `force` follow, each after the grace. An agent's stop is in its event log before any of it.
+   */
+  function stopChild(
+    child: SupervisedChild,
+    graceMilliseconds: number,
+    graceElapsed: (milliseconds: number) => Promise<unknown> = (milliseconds) => Bun.sleep(milliseconds),
+  ): void {
     if (child.stopSignalsSent !== null) return;
+    const entryAppended = isAgent(child) && isLive(child) ? appendClientEntry(child, { act: 'stop', graceMilliseconds }) : Promise.resolve();
     if (isLive(child)) void changeRecord(child, { state: 'stopping' });
     child.stopSignalsSent = (async (): Promise<void> => {
+      await entryAppended;
       await child.running;
       await listTree(child);
-      await Bun.sleep(graceMilliseconds);
+      actOnStandardInput(child, (standardInput) => standardInput.close());
+      await graceElapsed(graceMilliseconds);
       await stopTree(child, 'ask');
-      await Bun.sleep(graceMilliseconds);
+      await graceElapsed(graceMilliseconds);
       await sweepTree(child);
     })();
     child.stopSignalsSent.catch(context.fail);
@@ -201,6 +297,28 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     if (tail !== '') void calls.appendText(standardErrorPath, tail);
   }
 
+  /**
+   * An agent's line is parsed once: its standing reply, if one answers it, follows the line in the log and goes to the child. A recognised
+   * ending is queued to the record before the line to the log, so a reader that finds the line in the log finds the ending in the record
+   * read after it; the state frame that names it goes once both are written.
+   */
+  function consumeAgentLine(child: SupervisedChild, line: string): void {
+    const parsed = parsedLineOf(line);
+    const recognisedEnding = child.recognition?.observe(parsed, child.lastSequence + 1) ?? null;
+    if (recognisedEnding === null) {
+      void appendEvent(child, 'agent', line);
+    } else {
+      child.record = { ...child.record, recognisedEndings: [...child.record.recognisedEndings, recognisedEnding] };
+      const recordWritten = calls.writeRecord(child.files.recordPath, childRecordTextOf(child.record), false);
+      const lineAppended = appendEvent(child, 'agent', line);
+      void Promise.all([recordWritten, lineAppended]).then(() => broadcastStateOf(child, recognisedEnding));
+    }
+    const reply = standingReplyForParsedLine(parsed, child.launch.standingReplies);
+    if (reply === null) return;
+    void appendEvent(child, 'talos', reply);
+    actOnStandardInput(child, (standardInput) => standardInput.writeLine(reply));
+  }
+
   /** The gap since the later of the last tick and the spawn, so time before a child ran is never left out of its run. */
   function gapSinceLastTickOf(child: SupervisedChild, wallNowMilliseconds: number): number {
     const from = Math.max(lastTickWallMilliseconds, child.spawnWallMilliseconds ?? lastTickWallMilliseconds);
@@ -211,7 +329,7 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     // Taken as the child ends: a descendant can hold stdout open past that, and a force after the child's own end is no cause of it.
     const forcedStopRanAtTheEnd = spawned.exited.then(() => child.forcedStopRan);
     const standardErrorAppended = appendStandardError(spawned.standardError, child.files.standardErrorPath);
-    await forEachLine(spawned.standardOutput, (line) => appendEvent(child, 'agent', line));
+    await forEachLine(spawned.standardOutput, (line) => (isAgent(child) ? consumeAgentLine(child, line) : void appendEvent(child, 'agent', line)));
     const exitCode = await spawned.exited;
     child.exited = true;
     // A descendant may keep stderr open past the child's end, so the wait is bounded; later bytes still reach the log.
@@ -228,6 +346,12 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
       detail:          null,
       runMilliseconds: Math.max(0, runMilliseconds),
     });
+    // An agent that ended with no stop asked for can leave a group of its own running below it. One that ended on its quit act is swept at
+    // once, since a quit or a lease's end waits for that sweep.
+    const treeStopGrace = child.launch.treeStopAtEndGraceMilliseconds;
+    if (isAgent(child) && child.stopSignalsSent === null && treeStopGrace !== null) {
+      stopChild(child, child.quitActApplied ? 0 : treeStopGrace, treeStopAtEndGraceElapsed);
+    }
   }
 
   function startedRecordOf(launch: ChildLaunch, childId: string): ChildRecord {
@@ -254,7 +378,10 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
       childId,
       launch,
       files:                           childFilesOf(context.boardFolder, launch.childFolder, launch.instance),
+      recognition:                     launch.kind === 'agent' ? createEndingRecognition(launch.closingLine, launch.endingPatterns) : null,
       record:                          startedRecordOf(launch, childId),
+      standardInput:                   null,
+      quitActApplied:                  false,
       leader:                          null,
       treeMembers:                     [],
       stopSignalsSent:                 null,
@@ -279,6 +406,7 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
         workingDirectory:  launch.workingDirectory,
         environment:       childEnvironmentOf(launch, context.ownVariableOf),
         verbatimArguments: launch.verbatimArguments,
+        takesInput:        launch.kind === 'agent',
       });
     } catch (error) {
       children.set(childId, child);
@@ -288,6 +416,7 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
       });
       return { verdict: 'done' };
     }
+    child.standardInput = spawned.standardInput;
     child.spawnWallMilliseconds = context.wallNowMilliseconds();
     if (launch.timeBoundMilliseconds !== null) child.allowanceEndsAtWallMilliseconds = child.spawnWallMilliseconds + launch.timeBoundMilliseconds;
     children.set(childId, child);
@@ -306,12 +435,10 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
   }
 
   async function launchOf(launchValue: unknown): Promise<ChildFrameVerdict> {
-    if (pausing) return { verdict: 'refused', reason: 'quitting' };
+    if (launchesRefused) return { verdict: 'refused', reason: 'quitting' };
     const reading = childLaunchOf(launchValue, context.boardFolder);
     if (reading.verdict === 'refused') return { verdict: 'refused', reason: reading.reason };
     const { launch } = reading;
-    // This supervisor runs lines only, so an agent's launch is one it cannot carry out.
-    if (launch.kind === 'agent') return { verdict: 'refused', reason: 'malformed-launch' };
     const registration = context.launchRegistry.registered(launch);
     if (registration.verdict === 'already-launched') return { verdict: 'already-done' };
     await registration.appended;
@@ -323,6 +450,16 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     if (child === undefined) return { verdict: 'refused', reason: 'unknown-child' };
     if (!isLive(child) || child.stopSignalsSent !== null) return { verdict: 'already-done' };
     stopChild(child, graceMilliseconds);
+    return { verdict: 'done' };
+  }
+
+  async function input(childId: string, childInput: ChildInput): Promise<ChildFrameVerdict> {
+    const child = children.get(childId);
+    if (child === undefined) return { verdict: 'refused', reason: 'unknown-child' };
+    if (!isAgent(child)) return { verdict: 'refused', reason: 'kind-takes-no-input' };
+    if (!isLive(child)) return { verdict: 'refused', reason: 'child-ended' };
+    await appendClientEntry(child, childInput);
+    applyInput(child, childInput);
     return { verdict: 'done' };
   }
 
@@ -340,6 +477,29 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     lastTickWallMilliseconds = wallNowMilliseconds;
   }
 
+  /** Live children of a kind whose stop nobody asked for: the ones a part of the clean quit acts on. */
+  function unstoppedLiveChildrenOf(kind: ChildLaunch['kind']): readonly SupervisedChild[] {
+    return [...children.values()].filter((child) => child.launch.kind === kind && isLive(child) && child.stopSignalsSent === null);
+  }
+
+  function quitAtTurnEnd(child: SupervisedChild, reason: AgentQuitReason): void {
+    if (child.quitActApplied) return;
+    child.quitActApplied = true;
+    child.endReasonOverride ??= reason;
+    const { quitAtTurnEnd: quitAct } = child.launch;
+    // An agent with no quit act runs on until the wait ends and it is stopped.
+    if (quitAct === null) return;
+    const input: ChildInput = quitAct.act === 'write-line' ? { act: 'write-line', line: quitAct.line } : { act: 'close' };
+    void appendClientEntry(child, input).then(() => applyInput(child, input));
+  }
+
+  function endsRecordedOf(supervisedChildren: readonly SupervisedChild[]): Promise<void> {
+    return Promise.all(supervisedChildren.map(async (child) => {
+      await child.ended;
+      await child.stopSignalsSent;
+    })).then(() => undefined);
+  }
+
   return Object.freeze({
     launch: (launchValue: unknown) => {
       const launching = launchOf(launchValue);
@@ -348,21 +508,33 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
       return launching;
     },
     stop,
-    input:     (childId: string): ChildFrameVerdict => ({ verdict: 'refused', reason: children.has(childId) ? 'kind-takes-no-input' : 'unknown-child' }),
+    input,
     stopLines: (): ChildFrameVerdict => {
       for (const child of children.values()) if (child.launch.kind === 'line' && isLive(child)) stopChild(child, 0);
       return { verdict: 'done' };
     },
     ticked,
-    pauseEveryLine: async () => {
-      pausing = true;
+    refuseLaunches: async () => {
+      launchesRefused = true;
+      markQuittingBegun();
       await Promise.all([...launchesInFlight]);
-      for (const child of children.values()) {
-        if (!isLive(child) || child.stopSignalsSent !== null) continue;
+    },
+    pauseLiveLines: () => {
+      for (const child of unstoppedLiveChildrenOf('line')) {
         child.endReasonOverride = 'paused';
         stopChild(child, 0);
       }
-      await Promise.all([...children.values()].flatMap((child) => [child.ended, child.stopSignalsSent ?? Promise.resolve()]));
     },
+    quitLiveAgentsAtTurnEnd: (reason: AgentQuitReason): AgentsAskedToQuit => {
+      const agentsAskedToQuit = unstoppedLiveChildrenOf('agent');
+      for (const child of agentsAskedToQuit) quitAtTurnEnd(child, reason);
+      return Object.freeze({
+        stopLive: () => {
+          for (const child of agentsAskedToQuit) if (isLive(child) && child.stopSignalsSent === null) stopChild(child, 0);
+        },
+        endsRecorded: () => endsRecordedOf(agentsAskedToQuit),
+      });
+    },
+    everyEndRecorded: () => endsRecordedOf([...children.values()]),
   });
 }

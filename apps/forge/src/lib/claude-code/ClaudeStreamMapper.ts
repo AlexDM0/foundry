@@ -14,7 +14,7 @@ type StreamRecord = Readonly<Record<string, unknown>>;
 
 const INPUT_SUMMARY_CHARACTERS = 200;
 const MILLISECONDS_PER_SECOND = 1000;
-const QUESTION_TOOL_NAME = 'AskUserQuestion';
+export const QUESTION_TOOL_NAME = 'AskUserQuestion';
 /** The `subtype` of the result a session stopped at `--max-budget-usd` prints. */
 const BUDGET_STOP_SUBTYPE = 'error_max_budget_usd';
 const RATE_LIMITED_STATUS = 429;

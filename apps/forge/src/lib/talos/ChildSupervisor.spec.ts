@@ -122,6 +122,7 @@ function fakeChildRun(options: { endsAtOnce: boolean; holdIdentity: boolean }): 
     launchRegistry: createLaunchRegistry(`${BOARD_FOLDER}/talos/launches-1.ndjson`, calls.appendText),
     spawnChild:     () => ({
       processId:     CHILD_PROCESS_ID,
+      standardInput: null,
       standardOutput,
       standardError: null,
       exited,
@@ -172,7 +173,11 @@ test('a clean quit asked while a launch reads the identity stops that child and 
   const launching = run.supervisor.launch(LINE_LAUNCH);
   await waitUntil(run.identityAsked, 'the launch asks for the child\'s identity');
   expect(run.supervisor.stop(CHILD_ID, 0)).toEqual({ verdict: 'done' });
-  const pausing = run.supervisor.pauseEveryLine();
+  const pausing = (async (): Promise<void> => {
+    await run.supervisor.refuseLaunches();
+    run.supervisor.pauseLiveLines();
+    await run.supervisor.everyEndRecorded();
+  })();
   await Bun.sleep(IDENTITY_HELD_PAST_A_LEADERLESS_STOP_MILLISECONDS);
   run.releaseIdentity();
   await launching;

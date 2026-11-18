@@ -22,7 +22,7 @@ function parsedObjectOf(line: string): Record<string, unknown> | null {
   }
 }
 
-function valueAtDottedPath(record: Record<string, unknown>, dottedPath: string): unknown {
+function valueAtDottedPath(record: Readonly<Record<string, unknown>>, dottedPath: string): unknown {
   return dottedPath.split('.').reduce<unknown>((value, key) => (typeof value === 'object' && value !== null && Object.hasOwn(value, key)
     ? (value as Record<string, unknown>)[key]
     : undefined), record);
@@ -33,7 +33,11 @@ function valueAtDottedPath(record: Record<string, unknown>, dottedPath: string):
  * request identifier path its template needs is never answered, so whatever no rule names, a question above all, waits for the Overseer.
  */
 export function standingReplyFor(line: string, standingReplies: readonly StandingReply[]): string | null {
-  const record = parsedObjectOf(line);
+  return standingReplyForParsedLine(parsedObjectOf(line), standingReplies);
+}
+
+/** `standingReplyFor` over a line already parsed, `null` standing for a line that is not a JSON object. */
+export function standingReplyForParsedLine(record: Readonly<Record<string, unknown>> | null, standingReplies: readonly StandingReply[]): string | null {
   if (record === null) return null;
   const holds = (path: string, value: string | boolean): boolean => valueAtDottedPath(record, path) === value;
   const matchingRule = standingReplies.find((rule) => Object.entries(rule.whenAllEqual).every(([path, value]) => holds(path, value))
