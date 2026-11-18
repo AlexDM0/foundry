@@ -77,7 +77,7 @@ packages/system-versions/   version comparison, for both apps and the contract
     content hash and agents build from that, so it holds also where a store lets the text change behind forge.
     Committed is a recorded state of the ticket, never a lock a process holds, so a crashed Hephaestus leaves nothing
     to release. The store's own write lock is taken over from a holder that is no longer alive, judged by the process
-    and not by the lock's age, and a crash case holds that. A committed ticket no agent has picked up can be put back into `draft`, as a `pending` ticket can today, and is edited there; once an agent has picked it up, its work is stopped first, by the moves the Board has today.
+    and not by the lock's age, and a crash case holds that. A committed ticket no agent has picked up can be put back into `draft`, as a `pending` ticket can today, and is edited there. It becomes committed again only through the human review, like any draft: there is no way back to committed that skips the review. Once an agent has picked it up, its work is stopped first, by the moves the Board has today.
 
 ## The run's calls a user would notice
 
