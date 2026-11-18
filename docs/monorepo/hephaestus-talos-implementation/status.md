@@ -29,7 +29,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-D | WP1.1 | landed | a99381c1 | Migration checklist closed, no open item |
 | 0-E | WP1.2 | landed | (no commit) | Six ticket worktrees removed, their branches kept, uncommitted work saved as patches; `entities/integration` and `claude/project-thread-dw1bcu` gone. `main` still `e9b5d057`. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-1/` |
 | 0-F | Refresh the plan | landed | | Ran before 0-A on the owner's word; stage files now checked against `0a648b2b`. Runs again only if WP1.2 lands another branch |
-| 0-G | WP1.3 | waiting | | |
+| 0-G | WP1.3 | landed | (no commit) | Stage 0-1 gate green at `046794d5` (and `710ae4f9`, a status-only change): verify, cold `verify -- --force` (30/30, forge 8639 pass), `gate:forge`, `gate:gaia`, the five named specs, repository state; `main` still `e9b5d057` |
 | 2-A | WP2.1 | waiting | | |
 | 2-A | WP2.2 | waiting | | |
 | 2-A | WP2.3 | waiting | | |
@@ -139,6 +139,20 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 9-A | WP9.3 | waiting | | |
 | 9-A | WP9.4 | waiting | | |
 | 9-A | WP9.5 | waiting | | |
+
+## For tomorrow, with real sessions
+
+The owner's word for the night (2026-11-18): "build all you can, we can test with actual sessions tomorrow". Steps that
+need a real `claude` session are skipped and listed here.
+
+- G1's second half: the fake agent's outage scenario, `bun run record src/testing/fake-agent/` (after WP2.2).
+
+## Assumptions to confirm
+
+The owner's word for the night: "make a best effort guess on how that works during build if needed to continue". Each
+guess: what was assumed, what it rests on, the package and code that builds on it, how to confirm it.
+
+(none yet)
 
 ## Where the code differed from a stage file
 
