@@ -914,13 +914,24 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
   test('a worktree folder no job or branch owns opens leftover-worktree to User once, however often the Overseer starts', async () => {
     const worktreesRoot = join(repository, PRODUCT_NAMES.WORKTREES_FOLDER);
     mkdirSync(join(worktreesRoot, 'ticket-999'), { recursive: true });
-    mkdirSync(join(worktreesRoot, 'pipeline-agent', 'J9'), { recursive: true });
     // The worktree a branch owns is the flow's ticket worktree, which git lists once the stage "worktree made" is entered.
     mkdirSync(join(worktreesRoot, RECORDED_FLOW_TICKET_BRANCH), { recursive: true });
     recordedGit.enterFlowStage('worktree made', repository);
+    let openSetupId = '';
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.setOverseerState('paused', change.at); },
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => {
+        change.board.setOverseerState('paused', change.at);
+        const opening = {
+          mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+        } as const;
+        openSetupId = change.board.openSetup(opening, change.at).setup.setupId;
+      },
     });
+    // The open record holds its snapshot, so the snapshot sweep leaves it and only the leftover check could name it.
+    mkdirSync(join(worktreesRoot, 'pipeline-agent', openSetupId), { recursive: true });
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
 
     const report = await (await startedOverseer(adapter)).regroup();
