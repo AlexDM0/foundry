@@ -183,3 +183,49 @@ describe('flint-brain-turn (P22, Claude Code 2.1.323)', () => {
     expect(Number(objectAt(result, 'usage')['output_tokens'])).toBeGreaterThan(0);
   });
 });
+
+function retryLinesOf(records: readonly StreamRecord[]): StreamRecord[] {
+  return recordsOfType(records, 'system').filter((record) => record['subtype'] === 'api_retry');
+}
+
+describe('network-outage-retries-spent (P23, Claude Code 2.1.327)', () => {
+  const stdout = recordsOf('network-outage-retries-spent.stdout.jsonl');
+  const retryLines = retryLinesOf(stdout);
+
+  test('holds at least one api_retry system line, each with a numeric attempt and max_retries', () => {
+    expect(retryLines.length).toBeGreaterThanOrEqual(1);
+    for (const retryLine of retryLines) {
+      expect(typeof retryLine['attempt']).toBe('number');
+      expect(typeof retryLine['max_retries']).toBe('number');
+    }
+  });
+
+  test('counts its attempts up by one from 1 under one max_retries, the last attempt equal to it', () => {
+    expect(retryLines.map((retryLine) => retryLine['attempt'])).toEqual(retryLines.map((_retryLine, index) => index + 1));
+    const maximumRetries = retryLines[0]?.['max_retries'];
+    expect(retryLines.every((retryLine) => retryLine['max_retries'] === maximumRetries)).toBe(true);
+    expect(retryLines.at(-1)?.['attempt']).toBe(maximumRetries);
+  });
+
+  test('ends in one result line with is_error true, though its subtype says success', () => {
+    const result = onlyResult(stdout);
+    expect(stdout.at(-1)).toBe(result);
+    expect(result['is_error']).toBe(true);
+    expect(result['subtype']).toBe('success');
+  });
+
+  test('names its API failure in fields: api_error connection_failed, no api_error_status, terminal_reason api_error', () => {
+    const result = onlyResult(stdout);
+    expect(result['api_error']).toBe('connection_failed');
+    expect(result['api_error_status']).toBeNull();
+    expect(result['terminal_reason']).toBe('api_error');
+  });
+
+  test('cannot be read as a usage limit: no rate_limit_event is rejected, and no api_retry line has the 429 or rate_limit form', () => {
+    for (const rateLimitEvent of recordsOfType(stdout, 'rate_limit_event')) expect(objectAt(rateLimitEvent, 'rate_limit_info')['status']).toBe('allowed');
+    for (const retryLine of retryLines) {
+      expect(retryLine['error_status']).not.toBe(429);
+      expect(retryLine['error']).not.toBe('rate_limit');
+    }
+  });
+});

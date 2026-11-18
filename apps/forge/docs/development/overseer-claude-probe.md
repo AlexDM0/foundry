@@ -363,7 +363,7 @@ as behaviour.
 ## The probe record
 
 **P1 to P17 are what Claude Code 2.1.311 did on 2026-10-27; P18 to P21 what Claude Code 2.1.323 and Turborepo 2.11.10
-did on 2026-11-15.** Past tense is deliberate: each entry reports a run.
+did on 2026-11-15; P23 what Claude Code 2.1.327 did on 2026-11-18.** Past tense is deliberate: each entry reports a run.
 
 ### Reading the record
 
@@ -402,10 +402,10 @@ its stand-in variables.
 
 ### The committed fixtures
 
-**Six recorded sessions are portable, each a `.stdout.jsonl` and `.stdin.jsonl` pair** in
+**Eight recorded sessions are portable, each a `.stdout.jsonl` and `.stdin.jsonl` pair** in
 `src/lib/claude-code/testing/fixtures/`. `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` holds what each was recorded
 to show, and `src/lib/claude-code/ClaudeStreamMapper.spec.ts` replays all but
-`mid-turn-line-folded`. Their paths and the init record's skill, command and plugin
+`flint-brain-turn` and `network-outage-retries-spent`. Their paths and the init record's skill, command and plugin
 lists are synthetic.
 
 | Fixture | Probe | Shows |
@@ -416,6 +416,8 @@ lists are synthetic.
 | `mid-turn-line-folded` | P8 | Two lines in, one `result` out, no stdout record of the fold |
 | `rate-limit-rejected` | P10 | A top-level `rejected` and a 429 `result` with `subtype` `success` |
 | `rate-limit-window-rejected-under-allowed` | P10 | A rejected window under allowed overage |
+| `flint-brain-turn` | P22 | One digest line answered by a session that knows only `StructuredOutput`, with an intent and an emote |
+| `network-outage-retries-spent` | P23 | Ten `api_retry` lines and an error `result` with `api_error` `connection_failed` |
 
 ### P1: a live answer by `control_response`
 
@@ -860,6 +862,46 @@ after an edit, `--cache=local:r` missed and ran, still writing nothing (`turbo-l
 </details>
 
 For the monorepo: the flag reads hits and never writes, as the migration's earlier lab run found.
+
+### P23: a session whose retries ran out on a network outage
+
+<details>
+<summary>What the run showed</summary>
+
+The owner ran two sessions of Claude Code 2.1.327 on macOS 26.7.1 in a scratch repository, `/tmp/outage-probe/repo`,
+outside every tracked repository, under `env -i HOME PATH USER`:
+`claude -p --input-format stream-json --output-format stream-json --verbose --model haiku --permission-mode acceptEdits
+--allowedTools Bash`. The one input line asked for `ping -c 61 127.0.0.1` through the Bash tool, to keep the turn open;
+2.1.327 blocks a standalone `sleep` in its Bash tool. The owner turned the network off once the `tool_use` line came and
+on again after the `result` line. The owner's notes name the login kind a subscription, which the `init` line's
+`apiKeySource` `none` agrees with. The logs are in `.claude/.evidence/hephaestus-talos/stage-0/outage/` of the main
+checkout, which git ignores.
+
+- **Recording A, the default retries** (`a.stdout.jsonl`, the fixture `network-outage-retries-spent`): the ping ran
+  about a minute, 63.2 seconds from `tool_use` to `tool_result`, and returned. The next request failed, and ten
+  `system` lines of subtype `api_retry` followed, `attempt` 1 to 10, each with `max_retries` 10, `error_status` null
+  and `error` `unknown`, and no `no_response` key.
+  `retry_delay_ms` rose from 551 to 36483 and stayed between 32289 and 37588 from the seventh on, 173936 in all. Then
+  came an `assistant` line with `model` `<synthetic>`, `is_api_error_message` true, `error` `server_error` and
+  `api_error` `connection_failed`, and the stream ended on one `result` line: `is_error` true, `subtype` `success`,
+  `api_error` `connection_failed`, `api_error_status` null, `terminal_reason` `api_error`, `stop_reason`
+  `stop_sequence`, and the text "API Error: Can't reach the API server" with `ENOTFOUND`.
+- **How long A's retries took:** the `api_retry` and `result` lines carry no timestamp. From the tool result's
+  timestamp, after which the first retried request went out, to the synthetic `assistant` line just before the result,
+  181.6 seconds passed; the result's `duration_ms` for the whole session was 245790.
+- **One `rate_limit_event` came before the outage,** after the first answer: `status` `allowed` on the `seven_day`
+  window. No `api_retry` line had `error_status` 429 or `error` `rate_limit`.
+- **Recording B, `CLAUDE_CODE_MAX_RETRIES=2`** (`b.stdout.jsonl`, not committed): two `api_retry` lines, `attempt` 1 and
+  2, each with `max_retries` 2, `error` `unknown` and `error_status` null, then the same synthetic `assistant` line and
+  the same `result` fields as A. From the tool result to the synthetic `assistant` line 14.5 seconds passed, the
+  `retry_delay_ms` summing to 1680. The setting bounded the session's retries to its 2.
+- Both `stderr` logs were empty.
+
+</details>
+
+Selects: Talos's network-outage pattern matches the result's fields (`is_error` true, `api_error` `connection_failed`,
+`terminal_reason` `api_error`) and the count of `api_retry` lines, never the result text; `subtype` `success` says
+nothing, and a `rate_limit_event` whose `status` is `allowed` does not make the ending a usage limit.
 
 ### Not answered on 2026-11-15
 
