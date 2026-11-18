@@ -198,9 +198,9 @@ changes nothing under `apps/` or `packages/` since `0a648b2b`, when `entities/in
 | The registry entry Gaia reads | `apps/gaia/src/adapters/forge-registry/@types/RegisteredForge.ts:12-23` | Changed: stage 3's `presence` (WP6.21) |
 | The fleet document's forge: `codeVersion`, `versions` | `apps/gaia/page/@types/FleetDocument.ts` | Changed: presence, waiting work, outage endings, Talos and newest versions (WP6.21, WP6.26, WP6.22) |
 | `forge open` and the `progress.html` stub | `apps/forge/cli/tracking/open/OpenCommand.ts:1-92`; `apps/forge/src/adapters/progress-page/ProgressPageStubWriter.ts:10-30` | Kept: they open the Bridge, which forge serves until stage 8 deletes both (decision 43). Gaia stops running `open` (WP6.9, WP6.23) |
-| `INSTALL_VERSION = 36` | `apps/forge/cli/constants/InstallVersion.ts:1` | Raised once in WP7.2 |
-| Two skills: `agent-po`, `agent-progress-orchestrate` | `apps/forge/skills/`; `apps/forge/cli/adoption/constants/ClaudeCodeInstall.ts:23`, `:32-35`; `apps/forge/src/shared/constants/ProductNames.ts:11-12`, `:26-27`, `:40-41` | Changed: a third skill for pipeline setup (WP7.2) |
-| The product owner's first message runs its skill | `apps/forge/resources/prompts/ProductOwnerPrompt.md:1-2`; `apps/forge/cli/overseer/OverseerWording.ts:276-277` (`productOwnerTextOf`) | Kept; the pipeline agent's first message does the same (WP7.2) |
+| `INSTALL_VERSION = 36` (37 after stage 2's WP2.29, higher if WP2.30 or WP2.32 change the installed surface) | `apps/forge/cli/constants/InstallVersion.ts:1` | Raised once in WP7.2 |
+| Two skills: `agent-po`, `agent-progress-orchestrate` | `apps/forge/skills/`; `apps/forge/cli/adoption/constants/ClaudeCodeInstall.ts:23`, `:32-35` at `3274ac88`, which stage 2's WP2.30 moves to `apps/forge/cli/adoption/constants/AgentInstall.ts` (reread there on the tree you run on); `apps/forge/src/shared/constants/ProductNames.ts:11-12`, `:26-27`, `:40-41` | Changed: a third skill for pipeline setup, in `AgentInstall.ts` (WP7.2) |
+| The product owner's first message runs its skill | `apps/forge/resources/prompts/ProductOwnerPrompt.md:1-2`; `apps/forge/cli/overseer/OverseerWording.ts:276-277` (`productOwnerTextOf`) at `3274ac88`; stage 2's WP2.25 builds the first line from the agent adapter's `instructionBundleLineOf` (reread on the tree you run on) | Kept; the pipeline agent's first message does the same (WP7.2) |
 | The pipeline agent loads no skill | `.claude/rules/skills.md:21-24`; `apps/forge/resources/prompts/PipelineAgentPrompt.md:1-48`; `OverseerWording.ts:823-835` (`pipelineAgentTextOf`, the first message at `:826`) | Changed (WP7.2) |
 | The pipeline agent's step blocks: research (also at billing), entities, constitution, design (also at Apply), and the advise block | `OverseerWording.ts:713-728` (`stepPromptFilesOf`); `apps/forge/resources/prompts/PipelineAgent{Research,Entities,Constitution,Design,Advise}.md` | Kept as the messages the Overseer sends per step; their rules move into the skill (WP7.2) |
 | Pipeline agent verbs outside a job name the setup record | `apps/forge/cli/pipeline/AgentCommandLine.ts:1-4` | Kept: the user's own agent runs the skill through them |
@@ -1529,12 +1529,15 @@ which the user can run in an agent of their own (decision 23, design section 3.5
   names `forge help` and `.forge/reference.md`, and names no board page (decision 43).
 - Change `apps/forge/src/shared/constants/ProductNames.ts`: `PIPELINE_SETUP_SKILL` (`'forge-pipeline'`, and
   `'agent-pipeline'` in the other product names at `:26-28`), checked against `src/ComponentNames.spec.ts:28-63`.
-- Change `apps/forge/cli/adoption/constants/ClaudeCodeInstall.ts:23`, `:32-35`: the third skill folder.
+- Change `apps/forge/cli/adoption/constants/AgentInstall.ts` (stage 2's WP2.30 moved the install table there from
+  `ClaudeCodeInstall.ts`): the third instruction bundle, installed into the folder the agent adapter's installer names.
 - Change `apps/forge/resources/prompts/PipelineAgentPrompt.md`: the first message runs `{{skill}}` on the setup, as
   `ProductOwnerPrompt.md:1-2` does; the procedure moves to the skill; "the Bridge" (`:3`, `:34`) and
   `PipelineAgentDesign.md:7` become "the board". Change `pipelineAgentTextOf`
-  (`cli/overseer/OverseerWording.ts:823-835`, the first message at `:826`) to fill `skill`, as `productOwnerTextOf`
-  (`:276-286`) does.
+  (`cli/overseer/OverseerWording.ts:823-835`, the first message at `:826`) to start with the agent adapter's
+  `instructionBundleLineOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL, …)`, as `productOwnerTextOf` (`:276-286`) does since
+  stage 2's WP2.25. The new skill names no agent vendor and no vendor tool: `src/AgentBoundary.spec.ts` scans
+  `skills/**` and `resources/**` (stage 2, WP2.22).
 - Change `.claude/rules/skills.md`: three skills; the pipeline agent loads its skill as its first line. The rule file
   changes in this commit, with no approval gate (decision 34).
 - Raise `INSTALL_VERSION`, update `cli/FrozenInstalledSurface.json`, run
@@ -1878,7 +1881,9 @@ forge, `interrupted-work-resume` with the outage target. The answer of `fleet-ou
 ### Forge installed surface (WP7.2)
 
 - A third skill, source folder `skills/agent-pipeline/`, installed as `PRODUCT_NAMES.PIPELINE_SETUP_SKILL`
-  (`forge-pipeline`; `agent-pipeline` under the other product names) into the repository's `.claude/skills/`.
+  (`forge-pipeline`; `agent-pipeline` under the other product names) into the folder the agent adapter's installer
+  names for an instruction bundle (`AgentInstaller.instructionBundleFolderOf`, stage 2's WP2.30; `.claude/skills/` for
+  Claude Code).
 - `INSTALL_VERSION` raised once.
 
 ## Traps

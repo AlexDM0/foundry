@@ -406,7 +406,7 @@ not.](figures/hephaestus-talos/ports.png)
 | Port | Today | Work in this plan |
 | --- | --- | --- |
 | Operating system | Exists. `platformPortsFor` builds one frozen record of ports with darwin, linux and win32 adapters; `src/PlatformBoundary.spec.ts` refuses a platform read or platform primitive outside the adapter files and an exact allowlist of named lines, the composition roots among them. Gate confinement is a port with Seatbelt, bubblewrap and a Windows adapter that confines nothing. Process identity already reads the boot identity on macOS, Linux and Windows | Carries over. "macOS first" means new work is proven on macOS first; the existing adapters and their contract specs are not dropped. Real-system recordings exist for macOS only |
-| Agent | Mostly exists. `AgentAdapter` in `src/lib/agent-launch/` is the port, `src/lib/claude-code/` the one adapter | Close the leaks: `ClaudeTranscripts.ts` inside the Overseer's services, the install-time hook entry in a repository's `.claude/settings.local.json`, the `bash-domains` hook, and session confinement resting on the vendor's own sandbox. Retry policy is the adapter's: it sets what the vendor exposes. A skill becomes "an instruction bundle the adapter can load" |
+| Agent | Mostly exists. `AgentAdapter` in `src/lib/agent-launch/` is the port, `src/lib/claude-code/` the one adapter | Close the leaks: `ClaudeTranscripts.ts` inside the Overseer's services, the install-time hook entry in a repository's `.claude/settings.local.json`, the `bash-domains` hook, and session confinement resting on an assumption about the vendor's own sandbox. An agent that brings its own sandbox is confined by it, applied through its adapter, which renders the worker profile into the agent's settings and declares that confinement as a capability; forge's own confinement (the gate confinement port) wraps a session whose agent brings none. Never both: macOS refuses a nested Seatbelt profile (an inner `sandbox-exec` under an outer profile with a deny rule exits 71, measured 2026-11-18), and Claude Code starts its sandbox for every shell call. Retry policy is the adapter's: it sets what the vendor exposes. A skill becomes "an instruction bundle the adapter can load" |
 | Store | Does not exist. Files are the most pervasive dependency in forge | New (section 4). Defined with a contract spec that any adapter must pass, the convention the platform adapters already use |
 
 The agent port is bound by the owner's rule of 2026-11-18 (`hephaestus-talos-implementation/owner-answers.md`): all
@@ -418,7 +418,10 @@ binds everything built from now on, and the leaks the Agent row lists are now in
 them follow.
 
 Building a port with one adapter goes against the conventions' rule that code is generalised on its second consumer.
-For the store that is deliberate; it takes a row in the Deviations table when it is built.
+For the store that is deliberate; it takes a row in the Deviations table when it is built. So does forge's confinement
+of a session whose agent brings no sandbox: Claude Code, the one agent adapter, brings its own, so no adapter takes that
+path yet, and it is built because the owner's rule makes confinement the port's declaration rather than an assumption
+about the vendor.
 
 ## 6. The user in the workflow
 

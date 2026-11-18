@@ -11,7 +11,9 @@ merged-tree gate runs beside the pass, so no landing holds a pass. Every install
 after 15 minutes of awake time, and every line's run time is recorded in that measure and served in the pipeline
 facts. An agent that ended on a network outage, a provider overload after its spent retries included, is recognised by
 fields of its closing result line and served under a cause of its own in the monitor document Gaia reads. The Watcher
-fleet, its pinned bundles and the legacy reader are gone from the repository.
+fleet, its pinned bundles and the legacy reader are gone from the repository. Nothing outside the agent port's adapter
+starts the vendor's program, reads its transcripts or stream, writes its settings or hooks, or knows its endings, flags,
+variables or file layout (the owner's rule of 2026-11-18), and a guard holds it.
 
 ## Depends on
 
@@ -34,7 +36,9 @@ fleet, its pinned bundles and the legacy reader are gone from the repository.
   forge that stays off.
 - **Hands to stage 4** (the standing contract and the served facts): the monitor job's `interruption` key with its
   contract union `MonitorInterruptionCause` (WP2.11), and the pipeline facts' `stepRunTimes` (WP2.20), which stage 4
-  declares in the contract's pipeline facts document with types of its own (decision 50).
+  declares in the contract's pipeline facts document with types of its own (decision 50); and a stored question
+  option's `isRecommended` flag, which the agent adapter maps from the vendor's mark (WP2.26), so stage 4's WP4.10
+  serves it as the decision document's `recommended` with no util of the adapter.
 - **Hands to stage 6** (Gaia hosts the views): `talosProtocolVersion` in the identity document and the `quit` frame
   with reason `restart`, from which stage 6 (WP6.22) shows the running Talos and restarts it cleanly (decision 31); a
   monitor job's `interruption`, from which Gaia alerts on an ending on a network outage, offers the one control that
@@ -66,7 +70,8 @@ fleet, its pinned bundles and the legacy reader are gone from the repository.
 - **15.** No retry in Talos; it recognises the ending on a network outage from the launch plan's patterns and reports
   it.
 - **16** (agent port). The patterns, the closing line and the request to stop at the end of a turn are rendered by the
-  Claude Code adapter into the launch plan, so Talos stays without a vendor.
+  Claude Code adapter into the launch plan, so Talos stays without a vendor. With the owner's rule of 2026-11-18
+  (`owner-answers.md`, ground rules), every other reach past the port closes here too (WP2.21 to WP2.32).
 - **29.** The lease stops agents only; an install or gate line runs to its end, and is stopped after 15 minutes.
 - **32.** No compatibility: no mixed fleet, no legacy reader, no migration of Watcher files or of renamed stored keys;
   boards are set up anew.
@@ -128,8 +133,24 @@ The run's calls in this stage, each settled here:
 - **The child record keeps the launch's `workingDirectory`,** which a resumed session starts in (WP2.13 item 14).
 - **Flint's `watcher-spark` attendant keeps its name.** It is Flint's word for a spark per agent in flight, not the
   Watcher's code; it moves with Flint into Gaia's page `lib/` in stage 8 (decision 52).
-- **The agent port's other leaks stay as they are in this run** (design section 5, row "Agent"): this stage puts behind
-  the adapter only what Talos needs.
+- **Every reach past the agent port closes in this stage** (`owner-answers.md`, ground rules, 2026-11-18): WP2.21
+  once group 2-C has landed and before WP2.7 starts the Talos process, so Talos's protocol 1 never carries a vendor
+  field, then WP2.22 to WP2.32 once the Watcher's names are gone, held by `src/AgentBoundary.spec.ts` from WP2.22 on.
+  The fake agent is an adapter of the port and keeps replaying Claude Code's recorded wire. An agent that brings its own
+  sandbox is confined by it, through its adapter, which declares that confinement as a capability; forge's own
+  confinement wraps a session whose agent brings none; never both, since macOS refuses a nested Seatbelt profile
+  (WP2.31; assumption 8 of "Needs the owner").
+- **The Bridge's billing step names no variable** (WP2.24): "Billed to the API key in the Overseer's environment" in
+  place of `ANTHROPIC_API_KEY`, and "this machine's agent login" in place of "Claude login". The variable's name still
+  reaches the user where it matters: the decision the Overseer opens when the key is missing names it, from the
+  adapter. Serving the name to the Bridge would add a field to a view stage 6 replaces. Assumption 1 of "Needs the
+  owner".
+- **`update` and `setup` stop cleaning up after install version 16 and the global skill links** (WP2.29, decision 32:
+  every board is set up anew). `update` no longer removes the managed `CLAUDE.md` block, the `SubagentStop`,
+  `PreToolUse` and `PostToolUse` entries, the worker agent definition, the dispatcher script and the three briefs;
+  `setup` no longer removes `~/.claude/skills/` links, so its steps become `1/3` to `3/3`; the notice
+  `claude-md-block-committed` and the pass's wait on it go. A board still holding those leftovers keeps them until its
+  owner removes them by hand. Assumption 2 of "Needs the owner".
 
 ## Today's code
 
@@ -202,6 +223,9 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | A gate profile's ending `timed-out`, declared and never produced; its time measured by the Overseer's clock | `src/lib/tracker-model/@types/GateProfile.ts:11`; `src/services/overseer/GateProfiling.ts:55-59`, `:162-170`; `src/services/lifecycle/GateLineRun.ts:120-124` | Changed: `timed-out` from an end `time-bound`; the time is the line's run time (WP2.14) |
 | A job's gate run and a merged-tree gate record `gate-ran` with each gate's cache report; the pipeline facts' cache marks are assembled from those records | `src/lib/tracker-model/constants/LogRecordSchema.ts:285-291`; `src/services/overseer/JobLaunch.ts:1523`, `:2052`; `Airlocks.ts:634`, `:868`; `src/services/render/PipelineFactsAssembly.ts:539`, `:608` | Kept; each step line's run time is recorded and assembled beside them (WP2.20) |
 | The install steps: the pipeline's prepare steps, one line each, judged outside the lock and acted on in the hold | `src/services/overseer/JobLaunch.ts:533-536`, `:575-586`, `:881-896` | Changed: bounded, and their run times recorded (WP2.13, WP2.20) |
+| 46 reaches past the agent port in shipping code, 2 borderline, 13 files that import the adapter's folder past the seam; `src/ImportDirection.spec.ts:420-423` guards `ClaudeCodeAdapter.ts` alone | measured at `710ae4f9` (`.claude/.evidence/hephaestus-talos/port-rule/reaches.md` in the main checkout); rechecked at `3274ac88`, where 2-A and WP2.4 landed: 29 shipping files outside the adapter hold a code line that names the vendor | Closed by WP2.21 to WP2.32, held by `src/AgentBoundary.spec.ts` |
+| Comments that name the vendor's program, flags, hook events, tools or wire fields, `src/lib/agent-launch/WorkerProfile.ts` among them (its field `bashNetworkDomains`, its "Edit and Write") | 82 comment lines in 40 shipping files at `3274ac88`, 3 of them WP2.21's (`AgentLaunchPlan.ts:27`, `StandingReplies.ts:3`, `:30`); `src/services/overseer/JobResumption.ts:2`, `ApiBillingStops.ts:3`, `src/lib/tracker-model/JobControls.ts:180` name vendor flags | Each line goes to the package that changes its file (WP2.22 item 5 lists every one), the rest to WP2.32; the guard scans comments with every form, and WP2.32's greps catch the two flags the forms leave out (WP2.22) |
+| Testing helpers that start or name the real `claude` | `src/testing/InstalledSystemVersion.ts:85` (`claude --version`), `ProgramTraps.ts:26`, `:36`, `RecordBoundary.ts:46-76`, `cli/testing/CutoverSmoke.ts:3`, `:38`, `:123`; 79 `vendor-name` lines in 19 helper files | Allowlisted line by line in a list of their own; a guard test holds that the seam's imports reach none of them (WP2.22) |
 
 ## Work packages
 
@@ -219,7 +243,8 @@ Order and parallelism:
 | WP2.5 Talos frames, records, start file and files | WP2.3, WP2.4 | WP2.6, WP2.11 |
 | WP2.6 The synchronous-calls thread | WP2.4 | WP2.5, WP2.11 |
 | WP2.7 The Talos process, part one: start, handshake, lines | WP2.5, WP2.6 | WP2.11 |
-| WP2.8 The Talos process, part two: agents, lease, clean quit | WP2.7 | WP2.11 |
+| WP2.21 A standing reply names the path of its request identifier | WP2.7 | alone |
+| WP2.8 The Talos process, part two: agents, lease, clean quit | WP2.21 | WP2.11 |
 | WP2.9 The Overseer's side: connection, start, lease renewal on progress | WP2.8 | WP2.10, WP2.11, WP2.19 |
 | WP2.10 The `BoardChildren` port over the Watcher fleet | WP2.4 | WP2.9, WP2.11 |
 | WP2.11 New interruption causes in the tracker model and the monitor document | WP2.4 | WP2.5 to WP2.10, WP2.19 |
@@ -230,11 +255,32 @@ Order and parallelism:
 | WP2.20 Line run times recorded and served | WP2.14 | alone |
 | WP2.15 Removal of the fleet, the bundles and the legacy reader | WP2.20 | alone |
 | WP2.16 The Watcher's remaining names | WP2.15 | alone |
-| WP2.17 Rules and documentation | WP2.16 | none |
+| WP2.22 The agent boundary guard, today's reaches allowlisted | WP2.16 | alone |
+| WP2.23 The adapter reads its own transcripts | WP2.22 | alone |
+| WP2.24 The adapter names its variables, its credentials and its repair | WP2.23 | alone |
+| WP2.25 Live answers, the quit act, the instruction bundle line and the start folder go through the port | WP2.24 | alone |
+| WP2.26 The session's events carry the asking call, the recommendation and the window's length | WP2.25 | alone |
+| WP2.27 The tool-call guards take neutral tool calls | WP2.26 | alone |
+| WP2.28 The adapter names its configuration paths and its attribution | WP2.27 | alone |
+| WP2.29 The retired install goes: the managed block, the old hooks, the global skill links | WP2.28 | alone |
+| WP2.30 The adapter installs into a repository | WP2.29 | alone |
+| WP2.31 A session is confined by its agent's own sandbox or by forge's, as the port declares | WP2.30 | alone |
+| WP2.32 The vendor's names leave the wording, the prompts and the comments | WP2.31 | alone |
+| WP2.17 Rules and documentation | WP2.32 | none |
 | WP2.18 Recordings and the end-to-end check | WP2.17 | alone |
 
 WP2.19 lands before WP2.13: once the renewal waits on progress, a pass that awaited a merged-tree gate would end the
 lease at every landing.
+
+WP2.21 runs in its own group, 2-D2, once WP2.7 (group 2-D) has landed, since WP2.7 was already being built when the
+port rule came, and before WP2.8 (group 2-E). WP2.5 gives `src/lib/talos/StandingReplies.ts` the launch's validator
+`standingReplyOf` that it changes. Protocol 1 has not shipped before the switch (WP2.13), so the change needs no raise
+of `TALOS_PROTOCOL_VERSION`, and protocol 1 never ships with a vendor field.
+
+WP2.22 to WP2.32 each change the agent port, the Claude Code adapter and the fake agent (`AgentAdapter.ts`,
+`ClaudeCodeAdapter.ts`, `FakeAgentAdapter.ts`) and the guard's allowlist, so each runs alone. They come after WP2.16,
+when the Watcher's code and names are gone and the files they touch hold still, and before WP2.17 and WP2.18, so the
+documentation pass and the recordings cover them.
 
 ### WP2.1 Line conditions and ending recognition
 
@@ -1322,6 +1368,1012 @@ across passes; a gate run writes one per step; a cache hit writes none; a `time-
 **Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/services/render/` passes in
 `apps/forge`; the root `bun run verify` is green.
 
+### The agent port packages: WP2.21 to WP2.32
+
+The owner's rule of 2026-11-18 (`owner-answers.md`, ground rules: "all connections to actual claude should be in ports
+and adapters") puts every reach past the agent port in scope. These packages close all of them. The reaches were
+measured read-only at `710ae4f9` (`.claude/.evidence/hephaestus-talos/port-rule/reaches.md` in the main checkout, not
+committed); the reach numbers below (A1 to I2, J1 to J11) are that measurement's. Every path and line below was read
+again at `3274ac88`, where group 2-A and WP2.4 landed, and the comment and testing helper scans were added there;
+WP2.21 cites Talos's files at `668f9b12`, where group 2-C landed. The stage's earlier packages move many
+of them (WP2.5 to WP2.11 change Talos's files and the fleet, WP2.13 rewrites the pass and the deliveries, WP2.15 deletes
+the Watcher, WP2.16 renames), so every line number below is "at `3274ac88`; reread on the tree you run on", and each
+package's **Files** says so once.
+
+- **The adapter** is `src/lib/claude-code/` and the fake agent's files (`src/testing/FakeAgentAdapter.ts`,
+  `src/testing/FakeReportingSessions.ts`, `src/testing/fake-agent/`), which are an adapter of the same port (WP2.22).
+  **The port** is `src/lib/agent-launch/`. **The seam** is `cli/CommandContext.ts`, the one composition root that
+  chooses the adapter.
+- **WP2.21 runs after WP2.7 and before WP2.8** (group 2-D2), so protocol 1 ships with no vendor field in
+  `src/lib/talos/`.
+- **WP2.22 lands the guard first**, with today's reaches allowlisted line by line, each entry naming the package that
+  removes it. Every later package removes its own entries and is done only when the guard passes without them, so
+  WP2.32 leaves only the permanent entries. A guard first, not last: from WP2.22 on, no package of any stage (WP4.10,
+  WP7.2, the views stage 6 moves into Gaia) can add a reach without the guard naming it.
+
+### WP2.21 A standing reply names the path of its request identifier
+
+**Purpose.** Talos fills a standing reply from a field that the launch names, never from the vendor's `request_id`
+(reach E1). WP2.4 moved `StandingReplies.ts` into `src/lib/talos/` unchanged, and WP2.5 gave it `standingReplyOf`, the
+validator the launch frame's reader (`src/lib/talos/ChildLaunch.ts`) and the Watcher's launch file reader
+(`src/lib/watcher/WatcherLaunch.ts`, which no longer has `isStandingReply`) both call. This package runs once group
+2-D (WP2.7) has landed and before WP2.8 (group 2-D2): WP2.7 was already being built when the port rule came. Protocol
+1 has not shipped before the switch (WP2.13), so the launch's reply changes inside protocol 1 with no raise of
+`TALOS_PROTOCOL_VERSION`, and protocol 1 never ships with a vendor field; `FrozenTalosHandshake.json` holds no launch
+frame and does not change. WP2.7 has landed by the time this package runs, so reread
+`src/lib/talos/StandingReplies.ts`, `src/lib/talos/ChildLaunch.ts` and `src/lib/watcher/WatcherLaunch.ts` on the tree
+you run on before changing them, and follow the compiler into any spec or caller WP2.7 added.
+
+**Files.** Lines at `668f9b12`, where group 2-C landed; reread on the tree you run on.
+- Change `src/lib/talos/StandingReplies.ts`: the header of `StandingReply` (`:1-4`), the placeholder
+  `REQUEST_IDENTIFIER_PLACEHOLDER` (`:11`), the doc comment and the fill of `standingReplyFor` (`:28-31`, `:40-44`; it
+  reads `record['request_id']` at `:40`), and `standingReplyOf` (`:47-55`), which reads and returns the new field. Its
+  callers `src/lib/talos/ChildLaunch.ts:137` and `src/lib/watcher/WatcherLaunch.ts:85` need no change. Change
+  `src/lib/talos/StandingReplies.spec.ts` and `src/lib/talos/ChildLaunch.spec.ts` (its planted agent launch's reply,
+  `:24`, and a reply without the field refused).
+- Change `src/lib/agent-launch/AgentLaunchPlan.ts`: the plan's `StandingReply` twin and its doc comment (`:25-33`).
+- Change `apps/forge/cli/FrozenPlatformPorts.json` (around `:443`): it freezes the adapter's standing reply with
+  `{{request_id}}` and no `requestIdentifierPath`, so it is retaken or updated as that fixture's rules say (its `retake`
+  key, `cli/PlatformPorts.frozen.spec.ts:3`).
+- Change `src/lib/claude-code/ClaudeCodeAdapter.ts` (`DENY_EVERY_PERMISSION_BUT_A_QUESTION`, `:311-319`) and
+  `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` (its reply helper `replyFor` and the standing reply cases).
+- Change the Watcher's planted reply, which the type now requires the field of:
+  `src/lib/watcher/Watcher.integration.spec.ts:33` (`DENY_ALL_BUT_QUESTIONS`) and
+  `src/lib/watcher/WatcherLaunch.spec.ts:19`, which plants a reply without the new field. `src/testing/WatcherJob.ts`
+  changes only if the compiler names it: the Watcher validates through `standingReplyOf` and fills through
+  `standingReplyFor` until WP2.15 deletes it.
+
+**What to do.**
+1. `StandingReply` gains `requestIdentifierPath: string | null`: the dotted path of the line whose string value fills
+   the placeholder, `null` for a reply whose template has none. The placeholder becomes `{{request-identifier}}`.
+2. `standingReplyFor` reads the value at `requestIdentifierPath` with `valueAtDottedPath` (own properties only). A
+   template that holds the placeholder with a `null` path, or a path whose value is not a string, answers `null`, as a
+   missing `request_id` answers today. The escape of the identifier into the JSON string stays.
+3. `standingReplyOf` accepts the field as a string or `null` and returns it; a rule without the field, or with any
+   other value there, answers `null`, so `childLaunchOf` refuses the launch `malformed` and the Watcher's reader refuses
+   its launch file, as for any malformed rule.
+4. The Claude Code adapter's reply sets `requestIdentifierPath: 'request_id'` and writes `{{request-identifier}}` in its
+   template.
+5. The doc comments of `StandingReplies.ts` and `AgentLaunchPlan.ts` name no vendor field.
+
+**Specs.** `StandingReplies.spec.ts`, with planted lines whose field names are no vendor's (`askId`, a nested
+`request.askId`), as WP2.1's specs plant: the placeholder is filled from the named path, a nested path included,
+escaped as today; a `null` path with a placeholder, a missing path and a number at the path answer `null`; a template
+without the placeholder is answered with a `null` path; `standingReplyOf` keeps the field and refuses a rule without
+it. `ChildLaunch.spec.ts`: an agent launch whose reply lacks the field is refused `malformed`.
+`ClaudeCodeAdapter.spec.ts`: the plan's reply names `request_id` as its path, and the recorded permission request is
+answered under its own request id as before.
+
+**Done when.** `git grep -n "request_id" -- apps/forge/src/lib/talos apps/forge/src/lib/agent-launch` prints nothing,
+specs and comments included; in `apps/forge`, `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/lib/talos/ ./src/lib/claude-code/
+./src/lib/watcher/WatcherLaunch.spec.ts` passes and `bun run typecheck` is green (it covers the Watcher's integration
+spec, whose reply only gains the field); at the root, `bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP2.22 The agent boundary guard, today's reaches allowlisted
+
+**Purpose.** Make the owner's rule measurable before any reach closes: a guard that finds every shipping line outside
+the adapter, comments included, that names the vendor's program, paths, variables, wire fields, hook protocol, flags,
+tool names or marks, and every testing helper line that names the program, with exact allowlists of today's reaches,
+each entry naming the package that removes it. This package also settles what the fake agent is.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Create `apps/forge/src/AgentBoundary.spec.ts`, beside `src/PlatformBoundary.spec.ts`, a repository guard of the same
+  kind (`repository-guard` layer in `src/ImportDirection.spec.ts`).
+- Create `apps/gaia/src/AgentVendorNames.spec.ts`, beside Gaia's other repository-wide specs in `src/`.
+- Change `apps/forge/src/ImportDirection.spec.ts`: the vendor seam constants (`:75-78`), `vendorSeamFinding`
+  (`:420-423`) and the tests that name its sentence (`:875-878`, the Watcher binary's planted import, gone with
+  `watcher.ts` in WP2.15; `:914-924`, the planted importers; `:1045-1048`, the tree's own).
+- Change `apps/forge/src/testing/FakeAgentAdapter.ts:1-6`: its header says it is an adapter of the agent port.
+- Change `apps/forge/CLAUDE.md` (a line beside `:146`, which names `src/PlatformBoundary.spec.ts`) and
+  `apps/gaia/CLAUDE.md` (a line in its guard rules, near `:435`).
+
+**What to do.**
+1. **The fake agent's status.** The fake agent is an adapter of the agent port, as the owner's rule says. It replays
+   the Claude Code adapter's recorded wire, so it keeps that adapter's mapping (`CLAUDE_STREAM_LINES`), capabilities
+   and plan values, and stays where it is. Its files are adapter files, named exactly:
+   `FAKE_AGENT_ADAPTER_FILES = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts']` and the
+   folder `src/testing/fake-agent/`. No neutral wire is built: a second vendor's adapter brings a fake of its own.
+2. **The import rule.** `vendorSeamFinding` judges every target inside `VENDOR_ADAPTER_PACKAGE_FOLDER`, not only
+   `VENDOR_ADAPTER_PATH`. A file may import the adapter when it is inside the folder, is `VENDOR_ADAPTER_SEAM`, is one
+   of the fake agent's adapter files, or is a key of `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED`, an exact record from
+   importer to the package that removes the import. Today's importers, from `git grep -l "claude-code/"` read for
+   imports:
+   - `src/shared/Environment.ts`, `cli/overseer/OverseerWording.ts`: WP2.24.
+   - `src/services/overseer/ClaudeTranscripts.ts`, `src/services/overseer/ClaudeTranscripts.spec.ts`,
+     `src/services/overseer/JobLiveFactsReader.spec.ts`, `src/services/overseer/JobTranscript.spec.ts`,
+     `cli/measurement/usage/UsageCommand.ts`, `UsageAgents.ts`, `UsageText.ts`, `UsageCommand.transcripts.spec.ts`,
+     `cli/testing/CapturedCommandContext.ts`, `cli/testing/CliProcess.ts`: WP2.23.
+   - `cli/adoption/constants/RetiredClaudeInstall.ts`, `cli/constants/ClaudeManagedBlockMarkers.ts`: WP2.29.
+   - `cli/adoption/TrackerRefresh.ts`, `cli/adoption/constants/ClaudeCodeInstall.ts`: WP2.30.
+   The sentence becomes "only the agent port's seam and its adapters import the vendor's adapter". The record is exact
+   both ways: an entry no import uses fails. Planted cases: an import of `src/lib/claude-code/ClaudeTranscripts.ts` from
+   `src/services/overseer/Planted.ts` fails; the same import from the seam and from `src/testing/FakeAgentAdapter.ts`
+   passes.
+3. **The scan.** Copy the structure of `src/PlatformBoundary.spec.ts`: a header docblock; an `AgentForm` union; an
+   `AGENT_FORM_PATTERNS` record; `isShippingCode` (as `:124-126`); `isCommentLine` (as `:132-134`), which here tags a
+   line rather than dropping it; a memoised scan per source (`memoisedPerSource`,
+   `src/testing/RepositorySources.ts:114`); `boundaryReportOf(sources, allowedLines)` answering
+   `{ violations, unusedAllowances }`. Four kinds of source:
+   - **Code:** `programTypeScriptSources(repositoryRootOfThisCheckout())` (`RepositorySources.ts:195`), shipping files
+     only, every trimmed line, code and comment alike, each tagged as one or the other. `src/lib/claude-code/` and the
+     fake agent's adapter files are exempt. `src/lib/agent-launch/` and `src/lib/talos/` are scanned as every other
+     folder and by one form more (item 4), and a test holds that no allowlist key names them but one carve-out:
+     `src/lib/agent-launch/WorkerProfile.ts`, whose `port-tool-word` findings stay listed until WP2.27 renames
+     `bashNetworkDomains`, rewords those comments and removes the key (item 6).
+   - **Testing helpers:** every TypeScript file in a `testing/` folder that is no spec and no `.dom.tsx`, outside the
+     adapter's folder and the fake agent's files (`src/testing/`, `cli/testing/`, `bridge/testing/` and the package
+     folders' own), every trimmed line, the form `vendor-name` alone, against `ALLOWED_TESTING_LINES`, exact both ways.
+     A helper that starts, traps or names the real program is a finding unless its line is listed.
+   - **Prose:** every `resources/**/*.md` and `skills/**/*.md` of `programFiles` (`RepositorySources.ts:207`), every
+     trimmed line: the code reads these files and hands them to sessions.
+   - **Probe evidence:** every text file of `.platform-probes/` and `.readme-graphics/` in `programFiles` (`.js`,
+     `.py`, `.sh` and `.md`), the form `vendor-name`, allowed by file in `AGENT_EVIDENCE_FILES`, exact both ways (a
+     listed file that names no vendor fails), each with its reason. At `3274ac88`: the 21 `claude-p*.js`, the six
+     `host-*.js`, `os-sandbox-exec-nested.js`, `run-all.js`, `support/claude-session.js`, `support/probe.js` and
+     `.platform-probes/README.md` are the boundary's evidence; `.readme-graphics/demo-activity.js` writes the demo
+     board's recorded agent lines; `.readme-graphics/render-diagrams.py:21` and `.readme-graphics/README.md:31` name the
+     diagram renderer a developer's own agent installed under `~/.claude/skills/diagrams/`, which renders this
+     repository's README figures and is no connection of the product to the agent. A new file there that names the
+     vendor fails.
+   Not scanned, and the header says why: specs and `.dom.tsx` (they plant and assert both sides of the boundary, and
+   the spec run traps `claude`, `src/testing/ProgramTraps.ts:26`, `:36`), JSON fixtures and recordings (recorded
+   wire), and `docs/`. The bundles' source format is no finding either: each `skills/<folder>/SKILL.md` with its YAML
+   header is the text of an instruction bundle, copied file by file into the folder the adapter's installer names
+   (WP2.30), and file names are not scanned; the header says so, and WP2.30 closes the code's own mentions of the
+   format and the bundles' slash invocations. The import rule does not keep shipping code off every testing helper:
+   `TESTING_FOLDER_IMPORTERS` (`src/ImportDirection.spec.ts:116-127`) lets the seam, one shipping module, import
+   `src/testing/` (it imports `FakeAgentAdapter.ts` and `FakeReportingSessions.ts`), and any file of `src/testing/`
+   may import any other. At `3274ac88` the seam's import closure reaches four helpers (`FakeAgentAdapter.ts`,
+   `FakeReportingSessions.ts`, `fake-agent/RecordedClaudeLines.ts`, `BoundaryRecordings.ts`) and none that starts or
+   traps the program. So the helpers are scanned themselves, their program lines allowlisted line by line (the
+   measurement's J5 and J7), and a test holds the closure (item 6).
+4. **The forms.** Before matching, remove `.claude/.evidence`, `.claude/worktrees` and `.claude/rules` from the line:
+   they are this repository's own development folders. Each form applies to code and comment lines unless it says
+   otherwise.
+   - `vendor-name`: `/claude|anthropic/i`. It catches the program, the brand, every `.claude` path, `CLAUDE_*`,
+     `CLAUDECODE`, `ANTHROPIC_*`, every import of `src/lib/claude-code/`, the attribution trailer and identifiers such
+     as `claudeConfigFolder`.
+   - `vendor-file-layout`: `/\.mcp\.json|SKILL\.md|settings\.local\.json|\.meta\.json/`, and in `src/services/`,
+     `src/lib/` and `cli/` only, `/\bprojects\/|\bsubagents\//`.
+   - `vendor-wire-key`:
+     `/\b(?:session_id|is_error|subtype|api_retry|api_error(?:_status)?|terminal_reason|tool_use(?:_id)?|tool_result|parent_tool_use_id|structured_output|permission_denials|total_cost_usd|(?:cache_read_|cache_creation_)?input_tokens|output_tokens|control_request|control_response|can_use_tool|request_id|rate_limit_event|stream_event|claude_code_version|five_hour|seven_day|updatedInput)\b|stream-json/`;
+     on a comment line without `subtype`, which a comment uses for a media type's subtype
+     (`bridge/views/intake/PictureAttachmentsModel.ts:50`).
+   - `vendor-hook-protocol`:
+     `/\b(?:PreToolUse|PostToolUse|SessionStart|SubagentStop|UserPromptSubmit|hookSpecificOutput|hookEventName|permissionDecision(?:Reason)?|tool_name|tool_input|allowed_domains)\b/`.
+   - `vendor-flag`:
+     `/--(?:output-format|input-format|permission-mode|dangerously-skip-permissions|settings|setting-sources|append-system-prompt|allowed-?[tT]ools|disallowed-?[tT]ools|mcp-config|strict-mcp-config|add-dir|session-id|include-partial-messages|max-turns|json-schema|fallback-model)\b/`.
+     `--resume` and `--max-budget-usd` are left out: they are forge's own options too (`pipeline apply --resume`,
+     `cli/pipeline/SetupCommandLine.ts:55`). The three comments that name them as the vendor's flags
+     (`src/services/overseer/JobResumption.ts:2`, `ApiBillingStops.ts:3`, `src/lib/tracker-model/JobControls.ts:180`)
+     are WP2.32's, held by its "Done when".
+   - `vendor-tool-name`: on a code line ``/['"`](?:AskUserQuestion|NotebookEdit|TodoWrite|WebFetch|WebSearch)['"`]/``,
+     on a comment line the same names unquoted, `/\b(?:AskUserQuestion|NotebookEdit|TodoWrite|WebFetch|WebSearch)\b/`;
+     in `src/services/`, `src/lib/` and `cli/` also ``/['"`](?:Bash|PowerShell|Edit|Write|Read|Glob|Grep)['"`]/`` and
+     the word `/\bBash\b/`. A view's button says "Edit", and the Bridge's comments quote example rows of the tool names
+     an agent reported ("Bash ×4"), so `bridge/` takes the first two patterns only.
+   - `vendor-mark`: `/\\?\(Recommended\\?\)/` (the source of a regular expression spells it with backslashes) and
+     ``/`\/\$\{[A-Z_.]*SKILL/`` (a skill invoked by the vendor's slash command).
+   - `port-tool-word`, in `src/lib/agent-launch/` and `src/lib/talos/` only:
+     `/\b(?:Bash|PowerShell|Edit|Write|Read|Glob|Grep|WebFetch|WebSearch|AskUserQuestion|NotebookEdit|TodoWrite)\b|\bbash[A-Z]/`.
+     The port and Talos name no vendor tool, as a word or inside an identifier. At `3274ac88` it finds
+     `src/lib/agent-launch/WorkerProfile.ts:6` (`bashNetworkDomains`), `:20`, `:24`, `:26`, `:28`, `:38`, `:56-57`,
+     WP2.27's.
+   - Prose lines take `vendor-name`, the first `vendor-file-layout` pattern, the tool names unquoted,
+     `/\b(?:AskUserQuestion|NotebookEdit|TodoWrite|WebFetch|WebSearch)\b/`, and `vendor-mark` as a bundle's slash
+     invocation, `/\/\{\{\w*[sS]kill\w*\}\}/` (`skills/agent-po/SKILL.md:12`,
+     `skills/agent-progress-orchestrate/SKILL.md:9`, WP2.30's).
+   The model tiers (`haiku`, `sonnet`, `opus`, `fable`, reach I1) are no form: they are forge's tier words, which an
+   adapter maps (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`); WP2.32 records the Deviations row.
+5. **The allowlists.** Run the scan and write `ALLOWED_AGENT_LINES` and `ALLOWED_TESTING_LINES`, each a
+   `Readonly<Record<string, string>>` keyed `<path>: <form>: <trimmed line>` exactly as the scan prints it, one entry
+   per finding, sorted by path. Each value starts with `Permanent:` or with `Removed by WP2.<n>:`, then the reason. Read
+   each finding before listing it: a finding that is no reach is a pattern bug, fixed in the pattern, never allowlisted.
+   At `3274ac88` the scan finds 29 shipping files with a `vendor-name` code line and 82 comment findings in 40 files, 3
+   of them WP2.21's, which it rewrites before this package (`src/lib/agent-launch/` and `src/lib/talos/`), and the files
+   below for the other forms. Every line number below is at `3274ac88`; reread on the tree you run on.
+   Each finding goes to the package whose change removes its line; where two packages change one file, the package texts
+   below say which line is whose:
+   - Permanent: `cli/CommandContext.ts`, the import of `claudeCodeAdapterFor` (`:11`) and the choice of the adapter
+     (`:79`, whose text WP2.24 changes, so WP2.24 rewrites the entry's key); on `main` (`e9b5d057`) and in the
+     measurement they are `:11` and `:72`. Nothing else of `ALLOWED_AGENT_LINES` is permanent: the file's comments
+     that name the vendor (`:53`, `:55` WP2.23's; `:73`, `:77` WP2.24's, `:66` and `:70` on `main`) are rewritten.
+   - WP2.23: `src/services/overseer/ClaudeTranscripts.ts` (every finding);
+     `src/services/overseer/JobLiveFactsReader.ts:17`, `:39`, `:111`, `:113`, `:296`;
+     `cli/overseer/routes/BoardStateReader.ts:170`; `cli/measurement/usage/UsageCommand.ts:6-8`, `:41`,
+     `UsageAgents.ts:2-5`, `UsageText.ts:2`; `cli/CommandContext.ts:15`, `:53`, `:55-56`, `:142`;
+     `src/shared/Environment.ts:231-233`; the `usage` block of `cli/HelpText.ts` (`:179-197`, its one finding at
+     `:182`).
+     WP2.23 also rewrites the key of `Environment.ts:13`, whose import loses `claudeConfigFolderOf`; WP2.24 removes it.
+   - WP2.24: `src/shared/Environment.ts:12-13`, `:218-220`, `:224`, `:228`; `cli/CommandContext.ts:16`, `:73`, `:77`;
+     `cli/overseer/OverseerWording.ts:7`, `:62`, `:67`, `:79`; `bridge/views/pipeline/setup/BillingStepModel.ts:41`,
+     `:46`, `:148`, `:151`; `src/adapters/utils/OperationRefusalWordingUtil.ts:38`, `:897`, `:899`.
+   - WP2.25: `cli/overseer/OverseerWording.ts:277` (`vendor-mark`); `src/services/overseer/DrivePass.ts:376`;
+     `src/services/overseer/AnswerDelivery.ts:3`, `:5`, `:29`; `src/services/overseer/SessionPlace.ts:3`.
+   - WP2.26: `bridge/views/question-panel/QuestionPanelModel.ts:35`, `:104`, `:229`; `bridge/shell/HeaderModel.ts:91`;
+     `bridge/@types/BoardStateDocument.ts:58`; `src/adapters/usage-marker/UsageWindowsFile.ts:14`;
+     `src/services/overseer/BoardState.ts:51`; `src/services/overseer/JobLiveFactsReader.ts:58`.
+   - WP2.27: `cli/hooks/BashDomainsHook.ts` and `cli/hooks/StageEditsHook.ts` (every finding);
+     `src/lib/agent-launch/WorkerProfile.ts` (every finding, the one carve-out of item 3: the only key under the
+     port's folders); `src/services/overseer/JobLaunch.ts:2262`; the `hook
+     bash-domains` and `hook stage-edits` blocks of `cli/HelpText.ts` (`:161-177`, the findings at `:162`, `:163`,
+     `:164` and `:171`).
+   - WP2.28: `src/services/overseer/WorkerProfiles.ts:161`, `:164-168`, `:177`, `:194`;
+     `src/services/lifecycle/Customs.ts:307`, `:834`, `:836-837`, `:899`, `:914`;
+     `src/services/overseer/JobLaunch.ts:2222`, `:2330`, `:2351`; `src/services/overseer/DrivePass.ts:1102`.
+   - WP2.29: `cli/adoption/constants/RetiredClaudeInstall.ts`, `cli/constants/ClaudeManagedBlockMarkers.ts`,
+     `cli/setup/RetiredSkillStep.ts`, `cli/adoption/RetiredAgentHostRefusal.ts` (every finding);
+     `cli/adoption/TrackerRefresh.ts` (the managed block and the retired hooks: `:18`, `:33`, `:45`, `:49`, `:225-263`);
+     `cli/adoption/constants/ClaudeCodeInstall.ts:3`, `:25`, `:42`, `:49`, `:76`; `cli/InstallVersionCheck.ts:14`;
+     `cli/setup/Setup.ts:3` (the header's comment line) and `:63` (the heading of the retired step);
+     `cli/overseer/OverseerForeground.ts:78`, `:587`;
+     `cli/overseer/OverseerWording.ts:1050-1051`; `src/shared/monitor/utils/NoticeWordingUtil.ts:49-50`;
+     `src/lib/tracker-model/@types/PlaybookStep.ts:75`; `src/services/overseer/DrivePass.ts:228`, `:284`, `:429`,
+     `:431`, `:1017`; the retired install's lines of `cli/HelpText.ts` (`:72-79`, the findings at `:74-77`). WP2.29
+     rewraps `update`'s paragraph (`:69-86`); if that changes the text of `:71`, WP2.29 rewrites that entry's key, which
+     stays WP2.30's.
+   - WP2.30: every other finding of `cli/adoption/TrackerRefresh.ts` and `cli/adoption/constants/ClaudeCodeInstall.ts`;
+     `cli/adoption/InstalledFileGeneration.ts:13`, `:17`, `:36`, `:58`, `:70`; `cli/InstalledFiles.ts:25`, `:30`, `:32`;
+     `cli/hooks/SessionStartHook.ts:2`, `:12`; the `init`, `update` and `hook session-start` lines of `cli/HelpText.ts`
+     (`init` `:44-57` with findings at `:46`, `:47`, `:50`; `update`'s current install at `:71`, `SessionStart`; `hook
+     session-start` `:154-159` with findings at `:154-156`); the prose lines `skills/agent-po/SKILL.md:12` and
+     `skills/agent-progress-orchestrate/SKILL.md:9` (`vendor-mark`, the slash invocation).
+   - WP2.32: `src/adapters/utils/OperationRefusalWordingUtil.ts:289`, `:396`;
+     `cli/drafts/DraftContentSubcommands.ts:58`; `cli/adoption/init/InitCommand.ts:50`;
+     `cli/overseer/OverseerWording.ts:261`, `:267` (`CONFINEMENT_WORDING`'s `productOwnerBashNetwork` sentences); the
+     comments of `src/lib/tracker-model/@types/Decision.ts:40`,
+     `:57`, `@types/OptionConsequences.ts:2`, `@types/Ticket.ts:17`, `BoardRecords.ts:129`,
+     `constants/DecisionAndIncidentVocabulary.ts:80`, `src/services/overseer/QuestionRouting.ts:2`,
+     `IntakeSessions.ts:2-3`, `src/lib/data-folders/PosixDataFolders.ts:15` and
+     `src/lib/process-identity/PosixProcessGroups.ts:53`; the prose lines of
+     `resources/prompts/AirlockReportMessage.md:1`, `AirlockReReviewMessage.md:16`,
+     `HumanCodeReviewReReviewMessage.md:16`, `ProductOwnerPrompt.md:7`, `:12`, `ReviewPrompt.md:12`, `:18`, `:26`,
+     `BuildPrompt.md:12`, `PipelineAgentResearch.md:6` and `resources/templates/Constitution.md:3`.
+   - `ALLOWED_TESTING_LINES`, permanent: the lines that record, stamp, trap or smoke-test the real program
+     (`src/testing/BoundaryRecordings.ts`, `RecordBoundary.ts`, `RecordingStamps.ts`, `InstalledSystemVersion.ts`,
+     `ProgramTraps.ts`, `BoundarySpecs.ts`, `RecordedWatcherStages.ts` or its Talos successor,
+     `cli/testing/CutoverSmoke.ts`, `CutoverSmokeUtil.ts`); this repository's own installed agent files and evidence
+     folder (`src/testing/RepositorySources.ts:20`, `:66`, `:72-76`, `cli/testing/CutoverSmokeUtil.ts:55`); and fixtures
+     that plant the files the fake agent's adapter reads and writes (`.claude/settings.json`, `.claude/skills`, an
+     instruction file in `src/testing/RecordedGitFlow.ts`, `RecordedGitScenarios.ts`, `TwoTrackerFixture.ts`,
+     `EntityForgeFixture.ts`, `SettingsBeforePowerShell.ts`, `cli/testing/RecordedGitStages.ts:12`,
+     `cli/testing/InstalledSurfaceScan.ts`). Removed by WP2.23: `cli/testing/CapturedCommandContext.ts` and
+     `cli/testing/CliProcess.ts`. Removed by WP2.29: the planted managed `CLAUDE.md` blocks and the
+     `git show <branch>:CLAUDE.md` calls (`RecordedGitFlow.ts`, `cli/testing/RecordedGitStages.ts:77-99`). Removed by
+     WP2.30: `cli/testing/InstalledSurfaceScan.ts:46`, which names `ClaudeCodeInstall.ts`.
+   Lines WP2.13 to WP2.16 rewrote are listed as the scan finds them, not as cited here. Some reaches have no line the
+   forms can see (the three flag comments, `CONTROL_RESPONSE_DELIVERS_ANSWERS`, the session's confinement); their
+   packages close them all the same, and their "Done when" says how.
+6. **The tests**, mirroring `PlatformBoundary.spec.ts:204-471`:
+   - "the scan saw the tree": more than 400 shipping paths, the testing helpers, the prose files and the probe files;
+     the adapter folder exists and its files really hold each code form (`vendor-name` and `vendor-wire-key` in
+     `src/lib/claude-code/ClaudeStreamMapper.ts`).
+   - "every line naming a form is allowlisted, and every allowlist entry is found": `expect(boundaryReportOf(SOURCES,
+     ALLOWED_AGENT_LINES)).toEqual({ violations: [], unusedAllowances: [] })`, and the same for the testing helpers and
+     for the probe files by file.
+   - "the allowlist is exact both ways": a removed entry leaves its line a violation; an unused entry is named; a second
+     copy of an allowed line in the same file is a violation; an allowed line in another file is a violation.
+   - "no entry names the port or Talos but the worker profile": every key that starts with `src/lib/agent-launch/` or
+     `src/lib/talos/` starts with `src/lib/agent-launch/WorkerProfile.ts: `, the one carve-out of item 3, and its value
+     with `Removed by WP2.27:`; a planted key of another file under those folders fails.
+   - "every entry names its package": each value starts with `Permanent:` or with `Removed by WP2.<number>:`, the
+     number one of 23 to 32; `ALLOWED_AGENT_LINES` has exactly two `Permanent:` entries.
+   - "the guard names each form, planted in memory": one planted code line and one planted comment line per pattern at
+     `src/services/overseer/Planted.ts`, one `port-tool-word` line at `src/lib/talos/Planted.ts`, one prose line per
+     prose form at `resources/prompts/Planted.md` and `skills/planted/SKILL.md` (a `"/{{plantedSkill}}"` among them), a
+     `Bun.which('claude')` line at `src/testing/PlantedHelper.ts`, `.platform-probes/planted.js` and
+     `.readme-graphics/planted.py`, and a test that every form is planted.
+   - "the seam reaches no helper that starts or traps the program": `reachablePathsFrom`
+     (`src/testing/ImportGraph.ts:254`) from `cli/CommandContext.ts` over the tree's import graph holds no path of
+     `PROGRAM_STARTING_HELPERS`, the exact list of helpers with an `ALLOWED_TESTING_LINES` entry that starts, traps or
+     records the program (`cli/testing/CutoverSmoke.ts`, `CutoverSmokeUtil.ts`, `src/testing/InstalledSystemVersion.ts`,
+     `ProgramTraps.ts`, `RecordBoundary.ts`, `RecordingStamps.ts`, `BoundarySpecs.ts`); a planted import of
+     `ProgramTraps.ts` from `src/testing/FakeAgentAdapter.ts` fails it, and every listed path exists.
+   - "what the guard exempts is exact": a planted form in `src/lib/claude-code/Planted.ts` and in
+     `src/testing/fake-agent/Planted.ts` passes; the same line in `src/lib/agent-launch/Planted.ts`,
+     `src/lib/talos/Planted.ts` and `cli/Planted.ts` fails, as a comment too; a spec and a `.dom.tsx` are not scanned;
+     a comment saying a media type's `subtype`, `pipeline apply --resume` and a Bridge comment saying `Bash ×4` are no
+     finding; `.claude/worktrees/x` in a line is no finding.
+7. **Gaia's guard** (`apps/gaia/src/AgentVendorNames.spec.ts`): the forms `vendor-name`, `vendor-wire-key`,
+   `vendor-tool-name` (the first two patterns) and `vendor-mark` over the code and comment lines of Gaia's shipping
+   files in `src/` and `page/` (no spec, no `.dom.tsx`, no testing folder, no recording), read as Gaia's repository
+   specs read the tree; the same exact-both-ways allowlist, with one entry today:
+   `src/adapters/page-api/ForgeSentenceUtil.ts`, the `claude-md-block-committed` line (`:34`), removed by WP2.29. Plant
+   one line per form. Gaia names no vendor from then on: the views stage 6 moves arrive without one, since WP2.24 and
+   WP2.26 close them in the Bridge first.
+8. **The rules.** `apps/forge/CLAUDE.md`, beside `:146`: "`src/AgentBoundary.spec.ts` holds that no shipping code
+   outside the agent port's adapter (`src/lib/claude-code/` and the fake agent's files), comments included, names the
+   vendor, and that no testing helper names it but on its listed lines; `src/ImportDirection.spec.ts` holds that only
+   `cli/CommandContext.ts` and the fake agent import it." `apps/gaia/CLAUDE.md`: "`src/AgentVendorNames.spec.ts` holds
+   that Gaia names no agent vendor; Gaia speaks to forge only."
+
+**Specs.** The two guards and the changed import rule prove themselves: the scan found the adapter and the reaches,
+each form is caught when planted, the allowlists are exact both ways, the exemptions are exact.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./src/AgentBoundary.spec.ts
+./src/ImportDirection.spec.ts` passes. In `apps/gaia`: `bun test src/AgentVendorNames.spec.ts` passes. At the root:
+`bun install --frozen-lockfile`, then `bun run verify` is green. No product code changed: only the three guard specs,
+the fake adapter's header and the two rule files.
+
+### WP2.23 The adapter reads its own transcripts
+
+**Purpose.** Only the adapter knows where the vendor keeps its transcripts and how they read (reaches A1 to A6, B1,
+J6, and the direct imports of reach K2). The Overseer's live facts and the `usage` verb ask the port; the command
+context carries no vendor folder.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Create `src/lib/agent-launch/AgentTranscripts.ts`: the port's types `SubagentFacts` and `SubagentUsage`.
+- Change `src/lib/agent-launch/AgentAdapter.ts`: `sessionSubagentsOf` and `subagentUsagesOf` ("Interfaces
+  introduced").
+- Move with `git mv` `src/services/overseer/ClaudeTranscripts.ts` and its spec to
+  `src/lib/claude-code/ClaudeSessionSubagents.ts` and `.spec.ts` (`:1-104`; it already imports only the adapter's
+  `ClaudeTranscripts.ts` and `utils/TranscriptUsageUtil.ts`, `:7-8`).
+- Move with `git mv` `src/lib/claude-code/utils/TranscriptCohortUtil.ts` and its spec to
+  `cli/measurement/usage/utils/UsageCohortUtil.ts` and `.spec.ts`: the cohort maths is forge's. Rename
+  `TranscriptCohortUtil` to `UsageCohortUtil` and retype it over the port's `SubagentUsage`, which carries
+  `totalInputTokens` itself: today it imports the adapter's `TranscriptProfile` and `TranscriptUsageUtil` (`:7-8`) and
+  uses them at `:25-26` (`CohortSplit`), `:30-31` (`oversizedContextShareOf`), `:51` and `:56` (`cohortSummaryOf`) and
+  `:71` (`cohortSplitAt`). Each takes `SubagentUsage` where it took `TranscriptProfile` and reads
+  `usage.totalInputTokens` where it called `TranscriptUsageUtil.totalInputTokensOf`, so the moved util, and with it
+  `UsageCommand.ts` and `UsageText.ts` (whose `CohortSummary` it exports), import nothing of `src/lib/claude-code/`.
+- Change `src/lib/claude-code/ClaudeCodeAdapter.ts` (the two operations, over `configFolderOf`, `:342`) and create
+  `src/lib/claude-code/ClaudeSubagentUsages.ts` from `cli/measurement/usage/UsageAgents.ts:21-30` (`agentUsageFor`,
+  each transcript's text read into its profile) and `:44-55` (`readAgents`, the reading of each transcript).
+- Change `src/services/overseer/JobLiveFactsReader.ts` (`:17`, the comment `:39`, `:110-114` `JobSession`, `:291-297`
+  `lostSubagentsOf`); `cli/overseer/routes/BoardStateReader.ts:168-172`; `cli/measurement/usage/UsageCommand.ts:6-8`,
+  `:41-42`, `UsageAgents.ts:2-5`, `:14-19` (`AgentUsage`), `UsageText.ts:2`, `:71`; `cli/CommandContext.ts:15`,
+  `:53-56`, `:142`; `src/shared/Environment.ts:231-234` (`claudeConfigFolder`, whose one caller goes);
+  `cli/testing/CapturedCommandContext.ts:8`, `:37-38`, `:74`, `:97-98`; `cli/testing/CliProcess.ts:10`, `:133-135`;
+  `src/testing/FakeAgentAdapter.ts` (the two operations: empty, or a spec's planted answers, item 5).
+- Change the specs: `src/services/overseer/JobLiveFactsReader.spec.ts` (`:21-22`), `JobTranscript.spec.ts` (`:24`),
+  `cli/measurement/usage/UsageCommand.transcripts.spec.ts`; the transcript cases they hold that read the vendor's files
+  move to `src/lib/claude-code/ClaudeSessionSubagents.spec.ts` and a new `ClaudeSubagentUsages.spec.ts`.
+- Change `src/AgentBoundary.spec.ts` and `src/ImportDirection.spec.ts` (WP2.22's entries for this package), the `usage`
+  block of `cli/HelpText.ts` and of `docs/cli.md` (its rewording of `subagents/workflows/<run>/`, `HelpText.ts:182`, is
+  assumption 9 of "Needs the owner").
+
+**What to do.**
+1. `sessionSubagentsOf(homeDirectory, sessionId, talliedParentToolUseIds)` answers what
+   `ClaudeTranscripts.subagentFactsOf` answers today, as `SubagentFacts`. `JobSession` becomes `{ homeDirectory:
+   string; sessionId: string }`, and `JobLiveFactsReader.liveFactsOf` takes the adapter's operation in its source.
+   `BoardStateReader` hands `context.homeDirectory` and `context.agentAdapter`.
+2. `subagentUsagesOf({ projectRoot, homeDirectory, transcriptFolder, oversizedContextThresholdTokens,
+   briefExcerptCharacters, onUnreadableTranscript })` answers one `SubagentUsage` per subagent transcript of the
+   project: what `readAgents` builds today (`UsageAgents.ts`). `transcriptFolder` is the `--transcripts <folder>`
+   option, `null` without it. A transcript the adapter cannot read is left out and handed to the request's
+   `onUnreadableTranscript(path)`, which the verb words on standard error as `readAgents` does today. The `usage` verb
+   keeps its options and output, sorts the rows oldest first as today, and computes its cohorts with `UsageCohortUtil`
+   over the answered rows.
+   The port names the shell-edit count `shellEditScriptCount`; the verb's own row, `AgentUsage`, keeps
+   `bashEditScriptCount` and its `--json` key, filled from it, so the printed and the `--json` output stay as they are.
+   `UsageCohortUtil` reads `usage.totalInputTokens` where it called `TranscriptUsageUtil.totalInputTokensOf`, and
+   `usage.shellEditScriptCount` where it read `profile.bashEditScriptCount` (`:65`, for `meanBashEditScriptCount`), and
+   its `CohortSummary` keeps its fields; its spec builds `SubagentUsage` rows where it built `TranscriptProfile`s.
+3. `CommandContext` loses `claudeConfigFolder` and its doc comment (`:55-56`); the adapter already holds its folder
+   (`claudeCodeAdapterFor(platform, claudeConfigFolderVariable())`, `:79`). `homeDirectory`'s comment (`:53`) names no
+   vendor.
+4. The specs' isolation: `CapturedCommandContext` loses its option and field. `CliProcess.childEnvironmentOf` stops
+   leaving the vendor's folder variable behind (`:133-135`): every spawned binary runs the fake agent
+   (`FAKE_AGENT_SWITCHES`), which reads no transcript. Say so in the function's comment.
+5. The fake agent answers `[]` from both operations unless a spec plants answers (`fakeAgentAdapter`'s options). That is
+   what Claude Code's operations answer on a home where no session wrote a transcript, and the fake agent writes none:
+   it prints its recorded lines only. So on a scratch home, the one place a fake agent runs, both adapters answer the
+   same, and the fake never reads the vendor's folder, so no spec and no scratch forge reaches a developer's real
+   transcripts through it whatever the environment names. The trap "A capability the fake agent lacks" names these two
+   reads as its one exception. `JobTranscript.spec.ts` and `JobLiveFactsReader.spec.ts` map their lines through
+   `fakeAgentAdapter()` instead of `CLAUDE_STREAM_LINES`, and plant their lost subagents through it.
+
+**Specs.** `ClaudeSessionSubagents.spec.ts` keeps every case of the moved spec. `ClaudeSubagentUsages.spec.ts`: the
+profile of a planted transcript, a workflow run's subagent, the `.meta.json` description. `JobLiveFactsReader.spec.ts`:
+the planted lost subagents are listed and counted. `UsageCommand.transcripts.spec.ts` (renamed
+`UsageCommand.cohorts.spec.ts`): the cohorts and their text from planted rows, with and without `--since`, and the
+`--transcripts` folder handed to the adapter.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+./src/lib/claude-code/ ./src/services/overseer/JobLiveFactsReader.spec.ts ./src/services/overseer/JobTranscript.spec.ts
+./cli/measurement/` passes with this package's entries removed from both allowlists; `git grep -n -i
+"claudeConfigFolder" -- apps/forge/cli apps/forge/src ':!apps/forge/src/lib/claude-code'` prints nothing; `git grep -n
+"claude-code/" -- apps/forge/cli/measurement` prints nothing; at the root, `bun install --frozen-lockfile` and `bun run
+verify` are green.
+
+### WP2.24 The adapter names its variables, its credentials and its repair
+
+**Purpose.** The variables the vendor reads, the sentences about its credentials and the repair of its program are
+the adapter's data (reaches B2, B3, B4, H1). `src/shared/Environment.ts` stays the one reader of the environment and
+reads a variable by the name the adapter gives.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentAdapter.ts`: `AgentCredentials` and `programRepairOf` ("Interfaces introduced").
+- Change `src/lib/claude-code/ClaudeCodeAdapter.ts` and `ClaudeCodeAdapter.spec.ts`; `src/testing/FakeAgentAdapter.ts`
+  (Claude Code's values: the fake replays its wire).
+- Change `src/shared/Environment.ts:12-13`, `:218-228`; `cli/CommandContext.ts:16`, `:79` and the comments `:73` and
+  `:77`.
+- Change `cli/overseer/OverseerForeground.ts:59`, `:590` and `src/services/overseer/DrivePass.ts:234`, `:852`, `:1496`
+  (`apiBillingKeyIsSet`); `src/testing/DrivePassHarness.ts:62`.
+- Change `cli/overseer/OverseerWording.ts:7`, `:59-81` (the two decision wordings), `:1068` (the
+  `agent-program-refused` notice); `src/shared/monitor/utils/NoticeWordingUtil.ts:65`;
+  `src/services/overseer/DrivePass.ts:299`, `:859` (the notice's facts);
+  `src/adapters/utils/OperationRefusalWordingUtil.ts:38`, `:897-900`.
+- Change `bridge/views/pipeline/setup/BillingStepModel.ts:41`, `:46`, `:148`, `:151` and its specs
+  (`BillingStepModel.spec.ts`, `BillingStep.dom.tsx`).
+- Change `cli/overseer/OverseerDrivePass.apiBilling.spec.ts`, `src/shared/Environment.integration.spec.ts`, the
+  wording specs; `src/AgentBoundary.spec.ts`, `src/ImportDirection.spec.ts`.
+
+**What to do.**
+1. `Environment.ts` imports nothing of the adapter. `claudeConfigFolderVariable()` becomes `agentVariableOf(name:
+   string): string | undefined` (empty or whitespace-only reads as unset, as today), and `apiBillingKeyIsSet()`
+   becomes `agentVariableIsSet(name: string): boolean`. Their doc comments say the agent adapter names the variable.
+2. The adapter reads its configuration folder variable itself: `claudeCodeAdapterFor(process.platform,
+   agentVariableOf)` at the seam (`CommandContext.ts:79`), the adapter calling the reader with its own name. The seam's
+   two lines stay the guard's only permanent entries; rewrite the key of the `:79` entry to the line's new text. The
+   comments of `agentAdapter` (`:73`) and of `agentAdapterOfThisProcess` (`:77`) name no vendor: "the agent port's
+   adapter, or the scripted fake agent under the fake-agent switch" and "the one place outside the agent port's
+   adapter that chooses it"; the seam's code lines are the only lines of the file that name the vendor.
+3. `DrivePassRequest.apiBillingKeyIsSet` keeps its name; `OverseerForeground` builds it as
+   `() => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName)`.
+4. The two decisions (`API_KEY_NOT_SET_WORDING`, `API_AUTHENTICATION_FAILED_WORDING`) become functions of
+   `AgentCredentials`, worded as today with `billingKeyVariableName` and `authenticationCheckSentence` (Claude Code's:
+   "no managed `forceLoginMethod` or `forceLoginOrgUUID` setting refuses API keys"). Hand them the adapter's credentials
+   where the wording is chosen; follow the compiler.
+5. The notice `agent-program-refused` gains `repair: string | null`, filled in the pass from
+   `request.agentAdapter.programRepairOf(program.cause)` (`DrivePass.ts:859`). Claude Code answers its Windows install
+   sentence for `batch-target` (today's `WINDOWS_CLAUDE_INSTALL_COMMAND` sentence, `OperationRefusalWordingUtil.ts:899`)
+   and `null` otherwise. `agentProgramRefusalTextOf` adds the repair it is given and names no program.
+6. The Bridge's billing step names no vendor: "Agents run on this machine's agent login." (`:41`, `:148`) and "Billed
+   to the API key in the Overseer's environment. The key is never stored." (`:46`), "Billed to the API key." (`:151`).
+   The step no longer names the variable to set; the decision the Overseer opens when the key is missing still names
+   it, from the adapter. This is the plan's choice while the owner is away: assumption 1 of "Needs the owner", which
+   the orchestrator copies to the status file's "Assumptions to confirm".
+
+**Specs.** `ClaudeCodeAdapter.spec.ts`: the credentials, the repair for each cause. `Environment.integration.spec.ts`:
+a named variable is read, a blank one is unset. The wording specs: each decision and the notice worded from planted
+credentials and a planted repair. `OverseerDrivePass.apiBilling.spec.ts` passes unchanged in what it proves.
+`BillingStepModel.spec.ts` and `BillingStep.dom.tsx`: the new sentences.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+./src/lib/claude-code/ ./src/shared/ ./cli/overseer/OverseerWording*.spec.ts
+./cli/overseer/OverseerDrivePass.apiBilling.spec.ts` passes with this package's entries removed, `bun run test:dom`
+passes, and `bun run record src/shared/Environment.ts` passes (the boundary that runs the changed
+`Environment.integration.spec.ts`, `src/testing/BoundarySpecs.ts:185`; it starts no agent); at the root,
+`bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP2.25 Live answers, the quit act, the instruction bundle line and the start folder go through the port
+
+**Purpose.** Four decisions the core takes on the vendor's behaviour become the port's: whether a live session takes
+an answer (reach E2), how a session is asked to stop at the end of its turn (E6, the half WP2.2 left), how a session
+is told to run an instruction bundle (E7), and whether a resumed session must start where it began (G2).
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentAdapter.ts` (`AgentCapabilities` `:17-25`, `instructionBundleLineOf`),
+  `src/lib/claude-code/ClaudeCodeAdapter.ts`, `src/lib/claude-code/ClaudeStreamLines.ts` (`CLAUDE_CODE_CAPABILITIES`),
+  and their specs; `src/testing/FakeAgentAdapter.ts`.
+- Change `src/services/overseer/DrivePass.ts:376-377` (`CONTROL_RESPONSE_DELIVERS_ANSWERS` and its comment) and
+  `src/services/overseer/AnswerDelivery.ts:1-5`, `:28-29` (`deliversByControlResponse`).
+- Change Talos: `ChildInput`, `ClientEntry` and `FrameRefusalReason` (`src/lib/talos/@types/TalosFrame.ts`, WP2.5),
+  `clientFrameOf` and `clientEntryOf` (`src/lib/talos/TalosFrames.ts`), `src/lib/talos/ChildSupervisor.ts` (WP2.8
+  item 1), `src/lib/talos/constants/TalosProtocol.ts` (`TALOS_PROTOCOL_VERSION` to 2), and their specs.
+- Change every Overseer site that ends a session by closing its input, found after WP2.13 with
+  `git grep -n "act: 'close'" -- apps/forge/src/services apps/forge/cli ':!*.spec.ts' ':!*.spec.tsx' ':!*.dom.tsx'
+  ':!*/testing/*' ':!*.json'`:
+  `src/services/overseer/JobControlDelivery.ts` (today
+  `:105-114`), the wind-down, `AssistantSession`, `FlintBrainSessionHost` and `JobResumption` where they close.
+- Change `src/services/overseer/IntakeSessions.ts:22-26` (`IntakeFacts.firstLine`), `DrivePass.ts:832` (where the
+  intake facts are built), `cli/overseer/OverseerWording.ts:276-277` (`productOwnerTextOf`).
+- Change `src/services/overseer/SessionPlace.ts:1-6` and the resumed start folder rule (WP2.13 item 14).
+- Change `src/AgentBoundary.spec.ts`; `docs/cli.md` where it says a session's input is closed.
+
+**What to do.**
+1. **Live answers.** `AgentCapabilities.takesLiveAnswers: boolean`, `true` for Claude Code.
+   `CONTROL_RESPONSE_DELIVERS_ANSWERS` goes; `AnswerDeliveryRequest.deliversByControlResponse` becomes `deliversLive`,
+   read from `adapter.capabilities.takesLiveAnswers`. The doc comments of `AnswerDelivery.ts` say "a live session takes
+   the answer line" without naming its wire.
+2. **The quit act.** `ChildInput` gains `{ act: 'quit-at-turn-end' }`. Talos applies the child's own launch
+   `quitAtTurnEnd` (WP2.2), as its clean quit does (WP2.8 item 4.3), and appends to the event log the `ClientEntry` of
+   the act it applied (`close` or `write-line`), so `JobTranscript` and `JobLiveFactsReader` read it as today.
+   `ClientEntry` no longer reuses `ChildInput`: it is `{ act: 'write-line'; line: string } | { act: 'close' } | { act:
+   'stop'; graceMilliseconds: number }`, the acts Talos applies, so a `quit-at-turn-end` is never logged and
+   `clientEntryOf` reads a line that holds one as `null`. A child
+   launched with `quitAtTurnEnd: null` answers `done` `refused` with the new reason `no-quit-act`, and the Overseer then
+   sends `stop`. Raise `TALOS_PROTOCOL_VERSION` to 2: the launch's input changed (decision 6). Every Overseer site that
+   sends `input` `close` to end a session sends `quit-at-turn-end`; nothing in the Overseer sends `close` any more.
+   Talos still logs the applied act as the `client` entry `close` for a Claude Code session, so the specs and recorded
+   stages that assert that logged entry keep it. The stage's end-to-end step 1 reads protocol 2 from here on.
+3. **The instruction bundle line.** `instructionBundleLineOf(bundleName: string, argumentsText: string): string`;
+   Claude Code answers `` `/${bundleName} ${argumentsText}`.trim() ``. `IntakeFacts` gains `firstLine`, built where the
+   intake facts are built from `request.agentAdapter.instructionBundleLineOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL,
+   intake.text)`; `productOwnerTextOf` uses it (`:277`).
+4. **The start folder.** `AgentCapabilities.resumeFindsSessionByFolder: boolean`, `true` for Claude Code. SessionPlace
+   starts a resumed session where its first child started (WP2.13 item 14) only while the capability holds, and today's
+   place otherwise. The header's two reasons are worded without the vendor: a session in a worktree starts at its root,
+   where its confinement grants the worktree's own git admin folder; a resumed session starts where it began when its
+   agent finds it by that folder.
+5. The fake agent keeps Claude Code's capabilities and lines, and so the new members.
+
+**Specs.** `AnswerDelivery` specs: a live delivery with the capability, a stop and resume without it. Talos:
+`Talos.agents.integration.spec.ts` gains `quit-at-turn-end` for a `close-input` and a `write-line` act, each logged as
+its applied entry, and a `null` act refused `no-quit-act`; the frames spec, the new reason; a `hello` of protocol 1 is
+answered `version-mismatch`. The delivery specs over recorded Talos stages: an ended job's session gets
+`quit-at-turn-end`, never `close`. `OverseerWording` intake spec: the first line comes from a planted adapter's line.
+`SessionPlace.spec.ts`: a resumed session without the capability starts in today's place.
+
+**Done when.** `git grep -n "act: 'close'" -- apps/forge/src/services apps/forge/cli ':!*.spec.ts' ':!*.spec.tsx'
+':!*.dom.tsx' ':!*/testing/*' ':!*.json'` prints nothing: it leaves out the specs, the testing helpers and the recorded
+stages, which still hold the logged `close` entry, and `src/lib/talos/`, which logs it. In `apps/forge`,
+`bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
+./src/AgentBoundary.spec.ts ./src/lib/talos/ ./src/lib/claude-code/ ./src/services/overseer/ ./cli/overseer/` passes
+with this package's entries removed, and `bun run record src/lib/talos/Talos.ts` passes (it runs the changed
+`Talos.agents.integration.spec.ts`); verification step 1 of the stage reads protocol 2 from here on; at the root,
+`bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP2.26 The session's events carry the asking call, the recommendation and the window's length
+
+**Purpose.** The views read three facts off the vendor's own words today: the asking tool's name (reach E3), the
+`(Recommended)` mark on an option's label (E4) and the usage windows' keys (E5). The adapter maps each into a neutral
+field of the session's events, forge stores and serves the field, and the views stage 6 moves into Gaia read it. This
+replaces WP4.10 item 12's adapter util, which would have imported the adapter from `src/adapters/board-document/`.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentSessionEvent.ts:1-6` (`AgentQuestion`'s options), `:42-50` (`tool-call`),
+  `:55-63` (`usage-window`).
+- Change `src/lib/claude-code/ClaudeStreamMapper.ts` (the question, tool-call and usage-window mappings),
+  `src/lib/claude-code/ClaudeStreamLines.ts:29-34` (`answerLineOf`) and `:84-96` (`sentLineOf`, which reads back what
+  the writers wrote), `src/lib/claude-code/ClaudeCodeAdapter.ts:62` (`QUESTION_TOOL_NAME`, which the mapper now reads
+  too), and their specs: `ClaudeStreamMapper.spec.ts`, and `ClaudeStreamLines.spec.ts`, whose header (`:1-6`; `:3`
+  says it) holds `sentLineOf` to be the exact inverse of the three writers, an answer with its request and answers
+  among them, and to read a real session's recorded stdin lines the same way.
+- Change `src/lib/tracker-model/@types/Decision.ts:35-38` (`DecisionQuestionOption.isRecommended`), the place a
+  question event becomes a stored decision (find it with the compiler) and the decision's stored-record validation.
+  The comment `:40` is WP2.32's.
+- Change `cli/decisions/DecisionsCommand.ts:19`, which prints each option's label: today the vendor's `(Recommended)`
+  reaches the `decisions` verb inside the label; from here on it prints the mark from the stored `isRecommended`. Its
+  spec, `cli/decisions/DecisionCommands.spec.ts`. Change `bridge/conversation/DecisionCard.tsx:93-105`, which shows an
+  option's label, to mark a recommended option as the question panel does.
+- Change `src/services/overseer/JobTranscript.ts:76` (the tool-call entry's `asksUser`) and its entry type.
+- Change the usage windows: `src/adapters/usage-marker/UsageWindowsFile.ts:14`,
+  `src/services/overseer/BoardState.ts:51`, `src/services/overseer/JobLiveFactsReader.ts:58`,
+  `bridge/@types/BoardStateDocument.ts:58` (the field `lengthHours` and comments that name no vendor key).
+- Change `bridge/views/question-panel/QuestionPanelModel.ts:35`, `:104-106`, `:229`, `:239`, `:369` and
+  `bridge/shell/HeaderModel.ts:90-95`, with their specs and the fixtures `bridge/testing/QuestionPanelFixture.ts:30`,
+  `:161`, `bridge/testing/PipelineFixture.ts:1303-1304`.
+- Change `src/AgentBoundary.spec.ts`.
+
+**What to do.**
+1. `AgentQuestion`'s option gains `isRecommended: boolean`, the name the question panel's model already gives it
+   (`QuestionPanelModel.ts:106`). The Claude Code mapper strips the vendor's trailing mark (the pattern of
+   `QuestionPanelModel.ts:229`, which moves into the adapter) from the label and sets the flag.
+2. **The answer keeps the vendor's label.** `answerLineOf` gets back the questions the event carried: it echoes each
+   recommended option with its mark again, and an answer that names a recommended option's unmarked label is sent
+   with the mark, so the session reads the labels it asked with. `sentLineOf` undoes it: it reads the echoed
+   questions of the line, and each answer label that is a marked label of a recommended option there reads back
+   unmarked, so the transcript shows the labels the stored decision holds and `sentLineOf` stays the exact inverse of
+   `answerLineOf` over the event's questions. A recorded stdin line whose echoed questions carry the mark reads back
+   unmarked too. The spec's header says so beside its claim at `:3`.
+3. `tool-call` gains `asksUser: boolean`, true for the vendor's asking tool. The transcript's tool-call entry carries
+   it, and the question panel marks the current step by `asksUser` (`:369`), not by the tool's name.
+4. `usage-window` gains `lengthHours: number | null`: 5 for `five_hour`, 168 for `seven_day`, `null` for a window the
+   adapter does not know. The stored usage windows keep it beside the window. The header words a window from it: "5-hour
+   window", "week" for 168, `<n>-hour window` otherwise, and the stored window name when it is `null`. The window's
+   name stays an opaque value: the monitor document's `currentWindow` keeps carrying it, and Gaia never reads it.
+5. `DecisionQuestionOption` gains `isRecommended: boolean`, stored with the decision; nothing migrates (decision 32).
+   `QuestionPanelModel` reads `option.isRecommended` and the label as stored.
+6. The `decisions` verb prints a recommended option as `<letter>. <label> (recommended)`, the mark lower case after
+   the label, where the vendor's `(Recommended)` stood inside it; its `--json` carries the stored `isRecommended`.
+   `DecisionCard` marks it as the question panel does. The wording is assumption 3 of "Needs the owner".
+
+**Specs.** `ClaudeStreamMapper.spec.ts`: a marked option arrives unmarked with `isRecommended`, a mark in the middle of
+a label stays, `asksUser` on the asking call only, each window's length. `ClaudeStreamLines.spec.ts`: the answer to a
+recorded question with a recommended option echoes the marked label and the marked answer; `sentLineOf` of that line
+answers the unmarked answer, so its inverse case holds for a question with a recommended option; an answer that names no
+marked label of the echoed questions reads back as written. The decision specs: the flag round-trips through the stored
+record. `DecisionCommands.spec.ts`: a stored recommended option prints with its mark, another without, and `--json`
+carries the flag. `QuestionPanelModel.spec.ts` and `HeaderModel.spec.ts`: the flag, `asksUser` and the length drive
+what they did before.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/
+./src/lib/tracker-model/ ./src/services/overseer/JobTranscript.spec.ts ./cli/decisions/ ./bridge/` passes with this
+package's entries removed, and `bun run test:dom` passes; at the root, `bun install --frozen-lockfile` and
+`bun run verify` are green.
+
+### WP2.27 The tool-call guards take neutral tool calls
+
+**Purpose.** The network guard and the stage's edit guard keep forge's rules, the domains and the folders, and read a
+neutral tool call; the adapter reads the vendor's hook input and words the vendor's denial (reaches D1 to D3; design
+section 5 names the `bash-domains` hook). The port's worker profile stops naming the vendor's tools too: its field
+`bashNetworkDomains` is the list the network guard is rendered with (`WorkerProfiles.ts:384-391`), so its rename
+belongs with the guard.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Create `src/lib/agent-launch/AgentToolCall.ts` (`AgentToolCall`, "Interfaces introduced"); change
+  `src/lib/agent-launch/AgentAdapter.ts` (`toolCallOf`, `toolCallDenialLineOf`).
+- Create `src/lib/claude-code/ClaudeHookInput.ts` and its spec, from `cli/hooks/BashDomainsHook.ts:14-18`, `:36-75`,
+  `:80-90` and `cli/hooks/StageEditsHook.ts:21-23`, `:30-70` (the vendor's JSON, its tool names and its denial); wire
+  them into `ClaudeCodeAdapter.ts`; the fake agent takes Claude Code's (`src/testing/FakeAgentAdapter.ts`).
+- Change `cli/hooks/BashDomainsHook.ts`, `cli/hooks/StageEditsHook.ts`, `cli/hooks/HookCommand.ts:1-4`, `:18`, and their
+  specs: `BashDomainsHook.spec.ts`, `StageEditsHook.spec.ts`, `BashDomainsHook.emptySearchPath.integration.spec.ts` (its
+  boundary in `src/testing/BoundarySpecs.ts:170` stays).
+- Change `src/services/overseer/JobLaunch.ts:2259-2264` (`UNSTARTABLE_GUARD_WORDS`).
+- Change the port's worker profile, `src/lib/agent-launch/WorkerProfile.ts`: the field `bashNetworkDomains` (`:6`)
+  becomes `shellNetworkDomains`, and the comments `:20`, `:24`, `:26`, `:28`, `:38`, `:56-57` say "file changes" and
+  "shell commands and web fetches" where they name `Edit`, `Write`, `Bash` and `WebFetch`. Follow the compiler through
+  the field's users (`git grep -l bashNetworkDomains -- apps/forge`, 22 files at `3274ac88`): the adapter
+  (`ClaudeCodeAdapter.ts` and its specs, `testing/fixtures/frozen-session-settings.json`), the Overseer
+  (`DrivePass.ts:684`, `FlintBrainProfile.ts:45`, `IntakeSessions.ts:35`, `PipelineAgentSessions.ts:217`,
+  `WorkerProfiles.ts:422`, `FrozenDarwinWorkerProfiles.json` and their specs), `cli/FrozenPlatformPorts.json`, the
+  fake agent's specs and `cli/overseer/OverseerWording.intake.spec.ts`. The frozen files change only in that key,
+  retaken as their specs say.
+- Change the `hook bash-domains` and `hook stage-edits` blocks of `cli/HelpText.ts` (`:161-177`), their section of
+  `docs/cli.md`, and `src/AgentBoundary.spec.ts`.
+
+**What to do.**
+1. `toolCallOf(hookInput: string): AgentToolCall | null` answers the neutral call, `null` for input it cannot read.
+   Claude Code maps `Bash` and `PowerShell` to `shell` with the requested domains (today's `allowed_domains`, `null`
+   when malformed), `WebFetch` to `web-fetch` with its URL, `Edit` and `Write` to `file-change` with the path and the
+   session's folder, the tools of `BashDomainsHook.ts:18` other than those to `no-reach`, and any other tool to
+   `unknown`.
+2. `toolCallDenialLineOf(reason: string): string` answers the line the guard prints to deny (today's
+   `hookSpecificOutput`, `:80-90`).
+3. The guards keep their rules on neutral calls. The network guard checks the domains of a `shell` call and the host of
+   a `web-fetch` call, passes `no-reach` and `file-change`, and denies `unknown`. The edit guard checks the path of a
+   `file-change` call and denies every other kind. Both still deny on any failure and exit 0; both reach the adapter as
+   `context.agentAdapter`.
+4. The verb and its events stay forge's: `hook session-start|bash-domains|stage-edits`. Its usage line says "the hook
+   input arrives on standard input" and names no vendor event.
+5. `UNSTARTABLE_GUARD_WORDS` names no vendor tool: "shell commands and web fetches" and "file edits". The wording of
+   items 4 and 5 is assumption 6 of "Needs the owner".
+6. The port names no vendor tool: `WorkerProfile.shellNetworkDomains`, and its comments as listed. After this package
+   the guard's `port-tool-word` form finds nothing in `src/lib/agent-launch/` or `src/lib/talos/`.
+
+**Specs.** `ClaudeHookInput.spec.ts` takes every vendor-JSON case of the two hook specs: each tool's call, malformed
+domains, a missing path, the denial line. `BashDomainsHook.spec.ts` and `StageEditsHook.spec.ts` drive the guards with
+planted neutral calls through a planted adapter: each verdict as before, and a deny on an unreadable input.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/ ./cli/hooks/
+./src/services/overseer/JobLaunch*.spec.ts ./src/services/overseer/WorkerProfiles*.spec.ts` passes with this package's
+entries removed, and `bun run record src/services/overseer/GuardCommand.ts` passes (it runs the changed
+`BashDomainsHook.emptySearchPath.integration.spec.ts`, `src/testing/BoundarySpecs.ts:170`, and starts no agent);
+`git grep -n "bashNetworkDomains" -- apps/forge` prints nothing; `ALLOWED_AGENT_LINES` holds no key of
+`src/lib/agent-launch/WorkerProfile.ts`, so no key under `src/lib/agent-launch/` or `src/lib/talos/` is left, and
+WP2.22's "no entry names the port or Talos" test is tightened back to no such key at all; at the root, `bun install --frozen-lockfile` and
+`bun run verify` are green.
+
+### WP2.28 The adapter names its configuration paths and its attribution
+
+**Purpose.** Which folders and files of a checkout configure the vendor, which a job may not write and Customs refuses,
+and which commit trailer is the vendor's attribution, are the adapter's data (reaches F1 to F4).
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentAdapter.ts` (`configurationNames`, `attributionPatterns`),
+  `src/lib/claude-code/ClaudeCodeAdapter.ts` (from `src/lib/claude-code/constants/ClaudeCodePaths.ts:1`) and their
+  specs; `src/testing/FakeAgentAdapter.ts`.
+- Change `src/services/overseer/WorkerProfiles.ts:160-195` (`claudeFoldersOf` and its two callers) and the facts its
+  callers hand it; `src/services/overseer/WorkerProfiles.spec.ts`.
+- Change `src/services/lifecycle/Customs.ts:307` (`AI_ATTRIBUTION_PATTERNS`), `:833-837`, the comments `:899-940`, and
+  the request its callers hand it; `Customs.spec.ts`, `Customs.projectScope.spec.ts`, `Customs.provenance.spec.ts`.
+- Change the comments `src/services/overseer/JobLaunch.ts:2222`, `:2330`, `:2351` and `DrivePass.ts:1102`.
+- Change `src/AgentBoundary.spec.ts`.
+
+**What to do.**
+1. `configurationNames: { folderNames: readonly string[]; fileNames: readonly string[] }`, Claude Code's
+   `{ folderNames: ['.claude'], fileNames: ['.mcp.json'] }`. `attributionPatterns: readonly RegExp[]`, Claude Code's
+   `[/^Co-Authored-By:\s*Claude/im]`.
+2. `claudeFoldersOf` becomes `agentConfigurationFoldersOf(facts)`: each folder name at the worktree's root, at the
+   project's folder and at every entity home, as today. `SandboxFacts` gains `agentConfigurationFolderNames`, handed
+   from the pass's adapter.
+3. Customs builds its patterns from the names it is handed (each escaped; a folder `^<name>/` and `(^|/)<name>/`, a file
+   `^<name>$` and `(^|/)<name>$`) and refuses the attribution patterns it is handed beside its own `/Generated with/i`.
+   Its doc comments say "the agent's configuration" for `.claude/` and `.mcp.json`.
+4. The comments of `JobLaunch.ts` and `DrivePass.ts` say "configuration folder".
+5. `src/services/overseer/FrozenDarwinWorkerProfiles.json` does not change: the paths are the same.
+
+**Specs.** `WorkerProfiles.spec.ts`: the denied folders come from planted names. The Customs specs: a planted folder
+name and file name refused at the root and at any depth, a planted attribution pattern refused, `Generated with` still
+refused. `ClaudeCodeAdapter.spec.ts`: the two values.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/
+./src/services/overseer/WorkerProfiles*.spec.ts ./src/services/lifecycle/` passes with this package's entries removed;
+at the root, `bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP2.29 The retired install goes: the managed block, the old hooks, the global skill links
+
+**Purpose.** Nothing stays compatible (decision 32) and every board is set up anew, so the code that removes what
+install versions 16 and earlier wrote goes, and with it most of the install's vendor names (reaches C3, C6 to C12, and
+the refusal of reach H3).
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Delete `cli/adoption/constants/RetiredClaudeInstall.ts`; `cli/constants/ClaudeManagedBlockMarkers.ts` and
+  `ClaudeManagedBlockMarkers.spec.ts`; `cli/setup/RetiredSkillStep.ts` and its spec;
+  `cli/adoption/RetiredAgentHostRefusal.ts` and its spec; `removeManagedBlock` and `ManagedBlockMarkers` of
+  `src/lib/claude-code/ClaudeInstructions.ts` (the file stays if anything else in it has a caller).
+- Change `cli/adoption/constants/ClaudeCodeInstall.ts` (header `:1-3`, `RetiredSkillFolder` `:25-29`,
+  `RETIRED_SKILL_FOLDERS` `:41-42`, the part comment `:44-51`, the parts `retired-managed-block` and `retired-install`
+  `:63-64`, `:76-77`, `retiredSkillFolders` `:60`, `:106`).
+- Change `cli/adoption/TrackerRefresh.ts:18`, `:33`, `:49`, `:225-263` and the cases `:285-288`, and the removal of
+  retired skill folders (`refreshSkillFolders` and its report line before `:186`).
+- Change `cli/InstallVersionCheck.ts:14`, `:27-33` (the session instructions alone mark an install).
+- Change `cli/overseer/OverseerForeground.ts:78`, `:587`; `src/services/overseer/DrivePass.ts:228-229`, `:284`,
+  `:429-433`, `:492`, `:1017` (the observation, the notice kind `claude-md-block-committed`, and its member of the pass
+  fingerprint if it has one); `src/lib/tracker-model/@types/PlaybookStep.ts:75`;
+  `src/shared/monitor/utils/NoticeWordingUtil.ts:49-50`; `cli/overseer/OverseerWording.ts:1050-1051`.
+- Change `apps/gaia/src/adapters/page-api/ForgeSentenceUtil.ts:34` and `ForgeSentenceUtil.spec.ts:63-64`.
+- Change `cli/setup/Setup.ts`: the header (`:1-5`, whose line `:3` names the `~/.claude/skills/` links), the import
+  `:11`, the retired step `:63-64` (its heading `:63` names the vendor), and the headings `:57`, `:59`, `:65`, which
+  become `1/3`, `2/3` and `3/3`; its specs. Change the callers of the retired agent host refusal in
+  `init` and `update`.
+- Change `cli/HelpText.ts:72-79` (what `update` removes once, rewrapping `update`'s paragraph `:69-86`; `:71`, the
+  current install's `SessionStart`, is WP2.30's, and its allowlist key is rewritten here if the rewrap changes it);
+  `docs/cli.md`
+  (the install versions 16 and 17, the managed block, the retired agent host); `cli/constants/InstallVersion.ts` (36 to
+  37); `cli/adoption/FrozenClaudeInstall.json` (the `CLAUDE.md:` and `retired:` report lines go);
+  `cli/FrozenInstalledSurface.json`; `cli/overseer/FrozenRootTrackerGitCalls.json` and
+  `FrozenFolderTrackerGitCalls.json` (the `git show <target>:CLAUDE.md` calls go, retaken as their specs say).
+- Change the specs and fixtures the compiler and the scan name: `cli/adoption/update/UpdateCommand.spec.ts`,
+  `init/InitCommand.spec.ts`, `TrackerRefresh.*.spec.ts`, `cli/InstallVersionCheck*.spec.ts`,
+  `cli/setup/Setup*.spec.ts`, the `claude-md-block-committed` cases of the notice specs, and the planted `CLAUDE.md`
+  blocks of `src/testing/RecordedGitFlow.ts` and `cli/testing/RecordedGitStages.ts` that exist only for the block.
+- Change `src/AgentBoundary.spec.ts`, `src/ImportDirection.spec.ts`, `apps/gaia/src/AgentVendorNames.spec.ts`.
+
+**What to do.**
+1. Delete what the files list. `init` and `update` write what they wrote before but for the two retired parts; their
+   report loses its `CLAUDE.md:` and `retired:` lines.
+2. The pass no longer reads a target's `CLAUDE.md`: no observation, no notice, no fingerprint member. The pass waits on
+   nothing the vendor's instruction file holds.
+3. `setup` no longer looks into the home's skills folder, and its report has three steps.
+4. Raise `INSTALL_VERSION` to 37, update `cli/FrozenInstalledSurface.json` and `FrozenClaudeInstall.json`, and run
+   `bun run record src/services/overseer/InstallChangeWatch.ts` in `apps/forge`, as WP7.2 does for its raise.
+5. What a user sees change (the stage's calls, "The run's calls"): `update` no longer removes install version 16's
+   managed block, hooks, agent definition, dispatcher and briefs, nor the retired skill folder; `setup` no longer
+   removes the `~/.claude/skills/` links and renumbers its steps; no launch waits on a committed managed block any more,
+   and the notice that said so is gone from the Overseer, the monitor and Gaia. A board or a machine that still holds
+   those leftovers keeps them until its owner removes them by hand. This is the plan's choice while the owner is away:
+   assumption 2 of "Needs the owner".
+
+**Specs.** The install specs: `init` and `update` write the same files and report without the two lines; a board of an
+older install version is refused as any other mismatch. The pass specs: no notice and no `git show` of `CLAUDE.md`.
+`ForgeSentenceUtil.spec.ts` loses the retired kind.
+
+**Done when.** This prints nothing:
+`git grep -n -i "managed block\|claude-md-block\|RetiredClaudeInstall\|RetiredSkillStep\|RetiredAgentHost" -- apps/forge/src apps/forge/cli apps/gaia/src`.
+In `apps/forge`, `bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
+./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./cli/adoption/ ./cli/setup/ ./cli/InstallVersionCheck.spec.ts
+./cli/overseer/` passes with this package's entries removed (no integration spec of `cli/setup/` names the retired step
+or the step numbers at `3274ac88`); in `apps/gaia`, `bun test src/AgentVendorNames.spec.ts
+src/adapters/page-api/` passes with its one entry removed; at the root, `bun install --frozen-lockfile` and
+`bun run verify` are green.
+
+### WP2.30 The adapter installs into a repository
+
+**Purpose.** `init` and `update` hand the adapter a neutral installation, the command a session runs at its start and
+the instruction bundles; the adapter writes its own settings entry and its bundle folders (reaches C1, C2, C4, C5,
+C13, C14; design section 5 names the hook entry; "a skill becomes an instruction bundle the adapter can load"), and
+the bundles' texts stop writing the vendor's slash invocation.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Create `src/lib/agent-launch/AgentInstaller.ts` ("Interfaces introduced"); change
+  `src/lib/agent-launch/AgentAdapter.ts` (`installer`).
+- Create `src/lib/claude-code/ClaudeCodeInstaller.ts` and its spec, from `cli/adoption/TrackerRefresh.ts:186-224`
+  (`refreshHookIn`, `refreshClaudeSettingsHooks`) and `cli/InstalledFiles.ts:30-33`
+  (`installedSkillFolderInRepository`); wire it into `ClaudeCodeAdapter.ts`. The fake agent's installer is Claude Code's
+  (`src/testing/FakeAgentAdapter.ts`).
+- Move with `git mv` `cli/adoption/constants/ClaudeCodeInstall.ts` to `cli/adoption/constants/AgentInstall.ts`:
+  `CLAUDE_CODE_INSTALL` becomes `AGENT_INSTALL`; the part `claude-settings-hooks` becomes `session-start` (the command
+  `SESSION_START_HOOK` carries, `:66-72`, without its event and matcher); `skill-folders` becomes `instruction-bundles`;
+  `CommandHook` (`:5`) goes, and so do the comments that name the vendor's skill format (`:22`, `:31`, "`SKILL.md`
+  frontmatter … so Claude Code knows it by its folder").
+- Change `cli/adoption/TrackerRefresh.ts:19-26`, `:31`, `:36-44`, `:186-224`, `:277-292` (the request gains the
+  installer); `cli/adoption/InstalledFileGeneration.ts:12-17`, the comment `:36` (it fills "its `SKILL.md`
+  frontmatter"), `:48` (the fills of each bundle file), `:58`, `:70`;
+  `cli/InstalledFiles.ts:25`, `:30-33`; `cli/hooks/SessionStartHook.ts:1-4`, `:12`; the `init` and `update` commands
+  that build the request; `cli/testing/InstalledSurfaceScan.ts:46`, which names the moved file.
+- Change `skills/agent-po/SKILL.md:12` (`says "/{{productOwnerSkill}}"`) and
+  `skills/agent-progress-orchestrate/SKILL.md:9` (`says "/{{skillName}}"`): the slash invocation becomes a fill.
+- Change `cli/HelpText.ts:44-57` (`init`), `:71` (what `update` refreshes) and `:154-159` (`hook session-start`),
+  `docs/cli.md` (`init`, `update`, `hook session-start`), `.claude/rules/skills.md` if it names the folder
+  layout or the invocation.
+- Change the specs: `TrackerRefresh.claudeInstall.spec.ts` and `TrackerRefresh.skillFolders.spec.ts` (their settings
+  cases move to `ClaudeCodeInstaller.spec.ts`), `init/InitCommand.spec.ts`, `update/UpdateCommand.spec.ts`,
+  `InstalledFileGeneration.spec.ts`, `cli/InstalledFiles.spec.ts`, `cli/InstalledSurface*.spec.ts`;
+  `src/AgentBoundary.spec.ts`, `src/ImportDirection.spec.ts`.
+
+**What to do.**
+1. `AgentInstaller.refreshSessionStart(repositoryRoot, command, commandName, standardError): string` writes or keeps
+   current the vendor's entry that runs `command` at a session's start and answers the report line, as
+   `refreshHookIn` does today (shared settings file first, then the per-user one, the refusal of an unreadable file
+   included). `instructionBundleFolderOf(bundleName): string` answers the repository folder, written with `/`, that
+   the vendor loads a bundle from (Claude Code's `.claude/skills/<name>`).
+2. `TrackerRefresh` writes the bundles' files itself into the folder the installer names and git-ignores it, as today;
+   it knows no vendor path. `--no-hooks` still leaves the session-start entry alone.
+3. `init` and `update` write the same files and the same report as before; the report labels stay `hooks` and
+   `skills`. Raise `INSTALL_VERSION` only if `cli/FrozenInstalledSurface.json` changes.
+4. The `hook session-start` verb stays forge's; its comment says the agent's session-start entry runs it. The help
+   text says "the agent's session-start entry, in the settings the agent adapter writes" and "the folder the agent
+   loads instruction bundles from" where it names `.claude/settings.local.json`, `.claude/skills/` and `SessionStart`
+   (assumption 7 of "Needs the owner").
+5. **A bundle's invocation is the adapter's.** The bundles' texts write `"{{productOwnerSkillLine}}"` and
+   `"{{skillLine}}"` where they wrote `"/{{productOwnerSkill}}"` and `"/{{skillName}}"`, and
+   `InstalledFileGeneration` fills them with the adapter's `instructionBundleLineOf(name, '')` (WP2.25), which Claude
+   Code answers as `/<name>`, so the installed text is byte for byte today's and `cli/FrozenInstalledSurface.json`
+   does not change. The fill needs the adapter, so `installedSkillFileTexts` takes it from the request.
+6. **The bundle's source format stays.** Each bundle is `skills/<folder>/` with a `SKILL.md` whose YAML header holds
+   `name` (filled with the installed name) and `description`, the format the one adapter loads; forge copies the folder
+   file by file and names neither the file nor the header in its code or comments, and `AgentBoundary.spec.ts`'s
+   header says why the source files' names are no finding (WP2.22 item 3). A second adapter that loads another format
+   renders the same texts in its installer.
+
+**Specs.** `ClaudeCodeInstaller.spec.ts`: each settings case of today (absent, kept current in the shared file,
+installed in the per-user file, refused unreadable) and the bundle folder. The forge specs read the folder through the
+installer and assert the same report. `InstalledFileGeneration.spec.ts`: a planted adapter's invocation line fills both
+bundles; with Claude Code's the installed texts equal `cli/FrozenInstalledSurface.json`.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
+./src/lib/claude-code/ ./cli/adoption/ ./cli/InstalledFiles.spec.ts ./cli/InstalledSurface.spec.ts
+./cli/HelpText.spec.ts` passes with this package's entries removed, and `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED` is
+empty and deleted; `git grep -n -e '/{{' -e 'SKILL\.md' -- apps/forge/skills apps/forge/resources apps/forge/cli
+':!*.spec.ts' ':!*/testing/*' ':!*.json'` prints nothing; at the root, `bun install --frozen-lockfile` and
+`bun run verify` are green.
+
+### WP2.31 A session is confined by its agent's own sandbox or by forge's, as the port declares
+
+**Purpose.** A session's confinement no longer rests on an assumption about the vendor (reaches G1; design section 5,
+the Agent row). An agent that brings its own sandbox is confined by it, applied through its adapter, which renders the
+worker profile into the agent's settings and declares that confinement as a capability; forge's own confinement, the
+`GateConfinement` port that already confines every line, wraps a session whose agent brings none, as the design's Agent
+row says (`docs/monorepo/hephaestus-talos.md`, section 5); assumption 8 of "Needs the owner". Never both: on macOS a
+Seatbelt profile with any deny rule refuses a nested `sandbox_apply` (checked on 2026-11-18 with
+`/usr/bin/sandbox-exec`: an outer profile with one `deny file-write*` rule makes the inner `sandbox-exec` exit 71,
+"Operation not permitted"; an outer `(allow default)` alone lets it run, which is all that probe
+`os-sandbox-exec-nested` checks), and the vendor starts its own sandbox for every shell call.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentAdapter.ts` (`AgentCapabilities.ownConfinement`, `sessionWritablePathsOf`) and
+  `src/lib/agent-launch/AgentLaunchRequest.ts:5-6` (`AgentConfinement`'s doc comment, neutral).
+- Change `src/lib/claude-code/ClaudeStreamLines.ts` (`CLAUDE_CODE_CAPABILITIES`), `ClaudeCodeAdapter.ts` and their
+  specs; the fake agent keeps Claude Code's capabilities.
+- Change `src/lib/gate-confinement/GateConfinement.ts:5-18` (`ConfinementPlan.writableRoots`), `DarwinSeatbelt.ts`,
+  `LinuxBubblewrap.ts`, `WindowsNoConfinement.ts`, `GateConfinementFor.ts`, and their contract specs
+  (`GateConfinement.contract.spec.ts`, `GateConfinement.contract.integration.spec.ts`).
+- Create `src/services/overseer/SessionConfinement.ts` and its spec: a session's `ConfinementPlan` from its
+  `WorkerProfile`, beside `LineSandbox.ts` (WP2.16's name for `ProcessWatcherSandbox.ts`), which passes
+  `writableRoots: []`.
+- Change the launch of an agent child (`DrivePass.ts`, `launchAgentChild` after WP2.13; the confinement is chosen at
+  `:796-798`, `sessionConfinementOf`), and every other site that turns `planOf` into a launch (find them with
+  `git grep -n "planOf(" -- apps/forge/src apps/forge/cli`).
+- Change `cli/overseer/OverseerWording.ts:256-268` (`CONFINEMENT_WORDING`) only if a sentence names who confines.
+- Change `apps/forge/CLAUDE.md`: a row in its Deviations table (item 6).
+
+**What to do.**
+1. `AgentCapabilities.ownConfinement: 'applies-the-profile' | 'none'`. Claude Code answers `applies-the-profile`: its
+   sandbox applies the profile's write roots, denies and network domains (`ClaudeSettings.ts`).
+2. `applies-the-profile`: the launch is as today. `confined` asks the agent's own sandbox, which must start or the
+   session does not run.
+3. `none`: the Overseer builds `SessionConfinement.planOf(profile, adapter.sessionWritablePathsOf(homeDirectory))`
+   (the worktree or write root, the profile's other writable roots and `extraWritableDirectory`, its denied writable
+   and readable roots, `network: true`, since the agent reaches its provider) and wraps the plan's argv with
+   `confinedLineOf` (`src/lib/gate-confinement/ConfinedLine.ts`), as a line is wrapped. `unavailable` refuses the
+   launch with today's `sandbox-unavailable` incident (`WORKER_LAUNCH_STEP`, `DrivePass.ts:373-374`). A profile with
+   network domains (a non-empty `shellNetworkDomains`, or `webNetworkDomains` a list) is refused the same way, with a
+   reason that says forge's confinement allows the network whole or not at all: no domain line is ever widened.
+4. `ConfinementPlan.writableRoots`: Seatbelt and bubblewrap allow writes below each, as below `worktree`; the denied
+   roots still win.
+5. Name in the files' comments why both never wrap one session (the measured refusal above).
+6. The Deviations row of `apps/forge/CLAUDE.md`, since the `none` path has no adapter that takes it: "Code starts
+   beside its only consumer; never in anticipation. | `src/services/overseer/SessionConfinement.ts` wraps a session in
+   forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one
+   adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's
+   declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the
+   contract integration spec." The design's section 5 says the same beside the store's deviation.
+
+**Specs.** `SessionConfinement.spec.ts`: the plan of each role's profile. The pass specs over a planted adapter with
+`ownConfinement: 'none'` and a recorded `GateConfinement`: the argv is wrapped, an `unavailable` port refuses the
+launch, a profile with network domains is refused; with Claude Code's capability nothing changes. The contract specs:
+the new field on each adapter. `GateConfinement.contract.integration.spec.ts` (real, macOS): a session-shaped plan lets
+a child write each writable root and refuses a denied root; under the Seatbelt adapter's confined argv, a child that
+runs `/usr/bin/sandbox-exec -p '(version 1)(allow default)(deny file-write* (subpath "<scratch>"))' /bin/echo` exits 71,
+which proves the reason for item 5 on each recording.
+
+**Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
+--path-ignore-patterns='**/*.integration.spec.ts' ./src/lib/gate-confinement/
+./src/services/overseer/SessionConfinement.spec.ts ./src/services/overseer/DrivePass*.spec.ts ./src/lib/claude-code/`
+passes; `bun run record src/lib/gate-confinement/` passes (the boundary that lists the contract integration spec,
+`src/testing/BoundarySpecs.ts:91-94`); at the root,
+`bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP2.32 The vendor's names leave the wording, the prompts and the comments
+
+**Purpose.** The last reaches are words: refusals, help, prompts the sessions read, and comments (reaches H2 to H5, I1,
+I2, G3, the comment of `src/services/lifecycle/TokenCrediting.ts:47`, and every comment finding WP2.22 gave this
+package). After this package the guard's allowlist holds only its permanent entries, and no comment outside the adapter
+names the vendor's program, flags, tools or hook events.
+
+**Files.** Lines at `3274ac88`; reread on the tree you run on.
+- Change `src/lib/agent-launch/AgentAdapter.ts` (`displayName`, `promptFills`), `ClaudeCodeAdapter.ts`, the fake agent.
+- Change `src/adapters/utils/OperationRefusalWordingUtil.ts:289`, `:396`; `cli/drafts/DraftContentSubcommands.ts:58`;
+  `cli/adoption/init/InitCommand.ts:50`; `cli/overseer/OverseerWording.ts:256-268` (`CONFINEMENT_WORDING`: the
+  sentences `:261`, `:267` and their key `productOwnerBashNetwork`, which `:286` fills) and the two templates that hold
+  that key, `resources/prompts/ProductOwnerPrompt.md:8` and `resources/prompts/BuiltInBriefProductOwner.md:7` (the
+  installed default product owner brief, `cli/adoption/FrozenClaudeInstall.json:13`).
+- Change the comments that name the vendor's tool, flags or program, each in its place: the asking tool in
+  `src/lib/tracker-model/@types/Decision.ts:40`, `:57`, `@types/OptionConsequences.ts:2`,
+  `src/lib/tracker-model/BoardRecords.ts:129`, `constants/DecisionAndIncidentVocabulary.ts:80`,
+  `src/services/overseer/QuestionRouting.ts:2`; the tools in `src/services/overseer/IntakeSessions.ts:2-3` and
+  `src/lib/process-identity/PosixProcessGroups.ts:53` ("a Bash command"); the vendor's flags in
+  `src/services/overseer/JobResumption.ts:2` (`--resume <id>`), `src/services/overseer/ApiBillingStops.ts:3`
+  (`--max-budget-usd`) and `src/lib/tracker-model/JobControls.ts:180` (`--resume`); the program in
+  `src/lib/tracker-model/@types/Ticket.ts:17`, `src/lib/data-folders/PosixDataFolders.ts:15` and
+  `src/services/lifecycle/TokenCrediting.ts:47`. Lines WP2.13 to WP2.16 rewrote are found again by the guard and by
+  the greps of "Done when".
+- Change the prompts and the template: `resources/prompts/AirlockReportMessage.md:1`, `AirlockReReviewMessage.md:16`,
+  `HumanCodeReviewReReviewMessage.md:16`, `ProductOwnerPrompt.md:7`, `:12`, `ReviewPrompt.md:12`, `:18`, `:26`,
+  `BuildPrompt.md:12`, `PipelineAgentResearch.md:6`; `resources/templates/Constitution.md:3`; the places that fill them
+  (`cli/overseer/OverseerWording.ts` for the launch text, `cli/adoption/InstalledFileGeneration.ts:67-75` for the
+  installed defaults; find the others with `git grep -n "filledTemplateOf" -- apps/forge/src apps/forge/cli`).
+- Change `cli/adoption/FrozenClaudeInstall.json` and `cli/FrozenInstalledSurface.json` if the installed texts change,
+  and raise `INSTALL_VERSION` then.
+- Change `apps/forge/CLAUDE.md` (a Deviations row, item 5); `src/AgentBoundary.spec.ts`.
+
+**What to do.**
+1. "the option Claude recommends" becomes "the option the agent recommends" (`:289`, `:396`, `:58`).
+2. `displayName` (Claude Code's `'Claude Code'`); `init`'s next steps say "Ask an agent session (Claude Code) in this
+   repository", the name read from `context.agentAdapter.displayName`.
+3. `CONFINEMENT_WORDING` says "shell commands" where it says `Bash`: its key `productOwnerBashNetwork` becomes
+   `productOwnerShellNetwork`, in the wording, its fill and both templates, and its sentences "Shell commands reach no
+   network." and "Do not use the network from a shell command." The installed default brief changes, so
+   `INSTALL_VERSION` rises (Files).
+4. `promptFills: Readonly<Record<AgentPromptFillName, string>>` with `AgentPromptFillName = 'askUserTool' |
+   'webFetchTool' | 'webSearchTool' | 'instructionFile' | 'agentConfigurationPaths'`; Claude Code's `AskUserQuestion`,
+   `WebFetch`, `WebSearch`, `CLAUDE.md` and `` `.claude/`, `.mcp.json` ``. Each prompt line writes the fill
+   (`{{askUserTool}}`, `{{instructionFile}}`, `{{agentConfigurationPaths}}`, `{{webFetchTool}}`, `{{webSearchTool}}`),
+   and every place that fills these files adds the adapter's fills to its values: the installed defaults at `init` and
+   `update`, the messages at launch. The rendered text a session reads is the same as today's.
+5. The Deviations row of `apps/forge/CLAUDE.md`: "Code names no agent vendor (`src/AgentBoundary.spec.ts`) | The model
+   tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the
+   pipeline and the views | A pipeline names a tier and an effort; the agent adapter maps them to its own models
+   (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`)". `Ticket.ts:17` and `Decision.ts:40` say "the tiers an
+   agent adapter maps" and "the question shape the agent port carries".
+6. Comments outside the adapter name no vendor: `PosixDataFolders.ts:15` says programs keep scratch files under `/tmp`;
+   the asking tool becomes "an agent's question request" (`Decision.ts:57`, `BoardRecords.ts:129`,
+   `DecisionAndIncidentVocabulary.ts:80`, `QuestionRouting.ts:2`, `OptionConsequences.ts:2`); `IntakeSessions.ts:2-3`
+   says "web fetches and searches only, shell commands with no domain"; `PosixProcessGroups.ts:53` says "a shell
+   command"; `JobResumption.ts:2` says the next child resumes the agent's session, `ApiBillingStops.ts:3` "a stop at the
+   pipeline's budget cap", `JobControls.ts:180` "never a resumed session"; `TokenCrediting.ts:47` names the adapter's
+   reading of a transcript, not its util.
+7. The wording of items 1 to 3 is the plan's choice while the owner is away: assumptions 4 and 5 of "Needs the owner".
+
+**Specs.** The wording specs of each sentence; `OverseerWording` launch-text specs: a filled prompt reads as before;
+`InstalledFileGeneration.spec.ts`: the installed defaults hold the adapter's fills; `cli/ReferenceCopies.spec.ts` and
+`src/ProseWrap.spec.ts` pass on the changed prompts.
+
+**Done when.** `ALLOWED_AGENT_LINES` holds only its `Permanent:` entries (the seam's two lines) and Gaia's allowlist is
+empty; the guard reads every comment line with every form (WP2.22 item 3), so a comment that names the vendor fails it.
+The greps below hold what the forms leave out (`--resume` and `--max-budget-usd`, forge's own option names too) and
+read the tree again by hand. They print, comment lines included:
+- `git grep -n -i -P "claude|anthropic" -- apps/forge/src apps/forge/cli apps/forge/bridge apps/forge/resources
+  apps/forge/skills ':!apps/forge/src/lib/claude-code' ':!*.spec.ts' ':!*.spec.tsx' ':!*.dom.tsx' ':!*/testing/*'
+  ':!*.json'`: only `cli/CommandContext.ts`'s two seam code lines (the import of `claudeCodeAdapterFor` and the line of
+  `agentAdapterOfThisProcess` that calls it, `:11` and `:79` at `3274ac88`, `:11` and `:72` on `main`) and the
+  `.claude/` folders of this repository's own development (`.evidence`, `worktrees`, `rules`). The file's other lines
+  that name the vendor are gone by then: WP2.23 removes `claudeConfigFolder` (`:15`, `:56`, `:142`) and rewrites the
+  comments `:53` and `:55`; WP2.24 removes `claudeConfigFolderVariable` (`:16`) and rewrites the comments `:73` and
+  `:77` (`:66` and `:70` on `main`), so the field's comment says "the agent port's adapter, or the scripted fake agent
+  under the fake-agent switch" and the function's "the one place outside the agent port's adapter that chooses it".
+- `git grep -n -e '--resume' -e '--max-budget-usd' -- apps/forge/src ':!apps/forge/src/lib/claude-code' ':!*.spec.ts'
+  ':!*/testing/*'`: nothing (the options of those names are forge's own, in `cli/pipeline/`).
+- `git grep -n -P "AskUserQuestion|WebFetch|WebSearch|\bBash\b|\bSessionStart\b|PreToolUse|BashNetwork" --
+  apps/forge/src/lib apps/forge/src/services apps/forge/cli ':!apps/forge/src/lib/claude-code' ':!*.spec.ts'
+  ':!*/testing/*' ':!*.json'`: nothing (`bridge/` is left out: its comments quote tool names an agent reported, such as
+  "Bash ×4").
+
+In `apps/forge`, `bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts'
+./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./src/ProseWrap.spec.ts ./cli/` passes; in `apps/gaia`,
+`bun test src/AgentVendorNames.spec.ts` passes; at the root, `bun install --frozen-lockfile` and `bun run verify` are
+green.
+
 ## Interfaces introduced
 
 All in TypeScript as they are to be written. Field names are exact.
@@ -1332,7 +2384,7 @@ All in TypeScript as they are to be written. Field names are exact.
 
 ```ts
 /** Raised by hand whenever a frame, the launch, or a reply changes; never with the code version. */
-export const TALOS_PROTOCOL_VERSION = 1;
+export const TALOS_PROTOCOL_VERSION = 1; // 2 from WP2.25, whose `quit-at-turn-end` changes a frame
 export const CHILD_RECORD_FORMAT_VERSION = 1;
 export const TALOS_RECORD_FORMAT_VERSION = 1;
 export const TALOS_START_FILE_FORMAT_VERSION = 1;
@@ -1538,7 +2590,8 @@ export interface EndingPattern {
 }
 
 export type QuitAtTurnEnd = { act: 'close-input' } | { act: 'write-line'; line: string };
-// StandingReply keeps { whenAllEqual, whenNoneEqual, replyTemplate } of src/lib/watcher/StandingReplies.ts:5-9.
+// StandingReply keeps { whenAllEqual, whenNoneEqual, replyTemplate } of src/lib/watcher/StandingReplies.ts:5-9;
+// WP2.21 adds requestIdentifierPath ("The agent port").
 ```
 
 `AgentLaunchPlan` (`src/lib/agent-launch/AgentLaunchPlan.ts`) gains `closingLine: PlanLineConditions | null`,
@@ -1835,6 +2888,150 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
 - Refusal kinds: `talos-protocol-differs` (`requiredProtocolVersion`, `answeredProtocolVersion`) is added;
   `watcher-bundle-failed` and `watcher-endpoint-does-not-fit` go.
 
+### The agent port (WP2.21 to WP2.32)
+
+`src/lib/agent-launch/` gains these members; every adapter implements them, the fake agent with Claude Code's values.
+
+```ts
+// AgentLaunchPlan.ts (WP2.21); src/lib/talos/StandingReplies.ts holds its twin.
+export interface StandingReply {
+  readonly whenAllEqual:          Readonly<Record<string, string | boolean>>;
+  readonly whenNoneEqual:         Readonly<Record<string, string | boolean>>;
+  /** Its `{{request-identifier}}` is filled from the line's string at `requestIdentifierPath`. */
+  readonly replyTemplate:         string;
+  /** `null` for a template with no placeholder. */
+  readonly requestIdentifierPath: string | null;
+}
+
+// AgentTranscripts.ts (WP2.23)
+export interface SubagentFacts {
+  readonly parentToolUseId: string;
+  readonly toolCalls:       number;
+  readonly lastToolCall:    { readonly toolName: string; readonly startedAt: string | null; readonly running: boolean } | null;
+  readonly tokens:          number;
+  readonly description:     string | null;
+}
+/** One subagent of the project as the `usage` verb counts it: today's `AgentUsage` (`UsageAgents.ts:14-19`), flattened. */
+export interface SubagentUsage {
+  readonly sessionIdentifier:           string;
+  readonly agentIdentifier:             string;
+  /** Where the agent kept it; printed and carried by `--json` as today's `transcriptPath`. */
+  readonly transcriptPath:              string;
+  readonly startedAt:                   string | null;
+  readonly model:                       string | null;
+  readonly apiCallCount:                number;
+  readonly inputTokens:                 number;
+  readonly cacheReadInputTokens:        number;
+  readonly cacheCreationInputTokens:    number;
+  readonly outputTokens:                number;
+  readonly totalInputTokens:            number;
+  readonly endContextTokens:            number;
+  readonly oversizedContextTokens:      number;
+  readonly browserCallCount:            number;
+  /** Edits made through a shell command rather than the agent's file-editing tools. */
+  readonly shellEditScriptCount:        number;
+  readonly verificationRunCount:        number;
+  readonly nestedInstructionCharacters: number;
+  readonly briefExcerpt:                string;
+}
+export interface SubagentUsageRequest {
+  readonly projectRoot:                      string;
+  readonly homeDirectory:                    string;
+  /** The `--transcripts <folder>` option; `null` reads the agent's own folder for the project. */
+  readonly transcriptFolder:                 string | null;
+  readonly oversizedContextThresholdTokens:  number;
+  readonly briefExcerptCharacters:           number;
+  /** Told of each transcript that could not be read; it is left out of the answer. */
+  readonly onUnreadableTranscript:           (transcriptPath: string) => void;
+}
+
+// AgentToolCall.ts (WP2.27)
+export type AgentToolCall =
+  /** `null` domains: the call named domains in a shape the adapter cannot read. */
+  | { readonly kind: 'shell'; readonly requestedDomains: readonly string[] | null }
+  | { readonly kind: 'web-fetch'; readonly url: string | null }
+  | { readonly kind: 'file-change'; readonly path: string | null; readonly workingDirectory: string | null }
+  /** A call that reaches no network and runs no command. */
+  | { readonly kind: 'no-reach' }
+  | { readonly kind: 'unknown'; readonly toolName: string };
+
+// AgentInstaller.ts (WP2.30)
+export interface AgentInstaller {
+  /** Writes or keeps current the agent's entry that runs `command` when a session starts; answers the report line. */
+  refreshSessionStart(repositoryRoot: string, command: string, commandName: string, standardError: (text: string) => void): string;
+  /** The repository folder, written with `/`, the agent loads the instruction bundle `bundleName` from. */
+  instructionBundleFolderOf(bundleName: string): string;
+}
+
+// AgentAdapter.ts
+export interface AgentCredentials {
+  /** The variable that moves the agent's own folder, read through `agentVariableOf`; `null` when there is none. */
+  readonly configurationFolderVariableName: string | null;
+  /** The variable API billing needs before any session starts. */
+  readonly billingKeyVariableName:          string;
+  /** What to check when the provider refuses the key, worded for the decision it opens. */
+  readonly authenticationCheckSentence:     string;
+}
+export type AgentPromptFillName = 'askUserTool' | 'webFetchTool' | 'webSearchTool' | 'instructionFile' | 'agentConfigurationPaths';
+
+export interface AgentCapabilities {
+  // ...today's members, and:
+  /** A live session takes an answer line; `false`: the Overseer stops it and resumes it with the answer (WP2.25). */
+  readonly takesLiveAnswers:           boolean;
+  /** A resumed session is found by the folder it began in (WP2.25). */
+  readonly resumeFindsSessionByFolder: boolean;
+  /** The agent's own sandbox applies the whole worker profile; `none`: forge's confinement wraps the session (WP2.31). */
+  readonly ownConfinement:             'applies-the-profile' | 'none';
+}
+
+export interface AgentAdapter {
+  // ...today's members, and:
+  readonly displayName:        string;                                                  // WP2.32
+  readonly credentials:        AgentCredentials;                                        // WP2.24
+  readonly configurationNames: { readonly folderNames: readonly string[]; readonly fileNames: readonly string[] }; // WP2.28
+  readonly attributionPatterns: readonly RegExp[];                                      // WP2.28
+  readonly promptFills:        Readonly<Record<AgentPromptFillName, string>>;           // WP2.32
+  readonly installer:          AgentInstaller;                                          // WP2.30
+  sessionSubagentsOf(homeDirectory: string, sessionId: string, talliedParentToolUseIds: ReadonlySet<string>): readonly SubagentFacts[]; // WP2.23
+  subagentUsagesOf(request: SubagentUsageRequest): readonly SubagentUsage[];          // WP2.23
+  /** The sentence that repairs a refused program, or `null`. */
+  programRepairOf(cause: ExecutableRefusalCause): string | null;                       // WP2.24
+  /** The first line that makes a session run the bundle `bundleName` on `argumentsText`. */
+  instructionBundleLineOf(bundleName: string, argumentsText: string): string;          // WP2.25
+  /** `null` for an input the adapter cannot read: the guard then denies. */
+  toolCallOf(hookInput: string): AgentToolCall | null;                                 // WP2.27
+  toolCallDenialLineOf(reason: string): string;                                        // WP2.27
+  /** The agent's own folders a session writes outside the profile, for forge's confinement (WP2.31). */
+  sessionWritablePathsOf(homeDirectory: string): readonly string[];
+}
+```
+
+- `AgentSessionEvent` (WP2.26): an `AgentQuestion` option gains `isRecommended: boolean` and carries its label without
+  the vendor's mark; `tool-call` gains `asksUser: boolean`; `usage-window` gains `lengthHours: number | null`. The
+  stored `DecisionQuestionOption` gains `isRecommended: boolean` (stage 4 serves it as the decision document's
+  `recommended`), the transcript's tool-call entry `asksUser`, the stored usage window `lengthHours`.
+- Talos (WP2.25): `ChildInput` gains `{ act: 'quit-at-turn-end' }`, which Talos applies as the child's launch
+  `quitAtTurnEnd`; `ClientEntry` lists the applied acts itself (`write-line`, `close`, `stop`), never
+  `quit-at-turn-end`; `FrameRefusalReason` gains `'no-quit-act'`; `TALOS_PROTOCOL_VERSION` rises to 2.
+- `GateConfinement` (WP2.31): `ConfinementPlan` gains `writableRoots: readonly string[]` beside `worktree`; a line's
+  plan passes `[]`.
+- `src/shared/Environment.ts` (WP2.24): `agentVariableOf(name)` and `agentVariableIsSet(name)` replace
+  `claudeConfigFolderVariable()` and `apiBillingKeyIsSet()`; `claudeConfigFolder()` goes (WP2.23).
+- `CommandContext` (WP2.23) loses `claudeConfigFolder`. The notice `agent-program-refused` (WP2.24) gains `repair:
+  string | null`. The notice `claude-md-block-committed` and the install parts `retired-managed-block` and
+  `retired-install` go (WP2.29); `INSTALL_VERSION` is 37. `CLAUDE_CODE_INSTALL` becomes `AGENT_INSTALL` in
+  `cli/adoption/constants/AgentInstall.ts`, with the parts `session-start` and `instruction-bundles` (WP2.30).
+- The cohort maths is `cli/measurement/usage/utils/UsageCohortUtil.ts` (WP2.23), over `SubagentUsage`; the `usage`
+  verb's own row keeps `bashEditScriptCount` and its `--json` key.
+- `WorkerProfile.bashNetworkDomains` becomes `shellNetworkDomains` (WP2.27); the port's comments name no vendor tool.
+- Guards (WP2.22): `apps/forge/src/AgentBoundary.spec.ts`, over code and comment lines (`ALLOWED_AGENT_LINES`,
+  permanent at the end: the two lines of `cli/CommandContext.ts`), over the testing helpers (`ALLOWED_TESTING_LINES`,
+  permanent at the end: the lines that record, stamp, trap or smoke-test the real program, this repository's own agent
+  files and the fixtures the fake agent's adapter reads) and over the probe files by file (`AGENT_EVIDENCE_FILES`);
+  `apps/gaia/src/AgentVendorNames.spec.ts` (empty allowlist at the end); and the import rule
+  `vendor-adapter-imported-outside-its-seam` over all of `src/lib/claude-code/`, whose importers are the seam and the
+  fake agent's files.
+
 ## Traps
 
 - **Reading the log before the recognition.** The pass reads a job's event log and acts on a `result` line in the same
@@ -1922,6 +3119,34 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
   Talos connection reads data.
 - **Specs waiting out production bounds.** Every bound reaches Talos through the start file or the launch; specs pass
   milliseconds. No `Bun.sleep` before an assertion (`src/SpecSleeps.spec.ts`).
+- **An allowlist entry left behind, or removed too early.** `src/AgentBoundary.spec.ts` fails an unused entry as it
+  fails a new finding. A package removes exactly its own entries; a package of any stage that rewrites an allowlisted
+  line, or moves its file, rewrites the entry's key in the same commit. The fix is never a wider pattern exemption.
+- **A recommendation stripped from the answer too.** The adapter strips the vendor's mark from an option's label
+  (WP2.26), but the session matches an answer by the label it asked with. `answerLineOf` echoes the marked label and
+  sends a recommended answer marked; without it, a live answer to a recommended option is refused or misread. And
+  `sentLineOf` strips the mark again from what it reads back, or the transcript shows labels the stored decision does
+  not hold and `ClaudeStreamLines.spec.ts` no longer finds it the inverse of the writers.
+- **Two sandboxes around one session.** On macOS a Seatbelt profile with any deny rule refuses a nested
+  `sandbox_apply`, and the vendor starts its own sandbox for every shell call. A session whose agent applies the
+  profile itself is never wrapped in forge's confinement too (WP2.31); doing so makes every shell call of the session
+  fail.
+- **A closed input as the quit act.** Closing stdin ends a Claude Code session at the end of its turn; another agent
+  may need a line. The Overseer sends `quit-at-turn-end`, and Talos applies the launch's own act (WP2.25). An `input`
+  `close` sent to end a session brings the vendor's act back into the core.
+- **A word of the port read as a tool name.** The guard's `port-tool-word` form makes `src/lib/agent-launch/` and
+  `src/lib/talos/` name no vendor tool, so a comment there that starts a sentence with "Read" or "Write" is a finding.
+  Reword the sentence ("Reads the record"), never narrow the form or allowlist the line: no key may name these folders
+  but the one carve-out, `src/lib/agent-launch/WorkerProfile.ts`, until WP2.27 renames `bashNetworkDomains`, rewords
+  its comments and removes the key.
+- **A testing helper taken for the boundary's evidence.** `ALLOWED_TESTING_LINES` lists what records, stamps, traps or
+  smoke-tests the real program. A helper that starts `claude` for any other reason is a reach, however it is tested;
+  it goes behind the adapter or into a probe.
+- **A capability the fake agent lacks.** The fake agent takes Claude Code's capabilities, lines and values. A new member
+  of the port that the fake does not set fails the typecheck; one it sets differently from Claude Code makes the
+  scratch forge's end-to-end check prove another adapter than the one that ships. The one exception is the two
+  transcript reads (WP2.23 item 5): the fake answers them empty, which is what Claude Code answers on the scratch home
+  the fake runs in, where no session wrote a transcript, so the check still proves the shipped adapter's answer there.
 
 ## Verification of the whole stage
 
@@ -1939,10 +3164,18 @@ bun test --path-ignore-patterns='.claude/**' ./src/lib/talos/
 bun test --path-ignore-patterns='.claude/**' ./src/services/overseer/TalosChildren.spec.ts ./src/services/overseer/TalosStart.spec.ts ./src/services/overseer/LeaseRenewal.spec.ts ./src/services/overseer/TalosLines.spec.ts ./src/services/overseer/MergedTreeGateRuns.spec.ts
 bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/services/render/
 bun test --path-ignore-patterns='.claude/**' ./cli/overseer/
+bun test --path-ignore-patterns='.claude/**' --path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts ./src/lib/claude-code/ ./cli/hooks/ ./cli/adoption/ ./cli/measurement/ ./cli/decisions/
+(cd ../gaia && bun test src/AgentVendorNames.spec.ts)
 bun run record src/lib/talos/Talos.ts
 bun run record src/services/overseer/TalosStart.ts
 bun run record src/services/overseer/LeaseRenewal.ts
+bun run record src/lib/gate-confinement/
 ```
+
+`ALLOWED_AGENT_LINES` in `src/AgentBoundary.spec.ts` holds only its two `Permanent:` entries, the seam's lines of
+`cli/CommandContext.ts`, and the scan reads comment lines; `ALLOWED_TESTING_LINES` holds only `Permanent:` entries;
+Gaia's `AgentVendorNames.spec.ts` allows nothing; `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED` is gone from
+`src/ImportDirection.spec.ts`.
 
 `bun run verify:integration` in `apps/forge` runs every real-system spec; it runs only when the owner asks for it (gate
 G4).
@@ -1953,8 +3186,8 @@ agent-progress.ts`). Never on the real home or the live board. The verb that sta
 stage 9 replaces it with `forge start`. The monitor document is `GET /api/monitor` with the token in
 `<scratch home>/.forge-monitor/private/<trackerId>/token`.
 
-1. `oversee --port 0` in the background. `<board>/talos/talos-1.json` reads `serving` with protocol 1; the Overseer's
-   log says the lease renewal started.
+1. `oversee --port 0` in the background. `<board>/talos/talos-1.json` reads `serving` with protocol 2 (WP2.25 raised it
+   from 1); the Overseer's log says the lease renewal started.
 2. With `FORGE_FAKE_AGENT_REPORTS=1` and only `overseerOnly: true` gates (`docs/development/contributing.md:161-165`),
    ready a ticket. Its build runs: `jobs/<J>/child-1.json` is `running`, `install/child-1.json` and the gate steps'
    records (`gate-1/child-1.json`) appear in turn, each ended with its `runMilliseconds`, and the ticket reaches review
@@ -1983,6 +3216,11 @@ stage 9 replaces it with `forge start`. The monitor document is `GET /api/monito
    `pipeline-checks/<checkName>/run-1/`; a Stop ends them; the profile's time is its line's `runMilliseconds`.
 10. End the scratch board, then check that no `bun` process of `talos.ts` and no child of the scratch board is left (`ps
     -A -o pid,command | grep talos.ts`).
+11. The agent port, on the same scratch repository: `init` reports the hooks and the skills in the folders the adapter's
+    installer names, with no `CLAUDE.md:` or `retired:` line; when a ticket's build session is ended while the
+    Overseer serves, its event log holds the `client` entry `close`, the act its launch named, which Talos applied for
+    the Overseer's `quit-at-turn-end`; `usage --since 1d` runs and prints its cohorts (none on a scratch home). No step
+    reads or writes the real home's agent folder.
 
 ## Out of scope
 
@@ -2005,15 +3243,57 @@ stage 9 replaces it with `forge start`. The monitor document is `GET /api/monito
 - Carrying a merged-tree gate, a gate profile or a pipeline check across a restart of the Overseer: the next start stops
   their lines and runs the gate again or marks the run stopped (the run's calls above).
 - Removing Flint's brain: stage 8; here it only moves under Talos.
-- The agent port's other leaks of design section 5 (the Overseer's `ClaudeTranscripts.ts`, the hook entries,
-  confinement): they stay as they are in this run (the run's calls above).
+- A second agent adapter, a neutral wire for the fake agent, and filtering the network by domain in forge's own
+  confinement for an agent without a sandbox of its own: none is built. WP2.31 refuses such a session a network line
+  instead.
 - The store port: stage 5. Talos's files stay under the operating system port, as design section 4 has them.
 - Any new workspace package; any change to `packages/` beyond the monitor job's `interruption` and the system version
   in `forge-contracts`; Flint's `watcher-spark` names stay.
 
 ## Needs the owner
 
-No question of behaviour is left: decisions 35 to 38 settle what this stage builds. Two acts are the owner's alone:
+Decisions 35 to 38 settle what Talos does. The agent port packages meet points of behaviour the owner has not settled;
+the owner is away while the run builds, so each is the plan's best-founded choice, written into its package and built,
+and listed here as an assumption to confirm. The orchestrator copies this list to the status file's "Assumptions to
+confirm".
+
+Assumptions to confirm:
+
+1. **The Bridge's billing step names no variable** (WP2.24 item 6). It says "Agents run on this machine's agent login."
+   and "Billed to the API key in the Overseer's environment. The key is never stored." in place of naming "Claude" and
+   `ANTHROPIC_API_KEY`; the decision the Overseer opens when the key is missing still names the variable, from the
+   adapter.
+2. **`update` and `setup` no longer clean up after install version 16 or the global skill links** (WP2.29 item 5).
+   `update` leaves the managed `CLAUDE.md` block, the `SubagentStop`, `PreToolUse` and `PostToolUse` entries, the
+   worker agent definition, the dispatcher script, the three briefs and the retired skill folder where they are;
+   `setup` leaves the `~/.claude/skills/` links and numbers its steps `1/3` to `3/3`; the notice
+   `claude-md-block-committed` and the launch's wait on a committed managed block go. A board or machine that still
+   holds them keeps them until its owner removes them by hand.
+3. **A recommended option is marked from the stored field** (WP2.26 item 6): the `decisions` verb prints
+   `<letter>. <label> (recommended)` where the vendor's `(Recommended)` stood inside the label, and the Bridge's
+   decision card marks it as the question panel does.
+4. **Refusals and help name the agent, not the vendor** (WP2.32 items 1 and 2): "the option the agent recommends" in
+   place of "the option Claude recommends"; `init`'s next steps say "Ask an agent session (Claude Code) in this
+   repository", the name from the adapter.
+5. **The product owner's confinement sentence names shell commands** (WP2.32 item 3): "Shell commands reach no
+   network." and "Do not use the network from a shell command." in place of naming `Bash`, in the launch text and the
+   installed default brief, which raises the install version.
+6. **The guards' words name no vendor tool or event** (WP2.27 items 4 and 5): the unstartable guard's incident says
+   "shell commands and web fetches" and "file edits"; the `hook` verbs' usage lines say "the hook input arrives on
+   standard input".
+7. **The help text names no vendor path** (WP2.30 item 4): `help` says "the agent's session-start entry" and "the folder
+   the agent loads instruction bundles from" where it names `.claude/settings.local.json`, `.claude/skills/` and
+   `SessionStart`.
+8. **An agent that brings its own sandbox is confined by it** (WP2.31): Claude Code's sandbox, applied through its
+   adapter, confines its sessions as today, and forge's own confinement wraps only a session whose agent declares none,
+   with no network line by domain; never both, since macOS refuses a nested Seatbelt profile (exit 71, measured on
+   2026-11-18). The design's Agent row says so (section 5), and `apps/forge/CLAUDE.md` gains a Deviations row for the
+   path no adapter takes yet.
+9. **The `usage` help names no vendor folder** (WP2.23): the `usage` block of `cli/HelpText.ts` (`:182`) and
+   `docs/cli.md` say the agent's subagent transcripts where they name `subagents/workflows/<run>/`; the wording is the
+   plan's choice.
+
+Two acts are the owner's alone:
 
 1. **Gate G1: the recordings.** Stage 0's session that ends on a network outage (WP0.3), and the fake agent's outage
    scenario: `bun run record src/testing/fake-agent/` once WP2.2's probe case exists, which starts the installed
@@ -2049,3 +3329,9 @@ No question of behaviour is left: decisions 35 to 38 settle what this stage buil
   traced.
 - Whether `clear` stops a board's Talos; `clear` was not read.
 - Linux and Windows: Talos, the worker thread and the lease never ran there; the plan records macOS only.
+- That Claude Code accepts a live answer whose questions echo the marked labels (WP2.26): today's answer echoes the
+  labels as asked, so the round trip is expected to hold, but no recording of a recommended option's answer was read.
+- Whether bubblewrap on Linux refuses a nested sandbox as Seatbelt does: WP2.31 never nests, so it does not depend on
+  it. The Seatbelt refusal was observed once by the planning session and is held by WP2.31's contract spec.
+- That every hit of the guard's forms is listed in WP2.22: the measurement at `710ae4f9` and the recheck at `3274ac88`
+  were text searches; WP2.22's scan of the tree after WP2.16 is the list.

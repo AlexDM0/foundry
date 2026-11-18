@@ -96,9 +96,11 @@ Decisions of the run that this stage takes:
   Board's answer wins and the commit lists the differences.
 - **Today's figures carry their calendar date.** A reader shows them only on that date; the forge does not republish at
   midnight.
-- **A question's recommendation is read from the option's label** by a util of the agent adapter
-  (`src/lib/claude-code`), the one place that knows the vendor's mark; the decision document's option carries the
-  label without the mark and `recommended`.
+- **A question's recommendation is a stored field.** The agent adapter, the one place that knows the vendor's mark,
+  strips it from an option's label when it maps the question, and the stored decision's option carries
+  `isRecommended` (stage 2, WP2.26). The decision document's option carries that label and `recommended`, the stored
+  `isRecommended`; no forge adapter imports the agent adapter (`src/AgentBoundary.spec.ts`,
+  `src/ImportDirection.spec.ts`).
 - **`forge-contracts`' own version** rises by one minor with this stage's system minor, from whatever stage 3 left,
   and from here on with every system minor, as its README says.
 - **The committed ticket's rules are not this stage's** (decision 48, Out of scope): this stage only names the status
@@ -138,7 +140,7 @@ Read at `b4174bd9`.
 | The Bridge predicts the E94 Apply refusal | `bridge/views/pipeline/apply/ApplyDialogModel.ts:133-153` | Kept in the Bridge; the Apply refusal is served (WP4.10) |
 | The Bridge decides a ticket's controls by hand-written status comparisons | `apps/forge/bridge/views/detail-panel/DetailControlsModel.ts:55-74` | Kept in the Bridge; offered controls are served (WP4.10) |
 | Rule constants the views read: status classes, first repeat-review round, default priority, stop holds, concurrency bounds, worker model and effort, rework threshold | `tracker-model/constants/Statuses.ts:16-22`, `ReviewRounds.ts:2`, `TicketFields.ts:18`, `JobStopHolds.ts:11`, `ConcurrencyLimits.ts:2-8`; `src/shared/constants/OverseerLimits.ts:37-39`, `DispatchProtocol.ts:10` | Kept in forge; their effect is served (WP4.10) |
-| A question's recommendation is a `(Recommended)` suffix the Bridge reads off the label | `bridge/views/question-panel/QuestionPanelModel.ts:229`, `:239`; `tracker-model/@types/Decision.ts:35-46` | Served as a field (WP4.10) |
+| A question's recommendation is a `(Recommended)` suffix the Bridge reads off the label (stored as `isRecommended` on the decision's option from stage 2's WP2.26 on) | `bridge/views/question-panel/QuestionPanelModel.ts:229`, `:239`; `tracker-model/@types/Decision.ts:35-46` | Served as a field (WP4.10) |
 | Boundary recordings of the command routes, the server and the Bridge's command client | `apps/forge/src/testing/recordings/darwin/cli__overseer__routes.json`, `src__services__overseer__OverseerServer.ts.json`, `bridge__api__CommandClient.ts.json` | Recorded again where a work package changes the answer |
 | Gaia supports forge 1.1 and warns while forge is ahead | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9` | Kept (stage 6 raises it) |
 
@@ -494,8 +496,6 @@ finished fact, so a view moved in stage 6 reads values and recomputes no forge r
   `ForgeBoardDocument.ts`, `BoardPageDocuments.ts`, `BoardJobDocuments.ts`, `BoardConversationDocuments.ts`,
   `BoardPipelineDocuments.ts` and `BoardLimitsDocument.ts` to carry the facts below.
 - Create `apps/forge/src/adapters/board-document/utils/BoardReadingMappingUtil.ts` and its spec.
-- Create `apps/forge/src/lib/claude-code/utils/QuestionOptionMarkUtil.ts` and its spec: the vendor's recommendation
-  mark on an option's label.
 - Create `apps/forge/src/services/overseer/BoardOffers.parity.spec.ts`: offered controls against the Board, and
   against today's Bridge.
 - Change: `apps/forge/src/shared/monitor/AttentionEntries.ts` and its spec (a typed target beside the route);
@@ -548,9 +548,9 @@ finished fact, so a view moved in stage 6 reads values and recomputes no forge r
     2's WP2.11, with stage 3's causes). The pipeline facts carry `stepRunTimes` (stage 2's WP2.20) as
     `BoardPipelineStepRunTimeDocument` (`entity`, `stepKind`, `stepName`, `phase`, `runMilliseconds`, `ending`),
     declared with types of their own.
-12. **A question's recommendation.** `QuestionOptionMarkUtil.markedOptionOf(label)` returns the label without the
-    vendor's trailing `(Recommended)` and whether it was there (the pattern of `QuestionPanelModel.ts:229`). The
-    decision document's option carries `label` (unmarked) and `recommended`.
+12. **A question's recommendation.** The decision document's option carries the stored option's `label` and its
+    `isRecommended` as `recommended` (stage 2, WP2.26, where the agent adapter strips the vendor's mark). Nothing here
+    reads a label's mark.
 13. Write `BoardReadingMappingUtil` for the readings and wire every fact into `BoardDocumentAssembly`; the readings are
     computed from the same `BoardState` the monitor assembly reads.
 14. `overseer-api.md`: the board document section lists the served facts and says which are worded by forge (attention
@@ -569,7 +569,7 @@ finished fact, so a view moved in stage 6 reads values and recomputes no forge r
   each difference as an expected entry; it is deleted with the Bridge in stage 8.
 - `PipelineSetups.apply.spec.ts`: `applyRefusalOf` gives the refusal `requestApply` gives, for each refusal kind it
   covers, and `null` where `requestApply` proceeds.
-- `QuestionOptionMarkUtil.spec.ts`: a marked label, an unmarked one, a mark in the middle (kept), surrounding spaces.
+- `BoardDocumentAssembly.spec.ts`: a stored option's `isRecommended` is served as `recommended`.
 - `BoardDocumentAssembly.spec.ts`: each fact on the scratch board of WP4.8, and today's figures carrying the date of
   the reading's clock.
 
@@ -577,7 +577,7 @@ finished fact, so a view moved in stage 6 reads values and recomputes no forge r
 
 ```
 cd apps/forge && bun run typecheck && bun test --path-ignore-patterns='.claude/**' ./src/shared/monitor/ \
-  ./src/adapters/board-document/ ./src/lib/claude-code/utils/ ./src/services/overseer/ \
+  ./src/adapters/board-document/ ./src/services/overseer/ \
   ./src/lib/tracker-model/PipelineSetups.apply.spec.ts ./src/lib/tracker-model/Board.ticketMoves.spec.ts
 cd ../../packages/forge-contracts && bun run typecheck && bun test
 cd ../.. && bun install --frozen-lockfile && bun run verify                                        # green

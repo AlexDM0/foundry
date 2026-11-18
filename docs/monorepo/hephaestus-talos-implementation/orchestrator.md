@@ -1,6 +1,6 @@
 # Orchestrator plan: Hephaestus, Talos and Gaia
 
-This is the one plan an orchestrating session carries out. It holds the whole schedule: all 117 work packages in the
+This is the one plan an orchestrating session carries out. It holds the whole schedule: all 129 work packages in the
 order they run, which of them run side by side, where the owner has to act, and how one package is handed to an agent,
 checked and landed. The detail of a package lives in its stage file in this folder; the orchestrator never needs to
 hold a stage file in its own context, only this plan and the status file.
@@ -137,6 +137,7 @@ interfaces changed and corrects this schedule to match. WP0.2's baseline of the 
 | 2-B | WP2.4 | Alone |
 | 2-C | WP2.5, WP2.6, WP2.11 | Side by side |
 | 2-D | WP2.7 | Alone |
+| 2-D2 | WP2.21 | Alone, once 2-D has landed and before 2-E (WP2.7 was already being built when the port rule came): it changes WP2.5's `standingReplyOf`, so a standing reply names no vendor field before protocol 1 ships with the switch (WP2.13); no raise. Rereads `StandingReplies.ts`, `ChildLaunch.ts` and `WatcherLaunch.ts` on the tree it runs on |
 | 2-E | WP2.8 | Alone |
 | 2-F | WP2.9, WP2.10 | Side by side |
 | 2-G | WP2.12, WP2.19 | Side by side. WP2.19 lands before WP2.13: a pass that awaited a merged-tree gate would end the lease |
@@ -145,6 +146,17 @@ interfaces changed and corrects this schedule to match. WP0.2's baseline of the 
 | 2-J | WP2.20 | Alone |
 | 2-K | WP2.15 | Alone |
 | 2-L | WP2.16 | Alone |
+| 2-L2 | WP2.22 | Alone: the agent boundary guard over code, comments and testing helpers, today's reaches allowlisted; each package to WP2.32 removes its own entries |
+| 2-L3 | WP2.23 | Alone: the adapter reads its own transcripts |
+| 2-L4 | WP2.24 | Alone: the adapter's variables, credentials and repair |
+| 2-L5 | WP2.25 | Alone: live answers, the quit act (Talos protocol 2), the bundle line, the start folder |
+| 2-L6 | WP2.26 | Alone: the events carry the asking call, the recommendation and the window's length |
+| 2-L7 | WP2.27 | Alone: the tool-call guards take neutral calls; the port's worker profile names no vendor tool |
+| 2-L8 | WP2.28 | Alone: the adapter's configuration paths and attribution |
+| 2-L9 | WP2.29 | Alone: the retired install goes |
+| 2-L10 | WP2.30 | Alone: the adapter installs into a repository |
+| 2-L11 | WP2.31 | Alone: a session is confined by its agent's sandbox or by forge's, as the port declares |
+| 2-L12 | WP2.32 | Alone, last of the agent port packages: the guard's allowlist holds only its permanent entries |
 | 2-M | WP2.17 | Alone |
 | 2-N | WP2.18 | Alone, last: recordings and the end-to-end check on a scratch forge |
 

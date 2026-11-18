@@ -52,14 +52,14 @@ Rules that hold for every stage:
 | Order | File | What it delivers | Work packages |
 | --- | --- | --- | --- |
 | 0 and 1 | [`stage-0-1-trace-and-base.md`](stage-0-1-trace-and-base.md) | The traces of recovery, the Airlock steps, the Overseer's memory-only state and what the Bridge reaches in forge; recordings A and B of a session that ends on a network outage; a design checked to hold decisions 35 to 52; the closed monorepo migration; the in-flight tickets dropped and both trackers stopped | 8 |
-| 2 | [`stage-2-talos.md`](stage-2-talos.md) | One Talos per board in place of the Watcher fleet: protocol version and handshake, frames, the persisted child record, the clean quit, the lease renewed only on progress, the merged-tree gate beside the pass, every child under Talos, the 15-minute bound of every install and gate line with no sleep counted, every line's run time recorded, the ending on a network outage | 20 |
+| 2 | [`stage-2-talos.md`](stage-2-talos.md) | One Talos per board in place of the Watcher fleet: protocol version and handshake, frames, the persisted child record, the clean quit, the lease renewed only on progress, the merged-tree gate beside the pass, every child under Talos, the 15-minute bound of every install and gate line with no sleep counted, every line's run time recorded, the ending on a network outage; then every reach past the agent port closed (transcripts, variables, install, hooks, configuration paths, protocol knowledge, confinement, wording), held by a guard | 32 |
 | 3 | [`stage-3-presence-recovery.md`](stage-3-presence-recovery.md) | The heartbeat and presence record, the classification of a start, reconcile, `resume` for a job, a ticket, everything or every outage ending, the crash log and the forge that stays off after a crash or a suspected one, the landing steps a stop leaves undone, the CLI path to see a crash and resume | 15 |
 | 4 | [`stage-4-packages.md`](stage-4-packages.md) | The standing contract and the served facts: board documents and command kinds in `forge-contracts` with types of their own, forge's typed mappers, the board document at `/api/v1/board` with finished facts, every refusal as code, fields and sentence, the unfinished entities draft. No package is extracted | 9 |
 | 5 | [`stage-5-store-port.md`](stage-5-store-port.md) | The store port with its command face, its transaction face and its read side, the local-files adapter, the contract spec, the guard on record paths, and the end of hand-editing: record locations leave the model and the output. Then the committed ticket: `pending` takes the name, the content is fixed and kept by its hash, `ticket unready` puts it back into draft, and the lock passes only from a holder whose process is gone | 17 |
 | 6 and 7 | [`stage-6-7-gaia-views.md`](stage-6-7-gaia-views.md) | The versioned reads in forge; Gaia's forge client, its own board model and the page's own board contract; the views moved one at a time into one design; the maximized forge as a route; the alerts for a crashed, down or hung forge and for outage endings, with one control that resumes them all; the Assistant's switch; conversations with hosted agents | 29 |
 | 8 and 9 | [`stage-8-9-shrink-and-rename.md`](stage-8-9-shrink-and-rename.md) | The Bridge, the sessions, the embed machinery, `forge open` and Flint's brain removed; Markdown rendered by Gaia's server; the Assistant off by default; one pipeline format; `design-system`, `flint` and `brand` folded into Gaia's page as libraries; then the lifecycle verbs at the top level and the rename of the Overseer to Hephaestus in one commit | 19 |
 
-117 work packages in all.
+129 work packages in all.
 
 Every stage file has the same sections: Goal, Depends on, Decisions this stage carries out, Today's code, Work
 packages, Interfaces introduced, Traps, Verification of the whole stage, Out of scope, Needs the owner, Not
@@ -104,7 +104,8 @@ in line; until then the stage files are right where the two differ.
 ## Not covered by any stage
 
 Every owner answer has a package. The committed ticket (decision 48, owner answer 14) is stage 5's WP5.14 to WP5.17.
-The agent port's leaks (design section 5) stay as they are in this run (stage 2), and the end of hand-editing stored
+The agent port's leaks (design section 5) and every other reach past the port that the owner's rule of 2026-11-18
+forbids close in stage 2, WP2.21 to WP2.32, held by `src/AgentBoundary.spec.ts`; the end of hand-editing stored
 records is stage 5's WP5.13.
 
 ## Not checked
