@@ -1,9 +1,11 @@
 /**
  * A scratch board runs a ticket to its landing only when every fake session reports what its stage's Customs checks: a report its schema
  * takes, every Acceptance item accounted for where the stage answers for it, and a commit in each folder the stage may change, so a stage 1
- * that may write a package's proposal crosses into it. A package build states no change of what the package exposes and its review
- * confirms it, so the adapt stage is skipped. A resumed session, told no ticket, still names the items. Each line it prints must be a
- * recorded `claude` line, and a session no reporting role answers plays the adapter's own steps.
+ * that may write a package's proposal crosses into it. A Brief whose `Work belongs in:` line names folders keeps the commit to those, so a
+ * ticket of an app with several whitelisted packages crosses only into the ones it names, a resumed session too. A package build states no
+ * change of what the package exposes and its review confirms it, so the adapt stage is skipped. A resumed session, told no ticket, still
+ * names the items. Each line it prints must be a recorded `claude` line, and a session no reporting role answers plays the adapter's own
+ * steps.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -36,6 +38,13 @@ const TICKET_MESSAGE = [
   'A1. The basket shows its total.',
   'A2. The price label shows the currency.',
 ].join('\n');
+
+const TICKET_MESSAGE_WITH_WORK_FILES = TICKET_MESSAGE.replace(
+  'Show the basket total with the shared price label.',
+  'Show the basket total with the shared price label.\n\nWork belongs in: `apps/shop/`, `packages/ui-kit/PriceLabel.ts`'
+);
+
+const STAGE_FOLDERS_OF_A_WIDE_WHITELIST = [`${WORKTREE}/apps/shop`, `${WORKTREE}/packages/ui-kit`, `${WORKTREE}/packages/icons`];
 
 function requestOf(reportSchema: JsonSchema | null, overrides: Partial<AgentLaunchRequest> = {}): AgentLaunchRequest {
   return {
@@ -114,6 +123,30 @@ describe('a fake reporting session', () => {
     expect(command).toContain(`git add -- '${WORKTREE}/packages/ui-kit'/${FAKE_WORK_FILE_NAME}`);
     expect(command).toContain('commit -q -m \'Do the work of job J3\'');
     expect(command).not.toContain('add -A');
+  });
+
+  test('a builder whose Brief names its work files appends only in the folders they name, so it crosses only into the named package', () => {
+    const request = requestOf(BUILDER_REPORT_SCHEMA, { firstMessage: TICKET_MESSAGE_WITH_WORK_FILES });
+    const [command] = shellCommandsOf(stepsOf({ ...request, profile: { ...request.profile, stageFolders: STAGE_FOLDERS_OF_A_WIDE_WHITELIST } }));
+    expect(command).toContain(`git add -- '${WORKTREE}/apps/shop'/${FAKE_WORK_FILE_NAME}`);
+    expect(command).toContain(`git add -- '${WORKTREE}/packages/ui-kit'/${FAKE_WORK_FILE_NAME}`);
+    expect(command).not.toContain(`'${WORKTREE}/packages/icons'`);
+  });
+
+  test('a resumed builder told no ticket keeps to the folders its first launch read', () => {
+    const sessions = fakeReportingSessions();
+    const request = requestOf(BUILDER_REPORT_SCHEMA, { firstMessage: TICKET_MESSAGE_WITH_WORK_FILES });
+    const wideRequest = { ...request, profile: { ...request.profile, stageFolders: STAGE_FOLDERS_OF_A_WIDE_WHITELIST } };
+    sessions.stepsOf(wideRequest);
+    const [command] = shellCommandsOf(sessions.stepsOf({ ...wideRequest, resume: true, firstMessage: 'Carry on with your work.' }) ?? []);
+    expect(command).not.toContain(`'${WORKTREE}/packages/icons'`);
+  });
+
+  test('a builder whose work files name none of its folders appends in each of them', () => {
+    const request = requestOf(BUILDER_REPORT_SCHEMA, { firstMessage: TICKET_MESSAGE.replace('price label.', 'price label.\n\nWork belongs in: `apps/admin/`') });
+    const [command] = shellCommandsOf(stepsOf(request));
+    expect(command).toContain(`'${WORKTREE}/apps/shop'/${FAKE_WORK_FILE_NAME}`);
+    expect(command).toContain(`'${WORKTREE}/packages/ui-kit'/${FAKE_WORK_FILE_NAME}`);
   });
 
   test('a builder of a job with no stage folders works in its working directory', () => {

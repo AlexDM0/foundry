@@ -1,6 +1,7 @@
 /**
  * The fake sessions of a scratch board that runs a ticket to its landing: a builder appends a line to `fake-agent-work.md` in each folder its
- * stage may change, commits it and reports `built`; a reviewer reports every Acceptance item as holding. Each report follows the schema its
+ * stage may change that the Brief's `Work belongs in:` line names (in each of them when it names none), commits it and reports `built`; a
+ * reviewer reports every Acceptance item as holding. Each report follows the schema its
  * launch hands it, a crossing ticket's package and adapt stages included: a package build states that what the package exposes did not
  * change, its review confirms it, so the adapt stage is skipped. It claims no gate, so only a gate the Overseer alone runs passes V15.
  */
@@ -44,10 +45,27 @@ function jobIdOf(request: AgentLaunchRequest): string {
   return request.environment[JOB_ID_VARIABLE] ?? request.sessionId;
 }
 
-/** Appends a line naming the job in each folder the stage may change that exists, stages those folders alone, and commits them. */
-function workCommandOf(request: AgentLaunchRequest): string {
-  const jobId = jobIdOf(request);
+/** A folder the Brief's work files name, as the folder itself or a path inside it, read from the root of the worktree it lies in. */
+function isNamedByWorkFiles(folder: string, workingDirectory: string, workFiles: readonly string[]): boolean {
+  if (!folder.startsWith(`${workingDirectory}/`)) return false;
+  const repositoryFolder = folder.slice(workingDirectory.length);
+  return workFiles.some((workFile) => workFile === repositoryFolder || workFile.startsWith(`${repositoryFolder}/`));
+}
+
+/**
+ * The folders the stage may change that the Brief's work files name, so a stage 1 proposes a change only in the packages its ticket names, as
+ * a real builder would; every folder the stage may change when the Brief names none of them.
+ */
+function workFoldersOf(request: AgentLaunchRequest, workFiles: readonly string[]): readonly string[] {
   const folders = request.profile.stageFolders ?? [request.workingDirectory];
+  const namedFolders = folders.filter((folder) => isNamedByWorkFiles(folder, request.workingDirectory, workFiles));
+  return namedFolders.length === 0 ? folders : namedFolders;
+}
+
+/** Appends a line naming the job in each work folder that exists, stages those folders alone, and commits them. */
+function workCommandOf(request: AgentLaunchRequest, workFiles: readonly string[]): string {
+  const jobId = jobIdOf(request);
+  const folders = workFoldersOf(request, workFiles);
   const line = shellQuoted(`Work of job ${jobId}.`);
   const appendLines = folders.map((folder) => {
     const quotedFolder = shellQuoted(folder);
@@ -100,29 +118,35 @@ function assistantTurnLineOf(jobId: string): string {
   return JSON.stringify({ type: 'assistant', parent_tool_use_id: null, message: { id: `msg_fake_${jobId}`, content: [] } });
 }
 
+interface TicketFacts {
+  readonly acceptanceLabels: readonly string[];
+  readonly workFiles:        readonly string[];
+}
+
 /**
- * The labels a session's first message names under its ticket's `## Acceptance`. A resumed session is told no ticket, so it reports the
- * labels its first launch read, kept by session for as long as this process runs.
+ * The labels a session's first message names under its ticket's `## Acceptance`, and the paths its `Work belongs in:` line names. A resumed
+ * session is told no ticket, so it uses what its first launch read, kept by session for as long as this process runs.
  */
 export function fakeReportingSessions(): FakeReportingSessions {
-  const acceptanceLabelsBySession = new Map<string, readonly string[]>();
-  const acceptanceLabelsOf = (request: AgentLaunchRequest): readonly string[] => {
-    const labels = TicketAcceptanceUtil.acceptanceItemsOf(request.firstMessage).map(({ label }) => label);
-    if (labels.length === 0) return acceptanceLabelsBySession.get(request.sessionId) ?? [];
-    acceptanceLabelsBySession.set(request.sessionId, labels);
-    return labels;
+  const ticketFactsBySession = new Map<string, TicketFacts>();
+  const ticketFactsOf = (request: AgentLaunchRequest): TicketFacts => {
+    const acceptanceLabels = TicketAcceptanceUtil.acceptanceItemsOf(request.firstMessage).map(({ label }) => label);
+    if (acceptanceLabels.length === 0) return ticketFactsBySession.get(request.sessionId) ?? { acceptanceLabels: [], workFiles: [] };
+    const ticketFacts = { acceptanceLabels, workFiles: TicketAcceptanceUtil.workFilesOf(request.firstMessage) };
+    ticketFactsBySession.set(request.sessionId, ticketFacts);
+    return ticketFacts;
   };
   return {
     stepsOf(request) {
       const role = request.reportSchema === null ? undefined : REPORTING_ROLE_OF_SCHEMA.get(request.reportSchema as JsonSchema);
       if (role === undefined) return null;
-      const acceptanceLabels = acceptanceLabelsOf(request);
+      const { acceptanceLabels, workFiles } = ticketFactsOf(request);
       const isReviewer = role === 'reviewer' || role === 'package-reviewer';
       const report = isReviewer ? reviewerReportOf(role, acceptanceLabels) : builderReportOf(role, acceptanceLabels);
       return [
         { kind: 'print', line: fakeStartedLineSelectorOf(request.sessionId) },
         { kind: 'await-line' },
-        ...isReviewer ? [] : [{ kind: 'shell', command: workCommandOf(request) } as const],
+        ...isReviewer ? [] : [{ kind: 'shell', command: workCommandOf(request, workFiles) } as const],
         { kind: 'print', line: assistantTurnLineOf(jobIdOf(request)) },
         { kind: 'print', line: resultLineOf(report) },
         { kind: 'await-line' },

@@ -160,8 +160,9 @@ the job runs until you end the board. [Getting started](../operations/getting-st
 
 To run a ticket on to its landing, also `export FORGE_FAKE_AGENT_REPORTS=1` before `oversee`: each fake builder then
 commits a line in each folder its stage may change and reports, and each fake reviewer reports every Acceptance item as
-holding. It claims no gate, so give the board only gates with `overseerOnly: true`. Unset it with the other variables
-when you end the board.
+holding. When the ticket's Brief has a `Work belongs in:` line, the builder writes only in the folders it names, so a
+ticket of an app crosses only into the packages it names. It claims no gate, so give the board only gates with
+`overseerOnly: true`. Unset it with the other variables when you end the board.
 
 **End the scratch board:**
 
