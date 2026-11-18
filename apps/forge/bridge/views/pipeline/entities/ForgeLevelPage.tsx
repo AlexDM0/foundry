@@ -22,6 +22,7 @@ import { PipelineFlowModel }                                      from '../flow/
 import { StepCard }                                               from '../flow/StepCard.tsx';
 import { EntityOverviewTable }                                    from './EntityOverviewTable.tsx';
 import { ForgeLevelPageModel, type ApprovalView }                 from './ForgeLevelPageModel.ts';
+import { PhaseKicker }                                            from './PhaseKicker.tsx';
 
 export interface ForgeLevelPageProps {
   /** The forge's own facts: its flow, the whole draft and every entity's part of the record. */
@@ -54,16 +55,6 @@ function ApprovalRow({ view, editSender }: ApprovalRowProps) {
         disabled={!editSender.enabled}
         onToggle={() => editSender.sendEdits([ForgeLevelPageModel.approvalEditOf(view)])}
       />
-    </Row>
-  );
-}
-
-/** The phase's dot in its colour, then which phase it is and that every entity shares it. */
-function PhaseKicker({ phase, text }: { readonly phase: 'ticket' | 'merge'; readonly text: string }) {
-  return (
-    <Row centerY gap="six">
-      <span className="bridge-pipeline-phase-dot" data-phase={phase} aria-hidden="true" />
-      <Text typeRole="small" muted>{text}</Text>
     </Row>
   );
 }

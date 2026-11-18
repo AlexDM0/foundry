@@ -18,6 +18,7 @@ import type { PipelineFlowFacts } from '../../../../src/lib/tracker-model/@types
 import { StateToneUtil }          from '../../../utils/StateToneUtil.ts';
 import { EntityAssignmentLine }   from '../apply/EntityAssignmentProgress.tsx';
 import { ForgeLevelPageModel }    from '../entities/ForgeLevelPageModel.ts';
+import { PhaseKicker }            from '../entities/PhaseKicker.tsx';
 import type { FlowSelection }     from '../flow/FlowSelection.ts';
 import { PipelineFlowModel }      from '../flow/PipelineFlowModel.ts';
 import { StepCard }               from '../flow/StepCard.tsx';
@@ -112,8 +113,8 @@ export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
   return (
     <div className="bridge-forge-level">
       <section className="bridge-forge-level-section" aria-label="Ticket phase">
-        <Text typeRole="small" muted>Ticket phase · every entity</Text>
-        <Text typeRole="lead" bold element="h3">Tickets</Text>
+        <PhaseKicker phase="ticket" text="Ticket phase · every entity" />
+        <Text typeRole="section" element="h3">Tickets</Text>
         {flow === null || ticketNode === null
           ? null
           : (
@@ -138,8 +139,8 @@ export function ForgeLevelLive({ facts, selection, now }: ForgeLevelLiveProps) {
         ))}
       </section>
       <section className="bridge-forge-level-section" aria-label="Merge train">
-        <Text typeRole="small" muted>Merge phase · every entity, in order</Text>
-        <Text typeRole="lead" bold element="h3">Merge train</Text>
+        <PhaseKicker phase="merge" text="Merge phase · every entity, in order" />
+        <Text typeRole="section" element="h3">Merge train</Text>
         {flow === null ? null : <MergeTrain facts={facts} flow={flow} now={now} />}
       </section>
       {facts.concurrency === undefined
