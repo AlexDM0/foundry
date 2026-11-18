@@ -86,9 +86,11 @@ function launchesExactly(policy: typeof Playbook, facts: Parameters<typeof Playb
   return Bun.deepEquals(launchesOf(policy.nextStepsOf(facts, FIXTURE_LIMITS)), expected, true);
 }
 
-/** A forge with entities whose ticket 001 built its stage 1 in the shop. */
+/** A forge with entities whose ticket 001 built its stage 1 in the shop, which has a review. */
 function entityFacts(overrides: Parameters<typeof factsWith>[0] = {}): ReturnType<typeof factsWith> {
-  return factsWith({ pipelineHasEntities: true, logRecords: HOME_BUILT, ...overrides });
+  return factsWith({
+    pipelineHasEntities: true, entitiesWithReview: [SHOP.key], logRecords: HOME_BUILT, ...overrides
+  });
 }
 
 function packageBuildOf(ticketId: string, attempt: number = 1): PlaybookStep {

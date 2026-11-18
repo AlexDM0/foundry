@@ -600,6 +600,11 @@ export class Board {
     return this.mergeQueueMarks.greenPhaseOf(ticketId);
   }
 
+  /** Whether the ticket's build goes on to a review: its entity's review on a pipeline with entities, the pipeline's own on any other. */
+  reviewIsSetFor(ticketId: string): boolean {
+    return PipelineUtil.ticketReviewIsSet(this.records.pipeline, this.records.ticketRecordById(ticketId)?.frontmatter.entity);
+  }
+
   setTicketMergeAccepted(ticketId: string, accepted: boolean, at: string): Logged & { changed?: false } {
     return this.mergeQueueMarks.setTicketMergeAccepted(ticketId, accepted, at);
   }

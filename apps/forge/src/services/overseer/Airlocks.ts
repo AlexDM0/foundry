@@ -288,7 +288,7 @@ const REFRESH_REFUSAL_SEPARATOR = ': ';
  * ticket (review with a review phase, build without one).
  */
 function regatePhaseOf(board: Board, ticketId: string): GatePhase {
-  return board.greenPhaseOf(ticketId) ?? (board.pipeline()?.review === undefined ? 'build' : 'review');
+  return board.greenPhaseOf(ticketId) ?? (board.reviewIsSetFor(ticketId) ? 'review' : 'build');
 }
 
 /** The red gate a handoff names: from the pipeline of the entity whose gate it is, or from the forge's own gates without one. */
@@ -454,7 +454,7 @@ function entityAndStageOf(launch: EntityAndStage): EntityAndStage {
 function homeWorkerScopeOf(board: Board, ticketId: string): AirlockAgentScope {
   const logRecords = board.logRecordsSoFar();
   const lastWorker = JobResumption.lastWorkerOf(logRecords, ticketId);
-  const role: JobRole = lastWorker?.role ?? (board.pipeline()?.review === undefined ? 'builder' : 'reviewer');
+  const role: JobRole = lastWorker?.role ?? (board.reviewIsSetFor(ticketId) ? 'reviewer' : 'builder');
   if (board.pipeline()?.entities === undefined || lastWorker === null) return { role };
   const launch = logRecords.find((record) => record.kind === 'job-launched' && record.jobId === lastWorker.jobId);
   return launch?.kind === 'job-launched' ? { role, ...entityAndStageOf(launch.fields) } : { role };
@@ -574,7 +574,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
    * review step. Unlike the Airlock's last worker, this follows the pipeline, since that next session is the one taking the handoff over. A
    * crossing ticket sent back from its landing names the build kind: its package's or its home's builder takes the handoff over.
    */
-  function newestAgentJobIdOf(board: Board, ticketId: string, kind: 'build' | 'review' = board.pipeline()?.review === undefined ? 'build' : 'review'): string | null {
+  function newestAgentJobIdOf(board: Board, ticketId: string, kind: 'build' | 'review' = board.reviewIsSetFor(ticketId) ? 'review' : 'build'): string | null {
     const agentJobIds = new Set<string>();
     let newest: string | null = null;
     for (const record of board.logRecordsSoFar()) {
@@ -622,7 +622,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       return;
     }
     // Without a review phase the branch's own green would queue it again at once, with no agent to fix it: its builder takes it back.
-    if (hold.board.pipeline()?.review === undefined) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
+    if (!hold.board.reviewIsSetFor(ticketId)) hold.board.moveTicket(ticketId, 'in-progress', { checksLegality: true }, hold.at);
   }
 
   /** In the hold after a gate run outside the Airlock: green queues the ticket again, red returns it to its agent, else an incident holds it. */
@@ -1242,7 +1242,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       const ticket = hold.board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
       // Only a review accounts for the Acceptance: a pipeline without a review phase lands on its gates alone.
       const pipeline = hold.board.pipeline();
-      const acceptanceIsReviewed = pipeline === null || pipeline.review !== undefined;
+      const acceptanceIsReviewed = pipeline === null || PipelineUtil.ticketReviewIsSet(pipeline, ticket?.frontmatter.entity);
       const ticketRefusal = ticket === undefined || !acceptanceIsReviewed ? null : Landing.ticketRefusalOf([ticket]);
       if (ticketRefusal !== null) return ticketRefusal;
       const verdict = Landing.landOnTarget({

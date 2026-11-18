@@ -611,6 +611,12 @@ function stageCandidateOf(ticket: PlaybookTicket, stage: TicketStage, facts: Ind
   };
 }
 
+/** On a pipeline with entities a ticket is reviewed when its entity has a review phase; on any other, when the pipeline has one. */
+function reviewIsSetFor(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): boolean {
+  if (!facts.pipelineHasEntities || ticket.entity === undefined) return facts.reviewIsSet;
+  return facts.entitiesWithReview.includes(ticket.entity);
+}
+
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
   if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
   // On a pipeline with entities a ticket builds only in its entity's pipeline (E94), and a started one also waits for its dependencies and needs.
@@ -619,7 +625,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
   if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'pending') return stageCandidateOf(ticket, ticket.stage, facts);
   const base = targetOf(ticket, facts.observations);
   if (ticket.status === 'in-review') {
-    if (!facts.reviewIsSet) return null;
+    if (!reviewIsSetFor(ticket, facts)) return null;
     return {
       ticket,
       phase: 'review',

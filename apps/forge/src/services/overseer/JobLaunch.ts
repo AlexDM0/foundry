@@ -1559,8 +1559,8 @@ function reviewPassIsSettled(board: Board, job: Readonly<Job>): boolean {
 }
 
 /** With merge approval on, a gated build with no review phase merges the target into its worktree before its ticket waits for User's Merge. */
-function buildMergesMainFirst(board: Board): boolean {
-  return board.pipeline()?.review === undefined && board.mergeApprovalIsOn();
+function buildMergesMainFirst(board: Board, ticketId: string): boolean {
+  return !board.reviewIsSetFor(ticketId) && board.mergeApprovalIsOn();
 }
 
 /** The builder's verified work: its Handoff written from the report, the job ended `built` and the ticket moved `in-review`. */
@@ -1766,14 +1766,14 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
     return;
   }
   if (settledAsAStage(hold, job, observation.report, headCommit)) return;
-  if (buildMergesMainFirst(board)) {
+  if (buildMergesMainFirst(board, ticketIdOf(job))) {
     hold.logged.push(...board.moveJob(job.id, 'merging-main', at).logged);
     return;
   }
   settleBuilt(hold, job, observation.report, headCommit);
   // A pipeline without a review phase lands a gated build directly: it waits in review only for its Airlock. A green the pipeline changed
   // under while it ran is not current: the ticket waits unqueued, and the Airlock sweep gates it again.
-  const queuesAtOnce = board.pipeline()?.review === undefined && board.greenIsCurrent(ticketIdOf(job), gate.treeId, board.greenPhaseOf(ticketIdOf(job)));
+  const queuesAtOnce = !board.reviewIsSetFor(ticketIdOf(job)) && board.greenIsCurrent(ticketIdOf(job), gate.treeId, board.greenPhaseOf(ticketIdOf(job)));
   if (queuesAtOnce) hold.logged.push(...board.queueTicketForMerge(ticketIdOf(job), job.target ?? hold.context.mainLine, gate.treeId, at).logged);
 }
 

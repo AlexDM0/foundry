@@ -68,6 +68,7 @@ const CLAIMS: NeedClaim[] = [
     name:  'on a pipeline with entities a ticket in review with an unsettled dependency gets no review',
     facts: factsWith({
       pipelineHasEntities: true,
+      entitiesWithReview:  ['web'],
       tickets:             [ticketOf('001', 'in-review', { dependsOn: ['002'], entity: 'web' }), ticketOf('002', 'pending', { entity: 'design-system' })],
       concurrencyLimit:    1,
     }),
@@ -128,6 +129,7 @@ const CLAIMS: NeedClaim[] = [
     name:  'a worker\'s finding waits on its finder and is no need, so it keeps its own priority',
     facts: factsWith({
       pipelineHasEntities: true,
+      entitiesWithReview:  ['web'],
       tickets:             [
         ticketOf('001', 'in-review', { priority: 'high', entity: 'web' }),
         ticketOf('002', 'pending', {

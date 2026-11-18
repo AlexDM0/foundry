@@ -10,6 +10,7 @@ import type { BoardRecords }           from './BoardRecords.ts';
 import { BoardRefusal }                from './BoardRefusal.ts';
 import type { Jobs }                   from './Jobs.ts';
 import type { MergeQueueMarks }        from './MergeQueueMarks.ts';
+import { PipelineUtil }                from './utils/PipelineUtil.ts';
 import { ReleaseBundleUtil }           from './utils/ReleaseBundleUtil.ts';
 import { TicketDefaultsUtil }          from './utils/TicketDefaultsUtil.ts';
 
@@ -142,14 +143,18 @@ export class AirlockClaims {
    * and, with no review phase, one in review and not queued, which only a current green queues.
    */
   ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {
-    const reviewIsSet = this.records.pipeline?.review !== undefined;
     const incidents   = this.records.progress.incidents ?? [];
     const decisions   = this.records.progress.decisions ?? [];
     return this.queuedOrAwaitingTicketsOf(target, targetOf)
       .filter(({ frontmatter }) => !incidents.some((incident) => incident.ticketIds.includes(frontmatter.id)))
       .filter(({ frontmatter }) => !decisions.some((decision) => decision.ticketIds.includes(frontmatter.id)))
-      .map((ticket) => ({ ticketId: ticket.frontmatter.id, queued: this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true }))
-      .filter(({ ticketId, queued }) => (queued ? !this.ownGreenIsCurrent(ticketId, branchTreeOf) : !reviewIsSet));
+      .map((ticket) => ({
+        ticketId:    ticket.frontmatter.id,
+        queued:      this.records.linkedTaskRecordOf(ticket)?.mergeQueued === true,
+        reviewIsSet: PipelineUtil.ticketReviewIsSet(this.records.pipeline, ticket.frontmatter.entity),
+      }))
+      .filter(({ ticketId, queued, reviewIsSet }) => (queued ? !this.ownGreenIsCurrent(ticketId, branchTreeOf) : !reviewIsSet))
+      .map(({ ticketId, queued }) => ({ ticketId, queued }));
   }
 
   /** The ticket's green is current on its branch tree in the phase it was taken in. */

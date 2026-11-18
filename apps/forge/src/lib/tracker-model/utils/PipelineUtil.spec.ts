@@ -8,7 +8,8 @@
  * printing each hash for each pipeline below. The format version names the earliest that holds a pipeline, and only entities make it 4.
  * An entity reads as an ordinary single pipeline: its own steps, gates and roles with the forge's merge train, approvals, billing and
  * forge-level roles, so its phase hashes are those of the same single pipeline; a key the pipeline has no entity for gives none. A gate
- * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it.
+ * run of entities stamps the forge's own phase hash untouched and each gated entity's beside it. Whether a ticket's build goes on to a review
+ * is its entity's review on a pipeline with entities, whatever the forge's own, and the pipeline's own review on any other.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -322,6 +323,27 @@ describe('the pipeline of an entity', () => {
     expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'unknown')).toBeNull();
     expect(PipelineUtil.pipelineOfEntity(ENTITIES_PIPELINE, 'toString')).toBeNull();
     expect(PipelineUtil.pipelineOfEntity(FULL_PIPELINE, 'example')).toBeNull();
+  });
+});
+
+describe('whether a ticket is reviewed', () => {
+  const { review: _sharedReview, ...SHARED_WITHOUT_REVIEW } = SHARED_PACKAGE_ENTITY;
+  const MIXED_REVIEWS: Pipeline = { ...ENTITIES_PIPELINE, review: { name: 'review' }, entities: { 'example': EXAMPLE_APP_ENTITY, 'shared': SHARED_WITHOUT_REVIEW } };
+
+  test('is its entity\'s review on a pipeline with entities, whatever the forge\'s own', () => {
+    expect(PipelineUtil.ticketReviewIsSet(ENTITIES_PIPELINE, 'example')).toBe(true);
+    expect(ENTITIES_PIPELINE.review).toBeUndefined();
+    expect(PipelineUtil.ticketReviewIsSet(MIXED_REVIEWS, 'shared')).toBe(false);
+    expect(PipelineUtil.ticketReviewIsSet(MIXED_REVIEWS, 'unknown')).toBe(false);
+  });
+
+  test('is the pipeline\'s own review for a pipeline without entities, a ticket with no entity, and none without a pipeline', () => {
+    expect(PipelineUtil.ticketReviewIsSet(FULL_PIPELINE, undefined)).toBe(true);
+    expect(PipelineUtil.ticketReviewIsSet(FULL_PIPELINE, 'example')).toBe(true);
+    expect(PipelineUtil.ticketReviewIsSet(FROZEN_PHASE_AND_CONTENT_HASHES[0]?.[1] ?? null, undefined)).toBe(false);
+    expect(PipelineUtil.ticketReviewIsSet(MIXED_REVIEWS, undefined)).toBe(true);
+    expect(PipelineUtil.ticketReviewIsSet(ENTITIES_PIPELINE, undefined)).toBe(false);
+    expect(PipelineUtil.ticketReviewIsSet(null, 'example')).toBe(false);
   });
 });
 

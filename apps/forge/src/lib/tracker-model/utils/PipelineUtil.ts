@@ -239,6 +239,13 @@ function pipelineOfEntity(pipeline: Readonly<Pipeline>, entityKey: EntityKey): P
   };
 }
 
+/** Whether a ticket's build goes on to a review: on a pipeline with entities its entity's review decides, on any other the pipeline's own. */
+function ticketReviewIsSet(pipeline: Readonly<Pipeline> | null, entityKey: EntityKey | undefined): boolean {
+  if (pipeline === null) return false;
+  if (pipeline.entities === undefined || entityKey === undefined) return pipeline.review !== undefined;
+  return pipelineOfEntity(pipeline, entityKey)?.review !== undefined;
+}
+
 export const PipelineUtil = Object.freeze({
   contentHashOf,
   entitiesGateRunStampOf,
@@ -250,6 +257,7 @@ export const PipelineUtil = Object.freeze({
   minimalPipelineOf,
   phaseHashOf,
   pipelineOfEntity,
+  ticketReviewIsSet,
   resolvedInstructionsOf,
   writablePathsOf,
 });

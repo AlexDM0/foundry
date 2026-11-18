@@ -3,7 +3,8 @@
  * to merge instead of waiting forever; and a review that
  * does not hold resumes the builder in the same attempt, counted against the red-handoff resumes of its cycle, so the review that goes
  * one past them parks the ticket instead. What matters is that no reviewer launches on a board that left review out, and that a review
- * resume and a red resume share the one bound.
+ * resume and a red resume share the one bound. On a pipeline with entities a ticket's own entity says whether it is reviewed, whatever the
+ * forge's own `review`, so an app with a review is reviewed on a forge that sets none at its top level, and an app without one is not.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -37,6 +38,22 @@ function failedReviewsRecords(failedReviews: number): LogRecord[] {
   }
   return records;
 }
+
+describe('a pipeline with entities', () => {
+  test('launches the reviewer of a ticket whose entity has a review, though the forge sets none at its top level', () => {
+    const steps = Playbook.nextStepsOf(factsWith({
+      tickets: [ticketOf('001', 'in-review', { entity: 'shop' })], reviewIsSet: false, pipelineHasEntities: true, entitiesWithReview: ['shop'],
+    }), FIXTURE_LIMITS);
+    expect(steps.filter((step) => step.kind === 'launch-review')).toMatchObject([{ ticketId: '001', entity: 'shop', stage: 5 }]);
+  });
+
+  test('launches no reviewer for a ticket whose entity has no review, though the forge sets one at its top level', () => {
+    const steps = Playbook.nextStepsOf(factsWith({
+      tickets: [ticketOf('001', 'in-review', { entity: 'admin' })], reviewIsSet: true, pipelineHasEntities: true, entitiesWithReview: ['shop'],
+    }), FIXTURE_LIMITS);
+    expect(steps.filter((step) => step.kind === 'launch-review')).toEqual([]);
+  });
+});
 
 describe('a pipeline without a review phase', () => {
   test('launches no reviewer for a ticket waiting in review', () => {
