@@ -25,8 +25,16 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   `GAIA_RECORDING_FORGE_PROGRAM=<the integration branch's forge> bun run record overseer-fetch-supported-forge`, then
   `overseer-fetch-flint-brain` and `overseer-fetch-versions`; commit the retaken recordings.
 
+- WP2.7's fix round could not retake the Talos recording (the permission classifier refused `bun run record` for the
+  agent); the fixer says the new specs record no answers, so the committed recording stands. To be sure, in
+  `apps/forge`: `bun run record src/lib/talos/Talos.ts` and commit any change.
+
 ### Assumptions to confirm
 
+- WP2.7: Bun's `Worker` emits `close` when its thread exits or is terminated and `error` on an uncaught throw; the
+  dead-worker detection in `SynchronousCallsClient.ts` rests on it. Proven on darwin by specs; Windows unconfirmed.
+- WP2.7: Talos passes an empty pipe-name prefix to `localEndpointFor` (it binds the endpoint its start file names).
+  Matters only for Windows named pipes; confirm when WP2.9's Overseer draws the endpoint.
 - The agent-port packages WP2.21 to WP2.32 (planned 2026-11-18 on the owner's rule "all connections to actual claude
   should be in ports and adapters") rest on nine choices of behaviour the owner has not settled, listed as assumptions
   1 to 9 in `stage-2-talos.md`, "Needs the owner": the Bridge's billing step names no variable; `update` and `setup`
@@ -99,7 +107,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-C | WP2.5 | landed | 531e7ed5 | Second round (first: Claude values in `ChildLaunch.spec.ts`, a `..foo` board check bug). Constants now live once in `constants/TalosProtocol.ts` (`PRIVATE_FOLDER_NAME`, `WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS`, `TALOS_CLIENT_LINE_LIMIT_CHARACTERS`, `CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS`); `EVENT_LOG_FORMAT_VERSION` is 2 and the Watcher writes origin `talos`; Watcher recording retaken (fake agent, no `claude`). Added `standingReplyOf` in `StandingReplies.ts`. Interface deviations below |
 | 2-C | WP2.6 | landed | 100a2f4d | Second round. The main thread numbers and stamps every event-log entry; the thread refuses a skipped sequence or a missing `at`. Gap for WP2.7: the real worker transport has no listener for the worker's `error` or exit, and `terminate()` leaves pending calls unsettled, so a dead worker hangs every call; WP2.7's item 10 (a failed call ends Talos with exit 2) must add it. `apps/forge/CLAUDE.md`'s 'No work at module load' row already names the thread (WP2.17 needs no new row) |
 | 2-C | WP2.11 | landed | acf4243d | Second round. Forge 1.19. `MonitorJobDocument.interruption` is optional in the contract (Gaia still supports forge 1.1 and its recordings lack the key); `MONITOR_INTERRUPTION_CAUSES` in `packages/forge-contracts/constants/MonitorInterruptionCauses.ts`. Gap for WP2.13: `AssistantSession.endDownAssistants` (`AssistantSession.ts:127-140`, from `DrivePass.ts:1373`) still replaces an Assistant interrupted by a network outage or lease end, so the Playbook's new hold is skipped for it in production |
-| 2-D | WP2.7 | waiting | | |
+| 2-D | WP2.7 | landed | 6e7210a7 | Second round (first: a stop during a launch's identity read sent no signal and hung a quit; `state` broadcast before the record write). `runTalos` takes a clock `{stampNow, wallNowMilliseconds}`; endpoint prepare and release run on the thread (`prepare-endpoint`, `release-endpoint` calls); the package's "depends on" sentence is now in `Talos.ts`; `helloFrameOf` accepts version 0 (gets `version-mismatch`). Until WP2.8 an agent launch is refused `malformed-launch`, `lease-renewal` is a no-op `done`, and `quit` runs a lines-only clean quit. A dead synchronous-calls worker now rejects every call and Talos ends with exit 2 (WP2.6's gap closed). `apps/forge/CLAUDE.md` still names only `watcher.ts` in the exit, environment and deviation rows (WP2.17) |
 | 2-D2 | WP2.21 | waiting | | |
 | 2-E | WP2.8 | waiting | | |
 | 2-F | WP2.9 | waiting | | |
