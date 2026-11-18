@@ -20,8 +20,8 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 
 | Group | Package | State | Commit | Note |
 | --- | --- | --- | --- | --- |
-| 0-A | WP0.1 | waiting | | |
-| 0-A | WP0.2 | waiting | | |
+| 0-A | WP0.1 | landed | 9038016f | Design in line with the traces. Left stale, outside its scope: `hephaestus-talos.html:435` and the design's section 11 stage-3 row still call the stop/Baton record missing |
+| 0-A | WP0.2 | blocked | | RED baseline at `a117e3e8` (code = `main` `e9b5d057`): `CrashMatrix.integration.spec.ts:914` (RecordedGit has no answer for `git worktree remove --force …/pipeline-agent/J9` at 'worktree made') and `JobResumption.integration.spec.ts:204/:209` (expected `J1`, got `R2`). 7 of 9 files green. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-0/recovery-baseline.txt`. The package's resume-case list misses `CrashMatrix.integration.spec.ts:681`, `:856` and `CrashMatrix.spec.ts:802`, `:838` (the evidence file has them) |
 | 0-A | WP0.3 | owner | | Gate G1: the owner records it |
 | 0-B | WP0.4 | waiting | | |
 | 0-C | WP0.5 | waiting | | |
