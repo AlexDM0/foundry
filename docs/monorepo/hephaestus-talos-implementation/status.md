@@ -9,7 +9,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | --- | --- | --- |
 | G0 | passed | Owner said go on 2026-11-18; branch `hephaestus-talos` |
 | G1 | owner | WP0.3: the owner records a session that ends on a network outage |
-| G2 | waiting | Owner decisions before WP0.5 |
+| G2 | owner | Round 1 answered 2026-11-18 (11 items, below); the rest reworked into abstract questions |
 | G3 | waiting | WP1.2 |
 | G4 | waiting | End of WP2.13 |
 | G5 | waiting | Before WP6.4 |
@@ -150,6 +150,16 @@ Both were already red at `3e6cb660`; the default suite skips `*.integration.spec
   its header comment (`:5-6`).
 
 No product change and no `bun run record` is needed for either.
+
+## Owner answers, round 1 (2026-11-18)
+
+- S0-1.1 (network outage): Gaia alerts the user; the user resumes, and one click resumes every job that ended on a network failure, across forges.
+- S0-1.2 (install line time bound): yes, 15 minutes; also record each line's duration so it can be optimised, shown in the pipeline overview.
+- S0-1.5, S0-1.8, S0-1.9, S0-1.10, S0-1.11, S2.3, S2.4: the recommended default.
+- S0-1.6 (live trackers): drop every in-flight ticket.
+- S0-1.7 (clock-rule edits): committed (`e9b5d057`); the owner hands those rule edits to the run from here on.
+- Guidance: code that belongs to an app stays in that app; only code shared across apps is hoisted to a package, by the
+  coding conventions' hoisting rules. Remaining decisions are to be posed abstractly, in the concepts the plan introduces.
 
 ## Owner questions the refresh raised (for gate G2; also on `owner-decisions.html` as R.1 to R.14)
 
