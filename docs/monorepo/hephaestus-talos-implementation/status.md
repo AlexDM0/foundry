@@ -22,6 +22,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | --- | --- | --- | --- | --- |
 | 0-A | WP0.1 | waiting | | |
 | 0-A | WP0.2 | waiting | | |
+| 0-A | WP0.3 | owner | | Gate G1: the owner records it |
 | 0-B | WP0.4 | waiting | | |
 | 0-C | WP0.5 | waiting | | |
 | 0-D | WP1.1 | waiting | | |
