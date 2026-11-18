@@ -379,7 +379,8 @@ gets a job's live output from the read API's job stream, never by knowing where 
 Consequences:
 
 - **Hand-editing stored records ends.** It overturns today's local rule that tickets are hand-edited between runs;
-  an edit of a ticket's content is a command, refused from the moment the ticket is committed (decision 48).
+  an edit of a ticket's content is a command, refused from the moment the ticket is committed (decision 48). This run
+  builds that command and no editing screen in Gaia (decision 22).
 - **Version.** The read API keeps the system versions and the compatibility registry it has today, so an endpoint can be
   served at two versions side by side. The stored formats keep their own versions inside the local adapter.
 - **`packages/forge-contracts`** already holds 9 command kinds, the summary and monitor documents and the versions, and
