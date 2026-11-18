@@ -114,13 +114,15 @@ run in the entity's first home folder.
 | --- | --- | --- |
 | `forge` | `bun run gate:forge` | build `verify`; review `verify`; merge `verify`, `cache-audit` |
 | `gaia` | `bun run gate:gaia` | the same |
-| each package | `TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) bun scripts/TurboGate.ts <package>` | the same |
+| each package | `TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) PATH="$PWD/node_modules/.bin:$PATH" bun scripts/TurboGate.ts <package>` | the same |
 | `root` | no gates | none |
 
 - `gate:<app>` is `scripts/TurboGate.ts <app>` with the two environment settings in front. It runs every workspace's `typecheck`,
   `lint`, `test` and `test:dom` through turbo, then the `check` of that one workspace. The root `package.json` has no
   `gate:<package>` script, so a package's line calls the same script with the package's name and the same environment settings.
-  `BUN_RUNTIME_VERSION` is part of turbo's cache key, so a line without it would never replay the cache. No package has a `check`
+  `BUN_RUNTIME_VERSION` is part of turbo's cache key, so a line without it would never replay the cache. The script starts `turbo` by
+  name, and only `bun run` puts the workspace's `node_modules/.bin` on the `PATH`, so a package's line puts it there itself; without it
+  the gate fails at once with "Executable not found in $PATH: turbo" (found by the rehearsal, U7.2). No package has a `check`
   script. Turbo then runs no task for it (checked with a dry run), so a package gate is the whole-workspace part of the app gates.
 - `cache-audit` (`bun run cache:audit`, Overseer only, merge phase) is in every gated entity's merge phase, because each entity's
   merge phase runs only its own gates. A landing that gates several entities therefore runs the audit once for each of them.
