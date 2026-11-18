@@ -21,8 +21,17 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   after Enter. No spec plays the fake's outage steps yet. Holds up stage 2's verification
   step 7, WP3.14's outage row and WP6.26's recorded situation.
 
+- WP2.11's hand edits: retake Gaia's forge answers from a scratch forge, in `apps/gaia`:
+  `GAIA_RECORDING_FORGE_PROGRAM=<the integration branch's forge> bun run record overseer-fetch-supported-forge`, then
+  `overseer-fetch-flint-brain` and `overseer-fetch-versions`; commit the retaken recordings.
+
 ### Assumptions to confirm
 
+- WP2.11: Gaia keeps reading monitor snapshots of forges older than 1.19, so `interruption` is an optional contract key
+  (`?? null` in `agentRowOfMonitorJob`). Confirm when stage 6 raises `SUPPORTED_FORGE_VERSION` and retakes Gaia's
+  forge answers whether the key becomes required.
+- WP2.6: a process-table listing takes about 30 ms on macOS; `SynchronousCallsThread.integration.spec.ts` asserts 12
+  queued listings take over 150 ms (`QUEUED_TREE_READINGS`). Watch for a flake on a faster machine.
 - WP2.2: a provider overload (529), once its retries are spent, ends on a `result` line with `is_error` true,
   `terminal_reason` `api_error` and `api_error_status` 500 to 599, after at least one `api_retry` line. Rests on the
   429 result's shape (`rate-limit-rejected.stdout.jsonl`) and decision 35. Kept in `NETWORK_OUTAGE_ENDING` and
@@ -37,6 +46,12 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- WP2.11 hand-edited recordings and frozen fixtures to add `"interruption": null`: Gaia's
+  `overseer-fetch-{supported-forge,flint-brain,versions}.json` (Gaia's rules say every forge answer is recorded from a
+  real forge) and forge's `monitor-v3.json`, `monitor-v3-flint-brain.json` (frozen, never edited). Retaking them is
+  listed for tomorrow. `SUPPORTED_FORGE_VERSION` stays 1.1, so verify warns that Gaia is behind forge 1.19.
+- WP2.5 retook the Watcher recording for event-log format 2; one `state busy` frame moved one stage earlier, a timing
+  difference of the retake.
 - WP2.4 renamed forge's owner-only folder from `watchers` to `private`; Gaia's specs and recordings still show a token
   path under `.forge-monitor/watchers/` (`apps/gaia/src/WholeFlow.spec.ts:188`, `RegistryFile.spec.ts:41`, the
   `forge-registry.json` recording). Nothing breaks (Gaia reads `tokenPath` from the registry), but the examples are
@@ -74,9 +89,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-A | WP2.2 | landed | 5f084a29 | Ending values are `CLAUDE_CODE_SESSION_ENDINGS` in `src/lib/claude-code/ClaudeStreamLines.ts` (not `ClaudeCodeAdapter.ts`: ImportDirection lets only `CommandContext` import the adapter). Switch is `FORGE_FAKE_AGENT_NETWORK_OUTAGE`. `network-outage` is not yet in `CLAUDE_WIRE_SCENARIOS` (owner's recording). `ClaudeStreamFixtures.spec.ts` matches with a spec-local copy of WP2.1's matcher; replace with an import (WP2.17 or WP2.18) |
 | 2-A | WP2.3 | landed | 849f1f0a | `createSupervisionLease(bounds, wallNowMilliseconds)` as in Interfaces; `WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS`, `LeaseStanding`, `LeaseBounds` are exported from `SupervisionLease.ts`: WP2.5 moves the constant into `constants/TalosProtocol.ts` and imports it here |
 | 2-B | WP2.4 | landed | 0aa10391 | Second round (first: dead `FROZEN_ENDPOINT_*` exports, stale wording). `PRIVATE_FOLDER_NAME` and `privateFolderOf` live in `TalosFiles.ts` (WP2.5 may move the constant into `constants/TalosProtocol.ts`); `TalosFiles.ts` carries the package header (depends on `atomic-file`, `owner-only-files`). Test-only `src/testing/IdleWatcherSocket.ts` keeps talos specs off `src/lib/watcher`; WP2.15 deletes it. `WatcherBundleClosure.spec.ts` now follows declared packages transitively |
-| 2-C | WP2.5 | waiting | | |
-| 2-C | WP2.6 | waiting | | |
-| 2-C | WP2.11 | waiting | | |
+| 2-C | WP2.5 | landed | 531e7ed5 | Second round (first: Claude values in `ChildLaunch.spec.ts`, a `..foo` board check bug). Constants now live once in `constants/TalosProtocol.ts` (`PRIVATE_FOLDER_NAME`, `WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS`, `TALOS_CLIENT_LINE_LIMIT_CHARACTERS`, `CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS`); `EVENT_LOG_FORMAT_VERSION` is 2 and the Watcher writes origin `talos`; Watcher recording retaken (fake agent, no `claude`). Added `standingReplyOf` in `StandingReplies.ts`. Interface deviations below |
+| 2-C | WP2.6 | landed | 100a2f4d | Second round. The main thread numbers and stamps every event-log entry; the thread refuses a skipped sequence or a missing `at`. Gap for WP2.7: the real worker transport has no listener for the worker's `error` or exit, and `terminate()` leaves pending calls unsettled, so a dead worker hangs every call; WP2.7's item 10 (a failed call ends Talos with exit 2) must add it. `apps/forge/CLAUDE.md`'s 'No work at module load' row already names the thread (WP2.17 needs no new row) |
+| 2-C | WP2.11 | landed | acf4243d | Second round. Forge 1.19. `MonitorJobDocument.interruption` is optional in the contract (Gaia still supports forge 1.1 and its recordings lack the key); `MONITOR_INTERRUPTION_CAUSES` in `packages/forge-contracts/constants/MonitorInterruptionCauses.ts`. Gap for WP2.13: `AssistantSession.endDownAssistants` (`AssistantSession.ts:127-140`, from `DrivePass.ts:1373`) still replaces an Assistant interrupted by a network outage or lease end, so the Playbook's new hold is skipped for it in production |
 | 2-D | WP2.7 | waiting | | |
 | 2-E | WP2.8 | waiting | | |
 | 2-F | WP2.9 | waiting | | |
@@ -181,6 +196,19 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 9-A | WP9.5 | waiting | | |
 
 ## Where the code differed from a stage file
+- WP2.5: `clientFrameOf` answers a `ReceivedClientFrame` (`@types/TalosFrame.ts`), whose `launch` holds the raw
+  `unknown` launch (not `ClientFrame | null`): `childLaunchOf` needs the board folder, and a malformed launch is still
+  answered with a `done` carrying its own `frameId`. `childLaunchOf(value, boardFolder)` takes no `endpointFits?`: a
+  launch carries no endpoint. Both go into WP2.17's Deviations table, beside the frozen handshake's never-retaken table.
+- WP2.5 moved citations later packages use. Fixtures: `watcher-record-format-1.json` is `watcher-record-format-2.json`,
+  `event-log-format-1.jsonl` is `event-log-format-2.jsonl` (WP2.15). `Watcher.ts` lost 4 import lines: every citation
+  past line 41 is 4 lower (stage 2's :88-95 is :84-91, :216-244 is :212-240, :337-340 is :333-336, :430 is :426; WP2.7,
+  WP2.8, WP2.9, WP2.12, WP2.15). `WatcherFleet.ts` gained one import line, so citations past line 24 are 1 higher (:221
+  is :222); `WatcherSocketServer.ts:117` is :118, :48-57 is :49-58, :103-118 is :104-119; `WatcherProtocol.ts:2-23` is
+  :2-8 (`WATCHER_LINGER_FRAMES` at :8).
+- WP2.6: the package's "depends on" sentence is in `TalosFiles.ts`'s header (one module per package may hold it), not
+  in `SynchronousCallsThread.ts`. The timer case of the integration spec measures while 12 queued process-table reads
+  run (a single stop-tree is shorter than the timer).
 
 The refresh (0-F) corrected all seven stage files against `0a648b2b`. Changes later packages depend on:
 
