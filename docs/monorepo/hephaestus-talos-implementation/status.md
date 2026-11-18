@@ -11,7 +11,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | G1 | owner | WP0.3: the owner records recordings A and B; later the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
 | G3 | waiting | Before WP1.2: the owner stops both trackers and removes their login items |
-| G4 | waiting | End of WP2.13; optionally after WP3.14 and WP5.10 |
+| G4 | waiting | End of WP2.13; optionally after WP3.14, WP5.10 and WP5.15 |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | waiting | Before and after stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
@@ -87,6 +87,10 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 5-H | WP5.10 | waiting | | |
 | 5-I | WP5.11 | waiting | | |
 | 5-I | WP5.12 | waiting | | |
+| 5-J | WP5.14 | waiting | | After stage 4 |
+| 5-J | WP5.15 | waiting | | After stage 4 |
+| 5-K | WP5.16 | waiting | | |
+| 5-L | WP5.17 | waiting | | |
 | 6-A | WP6.1 | waiting | | |
 | 6-B | WP6.2 | waiting | | |
 | 6-B | WP6.4 | waiting | | |

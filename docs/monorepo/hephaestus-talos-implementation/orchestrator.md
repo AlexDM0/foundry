@@ -1,6 +1,6 @@
 # Orchestrator plan: Hephaestus, Talos and Gaia
 
-This is the one plan an orchestrating session carries out. It holds the whole schedule: all 113 work packages in the
+This is the one plan an orchestrating session carries out. It holds the whole schedule: all 117 work packages in the
 order they run, which of them run side by side, where the owner has to act, and how one package is handed to an agent,
 checked and landed. The detail of a package lives in its stage file in this folder; the orchestrator never needs to
 hold a stage file in its own context, only this plan and the status file.
@@ -94,16 +94,11 @@ that the owner alone may do.
 | G1 | During stage 0, and once WP2.2 has landed | Records recordings A and B, sessions that end on a network outage (WP0.3); later records the fake agent's outage scenario (`bun run record src/testing/fake-agent/`). No package of stage 2 waits on the second; stage 2's verification step 7, WP3.14's outage row and WP6.26's recorded situation do |
 | G2 | Before WP0.5 | Passed on 2026-11-18: the answers are in `owner-answers.md` |
 | G3 | Before WP1.2 | In `apps/forge`, then `apps/gaia`, with the installed program: `forge job stop --all`, `forge stop --now`, `forge login-item remove`, and `forge login-item status` reads `absent`; lets a running merge agent end first |
-| G4 | End of WP2.13; optionally after WP3.14 and WP5.10 | Asks for `bun run verify:integration`, which forge's rules allow only on a person's word |
+| G4 | End of WP2.13; optionally after WP3.14, WP5.10 and WP5.15 | Asks for `bun run verify:integration`, which forge's rules allow only on a person's word |
 | G6 | Before stage 9, and after it | Before: stops every forge and removes each board's login item. After: pulls stage 9 into the installed clone, runs `setup`, sets each board up anew with `init`, adds the login items again |
 | G7 | End of the run | Decides whether and how the integration branch reaches `main` |
 
 Gate G5 is retired: no rule file waits on an approval (decision 34).
-
-No work package yet plans the freeze of a committed ticket (decision 48, owner answer 14): the Board refusing an edit
-of a ticket's content from committed onward, the content kept by content hash at the commit, and the move back into
-`draft`. Its natural place is stage 5, after WP5.13, on the command `ticket-edit`. The orchestrator stops before group
-5-A until the stage 5 file holds a package for it, and reports that it is missing.
 
 ## The schedule
 
@@ -169,12 +164,11 @@ interfaces changed and corrects this schedule to match. WP0.2's baseline of the 
 
 ### Stages 4 and 5
 
-Stage 5 needs nothing of stage 4 and may start once stage 3 has finished: the tracker model stays in `apps/forge`.
-Stage 4 and stage 5 then run as two lines side by side, each in its own group order, under one rule: the two stages
-share files (`ControlCommand.ts`, `ControlService.ts`, `CommandRoute.ts`, `OperationRefusalWordingUtil.ts`,
-`docs/reference/refusals.md`, and the mapping of a ticket into the contract), so WP4.5, WP4.8, WP4.10, WP4.11 and
-WP4.12 never run beside WP5.4, WP5.6, WP5.7, WP5.8 or WP5.13. Each landing rebases on the other line's landings and
-runs its "Done when" again. Stage 6 starts when both stages have finished.
+Stage 5 starts when stage 4 has finished. Nothing in stage 5 before its last groups needs what stage 4 builds, since
+the tracker model stays in `apps/forge`, but the two stages change the same files (`ControlCommand.ts`,
+`ControlService.ts`, `PipelineSetupControls.ts`, `PipelineAgentControls.ts`, `CommandRoute.ts`, `OverseerRoutes.ts`,
+`OperationRefusalWordingUtil.ts`, `docs/reference/refusals.md`, and the mapping of a ticket into the contract), so they
+run one after the other and never side by side. Stage 6 starts when stage 5 has finished.
 
 #### Stage 4: `stage-4-packages.md`
 
@@ -200,6 +194,9 @@ runs its "Done when" again. Stage 6 starts when both stages have finished.
 | 5-G | WP5.8 | Alone |
 | 5-H | WP5.9, WP5.10 | Side by side. Gate G4 may follow WP5.10 |
 | 5-I | WP5.11, WP5.12 | Side by side |
+| 5-J | WP5.14, WP5.15 | One after the other, each alone, once stage 4 has finished: WP5.14 renames `pending` to `committed`, then WP5.15 frees the lock by process, never by age. Both change `OperationRefusalWordingUtil.ts`, `docs/reference/refusals.md`, `apps/forge/docs/glossary.md` and `AirlocksHarness.ts`. Gate G4 may follow WP5.15 |
+| 5-K | WP5.16 | Alone: a committed ticket's content is fixed and kept by its hash |
+| 5-L | WP5.17 | Alone, last: `ticket unready`, the move back into draft |
 
 ### Stages 6 and 7: `stage-6-7-gaia-views.md`
 

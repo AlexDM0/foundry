@@ -1613,7 +1613,8 @@ allowlisted files.
 - A guard against retired names inside Gaia (propose it as a follow-up).
 - Renaming the product (`forge`, `.forge`, `.forge-monitor`, `FORGE_`) or Talos, or reserving Zeus.
 - Converting existing boards; the owner sets them up anew (decision 46).
-- How a user changes a frozen ticket (decision 48, design section 12): not this stage's.
+- The committed ticket (decision 48): stage 5's WP5.14 to WP5.17. Stage 9's rename leaves `committed` and
+  `ticket unready` as they are; neither names the Overseer.
 
 ## Needs the owner
 

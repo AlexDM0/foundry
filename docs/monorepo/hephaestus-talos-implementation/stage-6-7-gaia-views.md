@@ -28,7 +28,7 @@ stop and report it; do not build it here.
 | Need | What it must be | From | Used by |
 | --- | --- | --- | --- |
 | N1. The board documents of the contract | `ForgeBoardDocument` at `GET /api/v1/board` (registry endpoint `board` at version 1) and its part documents (`BoardPageDocuments`, `BoardJobDocuments`, `BoardConversationDocuments`, `BoardPipelineDocuments`, `BoardMergeQueueDocument`, `BoardLimitsDocument`, `BoardReadingDocuments`), declared in `packages/forge-contracts` with types of their own that import nothing from forge's model and filled by forge's typed mapper; the value lists of their unions in `forge-contracts/BoardVocabulary`; the stream's `board` event and its part events carrying the same documents; every refusal a `ForgeRefusalDocument` (`code`, `fields`, `sentence`), and a refused command answered 409 `{ controlVersion, refusal, fields, text }` | stage 4 | WP6.2, WP6.24 |
-| N2. The served facts | In the board document (stage 4's WP4.10): attention entries with a typed `target` (`{ subject, id }`, no Bridge fragment); notices and warnings as `{ kind, facts, sentence, causeSentence? }`; `today` with the `calendarDate` it counted; `openDecisionIds` in answering order and `escalatedDecisionIds`; per ticket `resolvedPriority`, `settlesADependency`, `isClosed`, `isEditableWithoutForce`, `reviewRound`, `isRepeatReview` and its `offers` (the command kinds it accepts now and its priority choices); per job its `stopHolds` and `offers` (stop modes, fresh, message); each entity's `effectivePipeline`; `limits` (concurrency bounds, worker model and effort, rework threshold, default ticket priority, first repeat-review round, page and picture limits); a decision option's `recommended` flag beside its unmarked label; each draft entity's transitive dependents (`dependentEntityKeys`), and in `limits` the default instructions per role and the re-review step the agent dialogs show. The monitor document's `route` strings stay Bridge fragments until stage 8 | stage 4 | WP6.24, WP6.6 to WP6.20 |
+| N2. The served facts | In the board document (stage 4's WP4.10): attention entries with a typed `target` (`{ subject, id }`, no Bridge fragment); notices and warnings as `{ kind, facts, sentence, causeSentence? }`; `today` with the `calendarDate` it counted; `openDecisionIds` in answering order and `escalatedDecisionIds`; per ticket `resolvedPriority`, `settlesADependency`, `isClosed`, `noAgentHasPickedItUp`, `reviewRound`, `isRepeatReview` and its `offers` (the command kinds it accepts now and its priority choices); per job its `stopHolds` and `offers` (stop modes, fresh, message); each entity's `effectivePipeline`; `limits` (concurrency bounds, worker model and effort, rework threshold, default ticket priority, first repeat-review round, page and picture limits); a decision option's `recommended` flag beside its unmarked label; each draft entity's transitive dependents (`dependentEntityKeys`), and in `limits` the default instructions per role and the re-review step the agent dialogs show. The monitor document's `route` strings stay Bridge fragments until stage 8 | stage 4 | WP6.24, WP6.6 to WP6.20 |
 | N3. The entities draft and the refusals | The forge keeps an unfinished entities draft and serves its `entityRefusals` (each with its reason, its entity keys, the entity whose row shows it, the sentence and a `fix` of typed draft edits); Continue and Apply are refused `entity-refusals-stand` while any stands (decision 44); the setup document's `applyRefusal` is served, not predicted. Every refusal, in a command's answer and in a document, carries its reason code, its structured fields and the sentence the command line prints (decision 45). `pipeline-draft-edit` carries a typed edit, not an encoded field string | stage 4 | WP6.24, WP6.25, WP6.19, WP6.20 |
 | N4. The board command kinds | The 34 kinds the Bridge sends as `ForgeBoardCommand` in `forge-contracts`, with payload types declared there, pinned in forge by `BOARD_COMMAND_CONTRACT_KINDS`, and forge's typed command ingestion that maps each contract command into its model | stage 4 | WP6.1, WP6.25 |
 | N5. Talos in the identity, and its clean quit | `talosProtocolVersion` in the identity document, replacing `watcherProtocolVersion` (`OverseerServer.ts:637`); Talos's `quit` frame with reason `restart`, after which the Overseer starts Talos again and the paused agents resume by themselves | stage 2 | WP6.22 |
@@ -37,6 +37,7 @@ stop and report it; do not build it here.
 | N8. Line run times | The pipeline facts' `stepRunTimes`: the newest run of each step line per entity, step kind (`prepare`, the install line's steps, or `gate`), step name and phase, with `runMilliseconds` in the measure the 15-minute bound uses (a sleep not counted, decisions 36 and 37) and its `ending` (`passed`, `failed`, `time-bound`) | stage 2 (WP2.20) records and serves, stage 4 declares | WP6.24, WP6.20 |
 | N9. The forge system version | `FORGE_SYSTEM_VERSIONS.current` as stages 2, 3 and 4 left it (`packages/forge-contracts/constants/ForgeSystemVersions.ts`; stage 5 raises none) | stages 2, 3, 4 | WP6.1, WP6.2 |
 | N10. The Assistant's switch in forge | The command `pipeline-assistant-set` with `on: boolean` in the contract, and the board's switch state served in the board document; while off, an incident takes its default with the reason recorded and served as a worded notice | stage 8 (WP8.9) | WP6.27 |
+| N11. The committed ticket | A ticket's and a row's status reads `committed` where it read `pending`, in the board document's vocabulary and in the Bridge's views the stage moves; the served per-ticket fact `noAgentHasPickedItUp`; an edit of a committed ticket's content refused `content-of-a-committed-ticket` with its sentence; the move back into draft, `ticket-unready`, a by-hand kind the endpoint refuses (decision 48) | stage 4 (WP4.6, WP4.10), stage 5 (WP5.14, WP5.16, WP5.17) | WP6.10 to WP6.20 |
 
 What this stage hands on:
 
@@ -894,7 +895,7 @@ creates, links and lists in the style contract, and WP6.20 completes.
    - `views/questions/QuestionsModel.ts:5-6`: the served open decisions in answering order and the served notices;
    - `views/agents/AgentsModel.ts:11`, `:13`: `CountTextUtil`, and the served concurrency bounds;
    - `views/pipeline/flow/PipelineFlowModel.ts:20`: the served rework threshold;
-   - `views/pipeline/live/EntityWorkModel.ts:11`: the served `isClosed` and `isEditableWithoutForce` flags.
+   - `views/pipeline/live/EntityWorkModel.ts:11`: the served `isClosed` and `noAgentHasPickedItUp` flags.
 3. The header's Overseer controls (stop, restart) are not drawn in Gaia: Gaia's forge bar offers the forge's controls
    through Gaia's own commands. Remove them from `Header.tsx` and its model in Gaia, with their specs.
 4. `ConnectionBanners` drops the session banner; Gaia's `ConnectionBanner` (`page/shell/ConnectionBanner.tsx`) shows a
@@ -1043,8 +1044,8 @@ once a detail tab moves (WP6.13 to WP6.17).
      minute constant, the served repeat-review facts and resolved priority;
    - `TicketOverviewModel.ts:10-11`: the served stop holds and repeat-review facts.
 2. The ticket moves (`TicketMoves.tsx`, `DetailControls.tsx`, `JobStopMenu.tsx`) send their commands through the relay.
-   A move the forge refuses, a frozen ticket's among them (decision 48), shows the forge's sentence. A job that waits
-   after an outage or a lost supervision shows its cause as in WP6.11.
+   A move the forge refuses shows the forge's sentence. A job that waits after an outage or a lost supervision shows
+   its cause as in WP6.11. A committed ticket shows as `committed` (N11), and no control offers an edit of its content.
 3. Served offers can show other buttons than the Bridge's hand-written comparisons. Stage 4's
    `BoardOffers.parity.spec.ts` lists each difference against a frozen table of `DetailControlsModel.controlsOf`; the
    served offers win, and the package's report names each difference that changes a button in Gaia.
@@ -1706,7 +1707,7 @@ export interface BoardDocument {
   // the inventory of WP6.24 step 1, under Gaia's names, and the served facts:
   // attention (each with its target { subject, id }), notices and warnings ({ kind, text, causeText }), today's
   // figures with their calendarDate, open decisions in answering order with the escalated ids, per ticket
-  // { offers, resolvedPriority, settlesADependency, isClosed, isEditableWithoutForce, reviewRound, isRepeatReview },
+  // { offers, resolvedPriority, settlesADependency, isClosed, noAgentHasPickedItUp, reviewRound, isRepeatReview },
   // per job { offers, stopHolds, interruption, waitsFor }, decision options with `recommended`, the pipeline's facts
   // with each entity's effective pipeline and dependents, the entities draft with its entity refusals (row, sentence,
   // fix), the Apply refusal, the step run times, limits and defaults, and (WP6.27) the Assistant's switch.
@@ -2033,7 +2034,8 @@ The end-to-end check on a scratch forge, as Gaia's rules name it:
 - The forge's side of every served fact, the entities draft and the refusal sentences: stage 4. The forge's side of
   outage endings, the lease, line bounds and run times: stage 2. Presence, resume and the crash log: stage 3.
 - The Assistant's switch in forge: stage 8 (WP8.9). This stage offers it in Gaia (WP6.27).
-- A Gaia screen that edits a ticket's content, and how a user changes a frozen ticket: after this run (decision 22).
+- A Gaia screen that edits a ticket's content or puts a committed ticket back into draft: after this run (decisions 22
+  and 48). Forge's side, `ticket-edit` and `ticket-unready`, is stage 5's; the screen adds both to the contract.
 - Raising the forge's major, and what happens to the unversioned API paths: stage 8.
 - Moving Markdown rendering (`bodyHtml`, `descriptionHtml`) out of the forge: stage 8 decides; the views keep reading
   the forge's HTML through the sandboxed frame.

@@ -24,10 +24,10 @@ Stages that must be finished before the first work package starts:
   Stage 3's new causes, resume policy and log records are part of what the board document maps. Every count and line
   number below is read at `b4174bd9`; each work package reads its cited places again on the tree it runs on.
 
-Stage 5 does not wait on this stage: nothing of the model moves, so the store port works on
-`apps/forge/src/lib/tracker-model/` where it is. Stage 5 may run before or beside this stage, with one ordering:
-WP4.5 and stage 5's WP5.6 and WP5.7 all change `apps/forge/src/shared/@types/ControlCommand.ts`, so they run one after
-another, never side by side.
+Stage 5 runs after this stage. Nothing of the model moves, so the store port works on
+`apps/forge/src/lib/tracker-model/` where it is, but the two stages change the same files (the command union, the
+control service, the command route and the refusal wording among them), so no package of stage 5 runs beside one of
+this stage.
 
 What this stage hands to later stages:
 
@@ -101,7 +101,8 @@ Decisions of the run that this stage takes:
   label without the mark and `recommended`.
 - **`forge-contracts`' own version** rises by one minor with this stage's system minor, from whatever stage 3 left,
   and from here on with every system minor, as its README says.
-- **The ticket-content edit command and the freeze of decision 48 are not this stage's** (Out of scope).
+- **The committed ticket's rules are not this stage's** (decision 48, Out of scope): this stage only names the status
+  `committed` in the contract's vocabulary and serves `noAgentHasPickedItUp`.
 
 ## Today's code
 
@@ -320,7 +321,9 @@ with WP4.5, WP4.7 and WP4.12.
    `as const` and its type (`export type GatePhase = (typeof GATE_PHASES)[number]`): ticket statuses, priorities, types
    and sizes, display states, task phases and statuses, ticket stages, draft states, job states, gate phases, the
    pipeline agent roles, the forge-level agent roles, entity kinds and agent efforts. A union no view iterates is a type
-   only.
+   only. The ticket statuses read `draft`, `ready-for-review`, `committed`, `in-progress`, `in-review`, `reviewed`,
+   `delivered`, `abandoned`, and the task statuses, task phases and display states say `committed` where the model
+   still says `pending`: committed is the state's name (decision 48), and stage 5's WP5.14 renames the model's value.
 3. Write the part documents with the field names the Bridge's documents use, every field and array `readonly`, every
    type declared in the package. Where the Bridge has `IdentifiedRecord`, write the job, decision and incident documents
    from the Bridge's view files and the model's records (`BoardJobDocument`, `BoardDecisionDocument`,
@@ -335,7 +338,9 @@ with WP4.5, WP4.7 and WP4.12.
    value lists of the unions its documents carry".
 7. Write the parity spec in forge: for each union of `BoardVocabulary.ts`, a helper type
    `MutuallyAssignable<ContractUnion, ModelUnion>` annotated `true`, and for each value list a runtime equality with the
-   model's list where the model has one (`GATE_PHASES`, the role lists, `AGENT_EFFORTS`).
+   model's list where the model has one (`GATE_PHASES`, the role lists, `AGENT_EFFORTS`). The four unions that hold the
+   status compare with the model's union with `pending` replaced by `committed` (`Exclude<ModelUnion, 'pending'> |
+   'committed'`); WP5.14 deletes that replacement with the model's rename.
 
 **Specs to write or change.**
 
@@ -416,8 +421,9 @@ is the contract's. Runs after WP4.6 and WP4.7.
 
 1. Write each mapper as a util of pure functions, one per part: the model's types in, the contract's out, every field
    named, no spread of a model record into a document, so a field added to the model reaches no reader until a mapper
-   names it. Map a log record to a pipeline history entry only for the cases `BoardPipelineHistoryEntryDocument`
-   declares, and drop the others.
+   names it. A ticket's or a row's status, a task phase and a display state map the model's `pending` to `committed`
+   in one function of `BoardPageMappingUtil.ts`, which WP5.14 deletes. Map a log record to a pipeline history entry
+   only for the cases `BoardPipelineHistoryEntryDocument` declares, and drop the others.
 2. Write `BoardDocumentAssembly.boardDocumentOf(state: BoardState): ForgeBoardDocument`, typed by its return, reading
    the typed status fields of WP4.7. It computes nothing a mapper does not.
 3. Serve it: `dataRouteOf` (`OverseerServer.ts:535-552`) answers `GET /api/board` with `routes.board()` behind
@@ -512,9 +518,11 @@ finished fact, so a view moved in stage 6 reads values and recomputes no forge r
 4. **Open decisions.** `openDecisionIds` in answering order and `escalatedDecisionIds`
    (`OpenDecisionsUtil.openDecisionsOf`).
 5. **Per ticket** (`BoardTicketFactsDocument` on each page ticket): `resolvedPriority`
-   (`TicketDefaultsUtil.ticketPriorityOf`); `settlesADependency`, `isClosed`, `isEditableWithoutForce` (the status
-   classes of `Statuses.ts:16-22`); `reviewRound` resolved where the views fall back to `FIRST_REPEAT_REVIEW_ROUND`, and
-   `isRepeatReview`; `offers: BoardTicketOffersDocument`.
+   (`TicketDefaultsUtil.ticketPriorityOf`); `settlesADependency`, `isClosed`, `noAgentHasPickedItUp` (the status
+   classes of `Statuses.ts:16-22`; the last is `TICKET_STATUSES_EDITABLE_WITHOUT_FORCE`, which the Bridge reads as "no
+   agent has claimed it", `EntityWorkModel.ts:102-107`, and which stage 5's WP5.14 names after this fact);
+   `reviewRound` resolved where the views fall back to `FIRST_REPEAT_REVIEW_ROUND`, and `isRepeatReview`;
+   `offers: BoardTicketOffersDocument`.
 6. **Per job** (`BoardJobDocument`): `stopHolds: { stop, windDown }`, the hold each stop mode leaves
    (`jobStopHoldOf`); `offers: BoardJobOffersDocument`.
 7. **Offers.** Add to the Board `ticketOffersOf(ticketId)` and `jobOffersOf(jobId)`, built from the predicates the
@@ -696,7 +704,10 @@ export type GatePhase = (typeof GATE_PHASES)[number];
 // and likewise: TICKET_STATUSES, TICKET_PRIORITIES, TICKET_TYPES, TICKET_SIZES, DISPLAY_STATES, TASK_PHASES,
 // TASK_STATUSES, TICKET_STAGES, DRAFT_STATES, JOB_STATES, PIPELINE_AGENT_ROLES, FORGE_LEVEL_AGENT_ROLES,
 // ENTITY_KINDS, AGENT_EFFORTS
+export const TICKET_STATUSES = ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
 ```
+
+The status lists say `committed` where the model says `pending` until stage 5's WP5.14 (decision 48).
 
 ### 2. The board document
 
@@ -846,7 +857,7 @@ export interface BoardTicketFactsDocument {
   readonly resolvedPriority:       TicketPriority;
   readonly settlesADependency:     boolean;
   readonly isClosed:               boolean;
-  readonly isEditableWithoutForce: boolean;
+  readonly noAgentHasPickedItUp:   boolean;
   readonly reviewRound:            number | null;
   readonly isRepeatReview:         boolean;
 }
@@ -1017,9 +1028,9 @@ Repository state: `git status --porcelain` prints nothing; `apps/forge/src/lib/t
   pictures: stage 6 versions them, carrying this stage's part documents.
 - Command kinds the Bridge does not send today (filing, drafts, incidents, epics, `ticket-add`): stage 6 or 7 adds each
   with the view that sends it; the Bridge guard of WP4.5 asks for it.
-- The ticket-content edit command and the freeze of a ticket once built and once human-reviewed (decisions 22, 47 and
-  48): not built in this stage. When the stage that builds them adds the command, it joins `ForgeBoardCommand` under a
-  system minor.
+- The committed ticket's rules (decision 48): its content fixed and kept by content hash, and the move back into
+  draft, are stage 5's WP5.16 and WP5.17. The content edit `ticket-edit` exists and stays off `ForgeBoardCommand`, as
+  does `ticket-unready`; Gaia's editing screen, after this run, adds both under a system minor.
 - The store port and any change to `apps/forge/src/services/tracker/`: stage 5.
 - Deleting `GET /api/state`, the Bridge, its readings on the client, Flint's brain and the monitor's Bridge routes, and
   folding `design-system`, `flint` and `brand` into Gaia's page: stage 8.

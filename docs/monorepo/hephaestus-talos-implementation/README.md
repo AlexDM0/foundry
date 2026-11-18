@@ -24,10 +24,9 @@ one session carries out one stage file. Give the session this instruction, with 
 Rules that hold for every stage:
 
 - **Order.** Stages run in the order of the table below. A stage starts only when the stage before it is finished, with
-  two exceptions the orchestrator's schedule holds: stage 5 needs nothing of stage 4 and may start once stage 3 has
-  finished, and stage 6's WP6.27 runs in stage 8, right after WP8.9. A stage file's "Needs the owner" holds only acts
-  the owner alone may do (the gates of the orchestrator); every question of behaviour is settled by
-  `owner-answers.md`.
+  one exception the orchestrator's schedule holds: stage 6's WP6.27 runs in stage 8, right after WP8.9. A stage file's "Needs the
+  owner" holds only acts the owner alone may do (the gates of the orchestrator); every question of behaviour is
+  settled by `owner-answers.md`.
 - **A work package is one commit** that leaves the repository green. Packages that a stage file marks as parallel
   touch no file in common and may run in separate worktrees under `.claude/worktrees/`; every other package runs
   alone.
@@ -56,11 +55,11 @@ Rules that hold for every stage:
 | 2 | [`stage-2-talos.md`](stage-2-talos.md) | One Talos per board in place of the Watcher fleet: protocol version and handshake, frames, the persisted child record, the clean quit, the lease renewed only on progress, the merged-tree gate beside the pass, every child under Talos, the 15-minute bound of every install and gate line with no sleep counted, every line's run time recorded, the ending on a network outage | 20 |
 | 3 | [`stage-3-presence-recovery.md`](stage-3-presence-recovery.md) | The heartbeat and presence record, the classification of a start, reconcile, `resume` for a job, a ticket, everything or every outage ending, the crash log and the forge that stays off after a crash or a suspected one, the landing steps a stop leaves undone, the CLI path to see a crash and resume | 15 |
 | 4 | [`stage-4-packages.md`](stage-4-packages.md) | The standing contract and the served facts: board documents and command kinds in `forge-contracts` with types of their own, forge's typed mappers, the board document at `/api/v1/board` with finished facts, every refusal as code, fields and sentence, the unfinished entities draft. No package is extracted | 9 |
-| 5 | [`stage-5-store-port.md`](stage-5-store-port.md) | The store port with its command face, its transaction face and its read side, the local-files adapter, the contract spec, the guard on record paths, and the end of hand-editing: record locations leave the model and the output | 13 |
+| 5 | [`stage-5-store-port.md`](stage-5-store-port.md) | The store port with its command face, its transaction face and its read side, the local-files adapter, the contract spec, the guard on record paths, and the end of hand-editing: record locations leave the model and the output. Then the committed ticket: `pending` takes the name, the content is fixed and kept by its hash, `ticket unready` puts it back into draft, and the lock passes only from a holder whose process is gone | 17 |
 | 6 and 7 | [`stage-6-7-gaia-views.md`](stage-6-7-gaia-views.md) | The versioned reads in forge; Gaia's forge client, its own board model and the page's own board contract; the views moved one at a time into one design; the maximized forge as a route; the alerts for a crashed, down or hung forge and for outage endings, with one control that resumes them all; the Assistant's switch; conversations with hosted agents | 29 |
 | 8 and 9 | [`stage-8-9-shrink-and-rename.md`](stage-8-9-shrink-and-rename.md) | The Bridge, the sessions, the embed machinery, `forge open` and Flint's brain removed; Markdown rendered by Gaia's server; the Assistant off by default; one pipeline format; `design-system`, `flint` and `brand` folded into Gaia's page as libraries; then the lifecycle verbs at the top level and the rename of the Overseer to Hephaestus in one commit | 19 |
 
-113 work packages in all.
+117 work packages in all.
 
 Every stage file has the same sections: Goal, Depends on, Decisions this stage carries out, Today's code, Work
 packages, Interfaces introduced, Traps, Verification of the whole stage, Out of scope, Needs the owner, Not
@@ -104,11 +103,7 @@ in line; until then the stage files are right where the two differ.
 
 ## Not covered by any stage
 
-- **The freeze of a committed ticket** (decision 48, owner answer 14): the Board refusing an edit of a ticket's content
-  from committed onward, the content kept by content hash at the commit, and the move back into `draft`. No stage file
-  plans it yet; its natural place is stage 5, after WP5.13, on the command `ticket-edit`. The orchestrator stops before
-  stage 5 until it has a package.
-
+Every owner answer has a package. The committed ticket (decision 48, owner answer 14) is stage 5's WP5.14 to WP5.17.
 The agent port's leaks (design section 5) stay as they are in this run (stage 2), and the end of hand-editing stored
 records is stage 5's WP5.13.
 

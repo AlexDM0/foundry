@@ -14,6 +14,11 @@ files ends: a ticket's content changes only through the command `ticket-edit`, e
 its own command, and no output names where a readable record is kept. The model carries no storage location; only the
 adapter knows where a ticket or an epic is stored.
 
+The stage ends with the committed ticket (decision 48). Today's status `pending` takes the name `committed`. From
+committed onward the Board refuses an edit of the ticket's content, the store keeps the content by its hash and agents
+build from that, and a committed ticket no agent has picked up can be put back into `draft` and edited there. The
+store's write lock passes to another writer only once its holder's process is gone, never because the lock is old.
+
 In this file a path names a file of forge from `apps/forge/`, and a file of the root or of a package from the repository
 root, as `apps/forge/CLAUDE.md` sets. Line numbers are those of `b4174bd9`, the head of the branch `hephaestus-talos`,
 where every shipping file this file cites reads as it did at `0a648b2b` (forge 1.18, after the entities work landed).
@@ -34,22 +39,28 @@ number alone.
   accepts it as stage 3 adds it to `packages/forge-contracts`, the Bouncer refuses it for every agent role, and this
   stage never lists it among the by-hand kinds. The verb `resume` records through `cli/RecordedIncidentMove.ts`, whose
   relay under a job comes first, and WP5.8 switches its write to the command face.
-- **Stage 4 is no prerequisite.** The tracker model stays at `apps/forge/src/lib/tracker-model/` and its fixtures at
+- **This stage runs after stage 4.** The tracker model stays at `apps/forge/src/lib/tracker-model/` and its fixtures at
   `apps/forge/src/testing/BoardFixtures.ts` and `apps/forge/src/lib/tracker-model/testing/` (decision 49), so no path
-  here waits on stage 4. The two stages share files: `src/shared/@types/ControlCommand.ts`,
-  `src/services/control/ControlService.ts`, `cli/overseer/routes/CommandRoute.ts`,
-  `src/adapters/utils/OperationRefusalWordingUtil.ts`, `docs/reference/refusals.md`, `src/ImportDirection.spec.ts`,
-  and the adapter in which stage 4 maps a `Ticket` into the contract's ticket document. A package of this stage that
-  changes one of those files (WP5.4, WP5.6, WP5.7, WP5.8, WP5.13) runs before or after a stage 4 package that changes
-  the same file, never beside it.
+  here waits on a move of stage 4. The two stages change the same files, though: `src/shared/@types/ControlCommand.ts`,
+  `src/services/control/ControlService.ts`, `PipelineSetupControls.ts`, `PipelineAgentControls.ts`,
+  `cli/overseer/routes/CommandRoute.ts`, `OverseerRoutes.ts`, `src/adapters/utils/OperationRefusalWordingUtil.ts`,
+  `docs/reference/refusals.md`, `src/ImportDirection.spec.ts`, and the adapter in which stage 4 maps a `Ticket` into
+  the contract's ticket document. So no package of this stage runs beside a package of stage 4.
+- **WP5.14 to WP5.17 build on stage 4's contract.** From stage 4 on the contract's ticket and task statuses say
+  `committed` (WP4.6), mapped from the model's `pending` in forge's board-document mapper (WP4.8), and its served fact
+  `noAgentHasPickedItUp` reads the status set WP5.14 renames (WP4.10). WP5.14 removes that mapping, and the four
+  packages change `ControlCommand.ts`, `OperationRefusalWordingUtil.ts` and `docs/reference/refusals.md` again, so they
+  start once stage 4 has finished.
 
 Hands to later stages:
 
 - **Stage 6** (Gaia hosts the views): the command endpoint applies every command through the command face, so a view's
   command does what the same CLI verb does. A ticket's content is edited with `ticket-edit`, which the endpoint already
-  accepts; Gaia's editing screen comes after this run (decision 22). The 16 by-hand kinds this stage adds are kept off
-  the endpoint; a view that needs one adds it to `packages/forge-contracts` and to the endpoint with a minor system
-  version, as design section 4 says for the board's command kinds.
+  accepts; Gaia's editing screen comes after this run (decision 22). The 17 by-hand kinds this stage adds (16 in WP5.6
+  and WP5.7, `ticket-unready` in WP5.17) are kept off the endpoint; a view that needs one adds it to
+  `packages/forge-contracts` and to the endpoint with a minor system version, as design section 4 says for the board's
+  command kinds. A ticket's status reads `committed` in the model, the Bridge and the contract alike (WP5.14); an edit
+  of a committed ticket's content is refused `content-of-a-committed-ticket` with its sentence (WP5.16).
 - **Stage 7** (conversations): `job-message` and `intake-start` go through the command face unchanged.
 - **Stage 8** (shrink the HTTP surface): the read side gives the reads the server keeps. After WP5.9 the registry
   entry carries no `progressJson`; stage 8 drops `progressHtml` with `Workspace.htmlFilePath`. WP5.13 rewrites lines of
@@ -68,7 +79,10 @@ Hands to later stages:
 
 - **2.** The forge owns the data model and the stored formats: they live inside the local adapter, and only it reads or
   writes a record.
-- **3.** Stored formats stay versioned as today; the versions move with the formats inside the adapter, unchanged.
+- **3.** Stored formats stay versioned as today; the versions move with the formats inside the adapter. WP5.14 to
+  WP5.16 change the ticket file, the progress rows and the lock record (`LockPayload`) and add the kept-content file
+  `<data>/committed-content/<hash>.json`, and raise no version: of these only `progress.json` carries one, raised once
+  in stage 9 (WP9.2), and every board is set up anew after stage 9 (gate G6), so no reader of an older form is kept.
 - **12.** What the pipeline decides from stays persisted: the hold journal and the atomic writes are kept as they are.
 - **16.** Storage is a port with local files first: `BoardStore` and `LocalFilesBoardStore`.
 - **17.** The remote store is not built; the port and its contract spec keep it possible.
@@ -84,6 +98,9 @@ Hands to later stages:
 - **45.** A new refusal is worded once, as the sentence the command line prints, and forge serves that sentence.
 - **46.** Boards are set up anew, so changed outputs and installed text need no reader of the old ones.
 - **47.** Forge owns tickets: every change of a ticket is a command forge accepts or refuses.
+- **48.** A committed ticket's content is fixed: `pending` takes the name (WP5.14), the store's lock passes only from a
+  holder whose process is gone (WP5.15), the content is kept by its hash and an edit of it refused (WP5.16), and a
+  committed ticket no agent has picked up goes back into draft (WP5.17).
 - **49.** The tracker model, its spec helpers, the readings and the refusal wording stay in `apps/forge`; every model
   path below is under `apps/forge/src/lib/tracker-model/`.
 
@@ -108,6 +125,18 @@ The run settles these for this stage:
 - **Hand-editing ends in the rules and the installed text** (WP5.13): `apps/forge/CLAUDE.md`'s rule that tickets are
   hand-edited between runs, the session instructions that point at the file to edit, and the reference's invitation to
   add a field by hand. `INSTALL_VERSION` rises once for it.
+- **Committed is one ladder's value.** `TicketStatus` derives from `TaskStatus` (`@types/Ticket.ts:9`) and a row
+  takes its ticket's status in the same move, so both ladders say `committed` (WP5.14). The log record
+  `ticket-readied` becomes `ticket-committed`; `ticket-reopened` keeps its name.
+- **The content is the title and the body,** hashed together as `contentHash` in place of `claimedBodyHash`, which
+  today is taken only when a build starts (`TicketMoves.ts:289`). Forge's own records in a body (the Handoff, a
+  review, waived items, an answer) are no edit of the content: they move the hash along, as a retitle moves
+  `claimedBodyHash` along today (`TicketEdits.ts:66-68`). `ticket edit --force` goes, with no replacement: nothing
+  overrides a committed ticket's fixed content (WP5.16).
+- **`ticket unready` is a by-hand verb** (WP5.17): the user puts a committed ticket back into draft; no agent does,
+  and the command endpoint does not take it until Gaia's editing screen, so no system version changes in this stage.
+- **The lock judges the process, never the age** (WP5.15): the record names its holder's process identity, and a
+  record no process can be read from is refused for a repair, never taken over by its file's age.
 - **What stays outside the port:** stage 3's presence, heartbeat and crash-log files and the Baton under
   `<data>/overseer/`, which describe a local process and its boot; Talos's files; job folders; gate profile output;
   pictures (`src/services/tracker/PictureStore.ts`). Each is a place, read and written as today; the guard names none of
@@ -140,7 +169,7 @@ The run settles these for this stage:
 | `TRACKER_FILES`: record names, plus the data folder and page names; the data folder name is also read by `cli/InstalledFiles.ts:37`, `:46`, `:47`, `cli/adoption/init/InitCommand.ts:157` and `src/services/tracker/RepositoryTrackerList.ts:52` | `src/services/tracker/constants/TrackerFiles.ts:4` | Changed: record names become `LOCAL_STORE_FILES` inside the adapter; the data folder name is `PRODUCT_NAMES.DATA_FOLDER` (WP5.11) |
 | The registry reads the progress file and publishes its path as `progressJson` beside `progressHtml` | `src/services/tracker/MonitorRegistration.ts:140`, `:151-152`; documented at `docs/cli.md:2965`, `:2995`; no code in `apps/` or `packages/` reads `progressJson` | Changed: the caller reads through the port and passes the facts in; `progressJson` is not written (WP5.9) |
 | `ControlService.apply` on a `TrackerChange`; `CONTROL_APPLIERS`; `CONTROL_COMMAND_KINDS` | `src/services/control/ControlService.ts:67`, `:27`, `:56` | Changed: applies on a `BoardTransaction`; gains the by-hand kinds (WP5.3, WP5.6, WP5.7) |
-| `ControlCommand`, 79 kinds (the entities work added `need-declare`, `ticket-entity` and `ticket-group`, all relayed); the content edit `ticket-edit` among them | `src/shared/@types/ControlCommand.ts:67`, `ticket-edit` at `:89-97` | Changed: gains the by-hand kinds (WP5.6, WP5.7); `ticket-edit` kept |
+| `ControlCommand`, 79 kinds (the entities work added `need-declare`, `ticket-entity` and `ticket-group`, all relayed); the content edit `ticket-edit` among them | `src/shared/@types/ControlCommand.ts:67`, `ticket-edit` at `:89-97` | Changed: gains the by-hand kinds (WP5.6, WP5.7, WP5.17); `ticket-edit` kept, without its override (WP5.16) |
 | `ControlContext`; its `mainConstitutionOf` takes an optional `constitutionPath`, an entity's constitution | `src/shared/@types/ControlContext.ts:57` | Changed: gains `liveOverseerOf` (WP5.7) |
 | `ticket-add` names the new ticket's file through `createTicket(change.workspace, …)` | `src/services/control/TicketControls.ts:64` | Changed: `transaction.records.newTicket` (WP5.5) |
 | The pass files a need's ticket and a dependent's fix ticket through `createTicket(change.workspace, board, …)` | `src/services/overseer/NeedTickets.ts:100`, `src/services/overseer/DependentFixTickets.ts:91` | Changed: `transaction.records.newTicket` (WP5.5) |
@@ -183,6 +212,17 @@ The run settles these for this stage:
 | The import direction diagram | `apps/forge/CLAUDE.md:58-63` | Changed: `control → store → overseer` (WP5.12) |
 | The Deviations table | `apps/forge/CLAUDE.md:321-352` | Changed: a row for the port with one adapter (WP5.12) |
 | Docs naming `writeTracker`, `TrackerChange` and `openTrackerForWriting` | `docs/concepts/overview.md:190`, `:205`, `:210`, `docs/glossary.md:104`, `:682`, `docs/backlog.md:30` | Changed (WP5.12); `docs/research/remote-state/findings.md:64` is a dated record and stays |
+| The ticket and row status `pending`, one ladder; `TICKET_STATUSES_EDITABLE_WITHOUT_FORCE` holds `draft`, `ready-for-review` and `pending` | `src/lib/tracker-model/@types/Task.ts:7`, `@types/Ticket.ts:9-11`, `constants/Statuses.ts:5`, `:7`, `:16` | Renamed `committed`; the set becomes `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP` (WP5.14) |
+| The log record of a draft readied, `ticket-readied` | `src/lib/tracker-model/constants/LogRecordSchema.ts:118` | Renamed `ticket-committed` (WP5.14) |
+| An edit past `pending` is refused unless forced; a `pending` ticket's content is edited freely | `src/lib/tracker-model/TicketEdits.ts:52-58`, `cli/tickets/TicketEdit.ts:16`, `:31`, `:50`, `src/shared/@types/ControlCommand.ts:96` | Refused from committed onward with no override; `--force` goes (WP5.16) |
+| The body's hash is taken when a build starts, and an edit after it is logged and shown | `TicketMoves.ts:289`, `TicketEdits.ts:66-68`, `:78-80`, `utils/TicketBodyHashUtil.ts:21-24`, `cli/tickets/TicketReadingSubcommands.ts:32`, `:50`, `src/adapters/utils/TicketJsonUtil.ts:9-17` | Replaced by `contentHash`, taken at the commit, with the content kept by the store (WP5.16) |
+| A job's start records the body's hash, and Customs V6 refuses a body that moved during the job | `src/services/overseer/JobLaunch.ts:419`, `:2732`; `src/services/lifecycle/Customs.ts:482-485` | On the content hash (WP5.16) |
+| The launch text carries the body the Board read from the ticket's file | `src/services/overseer/DrivePass.ts:818-821` (`launchFactsOf`) | Kept; the Board's body is the kept content (WP5.16) |
+| Forge writes its own records into a started ticket's body, allowed past `pending` | `JobLaunch.ts:1569-1571`, `:1607-1608`, `:1628-1629`; `src/services/lifecycle/ReviewOutcome.ts:230`, `:349`; `src/lib/tracker-model/AgentQuestions.ts:121`, `:161` | Kept, as forge's own edits that move the content hash (WP5.16) |
+| No move returns a ticket to draft | `TicketMoves.ts:68-70`; `src/adapters/utils/OperationRefusalWordingUtil.ts:121-123` | `ticket unready` for a committed ticket with no job (WP5.17) |
+| A draft reaches `pending` by the user's `ticket ready`, or by a filer's submit that the ticket review switch stops at `ready-for-review` | `TicketMoves.ts:121-150`, `:156-181`; `src/lib/tracker-model/Board.ts:1341-1344` | Kept: the way forward from draft (WP5.17) |
+| The lock frees a held record whose process is gone, and also a live holder's once its stamp is over 30 seconds old; the record names a process id only; an unreadable record is judged by its file's age | `src/services/tracker/TrackerLock.ts:28-31`, `:96-118`; `src/shared/constants/Limits.ts:3` | Judged by process identity, never by age; an unreadable record is refused for a repair (WP5.15) |
+| Callers with no process check read every holder as live | `TrackerLock.ts:43-44`; the defaults at `TrackerPipeline.ts:180`, `TrackerCreation.ts:25`, `MonitorRegistration.ts:137` | Every caller passes the platform's judgement (WP5.15) |
 
 ## Work packages
 
@@ -203,10 +243,19 @@ Order and parallelism:
 | WP5.10 The Overseer's pass, server and reads through the store | WP5.8 | WP5.9 | no |
 | WP5.11 The record paths leave `Workspace`; the guard's final form | WP5.9, WP5.10 | WP5.12 | no |
 | WP5.12 Rules, docs and the Deviations row | WP5.10 | WP5.11 | no |
+| WP5.14 Committed: `pending` takes the name | WP5.11, WP5.12, stage 4 | none | yes |
+| WP5.15 The store's lock passes only from a holder whose process is gone | WP5.14, stage 4 | none | yes |
+| WP5.16 A committed ticket's content is fixed and kept by its hash | WP5.14, WP5.15 | none | yes |
+| WP5.17 A committed ticket goes back into draft: `ticket unready` | WP5.16 | none | yes |
 
 WP5.13 runs between WP5.7 and WP5.8 although its number is the last: it needs the allocation (WP5.3), the epic filing
 through it (WP5.5) and the adapter (WP5.4), and it changes the CLI's read outputs and the adapter's writers before
 WP5.8 to WP5.11 rework the same files.
+
+WP5.14 to WP5.17 come last: they change the model, the CLI and the adapter that the earlier packages rework, and they
+wait for stage 4 (Depends on). WP5.14 and WP5.15 run one after the other: both change
+`OperationRefusalWordingUtil.ts`, `docs/reference/refusals.md`, `docs/glossary.md` and
+`src/services/overseer/testing/AirlocksHarness.ts`.
 
 Parallel packages touch disjoint source files. WP5.2 and WP5.3 run one after the other: both change
 `src/services/tracker/TrackerPipeline.ts`, `TrackerCreation.ts` and `TrackerPipeline.spec.ts`, which import the lock's
@@ -1068,6 +1117,401 @@ forms of the new patterns; the allowlist holds the two lines.
 --exclude-dir=research apps/forge/CLAUDE.md apps/forge/docs .claude/rules` prints nothing; the root's `bun run verify`
 is green. `docs/research/` is a dated record and is not changed.
 
+### WP5.14 Committed: `pending` takes the name
+
+**Purpose.** Decision 48: committed is the state in which an agent may pick a ticket up at any moment, and today's
+status `pending` takes the name, in the model, every stored value and log record, the wording, the CLI, the installed
+text and the documents. The rules stay what they are for `pending` today; WP5.16 and WP5.17 change them. Runs after
+WP5.11, WP5.12 and the whole of stage 4.
+
+**Files.**
+
+- The ladders: `src/lib/tracker-model/@types/Task.ts` (`TaskStatus`, `:7`), from which `TicketStatus` and
+  `RowedTicketStatus` derive (`@types/Ticket.ts:9-11`); `constants/Statuses.ts` (`TASK_STATUSES` `:5`,
+  `TICKET_STATUSES` `:7`, `TICKET_STATUSES_EDITABLE_WITHOUT_FORCE` `:16`) and `Statuses.spec.ts`;
+  `constants/TicketMoveLegality.ts` (`:11`, `:12`, `:16`).
+- Every literal the compiler then refuses: `bun run typecheck` in `apps/forge` lists them. `git grep -n "'pending'" --
+  src cli bridge ':!*.spec.ts'` finds 112 lines in 61 files at `e17e26a1`, among them other words' `pending` that stay
+  (an Apply pending, `UnfinishedWriteReading`'s `'pending'`, the Bridge's pending pictures): a literal changes only
+  where its type is `TaskStatus`, `TicketStatus`, `RowedTicketStatus`, `DisplayState`, `MovedToStatus` or a `Record`
+  keyed by one, among them `StatusWordingUtil.ts:13-29`, `LogUtil.ts:25-31` and `TicketMoveSubcommands.ts:30-33`.
+- What no type holds: the Bridge's `data-state` selectors (`bridge/styles/board.css:760`, `:832`, `:1550`, `:1771`,
+  `:2220`; `git grep -n 'data-state="pending"' -- bridge`).
+- The refusal reasons that name the status (`BoardRefusal.ts:65-67`, `:72`): `lowering-a-ticket-that-is-not-pending`,
+  `edit-of-a-ticket-past-pending`, `network-of-a-ticket-past-pending`, `entity-of-a-ticket-past-pending`; their
+  sentences in `src/adapters/utils/OperationRefusalWordingUtil.ts` and rows in `docs/reference/refusals.md`. The option
+  `allowsPastPending` of `TicketEdit` (`TicketEdits.ts:20`), of `setTicketEntity` (`TicketSettings.ts:125`) and of the
+  command `ticket-edit` (`src/shared/@types/ControlCommand.ts:96`, `TicketControls.ts:119`).
+- The log: `ticket-readied` (`constants/LogRecordSchema.ts:118`) and its readers (`git grep -l "'ticket-readied'" --
+  src cli bridge` lists 14 files at `e17e26a1`, `DispatchQueries.ts`, `FailedPassUtil.ts`,
+  `MonitorSnapshotAssembly.ts`, `LogUtil.ts` and `cli/testing/CutoverSmokeUtil.ts` among them).
+- The wording and the CLI: `src/adapters/utils/StatusWordingUtil.ts`, `cli/HelpText.ts` (`git grep -n pending
+  cli/HelpText.ts`), `ticket list --status` (`cli/tickets/TicketList.ts:21`), `ticket status <id> <status>`
+  (`cli/tickets/TicketTransition.ts`), `ticket reopen` (`TicketMoveSubcommands.ts:32`).
+- The installed text: `resources/templates/Reference.md` (`:99`, `:149-161`, `:213`), `SessionInstructions.md:17`,
+  `resources/prompts/ProductOwnerPrompt.md:23`, `resources/prompts/EntityAssignmentRequest.md:1`,
+  `skills/agent-po/SKILL.md` (`:27`, `:70-71`, `:145`), `cli/constants/InstallVersion.ts`,
+  `cli/FrozenInstalledSurface.json` as the surface specs ask, and the recording of
+  `src/services/overseer/InstallChangeWatch.ts`.
+- The docs: `apps/forge/docs/cli.md` (47 lines name pending at `e17e26a1`, the moves table at `:3239-3241` among
+  them), `docs/reference/refusals.md`, `docs/glossary.md`.
+- The contract's mapping: the one value stage 4's board-document mapper and its parity spec map from `pending` to
+  `committed` (WP4.6, WP4.8).
+- The specs and fixtures that build or assert a `pending` ticket or row: `git grep -n "'pending'" -- '*.spec.ts'
+  '*.dom.tsx'` finds 347 lines at `e17e26a1`; the fixtures of `src/testing/` and `src/lib/tracker-model/testing/`; the
+  stored JSON fixtures that hold a ticket or row status.
+
+**What to do.**
+
+1. Rename the value in `TaskStatus` and `TASK_STATUSES`, keeping its place in the ladder. It is one ladder:
+   `TicketStatus` derives from `TaskStatus`, and a row takes its ticket's status in the same move
+   (`TicketMoves.applyTicketMove`, `:276-293`, through `transitionTaskInPlace`), so a row says `committed` too. A
+   free-standing row in `committed` is work committed to and not started.
+2. Rename `TICKET_STATUSES_EDITABLE_WITHOUT_FORCE` to `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP`, the same three
+   statuses: `draft`, `ready-for-review`, `committed`. Its docblock already says what it holds. Its readers keep their
+   rule (`TicketEdits.ts:55`, `TicketSettings.ts:40`, `:100`, `:130`,
+   `bridge/views/pipeline/live/EntityWorkModel.ts:106` and stage 4's served `noAgentHasPickedItUp`); WP5.16 gives the
+   content edit a set of its own.
+3. Rename the refusal reasons to `lowering-a-ticket-that-is-not-committed`, `edit-of-a-ticket-past-committed`,
+   `network-of-a-ticket-past-committed` and `entity-of-a-ticket-past-committed`, and the option `allowsPastPending` to
+   `allowsPastCommitted`. Each sentence says "committed" where it says "pending" ("only a draft or committed ticket can
+   be lowered to low").
+4. Rename the log record `ticket-readied` to `ticket-committed`, worded "Ticket #003 committed". `ticket-reopened`
+   keeps its name: it is the move back to committed from a later status, and `LogUtil`'s map
+   (`STATUS_REACHED_BY_MOVE_KIND`, `:25-31`) names `committed` for it.
+5. The CLI words the status as its value, `committed`: `StatusWordingUtil`'s maps, `ticket list --status committed`,
+   `ticket status <id> committed`, the help text. `ticket reopen` keeps its verb and moves to `committed`.
+6. Stored values: a ticket file's `status: committed`, a row's `status` and each `history[].status`. No stored format's
+   version rises here: `progress.json` rises once, in stage 9 (WP9.2), and every board is set up anew after stage 9
+   (gate G6), so the renamed code never reads a board that holds `pending`. A ticket file holding `status: pending`
+   reads as malformed, as any unknown status does.
+7. The documents: the summary's and the monitor's `ticketCountByStatus` (`DisplayQueries.ts:49-53`) carry `committed`
+   in place of `pending`. No contract type declares that map and no supported client reads it
+   (`packages/forge-contracts/@types/BoardSummaryDocument.ts:3`, `MonitorSnapshotDocument.ts:4`), so no system version
+   changes, and Gaia's fixtures, which read none of it, stay. The board document already says `committed` (stage 4):
+   delete the mapping of the one value in the mapper and in `BoardVocabulary.parity.spec.ts`, so the parity spec
+   compares the lists directly.
+8. Replace the status word in the installed text and the docs. Raise `INSTALL_VERSION` by one over what the packages
+   before left, add the frozen surface key the surface specs print, and in the same commit run `bun run record
+   src/services/overseer/InstallChangeWatch.ts`.
+
+**Specs.**
+
+- The existing specs, their fixtures renamed, pass with their claims unchanged.
+- `Statuses.spec.ts`: `TICKET_STATUSES` reads `draft`, `ready-for-review`, `committed`, `in-progress`, `in-review`,
+  `reviewed`, `delivered`, `abandoned`, in that order, and `TASK_STATUSES` holds `committed` where it held `pending`.
+- `Board.ready.spec.ts`: readying moves a draft to `committed` and logs `ticket-committed`; `Board.ticketMoves.spec.ts`:
+  a reopen leaves the ticket `committed` and logs `ticket-reopened`.
+- The verb spec of `ticket status`: `ticket status 001 pending` is refused as an unknown status.
+- `BoardVocabulary.parity.spec.ts` holds the contract's status lists equal to the model's with no mapping.
+
+**Done when.** In `apps/forge`: `bun run typecheck`, `bun run lint` and `bun test` pass, and these print nothing
+(`docs/research/` is a dated record and is not changed):
+
+```sh
+git grep -n "past-pending\|not-pending\|PastPending\|EDITABLE_WITHOUT_FORCE\|ticket-readied" \
+  -- src cli bridge docs resources skills ':!docs/research'
+git grep -n 'data-state="pending"' -- bridge
+```
+
+`git grep -nw pending -- resources skills docs/cli.md` prints no line where the word is a ticket's or a row's status
+(read each). At the root, `bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP5.15 The store's lock passes only from a holder whose process is gone
+
+**Purpose.** Decision 48: the store's write lock is taken over from a holder that is no longer alive, judged by the
+process and not by the lock's age. Committed (WP5.14) is a status of the ticket record and no lock, so a crashed
+Hephaestus leaves nothing of it to release; the lock is the one thing a dead process can leave held. Runs alone after
+WP5.14, and so after the whole of stage 4: it changes `OperationRefusalWordingUtil.ts`, which stage 4 also changes.
+
+Today's lock (`src/services/tracker/GenerationLock.ts` after WP5.2, moved unchanged from `TrackerLock.ts:28-199`)
+already frees a held record at once when the platform reads its process as gone (`generationIsFree`, `:100-109`; the
+case "a lock left behind by a process that no longer exists is taken over at once",
+`TrackerLock.integration.spec.ts:169`). What it lacks:
+
+- It also takes a live holder's lock once the record's stamp is older than `LIMITS.LOCK_STALE_MILLISECONDS`, 30
+  seconds (`Limits.ts:3`; `TrackerLock.ts:106-108`, and the case at `TrackerLock.integration.spec.ts:180`). A hold
+  that runs git for longer, or a machine that sleeps inside a hold, reaches it.
+- The record names its holder by process id alone (`LockPayload`, `:28-31`). After a crash and a reboot, or once the
+  id is reused, a dead holder's id can read as a live process, and then only the age frees the lock.
+- An unreadable record is judged by its file's age (`:100-101`, `:111-118`).
+- A caller with no platform check reads every holder as live (`NO_LOCK_HOLDER_READS_AS_GONE`, `:44`), so only the age
+  frees its lock: the defaults of `TrackerPipeline.ts:180`, `TrackerCreation.ts:25` and `MonitorRegistration.ts:137`
+  at `e17e26a1`.
+
+**Files.**
+
+- `src/services/tracker/GenerationLock.ts` and its specs, `src/services/tracker/TrackerLock.ts` (`withLock`), and a
+  new `src/services/tracker/LockHolders.ts` with its spec.
+- Every caller that passes a holder check: `git grep -n "lockHolderIsGone\|NO_LOCK_HOLDER_READS_AS_GONE" -- src cli`
+  lists them after WP5.11; at `e17e26a1` they are `cli/OpenTrackerForWriting.ts:27`, `cli/RegisterWrittenTracker.ts:18`,
+  `cli/overseer/OverseerForeground.ts:160`, `src/services/overseer/DrivePass.ts:1174`, `:1340`,
+  `src/services/lifecycle/Landing.ts:28`, `:184`, `src/services/tracker/MonitorRegistration.ts:137`,
+  `RepositoryTrackerList.ts:75`, `TrackerCreation.ts:25`, `TrackerPipeline.ts:180`, and
+  `src/services/overseer/testing/AirlocksHarness.ts:149`; after this stage, `cli/BoardStoreOf.ts` and
+  `src/services/store/LocalFilesBoardStore.ts` (`LocalFilesBoardStoreOptions.lockHolderIsGone`).
+- `src/shared/constants/Limits.ts` (`:3`) and `Limits.spec.ts` (`:28`).
+- The refusal: `src/shared/OperationRefusal.ts` (the detail), `src/adapters/utils/OperationRefusalWordingUtil.ts`,
+  `docs/reference/refusals.md`.
+- The specs that take a lock over by age: `src/services/overseer/CrashMatrix.spec.ts` (`:135-140`),
+  `src/services/tracker/HoldJournal.spec.ts` (`:236`, `:256`), `TrackerLock.integration.spec.ts` (`:180-207`).
+- The docs: `apps/forge/docs/glossary.md` ("stale lock", `:1039-1041`).
+
+**What to do.**
+
+1. The record names its holder by process identity: `LockPayload` becomes `{ holder: LockHolder; acquiredAt: string }`
+   with `LockHolder = { processId: number; startStamp: string | null; bootIdentity: string | null }`, read once per
+   process from `processSupervision.identityOf(process.pid)` (`src/lib/process-identity/ProcessSupervision.ts:41`);
+   both are `null` where the platform cannot read them (`UnsupportedProcessSupervision.ts:16`). `acquiredAt` stays a
+   fact for a report, never judged.
+2. `LockHolders.ts` exports `lockHolderOf(supervision): LockHolder`, this process's record, and
+   `lockHolderIsGoneOf(supervision): LockHolderIsGone`, where `LockHolderIsGone` becomes `(holder: LockHolder) =>
+   boolean`. A holder is gone when its process id is gone (`processIsGone`), or when the process now at that id is
+   another one: `identityOf` answers an identity and `sameProcess` (`ProcessSupervision.ts:44`) with the recorded
+   start stamp and boot identity is false. When the platform cannot tell (no recorded identity, or `identityOf`
+   answers `null` for a live id), the holder reads as alive: a lock is never taken from a process that may still run.
+3. `generationIsFree`: a record is free when it is released or its holder is gone, and never by its age. Delete the
+   age rule, `fileIsOlderThanTheStaleThreshold`, `LIMITS.LOCK_STALE_MILLISECONDS`, the clause of `Limits.spec.ts:28`
+   and the docblock's clock exception; the lock then obeys `apps/forge/CLAUDE.md`'s clock rules with no exception.
+4. An unreadable record: the tool creates every record whole (`createFileAtomically`), so only damage outside the tool
+   leaves one, and no process can be judged from it. The attempt answers it, and `withLockAt` throws
+   `OperationRefusal('unrepaired', { kind: 'lock-record-unreadable', recordPath })` at once, exit 2, worded with the
+   record's path and that removing it frees the lock. A lock folder that cannot be listed stays "held", as today.
+5. Delete `NO_LOCK_HOLDER_READS_AS_GONE`. Every caller passes `lockHolderIsGoneOf(context.platformPorts.
+   processSupervision)` and writes `lockHolderOf(...)`: the store's local adapter, and the registry's, the repository
+   tracker list's and the landing's locks, which share the mechanism. A spec passes a judgement of its own.
+6. Keep the fence (`requireStillHeld`, `lock-taken-over`): a holder that a platform misjudged as gone while it still
+   ran must write nothing more. Stage 3's `AbandonedPassReason` keeps `lock-taken-over`.
+7. The retry budget stays (`LIMITS.LOCK_RETRY_COUNT` × `LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS`, about five
+   seconds): a command that meets a live holder for longer is refused `tracker-lock-held`, as today.
+8. `docs/glossary.md`, "stale lock": a held lock record whose process is gone or is no longer the recorded process;
+   its age frees nothing. `docs/reference/refusals.md`: a row for `lock-record-unreadable`.
+
+**Specs.**
+
+- `LockHolders.spec.ts`, on a stubbed supervision: a holder whose id is gone is gone; one whose id now runs a process
+  with another start stamp or boot identity is gone; one that is the recorded process is alive; one whose identity
+  cannot be read, or that recorded none, while its id lives, is alive.
+- `GenerationLock.spec.ts`: a held record whose holder is judged gone is free; one whose holder is alive stays held
+  with `now` an hour past its `acquiredAt`; an unreadable record refuses `lock-record-unreadable` at the first attempt
+  and writes no generation.
+- The crash case, in `GenerationLock.integration.spec.ts` (or `TrackerLock.integration.spec.ts`, wherever WP5.2 left
+  the store's lock cases): a child process started with `Bun.spawn` under the scratch root takes the store's lock
+  through the local adapter, writes its hold journal and is killed with `SIGKILL` inside its hold; the spec's next
+  `commands.apply` takes the lock at its first attempt, replays the journal and applies its command. A second case: a
+  live child that holds the lock keeps it past the old 30 seconds of stamp age (a `now` that jumps), and the spec's
+  apply is refused `tracker-lock-held` after its retries, with `parkingLockRetries`
+  (`src/testing/LockRetryWaits.ts:11`) so no retry interval is slept. The age cases at `:180` and `:187` go.
+- `CrashMatrix.spec.ts:135-140` takes the lock over by age with `NO_LOCK_HOLDER_READS_AS_GONE`: take it over with a
+  judgement that reads the holder as gone, so the case at `:261` still proves that the holder's fence refuses its
+  writes. `HoldJournal.spec.ts:236`, `:256` likewise.
+- `LocalFilesBoardStore.spec.ts`: a lock record left by a holder judged gone is taken over by the next `apply`.
+
+**Done when.** In `apps/forge`: `bun run typecheck`, `bun run lint` and `bun test` pass; `git grep -n
+"LOCK_STALE_MILLISECONDS\|NO_LOCK_HOLDER_READS_AS_GONE\|fileIsOlderThanTheStaleThreshold" -- src cli docs` prints
+nothing. At the root, `bun install --frozen-lockfile` and `bun run verify` are green. The integration cases run under
+gate G4.
+
+### WP5.16 A committed ticket's content is fixed and kept by its hash
+
+**Purpose.** Decision 48: from committed onward the Board refuses an edit of a ticket's content with a reason, and at
+the commit forge keeps the content by content hash, so agents build from that also where a store lets the text change
+behind forge. Runs alone, after WP5.14 and WP5.15.
+
+Today: `TicketEdits.editTicket` (`TicketEdits.ts:52-82`) refuses an edit past `pending` unless the edit allows it,
+which `ticket edit --force` sets (`cli/tickets/TicketEdit.ts:16`, `:31`, `:50`) and the command `ticket-edit` carries
+(`ControlCommand.ts:96`, `TicketControls.ts:115-121`); a `pending` ticket is edited freely (`Statuses.ts:16`). The
+body's hash is recorded when the ticket moves to `in-progress` (`claimedBodyHash`, `TicketMoves.ts:289`), and an edit
+after it logs `ticket-body-changed-after-claim` (`TicketEdits.ts:78-80`), shown by `ticket show`
+(`cli/tickets/TicketReadingSubcommands.ts:32`, `:50`) and the ticket JSON's `bodyChangedSinceClaim`
+(`src/adapters/utils/TicketJsonUtil.ts:9-17`). A job's start records `bodyHashAtLaunch` (`JobLaunch.ts:419`, `:2732`),
+and Customs refuses `ticket-body-changed` when the body moved during the job (`Customs.ts:62`, `:482-485`). The launch
+text carries the body the Board read from the ticket's file (`launchFactsOf`, `DrivePass.ts:818-821`). Forge itself
+writes into a started ticket's body: a verified build's Handoff (`JobLaunch.ts:1569-1571`, `:1607-1608`,
+`:1628-1629`), a review's section and its waived items (`ReviewOutcome.ts:230`, `:349`) and an answer under
+`## Questions` (`AgentQuestions.ts:121`, `:161`), each allowing the edit past `pending`.
+
+**Files.**
+
+- The model: `src/lib/tracker-model/constants/Statuses.ts`, `TicketEdits.ts`, `TicketMoves.ts` (`readyDraftTickets`
+  `:121-150`, `applyTicketMove` `:276-293`), `BoardRefusal.ts`, `@types/Ticket.ts` (`claimedBodyHash`, `:70`),
+  `utils/TicketBodyHashUtil.ts`, `constants/LogRecordSchema.ts` (`:131`), `AgentQuestions.ts`.
+- Forge's own writes: `src/services/overseer/JobLaunch.ts`, `src/services/lifecycle/ReviewOutcome.ts`,
+  `src/services/lifecycle/Customs.ts`, `src/services/overseer/MonitorSnapshotAssembly.ts` (`:88`),
+  `src/services/overseer/testing/CrossingStageRun.ts` (`:153`).
+- The command and the CLI: `src/shared/@types/ControlCommand.ts`, `src/services/control/TicketControls.ts`,
+  `cli/tickets/TicketEdit.ts`, `cli/tickets/TicketReadingSubcommands.ts`, `src/adapters/utils/TicketJsonUtil.ts`,
+  `src/adapters/utils/OperationRefusalWordingUtil.ts`, `src/adapters/utils/LogUtil.ts`, `cli/HelpText.ts`.
+- The store: `src/services/store/BoardStore.ts`, `BoardStore.contract.spec.ts`, `LocalFilesBoardStore.ts`,
+  `src/services/tracker/LocalStoreLayout.ts`, `TicketStore.ts`, `TrackerPipeline.ts` (`plannedHoldOf`),
+  `@types/BoardRecords.ts` (`TicketListing`), `src/adapters/tickets/TicketFileWriter.ts` (`:28-52`),
+  `src/adapters/tickets/utils/TicketDocumentUtil.ts` (`:53`, `:241-242`, `:607-612`), and the clearing behind
+  `BoardTransaction.deleteAllTicketFilesAfterwards`.
+- The installed text and docs: `resources/templates/Reference.md` (`:73`, `:99-100`), `apps/forge/docs/cli.md`,
+  `docs/reference/refusals.md`, `cli/constants/InstallVersion.ts`, `cli/FrozenInstalledSurface.json`
+  (`statusJsonFields` name `claimedBodyHash`), the recording of `InstallChangeWatch.ts`.
+
+**What to do.**
+
+1. `Statuses.ts` gains `TICKET_STATUSES_WITH_EDITABLE_CONTENT = ['draft', 'ready-for-review']`: a ticket's content
+   is fixed from committed onward.
+2. `TicketEdit` loses `allowsPastCommitted` and gains `writtenBy: 'command' | 'forge'`. A `command` edit of a ticket
+   whose status is outside the editable set is refused before anything is read, with the new refusal `{ reason:
+   'content-of-a-committed-ticket'; ticketId: string; status: TicketStatus }`, which replaces
+   `edit-of-a-ticket-past-committed`. A `forge` edit is forge's own record in the body (the Handoff, a review, waived
+   items, an answer), allowed in every status; the seven call sites above pass it (`JobLaunch.ts:1571`, `:1608`,
+   `:1629`, `ReviewOutcome.ts:230`, `:349`, `AgentQuestions.ts:121`, `:161`), and so does the fixture
+   `src/testing/EveryBoardLogRecord.ts:168`. `ticket-edit`'s applier passes `command`, so no command reaches a `forge`
+   edit.
+3. `--force` leaves `ticket edit` (`EDIT_OPTION_NAMES`, `TicketEdit.ts:16`) and `allowsPastCommitted` leaves the
+   command `ticket-edit`: the content is fixed from committed onward, so nothing overrides the refusal, and `ticket edit
+   --force` is refused as an unknown option. The command line's sentence: "Ticket #003 is committed, and its title and
+   body were not edited: a committed ticket's content is fixed, since an agent may pick it up at any moment. Nothing
+   was written." For a later status it names the status: "... is in progress, and its title and body were not edited:
+   a committed ticket's content is fixed." WP5.17 adds the way to change it. No supported client sends `ticket-edit`
+   (Gaia sends the contract's `ForgeBoardCommand` kinds, which do not hold it), so the system version does not change.
+4. The content hash. `claimedBodyHash` becomes `contentHash`, the hash of the ticket's title and body:
+   `TicketBodyHashUtil.contentHashOf(title, body)`, FNV-1a over `JSON.stringify({ title, body })`, as
+   `GateProfiles.ts:29` and `PipelineUtil.ts:150` hash a canonical record. It is set where a ticket becomes committed:
+   `readyDraftTickets` (from `draft` or `ready-for-review`) and `applyTicketMove` to `committed` (a reopen). A `forge`
+   edit moves it to the new content's hash; every later move keeps it. A draft and a ticket ready for review hold
+   none. `bodyChangedSinceClaimOf`, the record `ticket-body-changed-after-claim`, `ticket show`'s `body:` line and the
+   JSON's `bodyChangedSinceClaim` go: no edit can follow a claim.
+5. The store keeps the content by its hash. Through the port, a ticket that holds a `contentHash` is read with the
+   title and body kept under that hash, whatever its stored text says, in `reads.listTickets()` and in every Board a
+   write opens. `TicketListing` gains `contentRestored: readonly string[]`, the ids of tickets whose stored text no
+   longer matches their hash; a write that opens on such a ticket writes the kept content back into it and logs
+   `ticket-content-restored` (subject ticket, no fields) in the same hold.
+6. The local adapter: `LocalStoreLayout.committedContentFolder` is `<data>/committed-content/`, one file per hash,
+   `<hash>.json`, holding `{ "title": …, "body": … }`. The hold writes it whole (`createFileAtomically`) in its planned
+   order before the ticket's file, and never rewrites it; a hash already kept is not written again. A ticket with no
+   `contentHash` is read as today. One with a hash takes its title and body from the kept file; a kept file that is
+   missing or unreadable makes the ticket an unreadable record, reason `committed-content-missing`, located at the
+   kept file. The clearing that deletes every ticket file deletes the folder too.
+7. What the builder reads: the launch text's ticket (`launchFactsOf`) is the Board's, so after step 5 it is the kept
+   content. The job's start records `contentHashAtLaunch`, the ticket's `contentHash`, in place of `bodyHashAtLaunch`,
+   and Customs check V6 compares it with the ticket's `contentHash` when the job ends, refusing
+   `ticket-content-changed` in place of `ticket-body-changed`. The empty values of the jobs with no ticket stay
+   (`MergeRun.ts:114`, `:167`, `PipelineAgentSessions.ts:253`).
+8. The stored key: `TicketFileWriter` splices `contentHash` where it splices `claimedBodyHash`, and
+   `TicketDocumentUtil` reads and writes it. `Reference.md`'s field row (`:73`) says it holds the hash of the title
+   and body kept when the ticket became committed, moved by forge's own records; `:99-100` drop `--force` and say a
+   committed ticket's title and body are not edited. Raise `INSTALL_VERSION` by one, change the frozen surface keys
+   the surface specs print, and record `InstallChangeWatch.ts` in the same commit.
+9. `Bouncer.ts:82` keeps `ticket-edit` among the product owner's own-draft kinds: the product owner edits only its own
+   drafts, which the content rule allows.
+
+**Specs.**
+
+- `Board.ticketEdits.spec.ts`: a `command` edit of a draft and of a ticket ready for review lands; of a committed,
+  in-progress, in-review, reviewed, delivered or abandoned ticket it is refused `content-of-a-committed-ticket` with
+  its status, the title and body unchanged; a retitle of a committed ticket is refused the same way; a `forge` edit of
+  an in-review ticket lands and moves `contentHash` to the new content's hash.
+- `Board.ready.spec.ts`: readying records the hash of the title and body as readied; `Board.ticketMoves.spec.ts`: a
+  reopen to committed records the hash of the content then, and a move to `in-progress` keeps it.
+- `LocalFilesBoardStore.spec.ts` and `TrackerPipeline.spec.ts`: a ticket committed in a hold has its kept file written
+  before its ticket file, and a hold cut between the two replays to the same board; a ticket file whose body was
+  changed on disk reads with the kept body and is listed restored, and the next write puts the kept body back and logs
+  `ticket-content-restored` once; a missing kept file makes the ticket unreadable with `committed-content-missing`.
+- `BoardStore.contract.spec.ts`, a clause for any adapter: a committed ticket whose stored text is changed behind the
+  store reads with the content its hash names, and the next write restores it. Each adapter's harness offers the
+  step that changes the text behind it.
+- `Customs.spec.ts`: V6 passes when the content hash at the end is the one at launch and refuses
+  `ticket-content-changed` otherwise.
+- `TicketCommand.edit.spec.ts`: `ticket edit 001 --force` is refused as an unknown option; an edit of a committed
+  ticket exits 1 with the sentence and changes nothing.
+
+**Done when.** In `apps/forge`: `bun run typecheck`, `bun run lint` and `bun test` pass; this prints nothing (the
+frozen surface keeps the names of the install versions already frozen, which `cli/InstalledSurface.spec.ts:7-8` forbids
+deleting, and `docs/research/` is a dated record):
+
+```sh
+git grep -n "claimedBodyHash\|bodyChangedSinceClaim\|ticket-body-changed\|bodyHashAtLaunch\|edit-of-a-ticket-past" \
+  -- src cli bridge docs resources skills ':!cli/FrozenInstalledSurface.json' ':!docs/research'
+```
+
+and `git grep -n "allowsPast" -- src/lib/tracker-model/TicketEdits.ts src/shared cli/tickets` prints nothing. At the
+root, `bun install --frozen-lockfile` and `bun run verify` are green.
+
+### WP5.17 A committed ticket goes back into draft: `ticket unready`
+
+**Purpose.** Decision 48: a committed ticket no agent has picked up can be put back into `draft`, is edited there, and
+becomes committed again by the path any draft takes. Today no move returns a ticket to draft: `moveTicket` refuses
+every move to `draft` (`TicketMoves.ts:68-70`, refusal `move-to-draft`, worded "no move returns a ticket to draft:
+filing is the only way in" at `OperationRefusalWordingUtil.ts:121-123`), and `ticket hold` only keeps a ticket from
+being built. Runs alone, after WP5.16.
+
+**Files.**
+
+- The model: `src/lib/tracker-model/TicketMoves.ts`, `Board.ts`, `BoardRefusal.ts`, `constants/LogRecordSchema.ts`
+  and their specs (`Board.ticketMoves.spec.ts`, `Board.ready.spec.ts`).
+- The command: `src/shared/@types/ControlCommand.ts`, `src/services/control/TicketControls.ts`,
+  `src/services/control/ControlService.ts`, `cli/constants/JobVerbs.ts` (`BY_HAND_VERB_OF_CONTROL_KIND`,
+  `BY_HAND_COMMAND_KINDS`), `cli/ControlContract.spec.ts`, `src/services/control/Bouncer.spec.ts`,
+  `cli/overseer/routes/CommandRoute.controlContract.spec.ts`.
+- The verb: `cli/tickets/TicketMoveSubcommands.ts`, `cli/tickets/constants/TicketUsage.ts`, `cli/HelpText.ts`,
+  `cli/tickets/TicketCommand.spec.ts`.
+- The wording: `src/adapters/utils/OperationRefusalWordingUtil.ts` (`move-to-draft`, `:121-123`, and WP5.16's
+  `content-of-a-committed-ticket`), `src/adapters/utils/LogUtil.ts`, `docs/reference/refusals.md`.
+- The installed text and docs: `resources/templates/Reference.md` (the moves table, `:149-161`),
+  `skills/agent-po/SKILL.md` (`:70-71`), `apps/forge/docs/cli.md` (the ticket verbs and the moves table at
+  `:3239-3241`), `cli/constants/InstallVersion.ts`, `cli/FrozenInstalledSurface.json`, the recording of
+  `InstallChangeWatch.ts`.
+
+**What to do.**
+
+1. `Board.unreadyTicket(ticketId, at): TicketChanged`, in `TicketMoves`. It refuses `{ reason:
+   'unready-of-a-ticket-not-committed'; ticketId; status }` unless the ticket is `committed`, and `{ reason:
+   'unready-of-a-ticket-with-a-job'; ticketId; jobId }` while the board holds a job that names the ticket (as
+   `Playbook.ts:374-376` asks of its facts): a build job is `launching` while its ticket is still committed, and the
+   ticket moves to `in-progress` only as the job moves on to `preparing` (`JobLaunch.ts:2113-2121`). Otherwise the
+   ticket becomes `draft` with `updated` stamped, loses `contentHash`, loses its row (`BoardRecords.removeTaskRecord`,
+   `:165`, and `task: null`), since a draft has none (`TicketChartUtil.ts:6-15`), and the log records
+   `ticket-unreadied` (subject ticket, no fields). Its priority, entity, group, epics, dependencies and hold stay. The
+   kept content files stay in the store; nothing reads a hash no ticket names.
+2. The command `{ kind: 'ticket-unready'; ticketReference: string }` is a by-hand kind: never relayed from a job, so no
+   agent puts a committed ticket back, and not accepted by the command endpoint, so the served contract and the
+   system version do not change. Gaia's editing screen, built after this run (decision 22), adds it with `ticket-edit`
+   to `ForgeBoardCommand` and the endpoint under a system minor.
+3. The verb `ticket unready <id> [--at <stamp>] [--json]`, beside `ticket ready`, applies the command through
+   `applyCommandOfVerb` (WP5.8) and prints "Ticket #003 is a draft again" with the next line "edit it with `forge
+   ticket edit 003`, then commit it with `forge ticket ready 003`".
+4. The way forward is today's, unchanged. The user's `ticket ready` commits a draft (`readyDraftTickets`, `:121-150`;
+   the user's own ready passes `ready-for-review` as readiable), and is itself the human review. A filer's `ticket
+   submit` stops at `ready-for-review` while the pipeline definition requires ticket review (`approvals.tickets`,
+   absent means on, `Board.ts:1341-1344`) and commits at once when it does not (`submitDraftTickets`, `:156-181`). An
+   unreadied ticket is a draft like any other, so nothing new is built; the specs hold both paths.
+5. The sentences. `unready-of-a-ticket-not-committed`: for a draft or a ticket ready for review, its content can be
+   edited as it is; for a later status, "an agent has picked it up: stop its work first (`forge job stop <job>`), then
+   reopen it (`forge ticket reopen 003`) and put it back into draft". `unready-of-a-ticket-with-a-job`: "Ticket #003
+   is committed and job J7 is starting on it, so it stays committed. Stop the job first (`forge job stop J7`)." WP5.16's
+   `content-of-a-committed-ticket` ends with "Run `forge ticket unready 003` to put it back into draft and edit it
+   there", or, past committed, with the stop and reopen of `unready-of-a-ticket-not-committed`. `move-to-draft` says
+   that `ticket status` does not move a ticket into draft and names `ticket unready` for a committed one. The API
+   channel's sentences name no command.
+6. The installed text and docs: the moves table gains the row `ticket unready` (from committed with no job, to draft,
+   its row removed, `Ticket #003 unreadied`); `skills/agent-po/SKILL.md:70-71` says a committed ticket's content is
+   fixed and only the user puts it back into draft. Raise `INSTALL_VERSION` by one, add the command to the frozen
+   surface as the surface specs ask, and record `InstallChangeWatch.ts` in the same commit.
+
+**Specs.**
+
+- `Board.ticketMoves.spec.ts`: a committed ticket with no job goes back to `draft`, loses its `contentHash` and its
+  row, and logs `ticket-unreadied`; a `command` edit of it then lands; it is refused for a draft, a ticket ready for
+  review, an in-progress, in-review, reviewed, delivered or abandoned ticket, and for a committed ticket with a
+  launching job.
+- `Board.ready.spec.ts`: an unreadied and edited ticket becomes committed again by `ticket ready`, with the hash of its
+  new content and a new row; with ticket review on, a filer's submit stops it at `ready-for-review`, and with it off,
+  commits it.
+- `TicketCommand.spec.ts`: the verb, its `--json` answer and its refusals at exit 1; under a job it is refused
+  `verb-not-relayable`.
+- `CommandRoute.controlContract.spec.ts`: a body of kind `ticket-unready` answers 400 `malformed-body`, as every
+  by-hand kind; `cli/ControlContract.spec.ts` and `Bouncer.spec.ts` hold the kind in their exact lists.
+
+**Done when.** In `apps/forge`: `bun run typecheck`, `bun run lint` and `bun test` pass;
+`git grep -n "no move returns a ticket to draft" -- src docs resources` prints nothing. At the root,
+`bun install --frozen-lockfile` and `bun run verify` are green.
+
 ## Interfaces introduced
 
 ### The port: `src/services/store/BoardStore.ts`
@@ -1174,7 +1618,7 @@ export interface LocalFilesBoardStoreOptions {
   workspace:         Workspace;
   /** The caller's clock, for the lock's records only. */
   now:               () => Date;
-  /** The platform's process check; `NO_LOCK_HOLDER_READS_AS_GONE` where there is none. */
+  /** The platform's process check; until WP5.15, `NO_LOCK_HOLDER_READS_AS_GONE` where there is none. */
   lockHolderIsGone:  LockHolderIsGone;
   /** Called after each file a write stores; the step a spec interrupts to cut a write short. */
   afterFileWritten?: (location: string) => void;
@@ -1331,6 +1775,29 @@ Exports, unchanged in shape from `TrackerLock.ts`: `withLockAt(lockDirectoryPath
 `LockGenerationSteps`, `type LockHolderIsGone`, `NO_LOCK_HOLDER_READS_AS_GONE`, and `interface HoldFence {
 requireStillHeld(): void }`, moved from `HoldJournal.ts:20-22`.
 
+### The lock's holder (WP5.15)
+
+```ts
+// src/services/tracker/LockHolders.ts
+/** A lock record's holder: `null` where the platform cannot read the process's start or boot. */
+export interface LockHolder {
+  processId:    number;
+  startStamp:   string | null;
+  bootIdentity: string | null;
+}
+export function lockHolderOf(supervision: ProcessSupervision): LockHolder;
+/** True only when the platform knows: the id is gone, or the process at it is not the recorded one. */
+export function lockHolderIsGoneOf(supervision: ProcessSupervision): LockHolderIsGone;
+
+// src/services/tracker/GenerationLock.ts
+export type LockHolderIsGone = (holder: LockHolder) => boolean;
+interface LockPayload { holder: LockHolder; acquiredAt: string }
+```
+
+`NO_LOCK_HOLDER_READS_AS_GONE` and `LIMITS.LOCK_STALE_MILLISECONDS` are deleted; a record is free when it is released
+or its holder is gone, never by its age. A new refusal detail, `{ kind: 'lock-record-unreadable'; recordPath: string
+}`, `unrepaired`, exit 2, worded once with the path a repair removes.
+
 ### New command kinds (WP5.6, WP5.7), added to `ControlCommand`
 
 Never relayed from a job, never accepted by `POST /api/commands`; listed in `BY_HAND_VERB_OF_CONTROL_KIND` and
@@ -1409,6 +1876,71 @@ export function writeAsTheOverseer<Result>(
 `INSTALL_VERSION` rises by one. `SessionInstructions.md` and `Reference.md` name no ticket file and invite no hand edit;
 `ticket show`, `epic show` and `draft show` print no `file:` line, and their `--json` documents hold no `filePath`.
 
+### The committed status (WP5.14)
+
+```ts
+// src/lib/tracker-model/@types/Task.ts
+export type TaskStatus = 'committed' | 'in-progress' | 'paused' | 'in-review' | 're-review' | 'reviewed' | 'delivered' | 'abandoned';
+// src/lib/tracker-model/constants/Statuses.ts
+export const TICKET_STATUSES = ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
+/** No agent has claimed a ticket in one of these, so a change cannot reach work under way. */
+export const TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP: readonly TicketStatus[] = ['draft', 'ready-for-review', 'committed'];
+```
+
+Renamed: the log record `ticket-readied` to `ticket-committed`; the refusals `lowering-a-ticket-that-is-not-committed`,
+`network-of-a-ticket-past-committed`, `entity-of-a-ticket-past-committed`; `setTicketEntity`'s option
+`allowsPastCommitted`. Stored: `status: committed` in a ticket file, a row's `status` and `history[].status`. The verbs
+`ticket status <id> committed` and `ticket list --status committed`. `INSTALL_VERSION` rises by one.
+
+### The fixed content (WP5.16)
+
+```ts
+// src/lib/tracker-model/constants/Statuses.ts
+export const TICKET_STATUSES_WITH_EDITABLE_CONTENT: readonly TicketStatus[] = ['draft', 'ready-for-review'];
+// src/lib/tracker-model/TicketEdits.ts
+export interface TicketEdit {
+  title?:    string;
+  body?:     MarkdownBodyEdit;
+  /** `command` is refused from committed onward; `forge` is forge's own record in the body and moves `contentHash`. */
+  writtenBy: 'command' | 'forge';
+}
+// src/lib/tracker-model/@types/Ticket.ts, in TicketFrontmatter, in place of claimedBodyHash
+  /** The hash of the title and body kept at the commit, moved by forge's own records; none on a draft. */
+  contentHash?: string;
+// src/lib/tracker-model/utils/TicketBodyHashUtil.ts
+function contentHashOf(title: string, body: string): string;
+// src/lib/tracker-model/BoardRefusal.ts
+  | { reason: 'content-of-a-committed-ticket'; ticketId: string; status: TicketStatus }
+// src/services/tracker/@types/BoardRecords.ts, in TicketListing
+  /** Tickets whose stored text no longer matches their content hash; read with the kept content. */
+  contentRestored: readonly string[];
+// src/services/tracker/LocalStoreLayout.ts, in LocalStoreLayout
+  committedContentFolder: string;
+```
+
+The command `ticket-edit` loses `allowsPastCommitted`, and `ticket edit` loses `--force`. Log records:
+`ticket-content-restored` (subject ticket, no fields) is added; `ticket-body-changed-after-claim` goes. Customs's
+`ticket-body-changed` becomes `ticket-content-changed`, and the job start's `bodyHashAtLaunch` becomes
+`contentHashAtLaunch`. An unreadable ticket record may carry the reason `committed-content-missing`. The local
+adapter keeps `<data>/committed-content/<hash>.json` (`{ "title", "body" }`), written whole before the ticket file
+and never rewritten. `INSTALL_VERSION` rises by one.
+
+### The move back into draft (WP5.17)
+
+```ts
+// src/shared/@types/ControlCommand.ts: a by-hand kind, never relayed, refused by the command endpoint
+  | { kind: 'ticket-unready'; ticketReference: string }
+// src/lib/tracker-model/Board.ts
+unreadyTicket(ticketId: string, at: string): TicketChanged;
+// src/lib/tracker-model/BoardRefusal.ts
+  | { reason: 'unready-of-a-ticket-not-committed'; ticketId: string; status: TicketStatus }
+  | { reason: 'unready-of-a-ticket-with-a-job'; ticketId: string; jobId: string }
+```
+
+The verb `ticket unready <id> [--at <stamp>] [--json]`; the log record `ticket-unreadied` (subject ticket, no fields).
+The ticket becomes `draft`, loses `contentHash` and its row, and keeps everything else. `INSTALL_VERSION` rises by
+one.
+
 ### Guard and contract
 
 - `src/StoreBoundary.spec.ts`: the forms `record-file-name`, `record-folder-join`, `record-path-name`,
@@ -1427,10 +1959,29 @@ export function writeAsTheOverseer<Result>(
 
 - **The transaction must stay one hold across `await` and git.** `writeTracker` already accepts an async mutation
   (`TrackerPipeline.ts:58`) and the landing runs git inside the hold (`Airlocks.ts:1241-1262`, `:1499`). Do not add a
-  timeout, a retry or a split into "plan, then write" to `transact`: a timeout would leave the lock while git runs. The
-  lock's own staleness (`LIMITS.LOCK_STALE_MILLISECONDS`, 30 seconds, `src/shared/constants/Limits.ts:3`) already lets
-  another process take over a hold that runs longer, and the fence then refuses the stale holder's writes
-  (`TrackerLock.ts:193-199`). Keep that behaviour exactly; do not lengthen or shorten it here.
+  timeout, a retry or a split into "plan, then write" to `transact`: a timeout would leave the lock while git runs.
+  Until WP5.15 the lock's own staleness (`LIMITS.LOCK_STALE_MILLISECONDS`, 30 seconds,
+  `src/shared/constants/Limits.ts:3`) lets another process take over a hold that runs longer, and the fence then
+  refuses the stale holder's writes (`TrackerLock.ts:193-199`); the packages before WP5.15 keep that exactly. WP5.15
+  removes the age rule and keeps the fence.
+- **A live holder keeps the lock however long it holds** (WP5.15). A hung Hephaestus inside a hold leaves every
+  command refused `tracker-lock-held` after its five seconds; stage 3 counts a hung Hephaestus as gone, and stopping
+  its process frees the lock. Do not bring back an age rule, a longer timeout or a forced takeover to get around it.
+- **A process id is not a process.** After a reboot or a reused id, the id of a dead holder can name a live process.
+  The judgement compares the recorded start stamp and boot identity (`sameProcess`); where the platform cannot read
+  them it reads the holder as alive, never as gone.
+- **`pending` is many words.** Only the ticket and row status is renamed (WP5.14). An Apply pending, a job's pending
+  answer, `UnfinishedWriteReading`'s `'pending'` and the Bridge's pending pictures keep the word; rename by type, never
+  by a search and replace, and read each untyped hit (the Bridge's `data-state` selectors).
+- **The kept content is written before the ticket.** A hold cut between the kept file and the ticket file must leave a
+  board whose ticket still reads (WP5.16): the kept file is content-addressed and harmless alone, while a ticket file
+  naming a hash with no kept file reads as unreadable. Keep the planned order and its journal entry.
+- **Forge's own records are no edit of the content.** The Handoff, a review, waived items and an answer are written by
+  forge with `writtenBy: 'forge'` in every status (WP5.16). Routing them through the command's rule would refuse the
+  pass's own writes and crash it.
+- **The move back into draft waits for a launching job.** A build job is `launching` while its ticket is still
+  committed (`JobLaunch.ts:2113-2121`); `ticket unready` refuses while the board holds any job of the ticket (WP5.17),
+  or a job would go on to build a draft.
 - **Reads take no lock.** `status` takes no lock (`apps/forge/CLAUDE.md:382-383`) and the pass observes outside the
   hold (`DrivePass.ts:2-4`). Implement every `reads` member without `withLock`. A read can see a write half done; that
   is the documented limit, not a bug to fix here.
@@ -1527,6 +2078,9 @@ In `apps/forge`, the specs that matter most, each run as `bun test --path-ignore
 - `cli/ControlContract.spec.ts` and `cli/overseer/routes/CommandRoute.controlContract.spec.ts`.
 - `cli/InstalledSurface.spec.ts` and `cli/InstalledSurface.status.spec.ts`.
 - `src/services/overseer/DrivePass*.spec.ts`.
+- `src/services/tracker/LockHolders.spec.ts`, `GenerationLock.spec.ts`, and under gate G4 the crash case of WP5.15.
+- `src/lib/tracker-model/Board.ticketEdits.spec.ts`, `Board.ticketMoves.spec.ts`, `Board.ready.spec.ts` and
+  `src/services/lifecycle/Customs.spec.ts`.
 
 Greps that must print nothing (from `apps/forge`):
 
@@ -1537,6 +2091,9 @@ grep -rn "filePath" src/lib/tracker-model
 grep -rn "progressJson" src cli
 grep -n "hand-edited" CLAUDE.md
 grep -n "pipelineReadingInPlaceOf" src/services/tracker/TrackerPipeline.ts
+grep -rn "LOCK_STALE_MILLISECONDS\|NO_LOCK_HOLDER_READS_AS_GONE" src cli
+grep -rn "claimedBodyHash\|bodyChangedSinceClaim\|EDITABLE_WITHOUT_FORCE\|past-pending\|ticket-readied" \
+  --exclude=FrozenInstalledSurface.json src cli bridge
 ```
 
 End to end on a scratch board, as `docs/development/contributing.md:76-179` prescribes, from `apps/forge` in one scratch
@@ -1560,7 +2117,15 @@ verbs are named as stage 3 leaves them; stage 9 renames them (decision 42).
    `malformed-body`.
 6. Break a ticket file's frontmatter on disk: `status` reports it as ignored with its path and exits 0; `ticket show` of
    its id exits 2 and names the file.
-7. End the board with `oversee stop --now`, `pkill -f "$REPOSITORY/.forge"`, restore `HOME` and remove the scratch
+7. The committed ticket, on a second ticket with the Overseer stopped (`oversee stop --now`): `ticket add "Example
+   change" --type ticket`, `ticket edit 002 --append --body "## Brief …"` with a numbered `## Acceptance`, `ticket
+   ready 002`; `ticket show 002 --json` reads `status: committed` with a `contentHash`. `ticket edit 002 --append
+   --body "more"` exits 1 with the sentence that names `ticket unready`, and `ticket show 002` is unchanged; `ticket
+   edit 002 --force` is refused as an unknown option. Change the ticket's body in its file under the data folder by
+   hand: `ticket show 002` still prints the committed body, and the next write (`ticket size 002 S`) puts it back and
+   logs `ticket-content-restored`. `ticket unready 002` makes it a draft with no row; the edit lands; `ticket ready
+   002` commits it again with a new `contentHash`.
+8. End the board with `oversee stop --now`, `pkill -f "$REPOSITORY/.forge"`, restore `HOME` and remove the scratch
    folder.
 
 Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothing runs in this checkout's own tracker.
@@ -1569,17 +2134,15 @@ Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothi
 
 - The remote adapter, a server-side store, a change feed for the pass, and the redesign of the pass that a remote store
   needs (design section 4 and section 9).
-- The freeze of a ticket's content once it is being built and once it has had its human review (decision 48), and the
-  way a user changes a frozen ticket (design section 12). They are the Board's rules on `ticket-edit`
-  (`TicketEdits.editTicket`, `src/lib/tracker-model/TicketEdits.ts`, whose `--force` past `pending` they replace) and
-  on the moves, placed by the schedule. Nothing here depends on them: this stage keeps `ticket-edit`'s Board call as it
-  is, so the freeze lands on it after this stage unchanged by the store.
-- Gaia's screen for editing a ticket's content (decision 22), and accepting any by-hand kind on the command endpoint or
-  adding any kind to `packages/forge-contracts`: stage 6, or after this run.
+- Gaia's screen for editing a ticket's content or putting a committed ticket back into draft (decision 22), and
+  accepting any by-hand kind on the command endpoint or adding any kind to `packages/forge-contracts`: stage 6, or
+  after this run.
 - The worker prompts' "Never edit the ticket file" (`resources/prompts/BuildPrompt.md:26`, `ReviewPrompt.md:26`,
   the built-in briefs): they forbid what this stage ends and stay true.
-- Changing the lock's timing, the hold journal's format, the write order of a hold or any stored format. The ticket
-  file keeps its frontmatter subset and keeps unknown lines it reads.
+- Changing the lock's retry budget, the hold journal's format, or a stored format beyond the committed status
+  (WP5.14), `contentHash` in place of `claimedBodyHash` and the kept content file (WP5.16). The write order of a hold
+  changes only by the kept content file, written before its ticket. The ticket file keeps its frontmatter subset and
+  keeps unknown lines it reads.
 - Moving pictures (`src/services/tracker/PictureStore.ts`), job folders, gate profile output, Talos's files, the Baton
   or stage 3's presence and crash files behind the port.
 - The ending on a network outage and the bound of gate and install lines (decisions 35 to 37): stage 2.
@@ -1591,8 +2154,8 @@ Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothi
 No question about behaviour is open in this stage. One act is the owner's, and the stage is done without it:
 
 1. **Gate G4:** asking for `bun run verify:integration` after WP5.10, so the crash matrix
-   (`CrashMatrix.integration.spec.ts`) runs over the pass's transaction face. `apps/forge/CLAUDE.md:20` lets a session
-   run it only when a person asks.
+   (`CrashMatrix.integration.spec.ts`) runs over the pass's transaction face, and again after WP5.15 for the lock's
+   crash case. `apps/forge/CLAUDE.md:20` lets a session run it only when a person asks.
 
 ## Not established
 
@@ -1613,3 +2176,11 @@ No question about behaviour is open in this stage. One act is the owner's, and t
 - Whether `TrackerLock.integration.spec.ts` holds cases of the generic lock only, which decides whether WP5.2 moves it.
 - Whether the two surface specs print a new frozen key for WP5.13's version; the key holds whatever surface they print,
   and none if they print none.
+- `owner-answers.md` (answer 14) says a `pending` ticket can be put back into `draft` today. The code says no move
+  returns a ticket to draft (`TicketMoves.ts:68-70`); WP5.17 builds the move, and nothing here relies on one existing.
+- Whether review statistics or the chart miss the row WP5.17 removes from a ticket that was reopened before it went
+  back into draft; the row's history stays in the log. Not traced.
+- Whether any reader compares a status string that no type holds beyond the Bridge's `data-state` selectors; WP5.14's
+  greps look, and the typecheck finds every typed one.
+- Whether the stored JSON fixtures that hold a ticket status (the frozen pipeline and progress fixtures) can be
+  renamed in place or are recordings to make again; WP5.14 reads each.

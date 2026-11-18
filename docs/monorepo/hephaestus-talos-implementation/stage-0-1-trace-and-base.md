@@ -432,10 +432,13 @@ What to do:
    and `brand` into Gaia's page `lib/`, in forge and Gaia; the stage 9 row replaces `oversee` with top-level verbs and
    names no verb after Hephaestus; and the section says every in-flight ticket is dropped.
 3. Check section 7's table counts an ending on a network outage among the interruptions that wait for an instruction.
-4. Check section 12, "To decide", holds one question only: how a user changes a frozen ticket (decision 48).
+4. Check section 12, "To decide", says that no question of behaviour is open, and that decision 48 answers how a user
+   changes a committed ticket: it is put back into `draft`, edited there and committed again by the path any draft
+   takes. Check decision 48 names `pending` as the status that takes the name committed.
 5. Check decision 22 and section 4 say this run builds the ticket-content edit command and no Gaia editing screen.
 6. Run these in the worktree; each must print nothing:
-   `grep -n "settled in stage 0\|oversee resume\|forge hephaestus" docs/monorepo/hephaestus-talos.md`. And
+   `grep -n "settled in stage 0\|oversee resume\|forge hephaestus\|freez\|frozen ticket"
+   docs/monorepo/hephaestus-talos.md`. And
    `grep -c "board-readings" docs/monorepo/hephaestus-talos.md` prints 1: the sentence of section 1 that says no such
    package exists.
 7. Where a check fails, correct the markdown to `owner-answers.md` in the same change, one sentence each, citing the
@@ -672,8 +675,8 @@ Repository state:
   `git branch --list 'forge/*'` lists the six ticket branches; `git worktree list` lists no `.forge-worktrees` path and
   no `entities-integration`.
 - `ls ~/Library/LaunchAgents | grep com.forge.overseer` prints nothing, and no process of the installed program runs.
-- `docs/monorepo/hephaestus-talos.md` section 12 "To decide" holds only how a user changes a frozen ticket; WP0.5's
-  checks hold.
+- `docs/monorepo/hephaestus-talos.md` section 12 "To decide" holds no open question, and decision 48 says how a user
+  changes a committed ticket; WP0.5's checks hold.
 - `docs/monorepo/migration.md` has no unticked item and no "Still open" item.
 
 ## Out of scope

@@ -150,9 +150,16 @@ packages/system-versions/   version comparison, for both apps and the contract
 46. Every in-flight ticket is dropped. Both trackers stop and stay stopped until their boards are set up anew.
 47. Forge owns tickets, and Gaia is a convenience over forge. Gaia holds no ticket and writes no ticket file: every
     change of a ticket is a command that forge accepts or refuses.
-48. A ticket freezes once it is being built, and once it has had its human review. The Board refuses an edit of a
-    frozen ticket's content with a reason. At the freeze point forge keeps the content it froze, by content hash, and
-    agents build from that, so the freeze holds also where a store lets the text change behind forge.
+48. A committed ticket's content is fixed. Committed is the state in which an agent may pick the ticket up at any
+    moment: it has passed the human review where the pipeline definition requires one, and it waits for an agent.
+    Today's ticket status `pending` takes the name. From committed onward the Board refuses an edit of the ticket's
+    content with a reason. At the commit forge keeps the content by content hash and agents build from that, so it
+    holds also where a store lets the text change behind forge. Committed is a recorded state of the ticket, never a
+    lock a process holds, so a crashed Hephaestus leaves nothing to release. The store's own write lock is taken over
+    from a holder that is no longer alive, judged by the process and not by the lock's age. A committed ticket no agent
+    has picked up can be put back into `draft` and is edited there. It becomes committed again by the path any draft
+    takes: reviewed again first where the pipeline definition requires a human review for it, committed without one
+    where it requires none. Once an agent has picked it up, its work is stopped first, by the moves the Board has today.
 49. Forge and Gaia share only `forge-contracts` and `system-versions`, and neither app imports the other. The tracker
     model, its spec helpers, the readings and the refusal wording stay in `apps/forge`.
 50. The contract's types stand on their own. Forge maps its model into the contract's documents and the contract's
@@ -351,7 +358,8 @@ The forge has one contract with three parts. It is shaped so that it can cross a
 The store sits inside the forge, behind a port that the CLI and Hephaestus use in-process:
 
 - **Local adapter**, built now: on files. It wraps today's tracker stores, the tracker lock and the single hold of
-  `writeTracker`. It is the only code that names the path of a record.
+  `writeTracker`. It is the only code that names the path of a record. It keeps a committed ticket's content by its
+  hash, and its lock passes to another writer only once the holder's process is gone (decision 48).
 - **Remote adapter**, not built: a client of a forge's API. The forge behind it owns the database; no client holds
   database credentials, and validation runs in one place.
 
@@ -371,7 +379,7 @@ gets a job's live output from the read API's job stream, never by knowing where 
 Consequences:
 
 - **Hand-editing stored records ends.** It overturns today's local rule that tickets are hand-edited between runs;
-  an edit of a ticket's content is a command, refused once the ticket is frozen (decision 48).
+  an edit of a ticket's content is a command, refused from the moment the ticket is committed (decision 48).
 - **Version.** The read API keeps the system versions and the compatibility registry it has today, so an endpoint can be
   served at two versions side by side. The stored formats keep their own versions inside the local adapter.
 - **`packages/forge-contracts`** already holds 9 command kinds, the summary and monitor documents and the versions, and
@@ -602,7 +610,7 @@ end to end on a scratch board.
 | 2. Talos, the commander | One Talos per board in place of the Watcher fleet: its protocol version and the handshake, the persisted state, the clean quit, the lease with an end of its own, and every child under it, the Overseer's own gate runs among them. The fleet, the pinned bundles and the legacy reader go. A gate line and an install line are each bounded at 15 minutes, a sleep not counted, and every line's run time is recorded. The ending patterns and the ending on a network outage. No mixed fleet is supported: existing boards are set up anew | forge | L |
 | 3. Presence and recovery | The heartbeat and the completed stop and handover on record; reconcile, then resume on instruction; the crash log and the forge that stays off; two resumes of a crashed agent and no more; the CLI path to see a crash, start again and resume | forge | L |
 | 4. The standing contract and the served facts | `forge-contracts` declares the board and ticket documents and the board's command kinds with types of its own, importing nothing from forge's model. Forge maps its model into the documents and each command into its model in typed adapters of its own, and serves the finished facts of section 4 in the board document, each refusal with its reason code, fields and sentence. The forge keeps the unfinished entities draft. The tracker model, its spec helpers, the readings and the wording stay in `apps/forge`; no package is extracted | forge and `forge-contracts` | L |
-| 5. Store port | The port's two faces and the local adapter with its contract spec, around today's stores, lock and hold. The CLI and Hephaestus go through it; nothing else names a record path | forge | M |
+| 5. Store port | The port's two faces and the local adapter with its contract spec, around today's stores, lock and hold. The CLI and Hephaestus go through it; nothing else names a record path. Then the committed ticket (decision 48): `pending` takes the name, its content is fixed and kept by content hash, it can be put back into draft, and the lock is taken over only from a holder whose process is gone | forge | L |
 | 6. Gaia hosts the views | The Bridge is about 525 tracked files with 67 DOM specs, more code than the Overseer's services. Move it one view at a time into Gaia's own design under `page/board/`, each shipped alone, reading the forge's documents and sending commands to it through Gaia's server, which maps each document into Gaia's own model; the page imports no forge code. The Bridge keeps running beside it until the last view has moved | Gaia | XL |
 | 7. Conversations with hosted agents | Intake and pipeline setup in Gaia: the `job-message` command in, the job stream out, pictures through the upload route. A skill for pipeline setup, as intake has one | forge and Gaia | M |
 | 8. Shrink the HTTP surface | Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint's ask route; the reads and the command endpoint stay. `forge open` and the `progress.html` stub go. Make the Assistant a switch per board, off by default; remove Flint's brain. Fold `design-system`, `flint` and `brand` into Gaia's page `lib/` as libraries, each behind its interface file, with the guard of section 1. A major change of the system version; Gaia records again | forge and Gaia | M |
@@ -611,10 +619,13 @@ end to end on a scratch board.
 **The rename takes the stored and installed names with it.** Nothing that exists has to be kept, so these change in
 the same commit and existing boards are set up anew:
 
-- on a board: `overseerState` in `progress.json`, `overseerOnly` in `pipeline.json`, the `overseer-*` and
-  `watcher-lost` records of the log;
+- on a board: `overseerState` in `progress.json`, the `overseer-*` and `watcher-lost` records of the log;
 - on the machine: the registry's `overseer` key that Gaia reads, the login item's label, the `oversee` verb that the
   login item and a Baton pass's successor are started with, which `forge start` replaces, and the installed surface.
+
+The gate key `overseerOnly` of `pipeline.json` does not wait for the rename: stage 8 gives `pipeline.json` its one
+format and names the key `forgeOnly`, with the flag `--forge-only`, since a key and a flag the user types name no
+component.
 
 Every in-flight ticket is dropped: both trackers stop and stay stopped until their boards are set up anew.
 
@@ -625,11 +636,9 @@ writes its files under its own name from the start.
 
 ### To decide
 
-What follows an ending on a network outage is decision 35, and the bound of an install line is decision 36. One
-question of behaviour is open:
-
-1. **How a user changes a frozen ticket** (decision 48). The run's default is an explicit reopen that sends the ticket
-   back to before its freeze point.
+No question of behaviour is open. What follows an ending on a network outage is decision 35, the bound of an install
+line is decision 36, and how a user changes a committed ticket is decision 48: it is put back into `draft`, edited
+there and committed again by the path any draft takes.
 
 ### Risks
 
