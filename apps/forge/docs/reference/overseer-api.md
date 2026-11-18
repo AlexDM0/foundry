@@ -634,7 +634,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.17` and `0.0`: 1.1 adds
+moment the server answers, while the Overseer starts too. This forge answers `1.18` and `0.0`: 1.1 adds
 [Flint's brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and
 crosses, the entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity`
 command, a ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields
@@ -666,7 +666,9 @@ on the entity decisions' questions, the `whitelist-removed-mid-crossing` decisio
 second package return from a red gate or a review catch-up, and install version 34, 1.17 adds the `ticket-group` command, the
 `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusals, the `ticket-grouped` and `dependent-fix-filed` records, the
 fix-ticket option of the `dependent-broken` decision, a package build's `dependentsFixedInGroup` start key, the
-`reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and install version 35, each minor only adds, and version 0.0 stands for every forge released before
+`reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and install version 35, 1.18 adds the entities step to the
+installed pipeline agent's brief, measures a ticket's non-converging review against the pipeline of the stage its review ran in, and
+adds install version 36, whose installed surface is 35's, each minor only adds, and version 0.0 stands for every forge released before
 system versions.
 
 The system version is set by interoperability, never by a package's version:
