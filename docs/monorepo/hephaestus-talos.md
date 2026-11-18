@@ -119,7 +119,10 @@ store port and Talos.](figures/hephaestus-talos/hephaestus.png)
 Changed or new in Hephaestus:
 
 - **Presence.** The Baton record already holds the process identity, its start stamp, the boot identity and the code
-  version (`Baton.ts`). What is missing is a heartbeat, and a record that a stop or a Baton pass completed.
+  version (`Baton.ts`). The log already holds `overseer-started` and `overseer-stopped` with reason `stopped` or
+  `baton-passed` (`apps/forge/src/lib/tracker-model/Jobs.ts:325-332`), written by the Overseer before it releases its
+  Baton (`apps/forge/cli/overseer/OverseerForeground.ts:169-176`, `:657`). What is missing is a heartbeat, and a
+  presence record that a start reads to classify itself: no start reads the log line today.
 - **Recovery on instruction.** Today the Playbook resumes interrupted jobs by itself. This plan reverses that
   (section 7).
 - **Lease renewal** to Talos, every 15 seconds (section 3.2).
@@ -342,7 +345,8 @@ crash log is kept.](figures/hephaestus-talos/recovery.png)
   the Watcher record and the slot files.
 - The Playbook then resumes by itself: a crash up to `JOB_RESUMES_BEFORE_FRESH` times, a reboot, an answer delivery or a
   usage limit whatever the count. A real-system spec covers the crash, reboot and update matrix
-  (`CrashMatrix.integration.spec.ts`).
+  (`CrashMatrix.integration.spec.ts`). A paused board holds new launches only, never a resume
+  (`apps/forge/src/lib/tracker-model/Playbook.ts:770-771`).
 
 So recovery on instruction, and no retry after a crash, fill no gap. They reverse tested behaviour, in every project
 that runs forge. Since nothing that exists has to be kept, the change is made outright.
@@ -364,10 +368,10 @@ and a start reads the store and continues from it.
 | --- | --- | --- |
 | `answer-delivery`, `handoff-red`, `usage-limit` | Resumes by itself | Unchanged: these are steps of the workflow |
 | Paused by a clean quit of Talos for a new protocol version | Does not exist | Resumes by itself: a step of the workflow |
-| `reboot`, a stop on purpose, a lease end | Resumes by itself | Waits for an instruction |
+| `reboot`, a stop on purpose, a lease end | A reboot resumes by itself. A stop on purpose interrupts no agent: each Watcher is detached and the next start attaches it (`apps/forge/src/services/overseer/Regrouping.ts:223-244`), and `stop --now` stops only install and gate Watchers (`apps/forge/src/services/overseer/WatcherFleet.ts:340-365`). A lease end does not exist | Waits for an instruction |
 | `agent-crashed`, `watcher-lost` (the agent's side died, the forge did not) | Resumes twice, then starts fresh | Resumes twice, then waits for an instruction |
 | `authentication-failed`, `forced-stop-refused` | Does not resume by itself: a refused key opens a board decision that holds every launch, and a refused forced stop never resumes | Unchanged |
-| The forge crashed: Hephaestus, or Talos | Resumes by itself | A bug: the forge stays off until the user starts it again |
+| The forge crashed: Hephaestus, or Talos | A crash of the Overseer interrupts no agent: its Watchers run on and the next start attaches them (`apps/forge/src/services/overseer/Regrouping.ts:223-244`) | A bug: the forge stays off until the user starts it again |
 
 **What kind of start it is** is recorded, because only one kind is a bug:
 
@@ -409,8 +413,11 @@ hides it.
 
 **What must be persisted** is known in part. Held only in memory today: the event replay buffer, the pass state and
 fingerprint, the merge-forecast and main-line caches, the install-watch answer, the quiet-job counts, the Assistant's
-quiet watch, the notices and the runtime state, and the in-process gate children. Whether every Airlock step is safe to
-redo or detectable as done has not been traced.
+quiet watch, the notices and the runtime state, and the in-process gate children. Every Airlock phase is written in a
+hold of its own, so a stop leaves the slot in its last written phase and the rerun of that phase is safe or detects
+that it was done ([stage 0 plan, table B](hephaestus-talos-implementation/stage-0-1-trace-and-base.md#b-each-step-of-an-airlock-landing-and-a-stop-in-its-middle)).
+Three steps are not redone: the landing journal line after the fast-forward, the release cleanup after the landing
+hold, and the restore of the worktree's tip before `freeSlot`'s hold.
 
 ## 8. Gaia
 
@@ -536,7 +543,9 @@ writes its files under its own name from the start.
 3. **Recovery on instruction reverses tested behaviour** and stalls where today's forge carries on. Which interruption
    causes wait is listed in section 7.
 4. **The start classification misreads common cases** (section 7).
-5. **A half-finished landing.** What an Airlock leaves half done has not been traced.
+5. **A half-finished landing.** The trace exists and found every step safe to redo or detectable as done but three,
+   the landing journal line, the release cleanup and the tip restore before `freeSlot`'s hold, which reconcile must
+   cover ([stage 0 plan, table B](hephaestus-talos-implementation/stage-0-1-trace-and-base.md#b-each-step-of-an-airlock-landing-and-a-stop-in-its-middle)).
 6. **A failed pass is not a crash.** A pass that fails on a held lock is retried today, and with the CLI, Hephaestus
    and agents all taking the lock that happens more often. It needs a name of its own.
 7. **The store port has one adapter,** and its command face cannot carry Hephaestus's own pass.
