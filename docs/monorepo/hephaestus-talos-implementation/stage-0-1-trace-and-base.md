@@ -301,11 +301,11 @@ What the owner does, step by step:
    git init -q && git commit -q --allow-empty -m start
    ```
 
-2. Write the one input line. A shell sleep keeps the turn open while the network goes off. This is the stdin format of
+2. Write the one input line. A loopback ping keeps the turn open for a minute while the network goes off; Claude Code blocks a standalone `sleep`. This is the stdin format of
    the committed fixtures (`apps/forge/src/lib/claude-code/testing/fixtures/rate-limit-rejected.stdin.jsonl`):
 
    ```sh
-   printf '%s\n' '{"type":"user","message":{"role":"user","content":"Run exactly this shell command with the Bash tool, unchanged: sleep 45 . Then reply with one word."}}' \
+   printf '%s\n' '{"type":"user","message":{"role":"user","content":"Run exactly this shell command with the Bash tool, unchanged: ping -c 61 127.0.0.1 . Then reply with one word."}}' \
      > /tmp/outage-probe/stdin.jsonl
    ```
 

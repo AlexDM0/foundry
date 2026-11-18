@@ -8,7 +8,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | Gate | State | Note |
 | --- | --- | --- |
 | G0 | passed | Owner said go on 2026-11-18; branch `hephaestus-talos` |
-| G1 | owner | WP0.3: the owner records recordings A and B; later the fake agent's outage scenario, after WP2.2 |
+| G1 | passed | 2026-11-18: recordings A and B. Still the owner's: the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
 | G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
 | G4 | waiting | End of WP2.13; optionally after WP3.14, WP5.10 and WP5.15 |
@@ -23,8 +23,8 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-A | Stale-spec fix | landed | 5b68d0ad | Owner's word: CrashMatrix.integration :914 holds its snapshot by an open setup record; JobResumption.integration :204 expects the last-worker rule |
 | 0-A | WP0.1 | landed | 9038016f | Design in line with the traces. Left stale, outside its scope: `hephaestus-talos.html:435` and the design's section 11 stage-3 row still call the stop/Baton record missing |
 | 0-A | WP0.2 | landed | (no commit) | Green baseline at `5b68d0ad` (main `e9b5d057` plus the stale-spec fix): 9 files, 235 pass, 0 fail. 12 resume-by-itself cases listed, incl. the 4 the stage file missed. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-0/recovery-baseline.txt` |
-| 0-A | WP0.3 | owner | | Gate G1: the owner records it |
-| 0-B | WP0.4 | waiting | | |
+| 0-A | WP0.3 | landed | (no commit) | Recordings A and B made by the owner on 2026-11-18, Claude Code 2.1.327; evidence in the main checkout `.claude/.evidence/hephaestus-talos/stage-0/outage/` |
+| 0-B | WP0.4 | landed | b48040db | Fixture `network-outage-retries-spent` and its claims, probe P23. The second check failed only on doubting who wrote `login kind: subscription` in the notes; the owner said it in the session and the orchestrator wrote it, so the package stands |
 | 0-C | WP0.5 | landed | 7dc5dbed | Design holds decisions 35 to 52; migration figure and HTML page rendered again (no script renders the page: a one-off renderer did). Left stale: the migration figure's caption in the design still puts stage 8 in forge only; whoever changes it renders the page again |
 | 0-D | WP1.1 | landed | a99381c1 | Migration checklist closed, no open item |
 | 0-E | WP1.2 | landed | (no commit) | Six ticket worktrees removed, their branches kept, uncommitted work saved as patches; `entities/integration` and `claude/project-thread-dw1bcu` gone. `main` still `e9b5d057`. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-1/` |
@@ -164,6 +164,18 @@ Both were already red at `3e6cb660`; the default suite skips `*.integration.spec
   its header comment (`:5-6`).
 
 No product change and no `bun run record` is needed for either.
+
+## What the outage recordings show (stage 2 builds on this)
+
+- A standalone `sleep` is blocked by Claude Code 2.1.327's Bash tool; the recordings hold the turn open with
+  `ping -c 61 127.0.0.1`.
+- The ending's `result` line has `subtype` `success` with `is_error` true, `api_error` `connection_failed`,
+  `api_error_status` null and `terminal_reason` `api_error`; a synthetic assistant line with `error` `server_error`
+  comes before it. The subtype alone never tells an outage.
+- Each `api_retry` line has `error` `unknown`, `error_status` null and no `no_response` key at all; attempts run 1 to
+  `max_retries` (10 by default, 2 with `CLAUDE_CODE_MAX_RETRIES=2`, so the setting bounds a session).
+- A `rate_limit_event` with status `allowed` is in both streams; an outage is not told by its absence.
+- No retry or result line carries a timestamp. From the tool result to the error line took 181.6 s (A) and 14.5 s (B).
 
 ## Owner answers, round 1 (2026-11-18)
 
