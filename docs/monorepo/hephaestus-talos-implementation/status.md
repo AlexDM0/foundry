@@ -21,7 +21,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | Group | Package | State | Commit | Note |
 | --- | --- | --- | --- | --- |
 | 0-A | WP0.1 | landed | 9038016f | Design in line with the traces. Left stale, outside its scope: `hephaestus-talos.html:435` and the design's section 11 stage-3 row still call the stop/Baton record missing |
-| 0-A | WP0.2 | blocked | | RED baseline at `a117e3e8` (code = `main` `e9b5d057`): `CrashMatrix.integration.spec.ts:914` (RecordedGit has no answer for `git worktree remove --force …/pipeline-agent/J9` at 'worktree made') and `JobResumption.integration.spec.ts:204/:209` (expected `J1`, got `R2`). 7 of 9 files green. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-0/recovery-baseline.txt`. The package's resume-case list misses `CrashMatrix.integration.spec.ts:681`, `:856` and `CrashMatrix.spec.ts:802`, `:838` (the evidence file has them) |
+| 0-A | WP0.2 | blocked | | RED baseline at `a117e3e8` (code = `main` `e9b5d057`): `CrashMatrix.integration.spec.ts:914` (RecordedGit has no answer for `git worktree remove --force …/pipeline-agent/J9` at 'worktree made') and `JobResumption.integration.spec.ts:204/:209` (expected `J1`, got `R2`). 7 of 9 files green. Evidence: main checkout `.claude/.evidence/hephaestus-talos/stage-0/recovery-baseline.txt`. Diagnosed (each confirmed by an independent refuter): both are stale specs, not product bugs; see below. The package's resume-case list misses `CrashMatrix.integration.spec.ts:681`, `:856` and `CrashMatrix.spec.ts:802`, `:838` (the evidence file has them) |
 | 0-A | WP0.3 | owner | | Gate G1: the owner records it |
 | 0-B | WP0.4 | waiting | | |
 | 0-C | WP0.5 | waiting | | |
@@ -134,6 +134,21 @@ The refresh (0-F) corrected all seven stage files against `0a648b2b`. Changes la
 - WP2.2 moves to `FakeAgentAdapter.ts` behind `FAKE_AGENT_NETWORK_OUTAGE`; WP2.5's `ChildRecord` gains `workingDirectory` and a `ClientEntry` type; forge's system version raise is 1.19.
 - WP4.2 moves 548 importers (1,332 import lines), not 438.
 - Stages 0, 4 and 6 disagree on where the refusal wording lives (`OperationRefusal.ts`, `OperationRefusalWordingUtil.ts` and kin); the owner settles it at G2.
+
+## The two red recovery specs (WP0.2)
+
+Both were already red at `3e6cb660`; the default suite skips `*.integration.spec.ts`, so no gate ran them.
+
+- `CrashMatrix.integration.spec.ts:914`: red since `73417603` (pipeline agent as a session). `removeUnheldSnapshots`
+  (`PipelineAgentSessions.ts:294-312`, called from `DrivePass.ts:1457`) removes the spec's planted, unheld
+  `pipeline-agent/J9`, as `docs/cli.md:1602-1607` requires; the spec's fixture predates that. Fix in the spec: plant
+  a held snapshot (named after an open setup record), keeping the only coverage of `Regrouping.ts:59`'s exemption.
+- `JobResumption.integration.spec.ts:204-209`: red since `e883aebd` (Airlock work goes to the ticket's last worker).
+  The spec still asserts the retired role-based rule; a builder Airlock agent after an ended review cannot occur
+  (`Airlocks.ts:453-456`). Fix in the spec: replace the builder half with a last-worker case, retitle the test and
+  its header comment (`:5-6`).
+
+No product change and no `bun run record` is needed for either.
 
 ## Owner questions the refresh raised (for gate G2, beyond `owner-decisions.html`)
 
