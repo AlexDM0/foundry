@@ -161,6 +161,19 @@ No product change and no `bun run record` is needed for either.
 - Guidance: code that belongs to an app stays in that app; only code shared across apps is hoisted to a package, by the
   coding conventions' hoisting rules. Remaining decisions are to be posed abstractly, in the concepts the plan introduces.
 
+## Proposed approach after round 1 (awaiting the owner; nothing of it is implemented)
+
+The owner answers only how the system behaves; the run decides migration mechanics, may change anything in the
+monorepo and keeps nothing compatible. Two independent analyses of the Bridge's imports agree:
+
+- No `tracker-model` and no `board-readings` package. Forge keeps its whole model, readings and wording, and serves
+  finished documents; the contract's types stand on their own. WP4.1 to WP4.3 go, stage 5 no longer waits on stage 4.
+- Packages that stay: `forge-contracts` and `system-versions` (both apps consume them). `design-system`, `flint` and
+  `brand` fold into Gaia as top-level `lib/` libraries, each imported only through its interface file, no
+  `package.json` (owner, 2026-11-18); forge reaches them only through the Bridge, which stage 8 deletes.
+- The 85 items shrink to seven behaviour questions, posed to the owner in the session of 2026-11-18. Every other
+  item is the run's call. The stage files and `owner-decisions.html` are not yet rewritten to match.
+
 ## Owner questions the refresh raised (for gate G2; also on `owner-decisions.html` as R.1 to R.14)
 
 1. Where forge's refusal wording that the Bridge now reaches lives (`src/shared/OperationRefusal.ts`, three `src/shared/@types` files, `OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`, `TicketPhraseUtil.ts`, `ExecutableRefusalCause`, `ExecutableResolver.ts`). Proposed default: `packages/board-readings`, moved in stage 4.
