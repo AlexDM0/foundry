@@ -5,9 +5,9 @@
  */
 import { expect, test } from 'bun:test';
 
-import { WATCHER_CLIENT_LINE_LIMIT_CHARACTERS }                         from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { TALOS_CLIENT_LINE_LIMIT_CHARACTERS }                           from '../../lib/talos/constants/TalosProtocol.ts';
 import { PICTURES_PER_MESSAGE_LIMIT, PICTURE_ENCODED_SIZE_LIMIT_BYTES } from './OverseerLimits.ts';
 
 test('the Watcher client line limit is above the base64 of every picture one message may carry', () => {
-  expect(WATCHER_CLIENT_LINE_LIMIT_CHARACTERS).toBeGreaterThan(PICTURES_PER_MESSAGE_LIMIT * PICTURE_ENCODED_SIZE_LIMIT_BYTES);
+  expect(TALOS_CLIENT_LINE_LIMIT_CHARACTERS).toBeGreaterThan(PICTURES_PER_MESSAGE_LIMIT * PICTURE_ENCODED_SIZE_LIMIT_BYTES);
 });

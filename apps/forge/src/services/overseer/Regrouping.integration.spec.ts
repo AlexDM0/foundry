@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 import { processIsGone, type ProcessIdentity }            from '../../lib/process-identity/ProcessIdentity.ts';
+import { EVENT_LOG_FORMAT_VERSION }                       from '../../lib/talos/constants/TalosProtocol.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { parentOfDetachedChild }                          from '../../testing/ProcessDoubles.ts';
@@ -61,7 +62,13 @@ function jobFolderRecording(childProcess: ProcessIdentity): string {
   const jobFolder = join(scratchDirectory, 'J1');
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(watcherFilesOf(jobFolder, WATCHER_INSTANCE).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: WATCHER_INSTANCE, state: 'running', watcher: null, childProcess, childProcessGroupId: childProcess.processId,
+    protocolVersion:       1,
+    eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
+    watcherInstance:       WATCHER_INSTANCE,
+    state:                 'running',
+    watcher:               null,
+    childProcess,
+    childProcessGroupId:   childProcess.processId,
   })}\n`);
   return jobFolder;
 }

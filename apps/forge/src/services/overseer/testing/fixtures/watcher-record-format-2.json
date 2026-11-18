@@ -1,6 +1,6 @@
 {
   "protocolVersion": 1,
-  "eventLogFormatVersion": 1,
+  "eventLogFormatVersion": 2,
   "watcherInstance": 2,
   "state": "running",
   "watcher": { "processId": 4242, "startEpochSeconds": 1790000000, "bootIdentity": "example-boot" },

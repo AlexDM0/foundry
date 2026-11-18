@@ -36,6 +36,7 @@ import type { AgentLaunchRequest }                            from '../../lib/ag
 import type { AgentQuestion }                                 from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { sameProcess, type ProcessIdentity }                  from '../../lib/process-identity/ProcessIdentity.ts';
 import type { EventLogEntry }                                 from '../../lib/talos/EventLog.ts';
+import { EVENT_LOG_FORMAT_VERSION }                           from '../../lib/talos/constants/TalosProtocol.ts';
 import type { Decision }                                      from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                                      from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
@@ -904,7 +905,13 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     if (self === null) throw new Error('this process has no readable identity');
     const reused = { ...self, startStamp: '1' };
     writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, `${JSON.stringify({
-      protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'running', watcher: reused, childProcess: reused, childProcessGroupId: process.pid,
+      protocolVersion:       1,
+      eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
+      watcherInstance:       1,
+      state:                 'running',
+      watcher:               reused,
+      childProcess:          reused,
+      childProcessGroupId:   process.pid,
     })}\n`);
     expect(WatcherFleet.livenessOf(ports, jobFolder, 1).verdict).toBe('lost');
     expect(Regrouping.settleLostWatcher(ports, jobFolder, 1)).toBe('agent-crashed');

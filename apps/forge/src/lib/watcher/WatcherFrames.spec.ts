@@ -4,9 +4,9 @@
  */
 import { expect, test } from 'bun:test';
 
-import type { ClientFrame }                                   from './@types/WatcherFrame.ts';
-import { clientFrameOf, watcherFrameLineOf }                  from './WatcherFrames.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import type { ClientFrame }                  from './@types/WatcherFrame.ts';
+import { clientFrameOf, watcherFrameLineOf } from './WatcherFrames.ts';
+import { WATCHER_PROTOCOL_VERSION }          from './constants/WatcherProtocol.ts';
 
 test.each([
   ['hello', {
@@ -36,6 +36,6 @@ test('writes a Watcher frame as one JSON line', () => {
   expect(watcherFrameLineOf({ kind: 'refused', reason: 'secret' })).toBe('{"kind":"refused","reason":"secret"}\n');
 });
 
-test('the protocol and event log format versions are integers', () => {
-  expect(Number.isSafeInteger(WATCHER_PROTOCOL_VERSION) && Number.isSafeInteger(EVENT_LOG_FORMAT_VERSION)).toBe(true);
+test('the protocol version is an integer', () => {
+  expect(Number.isSafeInteger(WATCHER_PROTOCOL_VERSION)).toBe(true);
 });

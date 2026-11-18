@@ -15,10 +15,11 @@ import {
   test
 } from 'bun:test';
 
+import { EVENT_LOG_FORMAT_VERSION }                                        from '../../lib/talos/constants/TalosProtocol.ts';
 import type { Job }                                                        from '../../lib/tracker-model/@types/Job.ts';
 import { watcherFilesOf }                                                  from '../../lib/watcher/WatcherFiles.ts';
 import { type WatcherRecord, watcherRecordTextOf }                         from '../../lib/watcher/WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }              from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { WATCHER_PROTOCOL_VERSION }                                        from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { DISPATCH_PROTOCOL }                                               from '../../shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { nativePlatformPorts }                                             from '../../testing/NativePlatformPorts.ts';

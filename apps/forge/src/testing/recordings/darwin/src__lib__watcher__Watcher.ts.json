@@ -11,7 +11,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -63,7 +63,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -115,7 +115,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "running",
           "watcher": "<watcher>",
@@ -148,9 +148,13 @@
               "origin": "agent",
               "line": "<child line>"
             }
+          },
+          {
+            "kind": "state",
+            "state": "busy"
           }
         ],
-        "activity": "idle",
+        "activity": "busy",
         "watcherRuns": true,
         "childRuns": true
       }
@@ -160,7 +164,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -181,10 +185,6 @@
           }
         ],
         "frames": [
-          {
-            "kind": "state",
-            "state": "busy"
-          },
           {
             "kind": "message",
             "entry": {
@@ -216,7 +216,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -269,7 +269,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "running",
           "watcher": "<watcher>",
@@ -290,7 +290,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -338,7 +338,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -364,7 +364,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "ended",
           "watcher": "<watcher>",
@@ -390,7 +390,7 @@
       "answer": {
         "record": {
           "protocolVersion": 2,
-          "eventLogFormatVersion": 1,
+          "eventLogFormatVersion": 2,
           "watcherInstance": 1,
           "state": "running",
           "watcher": "<watcher>",

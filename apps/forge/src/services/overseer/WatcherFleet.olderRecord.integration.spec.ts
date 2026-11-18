@@ -15,6 +15,7 @@ import {
 } from 'bun:test';
 
 import { type ProcessIdentity, sameProcess, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
+import { EVENT_LOG_FORMAT_VERSION }                            from '../../lib/talos/constants/TalosProtocol.ts';
 import { watcherFilesOf }                                      from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch }                                   from '../../lib/watcher/WatcherLaunch.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
@@ -43,7 +44,13 @@ function jobFolderWithRecord(watcher: object): string {
   const jobFolder = join(scratchDirectory, 'J1');
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(watcherFilesOf(jobFolder, INSTANCE).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: OLDER_PROTOCOL, eventLogFormatVersion: 1, watcherInstance: INSTANCE, state: 'running', watcher, childProcess: watcher, childProcessGroupId: process.pid,
+    protocolVersion:       OLDER_PROTOCOL,
+    eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
+    watcherInstance:       INSTANCE,
+    state:                 'running',
+    watcher,
+    childProcess:          watcher,
+    childProcessGroupId:   process.pid,
   })}\n`);
   return jobFolder;
 }

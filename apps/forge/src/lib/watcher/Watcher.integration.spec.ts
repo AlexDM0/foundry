@@ -21,10 +21,11 @@ import { type WatcherJob, type SpawnedWatcher, createWatcherJob } from '../../te
 import { connectIsRefused }                                       from '../../testing/WatcherProtocolClient.ts';
 import { type EventLogEntry, eventLogEntriesOf }                  from '../talos/EventLog.ts';
 import type { StandingReply }                                     from '../talos/StandingReplies.ts';
+import { EVENT_LOG_FORMAT_VERSION }                               from '../talos/constants/TalosProtocol.ts';
 import { watcherFilesOf }                                         from './WatcherFiles.ts';
 import type { WatcherKind }                                       from './WatcherLaunch.ts';
 import type { WatcherRecord }                                     from './WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION }     from './constants/WatcherProtocol.ts';
+import { WATCHER_PROTOCOL_VERSION }                               from './constants/WatcherProtocol.ts';
 
 const PERMISSION_REQUEST = '{"type":"control_request","request_id":"r-1","request":{"subtype":"can_use_tool","tool_name":"Bash"}}';
 const QUESTION_REQUEST = '{"type":"control_request","request_id":"r-2","request":{"subtype":"can_use_tool","tool_name":"AskUserQuestion"}}';
@@ -187,7 +188,7 @@ describe('the event log and standing replies', () => {
     const reply = '{"type":"control_response","request_id":"r-1","behavior":"deny"}';
     expect(eventsOf(1)).toEqual([
       { sequence: 1, origin: 'agent', line: PERMISSION_REQUEST },
-      { sequence: 2, origin: 'watcher', line: reply },
+      { sequence: 2, origin: 'talos', line: reply },
       { sequence: 3, origin: 'agent', line: QUESTION_REQUEST },
       { sequence: 4, origin: 'agent', line: JSON.stringify({ echoed: reply }) },
     ]);

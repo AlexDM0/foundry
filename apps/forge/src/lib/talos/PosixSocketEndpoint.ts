@@ -7,7 +7,7 @@ import { type Server, type Socket } from 'node:net';
 import { dirname, join }            from 'node:path';
 
 import type { EndpointOutcome, LocalEndpoint } from './LocalEndpoint.ts';
-import { PRIVATE_FOLDER_NAME }                 from './TalosFiles.ts';
+import { PRIVATE_FOLDER_NAME }                 from './constants/TalosProtocol.ts';
 
 export interface PosixEndpointPrimitives {
   /** Creates the folder when it is absent; the `OwnerOnlyFiles` port's. */

@@ -146,7 +146,7 @@ function entriesOfLogEntry(
   senderOf: () => (clientLine: ClientLine) => ClientLineSender,
   pictureNamesById: () => ReadonlyMap<string, string>,
 ): EntryOfLine[] {
-  if (entry.origin === 'watcher') return [{ role: 'watcher', text: entry.line }];
+  if (entry.origin === 'talos') return [{ role: 'watcher', text: entry.line }];
   if (entry.origin === 'agent') return reading.eventsOf(entry.line).map(entryOfEvent).filter((mapped) => mapped !== null);
   const clientLine = clientLineOf(entry.line, reading.sentLineOf);
   if (clientLine === null) return [];

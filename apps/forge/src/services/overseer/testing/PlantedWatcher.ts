@@ -4,12 +4,13 @@
  */
 import { writeFileSync } from 'node:fs';
 
-import { watcherFilesOf }                                     from '../../../lib/watcher/WatcherFiles.ts';
-import { readWatcherLaunch }                                  from '../../../lib/watcher/WatcherLaunch.ts';
-import { type WatcherRecord, watcherRecordTextOf }            from '../../../lib/watcher/WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_VERSION } from '../../../lib/watcher/constants/WatcherProtocol.ts';
-import { nativePlatformPorts }                                from '../../../testing/NativePlatformPorts.ts';
-import { WatcherFleet }                                       from '../WatcherFleet.ts';
+import { EVENT_LOG_FORMAT_VERSION }                from '../../../lib/talos/constants/TalosProtocol.ts';
+import { watcherFilesOf }                          from '../../../lib/watcher/WatcherFiles.ts';
+import { readWatcherLaunch }                       from '../../../lib/watcher/WatcherLaunch.ts';
+import { type WatcherRecord, watcherRecordTextOf } from '../../../lib/watcher/WatcherRecord.ts';
+import { WATCHER_PROTOCOL_VERSION }                from '../../../lib/watcher/constants/WatcherProtocol.ts';
+import { nativePlatformPorts }                     from '../../../testing/NativePlatformPorts.ts';
+import { WatcherFleet }                            from '../WatcherFleet.ts';
 
 export interface PlantedWatcherRequest {
   trackerDirectory: string;

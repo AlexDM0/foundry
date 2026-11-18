@@ -1,18 +1,19 @@
 /**
  * The Watcher socket's line buffer and a line whose handling throws, over the recorded endpoint, so no socket is made. What matters: a
- * client that never ends its line is refused `protocol` once the line passes `WATCHER_CLIENT_LINE_LIMIT_CHARACTERS`, before any secret is
+ * client that never ends its line is refused `protocol` once the line passes `TALOS_CLIENT_LINE_LIMIT_CHARACTERS`, before any secret is
  * checked, since an unbounded buffer lets anyone who can open the endpoint grow the Watcher's memory until it fails; and a line whose
  * handling throws, such as an event log the disk refused, drops its connection unanswered and hands the cause to the Watcher, which fails
  * with it, since a throw out of the socket's listener would end the Watcher with no word of why.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { useRecordedLocalEndpoint }                                       from '../../testing/RecordedLocalEndpoint.ts';
-import { createScratchDirectory, removeScratchDirectory }                 from '../../testing/ScratchWorkspace.ts';
-import { testWhenRecorded }                                               from '../../testing/ToolGuard.ts';
-import { waitUntil }                                                      from '../../testing/WaitUntil.ts';
-import { type WatcherSocketOptions, listenOnWatcherSocket }               from './WatcherSocketServer.ts';
-import { WATCHER_CLIENT_LINE_LIMIT_CHARACTERS, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import { useRecordedLocalEndpoint }                         from '../../testing/RecordedLocalEndpoint.ts';
+import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
+import { testWhenRecorded }                                 from '../../testing/ToolGuard.ts';
+import { waitUntil }                                        from '../../testing/WaitUntil.ts';
+import { TALOS_CLIENT_LINE_LIMIT_CHARACTERS }               from '../talos/constants/TalosProtocol.ts';
+import { type WatcherSocketOptions, listenOnWatcherSocket } from './WatcherSocketServer.ts';
+import { WATCHER_PROTOCOL_VERSION }                         from './constants/WatcherProtocol.ts';
 
 const EXAMPLE_WATCHER_SECRET = 'example-secret';
 const CHUNK_CHARACTERS = 1_048_576;
@@ -76,7 +77,7 @@ testWhenRecorded(['local-endpoint-recording'], 'a client whose unterminated line
   });
   const chunk = 'x'.repeat(CHUNK_CHARACTERS);
   client.once('connect', () => {
-    for (let written = 0; written <= WATCHER_CLIENT_LINE_LIMIT_CHARACTERS; written += CHUNK_CHARACTERS) client.write(chunk);
+    for (let written = 0; written <= TALOS_CLIENT_LINE_LIMIT_CHARACTERS; written += CHUNK_CHARACTERS) client.write(chunk);
   });
 
   await waitUntil(() => closed, 'the Watcher closing the client');

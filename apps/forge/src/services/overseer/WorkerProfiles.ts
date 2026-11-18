@@ -20,7 +20,7 @@ import type {
 import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
 import type { ShellLine }                             from '../../lib/shell-line/ShellLine.ts';
-import { PRIVATE_FOLDER_NAME }                        from '../../lib/talos/TalosFiles.ts';
+import { PRIVATE_FOLDER_NAME }                        from '../../lib/talos/constants/TalosProtocol.ts';
 import type { JobRole }                               from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';

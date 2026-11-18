@@ -1,0 +1,21 @@
+{
+  "retake": "Never retaken. A change to these lines is a change of the frozen handshake, which design decision 6 forbids.",
+  "frames": {
+    "hello": {
+      "keys": ["kind", "requiredProtocolVersion", "secret"],
+      "lines": ["{\"kind\":\"hello\",\"requiredProtocolVersion\":1,\"secret\":\"example-secret\"}"]
+    },
+    "version-mismatch": {
+      "keys": ["kind", "protocolVersion"],
+      "lines": ["{\"kind\":\"version-mismatch\",\"protocolVersion\":1}"]
+    },
+    "refused": {
+      "keys": ["kind", "reason"],
+      "lines": [
+        "{\"kind\":\"refused\",\"reason\":\"malformed\"}",
+        "{\"kind\":\"refused\",\"reason\":\"secret\"}",
+        "{\"kind\":\"refused\",\"reason\":\"quitting\"}"
+      ]
+    }
+  }
+}

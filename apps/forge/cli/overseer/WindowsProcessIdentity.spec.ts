@@ -19,6 +19,7 @@ import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY }                       
 import type { ProcessSupervision }                                                 from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { windowsProcessSupervision }                                               from '../../src/lib/process-identity/ProcessSupervisionFor.ts';
 import { createUnsupportedProcessSupervision }                                     from '../../src/lib/process-identity/UnsupportedProcessSupervision.ts';
+import { EVENT_LOG_FORMAT_VERSION }                                                from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { watcherFilesOf }                                                          from '../../src/lib/watcher/WatcherFiles.ts';
 import { Baton, type BatonRecord }                                                 from '../../src/services/overseer/Baton.ts';
 import type { OverseerPortChoice }                                                 from '../../src/services/overseer/OverseerPort.ts';
@@ -150,7 +151,13 @@ describe('a claimed Watcher read by an Overseer on Windows', () => {
     const jobFolder = join(scratchDirectory, 'J1');
     mkdirSync(jobFolder, { recursive: true });
     writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, `${JSON.stringify({
-      protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'running', watcher, childProcess, childProcessGroupId: childProcess?.processId ?? null,
+      protocolVersion:       1,
+      eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
+      watcherInstance:       1,
+      state:                 'running',
+      watcher,
+      childProcess,
+      childProcessGroupId:   childProcess?.processId ?? null,
     })}\n`);
     return jobFolder;
   }

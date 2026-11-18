@@ -21,6 +21,7 @@ import { join } from 'node:path';
 
 import { afterEach, expect } from 'bun:test';
 
+import { EVENT_LOG_FORMAT_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
 import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -221,14 +222,19 @@ function stoppedOnAConflict(scene: MergingMainScene): RecordedGitStep[] {
 function endWatcher(watcherFolder: string, exitCode: number): void {
   mkdirSync(watcherFolder, { recursive: true });
   writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
+    protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
   })}\n`);
 }
 
 /** The job's own session at `instance`, ended as its Watcher records it. */
 function endSession(jobFolder: string, instance: number): void {
   writeFileSync(watcherFilesOf(jobFolder, instance).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: instance, state: 'ended', watcher: null, end: { reason: 'exited', exitCode: 0, signal: null },
+    protocolVersion:       1,
+    eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
+    watcherInstance:       instance,
+    state:                 'ended',
+    watcher:               null,
+    end:                   { reason: 'exited', exitCode: 0, signal: null },
   })}\n`);
 }
 

@@ -24,21 +24,17 @@ import {
   createEventLogWriter,
   eventLogEntriesOf
 } from '../talos/EventLog.ts';
-import type { LocalEndpoint }                                       from '../talos/LocalEndpoint.ts';
-import { localEndpointFor }                                         from '../talos/LocalEndpointFor.ts';
-import { standingReplyFor }                                         from '../talos/StandingReplies.ts';
-import { forEachLine }                                              from '../talos/StreamLines.ts';
-import type { ActingFrame, WatcherActivity }                        from './@types/WatcherFrame.ts';
-import { type WatcherFiles, watcherFilesOf }                        from './WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret } from './WatcherLaunch.ts';
-import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf } from './WatcherRecord.ts';
-import { type WatcherSocketServer, listenOnWatcherSocket }          from './WatcherSocketServer.ts';
-import {
-  CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS,
-  EVENT_LOG_FORMAT_VERSION,
-  WATCHER_LINGER_FRAMES,
-  WATCHER_PROTOCOL_VERSION
-} from './constants/WatcherProtocol.ts';
+import type { LocalEndpoint }                                                from '../talos/LocalEndpoint.ts';
+import { localEndpointFor }                                                  from '../talos/LocalEndpointFor.ts';
+import { standingReplyFor }                                                  from '../talos/StandingReplies.ts';
+import { forEachLine }                                                       from '../talos/StreamLines.ts';
+import { CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS, EVENT_LOG_FORMAT_VERSION } from '../talos/constants/TalosProtocol.ts';
+import type { ActingFrame, WatcherActivity }                                 from './@types/WatcherFrame.ts';
+import { type WatcherFiles, watcherFilesOf }                                 from './WatcherFiles.ts';
+import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }          from './WatcherLaunch.ts';
+import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf }          from './WatcherRecord.ts';
+import { type WatcherSocketServer, listenOnWatcherSocket }                   from './WatcherSocketServer.ts';
+import { WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION }                   from './constants/WatcherProtocol.ts';
 
 const WATCHER_DONE_EXIT_CODE    = 0;
 const WATCHER_REFUSED_EXIT_CODE = 1;
@@ -336,7 +332,7 @@ async function superviseChild(parts: WatcherParts, launchedRecord: WatcherRecord
     if (session.activity === 'idle') changeActivity(parts, 'busy');
     const reply = standingReplyFor(line, launch.standingReplies);
     if (reply === null || session.childStdin === null) return;
-    appendAndBroadcast(parts, 'watcher', reply);
+    appendAndBroadcast(parts, 'talos', reply);
     writeLineToChild(session.childStdin, reply);
   });
   const exitCode = await child.exited;

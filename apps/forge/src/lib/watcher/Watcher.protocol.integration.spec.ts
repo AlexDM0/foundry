@@ -29,7 +29,7 @@ import {
 import { type WatcherProtocolClient, connectIsRefused, connectToWatcher } from '../../testing/WatcherProtocolClient.ts';
 import { processIsGone }                                                  from '../process-identity/ProcessIdentity.ts';
 import { type EventLogEntry, eventLogEntriesOf }                          from '../talos/EventLog.ts';
-import { PRIVATE_FOLDER_NAME }                                            from '../talos/TalosFiles.ts';
+import { PRIVATE_FOLDER_NAME }                                            from '../talos/constants/TalosProtocol.ts';
 import type {
   WatcherFrame,
   WatcherRefusalReason,

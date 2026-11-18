@@ -3,10 +3,11 @@
  * own `EVENT_LOG_FORMAT_VERSION` until the Watcher ends. A Watcher below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` is a `legacy-watcher`: sent no frame,
  * watched through these files alone, and stopped by signalling its recorded process group, its identity checked first.
  */
-import type { PlatformPorts }                                                                    from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { eventLogEntriesOf, type EventLogReading }                                               from '../../lib/talos/EventLog.ts';
-import type { WatcherRecord }                                                                    from '../../lib/watcher/WatcherRecord.ts';
-import { EVENT_LOG_FORMAT_VERSION, WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
+import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
+import { eventLogEntriesOf, type EventLogReading }                     from '../../lib/talos/EventLog.ts';
+import { EVENT_LOG_FORMAT_VERSION }                                    from '../../lib/talos/constants/TalosProtocol.ts';
+import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
+import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 
 export type WatcherAttachment = 'attached' | 'legacy-watcher';
 

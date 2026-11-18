@@ -1,18 +1,18 @@
 /**
- * One Watcher instance's append-only event log: a line per child stdout line and per line the Watcher or a client wrote to the child, numbered
+ * One child instance's append-only event log: a line per child stdout line and per line Talos or a client wrote to the child, numbered
  * from 1. It is appended in place rather than replaced, so a reader may find a last line cut short by a power loss, and ignores it.
  */
 import { closeSync, fsyncSync, openSync } from 'node:fs';
 
 import { writeEveryByte } from '../atomic-file/WriteEveryByte.ts';
 
-export type EventOrigin = 'agent' | 'client' | 'watcher';
+export type EventOrigin = 'agent' | 'client' | 'talos';
 
 export interface EventLogEntry {
   readonly sequence: number;
   readonly origin:   EventOrigin;
   readonly line:     string;
-  /** When the Watcher appended it: only recorded and shown, never read to decide anything. Absent from a log written before stamps. */
+  /** When it was appended: only recorded and shown, never read to decide anything. Absent from a log written before stamps. */
   readonly at?:      string;
 }
 
@@ -20,7 +20,7 @@ export interface EventLogWriter {
   readonly append:       (origin: EventOrigin, line: string) => EventLogEntry;
   /** Flushed to the disk before a client is told the log's history. */
   readonly sync:         () => void;
-  /** Flushed to the disk before anything that tells a reader the log is complete, such as the Watcher's `end`. */
+  /** Flushed to the disk before anything that tells a reader the log is complete, such as the child's end. */
   readonly syncAndClose: () => void;
 }
 
@@ -28,7 +28,7 @@ export type EventLogReading =
   | { readonly verdict: 'read'; readonly entries: readonly EventLogEntry[] }
   | { readonly verdict: 'malformed'; readonly lineNumber: number };
 
-const EVENT_ORIGINS: readonly string[] = ['agent', 'client', 'watcher'] satisfies readonly EventOrigin[];
+const EVENT_ORIGINS: readonly string[] = ['agent', 'client', 'talos'] satisfies readonly EventOrigin[];
 
 export function createEventLogWriter(eventLogPath: string, stampNow: () => string): EventLogWriter {
   const fileDescriptor = openSync(eventLogPath, 'a');

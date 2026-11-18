@@ -27,6 +27,7 @@ import {
   test
 } from 'bun:test';
 
+import { EVENT_LOG_FORMAT_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
 import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                from '../../lib/tracker-model/utils/PipelineUtil.ts';
@@ -132,7 +133,7 @@ function endStepWatcher(scene: GatingScene, folderName: string, exitCode: number
   const watcherFolder = join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), folderName);
   mkdirSync(watcherFolder, { recursive: true });
   writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: 1, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
+    protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
   })}\n`);
 }
 

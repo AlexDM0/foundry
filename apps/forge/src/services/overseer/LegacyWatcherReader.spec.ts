@@ -11,6 +11,7 @@ import { join }         from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { processSupervisionFor }                                       from '../../lib/process-identity/ProcessSupervisionFor.ts';
+import { EVENT_LOG_FORMAT_VERSION }                                    from '../../lib/talos/constants/TalosProtocol.ts';
 import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision }             from '../../testing/FakeWindowsKernel.ts';
@@ -41,14 +42,15 @@ describe('every supported event-log format', () => {
     for (const formatVersion of formats) {
       const reading = LegacyWatcherReader.eventLogReadingOf(`${fixtureText(`event-log-format-${formatVersion}.jsonl`)}{"sequence":4,"orig`, formatVersion);
       if (reading.verdict !== 'read') throw new Error(`format ${formatVersion} read ${reading.verdict}`);
-      expect(reading.entries.map((entry) => [entry.sequence, entry.origin])).toEqual([[1, 'agent'], [2, 'client'], [3, 'watcher']]);
+      expect(reading.entries.map((entry) => [entry.sequence, entry.origin])).toEqual([[1, 'agent'], [2, 'client'], [3, 'talos']]);
       expect(reading.entries[1]?.line).toContain('Example line from Alex Example');
     }
   });
 
   test('a format no reader knows is reported unsupported, never read as the current one', () => {
     const unknownFormat = Math.max(...LegacyWatcherReader.readableEventLogFormats()) + 1;
-    expect(LegacyWatcherReader.eventLogReadingOf(fixtureText('event-log-format-1.jsonl'), unknownFormat)).toEqual({ verdict: 'unsupported-format', formatVersion: unknownFormat });
+    const currentFormatText = fixtureText(`event-log-format-${EVENT_LOG_FORMAT_VERSION}.jsonl`);
+    expect(LegacyWatcherReader.eventLogReadingOf(currentFormatText, unknownFormat)).toEqual({ verdict: 'unsupported-format', formatVersion: unknownFormat });
   });
 
   test('each format\'s watcher-record fixture names its own format and a protocol the Overseer still reads', () => {
@@ -63,7 +65,7 @@ describe('every supported event-log format', () => {
 
 describe('which Watchers are legacy', () => {
   test('a Watcher within the supported window is attached; one below it is a legacy Watcher; an unreadable record is attached as before', () => {
-    const record = watcherRecordFixture(1);
+    const record = watcherRecordFixture(EVENT_LOG_FORMAT_VERSION);
     expect(WATCHER_PROTOCOL_OLDEST_SUPPORTED).toBeLessThanOrEqual(WATCHER_PROTOCOL_VERSION);
     expect(LegacyWatcherReader.attachmentOf({ ...record, protocolVersion: WATCHER_PROTOCOL_VERSION })).toBe('attached');
     expect(LegacyWatcherReader.attachmentOf({ ...record, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED })).toBe('attached');
@@ -78,8 +80,8 @@ describe('which Watchers are legacy', () => {
     if (reusedProcessId === undefined) throw new Error(`no frozen scenario is named ${REUSED_PROCESS_ID_SCENARIO_NAME}`);
     const macOsPorts = { ...ports, processSupervision: processSupervisionFor('darwin') };
     const replay = replayProcessWorld(reusedProcessId.world, () => [
-      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(1), childProcess: reusedProcessId.leader }),
-      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(1), childProcess: null }),
+      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(EVENT_LOG_FORMAT_VERSION), childProcess: reusedProcessId.leader }),
+      LegacyWatcherReader.stopLegacyWatcher(macOsPorts, { ...watcherRecordFixture(EVENT_LOG_FORMAT_VERSION), childProcess: null }),
     ]);
     expect(replay.answer).toEqual([false, false]);
     expect(replay.signalsSent).toEqual([]);
@@ -90,7 +92,7 @@ describe('which Watchers are legacy', () => {
     kernel.table.set(LEGACY_CHILD_PROCESS_ID, { creationTime: 134_000_000_000_000_001n });
     const processSupervision = fakeWindowsSupervision(kernel);
     const childProcess = processSupervision.identityOf(LEGACY_CHILD_PROCESS_ID);
-    expect(LegacyWatcherReader.stopLegacyWatcher({ ...ports, processSupervision }, { ...watcherRecordFixture(1), childProcess })).toBe(true);
+    expect(LegacyWatcherReader.stopLegacyWatcher({ ...ports, processSupervision }, { ...watcherRecordFixture(EVENT_LOG_FORMAT_VERSION), childProcess })).toBe(true);
     expect(kernel.table.size).toBe(0);
   });
 });

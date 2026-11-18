@@ -6,8 +6,9 @@
 import { timingSafeEqual }     from 'node:crypto';
 import type { Server, Socket } from 'node:net';
 
-import type { EventLogEntry } from '../talos/EventLog.ts';
-import type { LocalEndpoint } from '../talos/LocalEndpoint.ts';
+import type { EventLogEntry }                 from '../talos/EventLog.ts';
+import type { LocalEndpoint }                 from '../talos/LocalEndpoint.ts';
+import { TALOS_CLIENT_LINE_LIMIT_CHARACTERS } from '../talos/constants/TalosProtocol.ts';
 import type {
   ActingFrame,
   ClientFrame,
@@ -15,8 +16,8 @@ import type {
   WatcherRefusalReason,
   WelcomeFrame
 } from './@types/WatcherFrame.ts';
-import { clientFrameOf, watcherFrameLineOf }                              from './WatcherFrames.ts';
-import { WATCHER_CLIENT_LINE_LIMIT_CHARACTERS, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import { clientFrameOf, watcherFrameLineOf } from './WatcherFrames.ts';
+import { WATCHER_PROTOCOL_VERSION }          from './constants/WatcherProtocol.ts';
 
 const LINE_SEPARATOR = '\n';
 
@@ -114,7 +115,7 @@ function serveConnection(socket: Socket, options: WatcherSocketOptions, attached
       }
       separatorIndex = pending.indexOf(LINE_SEPARATOR);
     }
-    if (!refused && pending.length > WATCHER_CLIENT_LINE_LIMIT_CHARACTERS) refuse('protocol');
+    if (!refused && pending.length > TALOS_CLIENT_LINE_LIMIT_CHARACTERS) refuse('protocol');
   });
   socket.on('close', () => attachedClients.delete(socket));
   socket.on('error', () => attachedClients.delete(socket));

@@ -43,3 +43,13 @@ export function standingReplyFor(line: string, standingReplies: readonly Standin
   const escapedRequestIdentifier = JSON.stringify(requestIdentifier).slice(1, -1);
   return matchingRule.replyTemplate.replaceAll(REQUEST_IDENTIFIER_PLACEHOLDER, () => escapedRequestIdentifier);
 }
+
+/** The launch's validator: a well-formed rule, or `null`; keys it does not name are dropped. */
+export function standingReplyOf(value: unknown): StandingReply | null {
+  const isConditionRecord = (item: unknown): item is Record<string, string | boolean> => typeof item === 'object' && item !== null && !Array.isArray(item)
+    && Object.values(item).every((condition) => typeof condition === 'string' || typeof condition === 'boolean');
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const { whenAllEqual, whenNoneEqual, replyTemplate } = value as Record<string, unknown>;
+  if (!isConditionRecord(whenAllEqual) || !isConditionRecord(whenNoneEqual) || typeof replyTemplate !== 'string') return null;
+  return { whenAllEqual, whenNoneEqual, replyTemplate };
+}

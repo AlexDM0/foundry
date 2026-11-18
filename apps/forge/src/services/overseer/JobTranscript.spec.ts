@@ -40,7 +40,7 @@ afterEach(() => {
 type LoggedLine =
   | { readonly origin: 'client'; readonly frame: ActingFrame }
   | { readonly origin: 'agent'; readonly events: readonly AgentSessionEvent[] }
-  | { readonly origin: 'watcher'; readonly line: string };
+  | { readonly origin: 'talos'; readonly line: string };
 
 const EXAMPLE_STAMP = '2026-11-10T09:30:00.000Z';
 const QUESTION = {
@@ -79,7 +79,7 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
     for (const logged of lines) {
       if (logged.origin === 'client') writer.append('client', JSON.stringify(logged.frame));
       else if (logged.origin === 'agent') writer.append('agent', JSON.stringify(logged.events));
-      else writer.append('watcher', logged.line);
+      else writer.append('talos', logged.line);
     }
     writer.syncAndClose();
   });
@@ -187,7 +187,7 @@ describe('a build job\'s client lines', () => {
   });
 
   test('read no sender facts while no client line is among the entries read', () => {
-    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[chat('Build it.'), { origin: 'watcher', line: 'session started' }]]);
+    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[chat('Build it.'), { origin: 'talos', line: 'session started' }]]);
     const { entries, senderFactReads } = transcriptOf(jobFolder, 1, NO_SENDER_FACTS, '1.1');
     expect(entries.map((entry) => entry.role)).toEqual(['watcher']);
     expect(senderFactReads).toBe(0);

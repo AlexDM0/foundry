@@ -35,7 +35,7 @@ test('numbers entries from 1 in append order, and a reader reads them back', () 
     sequence: 1, origin: 'agent', line: '{"type":"system"}', at: EXAMPLE_STAMP
   });
   writer.append('client', 'a chat line');
-  writer.append('watcher', 'a standing reply');
+  writer.append('talos', 'a standing reply');
   writer.syncAndClose();
   expect(eventLogEntriesOf(readFileSync(eventLogPath, 'utf8'))).toEqual({
     verdict: 'read',
@@ -47,7 +47,7 @@ test('numbers entries from 1 in append order, and a reader reads them back', () 
         sequence: 2, origin: 'client', line: 'a chat line', at: EXAMPLE_STAMP
       },
       {
-        sequence: 3, origin: 'watcher', line: 'a standing reply', at: EXAMPLE_STAMP
+        sequence: 3, origin: 'talos', line: 'a standing reply', at: EXAMPLE_STAMP
       },
     ],
   });
