@@ -68,8 +68,10 @@ export interface SandboxFacts {
 
 /** The entity whose stage a job runs: its homes and `reach` are what the job's Edit and Write may change. */
 export interface StageEntity {
-  entities:  PipelineEntities;
-  entityKey: EntityKey;
+  entities:       PipelineEntities;
+  entityKey:      EntityKey;
+  /** The homes of the whitelisted packages a stage 1 job may write a proposal in; absent in every other stage. */
+  proposalHomes?: readonly string[];
 }
 
 /** The host's file tree as a `mount-points` profile is rendered against it, read afresh at every launch. */
@@ -303,12 +305,18 @@ function nestedCheckoutProfileOf(facts: Pick<SandboxFacts, 'repositoryRoot' | 'w
   return { writeRoot: facts.worktree, nestedCheckoutAncestors: nestedCheckoutAncestorsOf(facts.repositoryRoot, facts.worktree, projectPrefix) };
 }
 
-/** What a launch on a forge with entities adds to its sandbox facts: every entity's home, and the job's entity when it has one. */
-function entityFactsOf(pipeline: Readonly<Pipeline> | null, entityKey?: EntityKey): Pick<SandboxFacts, 'entityHomes' | 'stageEntity'> {
+/**
+ * What a launch on a forge with entities adds to its sandbox facts: every entity's home, and the job's entity when it has one, with the
+ * homes its stage 1 may write a proposal in.
+ */
+function entityFactsOf(
+  pipeline: Readonly<Pipeline> | null, entityKey?: EntityKey, proposalHomes: readonly string[] = []
+): Pick<SandboxFacts, 'entityHomes' | 'stageEntity'> {
   const entities = pipeline?.entities;
   if (entities === undefined) return {};
   const entityHomes = Object.values(entities).flatMap((entity) => entity.home);
-  return { entityHomes, ...entityKey === undefined ? {} : { stageEntity: { entities, entityKey } } };
+  if (entityKey === undefined) return { entityHomes };
+  return { entityHomes, stageEntity: { entities, entityKey, ...proposalHomes.length === 0 ? {} : { proposalHomes: [...proposalHomes] } } };
 }
 
 /** The names in a folder of the worktree at launch; none when it cannot be read. */
@@ -330,11 +338,14 @@ function stageEntityOf({ entities, entityKey }: StageEntity): Readonly<PipelineE
   return Object.hasOwn(entities, entityKey) ? entities[entityKey] : undefined;
 }
 
-/** The repository paths a stage's Edit and Write reach, without a trailing `/`: the whole tree, `''`, for the root entity; else its homes and `reach`. */
+/**
+ * The repository paths a stage's Edit and Write reach, without a trailing `/`: the whole tree, `''`, for the root entity; else its homes and
+ * `reach`, and in stage 1 the homes of the packages it may write a proposal in.
+ */
 function stageRepositoryPathsOf(stage: StageEntity): string[] {
   if (stage.entityKey === EntityOwnershipUtil.rootEntityKeyOf(stage.entities)) return [''];
   const entity = stageEntityOf(stage);
-  return [...entity?.home ?? [], ...entity?.reach ?? []].map(EntityOwnershipUtil.homeFolderOf);
+  return [...entity?.home ?? [], ...entity?.reach ?? [], ...stage.proposalHomes ?? []].map(EntityOwnershipUtil.homeFolderOf);
 }
 
 function pathIsBelow(folder: string, repositoryPath: string): boolean {
@@ -351,7 +362,7 @@ function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: 
   const { entities, entityKey } = stage;
   const ownPaths = stageRepositoryPathsOf(stage).filter((path) => path !== '');
   const otherHomes = Object.entries(entities).flatMap(([otherKey, entity]) => (otherKey === entityKey ? [] : entity.home.map(EntityOwnershipUtil.homeFolderOf)));
-  const reachPaths = (stageEntityOf(stage)?.reach ?? []).map(EntityOwnershipUtil.homeFolderOf);
+  const reachPaths = [...stageEntityOf(stage)?.reach ?? [], ...stage.proposalHomes ?? []].map(EntityOwnershipUtil.homeFolderOf);
   const reachCovers = (repositoryPath: string): boolean => reachPaths.some((reachPath) => repositoryPath === reachPath || pathIsBelow(reachPath, repositoryPath));
   const isEditable = (repositoryPath: string): boolean => reachCovers(repositoryPath) || EntityOwnershipUtil.ownerOf(entities, repositoryPath) === entityKey;
   const editabilityChangesBelow = (repositoryPath: string, editable: boolean): boolean => (editable

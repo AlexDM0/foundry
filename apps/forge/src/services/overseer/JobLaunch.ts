@@ -2217,10 +2217,15 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
 
 /**
  * `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. On a forge with entities the facts
- * also name every entity home, whose `.claude` is denied, and the job's entity.
+ * also name every entity home, whose `.claude` is denied, and the job's entity with the homes its stage 1 may write a proposal in, a package
+ * of `refusedPackages` left out.
  */
 function sandboxFactsFor(
-  context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline> | null, worktree: string = worktreeOf(context.workspace, job)
+  context: JobLaunchContext,
+  job: Readonly<Job>,
+  pipeline: Readonly<Pipeline> | null,
+  worktree: string = worktreeOf(context.workspace, job),
+  refusedPackages: readonly EntityKey[] = []
 ): SandboxFacts {
   const { workspace } = context;
   const { repositoryRoot, projectPrefix } = projectLocationOfContext(context);
@@ -2240,7 +2245,7 @@ function sandboxFactsFor(
     guardCommand:     guardCommandOf(context),
     ...cacheFolderFactsOf(context),
   });
-  return { ...facts, ...WorkerProfiles.entityFactsOf(pipeline, job.entity) };
+  return { ...facts, ...WorkerProfiles.entityFactsOf(pipeline, job.entity, CrossingStages.proposalHomesOf(pipeline, job, refusedPackages)) };
 }
 
 function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'workspace'>): readonly string[] | null {

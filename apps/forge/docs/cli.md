@@ -1318,7 +1318,9 @@ inside a folder passes, printing nothing and granting nothing; any other tool is
 
 The deny rules of a stage name the worktree's paths outside its folders as they stood at launch. A name made later
 directly in a folder on the way to a stage folder, such as the worktree root or `/apps`, is named by no rule, and this
-guard denies an `Edit` or `Write` of it at once. A job without an entity gets no such guard.
+guard denies an `Edit` or `Write` of it at once. A job without an entity gets no such guard. A stage's folders are its
+entity's homes and `reach`; in stage 1 they also hold the homes of the packages the entity whitelists, where the build
+may write a proposal, a package whose build refused the ticket's change left out.
 
 It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
 answers deny on any failure: no input, input that is not a JSON object, no `file_path`, a relative `file_path` with no

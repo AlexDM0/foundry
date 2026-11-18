@@ -723,7 +723,8 @@ function launchProfileOf(jobLaunchContext: JobLaunchContext, board: Board, job: 
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === job.ticketIds[0]);
   const pipeline = board.pipeline();
   const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ticket?.frontmatter.network ?? [], jobLaunchContext.platformPorts.shellLine, job.entity);
-  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, pipeline, isAirlockAgent ? place.checkout : undefined);
+  const refusedPackages = pipeline?.entities === undefined ? [] : CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), job.ticketIds[0] ?? '');
+  const sandboxFacts = JobLaunch.sandboxFactsFor(jobLaunchContext, job, pipeline, isAirlockAgent ? place.checkout : undefined, refusedPackages);
   const profile = WorkerProfiles.profileOf(WorkerProfiles.workerRoleOf(job.role), sandboxFacts, toolchain);
   // In the Airlock the agent cannot ask User: the slot stays held while it works.
   return isAirlockAgent ? { ...profile, askUser: false } : profile;

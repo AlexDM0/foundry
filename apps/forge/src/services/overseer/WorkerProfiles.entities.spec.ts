@@ -2,8 +2,9 @@
  * A job's confinement on a forge with entities (strategy section 3.4). What matters: a forge without entities adds no fact, so its jobs keep
  * today's profile; a job of an entity takes its toolchain from that entity alone, and from none when the pipeline names no such entity; the
  * `.claude` folder of every entity home is denied, also made before a launch under `mount-points` (E7); and a stage's Edit and Write are
- * allowed its entity's homes and `reach` alone, every other path of the worktree at launch denied them as high in the tree as it holds
- * nothing the stage may change, a deeper home of another entity included (E18). The folders on the way to a stage's folder (the worktree
+ * allowed its entity's homes and `reach` alone, in stage 1 also the homes of the packages it may write a proposal in, as Customs lets it,
+ * every other path of the worktree at launch denied them as high in the tree as it holds nothing the stage may change, a deeper home of
+ * another entity included (E18). The folders on the way to a stage's folder (the worktree
  * root, `/apps`) are not denied themselves, so no rule names a name made in them after launch: the stage edit guard, run with the stage's
  * folders and from the guard command, denies it, and a forge without entities gets no such guard. The root entity reaches every path no
  * other entity owns. The worktree's names are a planted listing, so a home that is absent at launch shows that its folders are still
@@ -197,6 +198,16 @@ describe('E18: the Edit and Write of a stage', () => {
     });
     const unguardable = WorkerProfiles.profileOf('reviewer', factsOfJob('gaia'), NO_TOOLCHAIN, undefined, PLANTED_WORKTREE);
     expect(unguardable.stageEditGuard?.programPath).toBeNull();
+  });
+
+  test('of stage 1 also reach the homes of the packages it may write a proposal in, and no other stage names any', () => {
+    const proposalHomes = PIPELINE.entities?.['design-system']?.home ?? [];
+    const facts = { ...FACTS, ...WorkerProfiles.entityFactsOf(PIPELINE, 'gaia', proposalHomes) };
+    const profile = WorkerProfiles.profileOf('builder', facts, NO_TOOLCHAIN, undefined, PLANTED_WORKTREE);
+    expect(profile.stageFolders).toEqual([`${WORKTREE}/apps/gaia`, `${WORKTREE}/bun.lock`, `${WORKTREE}/packages/design-system`]);
+    expect(profile.deniedEditRoots).toEqual(['/.git', '/apps/example', '/apps/gaia/widgets', '/package.json', '/packages/flint', '/scripts']
+      .map((path) => `${WORKTREE}${path}`));
+    expect(factsOfJob('gaia').stageEntity).toEqual({ entities: PIPELINE.entities ?? {}, entityKey: 'gaia' });
   });
 
   test('of a root entity job reach the whole worktree', () => {
