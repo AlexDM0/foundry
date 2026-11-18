@@ -27,13 +27,13 @@ export const FAKE_AGENT_CHILD_PATH = join(import.meta.dir, 'fake-agent', 'FakeAg
 
 const SCENARIO_FILE_NAME = 'fake-agent-scenario.json';
 
-function startedLineSelectorOf(sessionId: string): string {
+export function fakeStartedLineSelectorOf(sessionId: string): string {
   return JSON.stringify({ type: 'system', subtype: 'init', session_id: sessionId });
 }
 
 /** Each `fake…Line` is the recorded line it names, read from this OS's recording when it is called, and throws when there is none. */
 export function fakeStartedLine(sessionId: string): string {
-  return recordedLineOf(startedLineSelectorOf(sessionId));
+  return recordedLineOf(fakeStartedLineSelectorOf(sessionId));
 }
 
 export function fakeQuestionLine(requestId: string, questions: readonly AgentQuestion[]): string {
@@ -71,13 +71,13 @@ export const FAKE_AGENT_VENDOR = 'fake-agent';
  * selector, which the child fills from the recording, so loading this file reads no recording.
  */
 export const DEFAULT_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([
-  { kind: 'print', line: startedLineSelectorOf('fake-session') },
+  { kind: 'print', line: fakeStartedLineSelectorOf('fake-session') },
   { kind: 'exit', code: 0 },
 ]);
 
 /** A session that starts and keeps working until its stdin closes, so a board shown with it has its agents running. */
 export const WORKING_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([
-  { kind: 'print', line: startedLineSelectorOf('fake-session') },
+  { kind: 'print', line: fakeStartedLineSelectorOf('fake-session') },
   { kind: 'await-line' },
 ]);
 
@@ -90,7 +90,7 @@ const FAKE_FLINT_BRAIN_TURNS = 40;
 function fakeFlintBrainTurnStepsOf(turn: number): FakeAgentStep[] {
   return [
     { kind: 'await-line' },
-    ...turn === 1 ? [{ kind: 'print', line: startedLineSelectorOf('fake-flint-brain') } as const] : [],
+    ...turn === 1 ? [{ kind: 'print', line: fakeStartedLineSelectorOf('fake-flint-brain') } as const] : [],
     { kind: 'print', line: JSON.stringify({ type: 'assistant', parent_tool_use_id: null, message: { id: `msg_fake_flint_brain_${turn}`, content: [] } }) },
     {
       kind: 'print',
@@ -110,7 +110,12 @@ export const FLINT_BRAIN_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.fre
   { kind: 'await-line' },
 ]);
 
-export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS): AgentAdapter {
+/** Plans a session's own steps from its launch request; `null` plays the adapter's steps. */
+export type FakeSessionPlanner = (request: AgentLaunchRequest) => readonly FakeAgentStep[] | null;
+
+const PLANS_NO_SESSION: FakeSessionPlanner = () => null;
+
+export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS, sessionPlanner: FakeSessionPlanner = PLANS_NO_SESSION): AgentAdapter {
   return {
     vendor:                 FAKE_AGENT_VENDOR,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
@@ -122,7 +127,7 @@ export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
       // Some specs hand a request with no profile, so its absence reads as a session with tools.
       const profile = request.profile as AgentLaunchRequest['profile'] | undefined;
-      const sessionSteps = profile?.availableTools === 'none' ? FLINT_BRAIN_FAKE_AGENT_STEPS : steps;
+      const sessionSteps = profile?.availableTools === 'none' ? FLINT_BRAIN_FAKE_AGENT_STEPS : sessionPlanner(request) ?? steps;
       return {
         argv:            [process.execPath, FAKE_AGENT_CHILD_PATH, scenarioPath],
         environment:     request.environment,

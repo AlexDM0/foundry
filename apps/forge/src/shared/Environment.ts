@@ -40,6 +40,13 @@ export function fakeAgentKeepsWorking(): boolean {
   return switchIsOn(FAKE_AGENT_KEEPS_WORKING_VARIABLE);
 }
 
+export const FAKE_AGENT_REPORTS_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}FAKE_AGENT_REPORTS`;
+
+/** Under the fake-agent switch, each fake builder and reviewer commits and reports as its role asks, so a scratch ticket runs to its landing. */
+export function fakeAgentReports(): boolean {
+  return switchIsOn(FAKE_AGENT_REPORTS_VARIABLE);
+}
+
 export function overseerPollIntervalVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`;
 }

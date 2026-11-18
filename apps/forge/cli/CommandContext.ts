@@ -17,14 +17,16 @@ import {
   executableSearchPath,
   fakeAgentIsOn,
   fakeAgentKeepsWorking,
+  fakeAgentReports,
   hatchDirectory,
   launchingProgram,
   overseerJobId
 } from '../src/shared/Environment.ts';
-import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
-import { ToolRuntimeUtil }                                      from '../src/shared/ToolRuntimeUtil.ts';
-import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/OverseerLimits.ts';
-import { fakeAgentAdapter, WORKING_FAKE_AGENT_STEPS }           from '../src/testing/FakeAgentAdapter.ts';
+import { PLATFORM_HOST_FACTS }                                                  from '../src/shared/PlatformHostFacts.ts';
+import { ToolRuntimeUtil }                                                      from '../src/shared/ToolRuntimeUtil.ts';
+import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES }                 from '../src/shared/constants/OverseerLimits.ts';
+import { DEFAULT_FAKE_AGENT_STEPS, fakeAgentAdapter, WORKING_FAKE_AGENT_STEPS } from '../src/testing/FakeAgentAdapter.ts';
+import { fakeReportingSessions }                                                from '../src/testing/FakeReportingSessions.ts';
 
 export interface CommandContext {
   currentDirectory:        string;
@@ -68,7 +70,8 @@ export interface CommandContext {
 /** The one place outside `src/lib/claude-code/` the vendor's adapter is chosen; a spec-spawned binary always gets the fake. */
 export function agentAdapterOfThisProcess(): AgentAdapter {
   if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());
-  return fakeAgentKeepsWorking() ? fakeAgentAdapter(WORKING_FAKE_AGENT_STEPS) : fakeAgentAdapter();
+  const steps = fakeAgentKeepsWorking() ? WORKING_FAKE_AGENT_STEPS : DEFAULT_FAKE_AGENT_STEPS;
+  return fakeAgentReports() ? fakeAgentAdapter(steps, fakeReportingSessions().stepsOf) : fakeAgentAdapter(steps);
 }
 
 function onStopSignalOfThisProcess(stopSignals: readonly NodeJS.Signals[], listener: () => void): () => void {

@@ -158,6 +158,11 @@ there yet. The Agents tab of the [Bridge](../glossary.md#bridge) shows the same 
 the job runs until you end the board. [Getting started](../operations/getting-started.md) settles real gates, and the
 [Runbook](../operations/runbook.md) has a scratch board where the job fails instead.
 
+To run a ticket on to its landing, also `export FORGE_FAKE_AGENT_REPORTS=1` before `oversee`: each fake builder then
+commits a line in each folder its stage may change and reports, and each fake reviewer reports every Acceptance item as
+holding. It claims no gate, so give the board only gates with `overseerOnly: true`. Unset it with the other variables
+when you end the board.
+
 **End the scratch board:**
 
 ```sh
