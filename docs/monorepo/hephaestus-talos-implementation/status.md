@@ -11,7 +11,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | G1 | passed | 2026-11-18: recordings A and B. Still the owner's: the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
 | G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
-| G4 | waiting | End of WP2.13; optionally after WP3.14, WP5.10 and WP5.15 |
+| G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | waiting | Before and after stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
