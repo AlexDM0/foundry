@@ -16,16 +16,17 @@ forge and Gaia meet at the next major system version with recordings taken again
 Stages that must be finished before stage 8: 0, 1, 2, 3, 4, 5, 6 and 7. Stage 9 starts only once every work package
 of stage 8 is committed. Stage 9 is the last stage; it hands nothing on.
 
-This file cites today's code (`3e6cb660`). Stages 2 to 7 move and change much of it. Before WP8.1, open the code as it
-is then and find each item of the table below by its export name (`git grep -n "<export name>"`), not by its path:
-stage 4 moves the tracker model and the board documents into packages named in stage 0, and stage 5 puts the store
-behind a port. Where an item that this stage needs is missing, stop and report it; do not build it here.
+This file cites today's code (`0a648b2b`, rechecked after the entities work landed; first written at `3e6cb660`).
+Stages 2 to 7 move and change much of it. Before WP8.1, open the code as it is then and find each item of the table
+below by its export name (`git grep -n "<export name>"`), not by its path: stage 4 moves the tracker model and the
+board documents into packages named in stage 0, and stage 5 puts the store behind a port. Where an item that this
+stage needs is missing, stop and report it; do not build it here.
 
 | Need | What must be true at the start of stage 8 | Check | Used by |
 | --- | --- | --- | --- |
 | N1. Every view in Gaia | Stage 6 moved every Bridge view into Gaia, and no Gaia screen needs a forge's Bridge to show a board | `git grep -n -i "bridge" -- apps/gaia/page apps/gaia/src ':!*.spec.*'` names no frame, no embed channel and no frame session: stage 6 removed them (WP6.23) | WP8.1, WP8.2, WP8.3 |
 | N2. The maximized forge is a Gaia route | Decision 27: one forge at full size is a route of Gaia, in the window or a tab of its own, never an iframe | Open the route stage 6 added (`#forge/<trackerId>/<tab>`, `apps/gaia/page/views/forge/`, WP6.9); `apps/gaia/page/views/forge-frame/` does not exist (renamed in WP6.9, its frame parts deleted in WP6.23) | WP8.3 |
-| N3. Where Gaia shows forge's HTML | Stage 6 moved the views unchanged, so Gaia's page still shows ticket bodies and epic descriptions from the board document's `bodyHtml` and `descriptionHtml` (stage 6, "Out of scope"); WP8.8 switches the forge and Gaia together | `git grep -n "bodyHtml\|descriptionHtml" -- apps/gaia packages` lists the readers WP8.8 changes | WP8.8 |
+| N3. Where Gaia shows forge's HTML | Stage 6 moved the views unchanged, so Gaia's page still shows ticket bodies, epic descriptions and the constitution preview from the board document's `bodyHtml`, `descriptionHtml` and the pipeline setup's `constitutionHtml` (the board's and each entity's) (stage 6, "Out of scope"); WP8.8 switches the forge and Gaia together | `git grep -n "bodyHtml\|descriptionHtml\|constitutionHtml" -- apps/gaia packages` lists the readers WP8.8 changes | WP8.8 |
 | N4. The board documents are contracts | The board, ticket and job documents the views read are in `packages/forge-contracts` (stage 4, WP4.6), each endpoint in `FORGE_COMPATIBILITY_REGISTRY` (`state` from stage 4, the streams and pictures from stage 6's WP6.1, `presence` from stage 3) | `git grep -n "currentEndpointOf\|endpointAddedIn\|kind: *'endpoint'" -- packages/forge-contracts` | WP8.6, WP8.8, WP8.10 |
 | N5. Conversations go through Gaia | Stage 7: intake and pipeline setup are reached through `job-message`, the job stream and the picture upload, from Gaia | Gaia's conversation view posts `job-message` through its server | WP8.6 |
 | N6. Flint's brain under Talos | Flint's brain ran on a Watcher of its own (`apps/forge/src/services/overseer/FlintBrainSessionHost.ts:1-4`); stage 2 moved its session host under Talos, as an agent child in the child folder `flint-brain/` (stage 2, WP2.13 item 11) | `git grep -ln "FlintBrain" -- apps/forge` | WP8.7 |
@@ -71,28 +72,28 @@ Paths are from the repository root. "Stage 8" and "Stage 9" name the stage that 
 | Refusal sentences of the server | `OverseerRoutes.ts:51-57` | Stage 8: changed: no page, no session, no page build |
 | The command route with Flint's brain's kinds | `apps/forge/cli/overseer/routes/CommandRoute.ts:1-8`, `:41-42`, `:54-55`, `:126-144` | Stage 8: changed: the brain's kinds go |
 | Flint's brain, the engine and its launch | `apps/forge/src/services/overseer/FlintBrain.ts:1-433`, `FlintBrainProfile.ts:1-92`, `FlintBrainSessionHost.ts:1-172`, `@types/FlintBrainRun.ts`, `utils/FlintBrainDigestUtil.ts`, `utils/FlintBrainWordingUtil.ts`; `apps/forge/cli/overseer/OverseerFlintBrain.ts:1-120` | Stage 8: deleted |
-| The brain in the Overseer's serving period | `apps/forge/cli/overseer/OverseerForeground.ts:81`, `:109`, `:404-417`, `:475-476`, `:518-523`, `:540`, `:551`, `:620`, `:640`, `:653`, `:778` | Stage 8: changed |
-| The brain's constants and test settings | `apps/forge/src/shared/constants/OverseerLimits.ts:143-170`; `apps/forge/src/shared/Environment.ts:92-118` | Stage 8: deleted |
-| The brain's command kinds | `apps/forge/src/shared/@types/ControlCommand.ts:233-239`; `apps/forge/src/services/control/ControlService.ts:58-59`; `apps/forge/src/shared/constants/OverseerApiContracts.ts:34-35` | Stage 8: deleted |
-| The brain in the monitor snapshot, the board state and today's figures | `apps/forge/src/shared/monitor/@types/MonitorSnapshot.ts:99-100`, `:159-160`; `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:62-63`, `:158`, `:197-219`, `:318-321`; `apps/forge/cli/overseer/routes/BoardStateReader.ts:49-59`, `:194-201`; `apps/forge/src/shared/monitor/TodayFigures.ts:26-59` | Stage 8: changed |
-| The `flint-brain-ended` record: its writer | `apps/forge/src/lib/tracker-model/Board.ts:452-454`; `apps/forge/src/lib/tracker-model/Jobs.ts:313-317` | Stage 8: deleted |
-| The `flint-brain-ended` record: its reader and wording | `apps/forge/src/lib/tracker-model/@types/LogRecord.ts:38-41`, `:104-105`; `constants/LogRecordSchema.ts:77-78`, `:279-283`; `constants/FlintBrainVocabulary.ts`; `apps/forge/src/adapters/log/LogRecordProblem.ts:207-208`; `utils/LogRecordMappingUtil.ts:111-112`; `apps/forge/src/adapters/utils/LogUtil.ts:274-275`, `:343-353` | Stage 8: kept, so an old log stays readable (design section 3.5) |
-| The fake agent's brain turns | `apps/forge/src/testing/FakeAgentAdapter.ts:84-125` | Stage 8: deleted |
-| `forge open` and its session code | `apps/forge/cli/tracking/open/OpenCommand.ts:1-80`, `OpenThroughARedirectFile.ts`; `apps/forge/cli/CommandTable.ts:40`; `apps/forge/cli/overseer/OverseerRemote.ts:214-232` | Stage 8: deleted |
-| The default-browser opener, whose only consumer is `open` | `apps/forge/cli/OpenInTheDefaultBrowser.ts`, `apps/forge/cli/OpenerFor.ts`; `apps/forge/src/testing/BoundarySpecs.ts:141` | Stage 8: deleted |
-| The `progress.html` stub | `apps/forge/src/adapters/progress-page/ProgressPageStubWriter.ts`; `apps/forge/cli/adoption/WriteProgressPageStub.ts:1-10`; `init/InitCommand.ts:103`, `:173`; `update/UpdateCommand.ts:69`; `OverseerForeground.ts:174`; `apps/forge/src/services/tracker/constants/TrackerFiles.ts:11` | Stage 8: deleted |
+| The brain in the Overseer's serving period | `apps/forge/cli/overseer/OverseerForeground.ts:81`, `:109`, `:405-417`, `:475-476`, `:518-523`, `:540`, `:551`, `:622`, `:642`, `:655`, `:780` | Stage 8: changed |
+| The brain's constants and test settings | `apps/forge/src/shared/constants/OverseerLimits.ts:143-170`; `apps/forge/src/shared/Environment.ts:96-123` | Stage 8: deleted |
+| The brain's command kinds | `apps/forge/src/shared/@types/ControlCommand.ts:264-273`; `apps/forge/src/services/control/ControlService.ts:58-59`; `apps/forge/src/shared/constants/OverseerApiContracts.ts:34-35` | Stage 8: deleted |
+| The brain in the monitor snapshot, the board state and today's figures | `apps/forge/src/shared/monitor/@types/MonitorSnapshot.ts:13`, `:108-109`, `:168-169`; `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:65-66`, `:169`, `:208-232`, `:356-359`; `apps/forge/cli/overseer/routes/BoardStateReader.ts:49-59`, `:194-201`; `apps/forge/src/shared/monitor/TodayFigures.ts:26-59` | Stage 8: changed |
+| The `flint-brain-ended` record: its writer | `apps/forge/src/lib/tracker-model/Board.ts:501-504`; `apps/forge/src/lib/tracker-model/Jobs.ts:334-339` | Stage 8: deleted |
+| The `flint-brain-ended` record: its reader and wording | `apps/forge/src/lib/tracker-model/@types/LogRecord.ts:43-46`, `:110-111`; `constants/LogRecordSchema.ts:78-79`, `:295-300`; `constants/FlintBrainVocabulary.ts`; `apps/forge/src/adapters/log/LogRecordProblem.ts:212-213`; `utils/LogRecordMappingUtil.ts:112-113`; `apps/forge/src/adapters/utils/LogUtil.ts:291-292`, `:360-371` | Stage 8: kept, so an old log stays readable (design section 3.5) |
+| The fake agent's brain turns | `apps/forge/src/testing/FakeAgentAdapter.ts:84-130` | Stage 8: deleted |
+| `forge open` and its session code | `apps/forge/cli/tracking/open/OpenCommand.ts:1-92`, `OpenThroughARedirectFile.ts`; `apps/forge/cli/CommandTable.ts:41`; `apps/forge/cli/overseer/OverseerRemote.ts:214-232` | Stage 8: deleted |
+| The default-browser opener, whose only consumer is `open` | `apps/forge/cli/OpenInTheDefaultBrowser.ts`, `apps/forge/cli/OpenerFor.ts` (the platform adapters are inside it), `apps/forge/cli/Opener.ts` (the port); `apps/forge/src/testing/BoundarySpecs.ts:142` | Stage 8: deleted |
+| The `progress.html` stub | `apps/forge/src/adapters/progress-page/ProgressPageStubWriter.ts`; `apps/forge/cli/adoption/WriteProgressPageStub.ts:1-11`; `init/InitCommand.ts:103`, `:173`; `update/UpdateCommand.ts:69`; `OverseerForeground.ts:174`, `:632`; `apps/forge/src/services/tracker/constants/TrackerFiles.ts:11` | Stage 8: deleted |
 | `SESSION_CODE_LIFETIME_SECONDS` | `OverseerLimits.ts:120` | Stage 8: deleted |
-| Markdown rendered to HTML for the page | `apps/forge/src/services/render/MarkdownRenderer.ts`, `RenderState.ts`; `PagePayloadAssembly.ts:58-66`, `:88`; `apps/forge/src/shared/@types/PagePayload.ts:76-79`, `:106-108`; `apps/forge/cli/CommandContext.ts:13`, `:55`, `:131`; `BoardStateReader.ts:167` | Stage 8: deleted; the board document carries Markdown source |
-| The Bridge | `apps/forge/bridge/` (525 tracked files today) | Stage 8: whatever stage 6 left is deleted |
-| What exists only for the Bridge | `apps/forge/package.json:10-20`, `:26-32`; `apps/forge/eslint.config.js:11-12`, `:92-93`, `:127`; `ImportDirection.spec.ts:117-123`, `:136`, `:172`, `:284`, `:609-802`; `apps/forge/src/testing/BoundarySpecs.ts:22`, `:138`, `:145-150`; `apps/forge/src/testing/recordings/darwin/bridge__*.json`; `apps/forge/.readme-graphics/` | Stage 8: deleted or changed |
+| Markdown rendered to HTML for the page | `apps/forge/src/services/render/MarkdownRenderer.ts`, `RenderState.ts`; `PagePayloadAssembly.ts:58-66`, `:88`; `apps/forge/src/shared/@types/PagePayload.ts:78-82`, `:110-112`; the constitution preview: `apps/forge/src/lib/tracker-model/@types/PipelineFacts.ts:110`, `:126`, `apps/forge/src/services/render/PipelineFactsAssembly.ts:101`, `:236-240`; `apps/forge/src/services/overseer/BoardState.ts:145`, `:354`, `:362`; `apps/forge/cli/CommandContext.ts:13`, `:56-57`, `:134`; `BoardStateReader.ts:167` | Stage 8: deleted; the board document carries Markdown source |
+| The Bridge | `apps/forge/bridge/` (607 tracked files today) | Stage 8: whatever stage 6 left is deleted |
+| What exists only for the Bridge | `apps/forge/package.json:10-20`, `:26-32`; `apps/forge/eslint.config.js:11-12`, `:92-93`, `:127`; `ImportDirection.spec.ts:117-123`, `:136`, `:172`, `:284`, `:609-802`; `apps/forge/src/testing/BoundarySpecs.ts:22`, `:139`, `:146-151`; `apps/forge/src/testing/recordings/darwin/bridge__*.json`; `apps/forge/.readme-graphics/` | Stage 8: deleted or changed |
 | The client-name guard's scan proof | `apps/forge/src/ClientNames.spec.ts:26`, `:44-45` | Stage 8: changed (fewer than 1,000 shipped files remain); stage 9: changed (renamed paths) |
-| The Bridge's rules | `.claude/rules/bridge.md`; `.claude/rules/flint.md:9-11`; `.claude/rules/design-system.md`; `CLAUDE.md` (root); `apps/forge/CLAUDE.md:59-61`, `:76-78`, `:221-224`, `:268-273`, `:318`, `:334`, `:341-343` | Stage 8: deleted or changed |
-| The Assistant's boot rule | `apps/forge/src/lib/tracker-model/Playbook.ts:534-546` | Stage 8: changed: it boots only while the board's switch is on |
-| The `no-assistant` default | `Playbook.ts:493-501`; `apps/forge/src/lib/tracker-model/@types/Incident.ts:34-35`; `constants/DecisionAndIncidentVocabulary.ts:52`; `LogUtil.ts:340`; `apps/forge/src/shared/monitor/utils/NoticeWordingUtil.ts:24-27` | Stage 8: kept, beside a new cause `assistant-off` |
-| The Playbook's facts | `Playbook.ts:39-52`; `Board.ts:675-690` | Stage 8: changed: `assistantIsOn` |
-| The board's pipeline | `apps/forge/src/lib/tracker-model/@types/Pipeline.ts:95-120` | Stage 8: changed: key `assistant` |
-| The approval switch, the pattern to mirror | `apps/forge/src/services/control/SettingControls.ts:50-52`; `LogRecordSchema.ts:256-257`; `apps/forge/cli/gates/GatePipelineVerbs.ts:40`, `:175-181`, `:212-213`, `:238` | Kept; copied for the Assistant's switch |
-| Forge's system versions | `packages/forge-contracts/constants/ForgeSystemVersions.ts:14-17` (current 1.1, minimum 0.0) | Stage 8: 2.0 and 2.0; stage 9: 3.0 and 3.0 |
+| The Bridge's rules | `.claude/rules/bridge.md`; `.claude/rules/flint.md:14-16`; `.claude/rules/design-system.md`; `CLAUDE.md` (root); `apps/forge/CLAUDE.md:59-61`, `:76-78`, `:221-224`, `:268-273`, `:326`, `:342`, `:350-352` | Stage 8: deleted or changed |
+| The Assistant's boot rule | `apps/forge/src/lib/tracker-model/Playbook.ts:773-784` | Stage 8: changed: it boots only while the board's switch is on |
+| The `no-assistant` default | `Playbook.ts:731-739`; `apps/forge/src/lib/tracker-model/@types/Incident.ts:34-35`; `constants/DecisionAndIncidentVocabulary.ts:60`; `LogUtil.ts:357`; `apps/forge/src/shared/monitor/utils/NoticeWordingUtil.ts:24-27` | Stage 8: kept, beside a new cause `assistant-off` |
+| The Playbook's facts | `Playbook.ts:55-78`; `Board.ts:796-815` | Stage 8: changed: `assistantIsOn` |
+| The board's pipeline | `apps/forge/src/lib/tracker-model/@types/Pipeline.ts:153-178`; its formats 2, 3 and 4 (`:9-20`), 4 written only for a pipeline with `entities` | Stage 8: changed: key `assistant` |
+| The approval switch, the pattern to mirror | `apps/forge/src/services/control/SettingControls.ts:51-54`; `Board.ts:928-930`; `apps/forge/src/lib/tracker-model/TrackerChanges.ts:176-184`; `LogRecordSchema.ts:272-273`; `apps/forge/cli/gates/GatePipelineVerbs.ts:41`, `:175-183`, `:213-214`, `:242` | Kept; copied for the Assistant's switch |
+| Forge's system versions | `packages/forge-contracts/constants/ForgeSystemVersions.ts:40-43` (current 1.18, minimum 0.0), its docblock naming each minor `:7-39` | Stage 8: 2.0 and 2.0; stage 9: 3.0 and 3.0 |
 | Forge's compatibility registry and its spec | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:38-49`; `ForgeCompatibilityRegistry.spec.ts:17-56` | Stages 8 and 9: changed |
 | Contract integers | `packages/forge-contracts/constants/OverseerContractVersions.ts:9-15`; `apps/forge/src/shared/constants/OverseerApiContracts.ts:10-36` | Stage 8: `embed` goes, monitor and control rise; stage 9: renamed |
 | The embed contracts | `packages/forge-contracts/constants/EmbedMode.ts`, `@types/EmbedChannelMessage.ts`, `@types/FrameAncestorRecord.ts`; `packages/forge-contracts/package.json:13-15` | Stage 8: deleted |
@@ -107,21 +108,21 @@ Paths are from the repository root. "Stage 8" and "Stage 9" name the stage that 
 | Gaia's own system version and registry | `apps/gaia/src/shared/constants/GaiaSystemVersions.ts:12`, `:18`, `:25-33`; `GaiaCompatibilityRegistry.ts:16-52` | Stages 8 and 9: changed |
 | Gaia's view of Flint's brain | `apps/gaia/src/shared/@types/ForgeBrain.ts`; `apps/gaia/src/features/fleet/FleetAssembly.ts:52-87`; `apps/gaia/src/adapters/forge-api/MonitorSnapshotIngestion.ts:117-157`; `apps/gaia/src/features/forge-control/ForgeControl.ts:313-316`; `apps/gaia/page/views/agents/BrainModel.ts`, `BrainPanel.tsx`; `apps/gaia/CLAUDE.md:66`, `:88-90`, `:140-141`, `:150` | Stage 8: deleted or changed |
 | Gaia's recording of the brain | `apps/gaia/src/lib/forge-client/OverseerFetch.flintBrain.recording.spec.ts`; `apps/gaia/src/testing/BoundaryRecordings.ts:100-105`; `apps/gaia/src/testing/recordings/darwin/overseer-fetch-flint-brain.json` | Stage 8: deleted |
-| The forge version Gaia supports | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9` (1.1); `apps/gaia/src/testing/CheckSupportedForgeVersion.ts:11-16` | Stage 8: 2.0; stage 9: 3.0 |
+| The forge version Gaia supports | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9` (1.1, behind forge's 1.18, which `bun run check` only warns about); `apps/gaia/src/testing/CheckSupportedForgeVersion.ts:11-16` | Stage 8: 2.0; stage 9: 3.0 |
 | How Gaia records a forge's answers | `apps/gaia/src/testing/SupportedForgeRecording.ts:1-12`; `BoundaryRecordings.ts:83-111`; `ScratchForge.ts`; `apps/gaia/CLAUDE.md:134-153` | Kept; run again in both stages |
-| The Overseer's service and CLI folders | `apps/forge/src/services/overseer/` (179 tracked files), `apps/forge/cli/overseer/` (44) | Stage 9: renamed |
+| The Overseer's service and CLI folders | `apps/forge/src/services/overseer/` (204 tracked files), `apps/forge/cli/overseer/` (48) | Stage 9: renamed |
 | Product names: login label, first port | `apps/forge/src/shared/constants/ProductNames.ts:17`, `:30-31`, `:44-45` | Stage 9: changed, but for the released program's label at `:30` |
 | The data folder and the log | `apps/forge/src/services/overseer/OverseerFiles.ts:6-16` | Stage 9: `<data>/hephaestus/`, `hephaestus.log` |
-| The poll-interval setting | `Environment.ts:46-62` | Stage 9: renamed |
-| `progress.json` keys and format | `apps/forge/src/adapters/progress/utils/ProgressFileMappingUtil.ts:45`, `:54`; `apps/forge/src/adapters/progress/constants/ProgressFileVersions.ts:5` | Stage 9: renamed, version raised |
-| `pipeline.json` gate key and format | `Pipeline.ts:6`, `:9`, `:36-37`; `apps/forge/src/adapters/pipeline/PipelineFile.ts:54`, `:162-179` | Stage 9: renamed, version raised |
-| Log record kinds and field vocabulary | `LogRecordSchema.ts:33`, `:49`, `:248`, `:277-278` | Stage 9: renamed |
-| Command kinds, Playbook step, decision asker | `ControlCommand.ts:128-133`; `packages/forge-contracts/@types/ForgeControlCommand.ts:10-13`; `OverseerApiContracts.ts:27-30`; `apps/forge/src/lib/tracker-model/@types/PlaybookStep.ts:42`; `apps/forge/src/lib/tracker-model/@types/Decision.ts:41` | Stage 9: renamed |
-| The registry entry key Gaia reads | `apps/forge/src/services/tracker/MonitorRegistration.ts:37-38`, `:62`, `:114-117`; `apps/forge/src/services/tracker/constants/MonitorRegistryFiles.ts:6`; `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:32-59`; `ContractVersions.ts:14` | Stage 9: renamed, registry version raised |
-| The `oversee` verb | `apps/forge/cli/CommandTable.ts:42`; `apps/forge/cli/Main.ts:29`, `:38`; `apps/forge/cli/HelpText.ts:576-631`; `OverseerForeground.ts:320`; `OverseerRemote.ts:175`; `apps/forge/cli/setup/DarwinAutostart.ts:18`, `LinuxAutostart.ts:21`, `WindowsAutostart.ts:59` | Stage 9: renamed |
+| The poll-interval setting | `Environment.ts:50-69` | Stage 9: renamed |
+| `progress.json` keys and format | `apps/forge/src/adapters/progress/utils/ProgressFileMappingUtil.ts:48`, `:57`; `apps/forge/src/adapters/progress/constants/ProgressFileVersions.ts:5` | Stage 9: renamed, version raised |
+| `pipeline.json` gate key and format | `Pipeline.ts:9`, `:12`, `:15`, `:45-46`; `apps/forge/src/adapters/pipeline/PipelineFile.ts:53-63`, `:93`, `:201-218` | Stage 9: renamed, version raised |
+| Log record kinds and field vocabulary | `LogRecordSchema.ts:33`, `:50`, `:264`, `:293-294` | Stage 9: renamed |
+| Command kinds, Playbook step, decision asker | `ControlCommand.ts:138-143`; `packages/forge-contracts/@types/ForgeControlCommand.ts:10-13`; `OverseerApiContracts.ts:27-30`; `apps/forge/src/lib/tracker-model/@types/PlaybookStep.ts:65`; `apps/forge/src/lib/tracker-model/@types/Decision.ts:49` | Stage 9: renamed |
+| The registry entry key Gaia reads | `apps/forge/src/services/tracker/MonitorRegistration.ts:38`, `:62`, `:116-117`; `apps/forge/src/services/tracker/constants/MonitorRegistryFiles.ts:6`; `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:32-59`; `ContractVersions.ts:14` | Stage 9: renamed, registry version raised |
+| The `oversee` verb | `apps/forge/cli/CommandTable.ts:43`; `apps/forge/cli/Main.ts:29`, `:38`; `apps/forge/cli/HelpText.ts:619-674`; `OverseerForeground.ts:320`; `OverseerRemote.ts:175`; `apps/forge/cli/setup/DarwinAutostart.ts:18`, `LinuxAutostart.ts:21`, `WindowsAutostart.ts:59` | Stage 9: renamed |
 | Document keys and types naming the Overseer | `packages/forge-contracts/@types/BoardSummaryDocument.ts:7-29`; `MonitorSnapshotDocument.ts:27-30`, `:156`; `apps/gaia/page/@types/FleetDocument.ts:176` | Stage 9: renamed |
-| The installed surface | `apps/forge/cli/constants/InstallVersion.ts:1` (29); `apps/forge/cli/FrozenInstalledSurface.json` (keys 1 to 29); `apps/forge/cli/adoption/FrozenClaudeInstall.json`; `apps/forge/resources/templates/`, `apps/forge/skills/` | Stages 8 and 9: version raised; a new frozen key; the older keys kept |
-| The retired-name guard | `apps/forge/src/ComponentNames.spec.ts:21-27`, `:27-60`, `:62`, `:75-82`, `:89-94` | Stage 9: changed |
+| The installed surface | `apps/forge/cli/constants/InstallVersion.ts:1` (36); `apps/forge/cli/FrozenInstalledSurface.json` (keys 1 to 36); `apps/forge/cli/adoption/FrozenClaudeInstall.json`; `apps/forge/resources/templates/`, `apps/forge/skills/` | Stages 8 and 9: version raised; a new frozen key; the older keys kept |
+| The retired-name guard | `apps/forge/src/ComponentNames.spec.ts:20-26`, `:28-63`, `:66`, `:77-86`, `:93-98` | Stage 9: changed |
 | Gaia's Overseer names | `apps/gaia/src/lib/forge-client/OverseerFetch*.ts`; `apps/gaia/src/adapters/forge-api/OverseerTokenFile.ts`; `apps/gaia/src/testing/recordings/darwin/overseer-fetch-*.json`; `BoundaryRecordings.ts:89-111`; `apps/gaia/src/testing/RecordedAnswers.ts:107-113`; `apps/gaia/CLAUDE.md:49` | Stage 9: renamed |
 | Historical records that keep the old name | `docs/monorepo/` (design, migration, research); `FrozenInstalledSurface.json` keys up to the last install version; `apps/forge/src/lib/claude-code/testing/fixtures/*.jsonl` (recorded vendor output); `ProductNames.ts:30` | Stage 9: kept, named in the checks |
 
@@ -155,7 +156,7 @@ Files to change:
 - `apps/forge/src/ImportDirection.spec.ts`: `FEATURE_REACHES_BY_PATH` (`:135-136`) becomes empty, and the planted
   cases at `:716-722` that depend on the allowed reach change to prove that any import of `bridge/index.html` from
   `cli/` is refused. If the exact-both-ways allowlist must not be empty, delete the constant and its check.
-- `apps/forge/CLAUDE.md`: delete the Deviations row "A feature never reaches another" (`:334`).
+- `apps/forge/CLAUDE.md`: delete the Deviations row "A feature never reaches another" (`:342`).
 - `apps/forge/src/services/overseer/OverseerServer.spec.ts` and `OverseerServer.integration.spec.ts`: delete the
   cases that build or fetch the page; add the case below.
 
@@ -183,8 +184,9 @@ imports. Runs alone: it changes guards that every other forge package relies on.
 
 Files to delete: `apps/forge/bridge/` (all of it); `apps/forge/src/testing/recordings/*/bridge__*.json`;
 `.claude/rules/bridge.md`; `apps/forge/.readme-graphics/` and the Bridge screenshots under `apps/forge/docs/images/`
-named `bridge-*.png`, if the owner confirms (see Needs the owner); `apps/forge/src/ProjectIncludeLists.spec.ts` once
-it holds only the Bridge's include list (read it first: if it holds another project, change it instead).
+named `bridge-*.png`, if the owner confirms (see Needs the owner); `apps/forge/src/ProjectIncludeLists.spec.ts`, which
+holds one project, `bridge/tsconfig.json` (`:38`), and nothing else (read it again first: if stage 6 gave it another
+project, change it instead).
 
 Files to change:
 - `apps/forge/package.json`: scripts `typecheck` becomes `tsc -p tsconfig.json` (drop `typecheck:root`,
@@ -199,12 +201,12 @@ Files to change:
   the feature list's `bridge/`, the DOM-suite note (`:172`), the view-folder rule and its planted cases (`:284`,
   `:645`, `:656`, `:710-794`), and the `design-system` and `flint` package cases (`:609`, `:772-802`) that forge no
   longer declares. The scan's proof that it read the tree keeps a lower bound that still holds.
-- `apps/forge/src/TestFileConventions.spec.ts`: a DOM spec is allowed under `packages/design-system/` and
-  `packages/flint/` only.
+- `apps/forge/src/TestFileConventions.spec.ts`: `DOM_SPEC_FOLDERS` (`:19`) loses `bridge/`, so a DOM spec is allowed
+  under `design-system/`, `flint/` and `brand/` only; the header (`:2-3`) and the note at `:87` follow.
 - `apps/forge/src/ClientNames.spec.ts:26`: lower `SMALLEST_SHIPPED_FILE_COUNT` to a bound under the new count (about
-  800 shipped files remain today; measure with the spec's own `isShipped`), and drop paths that no longer exist from
-  `:45` (`cli/overseer/routes/FrameOrigins.ts` stays until WP8.6).
-- `apps/forge/src/ComponentNames.spec.ts:75-82`: `design-system/CONSTITUTION.md` and `flint/package.json` are no longer
+  840 shipped files remain today, 1,199 less the 360 in `bridge/`; measure with the spec's own `isShipped`), and drop
+  paths that no longer exist from `:45` (`cli/overseer/routes/FrameOrigins.ts` stays until WP8.6).
+- `apps/forge/src/ComponentNames.spec.ts:81`: `design-system/CONSTITUTION.md` and `flint/package.json` are no longer
   scanned once forge declares neither package; replace them with files of packages forge still declares
   (`forge-contracts/package.json`).
 - Every other guard that names `bridge/`: `src/LintRules.spec.ts`, `src/PlatformBoundary.spec.ts`,
@@ -214,13 +216,14 @@ Files to change:
   `src/testing/CheckRecordingStamps.integration.spec.ts`, `cli/tracking/range/RangeCommand.spec.ts`,
   `src/services/control/BoardLifetimeControls.ts`. Remove each `bridge/` entry; every allowlist stays exact both ways.
 - `apps/forge/src/testing/BoundarySpecs.ts`: delete `HEADLESS_BRIDGE_SPEC` (`:22`) and the six `bridge/` boundaries
-  (`:145-150`); `OverseerServer.ts`'s boundary keeps its other two specs (`:138`).
+  (`:146-151`); `OverseerServer.ts`'s boundary keeps its other two specs (`:139`).
 - Rules: `apps/forge/CLAUDE.md` loses every rule that holds only for `bridge/` (`:59-61` import lines for the design
-  system and Flint, `:76-78`, `:221-224`, `:268-273`, the Deviations rows naming `bridge/Main.tsx`,
-  `bridge/testing/RunDomSpecs.ts`, `bridge/testing/HappyDom.ts` at `:318`, and `:341-343`); the root `CLAUDE.md`
-  package table and tracker table move `packages/design-system`, `packages/flint` and `packages/brand` out of forge's
-  reach (owner's call, see Needs the owner); `.claude/rules/flint.md:9-11` names the app that declares Flint after
-  stage 6; `.claude/rules/design-system.md` names Gaia as the package's consumer.
+  system and Flint, `:76-78`, `:221-224`, `:268-273`, the Bridge's three entries `bridge/Main.tsx`,
+  `bridge/testing/RunDomSpecs.ts` and `bridge/testing/HappyDom.ts` in the Deviations row "No work at module load"
+  (`:326`), and the rows at `:350-352`); the root `CLAUDE.md` package table and tracker table move
+  `packages/design-system`, `packages/flint` and `packages/brand` out of forge's reach (owner's call, see Needs the
+  owner); `.claude/rules/flint.md:14-16` names the app that declares Flint after stage 6;
+  `.claude/rules/design-system.md` names Gaia as the package's consumer.
 
 What to do:
 1. `git rm -r apps/forge/bridge` and the files above.
@@ -268,18 +271,24 @@ Purpose: no forge command opens a page or writes a pointer to one, since the pag
 
 Files to delete: `apps/forge/cli/tracking/open/` (OpenCommand, OpenThroughARedirectFile and their specs);
 `apps/forge/cli/OpenInTheDefaultBrowser.ts`, `OpenInTheDefaultBrowser.spec.ts`,
-`OpenInTheDefaultBrowser.integration.spec.ts`, `OpenerFor.ts`, `OpenerFor.spec.ts`, `Opener.contract.spec.ts` and
-every opener adapter only they reach (`git grep -ln "openerFor\|OpenerFor\|Opener\b" -- apps/forge`);
+`OpenInTheDefaultBrowser.integration.spec.ts`, `OpenerFor.ts` (the platform adapters live inside it),
+`OpenerFor.spec.ts`, `Opener.ts` (the port), `Opener.contract.spec.ts`; outside `bridge/`, nothing else names them but
+the guards below and `docs/development/`
+(`git grep -ln "openerFor\|OpenerFor\|Opener\b" -- apps/forge ':!apps/forge/bridge'`);
 `apps/forge/src/testing/recordings/*/cli__OpenInTheDefaultBrowser.ts.json`;
 `apps/forge/src/adapters/progress-page/` (the stub writer and its spec);
-`apps/forge/cli/adoption/WriteProgressPageStub.ts`; `apps/forge/src/SpecsOpenNoPage.spec.ts` if it guards only
-the opener (read it; if it also guards other page openers, keep it and drop the opener's planted cases).
+`apps/forge/cli/adoption/WriteProgressPageStub.ts`. `apps/forge/src/SpecsOpenNoPage.spec.ts` stays: it also refuses any
+spec that starts an opener program (`open`, `xdg-open`, the Windows handler) through a process start or a shell tag
+(`:17-30`); drop only its reaches through `openInTheDefaultBrowser`, `openCommand`, the `open` command line and
+`openerFor`, with their planted cases and the header sentence (`:1-8`) that names them.
 
 Files to change:
-- `apps/forge/cli/CommandTable.ts:40` and the `open` block of `apps/forge/cli/HelpText.ts` (`:570-580`).
+- `apps/forge/cli/CommandTable.ts:41` and the `open` block of `apps/forge/cli/HelpText.ts` (`:612-617`); the `start`
+  block's "as `open` does" (`:657`).
 - `apps/forge/cli/overseer/OverseerRemote.ts`: delete `sessionCodeOf` (`:214-230`) and its export (`:232`).
 - `apps/forge/cli/adoption/init/InitCommand.ts:35`, `:103`, `:173`; `update/UpdateCommand.ts:27`, `:69`;
-  `apps/forge/cli/overseer/OverseerForeground.ts:15`, `:174`: no stub.
+  `apps/forge/cli/overseer/OverseerForeground.ts:15`, `:174`, `:632` (the stub with the URL once the server is up): no
+  stub.
 - `htmlFilePath` of `Workspace` and the `progress.html` name stage 5 kept private to
   `apps/forge/src/services/tracker/Workspace.ts` (stage 5, WP5.11; `TrackerFiles.ts:11` today), and every
   `htmlFilePath` reader, `MonitorRegistrationRequest.htmlFilePath` (stage 5, WP5.9) among them: the board has no
@@ -291,21 +300,23 @@ Files to change:
   key is found, keep writing that key until stage 9 raises the registry's version (WP9.2), and say so in the commit.
 - `apps/forge/src/shared/constants/OverseerLimits.ts:120`: delete `SESSION_CODE_LIFETIME_SECONDS` once WP8.6 no longer
   reads it (it is read by `BrowserSessions.ts:8`; leave it until WP8.6).
-- `apps/forge/src/testing/BoundarySpecs.ts:141`, `src/testing/RecordedBoundaryCommands.ts`, `BoundaryRecordings.ts`:
-  the opener's boundary goes.
+- `apps/forge/src/testing/BoundarySpecs.ts:142`, `src/testing/RecordedBoundaryCommands.ts`, `BoundaryRecordings.ts`,
+  `src/PlatformBoundary.spec.ts`: the opener's boundary and its allowlisted platform reads go.
 - `apps/forge/src/testing/RecordedOverseerFetch.ts:226-236`: the `session-codes` and `session` call shapes stay until
   WP8.6, which deletes them with the routes.
-- `apps/forge/CLAUDE.md`: the Runtime sentence on `openerFor` (`:142-143`), and the Tests rule "A spec never opens a
-  page" (`:265-267`) if its guard went.
-- `apps/forge/cli/constants/InstallVersion.ts:1`: raise `INSTALL_VERSION` by one: `open` is in the frozen surface of
-  install version 29 (`apps/forge/cli/FrozenInstalledSurface.json:431-534`). Add the new version's key to
+- `apps/forge/CLAUDE.md`: the Runtime sentence on `openerFor` (`:142-143`); the Tests rule "A spec never opens a
+  page" (`:265-267`) stays with its guard, and only its "the default browser opener" names the opener programs.
+- `apps/forge/cli/constants/InstallVersion.ts:1`: raise `INSTALL_VERSION` by one (36 today): `open` is in the frozen
+  surface of install version 36 (`apps/forge/cli/FrozenInstalledSurface.json:609-619`). Add the new version's key to
   `FrozenInstalledSurface.json` as `cli/InstalledSurface.spec.ts:1-9` describes, never deleting a name from an older
   key; retake `apps/forge/cli/adoption/FrozenClaudeInstall.json` through its spec's
   `frozenTableFromTheCurrentImplementation`; run `bun run record src/services/overseer/InstallChangeWatch.ts`.
 - Installed text that names `open` or the Bridge's page: `resources/templates/SessionInstructions.md:26` ("Run
   `{{program}} open` once per session", deleted), and the rest of `resources/templates/` and `skills/` (search
   `git grep -n -w "open\|progress.html" -- apps/forge/resources apps/forge/skills`).
-- `apps/forge/docs/cli.md`: delete the `open` and `progress.html` entries; `docs/backlog.md` entries about them go.
+- `apps/forge/docs/cli.md`: delete the `open` and `progress.html` entries (among them `:158`, `:240`, `:1370`,
+  `:2134`, and `progressHtml` in the registry example at `:2964`); `docs/backlog.md` entries about them go;
+  `docs/development/platform-status.md` and `docs/development/guards-and-testing.md` drop the opener.
 
 What to do: delete, then follow `bun run typecheck`. Later work packages of stage 8 that change an installed file
 change only its text and the new frozen key; they do not raise `INSTALL_VERSION` again.
@@ -377,7 +388,7 @@ Files to change:
   line (`apps/forge/CLAUDE.md:90-92`).
 - `apps/forge/cli/overseer/routes/CommandRoute.ts`: `answerControlCommand(body, request)` takes no caller; the brain's
   start, which read the caller (`:126-128`), goes in WP8.7, so here pass a fixed `'api'` until then.
-- `apps/forge/cli/overseer/OverseerForeground.ts:466-470`: the server request has no `now` if it was removed.
+- `apps/forge/cli/overseer/OverseerForeground.ts:459-462`: the server request has no `now` if it was removed.
 - `apps/forge/src/testing/RecordedOverseerFetch.ts:222-240`: delete the `session-token`, `session-codes` and `session`
   call shapes and the session-cookie branch of `readerIsAuthorized`.
 - `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:45` and `ForgeCompatibilityRegistry.spec.ts:29`,
@@ -385,8 +396,8 @@ Files to change:
 - `apps/forge/src/ClientNames.spec.ts:45`: drop `cli/overseer/routes/FrameOrigins.ts`.
 - `apps/forge/src/shared/constants/OverseerLimits.ts:120`: delete `SESSION_CODE_LIFETIME_SECONDS`.
 - `apps/forge/docs/reference/overseer-api.md`: the route table rows for `session-codes`, `session`, `session-token`
-  and "Any other GET outside /api/" (`:44-46`, `:64`), and the sections "Browser sessions" (`:112-136`) and "Serving
-  the page" (`:137-164`); `apps/forge/docs/cli.md:1235-1238`.
+  and "Any other GET outside /api/" (`:44-46`, `:61`), and the sections "Browser sessions" (`:112-136`) and "Serving
+  the page" (`:137-164`); `apps/forge/docs/cli.md:1353-1360`.
 
 What to do:
 1. Delete in the order above, then `bun run typecheck` in `apps/forge`.
@@ -437,22 +448,22 @@ Files to change:
   serving period"; `publishFlintBrainChange` goes, and nothing else publishes on a brain change.
 - `apps/forge/cli/overseer/routes/BoardStateReader.ts:5`, `:31`, `:49-59`, `:141-146`, `:194-201`: the board state
   has no `flintBrain`; `BoardStateWithFlintBrain` and `FlintBrainBoardFacts` go.
-- `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:7`, `:26`, `:62-63`, `:158`, `:197-219`, `:318-321`:
+- `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts:7`, `:29`, `:65-66`, `:169`, `:208-232`, `:356-359`:
   no brain in the snapshot, no `flint-brain` activity kind, today's tokens count no brain run.
 - `packages/board-readings/TodayFigures.ts:6`, `:26-59`: delete `TodayFlintBrainRun` and `flintBrainRunsOf`;
   `todayFiguresOf` takes no runs.
-- `packages/board-readings/@types/MonitorSnapshot.ts:13`, `:99-100`, `:159-160`.
-- `apps/forge/src/shared/@types/ControlCommand.ts:233-239` (`FlintBrainCommand`, `OverseerApiCommand`);
+- `packages/board-readings/@types/MonitorSnapshot.ts:13`, `:108-109`, `:168-169`.
+- `apps/forge/src/shared/@types/ControlCommand.ts:264-273` (`FlintBrainCommand`, `OverseerApiCommand`);
   `apps/forge/src/services/control/ControlService.ts:9`, `:58-59`;
   `apps/forge/src/shared/constants/OverseerApiContracts.ts:34-35`.
-- `apps/forge/src/shared/constants/OverseerLimits.ts:143-170`; `apps/forge/src/shared/Environment.ts:92-118`.
-- The writer of the brain's log record: `Board.ts:452-454`, `Jobs.ts:313-317`. The reader stays (`LogRecord.ts`,
+- `apps/forge/src/shared/constants/OverseerLimits.ts:143-170`; `apps/forge/src/shared/Environment.ts:96-123`.
+- The writer of the brain's log record: `Board.ts:501-504`, `Jobs.ts:334-339`. The reader stays (`LogRecord.ts`,
   `LogRecordSchema.ts`, `FlintBrainVocabulary.ts`, `LogRecordProblem.ts`, `LogRecordMappingUtil.ts`, `LogUtil.ts`).
-  `EveryBoardLogRecord.ts` (`apps/forge/src/testing/EveryBoardLogRecord.ts:250-252` today; in
+  `EveryBoardLogRecord.ts` (`apps/forge/src/testing/EveryBoardLogRecord.ts:284-286` today; in
   `packages/tracker-model/testing/` after stage 4) builds that one record from a literal, with a one-line
   comment that no Board change logs it any more.
-- `apps/forge/src/testing/FakeAgentAdapter.ts:84-125`: delete `FAKE_FLINT_BRAIN_ANSWER`,
-  `FLINT_BRAIN_FAKE_AGENT_STEPS` and the tool-less branch at `:125`, unless another tool-less session exists
+- `apps/forge/src/testing/FakeAgentAdapter.ts:84-130`: delete `FAKE_FLINT_BRAIN_ANSWER`,
+  `FLINT_BRAIN_FAKE_AGENT_STEPS` and the tool-less branch at `:130`, unless another tool-less session exists
   (`git grep -n "availableTools === 'none'\|availableTools: 'none'" -- apps/forge`).
 - The vendor records of a brain turn stay: `apps/forge/src/lib/claude-code/ClaudeStreamFixtures.spec.ts:165-167`,
   `src/testing/fake-agent/RecordedClaudeLines.ts:23`, `ClaudeWireRecorder.ts:19-25`, `src/PlatformProbes.spec.ts:74`,
@@ -466,7 +477,7 @@ Files to change:
   `packages/forge-contracts/README.md`: the brain leaves the export table.
 - `packages/forge-contracts/constants/OverseerContractVersions.ts:8` comment; the version numbers change in WP8.10.
 - `apps/forge/src/services/overseer/testing/fixtures/monitor-v3.json` and the specs that read it.
-- Docs: `apps/forge/docs/reference/overseer-api.md` "Flint's brain" (`:236-280`) and its route row (`:51`);
+- Docs: `apps/forge/docs/reference/overseer-api.md` "Flint's brain" (`:236-280`) and its route row (`:53`);
   `apps/forge/docs/cli.md`, `docs/operations/runbook.md`, `docs/backlog.md` lines naming the brain.
 
 What to do: delete, follow the compiler in `apps/forge`, then in `packages/forge-contracts` and `apps/gaia`
@@ -486,8 +497,10 @@ files, the vendor records listed above and `EveryBoardLogRecord.ts`; the root is
 
 ### WP8.8 Markdown leaves forge as Markdown
 
-Purpose: forge renders no HTML. The board document carries the Markdown source of a ticket body and an epic
-description, and Gaia shows it (N3). Runs alone, after WP8.7.
+Purpose: forge renders no HTML. The board document carries the Markdown source of a ticket body, an epic description
+and the constitution preview of the pipeline setup, the board's and each entity's, and Gaia shows it (N3). Runs alone,
+after WP8.7. The constitution preview is a third reader of the renderer that this package first named only two of:
+`constitutionHtml` existed before the entities work, and that work added one per entity.
 
 Files to delete: `apps/forge/src/services/render/MarkdownRenderer.ts`, `MarkdownRenderer.spec.ts`,
 `RenderState.ts`.
@@ -497,28 +510,41 @@ Files to change:
   (the ticket body as stored, with no blank line added before Acceptance items), `descriptionHtml` becomes
   `descriptionMarkdown`; the `renderMarkdown` input goes. Keep `withAcceptanceItemsSeparated` only if Gaia needs the
   separation, moved to Gaia; otherwise delete it with the renderer.
-- `apps/forge/src/shared/@types/PagePayload.ts:76-79`, `:106-108`, and the board documents stage 4 put in
+- `apps/forge/src/shared/@types/PagePayload.ts:78-82`, `:110-112`, and the board documents stage 4 put in
   `packages/forge-contracts` (N4, `forge-contracts/BoardStateDocument` and the documents that name the fields): the same
   two keys; `BoardState.documents.spec.ts` (stage 4, WP4.8) keeps holding.
-- `apps/forge/cli/CommandContext.ts:13`, `:55`, `:131`; `apps/forge/cli/testing/CapturedCommandContext.ts:10`, `:102`;
-  `BoardStateReader.ts:167`: no render state.
-- `apps/forge/package.json`: drop `marked`; run `bun install` once at the root, then `--frozen-lockfile`.
+- `apps/forge/src/lib/tracker-model/@types/PipelineFacts.ts:110` (`PipelineSetupEntityFacts`) and `:126`
+  (`PipelineSetupFacts`, whose comment at `:125` says the server renders it), in `packages/tracker-model` after stage 4,
+  and the board document that carries them: `constitutionHtml` becomes `constitutionMarkdown`, the constitution as
+  stored, `null` with no constitution.
+- `apps/forge/src/services/render/PipelineFactsAssembly.ts:101`, `:236-240`: the `renderMarkdown` input goes; the
+  constitution facts carry `constitution.markdown`.
+- `apps/forge/src/services/overseer/BoardState.ts:145`, `:354`, `:362`: the reading has no `renderMarkdown`.
+- `apps/forge/cli/CommandContext.ts:13`, `:56-57`, `:134`; `apps/forge/cli/testing/CapturedCommandContext.ts:10`,
+  `:102`; `BoardStateReader.ts:167`: no render state.
+- `apps/forge/package.json`: drop `marked`; run `bun install` once at the root, then `--frozen-lockfile`. Its one
+  other importer, `apps/forge/.readme-graphics/render-readme.js:6`, goes with that folder in WP8.2; if the owner kept
+  the folder (Needs the owner, item 10), ask before dropping `marked`.
 - `apps/forge/CLAUDE.md:167-168`: "The render service keeps no module state: the configured Marked lives in the render
   state the command context carries" goes.
-- Gaia: the page renders the Markdown it shows (N3). The views stage 6 moved read `bodyMarkdown` and
-  `descriptionMarkdown` and render them to HTML in the page, shown where they showed `bodyHtml` and `descriptionHtml`;
-  the renderer is a dependency of Gaia's page (`marked` at the version forge drops, unless the owner picks another,
-  "Needs the owner", item 17), with its specs under `page/board/`.
-- `apps/forge/docs/reference/overseer-api.md:410-416`; `apps/forge/docs/glossary.md:90`;
+- Gaia: the page renders the Markdown it shows (N3). The views stage 6 moved read `bodyMarkdown`,
+  `descriptionMarkdown` and `constitutionMarkdown` and render them to HTML in the page, shown where they showed
+  `bodyHtml`, `descriptionHtml` and `constitutionHtml` (the Bridge shows all three as the `srcdoc` of one sandboxed
+  frame, `apps/forge/bridge/sandboxed-html/SandboxedHtmlFrame.tsx:1-5`); the renderer is a dependency of Gaia's page
+  (`marked` at the version forge drops, 17.0.6 today, unless the owner picks another, "Needs the owner", item 17), with
+  its specs under `page/board/`.
+- `apps/forge/docs/reference/overseer-api.md:411-417`, `:459`, `:463`; `apps/forge/docs/glossary.md:90`;
   `apps/forge/docs/development/guards-and-testing.md:55`.
 
 What to do: rename the fields in the contract first, then follow the compiler in `apps/forge` and `apps/gaia`.
 
 Specs: `PagePayloadAssembly.spec.ts` proves a ticket entry's `bodyMarkdown` equals the stored body byte for byte, an
-epic's `descriptionMarkdown` its stored description, and that no key of the document ends in `Html`.
+epic's `descriptionMarkdown` its stored description, and that no key of the document ends in `Html`;
+`PipelineFactsAssembly.spec.ts` proves `constitutionMarkdown` equals the stored constitution byte for byte, for the
+board and for an entity.
 
-Done when: `git grep -n "bodyHtml\|descriptionHtml\|renderMarkdown\|from 'marked'" -- apps packages` prints nothing;
-the root is green.
+Done when: `git grep -n "bodyHtml\|descriptionHtml\|constitutionHtml\|renderMarkdown\|from 'marked'" -- apps packages`
+prints nothing; the root is green.
 
 ### WP8.9 The Assistant does not start unless the board turns it on
 
@@ -528,46 +554,54 @@ incident takes its default at once with the cause `assistant-off`. Runs alone, a
 Files to change (mirror every file that names `pipeline-approval-set`: `git grep -ln "pipeline-approval-set"`). The
 tracker model lives in `packages/tracker-model/` since stage 4, at the same path inside the package; the line numbers
 are today's, read at `apps/forge/src/lib/tracker-model/`:
-- `packages/tracker-model/@types/Pipeline.ts:95-120`: `Pipeline` gains `assistant?: true`, present means on.
-- `packages/tracker-model/utils/PipelineUtil.ts:62-83`, `:114-120`: `formatVersionOf` answers
-  `PIPELINE_FORMAT_VERSION` when `assistant` is present, as it does for `reach`; the key stays out of the gating
-  hash, like `approvals`, and is in the apply-conflict hash, like `approvals`.
-- `apps/forge/src/adapters/pipeline/PipelineFile.ts`: read and validate `assistant` (present and not `true` is a
-  problem, as `overseerOnly` is at `:162-164`); write it only when on. Stage 5's store adapter carries it (N8).
+- `packages/tracker-model/@types/Pipeline.ts:153-178`: `Pipeline` gains `assistant?: true`, present means on. It is a
+  key of the board, beside `approvals` and `billing`, never of an entity (`PipelineEntity`), and stays allowed beside
+  `entities`.
+- `packages/tracker-model/utils/PipelineUtil.ts:100-111`, `:141-151`, `:177-186`: `formatVersionOf` answers
+  `ENTITIES_PIPELINE_FORMAT_VERSION` for a pipeline with entities, as today, and otherwise `PIPELINE_FORMAT_VERSION`
+  when `assistant` is present, as it does for `reach`; the key stays out of the gating hash (`phaseHashOf`), like
+  `approvals`, and is in the apply-conflict hash (`contentHashOf`, beside `approvals` in its canonical record), like
+  `approvals`.
+- `apps/forge/src/adapters/pipeline/PipelineFile.ts`: add `assistant` to the keys of versions 3 and 4 in
+  `PIPELINE_KEYS_OF_VERSION` (`:54-58`), not to version 2's; read and validate it (present and not `true` is a
+  problem, as a gate's `overseerOnly` is at `:203`); write it only when on. Stage 5's store adapter carries it (N8).
 - `apps/forge/src/shared/@types/ControlCommand.ts`: `{ kind: 'pipeline-assistant-set'; on: boolean }`.
-- `apps/forge/src/services/control/SettingControls.ts`: its applier, `inReadablePipeline` like `:50-52`, calling
+- `apps/forge/src/services/control/SettingControls.ts`: its applier, `inReadablePipeline` like `:51-54`, calling
   `transaction.board.setAssistant(command.on, transaction.at)` on stage 5's `BoardTransaction`. Switching off while an
   Assistant job is live stops that job in the same hold with the existing `job-stop` move, mode `stop` (Needs the
   owner).
-- `packages/tracker-model/Board.ts`: `setAssistant(on: boolean, at: string): Logged`, which writes the
-  pipeline and logs `pipeline-assistant-set`; `assistantIsOn(): boolean`; `playbookFactsOf` (`:675-690`) adds
-  `assistantIsOn: this.records.pipeline?.assistant === true`.
-- `packages/tracker-model/TrackerChanges.ts`: the change kind, as for the approval.
+- `packages/tracker-model/Board.ts`: `setAssistant(on: boolean, at: string): PipelineChanged`, beside `setApproval`
+  (`:928-930`), which writes the pipeline and logs `pipeline-assistant-set`; `assistantIsOn(): boolean`;
+  `playbookFactsOf` (`:796-815`) adds `assistantIsOn: this.records.pipeline?.assistant === true`.
+- `packages/tracker-model/TrackerChanges.ts`: `setAssistant`, as `setApproval` (`:176-184`): it refuses a pending
+  Apply, refuses with no stored pipeline (a new refusal `assistant-without-pipeline`, as `approval-without-pipeline`
+  in `BoardRefusal.ts:104` with its sentence in `apps/forge/src/adapters/utils/OperationRefusalWordingUtil.ts:306`),
+  and does not refuse a pipeline with entities, as `setReach` does.
 - `packages/tracker-model/constants/LogRecordSchema.ts`: `'pipeline-assistant-set': { subject: 'board',
-  fields: { state: 'text' } }`, beside `:256-257`; `apps/forge/src/adapters/utils/LogUtil.ts`: its sentence.
-- `packages/tracker-model/Playbook.ts`: `PlaybookFacts.assistantIsOn: boolean` (`:39-52`);
-  `noAssistantCanComeUp` and `assistantMayBoot` (`:535-536`) unchanged; a new `const assistantIsOff =
-  !facts.assistantIsOn`; the boot at `:546` also requires `!assistantIsOff`; `incidentDefaultStepsOf` (`:493-501`)
+  fields: { state: 'text' } }`, beside `:272-273`; `apps/forge/src/adapters/utils/LogUtil.ts`: its sentence.
+- `packages/tracker-model/Playbook.ts`: `PlaybookFacts.assistantIsOn: boolean` (`:55-78`);
+  `noAssistantCanComeUp` and `assistantMayBoot` (`:773-774`) unchanged; a new `const assistantIsOff =
+  !facts.assistantIsOn`; the boot at `:784` also requires `!assistantIsOff`; `incidentDefaultStepsOf` (`:731-739`)
   answers `{ kind: 'default-incident', incidentId, cause: 'assistant-off' }` for every incident while the Assistant is
   off, checked before the `no-assistant` branch.
 - `packages/tracker-model/@types/Incident.ts:34-35` and
-  `constants/DecisionAndIncidentVocabulary.ts:52`: `IncidentDefaultCause` adds `'assistant-off'`.
-- `LogUtil.ts:340` adds `'assistant-off': 'while the Assistant was off'`; `NoticeWordingUtil.ts:24` adds
+  `constants/DecisionAndIncidentVocabulary.ts:60`: `IncidentDefaultCause` adds `'assistant-off'`.
+- `LogUtil.ts:357` adds `'assistant-off': 'while the Assistant was off'`; `NoticeWordingUtil.ts:24` adds
   `'assistant-off': 'the Assistant is off'`.
 - `apps/forge/src/services/control/Bouncer.ts` (and `Bouncer.spec.ts`): no job role may send the new kind, as for the
   approval.
-- `apps/forge/cli/gates/GatePipelineVerbs.ts`: the verb `gate assistant on|off [--json]`, a usage line beside `:40`, a
-  parser beside `:175-181`, `Assistant: on|off` in `gate list` beside `:212-213`, the key in the JSON of `:238`.
+- `apps/forge/cli/gates/GatePipelineVerbs.ts`: the verb `gate assistant on|off [--json]`, a usage line beside `:41`, a
+  parser beside `:175-183`, `Assistant: on|off` in `gate list` beside `:213-214`, the key in the JSON of `:242`.
 - `apps/forge/cli/constants/JobVerbs.ts`, `apps/forge/cli/HatchUnderJob.spec.ts`: refused under a job.
 - `apps/forge/cli/HelpText.ts`: the block for the verb; `apps/forge/docs/cli.md`: the verb, the key and the record.
 - `apps/forge/src/services/render/PipelineFactsAssembly.ts`, `MonitorSnapshotAssembly.ts`: where the approval is read
   for the documents, read the switch too.
-- Installed text: `resources/templates/Reference.md:183-197` and `skills/agent-progress-orchestrate/SKILL.md:19`, `:80`
+- Installed text: `resources/templates/Reference.md:187-201` and `skills/agent-progress-orchestrate/SKILL.md:19`, `:80`
   say an Assistant settles incidents; reword so they hold whether the Assistant is on or off (the incident takes its
   default while it is off). Add the new frozen key's names in `FrozenInstalledSurface.json` only if the verb is named
   in an installed file; `INSTALL_VERSION` was raised in WP8.4.
-- `packages/tracker-model/testing/LifecycleFixtures.ts:79`: the default facts have `assistantIsOn: true`, so
-  the specs that test the Assistant keep testing it; add fixtures with it off.
+- `packages/tracker-model/testing/LifecycleFixtures.ts:69-87` (`factsWith`): the default facts have
+  `assistantIsOn: true`, so the specs that test the Assistant keep testing it; add fixtures with it off.
 
 What to do: build the model first (types, Board, Playbook), then the control, then the CLI, following the approval at
 each step.
@@ -579,7 +613,8 @@ Specs:
 - `SettingControls.spec.ts`: `pipeline-assistant-set` on writes `assistant: true` and logs `state: 'on'`; off removes
   the key, logs `state: 'off'` and stops a live Assistant job; on an unreadable pipeline it refuses as the approval
   does.
-- `PipelineFile.spec.ts`: a pipeline with `assistant: true` round-trips byte for byte; `assistant: false` is a problem.
+- `PipelineFile.spec.ts`: a pipeline with `assistant: true` round-trips byte for byte, in version 3 alone and in
+  version 4 beside `entities`; `assistant: false` is a problem; a version 2 file holding `assistant` is malformed.
 - `GatePipelineVerbs.spec.ts`: the verb, its usage refusal and its JSON answer.
 - `Bouncer.spec.ts`, `HatchUnderJob.spec.ts`, `ControlService.spec.ts`: the new kind in their exact lists.
 
@@ -591,8 +626,9 @@ in `packages/tracker-model`, `bun test ./Playbook.spec.ts` names the cases above
 Purpose: the system versions say what stages 8's removals did. Runs alone, after WP8.9.
 
 Files to change:
-- `packages/forge-contracts/constants/ForgeSystemVersions.ts:14-17`: `current: { major: 2, minor: 0 }`,
-  `minimumSupported: { major: 2, minor: 0 }`; rewrite the docblock (`:7-13`) for 2.0.
+- `packages/forge-contracts/constants/ForgeSystemVersions.ts:40-43`: `current: { major: 2, minor: 0 }`,
+  `minimumSupported: { major: 2, minor: 0 }` (today 1.18 and 0.0); rewrite the docblock (`:7-39`, which names every
+  minor from 1.1 to 1.18) for 2.0.
 - `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts`: the entries listed under Interfaces introduced;
   the three `keptForReleasedClientsOf` entries (`:46-48`) go, since the minimum passed 0.0 (Needs the owner).
 - `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts:1-61`: rewrite the lists and claims for 2.0:
@@ -623,7 +659,7 @@ Files to change:
   owner).
 - `apps/forge/CLAUDE.md:93-97` and `apps/gaia/CLAUDE.md:26-45`: name the versions only where they already do.
 - `apps/forge/docs/reference/overseer-api.md` "Contracts", "System versions", "Versioned paths", "Contract versions",
-  "The embed contract" (`:627-829`).
+  "The embed contract" (`:630-867`).
 
 What to do:
 1. Run `cd packages/forge-contracts && bun run versions:raise-minimum 2.0` after setting the current version to 2.0 and
@@ -677,12 +713,14 @@ Files to change: `apps/forge/README.md` (screenshots, architecture paragraph `:3
 `docs/operations/running-a-board.md`, `docs/operations/getting-started.md`, `docs/operations/runbook.md`,
 `docs/development/contributing.md`, `docs/development/guards-and-testing.md`, `docs/reference/refusals.md`,
 `docs/concepts/overview.md`, `docs/concepts/ticket-lifecycle.md`, `docs/README.md`, `docs/backlog.md`;
-`apps/forge/resources/prompts/PipelineAgentPrompt.md` and `PipelineAgentDesign.md` (stage 6's WP7.2 already reworded
-them; check), `resources/templates/PipelineAgentBrief.md:6`, `Reference.md:245`, `skills/agent-po/SKILL.md:142`,
+`apps/forge/resources/prompts/PipelineAgentPrompt.md` (`:3`, `:34`) and `PipelineAgentDesign.md` (`:7`) (stage 7's
+WP7.2 already reworded them; check), `resources/templates/PipelineAgentBrief.md:6`, `Reference.md:249`,
+`skills/agent-po/SKILL.md:147`,
 `skills/agent-progress-orchestrate/SKILL.md:75`, which tell User to act "in the Bridge"; wording in `apps/forge/src`
 and `apps/forge/cli` that names the Bridge (`git grep -n -w "Bridge" -- apps/forge/src apps/forge/cli ':!*.spec.ts'`);
 `apps/forge/CLAUDE.md:4` (the opening line), `:46-48` (the component list), `:71` (the tracker model is DOM-safe for
-the Bridge's project), `:90-92` (a sentence names "the Bridge control"), `:389` (the Bridge reads rows as bars);
+the Bridge's project), `:90-92` (a sentence names "the Bridge control"), `:404` (no Bridge control for an entity
+move), `:419` (the Bridge reads rows as bars);
 Gaia's `docs/architecture.md`, `docs/forge-requirements.md`, `docs/backlog.md`.
 
 What to do:
@@ -719,31 +757,32 @@ Changes no tracked file. Runs alone.
 What to do:
 1. Create the worktree `.claude/worktrees/stage-9-rename` from the commit that ends stage 8.
 2. Measure with the commands below and write the numbers into the session's notes (not into the repository). Today's
-   numbers, before stages 2 to 8, are given for comparison:
+   numbers, at `0a648b2b` before stages 2 to 8, are given for comparison. The repository-wide counts include this
+   refactoring's own plan under `docs/monorepo/` (most of the 17 `docs/` files), which the rename leaves unchanged:
 
    | Kind | Command (from the repository root) | Today |
    | --- | --- | --- |
-   | Files naming it in content | `git grep -il "oversee" \| wc -l` | 844 (forge 686, Gaia 134, packages 16, `docs/` 4, `.claude/rules/` 2, root `CLAUDE.md` and `README.md` 1 each) |
-   | Occurrences of the substring | `git grep -oi "oversee" \| wc -l` | 8,934 (forge 6,851, Gaia 1,961, packages 39, `docs/` 51, `.claude/` 22, root 10) |
-   | By case | `git grep -o "Overseer"`, `"overseer"`, `"OVERSEER"`, `git grep -ow "oversee"` | 4,773; 3,300; 394; 454 |
-   | Paths naming it | `git ls-files \| grep -i oversee` | 269 paths: folders `apps/forge/src/services/overseer/` (179 files), `apps/forge/cli/overseer/` (44), `apps/forge/docs/figures/overseer-api/` (12); 68 file names |
-   | Code (`.ts`, `.tsx`, `.js`) | `git grep -ohE '[A-Za-z0-9_$-]*([Oo]versee\|OVERSEE)[A-Za-z0-9_$-]*' -- '*.ts' '*.tsx' '*.js'` | 741 files, 6,974 tokens: bare words 3,167; compound identifiers 2,988 (213 distinct); SCREAMING_CASE 377 (56 distinct); kebab-case wire values 442 (53 distinct) |
-   | JSON | `git grep -il oversee -- '*.json'` | 26 files, 273 occurrences (recordings, frozen tables, fixtures, two `package.json`) |
-   | Stored keys | `git grep -ow "overseerState\|overseerFirstStartedAt\|overseerOnly"` | `overseerState` 118, `overseerFirstStartedAt` 23, `overseerOnly` 39 (and `--overseer-only` 6) |
-   | Log record kinds | `git grep -o "overseer-started\|overseer-stopped\|overseer-set\|overseer-state\|overseer-stop-reason"` | 20, 14, 23, 5, 5 |
-   | Data folder names | `git grep -o "overseer\.log"`; `git grep -o "<data>/overseer"` | 31 in 17 files; 14 in 9 files |
-   | Command kinds | `git grep -o "overseer-pause\|overseer-resume\|overseer-stop\|overseer-restart\|pause-overseer"` | 50, 28, 44, 38, 9 |
-   | Decision asker | `git grep -o "askedBy: 'overseer'"` | 17 in 14 files |
-   | Registry key Gaia reads | written at `apps/forge/src/services/tracker/MonitorRegistration.ts:62`, read at `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:34`; `git grep -n "lastCommand"` | 1 writer, 1 reader; `lastCommand` values in 35 files |
-   | Login item label | `git grep -o "com\.forge\.overseer"`; `git grep -o -- "--login-overseer"` | 12 in 6 files; 22 |
-   | The verb | `git grep -ow "oversee"` | 454 |
-   | Gaia's names | `git grep -o "overseer-fetch"`; `git grep -o "RegisteredOverseer"` | 52 in 20 files; 10 in 5 files |
-   | Installed surface | `git grep -c -i oversee -- apps/forge/resources/templates apps/forge/skills apps/forge/cli/FrozenInstalledSurface.json apps/forge/cli/adoption/FrozenClaudeInstall.json` | templates 5 files (45), skills 2 (20), frozen surface 32 lines, frozen install 12 lines |
-   | Documents | `git grep -c -i oversee -- 'apps/forge/docs' 'apps/forge/README.md' 'apps/gaia/docs'` | forge Markdown 18 files (1,276), forge HTML and SVG 4 (93), Gaia 4 (31) |
-   | Rules | `git grep -c -i oversee -- CLAUDE.md apps/forge/CLAUDE.md apps/gaia/CLAUDE.md .claude/rules` | 5 files, 65 |
-   | Prompts | `git grep -c -i oversee -- apps/forge/resources/prompts` | 17 files, 42 |
-   | Other kinds | `git grep -il oversee \| grep -vE '\.(ts\|tsx\|js\|json\|md)$'` | css 3, html 2, jsonl 6, ps1 1, sh 4, svg 3 |
-   | Articles and plurals | `git grep -o "[Aa]n Overseer"`, `"[Tt]he Overseer"`, `" Overseers"`, `"TheOverseer"`, `"THE_OVERSEER"`, `"the-overseer"` | 288; 1,729; 18; 33; 22; 5 |
+   | Files naming it in content | `git grep -il "oversee" \| wc -l` | 909 (forge 737, Gaia 134, packages 17, `docs/` 17, `.claude/rules/` 2, root `CLAUDE.md` and `README.md` 1 each) |
+   | Occurrences of the substring | `git grep -oi "oversee" \| wc -l` | 10,468 (forge 7,071, Gaia 1,961, packages 41, `docs/` 1,363, `.claude/` 22, root 10) |
+   | By case | `git grep -o "Overseer"`, `"overseer"`, `"OVERSEER"`, `git grep -ow "oversee"` | 5,539; 3,947; 410; 553 |
+   | Paths naming it | `git ls-files \| grep -i oversee` | 298 paths: folders `apps/forge/src/services/overseer/` (204 files), `apps/forge/cli/overseer/` (48), `apps/forge/docs/figures/overseer-api/` (12); 34 other paths |
+   | Code (`.ts`, `.tsx`, `.js`) | `git grep -ohE '[A-Za-z0-9_$-]*([Oo]versee\|OVERSEE)[A-Za-z0-9_$-]*' -- '*.ts' '*.tsx' '*.js'` | 789 files, 7,133 tokens: bare words 3,278; compound identifiers 3,028 (210 distinct); SCREAMING_CASE 385 (57 distinct); kebab-case wire values 442 (53 distinct) |
+   | JSON | `git grep -il oversee -- '*.json'` | 27 files, 297 occurrences (recordings, frozen tables, fixtures, two `package.json`) |
+   | Stored keys | `git grep -ow "overseerState\|overseerFirstStartedAt\|overseerOnly"` | `overseerState` 124, `overseerFirstStartedAt` 26, `overseerOnly` 50 (and `--overseer-only` 8) |
+   | Log record kinds | `git grep -o "overseer-started\|overseer-stopped\|overseer-set\|overseer-state\|overseer-stop-reason"` | 28, 24, 25, 7, 8 |
+   | Data folder names | `git grep -o "overseer\.log"`; `git grep -o "<data>/overseer"` | 38 in 19 files; 23 in 13 files |
+   | Command kinds | `git grep -o "overseer-pause\|overseer-resume\|overseer-stop\|overseer-restart\|pause-overseer"` | 86, 32, 79, 42, 11 |
+   | Decision asker | `git grep -o "askedBy: 'overseer'"` | 29 in 20 files |
+   | Registry key Gaia reads | written at `apps/forge/src/services/tracker/MonitorRegistration.ts:62`, read at `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:34`; `git grep -n "lastCommand"` | 1 writer, 1 reader; `lastCommand` values in 36 files |
+   | Login item label | `git grep -o "com\.forge\.overseer"`; `git grep -o -- "--login-overseer"` | 17 in 8 files; 24 |
+   | The verb | `git grep -ow "oversee"` | 553 |
+   | Gaia's names | `git grep -o "overseer-fetch"`; `git grep -o "RegisteredOverseer"` | 79 in 22 files; 12 in 6 files |
+   | Installed surface | `git grep -c -i oversee -- apps/forge/resources/templates apps/forge/skills apps/forge/cli/FrozenInstalledSurface.json apps/forge/cli/adoption/FrozenClaudeInstall.json` | templates 5 files (47), skills 2 (20), frozen surface 46 lines, frozen install 12 lines |
+   | Documents | `git grep -c -i oversee -- 'apps/forge/docs' 'apps/forge/README.md' 'apps/gaia/docs'` | forge Markdown 18 files (1,307), forge HTML and SVG 4 (93), Gaia 4 (31) |
+   | Rules | `git grep -c -i oversee -- CLAUDE.md apps/forge/CLAUDE.md apps/gaia/CLAUDE.md .claude/rules` | 5 files, 68 |
+   | Prompts | `git grep -c -i oversee -- apps/forge/resources/prompts` | 20 files, 45 |
+   | Other kinds | `git grep -il oversee \| grep -vE '\.(ts\|tsx\|js\|json\|md)$'` | css 3, html 4, jsonl 6, ps1 1, sh 4, svg 4 |
+   | Articles and plurals | `git grep -o "[Aa]n Overseer"`, `"[Tt]he Overseer"`, `" Overseers"`, `"TheOverseer"`, `"THE_OVERSEER"`, `"the-overseer"` | 304; 2,003; 25; 42; 24; 7 |
 
 3. Also run `git grep -n -i "watcher"` (N7). Any Watcher name that survived stage 2 is renamed in this stage to its
    Talos form, and listed in the same retired-name change (WP9.5).
@@ -782,24 +821,28 @@ What to do:
 1. Run `rename.ts` on code only: `*.ts`, `*.tsx`, `*.js`, `*.json` (outside the exclusions), `*.css`, `*.html`, `*.sh`,
    `*.ps1`, `*.svg` inside `apps/` and `packages/`, `tsconfig*.json`, `eslint.config.js`, `package.json` exports.
 2. Raise each stored format whose key or value changed (Interfaces introduced): `CURRENT_PROGRESS_FILE_VERSION`
-   (`apps/forge/src/adapters/progress/constants/ProgressFileVersions.ts:5`), the pipeline format (`Pipeline.ts:6`,
-   `:9`), `MONITOR_REGISTRY_FILES.SUPPORTED_VERSION` (`MonitorRegistryFiles.ts:6`) with Gaia's
-   `CONTRACT_VERSIONS.forgeRegistry` (`ContractVersions.ts:14`), each to the next unused number. An older file is then
-   refused with `OLDER_FORMAT_ADVICE` (`apps/forge/CLAUDE.md:101-103`); the frozen fixture
-   `apps/forge/src/adapters/pipeline/FrozenVersionTwoPipeline.json` and its spec follow the owner's pipeline decision.
+   (`apps/forge/src/adapters/progress/constants/ProgressFileVersions.ts:5`), the pipeline formats (`Pipeline.ts:9`,
+   `:12`, `:15`: 3, 2 and 4 today, read by `PipelineFile.ts:53-63`), `MONITOR_REGISTRY_FILES.SUPPORTED_VERSION`
+   (`MonitorRegistryFiles.ts:6`) with Gaia's `CONTRACT_VERSIONS.forgeRegistry` (`ContractVersions.ts:14`), each to the
+   next unused number. An older file is then refused with `OLDER_FORMAT_ADVICE` (`apps/forge/CLAUDE.md:101-103`); the
+   frozen fixtures `apps/forge/src/adapters/pipeline/FrozenVersionTwoPipeline.json` and
+   `FrozenVersionThreePipeline.json`, each of which names `overseerOnly`, and their specs follow the owner's pipeline
+   decision (Needs the owner, item 14).
 3. At the root: `bun run lint:fix`, then `bun run typecheck`, then `bun run lint`. Fix by hand what lint:fix leaves:
    code lines over 180 columns and comment lines over 155 (each rename adds two or three characters), and any aligned
    column the fixer does not move.
 4. Fix the guards whose expectations name paths, without adding the retired names yet:
-   `apps/forge/src/ComponentNames.spec.ts:75-82` expects `src/services/hephaestus/` and keeps `CLAUDE.md` containing
-   `Overseer` until WP9.3 (then `Hephaestus`); the planted case at `:93` uses `src/services/hephaestus/Example.ts`;
+   `apps/forge/src/ComponentNames.spec.ts:77-86` expects `src/services/hephaestus/` and keeps `CLAUDE.md` containing
+   `Overseer` until WP9.3 (then `Hephaestus`); the planted case at `:97` uses `src/services/hephaestus/Example.ts`;
    `src/ClientNames.spec.ts:45` the renamed reference path; `src/ImportDirection.spec.ts:51`, `:80`, `:97`, `:121`
    the layer `hephaestus-service`; `src/PlatformBoundary.spec.ts`, `src/RealSystemSpecs.spec.ts`,
    `src/TestFileConventions.spec.ts:130-146` (the planted start uses the new verb); `src/testing/BoundarySpecs.ts`;
    `cli/HatchUnderJob.spec.ts`, `cli/ControlContract.spec.ts`, `cli/CommandTable.spec.ts`, `cli/HelpText.flags.spec.ts`.
 5. Retake each frozen table whose subject was renamed, by the retake procedure its spec states, never by hand:
-   `apps/forge/cli/hephaestus/FrozenPosixChildSpawn.json` (its key `overseer`), `FrozenRootTrackerGitCalls.json`,
-   `apps/forge/src/services/hephaestus/FrozenDarwinWorkerProfiles.json` (if it holds a data path),
+   `apps/forge/cli/hephaestus/FrozenPosixChildSpawn.json` (its key `overseer`); `FrozenRootTrackerGitCalls.json` and
+   `FrozenFolderTrackerGitCalls.json` (moved with their folder; neither names it today, so a retake shows no change
+   unless a git call's path does); `apps/forge/src/services/hephaestus/FrozenDarwinWorkerProfiles.json` (it does not
+   name it today); `apps/forge/cli/PlatformPorts.frozen.spec.ts` (names it twice) with `cli/FrozenPlatformPorts.json`;
    `apps/forge/cli/adoption/FrozenClaudeInstall.json` after WP9.3.
 6. Recordings: rename the files with the module paths, and rename forge's own values inside them (paths, log kinds,
    refusal codes, document keys) with the script so the default suite stays green; WP9.4 records them again and the
@@ -917,15 +960,18 @@ Removed: `POST /api/session-codes`, `POST /api/session`, `GET /api/session-token
 ### Stage 8: the Assistant's switch
 
 - `pipeline.json` key `assistant`: `true` when the board turned the Assistant on; absent when off. Never `false`. A
-  pipeline holding it is written in `PIPELINE_FORMAT_VERSION`. Out of the gating hash, in the apply-conflict hash.
-- `Pipeline.assistant?: true` (`Pipeline.ts`).
+  pipeline holding it is written in `PIPELINE_FORMAT_VERSION` (3), or in `ENTITIES_PIPELINE_FORMAT_VERSION` (4) beside
+  `entities`; version 2 does not hold it. Out of the gating hash, in the apply-conflict hash.
+- `Pipeline.assistant?: true` (`Pipeline.ts`): a board key, never an entity's. A pipeline without entities that holds
+  it is written in version 3; one with entities stays version 4.
 - Control command `{ kind: 'pipeline-assistant-set'; on: boolean }`. Applied in a hold on a readable pipeline; refused
   as `pipeline-approval-set` is on an unreadable one; under a job, refused for every role. `on: false` while an
   Assistant job is live also stops that job, mode `stop`.
 - CLI verb `forge gate assistant on|off [--json]`: the same answer `gate approval` prints, with the switch's state.
   `gate list` prints `Assistant: on` or `Assistant: off`.
 - Log record `pipeline-assistant-set`: `{ subject: 'board', fields: { state: 'text' } }`, `state` `'on'` or `'off'`.
-- `Board.setAssistant(on: boolean, at: string): Logged` and `Board.assistantIsOn(): boolean`.
+- `Board.setAssistant(on: boolean, at: string): PipelineChanged` and `Board.assistantIsOn(): boolean`. Refused with no
+  stored pipeline (`assistant-without-pipeline`) and while an Apply is pending, as `setApproval` is.
 - `PlaybookFacts.assistantIsOn: boolean`.
 - `IncidentDefaultCause`: `'turn-closed' | 'turn-budget' | 'no-assistant' | 'assistant-off'`. While the switch is off,
   every open incident takes its default in the pass, cause `assistant-off`, before any other cause is considered; no
@@ -948,12 +994,13 @@ Removed: `POST /api/session-codes`, `POST /api/session`, `GET /api/session-token
 - `MonitorSnapshotDocument`: no `flintBrain`, no activity kind `flint-brain`. `ForgeControlCommand`: no
   `flint-brain-start`, `flint-brain-stop`.
 - Board document ticket entry: `bodyMarkdown: string` in place of `bodyHtml`; epic description entry:
-  `descriptionMarkdown: string` in place of `descriptionHtml`.
+  `descriptionMarkdown: string` in place of `descriptionHtml`; pipeline setup facts and each entity's:
+  `constitutionMarkdown: string | null` in place of `constitutionHtml`.
 - Gaia: `SUPPORTED_FORGE_VERSION` 2.0; `GAIA_SYSTEM_VERSION` at its next major and the minimum equal to it;
   `GAIA_ENDPOINT_VERSIONS` with `fleet`, `events` and `commands` one higher, `health`, `sessionCodes` and `session`
   unchanged; `CONTRACT_VERSIONS` with `gaiaFleetDocument` and `gaiaCommand` one higher. `frameSession`,
   `forgeEmbedChannel`, `forgeFrameAncestorRecord` and `gaiaFrameSession` left in stage 6 (WP6.23).
-- `INSTALL_VERSION` one higher than at the start of stage 8 (29 today), with its key added to
+- `INSTALL_VERSION` one higher than at the start of stage 8 (36 today), with its key added to
   `FrozenInstalledSurface.json`.
 - The board's data folder has no `progress.html`; `forge open` is unknown.
 
@@ -1003,13 +1050,13 @@ What the rules produce for the named stored and installed names:
 `FORGE_SYSTEM_VERSIONS` 3.0, minimum 3.0; `forge-contracts` 3.0.0; `summary`, `monitor` and `control` contract
 integers each one higher than after stage 8; `SUPPORTED_FORGE_VERSION` 3.0; `GAIA_SYSTEM_VERSION` at its next major
 and the minimum equal to it; `INSTALL_VERSION` one higher than after stage 8; `progress.json`, the pipeline format and
-the registry file each at their next unused version (today 2, 3 and 1, so 3, 4 and 2 unless an earlier stage raised
-them).
+the registry file each at their next unused version (today 2, the pipeline's highest 4 (it is read in 2, 3 and 4), and
+1, so 3, 5 and 2 unless an earlier stage raised them).
 
 ## Traps
 
 - **The ClientNames scan proof breaks when the Bridge goes.** `SMALLEST_SHIPPED_FILE_COUNT` is 1,000
-  (`apps/forge/src/ClientNames.spec.ts:26`); forge ships 1,120 such files today, 312 of them in `bridge/`. Lower the
+  (`apps/forge/src/ClientNames.spec.ts:26`); forge ships 1,199 such files today, 360 of them in `bridge/`. Lower the
   bound in WP8.2 to one the new count passes with margin, not to zero.
 - **Packages lose their guards with the Bridge.** `ImportDirection.spec.ts` and `ComponentNames.spec.ts` scan
   `design-system` and `flint` because forge declares them (`apps/forge/src/testing/RepositorySources.ts:206-214`).
@@ -1036,12 +1083,12 @@ them).
 - **`bun.lock` changes with every manifest and package version change.** After removing dependencies or raising
   `forge-contracts`'s version, run `bun install` once at the root, then `bun install --frozen-lockfile`. A frozen
   install that fails is a lock out of date, never a reason to edit a `package.json` back.
-- **The Assistant off by default changes many specs' premises.** 55 spec files name the Assistant or its boot today
+- **The Assistant off by default changes many specs' premises.** 56 spec files name the Assistant or its boot today
   (`git grep -l "boot-assistant\|'assistant'" -- '*.spec.ts'`). Set `assistantIsOn: true` in the lifecycle fixtures
-  (`LifecycleFixtures.ts:79`) so those specs keep testing the Assistant; the new behaviour gets its own cases.
-  `CrashMatrix.integration.spec.ts:812` expects `no-assistant`: its board must turn the Assistant on, or the cause
-  becomes `assistant-off`.
-- **The switch off must not leave incidents open.** `noAssistantCanComeUp` (`Playbook.ts:535`) is not the place: it
+  (`LifecycleFixtures.ts:69-87`) so those specs keep testing the Assistant; the new behaviour gets its own cases.
+  `src/services/overseer/CrashMatrix.integration.spec.ts:812` expects `no-assistant`: its board must turn the Assistant
+  on, or the cause becomes `assistant-off`.
+- **The switch off must not leave incidents open.** `noAssistantCanComeUp` (`Playbook.ts:773`) is not the place: it
   also holds `assistantMayBoot` and the retry. Add the off check first in `incidentDefaultStepsOf`, so an incident
   delivered to a turn of a live Assistant also defaults once the switch is off.
 - **A Bun build that ran on the first request hid failures.** Today a page build failure was retried per request
@@ -1049,7 +1096,7 @@ them).
 - **The brain's log record stays readable but nothing writes it.** `EveryBoardLogRecord.ts:1-3` promises every kind
   "as the Board's own changes log them". After WP8.7, build the `flint-brain-ended` record from a literal there with a
   one-line why; do not keep a dead Board method to satisfy the helper.
-- **The fake agent's tool-less branch.** `FakeAgentAdapter.ts:125` plays the brain's turns for any session with no
+- **The fake agent's tool-less branch.** `FakeAgentAdapter.ts:130` plays the brain's turns for any session with no
   tool. Check that no other session runs tool-less before deleting it; otherwise such a session would play the
   ordinary scenario.
 - **Gaia's own session is not the forge's.** Gaia keeps its page session (`page/shell/SessionCodeExchange.ts`,
@@ -1064,8 +1111,8 @@ them).
 - **The rename lengthens lines.** "Hephaestus" is two characters longer than "Overseer" and three longer than
   "oversee". Lint's 180 and 155 limits and `ProseWrap.spec.ts`'s 120 columns fail on lines that were near the limit;
   aligned `from` columns and object values move. Run `lint:fix`, then fix the rest by hand.
-- **Plain substitution breaks English and identifiers.** "an Overseer" (288 today) becomes "an Hephaestus" and "the
-  Overseer" (1,729) becomes "the Hephaestus" unless the phrase rules run first; `stopTheOverseer` becomes
+- **Plain substitution breaks English and identifiers.** "an Overseer" (304 today) becomes "an Hephaestus" and "the
+  Overseer" (2,003) becomes "the Hephaestus" unless the phrase rules run first; `stopTheOverseer` becomes
   `stopTheHephaestus`. Keep the rule order of the replacement table.
 - **Historical frozen data must keep the old names.** `FrozenInstalledSurface.json` keeps every older install
   version's names ("never delete a name from a version already frozen", `cli/InstalledSurface.spec.ts:7-8`); the vendor
@@ -1087,8 +1134,9 @@ them).
   all left behind by stage 9. The owner stops every forge and removes its login items with the old program before
   pulling stage 9 into the installed clone, then sets the boards up anew (Needs the owner).
 - **The rename touches the stored versions that other stages may have raised.** Stage 3 and stage 5 may already have
-  raised `progress.json` or the pipeline format. Raise each to the next unused number at the time of stage 9; never
-  reuse a number a commit of this refactoring already wrote.
+  raised `progress.json` or the pipeline format, and the entities work already took pipeline version 4
+  (`ENTITIES_PIPELINE_FORMAT_VERSION`), so the pipeline's next unused number is 5 at the least, not 4. Raise each to the
+  next unused number at the time of stage 9; never reuse a number a commit of this refactoring or an earlier one wrote.
 
 ## Verification of the whole stage
 
@@ -1185,8 +1233,8 @@ repository, exits 0, and
     `com.agent-progress.overseer` stays, as a fact about another program.
 14. **Stored format versions at stage 9.** Recommended: raise `progress.json`, the pipeline format and the registry, so
     an old board or registry is refused rather than misread. For the pipeline, recommended: one format, the new number,
-    read and written alone, and the Deviations row on versions 2 and 3 deleted. Alternative: rename keys without a
-    version change.
+    read and written alone, and the Deviations row on versions 2, 3 and 4 (`apps/forge/CLAUDE.md:335`) deleted.
+    Alternative: rename keys without a version change.
 15. **A major version for forge (3.0) and for Gaia in stage 9.** Recommended: yes; the command kinds and document
     keys Gaia uses change, and a forge of stage 8 may already run from the installed clone.
 16. **Historical documents.** Recommended: leave `docs/monorepo/` unchanged, as the record of this change, and rename
@@ -1220,10 +1268,8 @@ repository, exits 0, and
   `apps/forge/docs/images/*.png`) show the word in their pixels; `git grep` does not read images.
 - Whether an old board's `log.jsonl`, with renamed record kinds, is read before the `progress.json` version check on
   `status`, so the refusal names the progress file and not a malformed log.
-- Whether `apps/forge/src/ProjectIncludeLists.spec.ts` and `src/SpecsOpenNoPage.spec.ts` hold anything besides the
-  Bridge and the opener; both were seen named, not read in full.
-- Whether a Gaia view of stage 6 shows agent-written HTML in a sandboxed frame, which the page's `frame-src 'none'`
-  would block for a URL source (a `srcdoc` frame inherits the policy and was not checked).
-- Whether the opener adapters under `apps/forge/cli/` have a consumer besides `open`; only `OpenerFor.ts` and
-  `OpenInTheDefaultBrowser.ts` were found by name.
+- Whether Gaia's page policy `frame-src 'none'` lets the sandboxed frame that shows rendered Markdown load. The Bridge
+  shows a ticket body, an epic description and the constitution preview as the `srcdoc` of one sandboxed frame
+  (`apps/forge/bridge/sandboxed-html/SandboxedHtmlFrame.tsx:1-5`); whether stage 6 keeps that frame, and how a `srcdoc`
+  frame meets `frame-src 'none'`, was not checked.
 - The exact JSON answer of `gate approval --json`, which the new verb copies; it was not read.

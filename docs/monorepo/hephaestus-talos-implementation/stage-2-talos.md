@@ -71,56 +71,61 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | The Watcher binary, its composition root, `process.exit` | `watcher.ts:10-11` | Deleted; `talos.ts` takes its place |
 | The child spawn with stdin piped for an agent, stdout to the event log, stderr to the Watcher log | `src/lib/watcher/Watcher.ts:295-346` | Changed: moved into `src/lib/talos/ChildSupervisor.ts` |
 | The stop: list the tree, close stdin, `ask` after the grace, `force` sweep after a second grace | `src/lib/watcher/Watcher.ts:216-244` | Changed: kept as the requested stop in `ChildSupervisor.ts` |
-| The stop of the last listing's groups at the end (`treeStopAtEndGraceMilliseconds`) | `src/lib/watcher/Watcher.ts:278-281`, `src/services/overseer/JobLaunch.ts:347-349` | Kept, carried in the launch frame |
+| The stop of the last listing's groups at the end (`treeStopAtEndGraceMilliseconds`) | `src/lib/watcher/Watcher.ts:278-281`, `src/services/overseer/JobLaunch.ts:372-374` | Kept, carried in the launch frame |
 | The linger of an ended Watcher until its acknowledgement | `src/lib/watcher/Watcher.ts:283-287`, `:473`; `src/lib/watcher/constants/WatcherProtocol.ts:11` | Deleted: Talos outlives its children |
 | Protocol 2 frames: `hello`, `write`, `close-input`, `stop`; `welcome`, `history`, `message`, `state`, `refused` | `src/lib/watcher/@types/WatcherFrame.ts:9-68` | Replaced by the Talos frames of "Interfaces introduced" |
 | The protocol window and its constants | `src/lib/watcher/constants/WatcherProtocol.ts:2-23` | Replaced by `src/lib/talos/constants/TalosProtocol.ts` |
 | The socket server: hello first, secret compared in constant time, line limit before the secret | `src/lib/watcher/WatcherSocketServer.ts:48-57`, `:103-118` | Changed: moved to `src/lib/talos/TalosSocketServer.ts`, frozen handshake added |
 | The launch file `launch-<n>.json`, read once after the claim | `src/lib/watcher/WatcherLaunch.ts:14-42`, `:70-122` | Replaced by the `launch` frame; no launch file is written |
+| A resumed session's start folder, read from its first instance's launch file | `src/services/overseer/SessionPlace.ts:63-71`, `:77-85` | Changed: read from the first child record's `workingDirectory` (WP2.13) |
 | The Watcher record `watcher-<n>.json` with `end` | `src/lib/watcher/WatcherRecord.ts:3-33` | Replaced by the child record `child-<n>.json` |
 | The event log `events-<n>.ndjson`, origins `agent`, `client`, `watcher` | `src/lib/watcher/EventLog.ts:9-53` | Moved to `src/lib/talos/EventLog.ts`; origin `watcher` becomes `talos`; format version 2 |
+| An event-log entry of origin `client` holds the acting frame whole, read back with `clientFrameOf` to tell a chat from a closed input | `src/lib/watcher/Watcher.ts:258`; `src/services/overseer/JobTranscript.ts:89-94`, `JobLiveFactsReader.ts:241-246` | Changed: the line is a `ClientEntry`, read with `clientEntryOf` (WP2.5, WP2.13) |
 | The standing replies, texts and booleans only | `src/lib/watcher/StandingReplies.ts:5-45` | Moved unchanged to `src/lib/talos/StandingReplies.ts` |
 | The line splitter | `src/lib/watcher/StreamLines.ts:7-26` | Moved unchanged to `src/lib/talos/StreamLines.ts` |
 | The `LocalEndpoint` port and its adapters, sockets under `<monitor>/watchers/` | `src/lib/watcher/LocalEndpoint.ts:18-30`, `LocalEndpointFor.ts:31-36`, `PosixSocketEndpoint.ts:36` | Moved to `src/lib/talos/`; the folder becomes `<monitor>/private/` |
 | The frozen socket paths of the endpoint extraction | `src/lib/watcher/LocalEndpoint.frozen.spec.ts`, `FrozenLocalEndpoint.json` | Deleted: socket paths change outright |
-| The owner-only folder `<monitor>/watchers/<trackerId>/`, holding the API token and every secret | `src/lib/watcher/WatcherFiles.ts:6-8`, `src/services/overseer/OverseerFiles.ts:20-22` | Changed: `<monitor>/private/<trackerId>/` |
+| The owner-only folder `<monitor>/watchers/<trackerId>/`, holding the API token and every secret | `src/lib/watcher/WatcherFiles.ts:6-8`, `src/services/overseer/OverseerFiles.ts:20-22`; the registry hands Gaia the token's path (`tokenPath`), so no Gaia code names the folder | Changed: `<monitor>/private/<trackerId>/` |
 | The bundle closure guard | `src/lib/watcher/WatcherBundleClosure.spec.ts` | Replaced by `src/lib/talos/TalosClosure.spec.ts` and `TalosMainThread.spec.ts` |
 | The fleet: liveness by the Watcher's identity, `eventsAfter`, launch files, per-call socket send, reap, stop of process Watchers | `src/services/overseer/WatcherFleet.ts:89-97`, `:100-111`, `:134-192`, `:196-247`, `:262-272`, `:300-366` | Deleted; replaced by the `BoardChildren` port and its Talos adapter `TalosChildren.ts` |
 | The per-call frame send with no acknowledgement and a 2-second timeout | `src/services/overseer/WatcherFleet.ts:66`, `:196-233` | Replaced by one persistent connection with a `done` per frame |
 | The pinned Watcher bundle `<data>/overseer/watcher-<code>.js` | `src/services/overseer/WatcherBundle.ts:18-35`, `cli/overseer/OverseerForeground.ts:379-383` | Deleted |
 | The legacy reader of Watchers below the protocol window | `src/services/overseer/LegacyWatcherReader.ts:1-53` | Deleted |
-| Legacy fields in the pass state, the job document and the Bridge | `src/services/overseer/DrivePass.ts:280`, `:918-922`; `JobLiveFactsReader.ts:68-70`, `:278`; `bridge/views/agents/JobRow.tsx:62`, `:76` | Deleted (`watchOnly`, `watcherProtocol`, `legacyWatcherJobIds`) |
+| Legacy fields in the pass state, the job document and the Bridge | `src/services/overseer/DrivePass.ts:312`, `:991-995`; `JobLiveFactsReader.ts:68-70`, `:278`; `bridge/views/agents/JobRow.tsx:62`, `:76` | Deleted (`watchOnly`, `watcherProtocol`, `legacyWatcherJobIds`) |
 | Regrouping: hello with the stored cursor, lost Watcher settled (reboot, `watcher-lost`, `agent-crashed`, refused stop) | `src/services/overseer/Regrouping.ts:102-124`, `:137-171`, `:223-244` | Changed: no hello history; a lost child is settled from its record and Talos's record |
-| The pass reads each job's Watcher record and event log every pass | `src/services/overseer/DrivePass.ts:422-475` | Changed: reads the child record, the event log, then the record again for recognised endings |
-| The mapping of a gone Watcher to `agent-crashed`, `watcher-lost`, `answer-delivery`, `no-report` | `src/services/overseer/DrivePass.ts:552-576` | Changed: adds `talos-paused`, `lease-ended`, `network-outage` |
-| The agent launch through the fleet | `src/services/overseer/DrivePass.ts:777-886`, `:868-883` | Changed: a `launch` frame through `BoardChildren.launchAgent` |
-| Process Watchers for install steps, gate steps, the target merge and the main merge | `src/services/overseer/JobLaunch.ts:313-335`, `:404-440`, `:1689-1792`, `:1937-1987` | Changed: line children through `BoardChildren.launchLine`, re-run after `paused` |
-| Frames to a job's Watcher: messages, wind-down, close input, stop, answers | `src/services/overseer/JobControlDelivery.ts:37-42`, `:65-120`; `AnswerDelivery.ts:70-100`; `JobLaunch.ts:1898-1911` | Changed: `input` and `stop` frames through `BoardChildren` |
+| The pass reads each job's Watcher record and event log every pass | `src/services/overseer/DrivePass.ts:462-515` | Changed: reads the child record, the event log, then the record again for recognised endings |
+| The mapping of a gone Watcher to `agent-crashed`, `watcher-lost`, `answer-delivery`, `no-report` | `src/services/overseer/DrivePass.ts:592-616` | Changed: adds `talos-paused`, `lease-ended`, `network-outage` |
+| The agent launch through the fleet | `src/services/overseer/DrivePass.ts:843-959`, `:941-956` | Changed: a `launch` frame through `BoardChildren.launchAgent` |
+| Process Watchers for install steps, gate steps, the target merge and the main merge | `src/services/overseer/JobLaunch.ts:334-360`, `:552-588`, `:2352-2478`, `:2655-2710` | Changed: line children through `BoardChildren.launchLine`, re-run after `paused` |
+| Frames to a job's Watcher: messages, wind-down, close input, stop, answers | `src/services/overseer/JobControlDelivery.ts:37-42`, `:65-120`; `AnswerDelivery.ts:70-100`; `JobLaunch.ts:2613-2626` | Changed: `input` and `stop` frames through `BoardChildren` |
 | Flint's brain run as a Watcher of its own | `src/services/overseer/FlintBrainSessionHost.ts:97-151` | Changed: an agent child of Talos in `flint-brain/` (stage 8 removes the brain) |
-| The merged-tree gates the Overseer spawns itself, kept in memory | `src/services/overseer/DrivePass.ts:1058-1083`, `:1168-1195` | Changed: line children through a `LineRunner` |
-| Gate profiles and pipeline checks spawned in process, stopped through the port | `src/services/overseer/GateProfiling.ts:172-226`; `PipelineChecking.ts:109-150` | Changed: line children through a `LineRunner`; stopped by `stop` frames |
-| `Bun.spawn` of every in-process gate line | `src/services/lifecycle/GateRun.ts:185-221` | Changed: `runGate` takes a `LineRunner` |
+| The merged-tree gates the Overseer spawns itself, kept in memory | `src/services/overseer/DrivePass.ts:1143-1168`, `:1254-1277` | Changed: line children through a `LineRunner` |
+| A merged-tree gate on a pipeline with entities: one pipeline per gated entity, run in turn through the same `runOnePipeline`, each numbering its steps from 0 | `src/services/overseer/MergedTreeGateRun.ts:45-63`; `src/services/lifecycle/GateRun.ts:370-390` | Changed: each pipeline of a gate run gets a folder of its own (WP2.14) |
+| Gate profiles and pipeline checks spawned in process, stopped through the port | `src/services/overseer/GateProfiling.ts:190-245`; `PipelineChecking.ts:135-177` | Changed: line children through a `LineRunner`; stopped by `stop` frames |
+| A pipeline check per level, the forge's and each entity's, side by side, named `<setupId>` or `<setupId>-<entity>` | `src/services/overseer/PipelineChecking.ts:92-95`, `:209-221` | Changed: a check's lines live under its own name (WP2.14) |
+| `Bun.spawn` of every in-process gate line | `src/services/lifecycle/GateRun.ts:209-245` | Changed: `runGate` takes a `LineRunner` |
 | The record of process starts a spec replaces | `src/services/overseer/ProcessStarts.ts:10-22` | Changed: `spawnWatcher` goes; `runGatePipeline`, `runGateLines`, `runProposalTwice` stay |
 | Gate slot holders: a gate Watcher folder or `process:<pid>:<label>` | `src/services/overseer/GateRunSlots.ts:18`, `:92-118` | Changed: every holder is a child folder judged by its child record |
-| The Overseer's stop: process Watchers stopped on `--now`, ended Watchers reaped | `cli/overseer/OverseerForeground.ts:776-790` | Changed: `stop-lines` frame on `--now`; no reap |
+| The Overseer's stop: process Watchers stopped on `--now`, ended Watchers reaped | `cli/overseer/OverseerForeground.ts:778-792` | Changed: `stop-lines` frame on `--now`; no reap |
 | The Baton pass preparation building bundles and reading Watcher files | `cli/overseer/OverseerForeground.ts:267-305`; `src/services/overseer/BatonPass.ts:14-20` | Changed: steps `build-bundles` and `read-watcher-files` go, `read-child-records` comes |
 | The Baton record and the identity naming `watcherProtocolVersion` | `src/services/overseer/Baton.ts:25`, `:45`; `OverseerServer.ts:48`, `:637`; `cli/overseer/OverseerForeground.ts:511` | Changed: `talosProtocolVersion` |
-| The Claude Code plan: one standing reply that denies every permission but a question; the API key from the Watcher's environment | `src/lib/claude-code/ClaudeCodeAdapter.ts:287-313` | Changed: adds `closingLine`, `endingPatterns`, `quitAtTurnEnd`; `environmentFromWatcher` becomes `environmentFromTalos` |
+| The Claude Code plan: one standing reply that denies every permission but a question; the API key from the Watcher's environment | `src/lib/claude-code/ClaudeCodeAdapter.ts:311-337` | Changed: adds `closingLine`, `endingPatterns`, `quitAtTurnEnd`; `environmentFromWatcher` becomes `environmentFromTalos` |
 | The stream mapper's result failures: budget stop, 429, 401 and 403; every other error result is one failure | `src/lib/claude-code/ClaudeStreamMapper.ts:218-242` | Kept; the outage is recognised by Talos, not by the mapper |
 | The plan types | `src/lib/agent-launch/AgentLaunchPlan.ts`, `AgentAdapter.ts` | Changed: new plan fields, `AgentEndingName` |
-| Interruption causes and the counted crashes | `src/lib/tracker-model/@types/Job.ts:76-84`; `constants/JobStates.ts:70-88` | Changed: `talos-paused`, `lease-ended`, `network-outage` added, none counted |
-| The job's Watcher instance and event cursor | `src/lib/tracker-model/@types/Job.ts:122-146`; `constants/JobStates.ts:106` | Changed: `watcherInstance` becomes `childInstance` |
-| The crash bound and the session replace rule | `src/lib/tracker-model/Playbook.ts:139-150`, `crashBoundStepsOf` | Changed: `network-outage` is neither resumed nor replaced; `talos-paused` always resumes |
+| Interruption causes and the counted crashes | `src/lib/tracker-model/@types/Job.ts:83-91`; `constants/JobStates.ts:73-91` | Changed: `talos-paused`, `lease-ended`, `network-outage` added, none counted |
+| The job's Watcher instance and event cursor | `src/lib/tracker-model/@types/Job.ts:130-133`, `:152-153`; `constants/JobStates.ts:109` | Changed: `watcherInstance` becomes `childInstance` |
+| The crash bound and the session replace rule | `src/lib/tracker-model/Playbook.ts:182-200` (`outageIsDueWith`), `:473-489` (`crashBoundStepsOf`) | Changed: `network-outage` is neither resumed nor replaced; `talos-paused` always resumes |
 | Git spawned synchronously with no timeout | `src/lib/git/GitProcess.ts:58-84` | Kept; renewal moves off the event loop instead |
 | The process table read through `/bin/ps` with `Bun.spawnSync` | `src/lib/process-identity/DarwinProcessIdentity.ts:1-11`; `ProcessSupervisionFor.ts:19` | Kept; Talos calls it only from its synchronous-calls thread |
 | Spawn options per child kind, `watcher` among them | `src/lib/process-identity/ProcessSupervision.ts:18`; `SpawnOptionsFor.ts:15-21` | Changed: kind `watcher` becomes `talos` |
-| The worker profiles' deny of the owner-only folder and of `jobs/*/launch-*.json` | `src/services/overseer/WorkerProfiles.ts:201-221` | Changed: `<monitor>/private`; the launch-file glob goes, no launch file exists |
+| The worker profiles' deny of the owner-only folder and of `jobs/*/launch-*.json` | `src/services/overseer/WorkerProfiles.ts:221-241` | Changed: `<monitor>/private`; the launch-file glob goes, no launch file exists |
 | The Baton pass waits | `src/shared/constants/OverseerLimits.ts:62-75` | Kept; the lease renewal overlaps the pass (WP2.13) |
 | The stop grace and the regroup hello timeout | `src/shared/constants/OverseerLimits.ts:51`, `:54` | The grace is kept; the hello timeout becomes `TALOS_FRAME_TIMEOUT_MILLISECONDS` |
-| Boundary specs and recordings of the Watcher | `src/testing/BoundarySpecs.ts:16-135`; `src/testing/BoundaryRecordings.ts:85-97` | Replaced by Talos boundaries |
+| Boundary specs and recordings of the Watcher | `src/testing/BoundarySpecs.ts:16-136`; `src/testing/BoundaryRecordings.ts:85-97` | Replaced by Talos boundaries |
+| The fake agent: a child that prints only lines of its recording (`src__testing__fake-agent.json`, one session per `CLAUDE_WIRE_SCENARIOS` entry), the steps it plays chosen from switches | `src/testing/fake-agent/FakeAgentChild.ts:1-43`, `RecordedClaudeLines.ts:15-24`, `:63-77`; `src/testing/FakeAgentAdapter.ts:73-82`, `:118-137`; `cli/CommandContext.ts:71-75`; `src/shared/Environment.ts:26-47` | Changed: a network outage scenario (WP2.2) |
 | Guards naming the Watcher | `src/ImportDirection.spec.ts:68-69`, `:221`, `:334`; `src/PlatformBoundary.spec.ts:90-91`, `:211`, `:243`, `:247`; `src/SpecSleeps.spec.ts:30-45`; `src/RealSystemSpecs.spec.ts:41-45`; `eslint.config.js:27`, `:38`, `:47-48`, `:116-117` | Changed to name `talos.ts` and `src/lib/talos/` |
 | The retired names guard | `src/ComponentNames.spec.ts:27-63` | Changed in WP2.17: the Watcher's code names are added, after the documents stop naming them |
-| The rules naming the Watcher | `apps/forge/CLAUDE.md:134-136`, `:318`, `:320`, `:328-330` | Changed in WP2.17 |
+| The rules naming the Watcher | `apps/forge/CLAUDE.md:46`, `:134-135`, `:161-163`, `:326`, `:328`, `:336-338`; `apps/gaia/CLAUDE.md:148` | Changed in WP2.17 |
 
 ## Work packages
 
@@ -208,18 +213,33 @@ of a turn.
   Watcher's today (`AgentLaunchPlan.ts`, `src/lib/watcher/StandingReplies.ts:5-9`).
 - Change `src/lib/agent-launch/AgentAdapter.ts`: export `AGENT_ENDING_NAMES = ['network-outage'] as const` and `type
   AgentEndingName`, the names an adapter may give an ending and the Overseer maps to a cause.
-- Change `src/lib/claude-code/ClaudeCodeAdapter.ts`: render the three fields in `planOf` (`:297-313`).
+- Change `src/lib/claude-code/ClaudeCodeAdapter.ts`: render the three fields in `planOf` (`:321-337`).
 - Read, never copy, the fixture pair stage 0 committed in `src/lib/claude-code/testing/fixtures/`:
   `network-outage-retries-spent.stdout.jsonl` and its `.stdin.jsonl` partner (stage 0, WP0.4). No second fixture of
   the same session is created: `ClaudeStreamFixtures.spec.ts:43-52` fails a `.stdout.jsonl` without its partner.
 - Change `src/lib/claude-code/ClaudeCodeAdapter.spec.ts`, and `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` inside
-  stage 0's block `describe('network-outage-retries-spent (P23, Claude Code 2.1.326)')`.
-- Change `src/testing/fake-agent/FakeAgentChild.ts`: a scenario that prints a number of `system`/`api_retry` lines and
-  then the outage result line, chosen by a new value of the fake agent's scenario variable in
-  `src/shared/Environment.ts` (read where the existing `FAKE_AGENT_*` getters are, `src/shared/Environment.ts:26-43`).
+  stage 0's block `describe('network-outage-retries-spent (P23, Claude Code <version>)')` (the version the recording's notes.txt names).
+- The fake agent's outage scenario. `src/testing/fake-agent/FakeAgentChild.ts` stays as it is: it plays a scenario file
+  and prints only lines its recording holds (`RecordedClaudeLines.ts:15-24`, `:63-77`; a selector naming a key no
+  recorded line has exits 3), and that recording holds no `system`/`api_retry` line and no outage result today. So:
+  - Change `src/testing/FakeAgentAdapter.ts`: export `NETWORK_OUTAGE_FAKE_AGENT_STEPS` beside
+    `WORKING_FAKE_AGENT_STEPS` (`:79-82`), the started line, a number of `api_retry` selectors, then the outage result
+    selector; and give `planOf` (`:126-137`) the Claude Code adapter's `closingLine`, `endingPatterns` and
+    `quitAtTurnEnd`, since the fake prints Claude Code's lines and a scratch forge's Talos must recognise them.
+  - Change `src/shared/Environment.ts`: a switch `FAKE_AGENT_NETWORK_OUTAGE`, named from
+    `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, with its getter beside the other `FAKE_AGENT_*` getters (`:26-47`); change
+    `cli/CommandContext.ts:71-75`, which picks the steps from those switches, to play the outage steps under it.
+  - Change `src/testing/fake-agent/RecordedClaudeLines.ts`: add `network-outage` to `CLAUDE_WIRE_SCENARIOS`, and record
+    it: a case of `.platform-probes/claude-p19-scenarios-against-a-stand-in.js` whose stand-in answers every Messages
+    call with a 529 until the session ends, recorded with `bun run record src/testing/fake-agent/`
+    (`src/testing/fake-agent/ClaudeWireRecorder.ts`). `sessionsOf` refuses a recording that lacks any listed
+    scenario, so the name and the new `src__testing__fake-agent.json` land in one commit. That command also re-runs
+    P22, one real model call, and starts the installed `claude`: the owner runs it ("Needs the owner", item 14).
+  - Until that recording exists, nothing else in this stage waits on it: WP2.8's outage spec plays stage 0's fixture
+    through a plain child, and only verification step 7 needs the fake scenario.
 
 **What to do.**
-1. The Claude Code values, as data in `ClaudeCodeAdapter.ts` beside `DENY_EVERY_PERMISSION_BUT_A_QUESTION` (`:288`):
+1. The Claude Code values, as data in `ClaudeCodeAdapter.ts` beside `DENY_EVERY_PERMISSION_BUT_A_QUESTION` (`:312`):
    - `closingLine`: `allOf` `[{ test: 'equals', path: 'type', value: 'result' }]`.
    - one `endingPatterns` entry: `name: 'network-outage'`; `closingLineMatches`: `allOf` `type` equals `result`,
      `is_error` equals `true`, `terminal_reason` equals `api_error`; `anyOf` `api_error` equals `connection_failed`,
@@ -233,7 +253,8 @@ of a turn.
    on the `result` text.
 3. `planOf` keeps `standingReplies` exactly as today: a permission request is answered on texts alone and needs no
    number.
-4. The Flint brain's plan and every other plan built through `planOf` gain the same fields; nothing else renders a plan.
+4. The Flint brain's plan and every other plan built through `planOf` gain the same fields; the only other renderer of a
+   plan is the fake agent's adapter (`src/testing/FakeAgentAdapter.ts:126-137`), which takes the Claude Code values.
 
 **Specs.**
 - `ClaudeCodeAdapter.spec.ts`: the plan carries the three fields with the exact values above, for every session kind.
@@ -271,8 +292,9 @@ machine on an injected wall clock, so every case is a fast spec and no spec wait
    - `unheld` and `ended` never answer anything.
 4. Export `gapLengthOf(previousWall, wallNow, tickMilliseconds)`: the time past one tick, `0` when there was no gap; the
    time bound of WP2.7 uses it.
-5. The clock comment rule (`apps/forge/CLAUDE.md:176-181`): this is a clock that measures real time, so it needs no
-   exception comment; say in the file header that the wall clock is used on purpose so a sleep counts.
+5. The clock rules (`apps/forge/CLAUDE.md:174-181`): a lease is a clock that measures real time (`:176-178` names a
+   heartbeat, a timeout and a lifetime), so it needs no exception comment; say in the file header that the wall clock is
+   used on purpose so a sleep counts.
 
 **Specs.** `SupervisionLease.spec.ts` proves, each case on a fake clock: a lease renewed every 15 seconds never ends;
 silence for 60 seconds ends it once; a jump of 3 hours between two ticks ends nothing at once, and a renewal within 15
@@ -300,11 +322,14 @@ the Watcher's name in one step, because the token, every secret and every socket
   `constants/WatcherProtocol.ts:23`).
 - Change every importer: `src/lib/watcher/Watcher.ts`, `WatcherFiles.ts`, `WatcherLaunch.ts`, `WatcherSocketServer.ts`,
   `WatcherFrames.ts`, `@types/WatcherFrame.ts`; `src/services/overseer/OverseerFiles.ts`, `WorkerProfiles.ts`,
-  `WatcherFleet.ts`, `Regrouping.ts`, `LegacyWatcherReader.ts`; `src/testing/RecordedLocalEndpoint.ts`,
-  `ProcessWorldReplay.ts`; every spec the compiler names.
+  `WatcherFleet.ts`, `Regrouping.ts`, `LegacyWatcherReader.ts`; the readers of the `EventLogEntry` type
+  (`cli/jobs/JobCommand.ts`, `src/services/overseer/DrivePass.ts`, `JobResumption.ts`, `JobTranscript.ts`,
+  `JobLiveFactsReader.ts`); `src/testing/RecordedLocalEndpoint.ts`, `ProcessWorldReplay.ts`, `RecordedWatcherStages.ts`,
+  `WatcherJob.ts`, `src/services/overseer/testing/PlantedWatcher.ts`, and the boundary path in
+  `src/testing/ToolGuard.ts:36`; every spec the compiler names.
 - Change `src/lib/watcher/Watcher.ts` header to declare `src/lib/talos` among the packages it depends on, and
   `src/lib/watcher/WatcherBundleClosure.spec.ts` to allow `src/lib/talos/` (both go in WP2.15).
-- Change `src/testing/BoundarySpecs.ts:30-31`, `:112-117` and `src/testing/BoundaryRecordings.ts:85-90` to the new
+- Change `src/testing/BoundarySpecs.ts:30-31`, `:113-118` and `src/testing/BoundaryRecordings.ts:85-90` to the new
   paths; rename the recordings under `src/testing/recordings/darwin/` with `git mv` (their file names carry the boundary
   path: `src__lib__watcher__LocalEndpointFor.ts.json` becomes `src__lib__talos__LocalEndpointFor.ts.json`).
 
@@ -312,7 +337,7 @@ the Watcher's name in one step, because the token, every secret and every socket
 1. Move, then fix imports until `bun run typecheck` passes in `apps/forge`.
 2. In `PosixSocketEndpoint.ts` the socket folder becomes `PRIVATE_FOLDER_NAME`; in `EndpointInstanceFacts`
    (`LocalEndpoint.ts:7-12`) rename `jobId` to `name`, since Talos's endpoint names no job.
-3. `WorkerProfiles.ts:206` and `:219` deny `join(monitorFolder, PRIVATE_FOLDER_NAME)`; the comment at `:201-204` says
+3. `WorkerProfiles.ts:226` and `:239` deny `join(monitorFolder, PRIVATE_FOLDER_NAME)`; the comment at `:221-224` says
    `private` folder.
 4. Check `src/PlatformBoundary.spec.ts` (`:219`, `:412-442`): paths that name `src/lib/watcher/` for adapters move to
    `src/lib/talos/`; planted paths in the spec may stay as they are planted text, but rename them for clarity.
@@ -343,7 +368,8 @@ handshake so its first frame can never change shape.
    "Files", exactly as given.
 2. `TalosFrames.ts`: `clientFrameOf(line): ClientFrame | null` and `talosFrameLineOf(frame): string`, following
    `src/lib/watcher/WatcherFrames.ts:11-41`. Every field is validated; extra keys are dropped; `frameId` is a safe whole
-   number `>= 1`; a `write-line` holds no line feed.
+   number `>= 1`; a `write-line` holds no line feed. Beside them, `clientEntryLineOf(entry)` and `clientEntryOf(line):
+   ClientEntry | null` for the event log's `client` lines.
 3. `helloFrameOf(line)` is separate from `clientFrameOf` and reads only the three keys of the frozen `hello`. It is the
    one parser of a connection's first line, so a change to the later frames can never change how a first line reads.
 4. `ChildLaunch.ts`: `childLaunchOf(value, boardFolder, endpointFits?)` validates as
@@ -365,7 +391,7 @@ handshake so its first frame can never change shape.
 - `TalosHandshake.frozen.spec.ts` proves: each frozen line parses with `helloFrameOf` or is written byte for byte by
   `talosFrameLineOf`; the key sets of the three frozen frames equal the table's.
 - `TalosFrames.spec.ts`: every well-formed frame reads as itself; each malformed field reads `null`; `hello` is not a
-  `ClientFrame` after the first line.
+  `ClientFrame` after the first line; every `ClientEntry` round trips through its line.
 - `ChildLaunch.spec.ts`: each refusal by name, `..` and an absolute `childFolder` among them; a line with a pattern is
   refused.
 - `ChildRecord.spec.ts`, `TalosRecord.spec.ts`, `TalosStartFile.spec.ts`: round trip; another format version reads
@@ -515,9 +541,12 @@ quit within 10 seconds.
   `src/lib/talos/Talos.lease.integration.spec.ts`, `src/lib/talos/Talos.cleanQuit.integration.spec.ts`.
 
 **What to do.**
-1. An `agent` child gets stdin `pipe`. `input` `write-line` writes the line and a line feed, appended to the event log
-   as origin `client`; `close` closes stdin. Input to a line, to an ended child or to an unknown one answers `done`
-   `refused` with `kind-takes-no-input`, `child-ended` or `unknown-child`.
+1. An `agent` child gets stdin `pipe`. `input` `write-line` writes the line and a line feed; `close` closes stdin; a
+   `stop` of an agent stops it. Each is first appended to the event log as origin `client`, its line the JSON of a
+   `ClientEntry` ("Interfaces introduced"), as the Watcher appends each acting frame whole (`Watcher.ts:258`): the
+   transcript and the turn reader tell a sent chat from a closed input by it (`JobTranscript.ts:89-94`,
+   `JobLiveFactsReader.ts:241-246`). Input to a line, to an ended child or to an unknown one answers `done` `refused`
+   with `kind-takes-no-input`, `child-ended` or `unknown-child`.
 2. Each stdout line of an agent: parse once with `parsedLineOf`; (a) the standing replies answer it as
    `src/lib/watcher/Watcher.ts:337-340` does, the reply appended as origin `talos`; (b) the ending recognition of WP2.1
    observes it with the sequence the main thread gives it. When it answers a recognised ending, queue first the record
@@ -547,9 +576,11 @@ quit within 10 seconds.
   at the wait's end and ends `paused`; lines are stopped at once; nothing is launched while quitting.
 - `Talos.agents.integration.spec.ts` (real, fake agent `src/testing/fake-agent/FakeAgentChild.ts` where it fits): a
   permission request is answered by the standing reply and a question is not; `write-line` reaches the child; `close`
-  ends it; the outage scenario of WP2.2 records `recognisedEndings` with `name: 'network-outage'`, the closing line's
-  sequence and the retry count, and the record holds the recognition before the event log holds the line (read the
-  record after the log in a loop of `src/testing/WaitUntil.ts`).
+  ends it; each input is in the event log as a `client` entry before its effect; a child that prints stage 0's
+  `network-outage-retries-spent.stdout.jsonl` line by line (a plain `bun -e` child, since the fake agent prints only
+  its own recording), launched with the patterns WP2.2 renders, records `recognisedEndings` with `name:
+  'network-outage'`, the closing line's sequence and the retry count, and the record holds the recognition before the
+  event log holds the line (read the record after the log in a loop of `src/testing/WaitUntil.ts`).
 - `Talos.lease.integration.spec.ts` (real; bounds from the start file: lease 600, interval 150, tick 50, gap 200
   milliseconds): renewals keep agents running; silence ends agents `lease-ended` and leaves a line running; a renewal
   after that holds the lease again; a Talos process suspended (`SIGSTOP`) for longer than the lease and continued
@@ -601,7 +632,7 @@ lease from a thread its synchronous git cannot block (design section 3.2, "Renew
       `WatcherFleet.ts:114-119`) at `<monitor>/private/<trackerId>/talos-<n+1>.secret`; draw the endpoint with `{ name:
       'talos', instance: n + 1 }`; write `start-<n+1>.json` with the bounds of `OverseerLimits.ts`; spawn
       `process.execPath`, `ToolRuntimeUtil.isolatingArgumentsOfThisCheckout()`, `TALOS_ENTRY_PATH`, the board folder and
-      `n + 1`, detached and unreferenced, with `outlivingProgramEnvironment()` (`src/shared/Environment.ts:147`), its
+      `n + 1`, detached and unreferenced, with `outlivingProgramEnvironment()` (`src/shared/Environment.ts:149`), its
       output appended to `talos-<n+1>.log`, cwd the repository root, the port's options for `talos`. `TALOS_ENTRY_PATH`
       is `join(import.meta.dir, '..', '..', '..', 'talos.ts')`, as `WatcherBundle.ts:18` finds `watcher.ts`.
    6. Wait for the record `serving`, then connect. `welcomed` at the required version answers `started`. A
@@ -639,20 +670,24 @@ a change of one composition and no behaviour moves here.
 **Files.**
 - Create `src/services/overseer/BoardChildren.ts` (the port type, exactly as in "Interfaces introduced") and
   `src/services/overseer/WatcherBoardChildren.ts` (an adapter over `WatcherFleet`, deleted in WP2.15).
-- Change every caller listed by `git grep -n "WatcherFleet\." apps/forge/src apps/forge/cli` except `WatcherFleet.ts`
-  itself: `DrivePass.ts`, `JobLaunch.ts`, `Regrouping.ts`, `JobControlDelivery.ts`, `AnswerDelivery.ts`,
-  `JobResumption.ts`, `AssistantSession.ts`, `IntakeSessions.ts`, `PipelineAgentSessions.ts`, `EndedJobTokens.ts`,
-  `JobLiveFactsReader.ts`, `JobTranscript.ts`, `ApiBillingStops.ts`, `IncidentRouter.ts`, `GateRunSlots.ts`,
-  `FlintBrainSessionHost.ts`, `Airlocks.ts` (through the context), `cli/overseer/OverseerForeground.ts`,
-  `cli/jobs/JobCommand.ts`, `cli/jobs/JobsCommand.ts`, `cli/overseer/routes/OverseerRoutes.ts`, and the specs and
-  harnesses the compiler names (`src/testing/DrivePassHarness.ts`, `src/services/overseer/testing/LiveJobFixture.ts`).
+- Change every caller listed by `git grep -ln "WatcherFleet\." -- apps/forge/src apps/forge/cli ':!*.spec.ts'` except
+  `WatcherFleet.ts` itself and the boundary lists: in `src/services/overseer/`, `DrivePass.ts`, `JobLaunch.ts`,
+  `Regrouping.ts`, `JobControlDelivery.ts`, `AnswerDelivery.ts`, `JobResumption.ts`, `AssistantSession.ts`,
+  `IntakeSessions.ts`, `PipelineAgentSessions.ts`, `CrossingStages.ts`, `EndedJobTokens.ts`, `JobLiveFactsReader.ts`,
+  `JobTranscript.ts`, `GateRunSlots.ts`, `FlintBrainSessionHost.ts`; `Airlocks.ts` reaches the fleet only through its
+  context's `watcherIsLive` (`Airlocks.ts:112`, `:794`); `cli/overseer/OverseerForeground.ts`, `cli/jobs/JobCommand.ts`,
+  `cli/overseer/routes/OverseerRoutes.ts`, `cli/testing/CutoverSmoke.ts`;
+  `src/services/overseer/testing/CrossingStageRun.ts`; and the specs and harnesses the compiler names
+  (`src/testing/DrivePassHarness.ts`, `src/services/overseer/testing/LiveJobFixture.ts`). `ProcessStarts.ts`
+  (`spawnWatcher`) and the Watcher's own harnesses (`src/testing/RecordedWatcherStages.ts`,
+  `src/services/overseer/testing/PlantedWatcher.ts`) keep the fleet until WP2.13 and WP2.15.
 
 **What to do.**
 1. The port takes and answers the types of "Interfaces introduced". The Watcher adapter maps `WatcherLiveness`
    (`WatcherFleet.ts:35-40`) to `ChildLiveness`: `unclaimed` to `unlaunched`, an `ended` Watcher's `WatcherEnd` to a
    `ChildEnd` with the same reason, exit code and signal, `recognisedEndingsOf` answers `[]`, `launchAgent` and
    `launchLine` write the launch file and spawn the Watcher as today and answer `{ verdict: 'launched' }`.
-2. Pass the port where `WatcherFleet` was imported: through `JobLaunchContext` (`JobLaunch.ts:90-113`), the
+2. Pass the port where `WatcherFleet` was imported: through `JobLaunchContext` (`JobLaunch.ts:114-136`), the
    `DrivePassRequest`, the Airlocks context and the request objects of the delivery modules. A module that imported
    `WatcherFleet` imports only the `BoardChildren` type.
 3. Keep every log sentence and every marker file as it is.
@@ -660,8 +695,8 @@ a change of one composition and no behaviour moves here.
 **Specs.** No new claim; every existing spec stays green with the port injected. Add `WatcherBoardChildren.spec.ts` only
 for the mapping of item 1.
 
-**Done when.** `git grep -n "from './WatcherFleet.ts'" apps/forge/src apps/forge/cli` names only
-`WatcherBoardChildren.ts` and specs of the fleet itself; the root `bun run verify` is green.
+**Done when.** `git grep -ln "WatcherFleet\.ts'" -- apps/forge/src apps/forge/cli` names only `WatcherBoardChildren.ts`,
+`ProcessStarts.ts`, the Watcher's own harnesses and specs of the fleet itself; the root `bun run verify` is green.
 
 ### WP2.11 New interruption causes in the tracker model
 
@@ -669,11 +704,13 @@ for the mapping of item 1.
 (design section 3.2, "An end of its own").
 
 **Files.**
-- Change `src/lib/tracker-model/@types/Job.ts:76-84`, `src/lib/tracker-model/constants/JobStates.ts:70-88`,
-  `src/lib/tracker-model/Playbook.ts` (`crashBoundStepsOf` and `productOwnerStepsOf`),
-  `src/adapters/log/LogRecordProblem.ts` where it validates causes, `src/adapters/utils/LogUtil.ts` (the wording of a
-  `job-interrupted` record), and the Bridge's wording of a cause (find it with `git grep -n "'usage-limit'"
-  apps/forge/bridge`).
+- Change `src/lib/tracker-model/@types/Job.ts:83-91` (and its comment above),
+  `src/lib/tracker-model/constants/JobStates.ts:73-91`, `src/lib/tracker-model/Playbook.ts` (`crashBoundStepsOf`,
+  `:473-489`, and `productOwnerStepsOf`, `:418-425`).
+  `src/adapters/log/LogRecordProblem.ts:181` and `src/adapters/progress/utils/StoredJobValidationUtil.ts:102` validate a
+  cause against `INTERRUPTION_CAUSES` and take the new ones with no change. No code words a cause one by one:
+  `src/adapters/utils/LogUtil.ts:301-304` prints the stored value, and the Bridge reads only `usage-limit` and
+  `handoff-red` (`bridge/views/agents/AgentPanelSpriteModel.ts:66`, `:164`).
 - Change the specs: `src/lib/tracker-model/Playbook*.spec.ts` touched by the rule, `Board.jobs.spec.ts`,
   `src/adapters/utils/LogUtil.spec.ts`.
 
@@ -682,16 +719,18 @@ for the mapping of item 1.
    `CRASH_INTERRUPTION_CAUSES` as it is.
 2. Export from `JobStates.ts` `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage']`, the one list the Playbook
    reads for the owner's fork (owner item 1).
-3. In `crashBoundStepsOf`, before the session-kind replace rule (`if (SESSION_JOB_KINDS.includes(job.kind)) return [{
-   kind: 'replace-job' ... }]`), a job whose interruption is in that list gets no step. In `productOwnerStepsOf`, the
-   same before its resume. `talos-paused` and `lease-ended` follow the path of `reboot`: resumed, never counted.
-4. `outageIsDueWith` (`Playbook.ts:139-150`) counts only crash causes, so it needs no change; add a spec case that
+3. In `crashBoundStepsOf`, after the red handoff line (`Playbook.ts:480`) and before the session-kind replace rule
+   (`:481`, `if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job' ... }]`) and the pipeline agent's
+   branch (`:483`), a job whose interruption is in that list gets no step. In `productOwnerStepsOf`, the same before its
+   resume. `talos-paused` and `lease-ended` follow the path of `reboot`: resumed, never counted.
+4. `outageIsDueWith` (`Playbook.ts:188-200`) counts only crash causes, so it needs no change; add a spec case that
    proves a `network-outage` interruption breaks no run of counted crashes and adds none.
-5. Wording: a short neutral sentence per cause in `LogUtil.ts`, naming no command (`apps/forge/CLAUDE.md:90-92`).
+5. Wording: none is needed (see "Files"); `LogUtil.spec.ts` holds that a `job-interrupted` record of each new cause
+   prints the cause as stored, naming no command (`apps/forge/CLAUDE.md:90-92`).
 
 **Specs.** `Playbook` specs prove: `network-outage` is neither resumed nor replaced, for a build, a review, a session
-kind and a product owner; `talos-paused` and `lease-ended` resume whatever `crashResumes` holds; none of the three
-raises `crashResumes` (`src/lib/tracker-model/Jobs.ts:139-141`). `LogUtil.spec.ts` words each cause.
+kind, a pipeline agent and a product owner; `talos-paused` and `lease-ended` resume whatever `crashResumes` holds; none
+of the three raises `crashResumes` (`src/lib/tracker-model/Jobs.ts:145-147`). `LogUtil.spec.ts` prints each cause.
 
 **Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/` passes; the root `bun run verify`
 is green.
@@ -738,52 +777,61 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
 **Files.**
 - Change `cli/overseer/OverseerForeground.ts`, `src/services/overseer/DrivePass.ts`, `Regrouping.ts`, `JobLaunch.ts`,
   `GateRunSlots.ts`, `BatonPass.ts` (`BatonPassStep`, `:14-20`), `Baton.ts` (`talosProtocolVersion`),
-  `OverseerServer.ts` (`talosProtocolVersion`), `FlintBrainSessionHost.ts`, `cli/overseer/OverseerFlintBrain.ts`.
+  `OverseerServer.ts` (`talosProtocolVersion`), `FlintBrainSessionHost.ts`, `cli/overseer/OverseerFlintBrain.ts`,
+  `SessionPlace.ts`, `JobTranscript.ts`, `JobLiveFactsReader.ts`; the system version for the identity key
+  (`packages/forge-contracts/constants/ForgeSystemVersions.ts:41`, "Needs the owner", item 6).
 - Change the specs that drive the pass: `cli/overseer/OverseerDrivePass*.spec.ts`, `OverseerBuildJob*.spec.ts`,
-  `src/services/overseer/JobLaunch.*.spec.ts`, `Regrouping*.spec.ts`, `CrashMatrix*.spec.ts`, `JobResumption*.spec.ts`,
-  `src/testing/DrivePassHarness.ts`, `src/testing/RecordedWatcherStages.ts` (becomes recorded Talos stages).
+  `OverseerPipelineSetup.spec.ts`, `src/services/overseer/DrivePass*.spec.ts`, `JobLaunch.*.spec.ts`,
+  `Regrouping*.spec.ts`, `CrashMatrix*.spec.ts`, `JobResumption*.spec.ts`, `SessionPlace.spec.ts`,
+  `src/testing/DrivePassHarness.ts`, `src/services/overseer/testing/CrossingStageRun.ts`,
+  `src/testing/RecordedWatcherStages.ts` (becomes recorded Talos stages).
 
 **What to do.**
-1. **Start.** In `startServing` (`OverseerForeground.ts:398-646`), right after the Baton is acquired (`:521-526`), start
+1. **Start.** In `startServing` (`OverseerForeground.ts:398-648`), right after the Baton is acquired (`:521-526`), start
    the lease renewal, then `ensureTalos`. `held` makes the start fail with `OperationRefusal('unrepaired', { kind:
    'talos-protocol-differs', requiredProtocolVersion, answeredProtocolVersion })`, worded in `cli/`. Remove
    `pinWatcherBundle` (`:379-383`) and the bundle path from every request.
 2. **Regrouping.** `regroup` keeps the leftover worktrees and the list of jobs whose current instance is unlaunched
    (`Regrouping.ts:204-244`), drops the hello and history (`:137-171`), and settles every job child that reads `lost`
    with `settleLostChild` (WP2.9).
-3. **Observation order.** In `observe` (`DrivePass.ts:422-475`), per job: call `beginPass` once for the pass, then read
+3. **Observation order.** In `observe` (`DrivePass.ts:462-515`), per job: call `beginPass` once for the pass, then read
    the liveness, then the events after the cursor, then `recognisedEndingsOf`. The liveness read first keeps today's
    promise that an `ended` child's log is complete; the endings read last cover every line just read (WP2.8 item 2).
-4. **Mapping ends** (`applyWatcherEvents`, renamed `applyChildEvents`, `DrivePass.ts:503-581`):
+4. **Mapping ends** (`applyWatcherEvents`, renamed `applyChildEvents`, `DrivePass.ts:543-621`):
    1. A `result` event whose entry's sequence is a recognised `network-outage`: interrupt the job `network-outage`, add
       it to `stoppedSessions` so the pass stops the session after the hold, and treat it as no closing result. Map an
       `AgentEndingName` to its cause in one record in `DrivePass.ts`.
    2. A child that ended with reason `paused`: interrupt `talos-paused`. With reason `lease-ended`: interrupt
-      `lease-ended`. Both before the `agent-crashed` branch (`:574-575`).
-   3. `lost`: `lostWatcherCauseOf` as today (`:477-480`), on the child's side files; the stored cause stays
+      `lease-ended`. Both before the `agent-crashed` branch (`:614-615`).
+   3. `lost`: `lostWatcherCauseOf` as today (`:517-520`), on the child's side files; the stored cause stays
       `watcher-lost` (owner item 5).
    4. Everything else as today.
-5. **Launch.** `launchWatcher` (`:777-886`) becomes `launchAgentChild`, async, through `launchAgent`; the endpoint fit
-   check (`:795-798`) and its notice `watcher-endpoint-does-not-fit` go, since the endpoint is Talos's.
-   `talos-unavailable` leaves the job for the next pass. `jobsNeedingAWatcher` (`:904-916`) reads `unlaunched`.
-6. **Job lines** (`JobLaunch.ts`): `processWatcherEnd` (`:404-408`) becomes `lineEndOf(folder)`, reading the newest
+5. **Launch.** `launchWatcher` (`:843-959`) becomes `launchAgentChild`, async, through `launchAgent`; the endpoint fit
+   check (`:861-864`) and its notice `watcher-endpoint-does-not-fit` go, since the endpoint is Talos's.
+   `talos-unavailable` leaves the job for the next pass. `jobsNeedingAWatcher` (`:977-989`) reads `unlaunched`.
+   A job line's launch (`JobLaunch.ts:2401-2425`, `launchProcessWatcher`) loses its endpoint fit check the same way.
+6. **Job lines** (`JobLaunch.ts`): `processWatcherEnd` (`:552-556`) becomes `lineEndOf(folder)`, reading the newest
    instance: `pending` while live or unlaunched, `rerun` when it ended `paused` or reads `lost`, otherwise its end. On
    `rerun` the next pass launches instance `newest + 1`; a step's verdict is read only from an end that is not `paused`.
    A gate step's launch carries `timeBoundMilliseconds: GATE_TIME_BOUND_MILLISECONDS`; an install step's carries
    `INSTALL_LINE_TIME_BOUND_MILLISECONDS` (owner item 2); a prepare step's and a merge's carry `null`. An end
    `time-bound` reads as exit code `null` and signal `null`, so
    `GateRun.gateOutcomeOf` judges it `cannot-run`; its output gets one line naming the bound, worded in
-   `src/services/lifecycle/GateRun.ts` beside `RUN_REFUSAL_WORDING` (`:145-148`).
+   `src/services/lifecycle/GateRun.ts` beside `RUN_REFUSAL_WORDING` (`:169-172`). A gate step's cache report file
+   (`stepReportFileOf`, `JobLaunch.ts:798-800`, handed in `FORGE_GATE_REPORT`) is removed before each launch, a re-run
+   included, as `spawnProcessWatcher` does today (`:2376-2377`).
 7. **Gate slots.** Every holder is a child folder: `gateRunHolderIsLive` (`GateRunSlots.ts:107-118`) reads the newest
    child record of the folder through `BoardChildren`, and while none exists the recorded acquirer's identity answers.
    `process:` holders stay until WP2.14.
 8. **Frames.** `JobControlDelivery`, `AnswerDelivery`, `JobResumption`, `AssistantSession`,
-   `JobLaunch.deliverBuildJobFrames` send through the port: `write` becomes `input` `write-line`, `close-input` becomes
-   `input` `close`, `stop` stays.
-9. **Stop.** In the stop waits (`OverseerForeground.ts:776-790`): `--now` sends `stop-lines`; the reap of ended Watchers
+   `JobLaunch.deliverBuildJobFrames` (`JobLaunch.ts:2613-2626`) send through the port: `write` becomes `input`
+   `write-line`, `close-input` becomes `input` `close`, `stop` stays. The readers of the event log's `client` entries,
+   `JobTranscript.ts:89-94` and `JobLiveFactsReader.ts:241-246`, read them with `clientEntryOf` (WP2.5): `write-line`
+   where they read `write`, `close` where they read `close-input` (the transcript's act stays `close-input`).
+9. **Stop.** In the stop waits (`OverseerForeground.ts:778-792`): `--now` sends `stop-lines`; the reap of ended Watchers
    goes; the lease renewal is not stopped: it ends with the process, so a quick restart keeps every agent.
 10. **Baton pass margin.** The predecessor keeps renewing through its release until it exits, because its renewal thread
-    is never stopped in `release` (`:649-658`); the successor starts its own renewal as soon as it holds the Baton (item
+    is never stopped in `release` (`:651-660`); the successor starts its own renewal as soon as it holds the Baton (item
     1). The two overlap, which Talos accepts. The preparation steps (`:267-305`) lose `build-bundles` and
     `read-watcher-files` and gain `read-child-records` (every job's newest child record reads, its event log is not
     malformed). Update `BatonPassStep`.
@@ -795,6 +843,10 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
     it launches anything. In this stage its answer `started` with `previousTalos: 'lost'` only sweeps the orphans and
     serves on with the new Talos (verification step 8). This call and the one at start are the two places stage 3
     turns into a crash of Talos (its need N6); keep each a single call site so stage 3 changes one line in each.
+14. **A resumed session's start folder.** `SessionPlace.ts:63-71` reads the session owner's first launch file
+    (`launch-1.json`) for its `workingDirectory`, so a resumed session starts where its first instance started. No
+    launch file exists under Talos: read `workingDirectory` from the owner job's first child record (`child-1.json`,
+    through `childRecordOf` of WP2.5), with `null` as today when none is readable.
 
 **Specs.**
 - `cli/overseer/OverseerDrivePass.spec.ts` and the build job specs over recorded Talos stages prove: a launch is a
@@ -803,6 +855,9 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
   child is settled as before.
 - `JobLaunch.gating.spec.ts`: a gate step ended `paused` is launched again as instance 2 and its first end is never
   judged; a `time-bound` end judges `cannot-run`.
+- `SessionPlace.spec.ts`: a resumed session starts in the `workingDirectory` of its owner's first child record.
+- `JobTranscript` and `JobLiveFactsReader` specs: a `write-line` entry reads as the chat it carries, a `close` entry as
+  a closed input.
 - `OverseerForeground` specs (find them with `git grep -ln runOverseerInTheForeground apps/forge/cli`): the renewal
   starts after the Baton, before regrouping; `talos-protocol-differs` refuses the start.
 
@@ -815,38 +870,50 @@ person who runs this package, passes (CLAUDE.md asks that it run only when a per
 children (design sections 3.3 and 7, "What reconcile cannot see today").
 
 **Files.**
-- Change `src/services/lifecycle/GateRun.ts`, `GateLineRun.ts`, `ProposalTwiceRun.ts` and their specs.
+- Change `src/services/lifecycle/GateRun.ts` (with `runEntityPipelines`, `:370-390`), `GateLineRun.ts`,
+  `ProposalTwiceRun.ts` and their specs, `GateRun.entities.spec.ts` among them.
 - Create `src/services/overseer/TalosLines.ts` (the `LineRunner` over `BoardChildren` and the connection) and
   `TalosLines.spec.ts`.
-- Change `src/services/overseer/DrivePass.ts` (`:1058-1195`), `GateProfiling.ts`, `PipelineChecking.ts`,
-  `GateRunSlots.ts` (drop `inProcessHolderOf`, `:88-94`, `:109-113`), `ProcessStarts.ts`,
-  `src/services/overseer/testing/AirlocksHarness.ts`.
+- Change `src/services/overseer/DrivePass.ts` (`:1143-1277`), `MergedTreeGateRun.ts` and its spec, `GateProfiling.ts`,
+  `PipelineChecking.ts`, `GateRunSlots.ts` (drop `inProcessHolderOf`, `:88-94`, `:109-113`; its callers are
+  `DrivePass.ts:1261`, `GateProfiling.ts:254`, `PipelineChecking.ts:216`), `ProcessStarts.ts`,
+  `src/services/overseer/testing/AirlocksHarness.ts`, `src/testing/RecordedWatcherStages.ts` (its `runGatePipeline`
+  fake, `:475-492`).
 
 **What to do.**
-1. In `GateRun.ts` add the `LineRunner` and `LineRunRequest` types of "Interfaces introduced". `GateRequest` and
-   `PipelineRunRequest` replace `spawnOptions`, `onSpawned` and `onOutput` with `runLine` and `childFolderOf(stepIndex,
-   kind)`. `runGate` (`:185-221`) keeps the status and report files and calls `runLine` instead of `Bun.spawn`.
+1. In `GateRun.ts` add the `LineRunner` and `LineRunRequest` types of "Interfaces introduced". Every request that
+   carries `spawnOptions` today (`GateRequest`, `PipelineRunRequest`, and `GateLineRequest` in `GateLineRun.ts:18-27`)
+   replaces `spawnOptions`, `onSpawned` and `onOutput` with `runLine` and `childFolder`, the folder of the run under
+   the board folder. `runGate` (`:209-245`) keeps the status and report files and calls `runLine` instead of
+   `Bun.spawn`. `runPipeline` (`:315-364`) gives each step the folder `<childFolder>/prepare-<i>` or
+   `<childFolder>/gate-<i>`, from 1. `runEntityPipelines` runs one pipeline per gated entity, each numbering its steps
+   from 1 again, so it hands part `p` (from 1, in run order) the folder `<childFolder>/part-<p>`;
+   `EntityPipelinesRunRequest` (`:115`) and `MergedTreeGateRunRequest.runRequest` (`MergedTreeGateRun.ts:17-27`) carry
+   `childFolder` with the rest.
 2. `TalosLines.createLineRunner(children, connection)`: launch the line (kind `line`, label, folder, next instance,
    `timeBoundMilliseconds`), then wait for its end: the `state` frame of its `childId`, and as a fallback a look at its
    record every `TALOS_LINE_LOOK_MILLISECONDS` (a schedule only, never a decision). While waiting, hand each new event
    entry to `onOutputLine`. At the end, the output is every `agent` entry's line joined with line feeds.
    `talos-unavailable` answers a run with exit code `null`, which judges `cannot-run`.
-3. Folders, all under the board folder: merged-tree gates `merge-gates/<16 hex of sha256(worktree + '\n' + tree + '\n' +
-   phase)>/step-<i>`; gate profiles `gate-profile-runs/<profileRunId>/step-<i>`; pipeline checks
-   `pipeline-checks/<setupId>/run-<r>/step-<i>`. Gate profiles keep `<data>/gate-profile-runs/<P>.ndjson` for their
-   stream, appended from `onOutputLine`.
-4. A Stop of a profile or a check sends `stop` with grace 0 to its running child (`GateProfiling.ts:172-179`,
-   `PipelineChecking.ts:109-116`). Only gate lines carry the 15-minute bound.
-5. At start, before `settleAtStart` removes worktrees (`GateProfiling.ts:244-248`, `PipelineChecking.ts:191-195`), stop
+3. Run folders (`childFolder`), all under the board folder: a merged-tree gate `merge-gates/<16 hex of sha256(worktree +
+   '\n' + tree + '\n' + phase)>`, also when it re-gates a stale green (`Airlocks.ts:703`); a gate profile
+   `gate-profile-runs/<profileRunId>`; a pipeline check `pipeline-checks/<checkName>/run-<r>`, where `checkName` is the
+   setup id, or the setup id and the escaped entity key for an entity's check (`PipelineChecking.ts:92-95`), since the
+   forge's and each entity's checks of one setup run side by side, and `r` is 1 or 2 for the proposal's two runs. Gate
+   profiles keep `<data>/gate-profile-runs/<P>.ndjson` for their stream, appended from `onOutputLine`.
+4. A Stop of a profile or a check sends `stop` with grace 0 to its running child (`GateProfiling.ts:190-198`,
+   `PipelineChecking.ts:135-143`). Only gate lines carry the 15-minute bound.
+5. At start, before `settleAtStart` removes worktrees (`GateProfiling.ts:262-266`, `PipelineChecking.ts:223-227`), stop
    every live child under the three roots and wait for their ends (bounded tries): their owner, an earlier Overseer's
    promise, is gone. Without this the next Overseer removes a worktree a line still runs in.
 6. Gate slots: the holder of every gate is its child folder; delete `inProcessHolderOf` and the `process:` branch.
-7. `mergedTreeGateProcesses` and `stopMergedTreeGate` (`DrivePass.ts:1058-1065`) go: the stop at the Overseer's stop is
-   `stop-lines`.
+7. `mergedTreeGateProcesses` and `stopMergedTreeGate` (`DrivePass.ts:1143-1150`) and the `onSpawned` bookkeeping of
+   `runMergedTreeGatePipeline` (`:1152-1168`) go: the stop at the Overseer's stop is `stop-lines`.
 
 **Specs.**
-- `GateRun.spec.ts`, `GateLineRun.spec.ts`, `ProposalTwiceRun.spec.ts` over a fake `LineRunner` prove what they proved
-  over a spawn.
+- `GateRun.spec.ts`, `GateRun.entities.spec.ts`, `GateLineRun.spec.ts`, `ProposalTwiceRun.spec.ts` and
+  `MergedTreeGateRun.spec.ts` over a fake `LineRunner` prove what they proved over a spawn, and that two entity parts
+  of one run never share a step folder.
 - `TalosLines.spec.ts`: the end arrives by frame or by the look; output is the joined lines; a `time-bound` end judges
   `cannot-run`; `talos-unavailable` judges `cannot-run`.
 - `GateProfiling.spec.ts` and `PipelineChecking.spec.ts`: a Stop sends `stop`; the start stops leftover children before
@@ -869,18 +936,19 @@ verify` is green.
   `src/services/overseer/testing/fixtures/watcher-record-format-1.json`; `src/testing/WatcherJob.ts`,
   `src/testing/WatcherProtocolClient.ts`, `src/testing/RecordedBunBuild.ts` and its spec if nothing else uses them
   (check with `git grep`); `cli/overseer/WindowsProcessIdentity.watcher.integration.spec.ts`; the recordings named
-  `src__lib__watcher__Watcher.ts.json`, `src__lib__watcher__WatcherSocketServer.ts.json`,
-  `src__services__overseer__WatcherBundle.ts.json`, `src__services__overseer__WatcherFleet.ts.json`.
-- Change `src/services/overseer/ProcessStarts.ts` (no `spawnWatcher`), `DrivePass.ts` (no `legacyWatcherJobIds`, `:280`,
-  `:918-922`, `:970`, `:1443`; no notice `watcher-endpoint-does-not-fit`, `:268-269`), `JobLiveFactsReader.ts` (no
-  `watcherProtocol`, `watchOnly`), `EventBroker.ts:75-76`, `bridge/views/agents/AgentJobDocument.ts:31-32`,
-  `JobRow.tsx:62`, `:76`, `JobControls.tsx:33`, `bridge/@types/DetailBoardState.ts:103`,
-  `bridge/testing/BoardStateFixture.ts:97-98`, and their DOM specs.
+  `src__lib__watcher__Watcher.ts.json`, `src__services__overseer__WatcherBundle.ts.json` and
+  `src__services__overseer__WatcherFleet.ts.json` (the boundary `src/lib/watcher/WatcherSocketServer.ts` has no
+  recording of its own).
+- Change `src/services/overseer/ProcessStarts.ts` (no `spawnWatcher`), `DrivePass.ts` (no `legacyWatcherJobIds`,
+  `:312`, `:991-995`, `:1043`, `:1538`; no notice `watcher-endpoint-does-not-fit`, `:167`, `:300-301`),
+  `JobLiveFactsReader.ts` (no `watcherProtocol`, `watchOnly`), `EventBroker.ts:75-76`,
+  `bridge/views/agents/AgentJobDocument.ts:31-32`, `JobRow.tsx:62`, `:76`, `JobControls.tsx:33`,
+  `bridge/@types/DetailBoardState.ts:103`, `bridge/testing/BoardStateFixture.ts:97-98`, and their DOM specs.
 - Change the guards: `src/ImportDirection.spec.ts` (no `watcher-binary`), `src/PlatformBoundary.spec.ts`,
   `src/SpecSleeps.spec.ts` (entries `:30-45` whose files are gone), `src/RealSystemSpecs.spec.ts` (`:41-45`),
   `src/testing/BoundarySpecs.ts`, `src/testing/BoundaryRecordings.ts`, `eslint.config.js`,
-  `src/lib/process-identity/ProcessSupervision.ts` and `SpawnOptionsFor.ts` (no kind `watcher`; if
-  `src/lib/process-identity/FrozenProcessSupervision.json` names it, rename that key only and say so in its `retake`).
+  `src/lib/process-identity/ProcessSupervision.ts` and `SpawnOptionsFor.ts` (no kind `watcher`;
+  `src/lib/process-identity/FrozenProcessSupervision.json` does not name it, so it stays as it is).
 - Note for WP2.17 the names this package retires: `'WatcherFleet'`, `'WatcherBundle'`, `'LegacyWatcherReader'`,
   `'runWatcher'`, `'WATCHER_PROTOCOL_VERSION'`, `'src/lib/watcher'`, `'watcher-bundle-failed'`,
   `'watcher-endpoint-does-not-fit'`, `'legacy-watcher'`, `'pinWatcherBundle'`. They join `RETIRED_NAMES` in WP2.17,
@@ -894,14 +962,15 @@ leave their union and their wording in `cli/`.
 **Specs.** The guard specs prove their planted cases with Talos paths.
 
 **Done when.** `git grep -n -i "watcherfleet\|watcherbundle\|legacywatcher\|lib/watcher\|watcher\.ts" apps/forge` finds
-nothing outside `docs/`; the root `bun run verify` is green.
+nothing outside `docs/` and `apps/forge/CLAUDE.md`, which WP2.17 rewrites; the root `bun run verify` is green.
 
 ### WP2.16 The Watcher's remaining names
 
 **Purpose.** "The Watcher's name goes with its code in stage 2" (design section 11). Rename the identifiers and stored
 keys that still name it, one mechanical change, keeping `watcher-lost` for stage 9.
 
-**Files.** Every file this command names, run at the repository root (82 files hold `watcherInstance` today):
+**Files.** Every file this command names, run at the repository root (92 files hold `watcherInstance` today, 133 match
+the whole pattern):
 
 ```sh
 git grep -l -E "watcherInstance|FIRST_WATCHER_INSTANCE|watcher-instance|ProcessWatcher|LostWatcher|environmentFromWatcher|watcherProtocolVersion|WatcherObservation|WatcherEventFacts" \
@@ -910,25 +979,37 @@ git grep -l -E "watcherInstance|FIRST_WATCHER_INSTANCE|watcher-instance|ProcessW
 
 **What to do.**
 1. Rename: `Job.watcherInstance` to `childInstance`; `FIRST_WATCHER_INSTANCE` to `FIRST_CHILD_INSTANCE`; the log field
-   problem key `'watcher-instance'` (`src/adapters/log/LogRecordProblem.ts:177`) to `'child-instance'`;
+   problem key `'watcher-instance'` (`src/adapters/log/LogRecordProblem.ts:182`) to `'child-instance'`;
    `ProcessWatcherSandbox` to `LineSandbox` (file `src/services/overseer/LineSandbox.ts`); `LostWatcherFacts` to
    `LostChildFacts`; `environmentFromWatcher` to `environmentFromTalos`; `WatcherObservation` to `ChildObservation`;
    `watcherProtocolVersion` to `talosProtocolVersion` where WP2.13 has not done it.
 2. The stored key in `progress.json` changes with the field: `src/adapters/progress/@types/StoredProgressFile.ts`,
-   `utils/ProgressFileMappingUtil.ts`, `utils/StoredJobValidationUtil.ts`. Nothing migrates (decision 32).
+   `utils/ProgressFileMappingUtil.ts`, `utils/StoredJobValidationUtil.ts`. So does the `watcherInstance` field of the
+   `job-interrupted`, `job-resumed` and `job-reopened` records in `log.jsonl`
+   (`src/lib/tracker-model/constants/LogRecordSchema.ts:325-339`, worded in `src/adapters/utils/LogUtil.ts:301-304`).
+   Nothing migrates (decision 32).
 3. Note each old identifier for WP2.17, which adds it to `RETIRED_NAMES` in `src/ComponentNames.spec.ts`. Never
    `watcher-lost`.
 4. Rename every other Watcher name left after WP2.15 in shipping code, specs and testing helpers of `apps/forge`,
    `apps/gaia` and `packages`, by what it now names: a child (`watcherFolder` to `childFolder`, `watcherFilesOf` to
    `childFilesOf`, `gateWatcherFolderIn` to `gateChildFolderIn`, `endStepWatcher` to `endStepChild`,
    `plantLiveWatcher` to `plantLiveChild`, `RecordedWatcherStages` to `RecordedTalosStages`), or Talos. List them with
-   `git grep -n -o -i -E "[A-Za-z_-]*watcher[A-Za-z_-]*" -- apps/forge/src apps/forge/cli apps/gaia packages`; at
-   `3e6cb660` that lists about 80 distinct names, most of which WP2.15 deletes with the fleet.
+   `git grep -h -o -i -E "[A-Za-z_-]*watcher[A-Za-z_-]*" -- apps/forge/src apps/forge/cli apps/gaia packages | sort -u`;
+   today that lists about 280 distinct spellings, most of which WP2.15 deletes with the fleet. In Gaia: the sentence
+   "finish what they are on under their Watchers" (`apps/gaia/page/shared/utils/ForgeCommandTextUtil.ts:59`) and its
+   specs, the comments of `apps/gaia/src/testing/ScratchForge.ts:199` and `ScratchRoot.ts:24`, and the planted
+   `.forge-monitor/watchers/...` token paths of Gaia's specs (`private` now).
+5. Leave Flint's own names: the `watcher-spark` attendant of `packages/flint/` (about 118 lines, from
+   `attendants/watcher-spark/`) and its host in `bridge/flint/` count agents in flight and are Flint's design vocabulary
+   (`packages/flint/README.md`, Flint's design docs), not the Watcher's code. "Needs the owner", item 15.
+6. Leave Gaia's recordings (`apps/gaia/src/testing/recordings/darwin/forge-registry.json`, `overseer-fetch-*.json`):
+   they are a real forge's recorded answers and change when Gaia records again (stage 8).
 
 **Specs.** No new claim; specs rename with the code.
 
-**Done when.** The grep of "Files" finds nothing; `git grep -n -i "watcher" -- apps/forge/src apps/forge/cli apps/gaia
-packages` lists only `watcher-lost` and the vendor's own key `setup_file_watcher_ms` in recorded Claude Code output
+**Done when.** The grep of "Files" finds nothing outside Gaia's recordings; `git grep -n -i "watcher" -- apps/forge/src
+apps/forge/cli apps/gaia packages ':!packages/flint' ':!apps/gaia/src/testing/recordings' ':!apps/gaia/CLAUDE.md'` lists
+only `watcher-lost` and the vendor's own key `setup_file_watcher_ms` in recorded Claude Code output
 (`src/lib/claude-code/testing/fixtures/*.jsonl`, `src/testing/recordings/darwin/src__testing__fake-agent.json`); the
 root `bun run verify` is green.
 
@@ -937,11 +1018,14 @@ root `bun run verify` is green.
 **Purpose.** A change that invalidates a rule updates it in the same change (`apps/forge/CLAUDE.md:277-280`).
 
 **Files.**
-- Change `apps/forge/CLAUDE.md`: Runtime (`:134-136`: Talos has no context, so `talos.ts` passes `process.platform` to
-  `runTalos`), the Deviations rows naming `watcher.ts` (`:318`, `:320`, `:329`, `:330`) and the legacy row (`:328`,
-  deleted), a new row for the synchronous-calls thread and the lease renewal thread as entry modules, and a row for
-  `FrozenTalosHandshake.json`, a frozen table that is never retaken.
-- Change `docs/cli.md` (the Watcher passages, for example `:199`, `:264`, `:813`, `:832`, `:1018`; the files of a job
+- Change `apps/forge/CLAUDE.md`: the component names (`:46`), Runtime (`:134-135`: Talos has no context, so `talos.ts`
+  passes `process.platform` to `runTalos`), the `eslint.config.js` paragraph (`:161-163`, `watcher.ts` among the files
+  that may exit), the Deviations rows naming `watcher.ts` or the Watcher (`:326`, `:328`, `:337`, `:338`) and the
+  legacy row (`:336`, deleted), a new row for the synchronous-calls thread and the lease renewal thread as entry
+  modules, and a row for `FrozenTalosHandshake.json`, a frozen table that is never retaken.
+- Change `apps/gaia/CLAUDE.md:148` (a Watcher's socket path below the scratch home): Talos's socket now. Gaia's rules
+  are in no tracker's reach, but this stage runs outside both trackers.
+- Change `docs/cli.md` (the Watcher passages, for example `:203`, `:268`, `:851`, `:870`, `:1094`; the files of a job
   folder; the new interruption causes), `docs/glossary.md`, `docs/development/guards-and-testing.md`,
   `docs/development/platform-status.md` (Talos boundaries: macOS recorded, Linux and Windows never ran),
   `docs/development/contributing.md` (the scratch isolation figure's words), `docs/operations/*.md`,
@@ -959,7 +1043,8 @@ where `src/ProseWrap.spec.ts` holds a file. Figures that show Watchers (`docs/im
 named in the commit as stale. Then add the retired names, and run `src/ComponentNames.spec.ts`: each finding is a
 document line still to rewrite, or a dated record for the allowlist.
 
-**Done when.** `git grep -n -i watcher apps/forge/CLAUDE.md apps/forge/docs/cli.md` finds only `watcher-lost`;
+**Done when.** `git grep -n -i watcher apps/forge/CLAUDE.md apps/forge/docs/cli.md apps/gaia/CLAUDE.md` finds only
+`watcher-lost`;
 `bun test --path-ignore-patterns='.claude/**' ./src/ComponentNames.spec.ts` in `apps/forge` passes with the new names;
 the root `bun run verify` is green.
 
@@ -1044,9 +1129,13 @@ Board folder means the tracker's data folder (`workspace.trackerDirectory`).
 | `<monitor>/private/<trackerId>/token` | Overseer | the API token (moved from `watchers/`) |
 | `<monitor>/private/<16 hex>.sock` | Talos | the endpoint on macOS and Linux; a named pipe on Windows |
 
-Child folders: a job's agent `jobs/<J>`; a job's lines `jobs/<J>/<step folder>` (`install`, `install2`, `gate-<name>`,
-`target-merge`, `main-merge`, as `JobLaunch.ts:313-327` names them); `flint-brain`; `merge-gates/<hash>/step-<i>`;
-`gate-profile-runs/<P>/step-<i>`; `pipeline-checks/<S>/run-<r>/step-<i>`.
+Child folders: a job's agent `jobs/<J>`; a job's lines `jobs/<J>/<step folder>`, as `JobLaunch.ts:334-353` and
+`gateStepsOf` (`:741-761`) name them: `install`, `install2`; `gate-prepare`, `gate-prepare2` and `gate-1`, `gate-2`,
+suffixed `-<n>` from the session's second instance on, prefixed `target-` for the review's catch-up gate run and
+`main-` for a round of the main-line merge (`:1789-1791`);
+`target-merge`; `main-merge`, `main-merge-<round>`; `flint-brain`; `merge-gates/<hash>/<kind>-<i>`, or
+`merge-gates/<hash>/part-<p>/<kind>-<i>` on a pipeline with entities; `gate-profile-runs/<P>/<kind>-<i>`;
+`pipeline-checks/<checkName>/run-<r>/<kind>-<i>`. `<kind>` is `prepare` or `gate`.
 
 ```ts
 // src/lib/talos/TalosFiles.ts
@@ -1138,6 +1227,8 @@ export interface ChildRecord {
   childId:               string;
   kind:                  ChildKind;
   label:                 string;
+  /** The launch's working directory: a resumed session starts where its first instance started (`SessionPlace.ts:63-71`). */
+  workingDirectory:      string;
   talosStartNumber:      number;
   talos:                 ProcessIdentity | null;
   state:                 ChildState;
@@ -1228,6 +1319,8 @@ export interface LeaseRenewalFrame { kind: 'lease-renewal'; frameId: number; ren
 export interface LaunchFrame       { kind: 'launch'; frameId: number; launch: ChildLaunch }
 export type ChildInput = { act: 'write-line'; line: string } | { act: 'close' };
 export interface InputFrame        { kind: 'input'; frameId: number; childId: string; input: ChildInput }
+/** The line of an event-log entry of origin `client`: what Talos did to an agent's input or process, appended before it acts. */
+export type ClientEntry = ChildInput | { act: 'stop'; graceMilliseconds: number };
 export interface StopFrame         { kind: 'stop'; frameId: number; childId: string; graceMilliseconds: number }
 export interface StopLinesFrame    { kind: 'stop-lines'; frameId: number }
 export interface QuitFrame         { kind: 'quit'; frameId: number; reason: 'restart' }
@@ -1372,6 +1465,8 @@ export interface LeaseRenewal {
 
 // src/services/lifecycle/GateRun.ts
 export interface LineRunRequest {
+  /** The step's child folder under the board folder, from the run's `childFolder` (WP2.14 item 1). */
+  childFolder:           string;
   argv:                  readonly string[];
   verbatimArguments:     boolean;
   directory:             string;
@@ -1425,22 +1520,33 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
   is harmless (it grants grace) but delays every frame.
 - **A renewal on the Overseer's event loop.** `GitProcess.run` has no timeout and runs synchronously
   (`src/lib/git/GitProcess.ts:58-61`, `:68`), and the Airlock awaits a merged-tree gate in the pass
-  (`Airlocks.ts:638-640`). A `setInterval` in the main thread misses renewals during a long `worktree add` or a landing.
-  The renewal runs in its own worker with its own connection.
+  (`Airlocks.ts:864-866`, and `:703` for a stale green's re-gate). A `setInterval` in the main thread misses renewals
+  during a long `worktree add` or a landing. The renewal runs in its own worker with its own connection.
 - **Stopping the renewal at a release.** The successor holds the Baton only after the predecessor released
-  (`OverseerForeground.ts:649-658`, `:722-736`), up to `BATON_PASS_RELEASE_TRIES` intervals later
+  (`OverseerForeground.ts:651-660`, `:724-738`), up to `BATON_PASS_RELEASE_TRIES` intervals later
   (`OverseerLimits.ts:69-72`). If the predecessor stops renewing at its release, a slow pass lets the lease end. The
   predecessor renews until it exits.
-- **Counting a lease end or a clean quit as a crash.** `Jobs.ts:139` defaults a missing cause to `watcher-lost`, a
-  counted crash. Map `paused` and `lease-ended` before the `agent-crashed` branch (`DrivePass.ts:574-575`); two counted
-  crashes in a row open an `outage` decision (`Playbook.ts:139-150`).
+- **Counting a lease end or a clean quit as a crash.** `Jobs.ts:145` defaults a missing cause to `watcher-lost`, a
+  counted crash. Map `paused` and `lease-ended` before the `agent-crashed` branch (`DrivePass.ts:614-615`); two counted
+  crashes in a row open an `outage` decision (`Playbook.ts:188-200`).
 - **A session job replaced on an outage.** `crashBoundStepsOf` replaces every interrupted session kind before it looks
-  at the cause. Put the held causes before that rule (WP2.11 item 3).
+  at the cause, and resumes a pipeline agent by its own branch. Put the held causes before both (WP2.11 item 3).
 - **A paused line judged.** A gate stopped by a clean quit exits by a signal, which judges `cannot-run` and opens an
   incident. A `paused` end is never judged; the step runs again as the next instance (WP2.13 item 6). The fixed
-  `PROCESS_WATCHER_INSTANCE = 1` (`JobLaunch.ts:335`) cannot express a re-run.
+  `PROCESS_WATCHER_INSTANCE = 1` (`JobLaunch.ts:360`) cannot express a re-run.
+- **Two entity parts in one folder.** A merged-tree gate on a pipeline with entities runs one pipeline per entity, each
+  counting its steps from the first again (`MergedTreeGateRun.ts:45-63`, `GateRun.ts:370-390`). A run folder keyed by
+  the tree alone would hand the second entity's first gate the first entity's ended child; each part gets its own
+  folder (WP2.14 item 1). The same holds for the forge's and an entity's pipeline checks of one setup, which run side by
+  side (WP2.14 item 3).
+- **A resumed session that starts elsewhere.** A resumed session finds its first start folder in the first launch file
+  today (`SessionPlace.ts:63-71`). With no launch file it would start in today's place and its vendor would not find
+  the session; the child record carries `workingDirectory` (WP2.13 item 14).
+- **A `client` entry the transcript cannot read.** The transcript and the turn reader parse the event log's `client`
+  lines (`JobTranscript.ts:89-94`, `JobLiveFactsReader.ts:241-246`). Talos appends each as a `ClientEntry`, and WP2.13
+  moves both readers to it in the same change as the switch.
 - **Removing a worktree under a running line.** Gate profiles and pipeline checks are marked stopped and their worktrees
-  removed at start (`GateProfiling.ts:244-248`, `PipelineChecking.ts:191-195`). Under Talos their lines outlive the
+  removed at start (`GateProfiling.ts:262-266`, `PipelineChecking.ts:223-227`). Under Talos their lines outlive the
   Overseer, so stop them first (WP2.14 item 5).
 - **The gate bound counting a sleep.** On a laptop, a gate running across a sleep would be stopped on wake and open a
   `gate-cannot-run` incident. Add every detected gap to the line's allowance (WP2.7 item 8), unless the owner decides
@@ -1491,8 +1597,10 @@ agent-progress.ts`). Never on the real home or the live board.
 
 1. `oversee --port 0` in the background. `<board>/talos/talos-1.json` reads `serving` with protocol 1; the Overseer's
    log says the lease renewal started.
-2. Ready a ticket. Its build runs: `jobs/<J>/child-1.json` is `running`, `install/child-1.json` and the gate step's
-   records appear in turn, and the ticket reaches review and lands as before.
+2. With `FORGE_FAKE_AGENT_REPORTS=1` and only `overseerOnly: true` gates (`docs/development/contributing.md:161-165`),
+   ready a ticket. Its build runs: `jobs/<J>/child-1.json` is `running`, `install/child-1.json` and the gate steps'
+   records (`gate-1/child-1.json`) appear in turn, and the ticket reaches review and lands as before, its merged-tree
+   gate under `merge-gates/`. Unset `FORGE_FAKE_AGENT_REPORTS` for the steps below.
 3. Stop the Overseer while a fake agent works (`FORGE_FAKE_AGENT_KEEPS_WORKING=1`). Within one minute the agent still
    runs; start the Overseer again: it attaches to `talos-1` and the job goes on.
 4. Stop the Overseer and wait past one minute: the agent's record ends `lease-ended`, an install line started before the
@@ -1502,12 +1610,13 @@ agent-progress.ts`). Never on the real home or the live board.
 6. Raise `TALOS_PROTOCOL_VERSION` in a throwaway local edit and restart the Overseer: the old Talos answers
    `version-mismatch`, its agents end `paused`, `talos-2.json` serves, the jobs are interrupted `talos-paused` and
    resumed by themselves. Revert the edit.
-7. Run the fake agent's outage scenario on a ticket: the record lists `network-outage`, the job is interrupted
-   `network-outage`, its session is stopped, nothing resumes it, and no `outage` decision opens.
+7. Run the fake agent's outage scenario on a ticket (`FORGE_FAKE_AGENT_NETWORK_OUTAGE=1`, once the owner recorded it,
+   WP2.2): the record lists `network-outage`, the job is interrupted `network-outage`, its session is stopped, nothing
+   resumes it, and no `outage` decision opens. Without that recording, this step waits and the stage report says so.
 8. `kill -9` the Talos process while a gate line runs: the next pass finds Talos lost, stops the gate's tree, and starts
    `talos-3`.
-9. Queue a gate profile and a pipeline check: their lines show as children under `gate-profile-runs/` and
-   `pipeline-checks/`; a Stop ends them.
+9. Queue a gate profile and a pipeline check: their lines show as children under `gate-profile-runs/<P>/` and
+   `pipeline-checks/<checkName>/run-1/`; a Stop ends them.
 10. End the scratch board, then check that no `bun` process of `talos.ts` and no child of the scratch board is left (`ps
     -A -o pid,command | grep talos.ts`).
 
@@ -1532,7 +1641,8 @@ agent-progress.ts`). Never on the real home or the live board.
 - Closing the agent port's other leaks of design section 5 (the Overseer's `ClaudeTranscripts.ts`, the hook entries,
   confinement): no stage owns them yet ("Needs the owner", item 10).
 - The store port: stage 5. Talos's files stay under the operating system port, as design section 4 has them.
-- Any new workspace package; any change to `packages/` beyond what WP2.13 needs (none is planned there).
+- Any new workspace package; any change to `packages/` beyond the system version of "Needs the owner", item 6, which
+  WP2.13 raises with the identity key; Flint's `watcher-spark` names stay (item 15).
 
 ## Needs the owner
 
@@ -1554,14 +1664,15 @@ agent-progress.ts`). Never on the real home or the live board.
    value here, meaning "Talos was lost while the child ran".
 6. **The identity document's key and the system version.** `watcherProtocolVersion` becomes `talosProtocolVersion`; no
    Gaia code reads the old key (it appears only in Gaia's recordings). Recommended default: raise
-   `FORGE_SYSTEM_VERSIONS.current` to 1.2 in `packages/forge-contracts/constants/ForgeSystemVersions.ts`, as a change
+   `FORGE_SYSTEM_VERSIONS.current` by one minor in `packages/forge-contracts/constants/ForgeSystemVersions.ts` (`:41`;
+   1.18 today, so 1.19 unless another change raised it first), with a sentence in its history comment, as a change
    that no supported client needs to see; Gaia's supported-forge check then warns until Gaia moves.
 7. **The lease proves that the Overseer lives, not that it makes progress** (design risk 2). The renewal thread renews
    while the process lives, also with a hung main thread. Recommended default: accept for this stage; a check of the
    main thread's progress in the renewal thread can follow.
 8. **The minimum number of retry lines** for the outage pattern. Recommended default: the number stage 0's recording
    shows, and `1` if it shows none.
-9. **Renaming `Job.watcherInstance` in this stage** (WP2.16, 82 files). Recommended default: yes, as its own package,
+9. **Renaming `Job.watcherInstance` in this stage** (WP2.16, 92 files). Recommended default: yes, as its own package,
    since the design says the Watcher's name goes with its code.
 10. **The rest of the agent port's work** (decision 16, design section 5, row "Agent"). This stage puts only the
     vendor's ending patterns, closing line and quit act behind the adapter. The leaks the design lists stay: the
@@ -1577,13 +1688,22 @@ agent-progress.ts`). Never on the real home or the live board.
     built; the user restarts the forge with the program on disk, which then starts the matching Talos.
 12. **When Talos syncs an event log** (design section 3.2: "when a client asks for the durable entries and at the
     close"). No production reader asks for history over the socket today: the pass reads the event-log files
-    (`src/services/overseer/DrivePass.ts:431`). Built: no `history` or `message` frame; Talos syncs a child's log at
+    (`src/services/overseer/DrivePass.ts:471`). Built: no `history` or `message` frame; Talos syncs a child's log at
     its end and at the quit. Recommended default: as built.
 13. **The Overseer's own gates across its restart** (design section 3.3: Talos and its children outlive a restart).
     Merged-tree gates, gate profiles and pipeline checks are awaited by promises of the Overseer that started them, so
     at the next start nothing would read their end. Built: the next Overseer stops those line children at start
     (WP2.14 item 5), while agents and job lines carry on. Recommended default: as built; carrying them across a restart
     needs the pass redesign of design risk 2.
+14. **The fake agent's outage recording** (WP2.2). The fake agent prints only lines of its own recording, and recording
+    a new scenario re-runs every Claude probe of `bun run record src/testing/fake-agent/`, P22's real model call among
+    them, against the installed `claude`. Built: the probe case and the scenario name, in one commit with the
+    recording. Recommended default: the owner runs the recording once WP2.2's probe case exists; until then WP2.8 holds
+    the recognition against stage 0's fixture and verification step 7 waits.
+15. **Flint's `watcher-spark` attendant** (`packages/flint/attendants/watcher-spark/`, and `bridge/flint/`). It shows
+    one spark per agent in flight and carries the Watcher's name as Flint's own vocabulary, in a package forge depends
+    on. Recommended default: keep it in this stage (WP2.16 item 5); a rename belongs with Flint's design docs, and the
+    owner names it.
 
 ## Not established
 
@@ -1600,7 +1720,8 @@ agent-progress.ts`). Never on the real home or the live board.
 - Whether `job fresh` or `job stop` moves an interrupted job: `JobMoveLegality.ts:14` allows `interrupted` to
   `stopping`, but the control path was not traced.
 - How `src/testing/ImportGraph.ts` treats `import type`, which `TalosMainThread.spec.ts` depends on.
-- Whether `src/lib/process-identity/FrozenProcessSupervision.json` names the spawn kind `watcher`.
+- Whether a 529 from a local stand-in makes Claude Code spend its retries quickly enough for a probe, and whether the
+  result it then writes carries the fields of stage 0's recording (WP2.2's fake agent recording).
 - Whether every Airlock step is safe when a merged-tree gate child is stopped by a restart of the Overseer and the gate
   runs again: stage 0's table B traces the `gating` phase as safe to redo for the board, but no run of a gate child
   stopped mid-run under Talos was traced.

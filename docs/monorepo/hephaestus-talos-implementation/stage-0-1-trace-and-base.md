@@ -10,8 +10,9 @@ reason, and `main` is the one base of the refactoring: no branch waits to land b
 
 ## Depends on
 
-- No earlier stage. Stage 0 runs first; stage 1 runs after stage 0's owner decisions (WP0.5), because two of its items
-  (the `entities/integration` branch and the live trackers) are decided there.
+- No earlier stage. Stage 0 runs first; stage 1 runs after stage 0's owner decisions (WP0.5), because its items on the
+  live trackers and the leftover branch `claude/project-thread-dw1bcu` are decided there. `entities/integration`, once
+  one of them, landed before the run started.
 - Hands to stage 2 (Talos): the recorded outage fixture and its claims (WP0.4), the measured result-line and retry-line
   fields Talos's ending patterns match, the answer to the install-line bound, and a quiesced repository.
 - Hands to stage 3 (presence and recovery): the recovery trace (table A), the Airlock trace (table B), the in-memory
@@ -35,39 +36,43 @@ reason, and `main` is the one base of the refactoring: no branch waits to land b
 
 ## Today's code
 
-All paths are from the repository root. The traces are of `main` at `3e6cb660`. Line numbers shift once anything lands;
-see Traps.
+All paths are from the repository root. The traces were made on `main` at `3e6cb660` and traced again on `main` at
+`e9b5d057`, after `entities/integration` landed (forge 1.9 to 1.18, install version 36); the integration branch
+`hephaestus-talos` carries that code unchanged, its own commits touching only this folder. Line numbers shift once
+anything lands; see Traps.
 
 ### A. Recovery as built: every interruption cause, and what resumes by itself
 
-The board's resume rule is `crashBoundStepsOf` in `apps/forge/src/lib/tracker-model/Playbook.ts:375-389`. Its holds are
-computed in `nextStepsOf` at `Playbook.ts:525-533`: `resumesAreHeld` is a usage limit, an install change, an unset
+The board's resume rule is `crashBoundStepsOf` in `apps/forge/src/lib/tracker-model/Playbook.ts:473-487`. Its holds are
+computed in `nextStepsOf` at `Playbook.ts:763-771`: `resumesAreHeld` is a usage limit, an install change, an unset
 pipeline, an outage decision or a refused-key decision; a paused board holds new launches only (`newWorkIsHeld`,
-`Playbook.ts:533`), never a resume.
+`Playbook.ts:771`), never a resume. The entities work left these rules as they were; it added job fields (`entity`,
+`stage`), three job outcomes (`needs-declared`, `refused`, `package-return`) and a resume that carries on only a session
+of the job's own entity and stage (`apps/forge/src/services/overseer/JobResumption.ts:1-6`, `:36-51`).
 
 | What exists | Where (path:line) | What happens to it |
 | --- | --- | --- |
-| The eight causes: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused`, `authentication-failed` | `apps/forge/src/lib/tracker-model/@types/Job.ts:76-84` | Changed in stage 2 (an end reason of the lease, of a clean quit, of a network outage) and stage 3 (which wait for an instruction) |
-| Counted crashes are `watcher-lost` and `agent-crashed` only | `apps/forge/src/lib/tracker-model/constants/JobStates.ts:88`, `Playbook.ts:106-108` | Kept as the counted set; stage 2's new causes must not join it |
-| `watcher-lost`: a lost Watcher whose recorded child group took the forced stop; set in the pass and at start | `apps/forge/src/services/overseer/DrivePass.ts:575`, `DrivePass.ts:477-480`, `apps/forge/src/services/overseer/Regrouping.ts:102-124` (line 120), `apps/forge/src/services/overseer/RefusedForcedStops.ts:35` | Replaced in stage 2: no Watcher; Talos's child record names the cause |
-| `agent-crashed`: the Watcher ended with no closing result while the job ran, or a lost Watcher with no live child | `DrivePass.ts:574-575`, `Regrouping.ts:110` | Changed in stage 2 (Talos reports the end) and stage 3 (two resumes, then wait) |
-| Both crash causes resume by themselves up to `JOB_RESUMES_BEFORE_FRESH` (2), then `replace-job` starts a fresh attempt on the same worktree | `apps/forge/src/shared/constants/LifecycleLimits.ts:12`, `Playbook.ts:311-314`, `Playbook.ts:384`, `Playbook.ts:386-387` | Changed in stage 3: after two resumes the job waits for an instruction |
-| Two `replaced` endings in a row on a ticket open `job-lost` (default `ticket-park`) | `LifecycleLimits.ts:15`, `Playbook.ts:153-163`, `Playbook.ts:407-417` | Kept or retired by stage 3 once nothing replaces by itself |
-| Counted crashes on jobs of different tickets back to back (`CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING`, 2) with no verified ending between pause the Overseer and open an `outage` decision | `LifecycleLimits.ts:8`, `Playbook.ts:135-151`, `Playbook.ts:540` | Kept; stage 2's lease end, clean quit and network-outage end must not count |
-| `reboot`: a lost Watcher whose recorded boot identity differs from the current one; never counted, resumes whatever the count | `Regrouping.ts:108-111`, `Playbook.ts:311-314` | Changed in stage 3: waits for an instruction |
-| `answer-delivery`: the Overseer stopped the Watcher itself to deliver an answer; resumes with the answer | `DrivePass.ts:570-571`, `apps/forge/src/services/overseer/AnswerDelivery.ts:43-45`, `AnswerDelivery.ts:107` | Kept as workflow (design section 7) |
-| `usage-limit`: a top-level usage refusal; resumes once the marker's reset passed, a pass woken at the reset by a timer | `apps/forge/src/services/overseer/UsageLimits.ts:44`, `DrivePass.ts:525-530`, `DrivePass.ts:1234-1245`, `Playbook.ts:126-129` | Kept as workflow |
-| `handoff-red`: a red gate or Customs check of a handoff; resumes the same session on its own bound (`RED_HANDOFF_RESUMES_BEFORE_PARKING`, 2), then parks the ticket | `apps/forge/src/services/overseer/JobLaunch.ts:1069`, `apps/forge/src/services/overseer/Airlocks.ts:695`, `Playbook.ts:357-367`, `LifecycleLimits.ts:14` | Kept as workflow |
-| `forced-stop-refused`: a lost Watcher whose child tree refused the forced stop; never resumed, the stop retried each sweep, the last refusal ends the job blocked with one decision | `DrivePass.ts:477-480`, `Playbook.ts:374-377`, `DrivePass.ts:1512`, `apps/forge/src/services/overseer/CrashMatrix.spec.ts:890` | Changed in stage 2: the cause stays, set from a lost child's `child-<i>.refused-forced-stops` (stage 2, WP2.9); stage 3 keeps it as never resumed |
-| `authentication-failed`: a refused API key; holds every launch and resume until User answers the decision | `apps/forge/src/services/overseer/ApiBillingStops.ts:36`, `Playbook.ts:526-532` | Kept |
-| An Assistant interrupted for any cause is replaced, never resumed | `Playbook.ts:58-59`, `Playbook.ts:383` | Changed in stage 8 (off by default) |
-| A product owner resumes by id once its question is answered; past the crash bound it waits or a fresh one takes its intake | `Playbook.ts:316-327` | Changed in stage 3 with the crash bound |
-| A pipeline agent resumes even while no pipeline is set or the board is paused | `Playbook.ts:385`, `Playbook.ts:543-544` | Changed in stage 3 |
-| A resume the vendor cannot take ends the job `replaced` with cause `resume-failed` and opens `resume-failed` (default `job-fresh`); an Airlock agent opens none | `apps/forge/src/services/overseer/JobResumption.ts:84-103` | Kept; the default move is stage 3's to revisit |
-| At start, Regrouping attaches every live Watcher from the stored cursor, settles every lost one, and names an unclaimed instance for its re-spawn; a stop on purpose or a crash of the Overseer interrupts no live agent | `Regrouping.ts:223-244`, `DrivePass.ts:1483-1492` | Replaced in stage 2 (Talos reconnect) and stage 3 (reconcile) |
-| `oversee stop` without `--now` leaves every agent Watcher running; with `--now` it stops only process Watchers (installs and gates), never an agent | `apps/forge/cli/overseer/OverseerForeground.ts:773-792`, `apps/forge/src/services/overseer/WatcherFleet.ts:340-365` | Changed in stage 2 (clean quit) and stage 3 (a stop on record) |
-| `overseer-started` and `overseer-stopped` (`stopped` or `baton-passed`) are log records already | `apps/forge/src/lib/tracker-model/Jobs.ts:304-311`, `OverseerForeground.ts:169-176`, `OverseerForeground.ts:655`, `apps/forge/src/lib/tracker-model/@types/Job.ts:182` | Changed in stage 3: becomes the presence record's evidence |
-| A session's error result (an outage whose retries ran out among them) moves a build or review to Customs like any closing result, and Customs ends it `failed` cause `no-report` | `DrivePass.ts:546-548`, `JobLaunch.ts:939-942`, `JobLaunch.ts:360-361` | Changed in stage 2: Talos reports the network-outage end first |
+| The eight causes: `watcher-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused`, `authentication-failed` | `apps/forge/src/lib/tracker-model/@types/Job.ts:83-91` | Changed in stage 2 (an end reason of the lease, of a clean quit, of a network outage) and stage 3 (which wait for an instruction) |
+| Counted crashes are `watcher-lost` and `agent-crashed` only | `apps/forge/src/lib/tracker-model/constants/JobStates.ts:91`, `Playbook.ts:148-150` | Kept as the counted set; stage 2's new causes must not join it |
+| `watcher-lost`: a lost Watcher whose recorded child group took the forced stop; set in the pass and at start | `apps/forge/src/services/overseer/DrivePass.ts:615`, `DrivePass.ts:517-520`, `apps/forge/src/services/overseer/Regrouping.ts:102-124` (line 120), `apps/forge/src/services/overseer/RefusedForcedStops.ts:35` | Replaced in stage 2: no Watcher; Talos's child record names the cause |
+| `agent-crashed`: the Watcher ended with no closing result while the job ran, or a lost Watcher with no live child | `DrivePass.ts:614-615`, `Regrouping.ts:110` | Changed in stage 2 (Talos reports the end) and stage 3 (two resumes, then wait) |
+| Both crash causes resume by themselves up to `JOB_RESUMES_BEFORE_FRESH` (2), then `replace-job` starts a fresh attempt on the same worktree | `apps/forge/src/shared/constants/LifecycleLimits.ts:12`, `Playbook.ts:409-412`, `Playbook.ts:482`, `Playbook.ts:484-485` | Changed in stage 3: after two resumes the job waits for an instruction |
+| Two `replaced` endings in a row on a ticket open `job-lost` (default `ticket-park`) | `LifecycleLimits.ts:15`, `Playbook.ts:202-212`, `Playbook.ts:512-522` | Kept or retired by stage 3 once nothing replaces by itself |
+| Counted crashes on jobs of different tickets back to back (`CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING`, 2) with no verified ending between pause the Overseer and open an `outage` decision | `LifecycleLimits.ts:8`, `Playbook.ts:184-200`, `Playbook.ts:778` | Kept; stage 2's lease end, clean quit and network-outage end must not count. The entities work's new outcomes (`needs-declared`, `refused`, `package-return`) are not among the verified outcomes that break the run (`Playbook.ts:87`) |
+| `reboot`: a lost Watcher whose recorded boot identity differs from the current one; never counted, resumes whatever the count | `Regrouping.ts:108-111`, `Playbook.ts:409-412` | Changed in stage 3: waits for an instruction |
+| `answer-delivery`: the Overseer stopped the Watcher itself to deliver an answer; resumes with the answer | `DrivePass.ts:610-611`, `apps/forge/src/services/overseer/AnswerDelivery.ts:43-45`, `AnswerDelivery.ts:107` | Kept as workflow (design section 7) |
+| `usage-limit`: a top-level usage refusal; resumes once the marker's reset passed, a pass woken at the reset by a timer | `apps/forge/src/services/overseer/UsageLimits.ts:44`, `DrivePass.ts:565-570`, `DrivePass.ts:1317-1328`, `Playbook.ts:175-178` | Kept as workflow |
+| `handoff-red`: a red gate or Customs check of a handoff; resumes the same session on its own bound (`RED_HANDOFF_RESUMES_BEFORE_PARKING`, 2), then parks the ticket | `apps/forge/src/services/overseer/JobLaunch.ts:1453`, `apps/forge/src/services/overseer/Airlocks.ts:969`, `Playbook.ts:455-465`, `LifecycleLimits.ts:14` | Kept as workflow |
+| `forced-stop-refused`: a lost Watcher whose child tree refused the forced stop; never resumed, the stop retried each sweep, the last refusal ends the job blocked with one decision | `DrivePass.ts:517-520`, `Playbook.ts:472-475`, `DrivePass.ts:1607`, `apps/forge/src/services/overseer/CrashMatrix.spec.ts:890` | Changed in stage 2: the cause stays, set from a lost child's `child-<i>.refused-forced-stops` (stage 2, WP2.9); stage 3 keeps it as never resumed |
+| `authentication-failed`: a refused API key; holds every launch and resume until User answers the decision | `apps/forge/src/services/overseer/ApiBillingStops.ts:36`, `Playbook.ts:764-770` | Kept |
+| An Assistant interrupted for any cause is replaced, never resumed | `Playbook.ts:83-84`, `Playbook.ts:481` | Changed in stage 8 (off by default) |
+| A product owner resumes by id once its question is answered; past the crash bound it waits or a fresh one takes its intake | `Playbook.ts:414-425` | Changed in stage 3 with the crash bound |
+| A pipeline agent resumes even while no pipeline is set or the board is paused | `Playbook.ts:483`, `Playbook.ts:781-782` | Changed in stage 3 |
+| A resume the vendor cannot take ends the job `replaced` with cause `resume-failed` and opens `resume-failed` (default `job-fresh`); an Airlock agent opens none | `apps/forge/src/services/overseer/JobResumption.ts:102-121` | Kept; the default move is stage 3's to revisit |
+| At start, Regrouping attaches every live Watcher from the stored cursor, settles every lost one, and names an unclaimed instance for its re-spawn; a stop on purpose or a crash of the Overseer interrupts no live agent | `Regrouping.ts:223-244`, `DrivePass.ts:1578-1587` | Replaced in stage 2 (Talos reconnect) and stage 3 (reconcile) |
+| `oversee stop` without `--now` leaves every agent Watcher running; with `--now` it stops only process Watchers (installs and gates), never an agent | `apps/forge/cli/overseer/OverseerForeground.ts:775-794`, `apps/forge/src/services/overseer/WatcherFleet.ts:340-365` | Changed in stage 2 (clean quit) and stage 3 (a stop on record) |
+| `overseer-started` and `overseer-stopped` (`stopped` or `baton-passed`) are log records already | `apps/forge/src/lib/tracker-model/Jobs.ts:325-332`, `OverseerForeground.ts:169-176`, `OverseerForeground.ts:657`, `apps/forge/src/lib/tracker-model/@types/Job.ts:197` | Changed in stage 3: becomes the presence record's evidence |
+| A session's error result (an outage whose retries ran out among them) moves a build or review to Customs like any closing result, and Customs ends it `failed` cause `no-report` | `DrivePass.ts:586-588`, `JobLaunch.ts:1173-1176`, `JobLaunch.ts:397-398` | Changed in stage 2: Talos reports the network-outage end first |
 | The stream mapper reads a failure only as `budget-reached`, `rate-limited` (429) or `authentication-failed` (401, 403) | `apps/forge/src/lib/claude-code/ClaudeStreamMapper.ts:218-226`, `apps/forge/src/lib/agent-launch/AgentSessionEvent.ts:21-29` | Changed in stage 2: the adapter renders the ending patterns |
 | The real-system matrix: 27 session, Watcher, Overseer, reboot, question, Assistant and product-owner rows on real processes and the fake agent | `apps/forge/src/services/overseer/CrashMatrix.integration.spec.ts:382-997` | Rows that assert a resume by itself are rewritten in stage 3; baselined in WP0.2 |
 | The default-suite matrix: hold-journal replay, gate profiles at start, lock takeover, Apply cut short, session rows behind the Watcher boundary | `CrashMatrix.spec.ts:153-1331` | Same |
@@ -75,48 +80,52 @@ pipeline, an outage decision or a refused-key decision; a paused board holds new
 
 ### B. Each step of an Airlock landing, and a stop in its middle
 
-Every Airlock phase is written on the merge job's slot in its own hold (`Airlocks.ts:1-7`, `Airlocks.ts:515-517`), and a
+Every Airlock phase is written on the merge job's slot in its own hold (`Airlocks.ts:1-8`, `Airlocks.ts:727-729`), and a
 hold's writes are atomic: `commitHold` writes a journal first and the next lock holder replays it
 (`apps/forge/src/services/tracker/HoldJournal.ts:121-146`,
-`apps/forge/src/services/tracker/TrackerPipeline.ts:153-185`). So a stop between holds always leaves the slot in the
-last written phase, and the sweep's `advance` runs that phase again (`Airlocks.ts:965-980`). The column "A stop in
+`apps/forge/src/services/tracker/TrackerPipeline.ts:178-212`). So a stop between holds always leaves the slot in the
+last written phase, and the sweep's `advance` runs that phase again (`Airlocks.ts:1309-1324`). The column "A stop in
 the middle" says whether that rerun is safe.
 
 | What exists | Where (path:line) | A stop in the middle | What happens to it |
 | --- | --- | --- | --- |
-| Allocation: the tip is read, then claimed in a hold that checks the tip did not move | `Airlocks.ts:1233-1265`, `Airlocks.ts:1061-1072`, `Airlocks.ts:1205-1231` | Safe: nothing written before the claim; a moved tip claims nothing | Kept |
-| `merge-in`: a `--no-ff` merge of the recorded target tip into the ticket's worktree, then `gating` in a hold | `Airlocks.ts:570-611`, `apps/forge/src/services/lifecycle/MergeRun.ts:50-53`, `apps/forge/src/lib/git/BranchMerge.ts:64-76` | Detectable: a merge left with `MERGE_HEAD` and no live holder frees the slot `orphaned` (abort, reset, requeue, `Airlocks.ts:580-585`); a finished merge reads `already-descends` on the rerun (`BranchMerge.ts:71-73`). Held by `CrashMatrix.merges.spec.ts:108` | Kept |
-| A refresh's temporary worktree is prepared before its merge | `Airlocks.ts:573-579` | Safe: prepared again; never two refreshes (`CrashMatrix.merges.spec.ts:260`) | Kept |
-| `resolving`, `re-reviewing`, `fixing`: an Airlock agent under a Watcher | `Airlocks.ts:720-731`, `Airlocks.ts:738-754` | Detectable: a live or interrupted agent keeps the slot; a `replaced` one is relaunched at the same attempt; any other ending frees the slot `orphaned` (`CrashMatrix.merges.spec.ts:122`, `:177-204`) | Changed in stage 2: the agent is Talos's child |
-| `gating`: the merged-tree gate runs in the Overseer's own process, then its verdict is written in a hold | `Airlocks.ts:623-663`, `DrivePass.ts:1059-1083`, `DrivePass.ts:1168-1195` | Safe to redo for the board: the phase stays `gating` and the gate runs again, or lands ungated when the tree was last passed (`Airlocks.ts:631-637`). Not safe for the process: after a crash the gate's process group runs on, unstopped, and its gate slot counts as free once the Overseer's process is gone (`apps/forge/src/services/overseer/GateRunSlots.ts:107-112`) | Changed in stage 2: the gate runs under Talos, bounded at 15 minutes |
-| `landing`: inside one hold, the target's branch and tip are compared with the slot's (compare-and-swap), `git merge --ff-only` moves the target, and the board records the landing | `Airlocks.ts:887-916`, `apps/forge/src/services/lifecycle/Landing.ts:120-136`, `apps/forge/src/lib/git/BranchIntegration.ts:169-184` | Detectable as done: a stop after the fast-forward and before the hold's journal leaves the target past the slot's tip; the rerun finds the merged commit an ancestor and answers `already-landed`, which finishes the board side (`Landing.ts:94-95`, `Landing.ts:109-118`). Held by `CrashMatrix.merges.spec.ts:96`, `:219`, `:242` | Kept |
+| Allocation: the tip is read, then claimed in a hold that checks the tip did not move | `Airlocks.ts:1616-1648`, `Airlocks.ts:1405-1416`, `Airlocks.ts:1583-1614` | Safe: nothing written before the claim; a moved tip claims nothing | Kept |
+| `merge-in`: a `--no-ff` merge of the recorded target tip into the ticket's worktree, then `gating` in a hold | `Airlocks.ts:782-826`, `apps/forge/src/services/lifecycle/MergeRun.ts:58-61`, `apps/forge/src/lib/git/BranchMerge.ts:64-76` | Detectable: a merge left with `MERGE_HEAD` and no live holder frees the slot `orphaned` (abort, reset, requeue, `Airlocks.ts:792-797`); a finished merge reads `already-descends` on the rerun (`BranchMerge.ts:71-73`). Held by `CrashMatrix.merges.spec.ts:108` | Kept |
+| A refresh's temporary worktree is prepared before its merge | `Airlocks.ts:785-791` | Safe: prepared again; never two refreshes (`CrashMatrix.merges.spec.ts:260`) | Kept |
+| `resolving`, `re-reviewing`, `fixing`: an Airlock agent under a Watcher | `Airlocks.ts:994-1007`, `Airlocks.ts:1016-1032` | Detectable: a live or interrupted agent keeps the slot; a `replaced` one is relaunched at the same attempt; any other ending frees the slot `orphaned` (`CrashMatrix.merges.spec.ts:122`, `:177-204`) | Changed in stage 2: the agent is Talos's child |
+| A crossing ticket's conflict split by owner (E64), new with the entities work: the first part's worker is launched in the `merge-in` conflict's hold; a worker that resolved its part and left the merge open hands it on, its job ended `resolved` and the next part's worker launched in one hold. The parts' facts are kept in `airlock-facts.json` in the merge job's folder, written from inside the hold but outside its journal | `Airlocks.ts:813-821`, `Airlocks.ts:1039-1041`, `Airlocks.ts:1081-1099`, `apps/forge/src/services/overseer/AirlockFactsFile.ts:1-4`, `:34-37`, `DrivePass.ts:1286` | Safe to redo for the board: a stop before the hold's journal leaves the phase `resolving` and the agent unlaunched, and the rerun writes the facts again. The facts file is not covered by the journal: a stop after it is written and before the journal names a part no agent was launched for, which the rerun overwrites. No matrix row holds it | Changed in stage 2: each part's worker is Talos's child; stage 3's reconcile reads the facts file with the slot |
+| `gating`: the merged-tree gate runs in the Overseer's own process, then its verdict is written in a hold; with entities, each gated entity's part runs from its first home folder | `Airlocks.ts:838-902`, `DrivePass.ts:1143-1168`, `DrivePass.ts:1254-1277`, `apps/forge/src/services/overseer/MergedTreeGateRun.ts:1-4`, `:46` | Safe to redo for the board: the phase stays `gating` and the gate runs again, or lands ungated when the tree was last passed (`Airlocks.ts:846-854`; with entities only once git named the gated entities, `:855-863`). Not safe for the process: after a crash the gate's process group runs on, unstopped, and its gate slot counts as free once the Overseer's process is gone (`apps/forge/src/services/overseer/GateRunSlots.ts:107-112`) | Changed in stage 2: the gate runs under Talos, bounded at 15 minutes |
+| `landing`: inside one hold, the target's branch and tip are compared with the slot's (compare-and-swap), `git merge --ff-only` moves the target, and the board records the landing | `Airlocks.ts:1231-1260`, `apps/forge/src/services/lifecycle/Landing.ts:120-136`, `apps/forge/src/lib/git/BranchIntegration.ts:169-184` | Detectable as done: a stop after the fast-forward and before the hold's journal leaves the target past the slot's tip; the rerun finds the merged commit an ancestor and answers `already-landed`, which finishes the board side (`Landing.ts:94-95`, `Landing.ts:109-118`). Held by `CrashMatrix.merges.spec.ts:96`, `:219`, `:242` | Kept |
 | A project tracker's landing takes the repository's landing lock, then appends the landing journal line after the fast-forward | `Landing.ts:142-177` | Not redone: a stop between the fast-forward and the journal line leaves an unrecorded move, which a sibling tracker reads as `target-moved` and asks User (`Landing.ts:166-169`); the lock itself is taken over once its holder is gone (`Landing.ts:147`) | Kept; stage 3 may record it at start |
-| After the landing hold: a refresh's worktree is removed, and a release removes the group's worktree and deletes its branch | `Airlocks.ts:917-919`, `Airlocks.ts:878-885` | Not redone and not detected: the job has ended, so nothing runs the cleanup again; a group worktree left on its branch is branch-owned, so Regrouping never names it (`Regrouping.ts:204-216`) | Stage 3: reconcile names it |
-| `freeSlot`: the worktree is restored to the slot's start tip (merge abort, hard reset), then the jobs end in a hold | `Airlocks.ts:525-535`, `MergeRun.ts:55-59` | Safe by the compare-and-swap, not by design: a stop between the reset and the hold reruns the slot's phase on the restored worktree; the rerun merges again (`merge-in`) or gates the branch tree (`gating`), and a landing of a tree that lacks the target's tip is refused by `--ff-only` (`Landing.ts:131-135`) | Stage 3: reconcile reads a worktree that differs from its phase |
-| The constitution commit, `committing`: a detached worktree at the tip, the file written, committed, checked to change one path | `Airlocks.ts:1103-1129`, `apps/forge/src/services/overseer/ConstitutionCommits.ts:84-113` | Detectable: a worktree already there is a run cut short, so the job ends `orphaned` and a fresh job commits again (`Airlocks.ts:1100-1106`, `CrashMatrix.merges.spec.ts:319`) | Kept |
-| The constitution commit, `landing`: the same compare-and-swap fast-forward, and Apply's stage 2 in the same hold | `Airlocks.ts:1136-1188` | Detectable as done, as a ticket's landing (`CrashMatrix.merges.spec.ts:332`); main already holding the text finishes Apply with no commit (`Airlocks.ts:1190-1199`, `CrashMatrix.merges.spec.ts:360`) | Kept |
-| A stale green re-gated outside any slot | `Airlocks.ts:465-495` | Safe: the verdict is applied in a hold that checks the ticket still waits on the same tree (`Airlocks.ts:432-436`) | Changed in stage 2: the gate is Talos's child |
+| After the landing hold: a refresh's worktree is removed, and a release removes the group's worktree and deletes its branch | `Airlocks.ts:1261-1263`, `Airlocks.ts:1222-1229` | Not redone and not detected: the job has ended, so nothing runs the cleanup again; a group worktree left on its branch is branch-owned, so Regrouping never names it (`Regrouping.ts:204-216`) | Stage 3: reconcile names it |
+| `freeSlot`: the worktree is restored to the slot's start tip (merge abort, hard reset), then the jobs end in a hold; a crossing ticket's red merged tree, returned to the entity that owns the red gate, frees its slot this way too | `Airlocks.ts:736-747`, `MergeRun.ts:63-67`, `Airlocks.ts:904-913` | Safe by the compare-and-swap, not by design: a stop between the reset and the hold reruns the slot's phase on the restored worktree; the rerun merges again (`merge-in`) or gates the branch tree (`gating`), and a landing of a tree that lacks the target's tip is refused by `--ff-only` (`Landing.ts:131-135`) | Stage 3: reconcile reads a worktree that differs from its phase |
+| The constitution commit, `committing`: a detached worktree at the tip, each listed constitution written (the project's, and over entities each entity's), committed once, checked to change only the listed paths | `Airlocks.ts:1447-1472`, `apps/forge/src/services/overseer/ConstitutionCommits.ts:105-142` | Detectable: a worktree already there is a run cut short, so the job ends `orphaned` and a fresh job commits again (`Airlocks.ts:1444-1450`, `CrashMatrix.merges.spec.ts:319`) | Kept |
+| The constitution commit, `landing`: what stage 2 would refuse is checked first, then the same compare-and-swap fast-forward, and Apply's stage 2 in the same hold | `Airlocks.ts:1479-1535`, `Airlocks.ts:1493-1498` | Detectable as done, as a ticket's landing (`CrashMatrix.merges.spec.ts:332`); main already holding every draft's text finishes Apply with no commit (`Airlocks.ts:1567-1577`, `:1598-1605`, `CrashMatrix.merges.spec.ts:360`) | Kept |
+| A stale green re-gated outside any slot | `Airlocks.ts:670-707` | Safe: the verdict is applied in a hold that checks the ticket still waits on the same tree (`Airlocks.ts:629-633`) | Changed in stage 2: the gate is Talos's child |
 | Git runs synchronously with no timeout, the fast-forward and every worktree add among it | `apps/forge/src/lib/git/GitProcess.ts:59-87` | A hung git blocks the Overseer's event loop, and with it any timer | Stage 2: the lease renewal must not depend on it |
 
 ### C. State the Overseer holds only in memory, and which decisions read it
 
+The entities work added none: the closure state of `createDrivePass` (`DrivePass.ts:1028-1048`) and the Airlocks' held
+targets are as they were, and its new facts (stages, seals, needs, the Airlock facts file of table B) are on disk.
+
 | What exists | Where (path:line) | Which decision reads it | What happens to it |
 | --- | --- | --- | --- |
-| `spawnedInstances`: the job instances this process spawned | `DrivePass.ts:955`, `DrivePass.ts:904-916` | Whether a job needs a Watcher; after a restart Regrouping names unclaimed instances instead (`Regrouping.ts:239-240`) | Replaced in stage 2 (Talos's child record) |
-| `lastFingerprint`, `running`, `wokenAgain`, `forcedNext`: pass scheduling | `DrivePass.ts:956-959`, `DrivePass.ts:1249`, `DrivePass.ts:1458-1481` | Whether an unforced wake runs a pass; no board decision | Kept in memory: a restart runs a forced pass (`DrivePass.ts:1489`) |
-| Quiet-job counts: sweeps each running build or review was quiet | `DrivePass.ts:960-961`, `apps/forge/src/services/overseer/IncidentRouter.ts:33` | Opens `quiet-job` after `QUIET_JOB_SWEEPS` (6) sweeps (`DrivePass.ts:1288`, `apps/forge/src/shared/constants/OverseerLimits.ts:18`); a restart starts the count at zero | Changed: becomes a time bound (`apps/forge/CLAUDE.md` Deviations); persisted or derived in stage 3 |
-| The Assistant's quiet watch and its mid-turn list | `DrivePass.ts:965-967`, `apps/forge/src/services/overseer/AssistantSession.ts:246` | Ends a quiet Assistant (`DrivePass.ts:1290`) | Changed in stage 8 (Assistant off by default) |
-| `assistantBootRetryRequested` | `DrivePass.ts:968`, `DrivePass.ts:1291-1292` | The Playbook's `assistantBootRetryDue` (`Playbook.ts:536`) | Changed in stage 8 |
-| `forcedStopRetryJobIdsDue`, `jobsAtTheLastPass`, `targetsHeldAtTheLastPass` | `DrivePass.ts:962-964`, `DrivePass.ts:1508-1525` | Which sweeps force a pass | Replaced in stage 2 (forced stops) and kept for the sweep |
-| The state document: `notices`, `runtimeState`, `legacyWatcherJobIds`, `ticketsWaitingForMachineSlot`, `passes` | `DrivePass.ts:249-283`, `DrivePass.ts:969-971`, `DrivePass.ts:1428-1445` | The read API and the Bridge; the sweep retries a ticket waiting for a machine slot (`DrivePass.ts:1514`) | Changed in stages 2 and 3 (legacy Watchers go; presence joins) |
-| `resetTimer`: the pass at the usage reset | `DrivePass.ts:973`, `DrivePass.ts:1234-1245` | Wakes the pass that resumes limited jobs; derived again each pass from the usage marker file | Kept |
-| `leftoverWorktrees`, `declinedCleanups` | `DrivePass.ts:974-975`, `DrivePass.ts:1217-1223` | Opens `leftover-worktree` decisions; the `cleanup-declined` notice | Kept; stage 3's reconcile owns the first |
-| `endedJobIdsExamined`, `endedSessionsAwaitingClose`, `triedPipelineAgentSnapshots`, `hatchFolderOfLaunchedJob` | `DrivePass.ts:1023-1025`, `DrivePass.ts:1139`, `DrivePass.ts:1376-1382` | Token credit (also derived from the log), the close of an ended session's input, snapshot removal, folder watches | Changed in stage 2 (input close goes through Talos) |
-| `mergedTreeGateProcesses`: the merged-tree gates running now | `DrivePass.ts:1059-1083`, `DrivePass.ts:1494-1502` | Stopped at a clean stop; lost with a crash | Replaced in stage 2 (Talos's child record) |
-| Gate profile runs and pipeline checks running in this process | `apps/forge/src/services/overseer/GateProfiling.ts:155`, `GateProfiling.ts:244-248`, `apps/forge/src/services/overseer/PipelineChecking.ts:97` | At the next start their board records read stopped and their worktrees are removed, the process not stopped | Replaced in stage 2 |
+| `spawnedInstances`: the job instances this process spawned | `DrivePass.ts:1028`, `DrivePass.ts:977-989` | Whether a job needs a Watcher; after a restart Regrouping names unclaimed instances instead (`Regrouping.ts:239-240`) | Replaced in stage 2 (Talos's child record) |
+| `lastFingerprint`, `running`, `wokenAgain`, `forcedNext`: pass scheduling | `DrivePass.ts:1029-1032`, `DrivePass.ts:1332`, `DrivePass.ts:1553-1576` | Whether an unforced wake runs a pass; no board decision | Kept in memory: a restart runs a forced pass (`DrivePass.ts:1584`) |
+| Quiet-job counts: sweeps each running build or review was quiet | `DrivePass.ts:1033-1034`, `apps/forge/src/services/overseer/IncidentRouter.ts:33` | Opens `quiet-job` after `QUIET_JOB_SWEEPS` (6) sweeps (`DrivePass.ts:1371`, `apps/forge/src/shared/constants/OverseerLimits.ts:18`); a restart starts the count at zero | Changed: becomes a time bound (`apps/forge/CLAUDE.md` Deviations); persisted or derived in stage 3 |
+| The Assistant's quiet watch and its mid-turn list | `DrivePass.ts:1038-1040`, `apps/forge/src/services/overseer/AssistantSession.ts:246` | Ends a quiet Assistant (`DrivePass.ts:1373`) | Changed in stage 8 (Assistant off by default) |
+| `assistantBootRetryRequested` | `DrivePass.ts:1041`, `DrivePass.ts:1374-1375` | The Playbook's `assistantBootRetryDue` (`Playbook.ts:774`) | Changed in stage 8 |
+| `forcedStopRetryJobIdsDue`, `jobsAtTheLastPass`, `targetsHeldAtTheLastPass` | `DrivePass.ts:1035-1037`, `DrivePass.ts:1603-1620` | Which sweeps force a pass | Replaced in stage 2 (forced stops) and kept for the sweep |
+| The state document: `notices`, `runtimeState`, `legacyWatcherJobIds`, `ticketsWaitingForMachineSlot`, `passes` | `DrivePass.ts:281-315`, `DrivePass.ts:1042-1044`, `DrivePass.ts:1523-1540` | The read API and the Bridge; the sweep retries a ticket waiting for a machine slot (`DrivePass.ts:1609`) | Changed in stages 2 and 3 (legacy Watchers go; presence joins) |
+| `resetTimer`: the pass at the usage reset | `DrivePass.ts:1046`, `DrivePass.ts:1317-1328` | Wakes the pass that resumes limited jobs; derived again each pass from the usage marker file | Kept |
+| `leftoverWorktrees`, `declinedCleanups` | `DrivePass.ts:1047-1048`, `DrivePass.ts:1300-1306` | Opens `leftover-worktree` decisions; the `cleanup-declined` notice | Kept; stage 3's reconcile owns the first |
+| `endedJobIdsExamined`, `endedSessionsAwaitingClose`, `triedPipelineAgentSnapshots`, `hatchFolderOfLaunchedJob` | `DrivePass.ts:1096-1098`, `DrivePass.ts:1224`, `DrivePass.ts:1471-1477` | Token credit (also derived from the log), the close of an ended session's input, snapshot removal, folder watches | Changed in stage 2 (input close goes through Talos) |
+| `mergedTreeGateProcesses`: the merged-tree gates running now | `DrivePass.ts:1143-1168`, `DrivePass.ts:1589-1597` | Stopped at a clean stop; lost with a crash | Replaced in stage 2 (Talos's child record) |
+| Gate profile runs and pipeline checks running in this process | `apps/forge/src/services/overseer/GateProfiling.ts:173`, `GateProfiling.ts:262-266`, `apps/forge/src/services/overseer/PipelineChecking.ts:123` | At the next start their board records read stopped and their worktrees are removed, the process not stopped | Replaced in stage 2 |
 | Gate slot rounds: refused and waiting holders of this process | `GateRunSlots.ts:125-126` | Which gate gets the next machine-wide slot | Kept |
-| `heldTargets`, `commitsAHeldMainLineWaitsToLand` | `Airlocks.ts:365-373`, `Airlocks.ts:842-850` | Allocation refuses a held target (`Airlocks.ts:1223`, `Airlocks.ts:1238`); a restart forgets the hold and the next landing holds again | Persisted or derived in stage 3 |
-| The install-change watch: the versions learned from the program on disk | `apps/forge/src/services/overseer/InstallChangeWatch.ts:80-85`, `OverseerForeground.ts:364-377` | `installVersionChanged` holds every resume and launch (`Playbook.ts:526`) | Kept; asked again at start |
+| `heldTargets`, `commitsAHeldMainLineWaitsToLand` | `Airlocks.ts:562-570`, `Airlocks.ts:1186-1194` | Allocation refuses a held target (`Airlocks.ts:1606`, `Airlocks.ts:1621`); a restart forgets the hold and the next landing holds again | Persisted or derived in stage 3 |
+| The install-change watch: the versions learned from the program on disk | `apps/forge/src/services/overseer/InstallChangeWatch.ts:80-85`, `OverseerForeground.ts:364-377` | `installVersionChanged` holds every resume and launch (`Playbook.ts:764`) | Kept; asked again at start |
 | Event broker: replay buffer, sequence, last state | `apps/forge/src/services/overseer/EventBroker.ts:87-91` | The event stream's replay to a reconnecting reader | Kept in stage 8's read API; a restart starts a new sequence |
 | Monitor stream's latest snapshot | `apps/forge/src/services/overseer/MonitorStream.ts:16-18` | The monitor stream | Kept |
 | Merge forecast cache and main-line reads | `apps/forge/cli/overseer/routes/BoardStateReader.ts:66-78`, `apps/forge/src/services/overseer/MainLineReads.ts:10-14` | Display only | Kept |
@@ -136,25 +145,28 @@ the middle" says whether that rerun is safe.
 | Open decision 1: restart after Update forge for an older forge | `migration.md:197` | Closed in WP1.1 by the owner's answer |
 | Open decision 2: rule changes under `.claude/rules/` are the owner's | `migration.md:198-199`; already decided in `apps/forge/CLAUDE.md:281-284` | Closed in WP1.1 as decided |
 | Open decision 3: `CodeVersion` hashes the whole root `bun.lock` | `migration.md:200-201`; the code now hashes the program's part of the lockfile through its dependency graph (`apps/forge/src/services/overseer/CodeVersion.ts:3`, `CodeVersion.ts:44-55`) | Closed in WP1.1 as done, after WP1.1 confirms it with `CodeVersion.spec.ts` |
-| Open decision 4: install version 29 asks every board to update | `migration.md:202-204` | Closed in WP1.1: boards are set up anew (decision 32) |
-| Uncommitted edits of the clock rules in both apps' rules, and the untracked design and figures | `git status`: `apps/forge/CLAUDE.md`, `apps/gaia/CLAUDE.md`, `docs/monorepo/hephaestus-talos.md`, `docs/monorepo/hephaestus-talos.html`, `docs/monorepo/figures/` | Committed or discarded by the owner in WP1.2 |
-| An unmerged branch, `entities/integration`: 52 commits ahead of `main`, 4 behind, 399 files, forge 1.9 to 1.11, install version 32; its worktrees `entities-integration`, `entities-u4.5`, `entities-u4.6` | `git rev-list --count main..entities/integration`, `git log entities/integration` (`b601ce7a`, `72da4047`) | Landed or set aside in WP1.2 by the owner's answer |
+| Open decision 4: install version 29 asks every board to update | `migration.md:202-204`; install version is 36 now (`apps/forge/cli/constants/InstallVersion.ts:1`) | Closed in WP1.1: boards are set up anew (decision 32) |
+| The clock-rule edits of both apps' rules, and the design and figures, once uncommitted, are committed on `main` | `git log main`: `e9b5d057` (`apps/forge/CLAUDE.md`, `apps/gaia/CLAUDE.md`), `5285da34` (`docs/monorepo/hephaestus-talos.md`, `.html`, `docs/monorepo/figures/hephaestus-talos/`, this folder) | Done; WP1.2 only confirms the main checkout is clean |
+| `entities/integration` landed on `main`: merged as `55ec1690`, 93 commits and 526 files since `3e6cb660`, forge 1.9 to 1.18, install version 36; the branch is 0 commits ahead of `main`. Its worktree `entities-integration` (at `55ec1690`) is still listed; `entities-u4.5` and `entities-u4.6` are gone | `git rev-list --count main..entities/integration` (0), `git log --graph main`, `git worktree list` | Its worktree removed and its branch deleted in WP1.2; the traces of tables A to C were rerun on `e9b5d057` in this file |
 | `claude/project-thread-dw1bcu`, 5 commits ahead, kept since P0 | `migration.md:32-34` | Deleted or kept by the owner in WP1.2 |
-| Both trackers live: forge's ticket worktrees 001, 005, 008, 009, 014 and Gaia's 001, each branch 0 commits ahead of `main` | `git worktree list`; `apps/forge/.forge-worktrees/`, `apps/gaia/.forge-worktrees/` | Quiesced by the owner in WP1.2 |
+| Both trackers live: forge's ticket worktrees 001, 005, 008, 009, 014 and Gaia's 001, each branch 0 commits ahead of `main` (97 or 111 behind) | `git worktree list`; `apps/forge/.forge-worktrees/`, `apps/gaia/.forge-worktrees/` | Quiesced by the owner in WP1.2 |
+| The installed clone `~/.forge-program` is still at `28a319c8`, behind the landed entities work | `git -C ~/.forge-program log --oneline -1` | Not pulled during stages 2 to 9 (Needs the owner, item 6) |
 
 ### E. The import graph that stage 4's packages come from
 
-Measured with a walk of every `.ts` and `.tsx` file under `apps/forge` (the folders `node_modules`, `.forge`,
-`.forge-worktrees`, `.turbo` and `.claude` left out), resolving relative imports.
+Measured on `e9b5d057` with a walk of every `.ts` and `.tsx` file under `apps/forge` (the folders `node_modules`,
+`.forge`, `.forge-worktrees`, `.turbo` and `.claude` left out), resolving relative imports. A file counts as a spec or
+testing file when its name holds `.spec.` or ends in `.dom.tsx`, or it lies in a `testing/` folder; the same walk on
+`3e6cb660` gives the counts the first version of this plan recorded (108, 84, 438, 265).
 
 | What exists | Where (path:line) | What happens to it |
 | --- | --- | --- |
-| The tracker model: 108 shipping files and 84 spec and testing files; its shipping files import nothing outside their folder, and its specs import only `src/testing/BoardFixtures.ts` (46), `SourceMutant.ts` (3), `GreenQueue.ts` (2), `EveryBoardLogRecord.ts` (1) | `apps/forge/src/lib/tracker-model/`; the guard `apps/forge/src/ImportDirection.spec.ts:161`, `:395-397` | Moved in stage 4 into the package named in WP0.5 |
-| Files outside the model that import it: 438, of which 265 ship: 100 in `bridge/`, 51 in `cli/`, 31 in `src/services/overseer`, 14 in `src/services/control`, 9 in `src/services/lifecycle`, 7 in `src/services/tracker`, 4 in `src/services/render`, 41 in `src/adapters`, 8 in `src/shared` | the walk | Changed in stage 4: imports by package name |
-| The Bridge's shipping reach outside `bridge/`: the tracker model's types, constants and utils; `src/shared/monitor/` (`AttentionEntries.ts`, `TodayFigures.ts`, `@types/MonitorSnapshot.ts`, four wording utils); `src/lib/token-count/`, `src/lib/local-time/`, `src/lib/html-escape/`; the constants `ProductNames.ts`, `DispatchProtocol.ts`, `OverseerLimits.ts`, `OverseerApiContracts.ts`, `TimestampSlices.ts` | `apps/forge/bridge/tsconfig.json:12-42` and on | Changed in stage 4: the include list shrinks to packages |
+| The tracker model: 117 shipping files and 96 spec and testing files (108 and 84 before the entities work); its shipping files import nothing outside their folder, and its specs import only `src/testing/BoardFixtures.ts` (51), `SourceMutant.ts` (5), `EntityForgeFixture.ts` (4, new with the entities work), `GreenQueue.ts` (2), `EveryBoardLogRecord.ts` (1) | `apps/forge/src/lib/tracker-model/`; the guard `apps/forge/src/ImportDirection.spec.ts:161`, `:395-397` | Moved in stage 4 into the package named in WP0.5 |
+| Files outside the model that import it: 548, of which 310 ship and 238 are specs: 138 in `bridge/`, 51 in `cli/`, 36 in `src/services/overseer`, 14 in `src/services/control`, 9 in `src/services/lifecycle`, 7 in `src/services/tracker`, 4 in `src/services/render`, 41 in `src/adapters`, 10 in `src/shared` | the walk | Changed in stage 4: imports by package name |
+| The Bridge's shipping reach outside `bridge/`: the tracker model's types, constants and utils; `src/shared/monitor/` (`AttentionEntries.ts`, `TodayFigures.ts`, `@types/MonitorSnapshot.ts`, four wording utils); `src/lib/token-count/`, `src/lib/local-time/`, `src/lib/html-escape/`; the constants `ProductNames.ts`, `RootOverrideVariable.ts`, `DispatchProtocol.ts`, `OverseerLimits.ts`, `OverseerApiContracts.ts`, `TimestampSlices.ts`. New with the entities work, for the Bridge's entity and Apply refusals (`bridge/views/pipeline/apply/ApplyDialogModel.ts`, `bridge/views/pipeline/setup/EntityRefusalsModel.ts`): the refusal wording `src/shared/OperationRefusal.ts`, `src/shared/@types/` (`InstallVersionMismatch.ts`, `RoleCommandRefusalReason.ts`, `UnreadableTracker.ts`), `src/adapters/utils/` (`OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`, `TicketPhraseUtil.ts`), and the port type file `src/lib/executable-resolver/ExecutableResolver.ts`, which the wording util imports for one type | `apps/forge/bridge/tsconfig.json:12-156` | Changed in stage 4: the include list shrinks to packages |
 | `src/shared/monitor/` is also read by the Overseer's server, the monitor snapshot, the monitor stream and the board state reader | `OverseerServer.ts`, `MonitorSnapshotAssembly.ts`, `MonitorStream.ts`, `apps/forge/cli/overseer/routes/BoardStateReader.ts` | Moved in stage 4 |
 | The board document `BoardState`, assembled from the Board, render facts and page payload; the Bridge keeps its own field-exact mirrors of it | `apps/forge/src/services/overseer/BoardState.ts:168`, `apps/forge/bridge/@types/ProgressBoardState.ts:1`, `KanbanBoardState.ts`, `TicketsBoardState.ts` | Its types move to the package named in WP0.5 |
-| `forge-contracts` today: 9 command kinds, the summary and monitor documents, versions, the registry; depends on `system-versions` only; system version 1.1 | `packages/forge-contracts/package.json:2-29`, `packages/forge-contracts/constants/ForgeSystemVersions.ts:15-16` | Gains the board and ticket documents in stage 4 (WP4.6), in the package WP0.5 decides |
+| `forge-contracts` today: 9 command kinds, the summary and monitor documents (the monitor snapshot gained entities and stages), versions, the registry; depends on `system-versions` only; system version 1.18 | `packages/forge-contracts/package.json:2-29`, `packages/forge-contracts/constants/ForgeSystemVersions.ts:40-43` | Gains the board and ticket documents in stage 4 (WP4.6), in the package WP0.5 decides |
 
 ### F. Where the design states something the code contradicts
 
@@ -162,10 +174,10 @@ WP0.1 corrects each of these in the design.
 
 | What exists | Where (path:line) | What happens to it |
 | --- | --- | --- |
-| Design section 3.1 says a record that a stop or a Baton pass completed is missing; the log holds `overseer-stopped` with reason `stopped` or `baton-passed`. What is missing is a heartbeat and a start that reads the record | `apps/forge/src/lib/tracker-model/Jobs.ts:309-311`, `apps/forge/cli/overseer/OverseerForeground.ts:171`, `:655` | Design corrected in WP0.1; stage 3 builds on the existing record |
+| Design section 3.1 says a record that a stop or a Baton pass completed is missing; the log holds `overseer-stopped` with reason `stopped` or `baton-passed`. What is missing is a heartbeat and a start that reads the record | `apps/forge/src/lib/tracker-model/Jobs.ts:330-332`, `apps/forge/cli/overseer/OverseerForeground.ts:171`, `:657` | Design corrected in WP0.1; stage 3 builds on the existing record |
 | Design section 7's table says a stop on purpose "resumes by itself" today; a stop interrupts no agent, since Watchers are detached and reattached at the next start, and `stop --now` stops only install and gate Watchers. A crash of the Overseer interrupts no agent either | `Regrouping.ts:234-236`, `WatcherFleet.ts:340-345` | Design corrected in WP0.1 |
 | Design sections 7 and 12 say the Airlock steps were not traced; table B traces them, and three steps are not redone: the landing journal line, the release cleanup, and the tip restore before `freeSlot`'s hold | table B | Design corrected in WP0.1; stage 3's reconcile covers the three |
-| Design section 11 says the tracker model is about 110 files imported by about 280 forge files; measured, 108 shipping files (192 with specs) imported by 438 files, 265 of which ship. The order of size stands | table E | Design's numbers corrected in WP0.5 with the package decision |
+| Design section 11 says the tracker model is about 110 files imported by about 280 forge files; measured on `e9b5d057`, 117 shipping files (213 with specs) imported by 548 files, 310 of which ship. The model's size stands; its importers grew by a sixth with the entities work, most of them in `bridge/` | table E | Design's numbers corrected in WP0.5 with the package decision |
 
 ## Work packages
 
@@ -190,8 +202,8 @@ What to do:
 
 1. In section 3.1, "Presence", replace the claim that a record of a completed stop or Baton pass is missing. State that
    the log already holds `overseer-started` and `overseer-stopped` with reason `stopped` or `baton-passed`
-   (`apps/forge/src/lib/tracker-model/Jobs.ts:304-311`), written by the Overseer before it releases its Baton
-   (`apps/forge/cli/overseer/OverseerForeground.ts:169-176`, `:655`). State what is still missing: a heartbeat, and a
+   (`apps/forge/src/lib/tracker-model/Jobs.ts:325-332`), written by the Overseer before it releases its Baton
+   (`apps/forge/cli/overseer/OverseerForeground.ts:169-176`, `:657`). State what is still missing: a heartbeat, and a
    presence record that a start reads to classify itself (the log line is not read at start today).
 2. In section 7, table "Which interruptions wait for an instruction", row "`reboot`, a stop on purpose, a lease end",
    correct the "Today" cell: a stop on purpose interrupts no agent today, since each Watcher is detached and the next
@@ -203,7 +215,7 @@ What to do:
    the three steps that are not redone: the landing journal line, the release cleanup, and the tip restore before
    `freeSlot`'s hold.
 4. In section 12, "Risks", item 5, say that the trace exists and what it found, in one sentence, with the link.
-5. In section 7, add one sentence: a paused board holds no resume today (`Playbook.ts:532-533`).
+5. In section 7, add one sentence: a paused board holds no resume today (`Playbook.ts:770-771`).
 6. Keep the prose wrapped at 120 columns, plain English, no history.
 
 Specs: none (a document).
@@ -227,7 +239,10 @@ What to do:
    then the same for `./src/services/overseer/Regrouping.integration.spec.ts` and
    `./src/services/overseer/JobResumption.integration.spec.ts`, then the default-suite files
    `./src/services/overseer/CrashMatrix.spec.ts`, `./src/services/overseer/CrashMatrix.merges.spec.ts`,
-   `./src/lib/tracker-model/Playbook.spec.ts`. These start the fake agent only; the preload
+   `./src/lib/tracker-model/Playbook.spec.ts`, and the three resume specs the entities work added, which hold whose
+   session a resumed job carries on (E29) and which stage 3's resume rules must keep:
+   `./src/services/overseer/JobResumption.entities.spec.ts`, `./src/services/overseer/JobResumption.adapt.spec.ts`,
+   `./src/services/overseer/JobResumption.airlockOwner.spec.ts`. These start the fake agent only; the preload
    `src/testing/ProgramTrapGuard.ts` fails any run that reaches a real `claude`.
 3. Write to the evidence file: the commit, the date, each command, its pass, fail and skip counts, and the names of the
    test cases that assert a resume by itself. Find them by name: every case title in table A's matrix rows that says
@@ -243,10 +258,13 @@ Done when: the evidence file exists with every command's counts, and every liste
 ### WP0.3 The owner records a session that ends on a network outage
 
 Purpose: decision 15 needs the fields of a real ending on an outage. No such session is recorded (design section 12,
-risk 13). No agent may start a `claude` session, so the owner runs every step. Claude Code 2.1.326 is installed
-(`~/.local/bin/claude` links to `~/.local/share/claude/versions/2.1.326`); its program text names the retry setting
-`CLAUDE_CODE_MAX_RETRIES` and writes a `system` line of subtype `api_retry` with `attempt`, `max_retries`,
-`retry_delay_ms`, `error_status`, `error` and, for no response, `no_response.waited_ms`.
+risk 13). No agent may start a `claude` session, so the owner runs every step. Claude Code updates itself: on
+2026-11-18 `~/.local/bin/claude` links to `~/.local/share/claude/versions/2.1.327`, and the recording is made with
+whatever version is installed then, named in `notes.txt`. The program text of both 2.1.326 and 2.1.327 names the retry
+setting `CLAUDE_CODE_MAX_RETRIES` and writes a `system` line of subtype `api_retry` with `attempt`, `max_retries`,
+`retry_delay_ms`, `error_status`, `error` and, for no response, `no_response.waited_ms` and
+`no_response.retry_wait_ms`; a second form of the same line, for a rate limit, carries `error_status` 429 and `error`
+`"rate_limit"`.
 
 Files to create (owner, outside the repository): a scratch folder, for example `/tmp/outage-probe/`, and the raw logs
 copied afterwards to `.claude/.evidence/hephaestus-talos/stage-0/outage/` in the main checkout.
@@ -316,7 +334,7 @@ Files to create:
 Files to change:
 
 - `apps/forge/src/lib/claude-code/ClaudeStreamFixtures.spec.ts`: a new `describe` block
-  `network-outage-retries-spent (P23, Claude Code 2.1.326)`.
+  `network-outage-retries-spent (P23, Claude Code <version>)`, the version `notes.txt` names.
 - `apps/forge/docs/development/overseer-claude-probe.md`: a new entry `### P23: a session whose retries ran out on a
   network outage` after `### P21` and before `### Not answered on 2026-11-15` (`overseer-claude-probe.md:851-864`), a
   row in the table "The committed fixtures" (`:411-418`), and the version note (`:365-366`).
@@ -338,7 +356,8 @@ What to do:
    - the stream ends in one `result` line with `is_error` true;
    - the result names its API failure in fields: record which of `api_error`, `api_error_status` and `terminal_reason`
      it carries and with what values, and claim exactly those;
-   - no `rate_limit_event` line is in the stream, so the ending cannot be read as a usage limit.
+   - no `rate_limit_event` line is in the stream, and no `api_retry` line carries `error_status` 429 or `error`
+     `"rate_limit"` (the rate-limit form of the retry line, WP0.3), so the ending cannot be read as a usage limit.
 4. Do not add the fixture to the replay list of `ClaudeStreamMapper.spec.ts:102`: today's mapper has no ending of this
    kind. Stage 2 holds this fixture against Talos's ending pattern (stage 2, WP2.2) and keeps the mapper as it is,
    since Talos, not the mapper, recognises the outage.
@@ -374,13 +393,14 @@ What to do:
 
 1. Append the owner's answers to section 2 as decisions numbered from 35, one sentence or two each, in the list's style:
    what follows an ending on a network outage; the install-line bound; the packages stage 4 creates, by name, with their
-   contents in one clause each; where the board documents live; what happens to `entities/integration`; the quiet
-   period of the live trackers.
+   contents in one clause each; where the board documents live; that `entities/integration` landed on `main` before
+   stage 2 (merge `55ec1690`), so the refactoring starts from forge 1.18 and install version 36; the quiet period of
+   the live trackers.
 2. In section 12, "To decide", replace each settled item with "Settled by decision <n>." Keep a still-open item as
    it is.
 3. In section 11, the stage 4 row, replace "Which packages exist is settled in stage 0" with the names of the decided
    packages, and replace "about 110 files, imported by path from about 280 forge files" with the measured counts of
-   table E (108 shipping files, imported by 265 shipping files and 173 specs).
+   table E (117 shipping files, imported by 310 shipping files and 238 specs).
 4. If the owner chose to wait for an instruction after a network outage, add the cause to the table in section 7 in the
    "Waits for an instruction" group; if the owner chose to resume by itself, add it to the workflow group with the probe
    interval the owner named.
@@ -429,38 +449,41 @@ its reason, and the "Still open" list is empty or names only items with the owne
 ### WP1.2 Settle the base: branches, uncommitted edits and the live trackers
 
 Purpose: the refactoring changes the Playbook, the Watcher and every stored name; a branch or a tracker that moves
-`main` beside it turns each stage's traces and line numbers stale. Runs alone.
+`main` beside it turns each stage's traces and line numbers stale. Runs alone. Smaller than first planned: the
+uncommitted edits were committed (`e9b5d057`, `5285da34`) and `entities/integration` landed before the run started
+(table D), and this file's traces were rerun on `e9b5d057`.
 
 Files to change: none of the source. Git branches and worktrees only, and the owner's commands.
 
 What to do:
 
-1. The owner commits or discards the uncommitted edits of `apps/forge/CLAUDE.md` and `apps/gaia/CLAUDE.md`, and
-   commits `docs/monorepo/hephaestus-talos.md`, `docs/monorepo/hephaestus-talos.html`, `docs/monorepo/figures/` and
-   `docs/monorepo/hephaestus-talos-implementation/`. Each commit is one plain subject line with no attribution.
-2. `entities/integration`, as the owner decided:
-   - to land it: in its worktree run `bun install --frozen-lockfile` and `bun run verify` at the root; on green,
-     fast-forward or merge `main` to it as the owner says, then remove the worktrees `entities-integration`,
-     `entities-u4.5` and `entities-u4.6` with `git worktree remove` and delete the merged branches with `git branch -d`;
-     then rerun the traces of tables A to C on the new `main` and update this file's line numbers in the same change;
-   - to set it aside: leave the branch and its worktrees, and add one line to `docs/monorepo/migration.md`'s "Backlog"
-     naming the branch, its head commit and that it lands after stage 9 or never.
+1. Confirm the main checkout holds no uncommitted change: `git -C <main checkout> status --porcelain` prints nothing.
+   If it prints anything, stop and hand it to the owner to commit or discard; Claude commits nothing in the main
+   checkout.
+2. `entities/integration`, landed: confirm `git rev-list --count main..entities/integration` prints 0 and that its
+   worktree holds nothing uncommitted (`git -C .claude/worktrees/entities-integration status --porcelain` prints
+   nothing), then remove the worktree with `git worktree remove .claude/worktrees/entities-integration` and delete the
+   branch with `git branch -d entities/integration`. If either check fails, stop and ask the owner. The traces of
+   tables A to C need no rerun here unless `main` moved past `e9b5d057`; if it did, rerun them and update this file's
+   line numbers in the same change.
 3. `claude/project-thread-dw1bcu`: delete with `git branch -D` only on the owner's answer; otherwise leave it.
-4. The live trackers, quiesced by the owner (Claude runs no forge verb here, `apps/forge/CLAUDE.md:349-351`). Hand the
+4. The live trackers, quiesced by the owner (Claude runs no forge verb here, `apps/forge/CLAUDE.md:357-359`). Hand the
    owner this command list, run with the installed program in each app folder:
-   - let each in-flight ticket land or stop it (`forge job stop <J>` per live job, `docs/cli.md:1372`);
+   - let each in-flight ticket land or stop it (`forge job stop <J>` per live job, `apps/forge/docs/cli.md:1559`);
    - `forge stop` in `apps/forge`, then in `apps/gaia`;
-   - `forge login-item remove` in each folder (`docs/cli.md:1254`), so a login does not start an Overseer during the
-     refactoring;
+   - `forge login-item remove` in each folder (`apps/forge/docs/cli.md:1374`), so a login does not start an Overseer
+     during the refactoring;
    - confirm with `forge login-item status` in each folder: `state` `absent`.
-5. Record in `.claude/.evidence/hephaestus-talos/stage-1/base.txt`: `git rev-parse main`, `git branch --no-merged main`,
-   `git worktree list`, and the owner's confirmation that both Overseers are stopped.
+5. Record in `.claude/.evidence/hephaestus-talos/stage-1/base.txt`: `git rev-parse main`,
+   `git rev-parse hephaestus-talos`, `git branch --no-merged main`, `git worktree list`, and the owner's confirmation
+   that both Overseers are stopped.
 
 Specs: none.
 
-Done when: `git status --porcelain` in the main checkout prints nothing; `git branch --no-merged main` prints only
-branches the owner set aside, each named in the backlog; `git worktree list` shows no `.forge-worktrees` folder with a
-live job; the owner confirmed both Overseers stopped and both login items absent.
+Done when: `git status --porcelain` in the main checkout prints nothing; `git branch --no-merged main` prints only the
+integration branch `hephaestus-talos` and branches the owner set aside, each named in the backlog; `git branch --list
+'entities/*'` prints nothing; `git worktree list` shows no `entities-integration` and no `.forge-worktrees` folder with
+a live job; the owner confirmed both Overseers stopped and both login items absent.
 
 ### WP1.3 The stage's gate
 
@@ -483,9 +506,9 @@ which later stages build on.
    per line, as every fixture pair. Session id `7a1f0c52-0001-4000-8000-000000000001`; paths synthetic under
    `/repo`. Lines stage 2 matches:
    - retry line: `{ "type": "system", "subtype": "api_retry", "attempt": number, "max_retries": number,
-     "retry_delay_ms": number, "error_status": number | null, "error": string, "no_response"?: { "waited_ms": number },
-     "session_id": string, "uuid": string }`, the key set read from the 2.1.326 program text and confirmed or corrected
-     by the recording;
+     "retry_delay_ms": number, "error_status": number | null, "error": string, "no_response"?: { "waited_ms": number,
+     "retry_wait_ms": number }, "session_id": string, "uuid": string }`, the key set read from the 2.1.326 and 2.1.327
+     program text and confirmed or corrected by the recording;
    - closing line: `{ "type": "result", "is_error": true, "subtype": string, "api_error": ..., "api_error_status":
      number | null, "terminal_reason": string, ... }`, with the exact values the recording shows written into P23 and
      the claims. These keys are present on the committed P10 result line
@@ -493,22 +516,31 @@ which later stages build on.
 2. **Probe record P23** in `apps/forge/docs/development/overseer-claude-probe.md`: heading, a "What the run showed"
    block, a "Selects" line; the next free number, since the record ends at P21 and the fixture claims name P22 for
    Flint's brain (`ClaudeStreamFixtures.spec.ts:165`).
-3. **The claims block** `describe('network-outage-retries-spent (P23, Claude Code 2.1.326)')` in
-   `ClaudeStreamFixtures.spec.ts`, its test names claims as listed in WP0.4 step 3.
+3. **The claims block** `describe('network-outage-retries-spent (P23, Claude Code <version>)')` in
+   `ClaudeStreamFixtures.spec.ts`, `<version>` the one `notes.txt` names (2.1.327 is installed on 2026-11-18), its
+   test names claims as listed in WP0.4 step 3.
 4. **The packages stage 4 creates**, proposed from table E, each a workspace member at `packages/<name>` with its own
    `package.json` (`"version": "0.1.0"`, `"type": "module"`, `"engines": { "bun": "1.4.2" }`, an `exports` map of one
    entry per public file, `files`, scripts `typecheck`, `lint`, `test`, `test:dom` where it has DOM specs), its own
    `tsconfig.json`, `eslint.config.js` and `README.md`, as `packages/forge-contracts/package.json` is built:
-   - `tracker-model` at `packages/tracker-model`: every file of `apps/forge/src/lib/tracker-model/` (108 shipping, 84
+   - `tracker-model` at `packages/tracker-model`: every file of `apps/forge/src/lib/tracker-model/` (117 shipping, 96
      spec and testing), plus the spec helpers its specs import (`apps/forge/src/testing/BoardFixtures.ts`,
-     `SourceMutant.ts`, `GreenQueue.ts`, `EveryBoardLogRecord.ts`) moved into its own `testing/` or kept in forge by
-     inverting the import, as stage 4 measures. Depends on nothing. DOM-safe, as today (`apps/forge/CLAUDE.md:71`).
+     `SourceMutant.ts`, `EntityForgeFixture.ts`, `GreenQueue.ts`, `EveryBoardLogRecord.ts`) moved into its own
+     `testing/` or kept in forge by inverting the import, as stage 4 measures. Depends on nothing. DOM-safe, as today
+     (`apps/forge/CLAUDE.md:71`).
    - `board-readings` at `packages/board-readings`: what both Hephaestus and the views compute from a board, all pure:
      `apps/forge/src/shared/monitor/` (`AttentionEntries.ts`, `TodayFigures.ts`, `@types/MonitorSnapshot.ts` unless
      `forge-contracts` already holds it, `utils/BridgeFragmentUtil.ts`, `utils/DraftWordingUtil.ts`,
      `utils/NoticeWordingUtil.ts`, `utils/OpenDecisionsUtil.ts`), `apps/forge/src/lib/token-count/`,
-     `apps/forge/src/lib/local-time/`, `apps/forge/src/lib/html-escape/`. Depends on `tracker-model` and
-     `forge-contracts`.
+     `apps/forge/src/lib/local-time/`, `apps/forge/src/lib/html-escape/`, and the refusal wording the Bridge reaches
+     since the entities work (table E): `apps/forge/src/shared/OperationRefusal.ts`,
+     `apps/forge/src/shared/@types/` (`InstallVersionMismatch.ts`, `RoleCommandRefusalReason.ts`,
+     `UnreadableTracker.ts`), `apps/forge/src/adapters/utils/` (`OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`,
+     `TicketPhraseUtil.ts`), with the one type it takes from
+     `apps/forge/src/lib/executable-resolver/ExecutableResolver.ts` (`ExecutableRefusalCause`) moved beside it. The
+     shared constants the Bridge reaches (`ProductNames.ts`, `RootOverrideVariable.ts`, `DispatchProtocol.ts`,
+     `OverseerLimits.ts`, `OverseerApiContracts.ts`, `TimestampSlices.ts`) are placed by the owner's answer to "Needs
+     the owner", item 3. Depends on `tracker-model` and `forge-contracts`.
    - `forge-contracts` (exists) gains the board and ticket documents: the served `BoardState` and the documents the
      Bridge's views read (`apps/forge/bridge/@types/*BoardState.ts`), as types, behind the system version
      (design section 4). Depends on `system-versions` and, new, `tracker-model` for the types it names.
@@ -522,11 +554,13 @@ which later stages build on.
 
 ## Traps
 
-- **The traces go stale the moment `entities/integration` lands.** It changes 399 files, the Playbook and job fields
-  among them (`git log entities/integration`: stage fields, install version 32, forge 1.9 to 1.11). If it lands, rerun
-  tables A to C on the new `main` in the same change (WP1.2 step 2), or stages 2 and 3 work from wrong line numbers.
+- **The traces go stale the moment anything lands on `main`.** `entities/integration` landed before the run (526
+  files, the Playbook, `DrivePass.ts`, `Airlocks.ts` and `JobLaunch.ts` among them), and tables A to C were traced
+  again on `e9b5d057`. A ticket of a live tracker landing before WP1.2 quiesces it moves them again: if `main` moved
+  past `e9b5d057`, rerun tables A to C in the same change (WP1.2 step 2), or stages 2 and 3 work from wrong line
+  numbers.
 - **Working in the main checkout holds the live trackers' landings.** A landing finds the main checkout dirty and holds
-  the target (`Landing.ts:126`, `Landing.ts:134`; the `dirty-main-checkout` notice, `DrivePass.ts:256-257`). Work in
+  the target (`Landing.ts:126`, `Landing.ts:134`; the `dirty-main-checkout` notice, `DrivePass.ts:288-289`). Work in
   `.claude/worktrees/<name>` until WP1.2 has quiesced both trackers.
 - **A recording made inside the repository loads forge's hooks.** The repository's Claude settings carry forge's
   SessionStart hook and network guard, and a parent session's `CLAUDE*` variables leak into a child
@@ -550,11 +584,14 @@ which later stages build on.
   home"). The login items are checked by their LaunchAgent names in `~/Library/LaunchAgents`, never through the
   registry.
 - **A paused board still resumes.** Stage 3 builders reading table A must not assume `oversee pause` holds a resume
-  today; it holds only new launches (`Playbook.ts:532-533`).
+  today; it holds only new launches (`Playbook.ts:770-771`).
 - **The checklist holds over the design where they differ** (`migration.md:4-5`). WP1.1 changes status and ticks, not
   the phases' records, so the history the design relies on stays.
 - **Stage 0's package names are binding.** Decision 33 says a running builder never introduces a package. If stage 4
   finds that a file belongs elsewhere, it stops and asks the owner; it does not add a third package.
+- **The entities work grew the Bridge's reach outside the model.** The refusal wording of table E (`OperationRefusal`,
+  three `src/adapters/utils/` files, a port's type) is new; a package proposal that names only `src/shared/monitor/`
+  and three `src/lib/` folders leaves the Bridge's include list unable to shrink to packages.
 
 ## Verification of the whole stage
 
@@ -575,7 +612,7 @@ bun test --path-ignore-patterns='.claude/**' \
   ./src/services/overseer/CodeVersion.spec.ts
 ```
 
-and the real-system baseline of WP0.2, rerun once on the final `main` if `entities/integration` landed, with the same 0
+and the real-system baseline of WP0.2, rerun once on the final `main` if `main` moved past `e9b5d057`, with the same 0
 failures.
 
 End-to-end on a scratch forge: this stage changes no runtime code of forge or Gaia (a fixture, a spec, documents), so
@@ -584,7 +621,8 @@ the fake agent on scratch repositories, is the end-to-end proof that the base wo
 
 Repository state:
 
-- `git status --porcelain` prints nothing; `git branch --no-merged main` lists only branches the owner set aside.
+- `git status --porcelain` prints nothing; `git branch --no-merged main` lists only `hephaestus-talos` and branches the
+  owner set aside.
 - `docs/monorepo/hephaestus-talos.md` section 12 "To decide" holds no item the owner answered.
 - `docs/monorepo/migration.md` names no open item without a reason.
 
@@ -612,19 +650,20 @@ Repository state:
    (`GATE_TIME_BOUND_MILLISECONDS` and `INSTALL_LINE_TIME_BOUND_MILLISECONDS`, stage 2's "Interfaces introduced"), so
    either answer is one value: `null` for no bound, or the number of milliseconds the owner names.
 3. **The packages stage 4 creates.** Recommended default: `tracker-model` and `board-readings` as new packages, with the
-   contents in "Interfaces introduced", item 4.
+   contents in "Interfaces introduced", item 4, `board-readings` taking the refusal wording the Bridge reaches since the
+   entities work. Still to answer: where the six shared constants the Bridge reaches go (`ProductNames.ts`,
+   `RootOverrideVariable.ts`, `DispatchProtocol.ts`, `OverseerLimits.ts`, `OverseerApiContracts.ts`,
+   `TimestampSlices.ts`); recommended default: into `board-readings` with the wording that reads them.
 4. **Where the board and ticket documents live.** Recommended default: in `forge-contracts`, behind the system version,
    as design section 4 says. The cost: `forge-contracts` then depends on `tracker-model`, so a change of a model type a
    document names is a change of the contract. The alternative is a third package of document types that copies the
    fields it serves and depends on nothing.
-5. **`entities/integration` (52 commits, 399 files, forge 1.9 to 1.11).** Recommended default: land it through its own
-   verify before stage 2, then rerun the traces; if it is not ready when stage 1 ends, set it aside until after stage 9
-   rather than rebase it through the refactoring.
+5. **`entities/integration`.** Settled: it landed on `main` before the run (merge `55ec1690`, forge 1.18, install
+   version 36), and the traces were rerun. Left for WP1.2: removing its worktree and deleting the merged branch.
 6. **The live trackers during stages 2 to 9.** Recommended default: let the in-flight tickets (forge 001, 005, 008, 009,
    014; Gaia 001) land or stop them, stop both Overseers and remove both login items until stage 9 sets the boards up
    anew; the installed clone `~/.forge-program` is not pulled meanwhile.
-7. **The uncommitted clock-rule edits in both apps' `CLAUDE.md`.** Recommended default: commit them before WP1.3, as
-   they are the owner's own rule change.
+7. **The clock-rule edits in both apps' `CLAUDE.md`.** Settled: the owner committed them (`e9b5d057`).
 8. **`claude/project-thread-dw1bcu`.** Recommended default: delete it; its five commits were taken into monitor 3 in
    P4.0 (`migration.md:32-34`, `:84`).
 9. **The migration's open items.** Recommended defaults: B15 closed as superseded, since Gaia identifies a project by
@@ -638,17 +677,18 @@ Repository state:
 
 ## Not established
 
-- Whether `main` at `3e6cb660` is green: no verify has run on it (a run writes the turbo cache and scratch folders);
-  WP1.3 establishes it.
-- What Claude Code 2.1.326 writes when the network is off: the exact result fields and values, the number of retries,
-  the waits between them, whether a session starts at all with no network, and what `CLAUDE_CODE_MAX_RETRIES` does. Only
-  the names of the setting and of the `api_retry` line's keys were read, from the program text.
+- Whether `main` at `e9b5d057` is green: no verify was run for this plan (a run writes the turbo cache and scratch
+  folders); WP1.3 establishes it.
+- What Claude Code 2.1.327 (or the version installed when WP0.3 runs) writes when the network is off: the exact result
+  fields and values, the number of retries, the waits between them, whether a session starts at all with no network,
+  and what `CLAUDE_CODE_MAX_RETRIES` does. Only the names of the setting and of the `api_retry` line's keys were read,
+  from the program text.
 - Whether a real 5xx or 529 ending can be recorded on demand; it cannot be caused by the owner without a stand-in
   server.
 - What a stop inside `git merge --ff-only` of the main checkout leaves (a partial checkout or an `index.lock`), and
   whether the next landing then holds the target or fails differently; table B traces the stops between steps only.
-- Whether `src/testing/BoardFixtures.ts` and the other spec helpers the model's specs import reach anything but the
-  model (their closure for stage 4); only their first imports were read.
+- Whether `src/testing/BoardFixtures.ts` and the other spec helpers the model's specs import, `EntityForgeFixture.ts`
+  among them, reach anything but the model (their closure for stage 4); only their first imports were read.
 - Where the earlier probes' driver scripts are (`drive.py`, `export-fixture.py`):
   `.claude/.evidence/runner-claude-probe/` does not exist in this checkout, so WP0.3 and WP0.4 do not rely on them.
 - Whether the owner formally gave the P7 go, ran the P7 smoke, copied Gaia's old checkout, or carried the Claude Code

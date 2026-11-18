@@ -20,13 +20,13 @@ that name everywhere this file uses the default. Where an item is missing, stop 
 | Need | What it must be | From | Used by |
 | --- | --- | --- | --- |
 | N1. The packages | Stage 0's decided package names. Defaults (`stage-0-1-trace-and-base.md`, WP0.5 item 4): `packages/tracker-model` (today's `apps/forge/src/lib/tracker-model/`), `packages/board-readings` (today's `src/shared/monitor/`, `src/lib/token-count/`, `src/lib/local-time/`, `src/lib/html-escape/`), and the board documents in `packages/forge-contracts` | stage 0, built in stage 4 | WP6.1, WP6.4 to WP6.20, WP7.1 |
-| N2. The Bridge's 33 shipping imports of `src/` reachable by package name | Each module listed in "Today's code", row "The Bridge's shipping imports of forge's `src/`", importable as `tracker-model/<entry>`, `board-readings/<entry>` or `forge-contracts/<entry>`, DOM-safe | stage 4 | WP6.4 onwards |
+| N2. The Bridge's 39 shipping imports of `src/` reachable by package name | Each module listed in "Today's code", row "The Bridge's shipping imports of forge's `src/`", importable as `tracker-model/<entry>`, `board-readings/<entry>` or `forge-contracts/<entry>`, DOM-safe. Two of them lie outside every default package of N1: `src/shared/OperationRefusal.ts` and `src/adapters/utils/OperationRefusalWordingUtil.ts`, which the entities work made the pipeline view word refusals with (`views/pipeline/apply/ApplyDialogModel.ts:8`, `:12`, `views/pipeline/setup/EntityRefusalsModel.ts:6`, `:11`). The wording util also reaches `src/adapters/utils/{StatusWordingUtil,TicketPhraseUtil}.ts`, `src/shared/@types/{InstallVersionMismatch,RoleCommandRefusalReason,UnreadableTracker}.ts`, `src/shared/constants/{ProductNames,RootOverrideVariable}.ts` and a type of `src/lib/executable-resolver/ExecutableResolver.ts` (`apps/forge/bridge/tsconfig.json` lists them). Where they land is the owner's (Needs the owner, item 12) | stage 4 | WP6.4 onwards; the two refusal modules WP6.19 |
 | N3. The board document and the board commands | The served `BoardState` at `GET /api/v1/state` (registry endpoint `state` at version 1, stage 4's WP4.4); the documents the Bridge's views read, moved from `apps/forge/bridge/@types/` into `forge-contracts/BoardStateDocument`, `BoardLimitsDocument`, `ConversationDocuments`, `DetailBoardState`, `EpicsBoardState`, `KanbanBoardState`, `ProgressBoardState`, `TicketsBoardState` (stage 4's WP4.6), held against the server by `BoardState.documents.spec.ts` (WP4.8); and the 34 kinds the Bridge sends as `ForgeBoardCommand` in `forge-contracts/BoardCommand`, pinned by `BOARD_COMMAND_CONTRACT_KINDS` (stage 4's WP4.5) | stage 4 | WP6.1, WP6.3, WP6.6 |
 | N4. Talos in the identity | `talosProtocolVersion` in the identity document, replacing `watcherProtocolVersion` (`OverseerServer.ts:637`) | stage 2 | WP6.22 |
 | N5. The clean quit for a restart | Talos's `quit` frame with reason `restart` (stage 2, `TalosQuitReason`), after which the Overseer starts Talos again and the paused agents resume by themselves | stage 2 | WP6.22 |
-| N6. The outage cause | The interruption cause `network-outage` on a job (stage 2, WP2.11), served as the job's `interruption` in the board document (`apps/forge/bridge/views/agents/AgentJobDocument.ts:44-45`) | stage 2 | WP6.11, WP6.21 |
+| N6. The outage cause | The interruption cause `network-outage` on a job (stage 2, WP2.11), served as the job's `interruption` in the board document (`apps/forge/bridge/views/agents/AgentJobDocument.ts:46-47`) | stage 2 | WP6.11, WP6.21 |
 | N7. Presence | `GET /api/v1/presence` (`ForgePresenceDocument`, with `interruptedWork[].waitsFor`), the registry entry's `presence` key (`state: 'serving' \| 'stopped' \| 'handed-over' \| 'off-after-crash'`), and the command `interrupted-work-resume` in `packages/forge-contracts` | stage 3, WP3.3, WP3.8, WP3.12 | WP6.21 |
-| N8. The forge system version | `FORGE_SYSTEM_VERSIONS.current` as stages 2, 3 and 4 left it (each raised the minor once; 1.4 if nothing else moved it; stage 5 raises none) | stages 2, 3, 4 | WP6.1, WP6.2 |
+| N8. The forge system version | `FORGE_SYSTEM_VERSIONS.current` as stages 2, 3 and 4 left it (each raised the minor once; 1.21 if nothing else moved it, over the 1.18 that `entities/integration` left, `packages/forge-contracts/constants/ForgeSystemVersions.ts:40-43`; stage 5 raises none) | stages 2, 3, 4 | WP6.1, WP6.2 |
 
 What this stage hands on:
 
@@ -68,29 +68,31 @@ What this stage hands on:
 ## Today's code
 
 Paths from the repository root. "Moved" means: copied into Gaia, while the Bridge's copy keeps running until stage 8
-deletes it.
+deletes it. Rechecked against the code at `0a648b2b`, after `entities/integration` landed on `main`: it grew the Bridge
+by 82 files (the pipeline view's entities step, levels and crossings, the Kanban's entity rail).
 
 | What exists | Where | What happens to it |
 | --- | --- | --- |
-| The Bridge: 525 tracked files, 67 DOM specs (`.dom.tsx`) | `apps/forge/bridge/` (`git ls-files apps/forge/bridge \| wc -l`) | Moved, view by view, into `apps/gaia/page/board/`; the Bridge itself is deleted in stage 8 |
-| The Bridge's views and their sizes: pipeline 121 files and 20 DOM specs, progress 32/4, detail-panel 30/2, agents 27/2, intake 23/3, kanban 13/2, question-panel 7/1, merge-queue 7/1, epics 7/1, waves 6/1, questions 6/1, tickets 4/1, assistant 4/1, finished-work 2/1 | `apps/forge/bridge/views/*/` | Moved, one work package per view (WP6.10 to WP6.20, WP7.1) |
-| The Bridge's infrastructure: shell 56 files/12 DOM specs, flint 35/8, conversation 26/4, utils 38/0, testing 23, api 21, chips 9/1, @types 9, sandboxed-html 3, preferences 2 | `apps/forge/bridge/<folder>/` | Moved in WP6.5 to WP6.9; `api/` rewritten for Gaia's relay; the embed channel, session code exchange, identity reload and Flint's brain are not moved |
+| The Bridge: 607 tracked files, 77 DOM specs (`.dom.tsx`); 525 and 67 at `3e6cb660` | `apps/forge/bridge/` (`git ls-files apps/forge/bridge \| wc -l`) | Moved, view by view, into `apps/gaia/page/board/`; the Bridge itself is deleted in stage 8 |
+| The Bridge's views and their sizes: pipeline 195 files and 29 DOM specs (a new `entities/` subfolder of 29 files among them), progress 32/4, detail-panel 30/2, agents 27/2, intake 23/3, kanban 18/3, question-panel 7/1, merge-queue 7/1, epics 7/1, waves 6/1, questions 6/1, tickets 4/1, assistant 4/1, finished-work 2/1; and the shared `views/ViewTitle.tsx` with its DOM spec, which nine views import | `apps/forge/bridge/views/*/` | Moved, one work package per view (WP6.10 to WP6.20, WP7.1); `ViewTitle` with the shared parts (WP6.6) |
+| The Bridge's infrastructure: shell 56 files/12 DOM specs, flint 35/8, conversation 26/4, utils 40/0, testing 24, api 21, chips 9/1, @types 9, sandboxed-html 3, preferences 2 | `apps/forge/bridge/<folder>/` | Moved in WP6.5 to WP6.9; `api/` rewritten for Gaia's relay; the embed channel, session code exchange, identity reload and Flint's brain are not moved |
 | The tab list: `kanban`, `waves`, `progress`, `epics`, `tickets`, `agents`, `questions`, `assistant`, `intake`, `pipeline` | `apps/forge/bridge/shell/HashRouter.ts:12` | Kept as the board's tab list in Gaia (`BoardRoute`) |
 | Which tabs show: Waves without a dependency, Epics without an epic, only Pipeline without a readable pipeline | `apps/forge/bridge/shell/HashRouter.ts:60-64` | Moved unchanged |
 | The services the shell takes (command client, Flint's brain client, picture upload, event stream, identity, reload, storage, embed mode, transcript and profile followers, question notifier) | `apps/forge/bridge/shell/BridgeApp.tsx:88-110` | Replaced by `BoardServices` (Interfaces) without brain, identity, reload and embed |
 | The shell reloads the page when the Overseer's `codeVersion` changes | `apps/forge/bridge/shell/BridgeApp.tsx:199-230` (reload at `:225`) | Deleted in Gaia: Gaia's page is Gaia's bundle; a forge version change is the forge verdict's business |
-| The frame side of the embed channel (`ready`, `route`, `session-lost`, `navigate`) | `apps/forge/bridge/shell/BridgeApp.tsx:574-614`, `shell/VersionedEmbedChannel.ts`, `shell/EmbeddedChannel.ts` | Not moved; used by Gaia's frame only while a tab is unmoved |
+| The frame side of the embed channel (`ready`, `route`, `session-lost`, `navigate`) | `apps/forge/bridge/shell/BridgeApp.tsx:579-619`, `shell/VersionedEmbedChannel.ts`, `shell/EmbeddedChannel.ts` | Not moved; used by Gaia's frame only while a tab is unmoved |
 | Flint's brain controls hidden | `apps/forge/bridge/shell/BridgeApp.tsx:137` | Not moved: no brain part reaches Gaia (decision 25) |
 | The entry: fonts, theme and embed mode before first paint, session code exchange, one root | `apps/forge/bridge/Main.tsx:28-62` | Replaced by the board root under Gaia's own entry |
 | The API paths the Bridge calls | `apps/forge/bridge/api/EventStreamClient.ts:34`, `CommandClient.ts:28`, `PictureUploadClient.ts:21`, `TranscriptStreamClient.ts:66`, `ProfileStreamClient.ts:31`, `SessionTokenSource.ts:22`, `IdentityClient.ts:6`, `FlintBrainClient.ts:51`, `SessionCodeExchange.ts:21-22`, `views/intake/PictureAttachmentsModel.ts:48` | Each rewritten to a Gaia relay route (WP6.5); session token, identity, session and brain paths are dropped |
 | The board event kinds the client listens to | `apps/forge/bridge/api/EventStreamClient.ts:11` | Kept; a new `handshake` event is ignored by the Bridge, which listens by name |
-| The Bridge's shipping imports of forge's `src/` (33 modules): the tracker model's `@types/{Draft,GatePhase,Job,LogRecord,Pipeline,PipelineFacts,PipelineSetup,Task,Ticket,TicketForecast,TrackerProgress}`, `constants/{AgentSettings,ConcurrencyLimits,JobStopHolds,PipelineDefaults,ReviewRounds,Statuses,TicketFields}`, `utils/TicketDefaultsUtil`; `src/lib/{html-escape,local-time,token-count}`; `src/shared/monitor/{@types/MonitorSnapshot,AttentionEntries,TodayFigures,utils/BridgeFragmentUtil,utils/DraftWordingUtil,utils/NoticeWordingUtil,utils/OpenDecisionsUtil}`; `src/shared/constants/{DispatchProtocol,OverseerApiContracts,OverseerLimits,ProductNames}` | `grep -rhoE "from '(\.\./)+src/[^']+'"` over the Bridge's shipping files | Read from the packages of N1/N2; the four `src/shared/constants` modules are not imported by Gaia (Traps, "Forge constants") |
-| Forge constants the pipeline view reads as code: `WORKER_MODEL`, `WORKER_EFFORT`, `DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES` | `apps/forge/bridge/views/pipeline/dialogs/AgentStepDialogModel.ts:9`, `flow/PipelineFlowModel.ts:19`, `dialogs/RereviewSettingsModel.ts:8` | Changed: served as facts in the board document (WP6.1) |
+| The Bridge's shipping imports of forge's `src/` (39 modules, from 152 shipping files; 33 from 114 at `3e6cb660`): the tracker model's `@types/{Draft,GatePhase,Job,LogRecord,Pipeline,PipelineFacts,PipelineSetup,Task,Ticket,TicketForecast,TrackerProgress}`, `constants/{AgentSettings,ConcurrencyLimits,JobStopHolds,PipelineDefaults,ReviewRounds,Statuses,TicketFields}`, `utils/{EntityOwnershipUtil,EntityValidationUtil,PipelineDraftEditUtil,PipelineUtil,TicketDefaultsUtil}`; `src/lib/{html-escape,local-time,token-count}`; `src/shared/monitor/{@types/MonitorSnapshot,AttentionEntries,TodayFigures,utils/BridgeFragmentUtil,utils/DraftWordingUtil,utils/NoticeWordingUtil,utils/OpenDecisionsUtil}`; `src/shared/constants/{DispatchProtocol,OverseerApiContracts,OverseerLimits,ProductNames}`; `src/shared/OperationRefusal`; `src/adapters/utils/OperationRefusalWordingUtil` | `grep -rhoE "from '(\.\./)+src/[^']+'"` over the Bridge's shipping files | Read from the packages of N1/N2; the four `src/shared/constants` modules are not imported by Gaia (Traps, "Forge constants"); the two refusal modules as N2 says |
+| Forge constants the pipeline view reads as code: `WORKER_MODEL`, `WORKER_EFFORT`, `DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES` | `apps/forge/bridge/views/pipeline/dialogs/AgentStepDialogModel.ts:9`, `flow/PipelineFlowModel.ts:20`, `dialogs/RereviewSettingsModel.ts:8` | Changed: served as facts in the board document (WP6.1); `PipelineFlowModel` moves early, with the header's models (WP6.8) |
+| The header's pipeline model now reaches into the pipeline view: `PipelineViewModel.ts` imports `entities/PipelineLevelModel.ts` and `live/EntityWorkModel.ts`, which bring `live/FlowActivityPanelModel.ts`, `flow/PipelineFlowModel.ts`, `flow/PipelinePhaseModel.ts`, `gates/GateCacheMarkModel.ts` and the component `PipelinePanel.tsx` (for its `PanelStatus` type) | `apps/forge/bridge/views/pipeline/PipelineViewModel.ts`, `live/EntityWorkModel.ts:12-13`, `live/FlowActivityPanelModel.ts:21`, `:23` | Moved with the header's models in WP6.8 |
 | Browser storage keys `<STORAGE_PREFIX>:<trackerId>` | `apps/forge/bridge/preferences/PreferenceStore.ts:6`, `.claude/rules/bridge.md:63-64` | Moved under Gaia's own prefix (WP6.5) |
 | Agent-written HTML only as a sandboxed frame's `srcdoc`, with the page's stylesheet addresses | `apps/forge/bridge/sandboxed-html/SandboxedHtmlFrame.tsx:1-6`, `SandboxedHtmlDocument.ts:13-21` | Moved; not an embedded forge page |
-| The Bridge's stylesheets: `board.css` (2,787 lines, 638 `bridge-` classes, 22 `@keyframes`), `tokens.css` (73 tokens) | `apps/forge/bridge/styles/` | Moved per view into `apps/gaia/page/styles/board/` with `board-` class names (WP6.4 onwards) |
-| Frame mode hides only the title row | `apps/forge/bridge/styles/board.css:537-540` | Changed in WP6.9: frame mode hides the Bridge's whole head, while unmoved tabs still show in the frame |
-| The Bridge's DOM spec runner and happy-dom preload | `apps/forge/bridge/testing/RunDomSpecs.ts:19-20`, `bridge/testing/HappyDom.ts`; `apps/forge/package.json:18` | Copied for Gaia (WP6.5) |
+| The Bridge's stylesheets: `board.css` (3,100 lines, 764 `bridge-` classes, 22 `@keyframes`), `tokens.css` (73 tokens) | `apps/forge/bridge/styles/` | Moved per view into `apps/gaia/page/styles/board/` with `board-` class names (WP6.4 onwards) |
+| Frame mode hides only the title row | `apps/forge/bridge/styles/board.css:576-579` | Changed in WP6.9: frame mode hides the Bridge's whole head, while unmoved tabs still show in the frame |
+| The Bridge's DOM spec runner and happy-dom preload | `apps/forge/bridge/testing/RunDomSpecs.ts:18-19`, `bridge/testing/HappyDom.ts`; `apps/forge/package.json:18` | Copied for Gaia (WP6.5) |
 | The Overseer's data routes: state, events, monitor, job stream, profile stream, job files, pictures, session token | `apps/forge/src/services/overseer/OverseerServer.ts:535-552` | Kept; state has its versioned path from stage 4 (WP4.4); events, job stream, profile stream and pictures get theirs (WP6.1) |
 | Only registered endpoints are served at `/api/v<n>/`; the match is on the literal path | `OverseerServer.ts:601-606`, `:612-619` | Changed: templated endpoints (`jobs/{jobId}/stream`) match (WP6.1) |
 | The registry serves identity, summary, monitor, monitor/events, commands, session-codes (and stage 3's presence and stage 4's state) | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:38` onwards | Changed: five endpoints added (WP6.1) |
@@ -98,14 +100,14 @@ deletes it.
 | A command carries whether a Bridge session sent it, read only by Flint's brain | `OverseerServer.ts:250`; `apps/forge/cli/overseer/routes/CommandRoute.ts:128` | Kept until stage 8; Gaia's relay never holds a Bridge session |
 | The picture upload: raw body, token, bounded read, 3,932,160 bytes | `OverseerServer.ts:254-284`; `apps/forge/src/shared/constants/OverseerLimits.ts:132-135` | Kept, versioned as `pictures` (WP6.1) |
 | The contract's command kinds: 9 | `packages/forge-contracts/@types/ForgeControlCommand.ts:9-18` (plus stage 3's `interrupted-work-resume`, and stage 4's 34 board kinds in `forge-contracts/BoardCommand`) | Changed: one list of every kind a client may send (WP6.1); `talos-restart` added (WP6.22) |
-| The forge's command union, 76 kinds | `apps/forge/src/shared/@types/ControlCommand.ts:66-226`, `OverseerApiCommand` at `:239`; stage 3 adds one kind, stage 4 takes 34 from `ForgeBoardCommand`, stage 5 adds 16 by-hand kinds the endpoint refuses | Kept; a parity spec holds the contract's kinds against it (WP6.1) |
+| The forge's command union, 79 kinds (76 at `3e6cb660`, as design section 4 counts; the entities work added `need-declare`, `ticket-entity` and `ticket-group`, none of which the Bridge sends: it still sends the same 37 kinds, 34 of them board kinds) | `apps/forge/src/shared/@types/ControlCommand.ts:67-258`, `OverseerApiCommand` at `:271`; stage 3 adds one kind, stage 4 takes 34 from `ForgeBoardCommand`, stage 5 adds 16 by-hand kinds the endpoint refuses | Kept; a parity spec holds the contract's kinds against it (WP6.1) |
 | Gaia's server routes, every body bounded at 65,536 bytes by Bun | `apps/gaia/src/features/page-server/PageServer.ts:90`, `:130-198`, `:254` | Changed: board relay routes, a per-route body bound (WP6.3) |
 | Gaia's CSP frames any loopback port | `apps/gaia/src/lib/local-http-guards/ContentSecurityPolicy.ts:11`; `PageServer.ts:240` | Changed in WP6.23: no frame source |
 | The frame session route: a session code from the Overseer with the forge's token, answered as the Bridge's address | `apps/gaia/src/features/page-server/routes/FrameSessionRoute.ts:1-103` | Deleted (WP6.23); its registry and readings check is generalised first (WP6.3) |
 | Gaia's forge client: versions, identity, summary, monitor, monitor stream, commands, session codes | `apps/gaia/src/lib/forge-client/ForgeClient.ts:53-60`, `:123-215` | Changed: board reads, streams, pictures (WP6.2); session codes deleted (WP6.23) |
 | The HTTP boundary takes a JSON body only and sends no `Last-Event-ID` | `apps/gaia/src/lib/forge-client/OverseerFetch.ts:8-24` | Changed: a byte body, a byte answer, `Last-Event-ID` (WP6.2) |
-| Gaia supports forge 1.1 | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9` | Changed to the version WP6.1 serves (WP6.2) |
-| Gaia's endpoint versions and system version 1.1 | `apps/gaia/src/shared/constants/GaiaSystemVersions.ts:15`, `:30-38` | Changed: relay endpoints, a minor raise (WP6.3), the commands route's change (WP6.23) |
+| Gaia supports forge 1.1, seventeen minors behind forge's 1.18, so Gaia's `check` already warns | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9` | Changed to the version WP6.1 serves (WP6.2) |
+| Gaia's endpoint versions and system version 1.1 | `apps/gaia/src/shared/constants/GaiaSystemVersions.ts:12`, `:25-33` | Changed: relay endpoints, a minor raise (WP6.3), the commands route's change (WP6.23) |
 | Gaia's contract versions | `apps/gaia/src/shared/constants/ContractVersions.ts:13-31` | Changed: three relay contracts (WP6.3); `forgeEmbedChannel`, `forgeFrameAncestorRecord`, `gaiaFrameSession` deleted (WP6.23) |
 | Gaia's forge route carries the Bridge's fragment verbatim: `#forge/<trackerId>/#questions/E2` | `apps/gaia/page/shared/HashRouter.ts:10`, `:46-53`, `:106-109` | Changed: `{ trackerId, boardRoute }` (WP6.9) |
 | The forge in place: Gaia's bar over the Bridge's frame, frame session, embed channel, "Open in new tab" | `apps/gaia/page/views/forge-frame/` (`ForgeFrameView.tsx:129`, `ForgeFrameSession.ts`, `EmbedChannel.ts`, `FrameSessionRequest.ts`) | Changed: the frame stays only for unmoved tabs (WP6.9), then is deleted (WP6.23); the bar stays |
@@ -119,19 +121,20 @@ deletes it.
 | The Notification API has no boundary in Gaia yet | `apps/gaia/CLAUDE.md:125` | Created with the question alerts (WP6.8) |
 | The registry entry Gaia reads | `apps/gaia/src/adapters/forge-registry/@types/RegisteredForge.ts:12-23` | Changed: stage 3's `presence` (WP6.21) |
 | The fleet document's forge: `codeVersion`, `versions` | `apps/gaia/page/@types/FleetDocument.ts:165-196` | Changed: presence, interrupted work, Talos and newest versions (WP6.21, WP6.22) |
-| `forge open`: starts the Overseer when none is live, opens the Overseer's URL with a session code | `apps/forge/cli/tracking/open/OpenCommand.ts:1-90`, `cli/CommandTable.ts:40` | Kept: it opens the Bridge, which forge serves until stage 8; deleted in stage 8 (WP8.4). Gaia stops running it (WP6.9, WP6.23) |
+| `forge open`: starts the Overseer when none is live, opens the Overseer's URL with a session code | `apps/forge/cli/tracking/open/OpenCommand.ts:1-92`, `cli/CommandTable.ts:41` | Kept: it opens the Bridge, which forge serves until stage 8; deleted in stage 8 (WP8.4). Gaia stops running it (WP6.9, WP6.23) |
 | The `progress.html` stub, written by `init`, `update` and `oversee` | `apps/forge/src/adapters/progress-page/ProgressPageStubWriter.ts:10-30`; `cli/adoption/WriteProgressPageStub.ts:8-10`; `cli/adoption/init/InitCommand.ts:103`, `:173`; `cli/adoption/update/UpdateCommand.ts:69`; `cli/overseer/OverseerForeground.ts:174` | Kept; deleted in stage 8 (WP8.4) |
 | The installed instruction "Run `{{program}} open` once per session" | `apps/forge/resources/templates/SessionInstructions.md:26` | Kept; deleted with `open` in stage 8 (WP8.4) |
-| `INSTALL_VERSION = 29` | `apps/forge/cli/constants/InstallVersion.ts:1` | Raised once in WP7.2 |
+| `INSTALL_VERSION = 36` (29 at `3e6cb660`) | `apps/forge/cli/constants/InstallVersion.ts:1` | Raised once in WP7.2 |
 | Two skills: `agent-po`, `agent-progress-orchestrate` | `apps/forge/skills/`; `apps/forge/cli/adoption/constants/ClaudeCodeInstall.ts:23`, `:32-35`; `apps/forge/src/shared/constants/ProductNames.ts:11-12`, `:26-27`, `:40-41` | Changed: a third skill for pipeline setup (WP7.2) |
-| The product owner's first message runs its skill | `apps/forge/resources/prompts/ProductOwnerPrompt.md:1-2`; `apps/forge/cli/overseer/OverseerWording.ts:176` | Kept; the pipeline agent's first message does the same (WP7.2) |
-| The pipeline agent loads no skill | `.claude/rules/skills.md:21-24`; `apps/forge/resources/prompts/PipelineAgentPrompt.md:1-48`; `OverseerWording.ts:460` | Changed (WP7.2) |
+| The product owner's first message runs its skill | `apps/forge/resources/prompts/ProductOwnerPrompt.md:1-2`; `apps/forge/cli/overseer/OverseerWording.ts:276-277` (`productOwnerTextOf`) | Kept; the pipeline agent's first message does the same (WP7.2) |
+| The pipeline agent loads no skill | `.claude/rules/skills.md:21-24`; `apps/forge/resources/prompts/PipelineAgentPrompt.md:1-48`; `OverseerWording.ts:823-835` (`pipelineAgentTextOf`, the first message at `:826`) | Changed (WP7.2) |
+| The pipeline agent's step blocks: research (also at billing), entities (new with the entities work), constitution, design (also at Apply), and the advise block | `OverseerWording.ts:713-728` (`stepPromptFilesOf`); `apps/forge/resources/prompts/PipelineAgent{Research,Entities,Constitution,Design,Advise}.md` | Kept as the messages the Overseer sends per step; their rules move into the skill (WP7.2) |
 | Pipeline agent verbs outside a job name the setup record | `apps/forge/cli/pipeline/AgentCommandLine.ts:1-4` | Kept: the user's own agent runs the skill through them |
-| Installed and prompt wording names the Bridge | `PipelineAgentPrompt.md:3`, `:34`; `PipelineAgentDesign.md:7`; `resources/templates/PipelineAgentBrief.md:6`; `resources/templates/Reference.md:245`; `skills/agent-po/SKILL.md:142`; `skills/agent-progress-orchestrate/SKILL.md:75` | The pipeline agent's prompts changed to a neutral word (WP7.2); the rest, which name the Bridge while it still runs, in stage 8 (WP8.12) |
+| Installed and prompt wording names the Bridge | `PipelineAgentPrompt.md:3`, `:34`; `PipelineAgentDesign.md:7`; `resources/templates/PipelineAgentBrief.md:6`; `resources/templates/Reference.md:249`; `skills/agent-po/SKILL.md:147`; `skills/agent-progress-orchestrate/SKILL.md:75` | The pipeline agent's prompts changed to a neutral word (WP7.2); the rest, which name the Bridge while it still runs, in stage 8 (WP8.12) |
 | A question's recommendation is a mark on an option's label | `apps/forge/bridge/views/question-panel/QuestionPanelModel.ts:228`; `DecisionDocument` at `bridge/@types/ConversationDocuments.ts:27-36` | Kept as the source unless the forge serves a field (Needs the owner, item 7) |
 | No shipped forge file names a client | `apps/forge/src/ClientNames.spec.ts:24` | Kept: every forge change here names no client |
 | Retired component names | `apps/forge/src/ComponentNames.spec.ts:28-63` | Kept: every new name checked against it |
-| The Overseer's server is a recorded boundary | `apps/forge/src/testing/BoundarySpecs.ts:138` | Recorded again after WP6.1 |
+| The Overseer's server is a recorded boundary | `apps/forge/src/testing/BoundarySpecs.ts:139` | Recorded again after WP6.1 |
 | Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/src/TestFileConventions.spec.ts:108`, `:122`; `apps/forge/src/ProjectIncludeLists.spec.ts:38` | Kept: the Bridge stays until stage 8 |
 
 ## Work packages
@@ -159,7 +162,10 @@ WP6.1 (forge) ──► WP6.2 ──► WP6.3 ───────────�
 - The view packages WP6.10 to WP6.20 and WP7.1 touch disjoint folders. Each also adds one line to
   `apps/gaia/page/board/shell/BoardTabViews.tsx`, one `<link>` line to `apps/gaia/page/index.html` and one row to the
   board section of `apps/gaia/page/StyleContract.spec.ts`' stylesheet list. Those three lines are the only overlap:
-  each package rebases on the latest main before it lands and keeps the other packages' lines.
+  each package rebases on the latest main before it lands and keeps the other packages' lines. `pipeline.css` is the
+  exception: WP6.8 creates, links and lists it for `PipelinePanel.tsx`, and WP6.20 only adds rules to it.
+- WP6.8 also moves seven files of `views/pipeline/` that the header's pipeline model reaches since the entities work
+  (Today's code); WP6.19 and WP6.20 copy the rest of that folder around them.
 - WP7.2 touches only `apps/forge/` (skills, prompts, templates, `cli/adoption`, `ProductNames.ts`, the install version,
   `docs/cli.md`) and `.claude/rules/skills.md`; it may run beside any package that changes no file of `apps/forge/`,
   which is every package of this stage but WP6.1 and WP6.22. It is the one package of this stage that raises
@@ -220,12 +226,14 @@ on, and gives Gaia's relay one list of every kind a client may send.
   name a kind it does not carry. Export it in `packages/forge-contracts/package.json`.
 - Create `packages/forge-contracts/@types/BoardStreamHandshake.ts`: the handshake of the three streams. Export it.
 - Create `apps/forge/src/shared/constants/OverseerApiContracts.parity.spec.ts`: the contract's kinds against
-  `OverseerApiCommand` (`apps/forge/src/shared/@types/ControlCommand.ts:239`), beside the pins it compares. No
+  `OverseerApiCommand` (`apps/forge/src/shared/@types/ControlCommand.ts:271`), beside the pins it compares. No
   `@types` folder of forge holds a spec today, so the spec is an aspect suite of `OverseerApiContracts.ts`.
 - Change `apps/forge/src/services/overseer/OverseerServer.ts`: templated matching and the stream handshakes.
-- Change the board document's assembly (`apps/forge/src/services/overseer/BoardState.ts`) and its type
-  `forge-contracts/BoardStateDocument` (N3): `pipelineChoices` carries the worker defaults and the rework threshold;
-  `BoardState.documents.spec.ts` (stage 4's WP4.8) keeps holding.
+- Change the pipeline facts' assembly (`apps/forge/src/services/render/PipelineFactsAssembly.ts:610`, which
+  `apps/forge/src/services/overseer/BoardState.ts` serves) and the type `PipelineChoices`
+  (`tracker-model/@types/PipelineFacts` (N1), today's `apps/forge/src/lib/tracker-model/@types/PipelineFacts.ts:336`),
+  which `forge-contracts/BoardStateDocument` (N3) names for `pipelineChoices`: it carries the worker defaults and the
+  rework threshold; `BoardState.documents.spec.ts` (stage 4's WP4.8) keeps holding.
 - Change `apps/forge/docs/reference/overseer-api.md`: "Versioned paths", "The event stream", "The transcript stream",
   "System versions".
 - Re-record `apps/forge/src/testing/recordings/<os>/` for the boundary `src/services/overseer/OverseerServer.ts`.
@@ -269,11 +277,13 @@ on, and gives Gaia's relay one list of every kind a client may send.
    of kind `K` and `OverseerApiCommandOf<K>` are assignable both ways (a helper type `MutuallyAssignable<A, B>`
    resolving to `true`; stage 4's `CommandRoute.boardContract.spec.ts` checks one way only), a runtime check that every
    listed kind is a kind of the forge's union, and that the list equals the union of forge's two pins.
-9. Board document facts: add to the `pipelineChoices` the pipeline view reads (`forge-contracts/BoardStateDocument`,
-   today's `bridge/@types/BoardStateDocument.ts:185`) three fields, `workerModel`, `workerEffort` and
-   `reworkRoundThresholdLines`, filled from `WORKER_MODEL`, `WORKER_EFFORT` (`OverseerLimits.ts`) and
-   `DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES`. Only adds. The Bridge keeps reading its constants; Gaia reads the
-   facts (WP6.19).
+9. Board document facts: add to `PipelineChoices`, the type of the `pipelineChoices` the pipeline view reads
+   (`forge-contracts/BoardStateDocument`, today's `bridge/@types/BoardStateDocument.ts:202`; the type itself at
+   `src/lib/tracker-model/@types/PipelineFacts.ts:336`, today `{ models, efforts }`), three fields, `workerModel`,
+   `workerEffort` and `reworkRoundThresholdLines`, filled in `PipelineFactsAssembly.ts:610` from `WORKER_MODEL`,
+   `WORKER_EFFORT` (`OverseerLimits.ts:37`, `:39`) and `DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES`. Only adds.
+   The Bridge keeps reading its constants; Gaia reads the facts (WP6.8 for `PipelineFlowModel`, WP6.19 for the
+   other two).
 10. Update `overseer-api.md` for the new versioned paths, the handshake and the facts.
 11. Run `bun run record src/services/overseer/OverseerServer.ts` in `apps/forge/` and commit the recording. The
     headless Bridge spec in that boundary skips without Chrome (`.claude/rules/bridge.md:65-66`).
@@ -339,7 +349,10 @@ supported version, and record every answer from this repository's forge.
    - `sendBoardCommand(access, body: JsonObject)`: `ForgeBoardCommandAnswer`, which keeps the forge's status
      (`200`, `423` for an install hold, any other for a refusal) and its parsed body, unlike `send`, which reads only
      `outcome`.
-3. Raise `SUPPORTED_FORGE_VERSION` to the version WP6.1 set.
+3. Raise `SUPPORTED_FORGE_VERSION` to the version WP6.1 set. The raise spans every minor from 1.1 on, the seventeen of
+   the entities work among them (the monitor snapshot's entities and open tickets' entity and stage, 1.14, in
+   `forge-contracts/MonitorSnapshotDocument`); each only adds, so Gaia's mappers pass the new keys over and only the
+   recordings change. Re-record every forge recording at the new version, not only the board's.
 4. The recording spec `overseer-fetch-board` starts a scratch forge through `src/testing/ScratchForge.ts` as
    Example Storefront, as `SupportedForgeRecording.ts` does, and records: the state with the token and without;
    the events stream's handshake and first `board` event, and a reconnect with the first event's id as
@@ -551,7 +564,9 @@ control is disabled while the stream is down or launches are held, and shows its
 `DependencyGraph.ts` and `Timeline.ts` (not `FlintBrainBoardState.ts`, the brain's; not `OverseerIdentity.ts`, since
 `BoardApp` fetches no identity). The board documents are not copied: every module imports them by name from
 `forge-contracts/<Document>` (N3), so Gaia's views read the very types `BoardState.documents.spec.ts` holds against the
-server. Also `utils/` (all 38 files), `chips/` (all 9), `sandboxed-html/` (all 3), `conversation/` (all 26), and from
+server. Also `utils/` (all 40 files, the entities work's `EntityGroupUtil.ts` among them), `chips/` (all 9),
+`sandboxed-html/` (all 3), `conversation/` (all 26), `views/ViewTitle.tsx` and its DOM spec (the title row nine views
+draw), and from
 `testing/`: `BoardStateFixture.ts`, `TimestampSlicesFixture.ts`, `FakeControls.ts`, `FakeControlSurroundings.ts`,
 `PageLimitsFixture.ts`, `WaitingOnUserFixture.ts`, `StyleRuleReader.ts`, `PageStylesheets.ts` (rewritten to read
 `page/styles/board/`). Styles of chips, conversation and sandboxed HTML into `page/styles/board/chips.css`,
@@ -567,8 +582,8 @@ server. Also `utils/` (all 38 files), `chips/` (all 9), `sandboxed-html/` (all 3
 4. `conversation/ChatThreadModel.ts`, `Composer.tsx`, `DecisionCard.tsx`, `AskItem.tsx` are the parts both
    conversations (WP7.1, WP6.20) and the questions (WP6.10) use; move them unchanged in behaviour.
 
-**Specs.** Every moved plain spec and the 5 DOM specs (`chips/FilterChipGroup.dom.tsx`, `conversation/AskItem.dom.tsx`,
-`ChatThread.dom.tsx`, `Composer.dom.tsx`, `ToolUseFold.dom.tsx`) pass in Gaia.
+**Specs.** Every moved plain spec and the 6 DOM specs (`chips/FilterChipGroup.dom.tsx`, `conversation/AskItem.dom.tsx`,
+`ChatThread.dom.tsx`, `Composer.dom.tsx`, `ToolUseFold.dom.tsx`, `views/ViewTitle.dom.tsx`) pass in Gaia.
 
 **Done when.** At the root green; in `apps/gaia/`: `bun test page/board` and `bun run test:dom` pass.
 
@@ -583,7 +598,7 @@ server. Also `utils/` (all 38 files), `chips/` (all 9), `sandboxed-html/` (all 3
 `flintBrain` prop and its brain director; `BridgeFlint.dom.tsx` and `UseBoardOccasions.dom.tsx` lose their brain cases.
 `testing/FlintHabitatScene.ts`, `testing/ManualFlintFrames.ts` into `page/board/testing/`. Styles into
 `page/styles/board/flint.css`, and the `--flint-*` properties into `page/styles/board/tokens.css` as the Bridge sets
-them (`apps/forge/CLAUDE.md:343`).
+them (`apps/forge/CLAUDE.md:352`).
 
 **What to do.** The transplant procedure. Flint's storage port writes through the board's `PreferenceStore`. A second
 Flint on one document is refused by the package (`.claude/rules/flint.md:25`): `BoardFlint` mounts once per forge
@@ -612,9 +627,15 @@ change highlights and item presence. Unrouted until WP6.9.
 with their specs and DOM specs. The view models the header reads, into their future folders:
 `views/agents/AgentsModel.ts`, `views/agents/AgentJobDocument.ts`, `views/pipeline/PipelineViewModel.ts`,
 `views/pipeline/live/MinimalPipelineNoteModel.ts`, `views/questions/QuestionAlerts.ts`,
-`views/questions/QuestionsModel.ts`, `views/questions/NotificationAllowanceControl.tsx`, with their specs. Create
-`apps/gaia/page/notifications/NotificationBoundary.ts`, the one module that reaches the Notification API, and route
-`QuestionAlerts.browserQuestionNotifier()` through it. Styles into `page/styles/board/shell.css`.
+`views/questions/QuestionsModel.ts`, `views/questions/NotificationAllowanceControl.tsx`, with their specs. Since the
+entities work, `PipelineViewModel.ts` also reaches `views/pipeline/entities/PipelineLevelModel.ts`,
+`live/EntityWorkModel.ts`, `live/FlowActivityPanelModel.ts`, `flow/PipelineFlowModel.ts`, `flow/PipelinePhaseModel.ts`,
+`gates/GateCacheMarkModel.ts` and `views/pipeline/PipelinePanel.tsx` (a component, imported for its `PanelStatus`
+type): move them here too, with their specs (`PipelineViewModel.levels.spec.ts` and one `*.spec.ts` beside each model).
+Create `apps/gaia/page/notifications/NotificationBoundary.ts`, the one module that reaches the Notification API, and
+route `QuestionAlerts.browserQuestionNotifier()` through it. Styles into `page/styles/board/shell.css`;
+`PipelinePanel.tsx`'s rules (`bridge-pipeline-panel*`) into `page/styles/board/pipeline.css`, which this package
+creates, links and lists in the style contract, and WP6.20 completes.
 
 **What to do.**
 
@@ -627,9 +648,13 @@ with their specs and DOM specs. The view models the header reads, into their fut
 3. `ConnectionBanners` drops the session banner; Gaia's `ConnectionBanner` (`page/shell/ConnectionBanner.tsx`) shows a
    lost session for the whole page.
 4. Add `apps/gaia/CLAUDE.md`'s boundaries row for the Notification API: `page/notifications/NotificationBoundary.ts`.
+5. `flow/PipelineFlowModel.ts` reads `DISPATCH_PROTOCOL.REWORK_ROUND_THRESHOLD_LINES` (`:20`, used at `:214` and
+   `:370`): replace it here with the `reworkRoundThresholdLines` fact WP6.1 serves in `pipelineChoices`, as WP6.19
+   does for the other two constants.
 
 **Specs.** The moved specs, among them `Header.dom.tsx`, `IncidentNotice.dom.tsx`, `ItemPresence.dom.tsx`,
-`FinishedWorkFilter.dom.tsx`, `ChangedSinceMount.dom.tsx`, minus the cases of the removed controls and banner.
+`FinishedWorkFilter.dom.tsx`, `ChangedSinceMount.dom.tsx`, minus the cases of the removed controls and banner; one
+new case in `PipelineFlowModel.spec.ts`: the model reads the served rework threshold.
 `NotificationBoundary` gets no real-system spec (no spec opens a page); its users are specced with a fake notifier.
 
 **Done when.** At the root green; `bun test page/board/shell page/board/views` and `bun run test:dom` in `apps/gaia/`.
@@ -655,14 +680,14 @@ views move.
   `views/attention/AttentionModel.ts:236-237`, `views/activity/ActivityModel.ts:190`,
   `views/agents/AgentsModel.ts:185-186`, `views/agents/BrainModel.ts:171`, `shared/utils/ForgeContractUtil.ts`
   (`canOpenInPlace`), and their specs.
-- Change `apps/forge/bridge/styles/board.css:537-540`: in frame mode hide the Bridge's whole head
+- Change `apps/forge/bridge/styles/board.css:576-579`: in frame mode hide the Bridge's whole head
   (`.bridge-head` and the banners above it), and `apps/forge/bridge/StyleContract.spec.ts` if a class is newly read.
 - Change `apps/gaia/page/testing/ArtboardScreens.tsx` and `page/Screens.visual.spec.ts` where B1 draws the frame.
 
 **What to do.**
 
 1. `BoardApp` is `BridgeApp` without the identity fetch and reload (`:183-230`), the embed channel (`:259-266`,
-   `:574-614`), the theme state (Gaia's), Flint's brain (`:319-323`) and the session code outcome. It takes
+   `:579-619`), the theme state (Gaia's), Flint's brain (`:319-323`) and the session code outcome. It takes
    `BoardServices` and the `BoardRoute` from Gaia's route, and navigates by Gaia's `goTo` with
    `HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute })`. It renders a tab's view only when
    `BoardTabViews` lists the tab; for any other tab it renders nothing in its main area and the forge view shows the
@@ -699,7 +724,7 @@ recommendation (decision 11), over any tab.
 `QuestionsView.dom.tsx`, `QuestionsModel.spec.ts` if not moved in WP6.8) and `views/question-panel/` (7 files);
 `flint/QuestionsSpriteHabitat.ts` is already moved (WP6.7); `testing/QuestionPanelFixture.ts`. Styles into
 `page/styles/board/questions.css`. One line in `BoardTabViews.tsx`; `BoardApp.tsx` renders `QuestionPanel` as
-`BridgeApp.tsx:544-561` does.
+`BridgeApp.tsx:549-566` does.
 
 **What to do.** The transplant procedure. The recommendation reads the forge's field when the board document carries
 one, else the label mark it reads today (`QuestionPanelModel.ts:228`) (Needs the owner, item 7). `#questions/<id>`
@@ -723,7 +748,7 @@ already moved) except `FlintBrainCard.tsx`. Styles into `page/styles/board/agent
 **What to do.**
 
 1. The transplant procedure. Drop the brain card and the `flintBrain` and `flintBrainControls` props
-   (`BridgeApp.tsx:509-510`).
+   (`BridgeApp.tsx:514-515`).
 2. Add the interruption cause `network-outage` (N6) to the job state wording (`utils/JobStateUtil.ts`,
    `utils/DisplayStateWordingUtil.ts`) and to `StateToneUtil`'s record: the word "Network outage", a waiting tone
    (dashed: it waits), never the failure tone (crimson is a failure only, `apps/gaia/CLAUDE.md:86-88`).
@@ -746,7 +771,7 @@ tone; with `waitsFor: 'instruction'` Resume sends the command once; with `nothin
 
 **Files.** Transplant `apps/forge/bridge/views/detail-panel/` (30 files), `shell/DetailPanelHost.tsx` (+ DOM spec),
 `testing/DetailBoardFixture.ts`, `testing/DetailRoutingFixture.ts`. Styles into `page/styles/board/detail-panel.css`.
-`BoardApp.tsx` renders `DetailPanelHost` as `BridgeApp.tsx:436-438`. No line in `BoardTabViews.tsx`: the panel shows
+`BoardApp.tsx` renders `DetailPanelHost` as `BridgeApp.tsx:441-443`. No line in `BoardTabViews.tsx`: the panel shows
 once a detail tab moves (WP6.13 to WP6.17).
 
 **What to do.** The transplant procedure. The ticket moves (`TicketMoves.tsx`, `DetailControls.tsx`, `JobStopMenu.tsx`)
@@ -762,14 +787,23 @@ plain specs.
 
 ### WP6.13 Kanban and the merge queue
 
-**Files.** Transplant `views/kanban/` (13 files) and `views/merge-queue/` (7), `testing/KanbanBoardFixture.ts`. Styles
-into `page/styles/board/kanban.css`, `merge-queue.css`. One line in `BoardTabViews.tsx` (`kanban`; the merge queue is
-its item `merge-queue`, `BridgeApp.tsx:120-121`). The finished-work filter's Kanban sections
-(`KanbanFilterSections.tsx`) move here and are wired into the header's filter as `BridgeApp.tsx:384-397`.
+**Files.** Transplant `views/kanban/` (18 files, the entities work's entity rail and entity filter among them:
+`KanbanEntityRail.tsx`, `KanbanEntityFilterModel.ts`, `KanbanModel.entities.spec.ts`) and `views/merge-queue/` (7),
+`testing/KanbanBoardFixture.ts`. Styles into `page/styles/board/kanban.css`, `merge-queue.css`. One line in
+`BoardTabViews.tsx` (`kanban`; the merge queue is its item `merge-queue`, `BridgeApp.tsx:120-121`). The finished-work
+filter's Kanban sections (`KanbanFilterSections.tsx`) move here and are wired into the header's filter as
+`BridgeApp.tsx:388-401`.
 
-**What to do.** The transplant procedure; the lane highlight from the header's figures as `BridgeApp.tsx:166-169`.
+**What to do.** The transplant procedure; the lane highlight from the header's figures as `BridgeApp.tsx:166-169`. The
+filter choices now hold an entity and the swimlanes beside the pressed chips and the ready order
+(`KanbanFilterChoices.ts:31-32`, `:83-84`), read into the filter model as `BridgeApp.tsx:327-336`, and the view takes
+`onChooseEntity` (`:424`); both choices are board preferences under Gaia's prefix (WP6.5). The entity rail draws the
+design system's `SelectionRail` (`design-system/SelectionRail`), which Gaia already reaches through its
+`design-system` dependency.
 
-**Specs.** The Kanban and merge-queue DOM and plain specs. **Done when.** At the root green; `bun run test:dom`; Kanban
+**Specs.** The Kanban and merge-queue DOM and plain specs, among them `KanbanEntityRail.dom.tsx`,
+`KanbanFilterSections.dom.tsx`, `KanbanView.dom.tsx`, `KanbanEntityFilterModel.spec.ts` and
+`KanbanModel.entities.spec.ts`. **Done when.** At the root green; `bun run test:dom`; Kanban
 shows without a frame and opens the detail panel. **Parallel.** With WP6.14 to WP6.17, after WP6.12.
 
 ### WP6.14 Tickets
@@ -784,7 +818,7 @@ moved. Styles into `page/styles/board/tickets.css`. One line in `BoardTabViews.t
 
 **Files.** Transplant `views/progress/` (32) and `views/finished-work/` (2), `testing/ProgressBoardFixture.ts`. Styles
 into `page/styles/board/progress.css`. One line in `BoardTabViews.tsx` (`progress`, which draws both views,
-`BridgeApp.tsx:424-429`).
+`BridgeApp.tsx:429-434`).
 
 **What to do.** The transplant procedure. `chart-range-set` and `tracker-clear` (`ProgressModel.ts`,
 `BoardLifetimeControls.tsx`) go through the relay.
@@ -820,23 +854,35 @@ before stage 8 decides when it starts.
 
 ### WP6.19 Pipeline, part 1: the code and its plain specs
 
-**Purpose.** The pipeline view is 121 files whose subfolders import each other in cycles (`setup` ↔ `agent-panel`,
-`flow` ↔ `gates` ↔ `live`, `apply` ↔ `editing`), so it cannot move folder by folder. Part 1 moves every file and its
-plain specs, compiled and green, but not yet routed.
+**Purpose.** The pipeline view is 195 files whose subfolders import each other in cycles (`setup` ↔ `agent-panel`,
+`flow` ↔ `gates` ↔ `live`, `apply` ↔ `editing`, and the entities work's `entities/` with `flow`, `apply` and
+`agent-panel`, which every other subfolder imports), so it cannot move folder by folder. Part 1 moves every file and
+its plain specs, compiled and green, but not yet routed.
 
-**Files.** Transplant `apps/forge/bridge/views/pipeline/` whole (the 8 top-level files and `setup/`, `agent-panel/`,
-`flow/`, `gates/`, `dialogs/`, `apply/`, `editing/`, `live/`), and `testing/PipelineFixture.ts`. The
-`.dom.tsx` specs are copied in WP6.20. `PipelineViewModel.ts` and `live/MinimalPipelineNoteModel.ts` are already moved.
+**Files.** Transplant `apps/forge/bridge/views/pipeline/` whole (the 10 top-level files and `setup/` (45 files),
+`agent-panel/` (8), `entities/` (29), `flow/` (13), `gates/` (8), `dialogs/` (28), `apply/` (26), `editing/` (9),
+`live/` (19)), and `testing/PipelineFixture.ts` and `testing/EntitiesStepFixture.ts`. The `.dom.tsx` specs are copied
+in WP6.20. Already moved in WP6.8: `PipelineViewModel.ts`, `PipelinePanel.tsx`, `entities/PipelineLevelModel.ts`,
+`flow/PipelineFlowModel.ts`, `flow/PipelinePhaseModel.ts`, `gates/GateCacheMarkModel.ts`, `live/EntityWorkModel.ts`,
+`live/FlowActivityPanelModel.ts` and `live/MinimalPipelineNoteModel.ts`.
 
 **What to do.**
 
-1. The transplant procedure, steps 1 to 5 for plain specs only.
-2. Replace the three forge constants (`AgentStepDialogModel.ts:9`, `PipelineFlowModel.ts:19`,
-   `RereviewSettingsModel.ts:8`) with the facts WP6.1 serves in `pipelineChoices`.
+1. The transplant procedure, steps 1 to 5 for plain specs only. The entities work's tracker-model utils
+   (`EntityOwnershipUtil`, `EntityValidationUtil`, `PipelineDraftEditUtil`, `PipelineUtil`) come from the
+   `tracker-model` package (N1).
+2. Replace the two forge constants left (`AgentStepDialogModel.ts:9`, `RereviewSettingsModel.ts:8`) with the facts
+   WP6.1 serves in `pipelineChoices`; `PipelineFlowModel.ts`'s was replaced in WP6.8.
 3. `ProfileLogFollowerContext.ts` takes the follower from `BoardServices.followProfileLog`.
+4. `apply/ApplyDialogModel.ts` and `setup/EntityRefusalsModel.ts` word a refusal with forge's `OperationRefusal` and
+   `OperationRefusalWordingUtil` (`ApplyDialogModel.ts:8`, `:12`, `:149`; `EntityRefusalsModel.ts:6`, `:11`, `:41-44`),
+   so the entities step shows each refusal in the sentence the forge's API carries before Continue. Import both as N2
+   says once the owner has settled where they live (Needs the owner, item 12); until then this package stops at this
+   step and reports it.
 
-**Specs.** Every plain `*Model.spec.ts` of the pipeline passes in Gaia; one new case per replaced constant: the model
-reads the served fact.
+**Specs.** Every plain `*.spec.ts` of the pipeline passes in Gaia, the entities work's `*.levels.spec.ts` and
+`entities/*Model.spec.ts` among them; one new case per replaced constant: the model reads the served fact; one case in
+`EntityRefusalsModel.spec.ts`: a refusal's text equals the forge's API sentence for the same refusal.
 
 **Done when.** At the root green; in `apps/gaia/`: `bun test page/board/views/pipeline` passes.
 
@@ -847,19 +893,23 @@ reads the served fact.
 **Purpose.** The pipeline tab is Gaia's own: setup, the live flow, editing, apply, gate profiles with their log, and
 the pipeline agent's panel, the conversation with the hosted pipeline setup session (decision 23).
 
-**Files.** Copy the pipeline's 20 DOM specs; styles into `page/styles/board/pipeline.css`; one line in
-`BoardTabViews.tsx`; `BoardApp.tsx` passes `followProfileLog` and the setup stepper's route as `BridgeApp.tsx:523-533`.
+**Files.** Copy the pipeline's 29 DOM specs (20 at `3e6cb660`; the entities work added `FlowWorkspace`,
+`EntityAssignmentProgress`, `CopyBetweenEntitiesDialog`, `MonorepoEditing`, `ChangeGroup`, `EntityLevelBreadcrumb`,
+`PipelineLevelRail`, `EntitiesStep` and `PipelineAgentPanel`); the rest of the pipeline's styles into
+`page/styles/board/pipeline.css`, which WP6.8 created; one line in `BoardTabViews.tsx`; `BoardApp.tsx` passes
+`followProfileLog` and the setup stepper's route as `BridgeApp.tsx:528-538`.
 
 **What to do.**
 
 1. The transplant procedure, steps 5 to 7.
 2. While the board has no readable pipeline only the Pipeline tab shows, and the header shows the setup stepper
-   (`.claude/rules/bridge.md:50-52`): prove it in Gaia's header.
+   (`.claude/rules/bridge.md:50-52`), the entities step among its steps: prove it in Gaia's header.
 3. The pipeline agent's panel sends `job-message`, `pipeline-setup-answer` and `pipeline-agent-advise` through the
    relay and follows the agent's job stream; it offers no picture, as today.
 
-**Specs.** The 20 DOM specs, among them `PipelineView.dom.tsx`, the setup steps', the apply dialogs', the gate dialog's
-and `ProfileBox`'s; one new case: the profile log follows the relay's profile stream from its cursor after a reopen.
+**Specs.** The 29 DOM specs, among them `PipelineView.dom.tsx`, the setup steps' (`EntitiesStep.dom.tsx` among them),
+the apply dialogs', the gate dialog's, the entity level rail's and `PipelineAgentPanel.dom.tsx`; one new case: the
+profile log follows the relay's profile stream from its cursor after a reopen.
 
 **Done when.** At the root green; `bun run test:dom` in `apps/gaia/`; the Pipeline tab shows without a frame on a
 board with and without a readable pipeline.
@@ -920,15 +970,18 @@ cleanly: the Overseer by a Baton pass, Talos by a clean quit with automatic resu
 **Files.**
 
 - Forge: create the command `talos-restart` in `apps/forge/src/shared/@types/ControlCommand.ts` (runtime only, never
-  relayed, as `overseer-restart` is), its applier in `apps/forge/src/services/control/OverseerControls.ts` (the place
-  `overseer-restart` is applied), the contract kind in `packages/forge-contracts/@types/ForgeControlCommand.ts`,
-  `FORGE_CONTROL_COMMAND_KINDS` and forge's pin `CONTROL_CONTRACT_KINDS`, the parity spec, the forge system version one
-  minor up, the Bouncer's role policy refusing it for every agent role, and `docs/reference/overseer-api.md`,
-  "Commands".
-- Forge: `forge version --json` (`apps/forge/cli/overseer/VersionCommand.ts:18-23`) adds `talosProtocolVersion`; the
+  relayed, as `overseer-restart` is), refused on the board as runtime only in
+  `apps/forge/src/services/control/OverseerControls.ts:17` (`refuseRuntimeOnly`, as `overseer-restart` is), taken as a
+  runtime command by the command route (`apps/forge/cli/overseer/routes/CommandRoute.ts:27-30`
+  `RuntimeOverseerCommand`, `:52` `RUNTIME_COMMAND_KINDS`) and applied where the live Overseer applies
+  `overseer-restart` (`apps/forge/cli/overseer/OverseerForeground.ts:485-497`, `onRuntimeCommand`); the contract kind
+  in `packages/forge-contracts/@types/ForgeControlCommand.ts`, `FORGE_CONTROL_COMMAND_KINDS` and forge's pin
+  `CONTROL_CONTRACT_KINDS`, the parity spec, the forge system version one minor up, the Bouncer's role policy refusing
+  it for every agent role, and `docs/reference/overseer-api.md`, "Commands".
+- Forge: `forge version --json` (`apps/forge/cli/overseer/VersionCommand.ts:17-22`) adds `talosProtocolVersion`; the
   presence document (stage 3) gains `talos: { protocolVersion: number; codeVersion: string; startNumber: number } |
   null`, read from Talos's record (stage 2's `TalosRecord`); `answerVersion` of the version answer raised by one
-  (`apps/forge/CLAUDE.md:362-364`), and the `version` row of `apps/forge/docs/cli.md` (`:1251`) names the new key.
+  (`apps/forge/CLAUDE.md:373-375`), and the `version` row of `apps/forge/docs/cli.md` (`:1371`) names the new key.
 - Gaia: `src/adapters/forge-program/@types/ForgeProgramAnswer.ts` and `utils/ForgeAnswerMapUtil.ts` (the version
   answer), `src/adapters/forge-api/PresenceIngestion.ts`, `ForgeReading.ts`, `FleetDocument.ts`
   (`FleetDocumentRunningVersions`, Interfaces), `GaiaCommand.ts`, `CommandDocument.ts`, `GaiaCommandIngestion.ts`,
@@ -948,8 +1001,9 @@ cleanly: the Overseer by a Baton pass, Talos by a clean quit with automatic resu
    "Restart Overseer" and "Restart Talos". The Overseer's uses Gaia's existing `forge-restart` (a Baton pass,
    `now: false`). A newer installed version marks the pair, it does not restart by itself.
 
-**Specs.** Forge: `OverseerControls` spec (the quit frame sent; `nothing-to-do` without Talos), the Bouncer spec, the
-parity spec, `VersionCommand` spec. Gaia: the version answer map, the presence ingestion's `talos` block, the command
+**Specs.** Forge: `OverseerControls` spec (refused on the board as runtime only), the command route's spec (taken as
+a runtime command; the quit frame sent; `nothing-to-do` without Talos), the Bouncer spec, the parity spec,
+`VersionCommand` spec. Gaia: the version answer map, the presence ingestion's `talos` block, the command
 forwarding, the bar's model (running equal to newest, older, Talos absent).
 
 **Done when.** At the root green; in `apps/forge/`: the forge recordings re-recorded (`bun run record
@@ -1046,25 +1100,31 @@ which the user can run in an agent of their own (decision 23, design section 3.5
 - Create `apps/forge/skills/agent-pipeline/SKILL.md`: frontmatter `name: {{skillName}}` and a `description` that names
   the words a user says ("set up the pipeline", "change the gates", "review the pipeline", `/{{pipelineSetupSkill}}`);
   the body holds the procedure now in `resources/prompts/PipelineAgentPrompt.md:9-48` (the verbs table, the questions
-  rules, the lines rule) and the three steps of `PipelineAgentResearch.md`, `PipelineAgentConstitution.md`,
-  `PipelineAgentDesign.md`, written as instructions in ASD-STE100. It says: under a job the verbs name no setup
-  record; outside a job, the first word after the verb names it (`cli/pipeline/AgentCommandLine.ts:1-4`), and the
-  user's own agent starts a record with `pipeline setup` or `pipeline update`. It lists no command beyond what it
+  rules, the lines rule) and the four steps of `PipelineAgentResearch.md`, `PipelineAgentEntities.md` (the entities
+  step the entities work added, run when the repository has more than one app or package),
+  `PipelineAgentConstitution.md` and `PipelineAgentDesign.md`, in the order `stepPromptFilesOf` gives them
+  (`cli/overseer/OverseerWording.ts:713-728`), written as instructions in ASD-STE100. It says: under a job the verbs
+  name no setup record; outside a job, the first word after the verb names it (`cli/pipeline/AgentCommandLine.ts:1-4`),
+  and the user's own agent starts a record with `pipeline setup` or `pipeline update`. It lists no command beyond what it
   cites (`.claude/rules/skills.md:25-29`) and names `forge help` and `.forge/reference.md`.
 - Change `apps/forge/src/shared/constants/ProductNames.ts`: `PIPELINE_SETUP_SKILL` (`'forge-pipeline'`, and
   `'agent-pipeline'` in the other product names at `:26-28`), checked against `src/ComponentNames.spec.ts:28-63`.
 - Change `apps/forge/cli/adoption/constants/ClaudeCodeInstall.ts:23`, `:32-35`: the third skill folder.
 - Change `apps/forge/resources/prompts/PipelineAgentPrompt.md`: the first message runs `{{skill}}` on the setup, as
   `ProductOwnerPrompt.md:1-2` does; the procedure moves to the skill; "the Bridge" (`:3`, `:34`) and
-  `PipelineAgentDesign.md:7` become "the board". Change `cli/overseer/OverseerWording.ts:460` to fill `skill`.
+  `PipelineAgentDesign.md:7` become "the board". Change `pipelineAgentTextOf`
+  (`cli/overseer/OverseerWording.ts:823-835`, the first message at `:826`) to fill `skill`, as `productOwnerTextOf`
+  (`:276-286`) does.
 - Change `.claude/rules/skills.md`: three skills; the pipeline agent loads its skill as its first line
   (needs the owner, item 10).
 - Raise `INSTALL_VERSION`, update `cli/FrozenInstalledSurface.json`, run
   `bun run record src/services/overseer/InstallChangeWatch.ts`.
 - Change `apps/forge/docs/cli.md` and `docs/README.md` where they list the skills.
 
-**What to do.** As listed. The fixed step prompts (`PipelineAgentResearch.md` and the others) stay as the messages the
-Overseer sends per step; their rules live in the skill, and each step prompt names the step only.
+**What to do.** As listed. The fixed step prompts (`PipelineAgentResearch.md`, `PipelineAgentEntities.md` and the
+others) stay as the messages the Overseer sends per step; their rules live in the skill, and each step prompt names the
+step only. The installed brief `resources/templates/PipelineAgentBrief.md` already names the four steps (install
+version 36); it keeps its wording here but for "the Bridge" (`:6`), which stage 8 changes (WP8.12).
 
 **Specs.** `OverseerWording.pipelineAgent.spec.ts`: the first message runs the skill by its installed name.
 `InstalledSurface.spec.ts`, `InstalledFiles.spec.ts`: the new folder installed and removed with the others.
@@ -1103,7 +1163,8 @@ function endpointPathOf(template: string, values: Readonly<Record<string, string
 // A template segment is `{<name>}`; it matches one non-empty segment of [A-Za-z0-9_.-].
 ```
 
-Board document facts added to `pipelineChoices` (only adds):
+Board document facts added to `pipelineChoices` (only adds), in its type `PipelineChoices`
+(`tracker-model/@types/PipelineFacts`, beside today's `models` and `efforts`), filled in `PipelineFactsAssembly.ts`:
 
 ```ts
 readonly workerModel:               string;  // WORKER_MODEL
@@ -1329,15 +1390,20 @@ Forwarded as the forge's `interrupted-work-resume` (stage 3) and `talos-restart`
 
 ## Traps
 
-- **Gaia may not import forge's code.** A Bridge file imports `../../src/...` in 114 shipping files. Copying it into
+- **Gaia may not import forge's code.** A Bridge file imports `../../src/...` in 152 shipping files. Copying it into
   Gaia with a rewritten relative path to `apps/forge/` compiles and breaks the release rule (forge and Gaia are
   released apart, `apps/gaia/CLAUDE.md:26-28`). Import only by package name (N1, N2); `PageImportDirection.spec.ts`
   and `WorkspaceDependencies.spec.ts` catch a bare path only if they scan for it, so
   `grep -rn "apps/forge\|\.\./\.\./\.\./src" apps/gaia/page/board` must print nothing.
 - **Forge constants in views.** `WORKER_MODEL`, `WORKER_EFFORT` and the rework threshold reach the pipeline view as code
-  today (`AgentStepDialogModel.ts:9`, `PipelineFlowModel.ts:19`, `RereviewSettingsModel.ts:8`), and `PRODUCT_NAMES`
+  today (`AgentStepDialogModel.ts:9`, `PipelineFlowModel.ts:20`, `RereviewSettingsModel.ts:8`), and `PRODUCT_NAMES`
   (`PreferenceStore.ts:6`). Copied as code, Gaia would show the defaults of the forge Gaia was built with, not of the
-  forge it reads. Serve them as facts (WP6.1); key preferences with Gaia's own names.
+  forge it reads. Serve them as facts (WP6.1); key preferences with Gaia's own names. The same holds for the refusal
+  wording the entities work put into the pipeline view (`OperationRefusalWordingUtil`, N2): copied from forge's
+  `src/`, Gaia would word a refusal as the forge it was built with does.
+- **The header's pipeline model drags the pipeline view in.** `PipelineViewModel.ts` reaches seven more files of
+  `views/pipeline/` since the entities work, one a component that emits classes. Moved without them in WP6.8, the
+  page project does not compile; moved without their rules, the board's style contract fails (WP6.8 moves both).
 - **Versioned paths match literally today.** `requestAtUnversionedPath` looks up `<endpoint>@<version>` in a set
   (`OverseerServer.ts:612-619`); a registry entry `jobs/{jobId}/stream` never equals `jobs/J1/stream`. Match by
   template (WP6.1 step 1), or every stream path at `/api/v1/` answers 404.
@@ -1354,11 +1420,11 @@ Forwarded as the forge's `interrupted-work-resume` (stage 3) and `talos-restart`
   pictures up to 3,932,160 bytes are refused before any route runs. Raising it raises it everywhere: bound each route's
   read yourself (WP6.3 step 3).
 - **The command endpoint keeps its own status for an install hold.** The Bridge reads `423` as `install-held`
-  (`CommandClient.ts:46`); `ForgeClient.send` collapses every non-200 to a refusal (`ForgeClient.ts:96-102`). Use
+  (`CommandClient.ts:48`); `ForgeClient.send` collapses every non-200 to a refusal (`ForgeClient.ts:96-102`). Use
   `sendBoardCommand`, which keeps the status.
 - **Tokens stay in the server.** A relay that forwards the forge's headers or error bodies verbatim can leak the bearer
   token into the page or a log. Build the answer from the parsed body; never copy request headers back
-  (`apps/gaia/CLAUDE.md:51`).
+  (`apps/gaia/CLAUDE.md:50`).
 - **Refusal sentences may name a command.** Gaia's rule 4 forbids a screen telling User to run a command. The forge's
   API wording already avoids commands (`apps/forge/CLAUDE.md:90-92`), but pass every forge sentence through
   `ForgeSentenceUtil` anyway.
@@ -1367,7 +1433,7 @@ Forwarded as the forge's `interrupted-work-resume` (stage 3) and `talos-restart`
   pollutes Gaia's main run. The runner must use Gaia's preload (`src/testing/TestRunPreload.ts`), which moves `HOME`
   and `TMPDIR` into `.scratch/`, and the leak check then judges the DOM run too.
 - **Style contracts disagree.** Gaia's contract forbids Gaia's own keyframes and styles exactly `gaia.css`'s classes
-  (`page/StyleContract.spec.ts:1-11`); the Bridge's CSS has 22 keyframes and 638 classes. Moving them into `gaia.css`
+  (`page/StyleContract.spec.ts:1-11`); the Bridge's CSS has 22 keyframes and 764 classes. Moving them into `gaia.css`
   fails the contract. Keep them in `page/styles/board/` under the board section (WP6.4).
 - **Class renames must be complete.** `StyleContract` scans literal `className` values. A `bridge-` class left in a
   component and renamed in its stylesheet fails late and by surprise; rename both in the same step and grep for
@@ -1422,7 +1488,7 @@ The specs that matter most, each in its workspace folder:
   ./cli/overseer/OverseerWording.pipelineAgent.spec.ts ./src/ClientNames.spec.ts ./src/ComponentNames.spec.ts`.
 - `packages/system-versions/` and `packages/forge-contracts/`: `bun test`.
 - `apps/gaia/`: `bun test src/lib/forge-client src/features/page-server src/WholeFlow.spec.ts page`, then
-  `bun run test:dom` (every DOM spec of `page/board/`, at least the 67 the Bridge had minus the brain's cases, plus the
+  `bun run test:dom` (every DOM spec of `page/board/`, at least the 77 the Bridge has minus the brain's cases, plus the
   new ones), then `bun run check`.
 
 The end-to-end check on a scratch forge, as Gaia's rules name it (`apps/gaia/CLAUDE.md:18-20`, `:140-152`):
@@ -1468,10 +1534,10 @@ The end-to-end check on a scratch forge, as Gaia's rules name it (`apps/gaia/CLA
 ## Needs the owner
 
 1. **Specs of the moved views.** Gaia's rule 10 says the page's specs have no document; the Bridge's views are held by
-   67 DOM specs. Recommended default: keep the DOM specs for `page/board/` under a `test:dom` task and amend rule 10
+   77 DOM specs. Recommended default: keep the DOM specs for `page/board/` under a `test:dom` task and amend rule 10
    for that folder; Gaia's own views keep the no-document rule.
 2. **The board's stylesheets under Gaia's style contract.** Gaia defines no keyframe and styles only `gaia.css`; the
-   Bridge has 22 keyframes, 638 classes and 73 tokens of its own. Recommended default: `page/styles/board/*.css` with
+   Bridge has 22 keyframes, 764 classes and 73 tokens of its own. Recommended default: `page/styles/board/*.css` with
    `board-` names, held by the Bridge's four guards plus Gaia's class and contrast checks in a board section;
    unify with `gaia.css` later as design work.
 3. **Flint in Gaia.** Gaia's rule 12 and the owner's 2026-11-13 decision say Gaia draws no Flint and Flint shows only
@@ -1505,6 +1571,16 @@ The end-to-end check on a scratch forge, as Gaia's rules name it (`apps/gaia/CLA
     approves it before it lands.
 11. **The install line's time bound** (design section 12, item 2): untouched here; Gaia shows a line's state as the
     forge reports it.
+12. **Where forge's refusal wording lives for the views** (N2). The entities work made the pipeline view word a
+    refusal before it is sent, with forge's `src/shared/OperationRefusal.ts` and
+    `src/adapters/utils/OperationRefusalWordingUtil.ts`, so the entities step shows each refusal before Continue in the
+    API's own sentence. Neither is in a package stage 0 names, and the wording util reaches `StatusWordingUtil`,
+    `TicketPhraseUtil`, three shared refusal types, `ProductNames` and `RootOverrideVariable`. Recommended default:
+    stage 4 moves `OperationRefusal`, its three shared types and the wording util with the two utils it calls into a
+    package stage 0 names (the wording reads only the tracker model, shared types and constants, and its one reach
+    outside them, `ExecutableResolver`, is a type), so Gaia words a refusal as the forge's API does from one module.
+    The alternative is that WP6.1 serves the draft's entity refusals and the entities-in-flight refusal as worded facts
+    in the board document, which keeps the wording in forge at the cost of a larger document change.
 
 ## Not established
 

@@ -22,8 +22,9 @@ Stages that must be finished before the first work package starts:
 - **Stages 2 and 3**, merged. Both change files of the tracker model (stage 3 adds causes, a resume policy table and
   log records, and changes the Playbook) and both raise forge's system version and add to `forge-contracts` (stage 3
   adds `interrupted-work-resume` and the `presence` endpoint). This stage moves what they left. Every count and line
-  number below was measured at `3e6cb660`; WP4.2 and WP4.3 compute their file lists from the tree they run on, never
-  from this document.
+  number below was measured at `3e6cb660` and measured again at `0a648b2b`, after `entities/integration` landed on
+  `main` (forge's system version 1.18 there); WP4.1, WP4.2 and WP4.3 compute their file lists from the tree they run
+  on, never from this document.
 
 What this stage hands to later stages:
 
@@ -55,22 +56,25 @@ What this stage hands to later stages:
 
 ## Today's code
 
-Measured at `3e6cb660` with a walk of every `.ts` and `.tsx` file under `apps/forge`, `apps/gaia` and `packages`
-(the folders `node_modules`, `.forge`, `.forge-worktrees`, `.turbo`, `.scratch` and `.claude` left out), resolving
-relative imports.
+Measured at `0a648b2b` (first at `3e6cb660`; `entities/integration` landed between them) with a walk of every `.ts`
+and `.tsx` file under `apps/forge`, `apps/gaia` and `packages` (the folders `node_modules`, `.forge`,
+`.forge-worktrees`, `.turbo`, `.scratch` and `.claude` left out), resolving relative imports.
 
 | What exists | Where (path:line) | What happens to it |
 | --- | --- | --- |
-| The tracker model: 192 files, 108 shipping (23 in `@types/`, 23 in `constants/`, 25 in `utils/`, 37 at its top), 81 specs, 3 test helpers in `testing/` | `apps/forge/src/lib/tracker-model/` | Moved whole to `packages/tracker-model/` (WP4.2) |
+| The tracker model: 213 files, 117 shipping (24 in `@types/`, 25 in `constants/`, 29 in `utils/`, 39 at its top), 93 specs, 3 test helpers in `testing/` | `apps/forge/src/lib/tracker-model/` | Moved whole to `packages/tracker-model/` (WP4.2) |
 | The model's shipping files import nothing outside their folder and no builtin | guard at `apps/forge/src/ImportDirection.spec.ts:161`, `:395-398`, `:1055-1057` | Changed: the package's own `PackageIsolation.spec.ts` holds it; the violation kind leaves `ImportDirection.spec.ts` (WP4.2) |
 | The model's layers: `@types` and `constants` import only each other (type-only); `utils` import only `@types` and `constants`; the top-level modules import all three | the walk | Kept as is inside the package |
-| The model's specs import forge helpers: `BoardFixtures.ts` (46 specs), `SourceMutant.ts` (3), `GreenQueue.ts` (2), `EveryBoardLogRecord.ts` (1) | `apps/forge/src/lib/tracker-model/Board.spec.ts:8-9` and the others; `apps/forge/src/testing/` | Moved into the model's `testing/` (WP4.1) |
-| `BoardFixtures.ts`, `GreenQueue.ts` and `EveryBoardLogRecord.ts` import only the model; outside the model, 41, 6 and 2 forge specs and helpers import them | `apps/forge/src/testing/BoardFixtures.ts`, `GreenQueue.ts`, `EveryBoardLogRecord.ts` | Moved into the model's `testing/`, exported to forge's specs (WP4.1, WP4.2) |
+| The model's specs import forge helpers: `BoardFixtures.ts` (41 specs), `SourceMutant.ts` (5), `EntityForgeFixture.ts` (4), `GreenQueue.ts` (2), `EveryBoardLogRecord.ts` (1) | `apps/forge/src/lib/tracker-model/Board.spec.ts:8-9` and the others; `apps/forge/src/testing/` | Moved into the model's `testing/`, `EntityForgeFixture.ts` split (WP4.1) |
+| `BoardFixtures.ts`, `GreenQueue.ts` and `EveryBoardLogRecord.ts` import only the model; outside the model, 59, 6 and 2 forge specs and helpers import them | `apps/forge/src/testing/BoardFixtures.ts`, `GreenQueue.ts`, `EveryBoardLogRecord.ts` | Moved into the model's `testing/`, exported to forge's specs (WP4.1, WP4.2) |
+| `EntityForgeFixture.ts`, the fixture repository of a forge with entities, came with `entities/integration`. Its pipeline part (`ENTITY_FORGE_ENTITIES`, `entityPathOf`, `constitutionFileOf`, `sourceFileOf`, `entityForgePipelineOf` and what they use) imports only the model; its repository part imports `src/adapters/pipeline/PipelineFile.ts`, `src/shared/BranchNames.ts`, `src/shared/WorktreesFolder.ts` and `ProductNames.ts`. The four model specs (`Board.stages`, `Playbook.entityCaps`, `Playbook.stages`, `TicketStageRows`) use only the pipeline part; 15 forge files outside the model import the fixture | `apps/forge/src/testing/EntityForgeFixture.ts:7-14`, `:20-46`, `:68-120` | Split: the pipeline part moves into the model's `testing/`, the repository part stays and imports it (WP4.1) |
 | `SourceMutant.ts` makes its build folder through forge's `ScratchWorkspace.ts` and roots module paths at `apps/forge` | `apps/forge/src/testing/SourceMutant.ts:5`, `:14` | Moved; rooted at the model's folder with a scratch folder of its own (WP4.1) |
-| The Playbook specs name modules by repository path as strings, `'src/lib/tracker-model/Playbook.ts'` | `apps/forge/src/lib/tracker-model/Playbook.spec.ts:34-38`, `Playbook.interleavings.spec.ts:13`, `:36-81`, `Playbook.forecast.spec.ts:14`, `:91-109` | Changed to paths from the model's folder (WP4.1) |
-| Files outside the model that import it: 438 files, 989 import lines, 73 distinct model files; 264 ship, 155 are specs, 18 test helpers | the walk; by folder: `bridge/` 136, `cli/` 83, `src/services/` 135 (overseer 73, control 23, lifecycle 20, tracker 11, render 8), `src/adapters/` 68, `src/shared/` 10, `src/testing/` 6 | Changed: each import names the package (WP4.2) |
+| The Playbook specs name modules by repository path as strings, `'src/lib/tracker-model/Playbook.ts'` | `apps/forge/src/lib/tracker-model/Playbook.spec.ts:35-39`, `Playbook.interleavings.spec.ts:13`, `:36-81`, `Playbook.forecast.spec.ts:14`, `:91-109`, `Playbook.stages.spec.ts:39`, `:41`, `Playbook.needs.spec.ts:28` | Changed to paths from the model's folder (WP4.1) |
+| Files outside the model that import it: 548 files, 1,332 import lines, 81 distinct model files; 310 ship, 216 are specs, 22 test helpers | the walk; by folder: `bridge/` 201, `cli/` 88, `src/services/` 167 (overseer 99, control 24, lifecycle 23, tracker 13, render 8), `src/adapters/` 73, `src/shared/` 11, `src/testing/` 8 | Changed: each import names the package (WP4.2) |
 | No `src/lib/` package imports the model | the walk | Kept: a lib package still cannot reach a workspace package unless WP4.3's rule says so |
-| The Bridge program compiles the whole model, one include entry per file, to prove it DOM-safe | `apps/forge/bridge/tsconfig.json:10-11` (comment), `:30-137` | Deleted: the package's own `tsconfig.json` is the proof (WP4.2) |
+| The Bridge program compiles the whole model, one include entry per file (117), to prove it DOM-safe | `apps/forge/bridge/tsconfig.json:10-11` (comment), `:39-155` | Deleted: the package's own `tsconfig.json` is the proof (WP4.2) |
+| The Bridge's shipping files reach 37 model files: the `@types` and `constants` they read, `BoardRefusal.ts` and eight utils (`EntityOwnershipUtil`, `EntityValidationUtil`, `OptionConsequencesUtil`, `PipelineDraftEditUtil`, `PipelineUtil`, `TicketBodyHashUtil`, `TicketDefaultsUtil`, `TicketMoveUtil`); at `3e6cb660` it reached 26, `TicketDefaultsUtil` the only util | the walk; `BoardRefusal.ts`, `TicketMoveUtil.ts` and `OptionConsequencesUtil.ts` through `src/shared/OperationRefusal.ts` and `src/adapters/utils/OperationRefusalWordingUtil.ts` | Kept: the Bridge reaches them by name after WP4.2; "Needs the owner", item 1 |
+| The Bridge's include list names 13 forge files outside the model and the readings, 9 of them added by `entities/integration`: `src/shared/constants/` (`OverseerApiContracts`, `ProductNames`, `RootOverrideVariable`, `DispatchProtocol`, `OverseerLimits`), `src/shared/@types/` (`InstallVersionMismatch`, `RoleCommandRefusalReason`, `UnreadableTracker`), `src/shared/OperationRefusal.ts`, `src/adapters/utils/` (`OperationRefusalWordingUtil`, `StatusWordingUtil`, `TicketPhraseUtil`) and `src/lib/executable-resolver/ExecutableResolver.ts` | `apps/forge/bridge/tsconfig.json:15-19`, `:21-24`, `:32-35` | Kept in forge: neither package of stage 0 holds them ("Needs the owner", item 9) |
 | The include-list guard holds the whole model as a "whole package folder" | `apps/forge/src/ProjectIncludeLists.spec.ts:35`, `:40`, `:88-93`, `:119-124` | Changed (WP4.2) |
 | The include-list guard lists the declared workspace packages | `apps/forge/src/ProjectIncludeLists.spec.ts:95-97` | Changed: gains the two packages (WP4.2, WP4.3) |
 | The test-folder allowlist entry of the model | `apps/forge/src/ImportDirection.spec.ts:118` | Changed (WP4.1, WP4.2) |
@@ -83,38 +87,39 @@ relative imports.
 | The platform guard allowlists a line of the model by path | `apps/forge/src/PlatformBoundary.spec.ts:110` | Changed to `tracker-model/utils/NetworkDomainUtil.ts` (WP4.2) |
 | The util-shape guard checks four folders by name | `apps/forge/src/UtilShape.spec.ts:59` | Changed: gains `tracker-model/` and `board-readings/` |
 | The command-text guard scans four folders by name | `apps/forge/src/ProductNameLiterals.spec.ts:20` | Changed: gains `tracker-model/` and `board-readings/`, so the wording utils stay scanned |
-| The client-name guard needs more than 1,000 shipped files in forge; forge has about 1,120 | `apps/forge/src/ClientNames.spec.ts:26`, `:44` | Changed: the floor drops below the count left after the moves (WP4.2) |
+| The client-name guard needs more than 1,000 shipped files in forge; forge has 1,199 (1,120 at `3e6cb660`), and about 1,066 are left after this stage's moves | `apps/forge/src/ClientNames.spec.ts:26`, `:44` | Changed: the floor drops comfortably below the count left after the moves (WP4.2) |
 | Package floors and the list of declared packages | `apps/forge/src/testing/ImportGraph.spec.ts:68`, `apps/forge/src/testing/RepositorySources.spec.ts:86-87` | Changed (WP4.2, WP4.3) |
 | The Watcher bundle's forbidden folders name the model | `apps/forge/src/lib/watcher/WatcherBundleClosure.spec.ts:22`; stage 2 deletes it and carries its list into `apps/forge/src/lib/talos/TalosClosure.spec.ts` (stage 2, WP2.7 and WP2.15) | Changed in `TalosClosure.spec.ts` to `tracker-model/` (WP4.2) |
 | Documents cite 30 spec paths of the model, checked to exist | `apps/forge/src/DocumentSpecCitations.spec.ts:1-6`; `docs/concepts/overview.md:207`, `docs/development/guards-and-testing.md:154` and the others | Changed to `packages/tracker-model/...` (WP4.2) |
-| forge's rules on the model | `apps/forge/CLAUDE.md:59-62`, `:65-67`, `:71`, `:221-224`, `:333` | Changed (WP4.2, WP4.3) |
+| forge's rules on the model | `apps/forge/CLAUDE.md:59-62`, `:65-67`, `:71`, `:221-224`, `:341` | Changed (WP4.2, WP4.3) |
 | The root rules list forge's packages and its tracker's reach | `CLAUDE.md:17`, `:27` | Changed (WP4.2, WP4.3) |
 | forge declares five workspace packages | `apps/forge/package.json:25-34` | Changed: gains `tracker-model` and `board-readings` |
 | The code version hashes the workspace packages forge depends on | `apps/forge/src/services/overseer/CodeVersion.ts:1-4` | Kept: a change in either package still reads as new code |
 | The pure readings: `src/shared/monitor/` (`@types/MonitorSnapshot.ts`, `AttentionEntries.ts`, `TodayFigures.ts`, four utils, six specs) and three lib packages (`token-count`, `local-time`, `html-escape`, one util and one spec each) | `apps/forge/src/shared/monitor/`, `apps/forge/src/lib/token-count/`, `src/lib/local-time/`, `src/lib/html-escape/` | Moved to `packages/board-readings/` (WP4.3) |
-| `MonitorSnapshot.ts` reads its version type from forge's `OverseerApiContracts.ts` | `apps/forge/src/shared/monitor/@types/MonitorSnapshot.ts:22`, `:127` | Changed to `forge-contracts/OverseerContractVersions` (WP4.3) |
+| `MonitorSnapshot.ts` reads its version type from forge's `OverseerApiContracts.ts` | `apps/forge/src/shared/monitor/@types/MonitorSnapshot.ts:27`, `:136` | Changed to `forge-contracts/OverseerContractVersions` (WP4.3) |
 | `TodayFigures.ts` reads the stamp slices constant | `apps/forge/src/shared/monitor/TodayFigures.ts` (import of `../constants/TimestampSlices.ts`); `apps/forge/src/shared/constants/TimestampSlices.ts:2-8` | The constant moves with it (WP4.3, "Needs the owner" item 3) |
 | A spec of the readings reads forge's product names | `apps/forge/src/shared/monitor/utils/NoticeWordingUtil.spec.ts:10`, `:52` | Split: the product-name claim moves to a forge spec (WP4.3) |
 | The vendor adapter reads the local-time util | `apps/forge/src/lib/claude-code/utils/TranscriptCohortUtil.ts:6`; header `apps/forge/src/lib/claude-code/ClaudeTranscripts.ts:5` | Changed as "Needs the owner" item 2 decides (WP4.3) |
-| Importers of the readings outside their folders: about 70 files (`LocalTimeUtil` 21, `TokenCountUtil` 13, `OpenDecisionsUtil` 10, `MonitorSnapshot` 8, `TimestampSlices` 8 and the rest) | the walk | Changed: each names the package (WP4.3) |
-| `forge-contracts`: 9 command kinds, the identity, summary and monitor documents, versions and registry; depends on `system-versions` | `packages/forge-contracts/package.json:8-19`, `:28-30`; `@types/ForgeControlCommand.ts:9-18` | Gains the documents and the board command kinds and depends on `tracker-model` (WP4.4 to WP4.6) |
+| Importers of the readings outside their folders: 60 files, 78 import lines (`LocalTimeUtil` 21, `TokenCountUtil` 13, `OpenDecisionsUtil` 10, `MonitorSnapshot` 8, `TimestampSlices` 6 and the rest), unchanged by `entities/integration` | the walk | Changed: each names the package (WP4.3) |
+| `forge-contracts`: 9 command kinds, the identity, summary and monitor documents (the monitor's with the entities `entities/integration` added), versions and registry; depends on `system-versions` | `packages/forge-contracts/package.json:8-19`, `:28-30`; `@types/ForgeControlCommand.ts:9-18` | Gains the documents and the board command kinds and depends on `tracker-model` (WP4.4 to WP4.6) |
+| The contract package's own version is `1.0.0`: the system minors 1.2 to 1.18 raised no package minor, though its README says a system minor is a package minor | `packages/forge-contracts/package.json:3`; `README.md:39-42` | Raised by one minor in WP4.4, as the README says ("Needs the owner", item 10) |
 | The contract package lets modules import only `system-versions/` | `packages/forge-contracts/PackageIsolation.spec.ts:18-19`, `:30-40` | Changed: type-only imports of `tracker-model/` are allowed (WP4.4) |
-| forge's system version 1.1 (stage 3 raises it) | `packages/forge-contracts/constants/ForgeSystemVersions.ts:14-17` | Raised by one minor (WP4.4) |
+| forge's system version 1.18 (1.1 at `3e6cb660`; `entities/integration` raised it seventeen minors; stages 2 and 3 raise it again), its docblock naming what each minor added | `packages/forge-contracts/constants/ForgeSystemVersions.ts:7-39`, `:40-43` | Raised by one minor (WP4.4) |
 | The registry's endpoints; each current endpoint is introduced in 1.0 by its helper | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:16-25`, `:38-49`; spec `ForgeCompatibilityRegistry.spec.ts:19-26` | Gains `state` at version 1 (WP4.4) |
 | A versioned path is served for each registry endpoint by rewriting it to the unversioned route | `apps/forge/src/services/overseer/OverseerServer.ts:600-619`; the state route `:539` | Kept: the new entry serves `/api/v1/state` |
-| forge's own command union: 76 kinds | `apps/forge/src/shared/@types/ControlCommand.ts:66-226` | Changed: the board kinds come from the contract (WP4.5) |
+| forge's own command union: 79 kinds (76 at `3e6cb660`; `entities/integration` added `ticket-entity`, `ticket-group` and `need-declare`, and optional fields on six kinds the Bridge sends: `entity` on `pipeline-agent-advise`, `pipeline-constitution-edit`, `pipeline-update-start` and `gate-profile-start`, `isACopy` on `pipeline-draft-edit`, `wholeBatch` on `pipeline-draft-undo`) | `apps/forge/src/shared/@types/ControlCommand.ts:67-258` | Changed: the board kinds come from the contract (WP4.5) |
 | The kinds of control contract 1, pinned against the package | `apps/forge/src/shared/constants/OverseerApiContracts.ts:26-36`; `apps/forge/cli/overseer/routes/CommandRoute.controlContract.spec.ts:44-58` | Kept; a second list beside it (WP4.5) |
-| The command route accepts all 76 kinds and checks a few kinds' fields | `apps/forge/cli/overseer/routes/CommandRoute.ts:91-101`, `:141-170` | Kept |
-| The Bridge sends 34 command kinds outside the contract's 9: a scan of `kind: '<kind>'` literals in its shipping files finds 39 command kinds, 5 of them in the contract; `pipeline-approval-set` appears only as a log record's `case` label (`apps/forge/bridge/views/pipeline/live/FlowActivityPanelModel.ts:156`) | a scan of `kind: '<kind>'` literals in the Bridge's shipping files against the kinds of `apps/forge/src/shared/@types/ControlCommand.ts` | Join the contract (WP4.5) |
+| The command route accepts all 79 kinds and checks a few kinds' fields | `apps/forge/cli/overseer/routes/CommandRoute.ts:91-101`, `:141-170` | Kept |
+| The Bridge sends 34 command kinds outside the contract's 9, the same 34 as at `3e6cb660`: object literals' `kind` values in its shipping files, read from the syntax tree, name 37 command kinds, 3 of them in the contract, and `overseer-pause` and `overseer-resume` are the two branches of a conditional (`apps/forge/bridge/shell/Header.tsx:210`); `pipeline-approval-set` appears only as a log record's `case` label (`apps/forge/bridge/views/pipeline/live/FlowActivityPanelModel.ts:219`) | a syntax-tree scan of the Bridge's shipping files against the kinds of `apps/forge/src/shared/@types/ControlCommand.ts` | Join the contract (WP4.5) |
 | The Bridge's body type is any `{ kind: string }` | `apps/forge/bridge/api/CommandClient.ts:9-12` | Kept |
-| The Bridge's documents: field-exact mirrors of the served board state, 7 files | `apps/forge/bridge/@types/BoardStateDocument.ts:1-203`, `ConversationDocuments.ts`, `DetailBoardState.ts`, `EpicsBoardState.ts`, `KanbanBoardState.ts`, `ProgressBoardState.ts`, `TicketsBoardState.ts` | Moved into `forge-contracts` (WP4.6) |
-| 131 files import those 7 files | the walk | Changed: each names `forge-contracts/<Document>` (WP4.6) |
-| The board document carries Flint's brain and the Bridge's view of the identity | `apps/forge/bridge/@types/BoardStateDocument.ts:188-196`, `:198-203` | Stay in the Bridge, in files of their own (WP4.6) |
+| The Bridge's documents: field-exact mirrors of the served board state, 7 files; `entities/integration` added a ticket's entity and stage (`PageTicketFactsDocument`), the entity assignment and the entity kinds of the Kanban board | `apps/forge/bridge/@types/BoardStateDocument.ts:1-222`, `ConversationDocuments.ts`, `DetailBoardState.ts`, `EpicsBoardState.ts`, `KanbanBoardState.ts`, `ProgressBoardState.ts`, `TicketsBoardState.ts` | Moved into `forge-contracts` (WP4.6) |
+| 134 files import those 7 files, all in `bridge/` | the walk | Changed: each names `forge-contracts/<Document>` (WP4.6) |
+| The board document carries Flint's brain and the Bridge's view of the identity | `apps/forge/bridge/@types/BoardStateDocument.ts:207-215`, `:217-222` | Stay in the Bridge, in files of their own (WP4.6) |
 | The page limits types the documents name | `apps/forge/bridge/utils/TimeUtil.ts:12-24`, `apps/forge/bridge/@types/Timeline.ts:4-16` | Moved into `forge-contracts/BoardLimitsDocument` (WP4.6) |
 | `Timeline.ts` and `DependencyGraph.ts` are view models, not documents | `apps/forge/bridge/@types/Timeline.ts:18-82`, `DependencyGraph.ts` | Kept in the Bridge |
 | The served board state: an index signature over the spread `status --json` document, `notices` and the Baton warning typed `unknown`, its own copy of `OverseerRuntimeState` | `apps/forge/src/services/overseer/BoardState.ts:36`, `:46`, `:137`, `:168-188`, `:357` | Changed: typed so it satisfies the contract (WP4.7, WP4.8) |
 | The status document is built as an untyped `object` | `apps/forge/cli/StatusDocuments.ts:20`, `:41-63`, `:71` | Changed: a named type (WP4.7) |
-| Gaia supports forge 1.1 and warns, never fails, while forge is ahead | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:10`; `apps/gaia/src/testing/CheckSupportedForgeVersion.ts` | Kept (stage 6 raises it) |
+| Gaia supports forge 1.1 and warns, never fails, while forge is ahead (seventeen minors ahead at `0a648b2b`) | `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9`; `apps/gaia/src/testing/CheckSupportedForgeVersion.ts` | Kept (stage 6 raises it) |
 | Gaia's guard that every workspace package it names is declared | `apps/gaia/src/WorkspaceDependencies.spec.ts` | Kept |
 
 ## Work packages
@@ -139,7 +144,7 @@ WP4.1 ──► WP4.2 ──► WP4.3 ──► WP4.4 ──► WP4.5 ┐
   commit (WP4.2, WP4.3, WP4.6). A batch per folder would need the old path to keep working until the last batch lands,
   and the only way to keep it working is a re-export file at the old path, which the barrel guard refuses
   (`ImportDirection.spec.ts:432-434`) and the rules forbid ("No barrel files", `apps/forge/CLAUDE.md:36`). A script
-  rewrites 989 lines in seconds and the typecheck proves it; six agents editing by hand would not be faster and would
+  rewrites 1,332 lines in seconds and the typecheck proves it; six agents editing by hand would not be faster and would
   each leave the tree red.
 - WP4.5, WP4.6 and WP4.7 may run **in parallel**. WP4.5 and WP4.6 both add `exports` entries and README rows to
   `packages/forge-contracts`; those are appended lines, so the second to merge rebases and keeps both. WP4.7 shares no
@@ -156,13 +161,20 @@ WP4.2 is a pure relocation. Runs alone, first.
 - Move (with `git mv`) to `apps/forge/src/lib/tracker-model/testing/`: `apps/forge/src/testing/BoardFixtures.ts`,
   `GreenQueue.ts`, `EveryBoardLogRecord.ts`, `SourceMutant.ts`. They are test helpers whose subject is the model, so
   they belong to the model's test folder.
+- Create `apps/forge/src/lib/tracker-model/testing/EntityForgePipeline.ts`: the pipeline part of
+  `apps/forge/src/testing/EntityForgeFixture.ts` (`:20-46`, `:68-120`), which imports only the model. The repository
+  part stays in `EntityForgeFixture.ts`, which imports the moved names from the new file. (Added after
+  `entities/integration`: four model specs import that fixture, which a package cannot reach.)
 - Create `apps/forge/src/lib/tracker-model/testing/ScratchFolder.ts`: the model's own scratch folders, under
   `<model folder>/.scratch/`, which the root `.gitignore` already ignores (`.scratch/`). It replaces forge's
   `ScratchWorkspace.ts` for `SourceMutant.ts`, which the package cannot import.
-- Change: the model's specs that import the four helpers (46, 3, 2 and 1 files); the forge files outside the model that
-  import `BoardFixtures.ts` (41), `GreenQueue.ts` (6) or `EveryBoardLogRecord.ts` (2), among them
-  `apps/forge/src/testing/TrackerFileFixtures.ts` and `apps/forge/src/services/overseer/testing/AirlocksHarness.ts`;
-  `apps/forge/src/lib/tracker-model/Playbook.spec.ts`, `Playbook.interleavings.spec.ts`, `Playbook.forecast.spec.ts`
+- Change: the model's specs that import the helpers (41, 5, 4, 2 and 1 files for `BoardFixtures`, `SourceMutant`,
+  `EntityForgeFixture`, `GreenQueue` and `EveryBoardLogRecord`); the forge files outside the model that import
+  `BoardFixtures.ts` (59), `GreenQueue.ts` (6), `EveryBoardLogRecord.ts` (2) or a moved name of
+  `EntityForgeFixture.ts` (of its 15), among them `apps/forge/src/testing/TrackerFileFixtures.ts`,
+  `apps/forge/src/testing/EntityForgeScenarios.ts` and `apps/forge/src/services/overseer/testing/AirlocksHarness.ts`;
+  `apps/forge/src/testing/EntityForgeFixture.ts`; `apps/forge/src/lib/tracker-model/Playbook.spec.ts`,
+  `Playbook.interleavings.spec.ts`, `Playbook.forecast.spec.ts`, `Playbook.stages.spec.ts`, `Playbook.needs.spec.ts`
   (module path strings); `apps/forge/src/ImportDirection.spec.ts:118`.
 
 **What to do.**
@@ -176,31 +188,46 @@ WP4.2 is a pure relocation. Runs alone, first.
 3. In `SourceMutant.ts`, replace `createScratchDirectory` and `removeScratchDirectory` with the two functions above, and
    replace `REPOSITORY_ROOT` (`join(import.meta.dir, '..', '..')`) by `MODEL_FOLDER = join(import.meta.dir, '..')`.
    Rename the doc comment of `modulePath` to "From the model's folder, as `Playbook.ts`".
-4. In the three Playbook specs, rewrite every module path string from `'src/lib/tracker-model/<path>'` to
-   `'<path>'`, for example `POLICY_MODULE = 'Playbook.ts'`, `WORLD_MODULE = 'testing/LifecycleWorld.ts'`. Run
+4. In the five Playbook specs that use `SourceMutant` (`Playbook.spec.ts`, `.interleavings`, `.forecast`, `.stages`,
+   `.needs`), rewrite every module path string from `'src/lib/tracker-model/<path>'` to `'<path>'`, for example
+   `POLICY_MODULE = 'Playbook.ts'`, `FAILED_PASS_MODULE = 'utils/FailedPassUtil.ts'`,
+   `WORLD_MODULE = 'testing/LifecycleWorld.ts'`. Run
    `grep -rn "src/lib/tracker-model/" apps/forge/src/lib/tracker-model --include='*.spec.ts'` until it prints nothing.
-5. Rewrite every importer of the three moved fixtures to the new relative path. Do it with a script that resolves each
-   relative specifier and replaces it only when it resolves to a moved file; skip `node_modules`, `.forge`,
+5. Split `EntityForgeFixture.ts`. Move to `testing/EntityForgePipeline.ts`, names unchanged: `ENTITY_FORGE_ENTITIES`,
+   `EntityForgeEntity`, `ENTITY_FORGE_SOURCE_FILE`, `ENTITY_FORGE_LOCK_FILE`, `sourceFileOf`, `constitutionFileOf`,
+   `entityPathOf`, `EntityForgeWhitelists`, `noStepsOf`, `appEntityOf` and `entityForgePipelineOf`, with their doc
+   comments; it imports `Pipeline`, `PipelineEntity`, `PipelineEntityKind` and `PIPELINE_FORMAT_VERSION` from
+   `../@types/Pipeline.ts`. What stays (`ENTITY_FORGE_MAIN_LINE`, the hooks folder, the tickets, their branches and
+   worktrees, `entityForgePipelineTextOf`, the places and the tracked files) imports what it uses from
+   `../lib/tracker-model/testing/EntityForgePipeline.ts`. A re-export is a barrel (Traps): every importer of a moved
+   name imports it from the new file, and keeps importing the rest from `EntityForgeFixture.ts`.
+6. Rewrite every importer of the three moved fixtures, and of the moved names of `EntityForgeFixture.ts`, to the new
+   relative path. Do it with a script that resolves each relative specifier and replaces it only when it resolves to a
+   moved file (for `EntityForgeFixture.ts`, splits the import by the names it lists); skip `node_modules`, `.forge`,
    `.forge-worktrees`, `.turbo`, `.scratch` and `.claude`.
-6. Change `TESTING_FOLDER_IMPORTERS` at `ImportDirection.spec.ts:118` to
+7. Change `TESTING_FOLDER_IMPORTERS` at `ImportDirection.spec.ts:118` to
    `'src/lib/tracker-model/testing/': ['src/', 'cli/']`: forge's specs and test helpers under `src/` and `cli/` now
    import the model's fixtures, and the model's own specs are under `src/`.
-7. Run `bun run lint:fix` in `apps/forge` for import order and alignment, then `bun run lint`.
+8. Run `bun run lint:fix` in `apps/forge` for import order and alignment, then `bun run lint`.
 
 **Specs to write or change.**
 
-- No new spec. `Playbook.spec.ts`, `Playbook.interleavings.spec.ts` and `Playbook.forecast.spec.ts` must still watch
-  each mutant fail: `SourceMutant.ts` throws when a mutant's text occurs other than once (`SourceMutant.ts:24-35`), so a
-  wrong root fails loudly rather than passing.
+- No new spec. The five Playbook specs that use `SourceMutant` must still watch each mutant fail: `SourceMutant.ts`
+  throws when a mutant's text occurs other than once (`SourceMutant.ts:24-35`), so a wrong root fails loudly rather
+  than passing.
+- `src/lib/git/EntityForgeFixture.integration.spec.ts` and `src/testing/EntityForgeScenarios.spec.ts` keep passing on
+  the split fixture.
 - `ImportDirection.spec.ts` "every allowlist entry ... is still used" must stay green with the new entry.
 
 **Done when.**
 
 ```
-cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/ImportDirection.spec.ts
+cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/ImportDirection.spec.ts \
+  ./src/testing/EntityForgeScenarios.spec.ts
 cd ../..                                                                             # the repository root from here on
 grep -rln "src/testing/\(BoardFixtures\|GreenQueue\|EveryBoardLogRecord\|SourceMutant\)" apps/forge --include='*.ts' \
   --exclude-dir=node_modules --exclude-dir=.forge-worktrees --exclude-dir=.forge      # prints nothing
+grep -rln "'\.\./\.\./\(\.\./\)\?testing/" apps/forge/src/lib/tracker-model --include='*.ts'  # prints nothing
 bun install --frozen-lockfile && bun run verify                                      # green
 ```
 
@@ -221,7 +248,7 @@ guard changes must land in one commit to stay green.
   (contents under "Interfaces introduced", item 1). They are the files every package of this repository has; the
   three guard specs follow `packages/flint/PackageIsolation.spec.ts`, `packages/brand/PackageExports.spec.ts`,
   `packages/flint/ProjectIncludeList.spec.ts` and `packages/flint/LintRules.spec.ts`.
-- Change: every importer found by the script (today 438 files under `apps/forge`); `apps/forge/package.json`;
+- Change: every importer found by the script (today 548 files under `apps/forge`); `apps/forge/package.json`;
   `bun.lock`; `apps/forge/bridge/tsconfig.json`; `apps/forge/eslint.config.js`;
   `apps/forge/src/ImportDirection.spec.ts`; `apps/forge/src/ProjectIncludeLists.spec.ts`;
   `apps/forge/src/PlatformBoundary.spec.ts`; `apps/forge/src/UtilShape.spec.ts`;
@@ -244,19 +271,19 @@ guard changes must land in one commit to stay green.
      name without `.ts`;
    - collect the set of model files it rewrote to; that set is the `exports` map (step 3);
    - fail if two model files share a base name (none do today) or if a specifier resolves into the model's `testing/`
-     outside `BoardFixtures`, `GreenQueue` and `EveryBoardLogRecord`.
+     outside `BoardFixtures`, `GreenQueue`, `EveryBoardLogRecord` and `EntityForgePipeline`.
    Run it once before the move to print its plan, then move, then run it for real.
 2. `git mv apps/forge/src/lib/tracker-model packages/tracker-model`.
-3. Write `packages/tracker-model/package.json` with one `exports` entry per file in the script's set (today 73 shipping
-   files and the three helpers; the list is under "Interfaces introduced"). Nothing else is exported: the modules only
-   the Board composes (`Decisions.ts`, `Jobs.ts`, `Drafts.ts` and the like) stay private to the package.
+3. Write `packages/tracker-model/package.json` with one `exports` entry per file in the script's set (today 81 shipping
+   files and the four helpers; the list is under "Interfaces introduced"). Nothing else is exported: the modules only
+   the Board composes (`Decisions.ts`, `Jobs.ts`, `Drafts.ts`, `Needs.ts` and the like) stay private to the package.
 4. Add `"tracker-model": "workspace:^"` to `apps/forge/package.json` `dependencies`, in name order, then run
    `bun install` at the root (without `--frozen-lockfile`) once, so `bun.lock` gains the member; commit `bun.lock`.
 5. Write the package's `tsconfig.json`, `tsconfig.spec.json`, `eslint.config.js`, `README.md` and four guard specs as
    specified under "Interfaces introduced", item 1.
 6. In `apps/forge/bridge/tsconfig.json`, delete every include entry that starts with `../src/lib/tracker-model/`
-   (`:30-137`), and rewrite the comment at `:10-11` to say the include list names the files the Bridge reaches outside
-   its folder and outside the workspace packages it declares.
+   (`:39-155`, 117 entries), and rewrite the comment at `:10-11` to say the include list names the files the Bridge
+   reaches outside its folder and outside the workspace packages it declares.
 7. Change the guards:
    - `ImportDirection.spec.ts`: delete `'tracker-model-reaches-outside-itself'` from `ImportViolation` (`:34`),
      `TRACKER_MODEL_FOLDER` (`:161`), the model branch of `libFinding` (`:395-398`), the planted test (`:936-946`)
@@ -278,7 +305,8 @@ guard changes must land in one commit to stay green.
    - `ProductNameLiterals.spec.ts:20`: add `'tracker-model/'` to `SCANNED_FOLDERS`, and update the header sentence
      (`:4`) that names the folders.
    - `ClientNames.spec.ts:26`: lower `SMALLEST_SHIPPED_FILE_COUNT` to `800`, still "comfortably under today's count"
-     after this stage removes about 125 shipped files from forge (Traps).
+     after this stage removes about 133 shipped files from forge, which leaves about 1,066 of 1,199 (Traps). Count
+     again on the tree the package runs on: stages 2 and 3 change the number.
    - `ImportGraph.spec.ts:68`: add `['tracker-model', 100]`.
    - `RepositorySources.spec.ts:86-87`: the test name and the expected list gain `tracker-model`.
    - `src/lib/talos/TalosClosure.spec.ts`, its forbidden folders (carried from `WatcherBundleClosure.spec.ts:22` by
@@ -296,7 +324,7 @@ guard changes must land in one commit to stay green.
    - `:71`: becomes "`packages/tracker-model/` stays DOM-safe: its `tsconfig.json` compiles it with the DOM library and
      no Bun or Node types."
    - `:221-224`: the Bridge's include list no longer holds "the whole tracker model".
-   - `:333` (Deviations): "The tracker model's `Board` throws `BoardRefusal`" stays, naming `packages/tracker-model/`.
+   - `:341` (Deviations): "The tracker model's `Board` throws `BoardRefusal`" stays, naming `packages/tracker-model/`.
    - Root `CLAUDE.md:17`: `packages/tracker-model` joins the packages that are forge's; `:27`: forge's reach names
      `/packages/tracker-model`.
 10. Run `bun run lint:fix` in `apps/forge` and in `packages/tracker-model`, then `bun run verify` at the root, and fix
@@ -309,8 +337,8 @@ guard changes must land in one commit to stay green.
   any package, a spec imports only `bun:test` and its own folder, a file of `testing/` imports only `bun:test`,
   `node:fs`, `node:path` and its own folder, and no file names a client word (`gaia`, `fleet`). Each form planted.
 - `packages/tracker-model/PackageExports.spec.ts`: every `exports` entry names a file that exists; every key is
-  `./<BaseName>` of its target, or `./testing/<BaseName>` for the three helpers; no entry names a spec; no two entries
-  name one file.
+  `./<BaseName>` of its target, or `./testing/<BaseName>` for the four exported helpers (`BoardFixtures`,
+  `GreenQueue`, `EveryBoardLogRecord`, `EntityForgePipeline`); no entry names a spec; no two entries name one file.
 - `packages/tracker-model/ProjectIncludeList.spec.ts`: each `include` list names only the package's own folder.
 - `packages/tracker-model/LintRules.spec.ts`: each rule the package's `eslint.config.js` adds is watched failing on a
   planted form (a `Date.now()` and a `new Date()` in a shipping module, a magic number outside `constants/`, a `TODO`
@@ -363,9 +391,9 @@ bun install --frozen-lockfile && bun run verify                                 
 
 1. Reuse WP4.2's script with a new mapping: each moved file to `board-readings/<BaseName>`. Base names are unique.
 2. Move the files. Inside the package:
-   - `@types/MonitorSnapshot.ts:22`: import `OVERSEER_CONTRACT_VERSIONS` as a type from
+   - `@types/MonitorSnapshot.ts:27`: import `OVERSEER_CONTRACT_VERSIONS` as a type from
      `forge-contracts/OverseerContractVersions` and write `monitorVersion: typeof OVERSEER_CONTRACT_VERSIONS.monitor` at
-     `:127`. The value is the same: `SERVED_CONTRACT_VERSIONS.monitor` is `OVERSEER_CONTRACT_VERSIONS.monitor`
+     `:136`. The value is the same: `SERVED_CONTRACT_VERSIONS.monitor` is `OVERSEER_CONTRACT_VERSIONS.monitor`
      (`apps/forge/src/shared/constants/OverseerApiContracts.ts:14`).
    - `TodayFigures.ts` and its spec import `./constants/TimestampSlices.ts`.
    - Model types are already `tracker-model/<Name>` after WP4.2.
@@ -394,7 +422,7 @@ bun install --frozen-lockfile && bun run verify                                 
      not import is reported.
    If the owner chose another answer, do that instead and leave `ImportDirection.spec.ts:90` as it is.
 5. `apps/forge/bridge/tsconfig.json`: delete the entries for `TimestampSlices.ts`, the seven files of
-   `src/shared/monitor/` and the three lib utils (`:19-29` today).
+   `src/shared/monitor/` and the three lib utils (`:20`, `:25-31` and `:36-38` today).
 6. Guards: `ImportDirection.spec.ts:624` gains `'board-readings'`; `ProjectIncludeLists.spec.ts:96` gains
    `'board-readings/'`, and the planted test at `:112-117` removes `'../src/shared/constants/DispatchProtocol.ts'`
    instead of the HTML-escape util and expects that sentence; `UtilShape.spec.ts:59` and
@@ -437,17 +465,17 @@ small.
 - Change: `packages/forge-contracts/package.json`, `PackageIsolation.spec.ts`, `constants/ForgeSystemVersions.ts`,
   `constants/ForgeCompatibilityRegistry.ts`, `constants/ForgeCompatibilityRegistry.spec.ts`, `README.md`;
   `apps/forge/src/ImportDirection.spec.ts:630`; `apps/forge/src/services/overseer/OverseerServer.spec.ts`;
-  `apps/forge/docs/reference/overseer-api.md` (sections "System versions" and "Versioned paths", today `:629-668`);
+  `apps/forge/docs/reference/overseer-api.md` (sections "System versions" and "Versioned paths", today `:632-709`);
   `bun.lock`.
 
 **What to do.**
 
 1. `packages/forge-contracts/package.json`: add `"tracker-model": "workspace:^"` to `dependencies`; raise `version` by
-   one minor (the README's rule, `README.md:39-42`: a system minor is a package minor). Run `bun install`; commit
-   `bun.lock`.
-2. `ForgeSystemVersions.ts`: raise `current.minor` by one over what stage 3 left. Call that version **S4** below. Add
-   one sentence to the docblock: S4 adds the board state at `/api/v1/state`, the board documents and the board command
-   kinds, which only adds.
+   one minor (the README's rule, `README.md:39-42`: a system minor is a package minor), from the `1.0.0` it still has
+   at forge 1.18 unless the owner aligned it first ("Needs the owner", item 10). Run `bun install`; commit `bun.lock`.
+2. `ForgeSystemVersions.ts`: raise `current.minor` by one over what stage 3 left. Call that version **S4** below. Append
+   one clause to the docblock's list of minors (`:7-39` at forge 1.18): S4 adds the board state at `/api/v1/state`, the
+   board documents and the board command kinds, which only adds.
 3. `ForgeCompatibilityRegistry.ts`: with the helper `endpointAddedIn(endpoint, version, introducedIn)` that stage 3
    added for `presence` (stage 3, WP3.12), add the entry `endpointAddedIn('state', 1, S4)`.
 4. `ForgeCompatibilityRegistry.spec.ts`: `CURRENT_ENDPOINTS` gains `'endpoint state at v1'`; correct the header sentence
@@ -497,17 +525,19 @@ takes those members from the package. Parallel with WP4.6 and WP4.7.
 
 **What to do.**
 
-1. Measure the kinds first. List every `ControlCommandKind` (`ControlCommand.ts:66-226`) that appears as the value of a
+1. Measure the kinds first. List every `ControlCommandKind` (`ControlCommand.ts:67-258`) that appears as the value of a
    `kind` property in an object literal in a shipping file of `apps/forge/bridge/` (not `*.spec.ts`, not `*.dom.tsx`,
-   not `testing/`). Use the TypeScript AST, not a text search: a `case 'pipeline-gates-none':` in
-   `bridge/views/pipeline/live/FlowActivityPanelModel.ts:150` names a log record, not a command. Subtract the kinds of
-   `CONTROL_CONTRACT_KINDS` (`OverseerApiContracts.ts:26-36`, plus what stage 3 added). At `3e6cb660` the result is the
-   34 kinds of "Interfaces introduced", item 4; use the measured list if it differs, and record the difference in the
-   commit's body.
+   not `testing/`), taking both branches when the value is a conditional of two string literals
+   (`bridge/shell/Header.tsx:210`). Use the TypeScript AST, not a text search: a `case 'pipeline-gates-none':` in
+   `bridge/views/pipeline/live/FlowActivityPanelModel.ts:213` names a log record, not a command. Subtract the kinds of
+   `CONTROL_CONTRACT_KINDS` (`OverseerApiContracts.ts:26-36`, plus what stage 3 added). At `0a648b2b`, as at
+   `3e6cb660`, the result is the 34 kinds of "Interfaces introduced", item 4; use the measured list if it differs, and
+   record the difference in the commit's body.
 2. Write `BoardCommand.ts`: `ChartRangeRequest`, `TrackerClearScope` and `PipelineFieldEdit` move here from
-   `ControlCommand.ts:37-40` and `:49-55`; `ForgeBoardCommand` is the union of the measured kinds with the fields of
-   `ControlCommand.ts`, every field `readonly` and every array `readonly`, the model's types imported with `import type`
-   from `tracker-model/<Name>`, and `job-stop`'s mode as `ForgeJobStopMode` from `./ForgeControlCommand.ts`.
+   `ControlCommand.ts:38-41` and `:51-56`; `ForgeBoardCommand` is the union of the measured kinds with the fields of
+   `ControlCommand.ts` (the optional `entity`, `isACopy` and `wholeBatch` fields `entities/integration` added among
+   them), every field `readonly` and every array `readonly`, the model's types imported with `import type` from
+   `tracker-model/<Name>`, and `job-stop`'s mode as `ForgeJobStopMode` from `./ForgeControlCommand.ts`.
 3. Add `"./BoardCommand": "./@types/BoardCommand.ts"` to `exports` and a row to the README's table.
 4. `ControlCommand.ts`: delete the members of the measured kinds from `ControlCommand` and add
    `| ForgeBoardCommand` to the union; import `ChartRangeRequest`, `TrackerClearScope` and `PipelineFieldEdit` from
@@ -564,15 +594,15 @@ Flint's brain and the Bridge's identity view left in the Bridge. Parallel with W
   stays the Bridge's own (contents under "Interfaces introduced", item 5).
 - Change: `apps/forge/bridge/utils/TimeUtil.ts` (delete `TimestampSlices` and `DurationUnits`, `:12-24`, and import them
   as types from the contract); `apps/forge/bridge/@types/Timeline.ts` (delete `TimelineLimits`, `:4-16`, import it);
-  every importer of the moved documents (131 files today), of `TimestampSlices` or `DurationUnits` from `TimeUtil.ts`
-  (47 files mention them), and of `TimelineLimits`; the Bridge files that read `flintBrain` (8 shipping files) or
+  every importer of the moved documents (134 files today), of `TimestampSlices` or `DurationUnits` from `TimeUtil.ts`
+  (52 forge files mention them), and of `TimelineLimits`; the Bridge files that read `flintBrain` (8 shipping files) or
   `OverseerIdentity`; `packages/forge-contracts/package.json` (`exports`) and `README.md`.
 
 **What to do.**
 
-1. Move the seven files. In the moved `BoardStateDocument.ts`: delete the `flintBrain` field (`:188-189`),
-   `FlintBrainBoardFactsDocument` (`:192-196`), `OverseerIdentity` (`:198-203`) and the imports they need
-   (`:2`, `:15`); import `TimestampSlices` from `./BoardLimitsDocument.ts` (replacing `:16`). In every moved file, the
+1. Move the seven files. In the moved `BoardStateDocument.ts`: delete the `flintBrain` field (`:207-208`),
+   `FlintBrainBoardFactsDocument` (`:211-215`), `OverseerIdentity` (`:217-222`) and the imports they need
+   (`:2`, `:17`); import `TimestampSlices` from `./BoardLimitsDocument.ts` (replacing `:18`). In every moved file, the
    model types are `import type` from `tracker-model/<Name>` (WP4.2 already wrote them so), `TimestampSlices`,
    `DurationUnits` and `TimelineLimits` come from `./BoardLimitsDocument.ts`, and a reference to another moved file
    stays relative (`./BoardStateDocument.ts`).
@@ -674,9 +704,9 @@ WP4.7; WP4.9 may run beside it.
 2. Run `bun run typecheck` and fix each error on the server's side, by typing the server's field with the document's
    type or a type it satisfies. Known from reading:
    - `OverseerFacts.batonPassWarning: unknown` (`BoardState.ts:46`) against `BatonPassWarningDocument | null`
-     (contract `BoardStateDocument.ts`, today `bridge/@types/BoardStateDocument.ts:25-29`, `:35`): type the field with
+     (contract `BoardStateDocument.ts`, today `bridge/@types/BoardStateDocument.ts:26-31`, `:37`): type the field with
      the record the Baton pass writes.
-   - `notices: unknown[]` (`BoardState.ts:174`) against `readonly NoticeDocument[]` (`:39-42` of the same file): type
+   - `notices: unknown[]` (`BoardState.ts:174`) against `readonly NoticeDocument[]` (`:40-44` of the same file): type
      the notices with their record type.
    - `OverseerRuntimeState` is declared twice (`BoardState.ts:36` and the contract's `BoardStateDocument.ts`): delete
      the server's and import the contract's.
@@ -723,7 +753,7 @@ which stage 0 corrects.
 ### 1. The package `tracker-model`
 
 Folder `packages/tracker-model/`, every file of today's `apps/forge/src/lib/tracker-model/` at the same relative path,
-plus `testing/ScratchFolder.ts` and the three fixtures WP4.1 moved.
+plus `testing/ScratchFolder.ts`, the three fixtures WP4.1 moved and the `EntityForgePipeline.ts` it split off.
 
 `package.json`:
 
@@ -748,40 +778,44 @@ plus `testing/ScratchFolder.ts` and the three fixtures WP4.1 moved.
 No `dependencies`. No `verify` script: the root runs the tasks through turbo.
 
 `exports`: key `./<BaseName>`, value `./<path>`, for exactly the files forge imports from outside the package. At
-`3e6cb660` these 73 files (WP4.2's script computes the final list, which grows by what stages 2 and 3 added and
-forge imports):
+`0a648b2b` these 81 files, the 73 of `3e6cb660` and eight that `entities/integration` added (`@types/Need.ts`,
+`constants/EntityDecisionAnswers.ts`, `constants/TicketStages.ts`, `utils/EntityOwnershipUtil.ts`,
+`utils/EntityValidationUtil.ts`, `utils/FailedPassUtil.ts`, `utils/NeedUtil.ts`, `utils/TicketStageUtil.ts`); WP4.2's
+script computes the final list, which grows by what stages 2 and 3 added and forge imports:
 
 ```
 @types/BoardChanges.ts @types/Decision.ts @types/Draft.ts @types/Epic.ts @types/GatePhase.ts @types/GateProfile.ts
-@types/Incident.ts @types/Job.ts @types/LaunchSlots.ts @types/LifecycleLimits.ts @types/LogRecord.ts
+@types/Incident.ts @types/Job.ts @types/LaunchSlots.ts @types/LifecycleLimits.ts @types/LogRecord.ts @types/Need.ts
 @types/OptionConsequences.ts @types/Pipeline.ts @types/PipelineFacts.ts @types/PipelineSetup.ts @types/PlaybookStep.ts
 @types/ReviewRecord.ts @types/ReviewRound.ts @types/Task.ts @types/Ticket.ts @types/TicketForecast.ts
 @types/TrackerProgress.ts
 AirlockClaims.ts Board.ts BoardRefusal.ts EmptyProgress.ts JobControls.ts Logger.ts Playbook.ts ReadingBoard.ts
 ReviewStatistics.ts
 constants/AgentSettings.ts constants/ChangeSizeBuckets.ts constants/ConcurrencyLimits.ts
-constants/DecisionAndIncidentVocabulary.ts constants/DraftFields.ts constants/EpicFields.ts
-constants/FlintBrainVocabulary.ts constants/GateProfileVocabulary.ts constants/JobMoveLegality.ts constants/JobStates.ts
-constants/JobStopHolds.ts constants/LogRecordSchema.ts constants/OverseerStates.ts constants/PictureIdPattern.ts
-constants/PipelineDefaults.ts constants/PipelineSetupVocabulary.ts constants/ReviewRecordVocabulary.ts
-constants/ReviewRounds.ts constants/Statuses.ts constants/TaskIds.ts constants/TicketFields.ts
-constants/TicketMoveLegality.ts
-utils/BoardSettingsUtil.ts utils/ConcurrencyUtil.ts utils/DraftIdUtil.ts utils/EpicUtil.ts utils/GroupNameUtil.ts
-utils/LaunchSlotUtil.ts utils/MergeQueueUtil.ts utils/NetworkDomainUtil.ts utils/OptionConsequencesUtil.ts
+constants/DecisionAndIncidentVocabulary.ts constants/DraftFields.ts constants/EntityDecisionAnswers.ts
+constants/EpicFields.ts constants/FlintBrainVocabulary.ts constants/GateProfileVocabulary.ts
+constants/JobMoveLegality.ts constants/JobStates.ts constants/JobStopHolds.ts constants/LogRecordSchema.ts
+constants/OverseerStates.ts constants/PictureIdPattern.ts constants/PipelineDefaults.ts
+constants/PipelineSetupVocabulary.ts constants/ReviewRecordVocabulary.ts constants/ReviewRounds.ts
+constants/Statuses.ts constants/TaskIds.ts constants/TicketFields.ts constants/TicketMoveLegality.ts
+constants/TicketStages.ts
+utils/BoardSettingsUtil.ts utils/ConcurrencyUtil.ts utils/DraftIdUtil.ts utils/EntityOwnershipUtil.ts
+utils/EntityValidationUtil.ts utils/EpicUtil.ts utils/FailedPassUtil.ts utils/GroupNameUtil.ts utils/LaunchSlotUtil.ts
+utils/MergeQueueUtil.ts utils/NeedUtil.ts utils/NetworkDomainUtil.ts utils/OptionConsequencesUtil.ts
 utils/PipelineChangeUtil.ts utils/PipelineDraftEditUtil.ts utils/PipelineUtil.ts utils/RoundVerdictUtil.ts
 utils/TaskRecordUtil.ts utils/TicketBodyHashUtil.ts utils/TicketDefaultsUtil.ts utils/TicketDependencyUtil.ts
-utils/TicketIdUtil.ts utils/TicketMoveUtil.ts utils/VocabularyUtil.ts
+utils/TicketIdUtil.ts utils/TicketMoveUtil.ts utils/TicketStageUtil.ts utils/VocabularyUtil.ts
 ```
 
-plus `./testing/BoardFixtures`, `./testing/GreenQueue` and `./testing/EveryBoardLogRecord`, each to its file under
-`testing/`. A forge file imports, for example, `import { Board } from 'tracker-model/Board';` and
-`import type { Ticket } from 'tracker-model/Ticket';`.
+plus `./testing/BoardFixtures`, `./testing/GreenQueue`, `./testing/EveryBoardLogRecord` and
+`./testing/EntityForgePipeline`, each to its file under `testing/`. A forge file imports, for example,
+`import { Board } from 'tracker-model/Board';` and `import type { Ticket } from 'tracker-model/Ticket';`.
 
 `tsconfig.json`: as `packages/design-system/tsconfig.json` without `jsx`: `lib: ["ESNext", "DOM", "DOM.Iterable"]`,
 `types: []`, the strict options of every package,
 `tsBuildInfoFile: ./node_modules/.cache/typecheck/tracker-model.tsbuildinfo`, `include: ["./**/*.ts"]`,
 `exclude: ["./**/*.spec.ts", "./testing/**"]`. The DOM library is needed: the model calls
-`structuredClone` (`PipelineSetups.ts:149` and others) and `TextEncoder` (`utils/TicketBodyHashUtil.ts:14`), which
+`structuredClone` (`PipelineSetups.ts:278` and others) and `TextEncoder` (`utils/TicketBodyHashUtil.ts:14`), which
 `ESNext` alone does not declare. `tsconfig.spec.json`: extends it, `types: ["bun"]`, its own build info file,
 `include: ["./**/*.ts"]`, `exclude: []`.
 
@@ -830,7 +864,7 @@ each to its file. `tsconfig.json`, `tsconfig.spec.json`, `eslint.config.js` as i
   `./BoardCommand`, `./BoardStateDocument`, `./BoardLimitsDocument`, `./ConversationDocuments`, `./DetailBoardState`,
   `./EpicsBoardState`, `./KanbanBoardState`, `./ProgressBoardState`, `./TicketsBoardState`, each to
   `./@types/<Name>.ts`.
-- `FORGE_SYSTEM_VERSIONS.current`: S4, one minor over what stage 3 left (1.1 at `3e6cb660`, raised by stages 2 and 3).
+- `FORGE_SYSTEM_VERSIONS.current`: S4, one minor over what stage 3 left (1.18 at `0a648b2b`, raised by stages 2 and 3).
   `minimumSupported` unchanged.
 - `FORGE_COMPATIBILITY_REGISTRY` gains `{ kind: 'endpoint', endpoint: 'state', version: 1, introducedIn: S4,
   lastNeededBy: null, source: 'shipped' }`.
@@ -866,15 +900,17 @@ export interface TimelineLimits {
 }
 ```
 
-- `@types/BoardStateDocument.ts`: today's `apps/forge/bridge/@types/BoardStateDocument.ts:18-190` verbatim, with three
+- `@types/BoardStateDocument.ts`: today's `apps/forge/bridge/@types/BoardStateDocument.ts:20-209` verbatim, with three
   changes: no `flintBrain` field, no `FlintBrainBoardFactsDocument`, no `OverseerIdentity`. Its exports:
   `IdentifiedRecord`, `OverseerRuntimeState`, `BatonPassWarningDocument`, `OverseerFactsDocument`, `NoticeDocument`,
   `ConcurrencyDocument`, `LaunchSlotsDocument`, `UsageWindowDocument`, `UsageDocument`, `TaskDocument`,
-  `PageTicketDocument`, `EpicRollupDocument`, `PageDraftDocument`, `PageDocument`, `MergeQueueEntryDocument`,
-  `WaitingForMergeEntryDocument`, `MergeTargetDocument`, `MergeQueueDocument`, `BoardStateDocument`. Its imports are
-  type-only: `DraftState` (`tracker-model/Draft`), `LogRecord` (`tracker-model/LogRecord`), `AppliedPipelineFacts`,
-  `GateCacheMarkFacts`, `GateProfileRunFacts`, `PipelineChoices`, `PipelineFlowFacts`, `PipelineSetupFacts`
-  (`tracker-model/PipelineFacts`), `AgentPair` (`tracker-model/Ticket`), `TimestampSlices` (`./BoardLimitsDocument.ts`).
+  `PageTicketDocument`, `EpicRollupDocument`, `PageDraftDocument`, `PageTicketFactsDocument`, `PageDocument`,
+  `MergeQueueEntryDocument`, `WaitingForMergeEntryDocument`, `MergeTargetDocument`, `MergeQueueDocument`,
+  `BoardStateDocument`. Its imports are type-only: `DraftState` (`tracker-model/Draft`), `LogRecord`
+  (`tracker-model/LogRecord`), `AppliedPipelineFacts`, `EntityAssignmentFacts`, `GateCacheMarkFacts`,
+  `GateProfileRunFacts`, `PipelineChoices`, `PipelineFlowFacts`, `PipelineSetupFacts` (`tracker-model/PipelineFacts`),
+  `TicketStage` (`tracker-model/Task`), `AgentPair` (`tracker-model/Ticket`), `TimestampSlices`
+  (`./BoardLimitsDocument.ts`).
 - `@types/ConversationDocuments.ts`, `DetailBoardState.ts`, `EpicsBoardState.ts`, `KanbanBoardState.ts`,
   `ProgressBoardState.ts`, `TicketsBoardState.ts`: today's files verbatim, every import rewritten as in WP4.6 step 1.
   Their exported names are the ones `apps/forge/bridge/@types/<File>.ts` exports today (listed per file in
@@ -882,14 +918,14 @@ export interface TimelineLimits {
 
 ### 4. The board commands
 
-`packages/forge-contracts/@types/BoardCommand.ts`, the 34 kinds measured at `3e6cb660` (WP4.5 step 1 confirms the
-list):
+`packages/forge-contracts/@types/BoardCommand.ts`, the 34 kinds measured at `3e6cb660` and again at `0a648b2b`, with the
+fields `entities/integration` added (WP4.5 step 1 confirms the list):
 
 ```ts
 import type { DecisionAnswerForm }                                   from 'tracker-model/Decision';
 import type { GatePhase }                                            from 'tracker-model/GatePhase';
 import type { PictureReference }                                     from 'tracker-model/Job';
-import type { PipelineBilling }                                      from 'tracker-model/Pipeline';
+import type { EntityKey, PipelineBilling }                           from 'tracker-model/Pipeline';
 import type { ConstitutionSources, PipelineDraftField, PipelineSetupStep } from 'tracker-model/PipelineSetup';
 import type { TicketPriority }                                       from 'tracker-model/Ticket';
 
@@ -912,7 +948,7 @@ export interface PipelineFieldEdit {
 export type ForgeBoardCommand =
   | { readonly kind: 'chart-range-set'; readonly range: ChartRangeRequest }
   | { readonly kind: 'decision-answer'; readonly decisionId: string; readonly answer: DecisionAnswerForm }
-  | { readonly kind: 'gate-profile-start'; readonly setupId: string | null; readonly gateName: string; readonly phase: GatePhase }
+  | { readonly kind: 'gate-profile-start'; readonly setupId: string | null; readonly gateName: string; readonly phase: GatePhase; readonly entity?: EntityKey }
   | { readonly kind: 'gate-profile-stop'; readonly profileRunId: string }
   | { readonly kind: 'intake-close'; readonly jobId?: string; readonly proposedDraftSets: readonly (readonly string[])[] }
   | { readonly kind: 'intake-start'; readonly text: string; readonly pictures?: readonly PictureReference[] }
@@ -921,21 +957,21 @@ export type ForgeBoardCommand =
   | { readonly kind: 'job-stop'; readonly jobId: string; readonly mode: ForgeJobStopMode }
   | { readonly kind: 'merge-accept'; readonly ticketReference: string }
   | { readonly kind: 'merge-update'; readonly ticketReference: string }
-  | { readonly kind: 'pipeline-agent-advise' }
+  | { readonly kind: 'pipeline-agent-advise'; readonly entity?: EntityKey }
   | { readonly kind: 'pipeline-apply'; readonly setupId: string; readonly draftRevision: number; readonly resumesBoard: boolean }
   | { readonly kind: 'pipeline-apply-cancel'; readonly setupId: string }
   | { readonly kind: 'pipeline-check'; readonly setupId: string }
-  | { readonly kind: 'pipeline-constitution-edit'; readonly setupId: string; readonly revision: number; readonly markdown?: string; readonly draftedFrom?: ConstitutionSources }
+  | { readonly kind: 'pipeline-constitution-edit'; readonly setupId: string; readonly revision: number; readonly markdown?: string; readonly draftedFrom?: ConstitutionSources; readonly entity?: EntityKey }
   | { readonly kind: 'pipeline-draft-discard'; readonly setupId: string }
-  | { readonly kind: 'pipeline-draft-edit'; readonly setupId: string; readonly draftRevision: number; readonly edits: readonly PipelineFieldEdit[] }
-  | { readonly kind: 'pipeline-draft-undo'; readonly setupId: string; readonly editId: string }
+  | { readonly kind: 'pipeline-draft-edit'; readonly setupId: string; readonly draftRevision: number; readonly edits: readonly PipelineFieldEdit[]; readonly isACopy?: true }
+  | { readonly kind: 'pipeline-draft-undo'; readonly setupId: string; readonly editId: string; readonly wholeBatch?: true }
   | { readonly kind: 'pipeline-setup-answer'; readonly setupId: string; readonly questionId: string; readonly answer: DecisionAnswerForm }
   | { readonly kind: 'pipeline-setup-billing'; readonly setupId: string; readonly billing: PipelineBilling }
   | { readonly kind: 'pipeline-setup-resume'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-start'; readonly billing: PipelineBilling; readonly replacesUnreadablePipeline: boolean }
   | { readonly kind: 'pipeline-setup-start-over'; readonly setupId: string }
   | { readonly kind: 'pipeline-setup-step'; readonly setupId: string; readonly step: PipelineSetupStep; readonly move: 'continue' }
-  | { readonly kind: 'pipeline-update-start' }
+  | { readonly kind: 'pipeline-update-start'; readonly entity?: EntityKey }
   | { readonly kind: 'ticket-deliver-by-hand'; readonly ticketReference: string; readonly branch?: string; readonly commit?: string }
   | { readonly kind: 'ticket-hold'; readonly ticketReference: string; readonly reason: string }
   | { readonly kind: 'ticket-network'; readonly ticketReference: string; readonly domains: readonly string[] }
@@ -946,16 +982,17 @@ export type ForgeBoardCommand =
   | { readonly kind: 'tracker-clear'; readonly scope: TrackerClearScope };
 ```
 
-The fields are those of `apps/forge/src/shared/@types/ControlCommand.ts:66-226` for the same kinds; `job-stop`'s
-`Exclude<JobStopMode, 'fresh'>` (`ControlCommand.ts:134`; `JobStopMode` at `@types/Job.ts:100`) equals
+The fields are those of `apps/forge/src/shared/@types/ControlCommand.ts:67-258` for the same kinds; `job-stop`'s
+`Exclude<JobStopMode, 'fresh'>` (`ControlCommand.ts:144`; `JobStopMode` at `@types/Job.ts:107`) equals
 `ForgeJobStopMode` (`ForgeControlCommand.ts:7`). If the line width rule of the package's lint breaks a member over
 lines, keep one field per line.
 
-In forge: `ControlCommand` is `| ForgeBoardCommand | <the kinds that stay forge's own>`, which are 42 at `3e6cb660`
-plus what stage 3 added; `BOARD_COMMAND_CONTRACT_KINDS` in `apps/forge/src/shared/constants/OverseerApiContracts.ts`
-lists the 34 kinds in the order above, `as const satisfies readonly ForgeBoardCommand['kind'][]`. Answers are
-unchanged: 200 `{controlVersion: 1, outcome, result}`, 400 `malformed-body`, 409 a refusal, 423 while launches are
-held. Stage 6 (WP6.1) lists every kind a client may send, the 9 control kinds and these 34, in
+In forge: `ControlCommand` is `| ForgeBoardCommand | <the kinds that stay forge's own>`, which are 45 at `0a648b2b`
+(42 at `3e6cb660`, and `ticket-entity`, `ticket-group` and `need-declare`) plus what stage 3 added;
+`BOARD_COMMAND_CONTRACT_KINDS` in `apps/forge/src/shared/constants/OverseerApiContracts.ts` lists the 34 kinds in the
+order above, `as const satisfies readonly ForgeBoardCommand['kind'][]`. Answers are unchanged: 200
+`{controlVersion: 1, outcome, result}`, 400 `malformed-body`, 409 a refusal, 423 while launches are held. Stage 6
+(WP6.1) lists every kind a client may send, the 9 control kinds and these 34, in
 `forge-contracts/ForgeControlCommandKinds`; this stage's two forge-side lists stay its pins.
 
 ### 5. What stays the Bridge's
@@ -990,6 +1027,10 @@ held. Stage 6 (WP6.1) lists every kind a client may send, the 9 control kinds an
 - **The model's specs carry module paths as strings.** `SourceMutant.ts` roots them at `apps/forge`
   (`SourceMutant.ts:14`) and the Playbook specs name `'src/lib/tracker-model/Playbook.ts'`. A move that only rewrites
   imports breaks every mutant at build time; WP4.1 roots them at the model's folder first.
+- **A model spec that reaches a forge fixture.** Any spec of the model that imports from `apps/forge/src/testing/`
+  breaks when the model leaves `apps/forge`. `entities/integration` added one such fixture (`EntityForgeFixture.ts`,
+  for four specs); stages 2 and 3 may add more. WP4.1 measures the model's spec imports on its own tree and brings each
+  helper inside, splitting off the part that imports only the model when the rest needs forge.
 - **Copies of the repository sit inside the checkout.** `apps/forge/.forge-worktrees/` and `apps/gaia/.forge-worktrees/`
   hold tracker worktrees with their own `apps/forge/src/lib/tracker-model/`. A rewrite or grep that does not skip
   `.forge-worktrees`, `.forge`, `.claude` and `node_modules` edits a live tracker's worktree or reports false hits.
@@ -1005,12 +1046,13 @@ held. Stage 6 (WP6.1) lists every kind a client may send, the 9 control kinds an
   and then read `bun run lint`; fix what the fixer leaves.
 - **Path-keyed guards.** `PlatformBoundary.spec.ts:110` keys an allowed line by path; `UtilShape.spec.ts:59` and
   `ProductNameLiterals.spec.ts:20` scan named folders, so the model's utils and the notice wording would silently leave
-  their scans; `ClientNames.spec.ts:26` needs more than 1,000 shipped files in forge, and about 1,120 minus 108 minus 11
-  minus 5 leaves fewer. Change each in the commit that moves the files.
+  their scans; `ClientNames.spec.ts:26` needs more than 1,000 shipped files in forge, and about 1,199 minus 117 minus 11
+  minus 5 leaves about 1,066, too close for a floor "comfortably under today's count". Change each in the commit that
+  moves the files.
 - **Citations are checked.** Thirty citations of model specs in `apps/forge/docs/` must point at
   `packages/tracker-model/...` in the same commit (`DocumentSpecCitations.spec.ts`).
 - **`.contract.spec.ts` is taken.** The platform guard treats `*.contract.spec.ts` as an adapter contract spec
-  (`apps/forge/CLAUDE.md:150-153`). Name the conformance spec `BoardState.documents.spec.ts`, not
+  (`apps/forge/CLAUDE.md:151-153`). Name the conformance spec `BoardState.documents.spec.ts`, not
   `BoardState.contract.spec.ts`.
 - **A cycle through Flint's brain.** `board-readings` depends on `forge-contracts`; if the contract's board document
   kept `TodayFlintBrainRun`, the contract would import `board-readings` and close a cycle. The brain's facts stay in the
@@ -1019,7 +1061,7 @@ held. Stage 6 (WP6.1) lists every kind a client may send, the 9 control kinds an
   style is; an applier that hands a command's array to a parameter typed `string[]` stops compiling. Widen the
   parameter; never cast and never drop `readonly` from the contract.
 - **A text search for command kinds finds log records.** `'pipeline-gates-none'` and `'pipeline-prepare-step-set'`
-  appear in the Bridge as `case` labels of log record kinds (`FlowActivityPanelModel.ts:150`, `:154`). Measure the
+  appear in the Bridge as `case` labels of log record kinds (`FlowActivityPanelModel.ts:213`, `:217`). Measure the
   kinds from object literals' `kind` properties.
 - **`bun.lock` changes with every new member.** `bun install --frozen-lockfile` fails until a plain `bun install` has
   written the new workspace members; run it once in the work package that adds a member or a dependency and commit the
@@ -1029,8 +1071,9 @@ held. Stage 6 (WP6.1) lists every kind a client may send, the 9 control kinds an
   stops noticing a model change.
 - **An installed forge needs `bun install` after a pull.** The new workspace members resolve only after an install;
   the installed clone is the owner's, and stage 0 keeps it unpulled during the refactoring.
-- **Line numbers drift.** Stages 2 and 3 change files this plan cites (the model, `forge-contracts`,
-  `ImportDirection.spec.ts`). Read each cited place before editing it, and let the scripts compute the file lists.
+- **Line numbers drift.** `entities/integration` moved many of the lines this plan cites, which were measured again
+  at `0a648b2b`; stages 2 and 3 change them again (the model, `forge-contracts`, `ImportDirection.spec.ts`). Read each
+  cited place before editing it, and let the scripts compute the file lists.
 
 ## Verification of the whole stage
 
@@ -1067,7 +1110,7 @@ cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./bridge/HeadlessB
 The end-to-end check on a scratch forge. Neither app's rules let anyone run a forge on this checkout's boards; Gaia's
 rules name the scratch forge of `apps/gaia/src/testing/ScratchForge.ts`, which runs `apps/forge/agent-progress.ts`
 under a scratch home, in a scratch repository, with `FORGE_ROOT` pinned and the fake agent (`FORGE_FAKE_AGENT=1`,
-`apps/forge/src/shared/Environment.ts:29`). Use it, or the same setup by hand with a scratch home and repository under
+`apps/forge/src/shared/Environment.ts:26`). Use it, or the same setup by hand with a scratch home and repository under
 a short scratch root, never `~/.forge-monitor` or `~/.gaia`, and check in order:
 
 1. `init` in the scratch repository; `ticket add` one ticket; `ticket ready` it; `status --json` prints the ticket with
@@ -1110,12 +1153,16 @@ exist; `grep -rn "src/lib/tracker-model\|src/shared/monitor" apps CLAUDE.md docs
 
 1. **The package boundaries.** Stage 0 recommends `tracker-model` (the whole model) and `board-readings`; this plan
    builds that. The measured layering also allows a split that keeps the Board out of Gaia's reach: `@types` and
-   `constants` import only each other, `utils` import only those two, and the Bridge reaches 26 model files, all
-   `@types`, `constants` and `utils/TicketDefaultsUtil.ts`. A vocabulary package of `@types`, `constants` and that one
-   util, with the rest as `tracker-model`, would cost two moved spec cases (`constants/Statuses.spec.ts` reads
+   `constants` import only each other, `utils` import only those two. At `3e6cb660` the Bridge reached 26 model files,
+   all `@types`, `constants` and `utils/TicketDefaultsUtil.ts`; at `0a648b2b` it reaches 37, among them eight utils
+   and `BoardRefusal.ts`, a top-level module, through `src/shared/OperationRefusal.ts` and
+   `src/adapters/utils/OperationRefusalWordingUtil.ts` ("Today's code"). A vocabulary package of `@types`, `constants`
+   and the utils the Bridge reaches, with the rest as `tracker-model`, would now also need `BoardRefusal.ts` (or the
+   refusal wording kept out of the views), and would cost two moved spec cases (`constants/Statuses.spec.ts` reads
    `utils/VocabularyUtil.ts`; `constants/TicketMoveLegality.spec.ts` reads `utils/TicketMoveUtil.ts`) and a second
    mapping table in WP4.2's script. Recommended default: stage 0's two packages; reconsider before stage 6, where a Gaia
-   guard can keep Gaia's imports from `tracker-model` to types, constants and `TicketDefaultsUtil`.
+   guard can keep Gaia's imports from `tracker-model` to types, constants, `BoardRefusal` and the utils the views
+   read.
 2. **The vendor adapter reads `LocalTimeUtil`, which moves into `board-readings`.** Recommended default: a `src/lib/`
    package may reach a workspace package its main module's header names (WP4.3 step 4), since the conventions say a
    lib package imports only the packages it declares. Alternatives: keep `local-time` in `apps/forge/src/lib/` and let
@@ -1127,16 +1174,26 @@ exist; `grep -rn "src/lib/tracker-model\|src/shared/monitor" apps CLAUDE.md docs
 4. **Flint's brain stays out of the contract's board document.** Recommended default: yes, by decision 25; the Bridge
    keeps the field in its own type until stage 8 removes the brain.
 5. **Which command kinds join the contract.** Recommended default: exactly the kinds the Bridge sends today (34 new
-   kinds), with the Bridge guard of WP4.5 asking for more as views move. The alternative, all 76 kinds, puts the
+   kinds), with the Bridge guard of WP4.5 asking for more as views move. The alternative, all 79 kinds, puts the
    pipeline agent's and the product owner's relayed kinds under the contract, which no client sends.
 6. **Gaia stays at the forge version stage 3 left** and warns in `bun run check` until stage 6. Recommended default:
    yes; raising it needs Gaia's forge recordings taken again on a scratch forge, which is stage 6's work.
 7. **The root rules' tracker reach.** `CLAUDE.md:27` lists forge's reach by package. Recommended default: WP4.2 and
    WP4.3 add the two packages to the table, and the owner sets the reach in the board's `pipeline.json` when the boards
    are set up anew.
-8. **What the model exports.** Recommended default: only the modules something outside the package imports (73 today),
+8. **What the model exports.** Recommended default: only the modules something outside the package imports (81 today),
    so the modules the Board composes stay private. The alternative, every shipping module, is simpler to guard but
    invites callers past the Board.
+9. **The forge files outside both packages that the Bridge reaches.** Since `entities/integration`, the Bridge's include
+   list names `src/shared/OperationRefusal.ts`, three `src/shared/@types/` files, `RootOverrideVariable.ts`, three
+   wording utils of `src/adapters/utils/` and `src/lib/executable-resolver/ExecutableResolver.ts` beside the four shared
+   constants it named before ("Today's code"). This plan leaves them in forge, so the Bridge keeps reaching them by path
+   until stage 6 moves its views. Recommended default: leave them; stage 6 decides, view by view, whether a moved view
+   needs a wording the forge serves or a file of `board-readings` (which stage 0 would then have to name).
+10. **The contract package's version.** `forge-contracts` is at `1.0.0` while forge's system version went from 1.1 to
+    1.18 with no package minor, though the package's README makes a system minor a package minor. Recommended default:
+    WP4.4 raises it by one minor as written, to `1.1.0`; the alternative is to align it with the system minors first,
+    which only the owner decides, since an app depends on it by version range.
 
 ## Not established
 
@@ -1149,13 +1206,15 @@ exist; `grep -rn "src/lib/tracker-model\|src/shared/monitor" apps CLAUDE.md docs
 - How many type errors WP4.8 meets. Three mismatches were found by reading (the Baton warning, the notices, the fields
   behind the index signature); whether every view slice holds against the served state was not compiled.
 - Whether forge's appliers compile against `readonly` command types, and how many parameters WP4.5 must widen.
-- The exact list of command kinds: the count of 34 comes from a text scan of `kind: '<kind>'` in the Bridge's shipping
-  files, filtered against the 76 kinds; a kind sent through a computed value (as `overseer-pause` may be in
-  `bridge/shell/Header.tsx`) is not in that count. WP4.5 measures it from the syntax tree.
+- The exact list of command kinds after stages 2 and 3: the count of 34 comes from a syntax-tree scan of `kind` values
+  in the Bridge's shipping files at `0a648b2b`, filtered against the 79 kinds; a kind sent through a value other than
+  a string literal or a conditional of two (a variable, a call) is not in that count. WP4.5 measures it again.
+- Whether the served board state already carries what `entities/integration` added to the Bridge's documents (a
+  ticket's `entity` and `stage` in `PageTicketFactsDocument`, `entityAssignment`); WP4.8 finds out.
 - Whether any Gaia spec, beside the warning of `CheckSupportedForgeVersion.ts`, fails when forge's current version
   moves past `SUPPORTED_FORGE_VERSION`. Stages 2 and 3 raise it first and will show it.
 - Whether `apps/gaia/src/testing/ScratchForge.ts` can be driven outside a recording spec for the end-to-end check, or
   must be set up by hand.
-- The state of every cited file after stages 2 and 3: the counts and lines here are from `3e6cb660`.
+- The state of every cited file after stages 2 and 3: the counts and lines here are from `0a648b2b`.
 - Whether stage 2's `src/lib/talos/TalosClosure.spec.ts` keeps the Watcher spec's forbidden-folder list as planned;
   stage 2 is not built.

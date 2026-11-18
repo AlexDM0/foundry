@@ -22,7 +22,7 @@ here.
 | --- | --- | --- |
 | N1. The reconnect report | `regroup` (`apps/forge/src/services/overseer/Regrouping.ts`, as stage 2's WP2.13 item 2 leaves it), run once at start before the first pass: per job, `BoardChildren.livenessOf` answers `live`, `ended` with the `ChildEnd` Talos recorded, or `lost` (the child died with Talos, or the machine went down); a `lost` child is settled by `settleLostChild` (`src/services/overseer/TalosStart.ts`, stage 2's WP2.9) into `child-<i>.lost-cause`. Today's report shape is `RegroupingReport` (`Regrouping.ts:43-52`) | WP3.9 |
 | N2. The causes stage 2 adds | `talos-paused` (a clean quit of Talos) and `lease-ended`, both in `INTERRUPTION_CAUSES` (`apps/forge/src/lib/tracker-model/constants/JobStates.ts:73-82`, stage 2's WP2.11); both resume by themselves through the Playbook in stage 2 | WP3.1, WP3.2 |
-| N3. The crash causes | `CRASH_INTERRUPTION_CAUSES` (`JobStates.ts:88`), unchanged by stage 2: `watcher-lost` and `agent-crashed` | WP3.2 |
+| N3. The crash causes | `CRASH_INTERRUPTION_CAUSES` (`JobStates.ts:91`), unchanged by stage 2: `watcher-lost` and `agent-crashed` | WP3.2 |
 | N4. The network-outage ending | The interruption cause `network-outage` (stage 2's WP2.11), set by the pass when Talos's child record lists the recognised ending `network-outage` (stage 2's WP2.13 item 4.1), and stage 2's list `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage']` in `JobStates.ts`, which WP3.2 replaces with the resume policy table | WP3.1, WP3.2 |
 | N5. The lease renewer | `startLeaseRenewal` in `src/services/overseer/LeaseRenewal.ts` and its worker `LeaseRenewalThread.ts` (stage 2's WP2.9), renewing every `LEASE_RENEWAL_INTERVAL_MILLISECONDS` (`src/shared/constants/OverseerLimits.ts`) from its own thread and posting `renewed` notes back. It has no hook for another action: WP3.5 adds the heartbeat write to the thread | WP3.5 |
 | N6. A crash of Talos | The two `ensureTalos` call sites (`src/services/overseer/TalosStart.ts`): at start in `startServing`, and while serving after the connection closed or a child read `lost` (stage 2's WP2.13 item 13). Each answers `started` with `previousTalos: 'lost'` once it stopped the orphans and settled their jobs; stage 2 then serves on with a new Talos | WP3.7 |
@@ -66,7 +66,8 @@ From `docs/monorepo/hephaestus-talos.md` section 2:
 
 ## Today's code
 
-Paths are from `apps/forge/` unless they start with `packages/`.
+Paths are from `apps/forge/` unless they start with `packages/` or `apps/gaia/`. Rechecked against `main` after the
+entities work landed (forge system version 1.18, install version 36).
 
 | What exists | Where (path:line) | What happens to it |
 | --- | --- | --- |
@@ -74,60 +75,67 @@ Paths are from `apps/forge/` unless they start with `packages/`.
 | A Baton generation is created exclusively and the newest naming a live process is the Overseer | `src/services/overseer/Baton.ts:136-146` | Kept. The classification reads the newest dead generation (WP3.6) |
 | `Baton.release` unlinks the holder's generation at a stop | `src/services/overseer/Baton.ts:172-179` | Kept. A completed stop is now also written to presence, before the release (WP3.5) |
 | The Baton pass file and its states | `src/services/overseer/BatonPass.ts:28-35`, `:88-104` | Kept |
-| The successor's admission `predecessor-gone`, "starts as after a crash" | `src/services/overseer/BatonPass.ts:239-253`, `cli/overseer/OverseerForeground.ts:714` | Changed: classified `crashed`, and a successor is no start by the user, so it stays off (WP3.8) |
-| `release`: drive pass stopped, `overseer-stopped` `baton-passed` logged, server stopped | `cli/overseer/OverseerForeground.ts:649-658` | Changed: writes the presence ending `handed-over` (WP3.5) |
+| The successor's admission `predecessor-gone`, "starts as after a crash" | `src/services/overseer/BatonPass.ts:239-253`, `cli/overseer/OverseerForeground.ts:716` | Changed: classified `crashed`, and a successor is no start by the user, so it stays off (WP3.8) |
+| `release`: drive pass stopped, `overseer-stopped` `baton-passed` logged, server stopped | `cli/overseer/OverseerForeground.ts:651-660` | Changed: writes the presence ending `handed-over` (WP3.5) |
 | `closeTheStoppedOverseer`: logs `overseer-stopped` `stopped`, removes the registry entry, releases the Baton | `cli/overseer/OverseerForeground.ts:169-176` | Changed: writes the presence ending `stopped` and the registry presence `stopped` (WP3.5, WP3.8) |
-| `startServing`: binds, takes the Baton, logs `overseer-started` in one hold, then regroups | `cli/overseer/OverseerForeground.ts:398-646`, the start hold at `:561-568` | Changed: classifies the start before it binds, writes presence after the Baton, logs `start-classified` in the start hold (WP3.8) |
+| `startServing`: binds, takes the Baton, logs `overseer-started` in one hold, then regroups | `cli/overseer/OverseerForeground.ts:398-648`, the start hold at `:561-568` | Changed: classifies the start before it binds, writes presence after the Baton, logs `start-classified` in the start hold (WP3.8) |
 | The Overseer's logger appends `<data>/overseer.log` | `cli/overseer/OverseerForeground.ts:128-138` | Kept. Its tail goes into a crash log (WP3.7) |
-| The foreground loop's end: stop waits, then `closeTheStoppedOverseer` | `cli/overseer/OverseerForeground.ts:773-802` | Changed only through `closeTheStoppedOverseer` |
+| The foreground loop's end: stop waits, then `closeTheStoppedOverseer` | `cli/overseer/OverseerForeground.ts:775-804` | Changed only through `closeTheStoppedOverseer` |
 | The stop verbs | `cli/overseer/StopCommand.ts:13-20`, `cli/overseer/OverseerStop.ts:15-38` | Kept; they reach the presence ending through `closeTheStoppedOverseer` |
 | `start`: starts the Overseer detached unless one is live | `cli/overseer/StartCommand.ts:34-69` | Changed: passes the start origin `user` (WP3.8) |
 | `oversee` and its subcommands, `oversee status` | `cli/overseer/OverseerCommand.ts:63-84`, `:142-172`, `:174-180` | Changed: `--started-by`, presence in `oversee status`, a new `oversee crash` (WP3.8, WP3.13) |
 | `oversee resume` (`overseer-resume`): undoes a pause | `cli/overseer/OverseerCommand.ts:128-139` | Kept; the new verb `resume` is a different command (Traps) |
-| The detached start shared by `oversee --detach`, `start` and `open` | `cli/overseer/DetachedOverseerStart.ts:37-43` | Changed: carries the start origin (WP3.8) |
+| The detached start shared by `oversee --detach`, `start` and `open` | `cli/overseer/DetachedOverseerStart.ts:36-41` | Changed: carries the start origin (WP3.8) |
 | The macOS login item runs `oversee --detach` | `cli/setup/DarwinAutostart.ts:17-19` | Changed: `oversee --detach --started-by login-item`, and the same in the Linux and Windows autostart adapters (WP3.8) |
 | The registry's `overseer` key, written at start, `removed` at stop | `src/services/tracker/MonitorRegistration.ts:37-48` | Changed: a `presence` key beside it (WP3.8) |
+| Gaia reads only the keys it names from a board's registry entry | `apps/gaia/src/adapters/forge-registry/utils/RegistryMapUtil.ts:32-59` | Kept; it passes over the new `presence` key until stage 6 reads it |
 | A lost Watcher's cause: foreign boot `reboot`, a killed surviving child `watcher-lost`, else `agent-crashed` | `src/services/overseer/Regrouping.ts:96-124` | Replaced in stage 2 (N1). This stage maps the start's kind onto children that are gone with no end of their own (WP3.9) |
 | `Regrouping.regroup` before the first pass | `src/services/overseer/Regrouping.ts:223-244` | Replaced in stage 2 (N1) |
-| `DrivePass.regroup` wakes one forced pass after regrouping | `src/services/overseer/DrivePass.ts:1483-1492` | Changed: receives the start's classification and applies the reconcile causes (WP3.9) |
-| A pass that throws is logged and waits for the next wake-up | `src/services/overseer/DrivePass.ts:1458-1471` | Changed: named `pass-abandoned`, counted, written to presence, a notice after three in a row (WP3.11) |
-| The Overseer's notices, derived each pass | `src/services/overseer/DrivePass.ts:249-269` | Changed: the notice `passes-abandoned` (WP3.11) |
-| A lost or crashed session interrupts its job | `src/services/overseer/DrivePass.ts:574-576` | Changed by stage 2; not touched here |
+| `DrivePass.regroup` wakes one forced pass after regrouping | `src/services/overseer/DrivePass.ts:1578-1587` | Changed: receives the start's classification and applies the reconcile causes (WP3.9) |
+| A pass that throws is logged ("A drive pass failed and waits for the next wake-up") and waits for the next wake-up | `src/services/overseer/DrivePass.ts:1553-1566` | Changed: named `pass-abandoned`, counted, written to presence, a notice after three in a row (WP3.11) |
+| The Overseer's notices, derived each pass | `src/services/overseer/DrivePass.ts:280-301`, `noticesOf` at `:997-1025` | Changed: the notice `passes-abandoned` (WP3.11) |
+| The notices worded for `oversee status`, and for the Bridge header and the monitor snapshot's `{ kind, text }` | `cli/overseer/OverseerWording.ts:1044-1073`, `src/shared/monitor/utils/NoticeWordingUtil.ts:43-72` | Changed: the notice `passes-abandoned` (WP3.11) |
+| A lost or crashed session interrupts its job | `src/services/overseer/DrivePass.ts:614-615` | Changed by stage 2; not touched here |
 | The tracker lock gives up with `tracker-lock-held` | `src/services/tracker/TrackerLock.ts:262-278` | Kept. Named as a reason of an abandoned pass (WP3.11) |
-| The interruption causes | `src/lib/tracker-model/@types/Job.ts:70-84`, `src/lib/tracker-model/constants/JobStates.ts:73-82` | Changed: `forge-stopped` and `forge-crashed` added (WP3.1) |
-| `CRASH_INTERRUPTION_CAUSES`, `isCrash` | `src/lib/tracker-model/constants/JobStates.ts:87-88`, `src/lib/tracker-model/Playbook.ts:106-108` | Kept |
-| The Playbook's resume steps for interrupted jobs | `src/lib/tracker-model/Playbook.ts:369-389` | Changed: driven by the resume policy table (WP3.2) |
-| Past the crash bound a job is `replace-job`, ended `replaced` | `src/lib/tracker-model/Playbook.ts:311-314`, `:384` | Changed: past the bound the job waits (WP3.2) |
-| An interrupted product owner resumes; past the bound `refresh-intake` or `await-answer` | `src/lib/tracker-model/Playbook.ts:320-327` | Changed: follows the policy table; past the bound it waits, or waits `awaiting-answer` with a question open (WP3.2) |
-| A red handoff's own resume bound | `src/lib/tracker-model/Playbook.ts:357-367` | Kept |
-| Two counted crashes on different tickets open `outage` | `src/lib/tracker-model/Playbook.ts:131-151` | Kept |
-| `job-lost` after two `replaced` in a row | `src/lib/tracker-model/Playbook.ts:153-163`, `:407-417` | Kept; the crash bound no longer feeds it (Traps) |
-| `resume-job` and `replace-job` steps | `src/lib/tracker-model/@types/PlaybookStep.ts:22-27` | Changed: `resume-job` carries whether it was instructed (WP3.2) |
-| `Board.applyPlaybookStep` moves `resume-job` to `running` and ends `replace-job` `replaced` | `src/lib/tracker-model/Board.ts:691-738`, `:710-713` | Changed: an instructed resume (WP3.2) |
-| `Jobs.moveJob` counts a crash resume in `crashResumes` and logs `job-resumed` | `src/lib/tracker-model/Jobs.ts:131-143` | Changed: an instructed resume sets `crashResumes` to 0 (WP3.2) |
-| `Jobs.interruptJob` logs `job-interrupted` | `src/lib/tracker-model/Jobs.ts:145-153` | Kept |
+| The interruption causes, unchanged by the entities work | `src/lib/tracker-model/@types/Job.ts:77-91`, `src/lib/tracker-model/constants/JobStates.ts:73-82` | Changed: `forge-stopped` and `forge-crashed` added (WP3.1) |
+| `CRASH_INTERRUPTION_CAUSES`, `isCrash` | `src/lib/tracker-model/constants/JobStates.ts:90-91`, `src/lib/tracker-model/Playbook.ts:148-150` | Kept |
+| The Playbook's resume steps for interrupted jobs, with the pipeline agent's own hold | `src/lib/tracker-model/Playbook.ts:467-487` | Changed: driven by the resume policy table (WP3.2) |
+| Past the crash bound a job is `replace-job`, ended `replaced` | `src/lib/tracker-model/Playbook.ts:409-412`, `:482` | Changed: past the bound the job waits (WP3.2) |
+| An interrupted product owner resumes; past the bound `refresh-intake` or `await-answer` | `src/lib/tracker-model/Playbook.ts:414-425` | Changed: follows the policy table; past the bound it waits, or waits `awaiting-answer` with a question open (WP3.2) |
+| A red handoff's own resume bound | `src/lib/tracker-model/Playbook.ts:455-465` | Kept |
+| Two counted crashes on different tickets open `outage` | `src/lib/tracker-model/Playbook.ts:180-200` | Kept |
+| `job-lost` after two `replaced` in a row | `src/lib/tracker-model/Playbook.ts:202-212`, `:512-522` | Kept; the crash bound no longer feeds it (Traps) |
+| `resume-job` and `replace-job` steps | `src/lib/tracker-model/@types/PlaybookStep.ts:46-52` | Changed: `resume-job` carries whether it was instructed (WP3.2) |
+| `Board.applyPlaybookStep` moves `resume-job` to `running` (through `Board.moveJob`, `:467-469`) and ends `replace-job` `replaced` | `src/lib/tracker-model/Board.ts:824-882`, `:849-852` | Changed: an instructed resume (WP3.2) |
+| `Jobs.moveJob` counts a crash resume in `crashResumes` and logs `job-resumed` | `src/lib/tracker-model/Jobs.ts:137-149` | Changed: an instructed resume sets `crashResumes` to 0 (WP3.2) |
+| `Jobs.interruptJob` logs `job-interrupted` | `src/lib/tracker-model/Jobs.ts:151-159` | Kept |
 | The bound `JOB_RESUMES_BEFORE_FRESH: 2` | `src/shared/constants/LifecycleLimits.ts:12`, `src/lib/tracker-model/@types/LifecycleLimits.ts:7` | Renamed `CRASH_RESUMES_BEFORE_WAITING`, still 2 (WP3.2) |
-| The log record schema: `job-interrupted`, `job-resumed`, `overseer-started`, `overseer-stopped` | `src/lib/tracker-model/constants/LogRecordSchema.ts:277-278`, `:304-305` | Changed: `start-classified`, `job-resume-instructed`, `job-line-lost` added (WP3.1, WP3.10) |
-| The log wording of `overseer-started` and `overseer-stopped` | `src/adapters/utils/LogUtil.ts:276-279` | Changed: words the new records (WP3.1, WP3.10) |
-| `FailedPassUtil`: a ticket's "failed passes" are failed job outcomes | `src/lib/tracker-model/utils/FailedPassUtil.ts:1-4` | Kept. The name is taken, so an abandoned pass is never called a failed pass (Traps) |
-| A failed vendor resume ends the job `replaced` and opens `resume-failed` | `src/services/overseer/JobResumption.ts:83-103` | Kept |
-| `job fresh` on a job with no session ends it `replaced`, so the next attempt launches | `src/lib/tracker-model/JobControls.ts:55-75`, `src/services/control/JobControls.ts:50-53` | Kept. It is the instruction "start fresh instead" for a waiting job |
+| The log record schema: `job-interrupted`, `job-resumed`, `overseer-started`, `overseer-stopped` | `src/lib/tracker-model/constants/LogRecordSchema.ts:293-294`, `:325-326`; the field shapes at `:19-80`, among them `optional-count` (added by the entities work) and `optional-flag` | Changed: `start-classified`, `job-resume-instructed`, `job-line-lost` added (WP3.1, WP3.10) |
+| The log wording of `overseer-started` and `overseer-stopped` | `src/adapters/utils/LogUtil.ts:293-296` | Changed: words the new records (WP3.1, WP3.10) |
+| Each log field shape's copy, a record keyed by every shape | `src/adapters/log/utils/LogRecordMappingUtil.ts:53-115` | Changed: the two new value shapes (WP3.1) |
+| `FailedPassUtil`: a ticket's "failed passes" are failed job outcomes, counted per entity and stage since the entities work, and reset by `ticket-unheld` | `src/lib/tracker-model/utils/FailedPassUtil.ts:1-6`, `:74-75` | Kept. The name is taken, so an abandoned pass is never called a failed pass (Traps) |
+| A failed vendor resume ends the job `replaced` and opens `resume-failed` (a merge agent opens none) | `src/services/overseer/JobResumption.ts:105-121` | Kept |
+| `job fresh` on a job with no session ends it `replaced`, so the next attempt launches | `src/lib/tracker-model/JobControls.ts:51-76`, `src/services/control/JobControls.ts:60-63` | Kept. It is the instruction "start fresh instead" for a waiting job |
 | The control service's appliers | `src/services/control/ControlService.ts:27-43` | Changed: `RESUME_CONTROLS` added (WP3.3) |
-| The role policy for relayed commands | `src/services/control/Bouncer.ts:47-80` | Changed only if it would admit the new kind for an agent role (WP3.3) |
+| The role policy for relayed commands: allowlists per role, the Assistant only an incident move | `src/services/control/Bouncer.ts:59-99`, `:202-211` | Changed only if it would admit the new kind for an agent role (WP3.3) |
 | The verbs `job show`, `attach`, `message`, `wind-down`, `stop`, `fresh` | `cli/jobs/JobCommand.ts:188-195` | Kept |
-| The command table | `cli/CommandTable.ts:11-47` | Changed: `resume` (WP3.3) |
+| The command table | `cli/CommandTable.ts:11-48` | Changed: `resume` (WP3.3) |
 | The command route takes every control kind | `cli/overseer/routes/CommandRoute.ts:52-55` | Kept; it takes the new kind with no change |
 | The read routes | `src/services/overseer/OverseerServer.ts:534-585` | Changed: `presence` (WP3.12) |
-| The top-level `status` writes a notice to standard error for an unreadable hold journal | `cli/tracking/status/StatusCommand.ts:36-44` | Changed: the same kind of notice for a forge off after a crash (WP3.13) |
+| The top-level `status` writes a notice to standard error for an unreadable hold journal | `cli/tracking/status/StatusCommand.ts:39-43` | Changed: the same kind of notice for a forge off after a crash (WP3.13) |
 | The command kinds Gaia may send | `packages/forge-contracts/@types/ForgeControlCommand.ts:9-18` | Changed: `interrupted-work-resume` (WP3.3) |
-| The forge system version 1.1 | `packages/forge-contracts/constants/ForgeSystemVersions.ts:14-17` | Raised by one minor over what stage 2 left (WP3.3, WP3.12) |
-| The compatibility registry's endpoints | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:56-66` | Changed: `presence` at version 1 (WP3.12) |
-| The process supervision port; no boot time | `src/lib/process-identity/ProcessSupervision.ts:38-58` | Changed: `bootStartedAtEpochSeconds` (WP3.4) |
-| macOS reads the boot through `sysctl kern.bootsessionuuid` | `src/lib/process-identity/DarwinProcessIdentity.ts:14-15`, `:48` | Changed: also reads `kern.boottime` (WP3.4) |
-| An orphaned merge-in is aborted and its slot freed and requeued | `src/services/overseer/Airlocks.ts:580-585` | Changed: after a start that waits, the ticket is held `interrupted:merge` instead of retried (WP3.9) |
-| An Airlock agent that ended otherwise leaves the slot orphaned and requeued | `src/services/overseer/Airlocks.ts:716-731` | Changed the same way (WP3.9) |
-| A parked candidate gives up its slot | `src/services/overseer/Airlocks.ts:982-1000` | Kept; the `interrupted:` hold is read beside `parked:` (WP3.9) |
-| A lost gate or install Watcher reads as a line that never ran | `src/services/overseer/JobLaunch.ts:404-425` | Replaced by stage 2 (N7). This stage turns a lost line into a wait (WP3.10) |
+| The forge system version 1.18 | `packages/forge-contracts/constants/ForgeSystemVersions.ts:40-43` | Raised by one minor over what stage 2 left (WP3.3, WP3.12) |
+| The compatibility registry's endpoints; the server serves each one not yet removable, mapping `/api/v<n>/<endpoint>` onto its unversioned route | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:38-49`; `src/services/overseer/OverseerServer.ts:601-619` | Changed: `presence` at version 1 (WP3.12) |
+| The process supervision port; no boot time | `src/lib/process-identity/ProcessSupervision.ts:39-70` | Changed: `bootStartedAtEpochSeconds` (WP3.4) |
+| macOS reads the boot through `sysctl kern.bootsessionuuid` | `src/lib/process-identity/DarwinProcessIdentity.ts:14-15`, `:49` | Changed: also reads `kern.boottime` (WP3.4) |
+| An orphaned merge-in or refresh is aborted and its slot freed and requeued | `src/services/overseer/Airlocks.ts:792-797` | Changed: after a start that waits, the ticket is held `interrupted:merge` instead of retried (WP3.9) |
+| An Airlock agent that ended otherwise leaves the slot orphaned and requeued | `src/services/overseer/Airlocks.ts:990-1007` |
+| A constitution commit cut short, or whose commit does not read back, ends `orphaned` | `src/services/overseer/Airlocks.ts:1443-1450`, `:1483-1485`, `:1516` | Changed the same way (WP3.9) | Changed the same way (WP3.9) |
+| A parked candidate gives up its slot | `src/services/overseer/Airlocks.ts:1326-1344` | Kept; the `interrupted:` hold is read beside `parked:` (WP3.9) |
+| A held ticket is no merge candidate: the selection keeps `in-review` tickets with no hold | `src/lib/tracker-model/AirlockClaims.ts:166-169` | Kept; an `interrupted:` hold keeps its ticket out of the queue with no change (WP3.9) |
+| A held or merge-queued ticket never launches | `src/lib/tracker-model/Playbook.ts:387-397` | Kept |
+| `ticket-unheld` starts a fresh attempt: it resets the builder's return from review and, since the entities work, from its needs | `src/lib/tracker-model/Playbook.ts:309-339` | Kept; lifting an `interrupted:` hold must not log it (WP3.3, Traps) |
+| A lost gate or install Watcher reads as a line that never ran | `src/services/overseer/JobLaunch.ts:552-573` | Replaced by stage 2 (N7). This stage turns a lost line into a wait (WP3.10) |
 | The crash, reboot and update matrix | `src/services/overseer/CrashMatrix.integration.spec.ts:382-997`, `CrashMatrix.spec.ts`, `CrashMatrix.merges.spec.ts` | Changed: the rows listed in WP3.14 |
 | Retired names that no file may hold | `src/ComponentNames.spec.ts:28-63` | Kept. No new name contains one (Traps) |
 
@@ -152,11 +160,13 @@ Order and parallelism:
 | WP3.13 The CLI path: status, crash, resume | WP3.8 | WP3.11, WP3.12 |
 | WP3.14 The crash matrix | every other package | none: alone, last |
 
-Packages that run in parallel touch no common file: WP3.1 and WP3.2 stay in `src/lib/tracker-model/` and
-`src/shared/constants/`; WP3.4 stays in `src/lib/process-identity/`; WP3.5 to WP3.7 create new files under
-`src/services/overseer/`; WP3.5 and WP3.7 both touch `cli/overseer/OverseerForeground.ts` (and WP3.7 the `ensureTalos`
-call site of stage 2's pass), and WP3.7 runs after WP3.5. WP3.11 and WP3.13 share no file: WP3.11 changes
-`DrivePass.ts`, `cli/overseer/OverseerWording.ts` and creates `AbandonedPassReason.ts`; WP3.13 changes
+Packages that run in parallel touch no common file: WP3.1 and WP3.2 stay in `src/lib/tracker-model/`,
+`src/shared/constants/` and the log and refusal tables named below (`src/adapters/`, `MonitorSnapshotAssembly.ts`,
+`docs/reference/refusals.md`), which no package beside them touches; WP3.4 stays in `src/lib/process-identity/`; WP3.5
+to WP3.7 create new files under `src/services/overseer/`; WP3.5 and WP3.7 both touch
+`cli/overseer/OverseerForeground.ts` (and WP3.7 the `ensureTalos` call site of stage 2's pass), and WP3.7 runs after
+WP3.5. WP3.11 and WP3.13 share no file: WP3.11 changes `DrivePass.ts`, `cli/overseer/OverseerWording.ts`,
+`src/shared/monitor/utils/NoticeWordingUtil.ts` and creates `AbandonedPassReason.ts`; WP3.13 changes
 `cli/overseer/OverseerCommand.ts`, `cli/tracking/status/StatusCommand.ts`, `cli/HelpText.ts` and `docs/cli.md`, and
 words its own lines in `OverseerCommand.ts`, never in `OverseerWording.ts`. Each package ends with the root's
 `bun run verify` green, and a package that changes `DrivePass.ts`, `OverseerForeground.ts` or `Playbook.ts` runs alone
@@ -164,7 +174,13 @@ among packages that touch the same file.
 
 Every package follows the repository's rules: `apps/forge/CLAUDE.md`, the owner's conventions, full names, one purpose
 per file, specs beside their modules opening with a docblock, no fixed sleeps, and `docs/cli.md` updated in the same
-package when a command, flag, file format or exit code changes.
+package when a command, flag, file format or exit code changes. Two tables are keyed by every member, so the type
+checker asks for a row in the same package: a new log record kind takes its wording in `src/adapters/utils/LogUtil.ts`
+and its category in `ACTIVITY_CATEGORY_OF_KIND` (`src/services/overseer/MonitorSnapshotAssembly.ts:72`, what the
+monitor's activity shows; `null` keeps it out); a new refusal (a `BoardRefusal` reason or an `OperationRefusal` detail
+kind) takes its sentences in `src/adapters/utils/OperationRefusalWordingUtil.ts`, a sample in
+`OperationRefusalWordingUtil.apiEveryDetail.spec.ts` and a row in `apps/forge/docs/reference/refusals.md`. That holds
+for WP3.1, WP3.3 and WP3.10 (records) and WP3.2, WP3.3, WP3.8 and WP3.13 (refusals).
 
 ### WP3.1 Causes, the resume policy table and the log vocabulary
 
@@ -183,6 +199,8 @@ write, with no change of behaviour yet.
 - Change `apps/forge/src/lib/tracker-model/@types/LogRecord.ts` and
   `apps/forge/src/lib/tracker-model/constants/LogRecordSchema.ts`: the records `start-classified` and
   `job-resume-instructed` (Interfaces introduced), with their field value kinds.
+- Change `apps/forge/src/adapters/log/utils/LogRecordMappingUtil.ts`: a copy for each new value shape in
+  `COPY_FOR_FIELD_SHAPE` (`:53-115`), which the compiler asks for once the shapes join `LogFieldShape`.
 - Change `apps/forge/src/adapters/utils/LogUtil.ts`: the wording of both records and of the two new causes.
 - Change `docs/cli.md` (from `apps/forge/`): the log records and the causes, in the section that lists them.
 
@@ -196,7 +214,10 @@ write, with no change of behaviour yet.
    `waits-for-instruction` and, once its bound is spent, `resumes-twice-then-waits`.
 4. Add the two log records to the record union and to `LogRecordSchema` with `subject` and field kinds:
    `start-classified` with subject `board`, `job-resume-instructed` with subject `job`. Add the value kinds the schema
-   needs (`start-kind`, `start-origin`) the way `overseer-stop-reason` is added (`@types/LogRecord.ts:76`).
+   needs (`start-kind`, `start-origin`) the way `overseer-stop-reason` is added (`LogRecordSchema.ts:50`,
+   `@types/LogRecord.ts:82`, `LogRecordMappingUtil.ts:53-115`). The optional fields use the shapes that exist:
+   `optional-count` (added by the entities work) for `previousGeneration` and `crashLogGeneration`, `optional-flag` for
+   `crashSuspected`.
 5. Word both records in `LogUtil` in plain sentences, naming the kind of start and the job.
 
 **Specs.**
@@ -206,8 +227,10 @@ write, with no change of behaviour yet.
   `forge-crashed`, `lease-ended` and `network-outage` are `waits-for-instruction`; `answer-delivery`, `handoff-red`,
   `usage-limit` and `talos-paused` are `resumes-by-itself`; `forced-stop-refused` is `never-resumes`;
   `authentication-failed` is `resumes-once-decision-answered`.
-- The existing `LogRecordSchema` and `LogUtil` specs (`src/lib/tracker-model/constants/*.spec.ts`,
-  `src/adapters/utils/LogUtil.spec.ts` if present) gain a case per new record. A stored log line of each round-trips.
+- The existing log specs gain a case per new record: `src/adapters/utils/LogUtil.spec.ts` (the wording),
+  `src/lib/tracker-model/Board.logRecords.spec.ts` and `src/adapters/log/LogRecordProblem.spec.ts` (the schema; there is
+  no `LogRecordSchema` spec of its own). A stored log line of each round-trips
+  (`src/adapters/log/LogFileIngestion.spec.ts`).
 
 **Done when.** At the repository root, `bun install --frozen-lockfile` and `bun run verify` pass. In `apps/forge/`,
 `bun test src/lib/tracker-model` passes, and `bun test src/ComponentNames.spec.ts` passes.
@@ -222,16 +245,20 @@ twice and then waits; an instructed resume starts a fresh count.
 - Change `apps/forge/src/lib/tracker-model/Playbook.ts`.
 - Change `apps/forge/src/lib/tracker-model/@types/PlaybookStep.ts`: `resume-job` gains `instructed: boolean`; the
   comment on `replace-job` says it is only for an Assistant that went down.
-- Change `apps/forge/src/lib/tracker-model/Board.ts` (`applyPlaybookStep`, `:710-713`) and
-  `apps/forge/src/lib/tracker-model/Jobs.ts` (`moveJob`, `:131-143`).
+- Change `apps/forge/src/lib/tracker-model/Board.ts` (`applyPlaybookStep`, `:849-852`, and `moveJob`, `:467-469`) and
+  `apps/forge/src/lib/tracker-model/Jobs.ts` (`moveJob`, `:137-149`).
 - Change `apps/forge/src/lib/tracker-model/Board.ts` and `apps/forge/src/lib/tracker-model/Jobs.ts`: a method
   `instructResume(jobId, at)` that logs `job-resume-instructed`.
 - Change `apps/forge/src/lib/tracker-model/@types/LifecycleLimits.ts` and
   `apps/forge/src/shared/constants/LifecycleLimits.ts`: rename `JOB_RESUMES_BEFORE_FRESH` to
   `CRASH_RESUMES_BEFORE_WAITING`, value 2, and every reader (`grep -rn JOB_RESUMES_BEFORE_FRESH apps/forge`, which
-  includes `src/lib/tracker-model/testing/LifecycleWorld.ts:238` and the fixtures).
-- Change the specs `apps/forge/src/lib/tracker-model/Playbook.spec.ts` (and its aspect suites, `ls
-  src/lib/tracker-model/Playbook*.spec.ts`), `apps/forge/src/lib/tracker-model/Board.jobs.spec.ts`.
+  includes `src/lib/tracker-model/testing/LifecycleWorld.ts:238`, `testing/LifecycleFixtures.ts:35`, the comments in
+  `@types/PlaybookStep.ts:47` and `src/services/overseer/UsageLimits.ts:42`, and the specs that spell the limits out,
+  among them `src/services/tracker/TrackerReader.stageCounts.spec.ts:48`, which the entities work added).
+- Change the specs `apps/forge/src/lib/tracker-model/Playbook.spec.ts` (`:365-367` pins the crash bound) and the aspect
+  suites that read the bound or the replace step: `Playbook.redHandoff.spec.ts` (`:67`) and `Board.lifecycle.spec.ts`
+  (`:188`); the other suites (`Playbook.entityCaps`, `.forecast`, `.interleavings`, `.needs`, `.reviewPhase`, `.stages`)
+  stay green. And `apps/forge/src/lib/tracker-model/Board.jobs.spec.ts`.
 
 **What to do.**
 
@@ -241,19 +268,20 @@ twice and then waits; an instructed resume starts a fresh count.
    clock.
 2. Add `resumePolicyOf(job, limits)`: the table's policy for `job.interruption`, where `resumes-twice-then-waits` reads
    as `waits-for-instruction` once `job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING`.
-3. Rewrite `crashBoundStepsOf` (`:375-389`) around the policy, keeping its holds exactly:
-   - `forced-stop-refused`: no step, as today (`:377`).
+3. Rewrite `crashBoundStepsOf` (`:472-487`) around the policy, keeping its holds exactly:
+   - `forced-stop-refused`: no step, as today (`:475`).
    - `handoff-red`: `redHandoffStepsOf`, unchanged.
    - An Assistant (`SESSION_JOB_KINDS` holds `assistant` and `product-owner`; split it so only `assistant` keeps
      `replace-job`): `replace-job`, unchanged.
    - `resumes-by-itself`, or `resumes-twice-then-waits` with resumes left: `resume-job` with `instructed: false` under
-     today's holds (`resumesAreHeld`, `jobResumeIsHeld`, `jobAwaitsAnAnswer`; the pipeline agent's own hold).
+     today's holds (`resumesAreHeld`, `jobResumeIsHeld`, `jobAwaitsAnAnswer`; the pipeline agent's own hold,
+     `pipelineAgentResumesAreHeld`, `:483`, which neither the missing pipeline nor the pause holds).
    - `waits-for-instruction` (including a spent crash bound) and `resumes-once-decision-answered`: a `resume-job` with
      `instructed: true` only when `resumeIsInstructed` is true, under the same holds; otherwise no step. For
      `resumes-once-decision-answered` keep today's behaviour exactly: `authenticationHolds` holds every resume until the
      decision is answered, then it resumes by itself.
    - `never-resumes`: no step.
-4. Rewrite `productOwnerStepsOf` (`:320-327`): `awaiting-answer` is unchanged; an interrupted product owner follows the
+4. Rewrite `productOwnerStepsOf` (`:414-425`): `awaiting-answer` is unchanged; an interrupted product owner follows the
    same policy; past the crash bound with a question open it moves `await-answer` (no process, no work); past the bound
    with no question it waits for an instruction, and an instruction resumes it by id. `refresh-intake` stays only for an
    `awaiting-answer` product owner whose questions are answered.
@@ -261,10 +289,11 @@ twice and then waits; an instructed resume starts a fresh count.
    stage 2's `INTERRUPTION_CAUSES_HELD_FROM_RESUMING` (`JobStates.ts`, N4) and its two reads in `crashBoundStepsOf` and
    `productOwnerStepsOf`: the table's `network-outage` row says the same once, so a later answer of the owner changes
    one row.
-6. In `Board.applyPlaybookStep`, `resume-job` calls `this.jobRules.moveJob(step.jobId, 'running', at, { instructed:
-   step.instructed })`. In `Jobs.moveJob`, an instructed resume sets `crashResumes` to 0 instead of adding one, and logs
-   `job-resumed` with a new field `instructed: true` only when instructed (an optional field written only when set, as
-   the stored-file rules ask). Add `instructed` to the `job-resumed` schema entry as an optional boolean.
+6. In `Board.applyPlaybookStep`, `resume-job` calls `this.moveJob(step.jobId, 'running', at, { instructed:
+   step.instructed })`, and `Board.moveJob` passes the option on to `this.jobRules.moveJob`. In `Jobs.moveJob`, an
+   instructed resume sets `crashResumes` to 0 instead of adding one, and logs `job-resumed` with a new field
+   `instructed: true` only when instructed (an optional field written only when set, as the stored-file rules ask). Add
+   `instructed` to the `job-resumed` schema entry as an optional boolean.
 7. Add `Board.instructResume(jobId, at)`: refuses with `BoardRefusal` reason `job-not-interrupted` unless the job is
    `interrupted`; logs `job-resume-instructed` with the job's `childInstance` (stage 2's name, WP2.16). Add
    `Board.instructResumeOfEveryInterruptedJob(at)` returning the logged records of every interrupted job whose policy
@@ -304,6 +333,12 @@ applies commands.
 - Create `apps/forge/cli/resume/ResumeCommand.ts` and `apps/forge/cli/resume/ResumeCommand.spec.ts`: a folder of its
   own, as `cli/CommandTable.spec.ts` asks of a new command.
 - Change `apps/forge/cli/CommandTable.ts` and `apps/forge/cli/HelpText.ts`.
+- Change `apps/forge/src/lib/tracker-model/TicketSettings.ts` (beside `unholdTicket`, `:152-159`) and
+  `apps/forge/src/lib/tracker-model/Board.ts` (beside `unholdTicket`, `:1407-1409`): `liftInterruptedHold(ticketId,
+  at)`, and the record `ticket-interrupted-hold-lifted` in `@types/LogRecord.ts`, `constants/LogRecordSchema.ts`,
+  `src/adapters/utils/LogUtil.ts` and `ACTIVITY_CATEGORY_OF_KIND`
+  (`src/services/overseer/MonitorSnapshotAssembly.ts:72`). Only if the owner keeps the default (Needs the owner, item
+  9); otherwise the applier calls `unholdTicket`.
 - Change `packages/forge-contracts/@types/ForgeControlCommand.ts` and
   `packages/forge-contracts/constants/ForgeSystemVersions.ts`: the kind, and the current minor raised by one.
 - Change `apps/forge/docs/cli.md` and `apps/forge/docs/reference/overseer-api.md`: the verb and the command kind.
@@ -317,10 +352,16 @@ applies commands.
    - `{ ticketReference }`: resolve the ticket as `TicketControls` resolves references (`ControlTicketLookup.ts`); for
      its one job, if interrupted, `instructResume`; if the ticket holds a hold starting with `INTERRUPTED_HOLD_PREFIX`
      (WP3.9; until WP3.9 lands, the prefix constant is created here in
-     `src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts` beside `PARKED_HOLD_PREFIX`), unhold it through
-     the Board's unhold. Refuse `ticket-not-interrupted` when neither applies.
-   - `'all'`: `instructResumeOfEveryInterruptedJob` plus the unhold of every ticket holding an `interrupted:` hold. With
+     `src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts` beside `PARKED_HOLD_PREFIX`, `:71`), lift it
+     with `board.liftInterruptedHold`. Refuse `ticket-not-interrupted` when neither applies.
+   - `'all'`: `instructResumeOfEveryInterruptedJob` plus the lift of every ticket holding an `interrupted:` hold. With
      nothing to resume, answer `{ changed: false }` so the service reports `nothing-to-do`.
+   - Why not `unholdTicket`: its `ticket-unheld` record starts a fresh attempt. It resets the failed passes
+     (`FailedPassUtil.ts:74-75`, per entity and stage since the entities work), the builder's return from review
+     (`Playbook.ts:313-323`) and, since the entities work, the return from its needs (`:329-339`). A merge held by a
+     crash is no person's unhold. `liftInterruptedHold` refuses `ticket-not-interrupted` unless the hold starts with
+     `INTERRUPTED_HOLD_PREFIX`, deletes the hold and logs `ticket-interrupted-hold-lifted` with the lifted hold, which
+     none of those readers counts. `ticket unhold <T>` stays a person's unhold, with its resets.
 3. Write `cli/resume/ResumeCommand.ts`: `resume <J|T> [--json]` and `resume --all [--json]`. A job id starts with
    `JOB_ID_PREFIX` (`J`); anything else is a ticket reference. It records through `recordIncidentMove` the way `job
    fresh` does (`cli/jobs/JobCommand.ts:172-185`), so it works with the Overseer up or down, and prints "Recorded. The
@@ -328,18 +369,21 @@ applies commands.
    where the Bouncer refuses it.
 4. Add the verb to `cli/CommandTable.ts` and a block to `cli/HelpText.ts`.
 5. Add the kind to `ForgeControlCommand` and to forge's pin of it, `CONTROL_CONTRACT_KINDS`
-   (`apps/forge/src/shared/constants/OverseerApiContracts.ts`), and raise `FORGE_SYSTEM_VERSIONS.current.minor` by one
-   over the value stage 2 left; the change only adds.
+   (`apps/forge/src/shared/constants/OverseerApiContracts.ts:26-36`, nine kinds today), and raise
+   `FORGE_SYSTEM_VERSIONS.current.minor` by one over the value stage 2 left (1.18 before stage 2); the change only adds.
 6. In `docs/cli.md`, document the verb, its refusals and exit codes; in `docs/reference/overseer-api.md`, the command.
-   Check `cli/InstalledSurface.spec.ts` against `cli/FrozenInstalledSurface.json`: if the frozen surface lists verbs,
-   update it, bump `INSTALL_VERSION` by hand and run `bun run record src/services/overseer/InstallChangeWatch.ts`, as
+   The frozen surface (`cli/FrozenInstalledSurface.json`, per `INSTALL_VERSION`, 36 today) lists only the commands and
+   flags the installed files name (`cli/InstalledSurface.spec.ts:1-9`), so a new verb that no installed file names bumps
+   nothing. Only if this package makes an installed file (a skill, the Assistant brief, the reference) name `resume`:
+   add a key for a bumped `INSTALL_VERSION` and run `bun run record src/services/overseer/InstallChangeWatch.ts`, as
    `apps/forge/CLAUDE.md` asks.
 
 **Specs.**
 
 - `ResumeControls.spec.ts`: a job target logs one `job-resume-instructed`; a ticket target lifts an `interrupted:merge`
-  hold and instructs its interrupted job; `all` covers both; a running job is refused `job-not-interrupted`; an unknown
-  ticket is refused as `TicketControls` refuses one; nothing interrupted is `nothing-to-do`.
+  hold, logging `ticket-interrupted-hold-lifted` and no `ticket-unheld`, and instructs its interrupted job; `all` covers
+  both; a running job is refused `job-not-interrupted`; an unknown ticket is refused as `TicketControls` refuses one;
+  nothing interrupted is `nothing-to-do`.
 - `ResumeCommand.spec.ts`: the verb parses `J12`, `12`, `--all`, refuses a positional together with `--all`, and refuses
   extra positionals with the usage.
 - `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/ControlContract.spec.ts`,
@@ -348,9 +392,13 @@ applies commands.
 - `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts` stays green; the contract package's own specs
   pass.
 
+- `src/lib/tracker-model/Board.ticketSettings.spec.ts`: `liftInterruptedHold` refuses a `parked:` hold and a ticket with
+  no hold; after a lift, `FailedPassUtil.failedPassesOf` reads the same count as before it.
+
 **Done when.** `bun run verify` passes at the root; in `apps/forge/`, `bun test src/services/control cli/resume
-cli/CommandTable.spec.ts cli/HelpText.spec.ts` passes; Gaia's `check` warns that `SUPPORTED_FORGE_VERSION` is behind
-forge's current version, and fails nothing.
+cli/CommandTable.spec.ts cli/HelpText.spec.ts` passes; Gaia's `check` still warns that `SUPPORTED_FORGE_VERSION` (1.1
+today, `apps/gaia/src/lib/forge-client/constants/SupportedForgeVersions.ts:9`) is behind forge's current version, and
+fails nothing.
 
 ### WP3.4 Boot start time in the process supervision port
 
@@ -360,7 +408,7 @@ forge's current version, and fails nothing.
 
 - Change `apps/forge/src/lib/process-identity/ProcessSupervision.ts`: `bootStartedAtEpochSeconds: () => number | null`.
 - Change `apps/forge/src/lib/process-identity/DarwinProcessIdentity.ts`: read `sysctl -n kern.boottime` through the same
-  injected primitive that reads `kern.bootsessionuuid` (`:14-15`, `:48`), and parse its `sec = <n>` field.
+  injected primitive that reads `kern.bootsessionuuid` (`:14-15`, `:49`), and parse its `sec = <n>` field.
 - Change `apps/forge/src/lib/process-identity/LinuxProcessIdentity.ts`: read the `btime` line of `/proc/stat`.
 - Change `apps/forge/src/lib/process-identity/WindowsProcessIdentity.ts` and
   `apps/forge/src/lib/process-identity/UnsupportedProcessSupervision.ts`: answer `null` (the refinement is then off).
@@ -404,7 +452,7 @@ its stop or handover completed.
 - Change `apps/forge/src/services/overseer/OverseerFiles.ts`: `presenceFilePath`, `heartbeatFilePath` and
   `crashLogDirectory` under `overseerDirectory`.
 - Change `apps/forge/cli/overseer/OverseerForeground.ts`: the ending `stopped` in `closeTheStoppedOverseer` (`:169-176`)
-  and the ending `handed-over` in `release` (`:649-658`); the heartbeat file and the generation handed to the lease
+  and the ending `handed-over` in `release` (`:651-660`); the heartbeat file and the generation handed to the lease
   renewal at its start.
 - Change `apps/forge/src/services/overseer/LeaseRenewal.ts` and `LeaseRenewalThread.ts` (stage 2's renewer, N5): the
   facts posted to the thread gain `heartbeatFilePath` and `generation`, and the thread writes the heartbeat after each
@@ -430,7 +478,8 @@ its stop or handover completed.
    of one writer loses the other's. During a Baton pass the predecessor keeps renewing until it exits (stage 2's WP2.13
    item 10), so two renewers run at once: a renewer writes the heartbeat only while the stored heartbeat's generation
    is not above its own, and never overwrites a successor's beat.
-6. A clock rule note at the heartbeat write: a heartbeat measures real time, which the rules allow; one sentence.
+6. No clock comment at the heartbeat write: a heartbeat is one of the real-time measures the clock rules of
+   `apps/forge/CLAUDE.md` name (rewritten on 2026-11-18), and only code that does not obey them carries a comment.
 
 **Specs.** `Presence.spec.ts` proves: a record round-trips; a missing file is `absent`; a malformed file and another
 version are `unreadable`; `writeEnding` for an older generation leaves a newer record as it was; the heartbeat sequence
@@ -562,7 +611,8 @@ only after a crash when the user started it, and records its kind.
   the gate is a service that `oversee status` (WP3.13) reads too.
 - Change `apps/forge/src/services/tracker/MonitorRegistration.ts`: an optional `presence` registration (Interfaces
   introduced), written beside `overseer`, kept as stored when absent from a call.
-- Change the refusal wording util (`grep -rn "apiMessageOf" apps/forge/src/adapters`): the refusal
+- Change `apps/forge/src/adapters/utils/OperationRefusalWordingUtil.ts`, its sample in
+  `OperationRefusalWordingUtil.apiEveryDetail.spec.ts` and `apps/forge/docs/reference/refusals.md`: the refusal
   `forge-off-after-crash`.
 - Change `apps/forge/docs/cli.md`: `--started-by`, the refusal and its exit code, the presence files.
 
@@ -602,8 +652,9 @@ only after a crash when the user started it, and records its kind.
 - `cli/overseer/OverseerCommand.spec.ts`: `--started-by` parses, refuses an unknown value and refuses it beside
   `--successor-of`.
 - The autostart specs: each platform's line ends `oversee --detach --started-by login-item`.
-- `src/services/tracker/MonitorRegistration` specs (`ls src/services/tracker/MonitorRegistration*.spec.ts`): the
-  presence key is written, and a call without it keeps the stored one.
+- The registry's specs (`MonitorRegistration.ts` has none of its own: `cli/overseer/OverseerCommand.spec.ts:199` and
+  `cli/RegisterWrittenTracker.integration.spec.ts:222` call `registerWithTheMonitor`): the presence key is written, and
+  a call without it keeps the stored one.
 
 **Done when.** `bun run verify` passes at the root; in `apps/forge/`, `bun test src/services/overseer/StartGate.spec.ts
 cli/overseer cli/setup` passes.
@@ -615,16 +666,18 @@ and an Airlock left half done is made truthful and held, so nothing interrupted 
 
 **Files.**
 
-- Change `apps/forge/src/services/overseer/DrivePass.ts`: stage 2's start step (today `regroup`, `:1483-1492`) takes the
-  classification from `DrivePassRequest.startClassification`.
+- Change `apps/forge/src/services/overseer/DrivePass.ts`: stage 2's start step (today `regroup`, `:1578-1587`) takes the
+  classification from `DrivePassRequest.startClassification` (`DrivePassRequest`, `:209`).
 - Create `apps/forge/src/services/overseer/ReconcileCauses.ts` and `ReconcileCauses.spec.ts`: the pure map from the
   start's kind to the cause of a child gone with no end of its own.
-- Change `apps/forge/src/services/overseer/Airlocks.ts`: the orphan paths at `:580-585` and `:716-731`, and the slot
-  advance at `:990-1000`.
+- Change `apps/forge/src/services/overseer/Airlocks.ts`: the orphan paths, each ending its job with
+  `REQUEUE_CAUSES.orphaned` (`:258`): a merge-in or refresh mid-merge at `:792-797`, an Airlock agent at `:990-1007`, a
+  constitution commit at `:1443-1450`, `:1483-1485` and `:1516`; and the slot advance at `:1334-1344`. The same paths
+  serve a crossing ticket's stage landing and an entity's constitution commit since the entities work.
 - Change `apps/forge/src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts`: `INTERRUPTED_HOLD_PREFIX =
   'interrupted:'` if WP3.3 did not create it, and the hold `interrupted:merge`.
-- Change the Playbook's `ticketIsHeld` only if a hold of any reason does not already hold the ticket
-  (`Playbook.ts:290-291` says it does; confirm).
+- No change to the Playbook's `ticketIsHeld`: a hold of any reason, and a merge-queued ticket, already hold the ticket
+  (`Playbook.ts:387-388`).
 
 **What to do.**
 
@@ -645,10 +698,11 @@ and an Airlock left half done is made truthful and held, so nothing interrupted 
    (`CrashMatrix.merges.spec.ts:96`, `:219`, `:242`, `:332`): recording it is reconcile. While the forge stays up, an
    orphan made by an agent crash keeps today's requeue. Read stage 0's trace of what an Airlock leaves half done first
    and follow it where it says more.
-5. `advanceTheSlot` (`Airlocks.ts:990-1000`) treats a holder whose ticket holds an `interrupted:` hold as waiting, never
-   as parked: it neither aborts nor advances it.
-6. Confirm that the Airlock's candidate selection skips a held ticket; if it does not, skip one that holds an
-   `interrupted:` hold.
+5. `advanceTheSlot` (`Airlocks.ts:1334-1344`) treats a holder whose ticket holds an `interrupted:` hold as waiting,
+   never as parked (it reads `PARKED_HOLD_PREFIX` at `:1338`): it neither aborts nor advances it.
+6. The Airlock's candidate selection already skips a held ticket (`AirlockClaims.ts:166-169` keeps `in-review`
+   tickets with no hold, and `:109-110` only merge-queued ones), so the unqueued, held ticket stays out of the queue
+   with no change there.
 
 **Specs.**
 
@@ -672,10 +726,12 @@ instruction runs the line again.
 **Files.**
 
 - Change `apps/forge/src/services/overseer/JobLaunch.ts`: stage 2's `lineEndOf` (N7; it replaced today's
-  `processWatcherEnd`, `:404-425`) answers a fourth verdict, `lost`, for a newest instance that reads `lost`, where
-  stage 2 answers `rerun`; `rerun` stays only for an end `paused`.
+  `processWatcherEnd`, `:552-556`, read by the install steps at `:583`, the gate steps at `:812` and the review's
+  target catch-up merges at `:938` and `:1017`) answers a fourth verdict, `lost`, for a newest instance that reads
+  `lost`, where stage 2 answers `rerun`; `rerun` stays only for an end `paused`.
 - Change `apps/forge/src/lib/tracker-model/@types/LogRecord.ts`, `constants/LogRecordSchema.ts`,
-  `apps/forge/src/adapters/utils/LogUtil.ts`: the record `job-line-lost`.
+  `apps/forge/src/adapters/utils/LogUtil.ts` and `ACTIVITY_CATEGORY_OF_KIND` in
+  `apps/forge/src/services/overseer/MonitorSnapshotAssembly.ts`: the record `job-line-lost`.
 - Change `apps/forge/src/lib/tracker-model/Board.ts` and `Jobs.ts`: `recordLineLost(jobId, line, cause, at)`.
 - Change `apps/forge/src/lib/tracker-model/Playbook.ts` only to export `resumeIsInstructed` for the launch to read.
 
@@ -706,11 +762,17 @@ pass, counted, and shown.
 
 **Files.**
 
-- Change `apps/forge/src/services/overseer/DrivePass.ts`: `drain` (`:1458-1471`), `OverseerNotice` (`:249-269`),
-  `noticesOf`, and `OverseerStateDocument` (`:274-283`).
+- Change `apps/forge/src/services/overseer/DrivePass.ts`: `drain` (`:1553-1566`), `OverseerNotice` (`:280-301`),
+  `noticesOf` (`:997-1025`), and `OverseerStateDocument` (`:306-315`).
 - Create `apps/forge/src/services/overseer/AbandonedPassReason.ts` and its spec: the pure reading of a thrown value into
   a reason.
-- Change `apps/forge/cli/overseer/OverseerWording.ts`: the notice's wording; its spec.
+- Change `apps/forge/cli/overseer/OverseerWording.ts`: the notice's wording in `noticeTextOf` (`:1044-1073`), which
+  `oversee status` prints; it has no spec of its own, so create the aspect suite
+  `cli/overseer/OverseerWording.notices.spec.ts`.
+- Change `apps/forge/src/shared/monitor/utils/NoticeWordingUtil.ts` (`noticeTextOf`, `:43-72`) and its spec: the same
+  notice for the Bridge header and the monitor snapshot, which carries each notice as `{ kind, text }`
+  (`packages/forge-contracts/@types/MonitorSnapshotDocument.ts:89-92`, `kind` a string), so the contract does not
+  change. Without it the Bridge shows the bare kind.
 
 **What to do.**
 
@@ -724,11 +786,13 @@ pass, counted, and shown.
 3. `noticesOf` adds `{ kind: 'passes-abandoned', inARow, reason }` once the count reaches
    `ABANDONED_PASSES_BEFORE_NOTICE` (3). It is a notice, never a crash: the forge keeps running. Whether an unexpected
    error should instead stop the forge is the owner's (Needs the owner, item 4).
-4. Never call this a "failed pass" in code, wording or docs: `FailedPassUtil` owns that name.
+4. Never call this a "failed pass" in code, wording or docs: `FailedPassUtil` owns that name. Today's line, "A drive
+   pass failed and waits for the next wake-up" (`DrivePass.ts:1562`), is the one item 2 rewords.
 
-**Specs.** `AbandonedPassReason.spec.ts`: one claim per reason. A `DrivePass` spec: a pass whose hold throws
-`tracker-lock-held` three times in a row raises the notice and writes the count to presence; the next completed pass
-clears both; the pass is retried at the next wake-up.
+**Specs.** `AbandonedPassReason.spec.ts`: one claim per reason. `OverseerWording.notices.spec.ts` and
+`NoticeWordingUtil.spec.ts`: the notice's sentence names the count and the reason. A `DrivePass` spec: a pass whose hold
+throws `tracker-lock-held` three times in a row raises the notice and writes the count to presence; the next completed
+pass clears both; the pass is retried at the next wake-up.
 
 **Done when.** `bun run verify` passes at the root; the specs pass in `apps/forge/`.
 
@@ -743,15 +807,19 @@ clears both; the pass is retried at the next wake-up.
 - Change `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts`: a helper
   `endpointAddedIn(endpoint, version, introducedIn)` beside `currentEndpointOf`, which dates every entry
   `introducedIn: FIRST_VERSIONED_FORGE` (`ForgeCompatibilityRegistry.ts:16-25`), and the entry
-  `endpointAddedIn('presence', 1, <this stage's forge version>)`, so a client built for an older minor is served no
-  `presence`; stages 4 and 6 reuse the helper. And `ForgeSystemVersions.ts` if WP3.3 has not already raised the minor
-  in this stage (raise it once per stage).
-- Change `packages/forge-contracts/constants/OverseerContractVersions.ts` if it lists endpoints.
+  `endpointAddedIn('presence', 1, <this stage's forge version>)` in `FORGE_COMPATIBILITY_REGISTRY` (`:38-49`), so the
+  registry dates it truly for `versions:raise-minimum`. The date gates nothing: the server serves every endpoint entry
+  not yet removable (`servedEndpointsOf`, `OverseerServer.ts:601-606`), and a client learns what a forge serves from
+  its system version. Stages 4 and 6 reuse the helper. And `ForgeSystemVersions.ts` if WP3.3 has not already raised the
+  minor in this stage (raise it once per stage).
+- No change to `packages/forge-contracts/constants/OverseerContractVersions.ts`: it lists the integer contract keys of
+  the documents released before system versions, not endpoints, and the presence document carries no such key.
 - Create `apps/forge/src/services/overseer/PresenceDocumentAssembly.ts` and its spec: the document from presence, the
   board and the crash logs.
 - Change `apps/forge/src/services/overseer/OverseerServer.ts` (`dataRouteOf`, `:535-552`) and the route record in
-  `cli/overseer/routes/OverseerRoutes.ts`: `GET /api/v1/presence` behind the token, served the way the other versioned
-  reads are mapped.
+  `cli/overseer/routes/OverseerRoutes.ts`: the route `GET /api/presence` behind the token. `/api/v1/presence` then needs
+  no route of its own: `requestAtUnversionedPath` (`OverseerServer.ts:608-619`) maps a served `/api/v<n>/<endpoint>`
+  onto its unversioned route once the registry lists `presence` at 1, and answers 404 for a version it does not serve.
 - Change `apps/forge/docs/reference/overseer-api.md`.
 
 **What to do.**
@@ -766,7 +834,8 @@ clears both; the pass is retried at the next wake-up.
 
 **Specs.** The assembly spec: a reboot-interrupted job is listed as waiting for an instruction; an agent crashed once is
 listed as resuming by itself; an `interrupted:merge` ticket is listed; the crash logs are listed newest last. An
-`OverseerServer` spec: the route answers 401 without the token and the document with it. The contract package's specs
+`OverseerServer` spec: the route answers 401 without the token and the document with it, at `/api/presence` and at
+`/api/v1/presence`, and `/api/v2/presence` answers 404. The contract package's specs
 pass, and the registry spec holds the new endpoint.
 
 **Done when.** `bun run verify` passes at the root; in `apps/forge/`, `bun test src/services/overseer/PresenceDocument
@@ -782,7 +851,7 @@ resumes the work.
 - Change `apps/forge/cli/overseer/OverseerCommand.ts`: `printOverseerStatus` (`:142-172`) and a subcommand `crash` in
   `OVERSEE_SUBCOMMANDS` (`:174-180`).
 - Change `apps/forge/cli/tracking/status/StatusCommand.ts`: one line on standard error when the forge is off after a
-  crash, beside the hold-journal notice (`:38-44`).
+  crash, beside the hold-journal notice (`:39-43`).
 - Change `apps/forge/cli/HelpText.ts`, `apps/forge/docs/cli.md`.
 - Change the specs `cli/overseer/OverseerCommand.spec.ts`, `cli/tracking/status/StatusCommand.spec.ts`,
   `cli/HelpText.spec.ts`; check `cli/InstalledSurface.status.spec.ts`.
@@ -909,12 +978,15 @@ An answer to a question of the job, logged after its newest interruption, counts
 | `job-resume-instructed` | job | `childInstance`: the job's instance at the instruction (`Job.childInstance`, stage 2's WP2.16) |
 | `job-resumed` (changed) | job | adds `instructed: true`, written only for an instructed resume |
 | `job-line-lost` | job | `line`: `'gate' \| 'install'`; `cause`: interruption cause |
+| `ticket-interrupted-hold-lifted` | ticket | `hold`: text, the `interrupted:` hold lifted. Logged in place of `ticket-unheld`, so no fresh attempt starts and no count resets (WP3.3; Needs the owner, item 9) |
 
 ### Ticket hold
 
 `INTERRUPTED_HOLD_PREFIX = 'interrupted:'` in `src/lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts`; the
-one hold this stage writes is `interrupted:merge`. It holds the ticket as every hold does, and `resume <T>`,
-`resume --all` and `ticket unhold <T>` lift it.
+one hold this stage writes is `interrupted:merge`. It holds the ticket as every hold does, and keeps it out of the
+merge queue (`AirlockClaims.ts:166-169`). `resume <T>` and `resume --all` lift it through
+`Board.liftInterruptedHold(ticketId, at)`, logging `ticket-interrupted-hold-lifted`; `ticket unhold <T>` lifts it as a
+person's unhold, logging `ticket-unheld` with its resets.
 
 ### Control command
 
@@ -1087,8 +1159,9 @@ It only adds, so the registry's version stays; a reader that knows the version p
 
 ### Read API
 
-`GET /api/v1/presence`, behind the bearer token, listed in `FORGE_COMPATIBILITY_REGISTRY` as `presence` version 1; the
-forge's system version rises by one minor in this stage.
+`GET /api/v1/presence`, behind the bearer token, listed in `FORGE_COMPATIBILITY_REGISTRY` as `presence` version 1 and
+answered by the unversioned route `GET /api/presence`, as every versioned read is; the forge's system version rises by
+one minor in this stage, over the 1.18 of today plus whatever stage 2 raised.
 
 ```ts
 // packages/forge-contracts/@types/ForgePresenceDocument.ts
@@ -1137,8 +1210,8 @@ export interface ForgePresenceDocument {
 - **Two writers on one file lose updates.** The lease renewer may run outside the main event loop (N5). If it wrote
   `presence.json`, a read-modify-write from the main thread (an ending, an abandoned pass) could overwrite a heartbeat
   or the other way round. The heartbeat has its own file and its own writer.
-- **A stop that is not a stop.** The Overseer also ends on `baton-taken` (`OverseerForeground.ts:793-796`), on a lost
-  port after a failed Baton pass (`:681-692`) and after a crash of Talos (N6). Only `closeTheStoppedOverseer` writes
+- **A stop that is not a stop.** The Overseer also ends on `baton-taken` (`OverseerForeground.ts:795-798`), on a lost
+  port after a failed Baton pass (`:683-694`) and after a crash of Talos (N6). Only `closeTheStoppedOverseer` writes
   `stopped`, and only `release` writes `handed-over`. A crash of Talos must leave no ending, or the next start reads it
   as on purpose and serves.
 - **`closeTheStoppedOverseer` also runs from the CLI for a dead Overseer** (`OverseerStop.ts:15-20`, a forced or
@@ -1152,9 +1225,11 @@ export interface ForgePresenceDocument {
   sleep that ended in a dead battery; that is why the suspected crash serves until the owner decides.
 - **An unreadable boot identity reads as another boot** (`ProcessIdentity.ts:44-46`): a crash on a machine whose boot
   cannot be read reads as the machine going down. Keep `sameBoot`'s rule; the spec states it as a known misreading.
-- **The clock rules.** The heartbeat and the boot time are real time, which the rules allow. Judging "crash suspected"
-  from their difference uses a timestamp to decide a fact, which the rules forbid; the site carries the one-sentence
-  comment the rules ask for. Every count here (crash resumes, abandoned passes) is a count, never an elapsed time.
+- **The clock rules** (`apps/forge/CLAUDE.md`, rewritten on 2026-11-18). A heartbeat is real time, which the rules
+  name, and the boot time is an instant an outside system names. Judging "crash suspected" from their difference takes a
+  fact from a clock, against "a clock gives no fact"; that site alone carries the comment the rules ask of code that
+  does not obey them. Every limit here that looks back on work (crash resumes, abandoned passes) is a count, never an
+  elapsed time.
 - **Process handlers can change how the process dies.** A plain `uncaughtException` listener stops Bun from exiting on
   an uncaught error, so the forge would keep running broken. Use the monitor event, or rethrow after the note; and never
   call `process.exit` outside the files `eslint.config.js` allows.
@@ -1167,19 +1242,24 @@ export interface ForgePresenceDocument {
   `resume`, worded in help as "resume interrupted work". `src/ComponentNames.spec.ts:28-63` retires `handing-over`,
   `lease-taken-over`, `Reattachment` and `RunnerLease` among others: the ending is `handed-over`, never `handing-over`,
   and no new identifier may contain a retired name.
-- **`job-lost` goes quiet.** `job-lost` opens after two `replaced` endings in a row (`Playbook.ts:153-163`), and the
+- **`job-lost` goes quiet.** `job-lost` opens after two `replaced` endings in a row (`Playbook.ts:202-212`), and the
   crash bound was what produced most of them. After WP3.2 only a failed vendor resume and `job fresh` end a job
   `replaced`. Keep the rule; do not invent a new trigger here.
-- **The outage count still counts crashes.** `outageIsDueWith` (`Playbook.ts:139-151`) counts `job-interrupted` records
+- **The outage count still counts crashes.** `outageIsDueWith` (`Playbook.ts:188-200`) counts `job-interrupted` records
   of crash causes. `forge-crashed`, `forge-stopped` and `reboot` are not crash causes, so a board coming back after a
   crash with several interrupted jobs does not also open `outage`. Keep them out of `CRASH_INTERRUPTION_CAUSES`.
 - **An instruction must not outlive its interruption.** `resumeIsInstructed` compares the newest instruction with the
   newest interruption (or lost line) of the job in log order. A test that only checks "an instruction exists" passes
   while a stale instruction resumes a later interruption by itself.
 - **An instructed resume still obeys every hold.** Usage limit, install change, outage, refused key and a missing
-  pipeline hold an instructed resume too (`Playbook.ts:526-533`); the instruction stays in the log and is carried out
+  pipeline hold an instructed resume too (`Playbook.ts:763-771`); the instruction stays in the log and is carried out
   when the hold clears. Do not move the job to `running` in the command's hold: that would bypass the holds and the
   slots.
+- **An unhold starts a fresh attempt.** `ticket-unheld` resets a ticket's failed passes (`FailedPassUtil.ts:74-75`),
+  its builder's return from review (`Playbook.ts:313-323`) and, since the entities work, its return from declared needs
+  (`:329-339`). Lifting an `interrupted:merge` hold with `unholdTicket` would make a crash reset those counts, and a
+  later red merged tree would launch a fresh builder instead of resuming the one that built it. WP3.3 lifts it with a
+  record of its own; a spec proves the failed-pass count reads the same across the lift.
 - **A launch decided before a crash is not interrupted work.** A job launched in the hold and never spawned is
   re-spawned at the next start (`CrashMatrix.integration.spec.ts:681`). It never ran, so it keeps that behaviour; do not
   let WP3.9 interrupt it.
@@ -1224,7 +1304,7 @@ The end-to-end check on a scratch forge. Neither app's rules let anyone run a fo
 the scratch forge of `apps/gaia/src/testing/ScratchForge.ts`, which runs `apps/forge/agent-progress.ts` under a scratch
 home, in a scratch repository, with `FORGE_ROOT` pinned and the forge's fake agent. Use it, or the same setup by hand
 (a scratch home under a short scratch root, the fake agent variable `FAKE_AGENT_VARIABLE` of
-`apps/forge/src/shared/Environment.ts:29` set, `--port 0`), and check, in order:
+`apps/forge/src/shared/Environment.ts:26` set, `--port 0`), and check, in order:
 
 1. `init`, file one ticket whose fake agent waits, `start`: `oversee status --json` shows `presence.lastStart.kind`
    `first-start`.
@@ -1293,6 +1373,12 @@ home, in a scratch repository, with `FORGE_ROOT` pinned and the forge's fake age
    the rest of the registry. A crash itself writes nothing, so until a start classifies it Gaia sees `serving` with a
    dead process. Recommended default: as built; stage 6 (WP6.21) reads that as "down".
 
+9. **Whether lifting a hold a crash put on starts a fresh attempt.** Built here: `resume` lifts an `interrupted:` hold
+   with `Board.liftInterruptedHold`, which logs `ticket-interrupted-hold-lifted`, so the failed passes, the builder's
+   return from review and the return from its needs are kept (Traps). The fork: lift it with `unholdTicket`, as a
+   person's unhold, and accept the resets, which needs no new record. Recommended default: as built, because the hold
+   records a crash, not a decision of the user about the ticket.
+
 ## Not established
 
 - Stage 2's code for every need N1 to N9: stage 2 is not built, so the names in the table come from its plan
@@ -1301,14 +1387,14 @@ home, in a scratch repository, with `FORGE_ROOT` pinned and the forge's fake age
   runtime behaviour was not checked.
 - How `kern.boottime` reads through the existing `sysctl` primitive of `DarwinProcessIdentity.ts`, and what Windows can
   answer for the boot start; WP3.4 answers `null` on Windows.
-- Whether the Airlock's candidate selection already skips a held ticket: `Airlocks.ts:434` checks `hold` for a regated
-  ticket and `:994` for a parked holder, but the selection itself was not traced.
-- What an Airlock leaves half done at each step (stage 0's trace); WP3.9's holds are built on today's orphan paths at
-  `Airlocks.ts:580-585` and `:716-731` only.
-- Whether `cli/FrozenInstalledSurface.json` lists the verbs, so whether adding `resume` bumps `INSTALL_VERSION`.
-- Whether the versioned path `/api/v1/<endpoint>` is mapped onto the unversioned route names in `OverseerServer.ts` or
-  elsewhere; the routes read at `OverseerServer.ts:535-585` use unversioned paths.
-- Whether Gaia's registry reader passes over an unknown key inside a board's entry, as its rule 3 says for documents.
+- What an Airlock leaves half done at each step (stage 0's trace); WP3.9's holds are built on today's orphan paths
+  (`Airlocks.ts:792-797`, `:990-1007`, `:1443-1450`, `:1483-1485`, `:1516`) only. The crossing stages and entity
+  constitutions of the entities work reach the same paths, but their half-done steps were not traced either.
 - Whether driving `apps/gaia/src/testing/ScratchForge.ts` outside a recording spec is supported, for the end-to-end
   check.
-- The aspect suites of `Playbook.spec.ts` and the existing `LogUtil` and `MonitorRegistration` specs by exact file name.
+
+Settled when the plan was rechecked after the entities work: the Airlock's candidate selection skips a held ticket
+(`AirlockClaims.ts:166-169`); the frozen installed surface lists only what installed files name, so the verb `resume`
+bumps no install version by itself (WP3.3); a served `/api/v<n>/<endpoint>` is mapped onto its unversioned route
+(`OverseerServer.ts:608-619`); Gaia's registry reader reads only the keys it names (`RegistryMapUtil.ts:32-59`); and the
+spec files are named in WP3.1, WP3.2 and WP3.8.

@@ -88,7 +88,7 @@ The orchestrator stops and reports, and does not work around, any of these:
 | G0 | Before anything runs | Says go, and names the integration branch if it is not `hephaestus-talos` |
 | G1 | During stage 0 | Records a session that ends on a network outage (WP0.3; the stage file gives the steps) |
 | G2 | Before WP0.5 | Answers the owner decisions: fills in `owner-decisions.html` and hands over its JSON |
-| G3 | WP1.2 | Settles the open branches and uncommitted edits, and stops both live trackers and their login items |
+| G3 | WP1.2 | Confirms the base is settled (the entities branch and its worktree removed, the main checkout clean), and stops both live trackers and their login items |
 | G4 | End of WP2.13 | Asks for `bun run verify:integration`, which forge's rules allow only on a person's word |
 | G5 | Before WP6.4 | Approves the changes to the rule files a person owns (`.claude/rules/*`, the root `CLAUDE.md`) |
 | G6 | Before stage 9, and after it | Stops every forge and removes the login items before; pulls, sets up and sets the boards up anew after |
@@ -112,26 +112,28 @@ otherwise. Each stage ends with its stage file's "Verification of the whole stag
 | 0-C | WP0.5 | After WP0.1 and gate G2 |
 | 0-D | WP1.1 | After WP0.5; may run beside WP0.4 |
 | 0-E | WP1.2 | Alone. Gate G3: the owner acts, the agent only prepares and records |
-| 0-F | Refresh the plan | Only when a branch landed on `main` in WP1.2, `entities/integration` above all. See below |
+| 0-F | Refresh the plan | Ran first, before 0-A, on the owner's word: `entities/integration` had landed on `main` before the run. Runs again only when a branch lands on `main` in WP1.2. See below |
 | 0-G | WP1.3 | Alone, last: the stage's gate |
 
 **Refreshing the plan after a branch landed.** The stage files were written against `main` at `3e6cb660`. A branch that
-lands after that makes their statements about the code stale: `entities/integration` alone changes 399 files, the
-Playbook and the job's fields among them, and raises forge from 1.9 to 1.11. So when WP1.2 landed a branch, the
-integration branch is cut from the new `main`, and before stage 2 starts the orchestrator runs one agent per stage
-file, side by side, each with this brief: "The repository changed since
+lands after that makes their statements about the code stale: `entities/integration` alone changed 526 files, the
+Playbook and the job's fields among them, and raised forge from 1.9 to 1.18. It landed before the run started, so the
+integration branch was cut from `e9b5d057` and the refresh ran before 0-A, against `0a648b2b`. When WP1.2 lands another
+branch (`main` moves past `e9b5d057`), the integration branch takes the new `main`, and before stage 2 starts the
+orchestrator runs the refresh again: one agent per stage file, side by side, each with this brief: "The repository changed since
 `docs/monorepo/hephaestus-talos-implementation/<stage file>` was written; `git diff 3e6cb660..main --stat` shows where.
 Recheck every row of 'Today's code', every path and line a work package names, and every entry of 'Interfaces
 introduced' against the code as it is now. Correct the file where the code moved; where a change of the branch makes a
 work package wrong, larger or unneeded, rewrite that package and say so in your report. Change nothing but that stage
 file." A checker then reads the seven reports for packages whose order or interfaces changed and corrects this
-schedule to match. WP0.2's baseline of the recovery specs is run again on the new `main`.
+schedule to match. WP0.2's baseline of the recovery specs is run again on the new `main` when it ran before that
+`main`.
 
 ### Stage 2: `stage-2-talos.md`
 
 | Group | Packages | Notes |
 | --- | --- | --- |
-| 2-A | WP2.1, WP2.2, WP2.3 | Side by side |
+| 2-A | WP2.1, WP2.2, WP2.3 | Side by side. WP2.2's fake-agent outage recording is the owner's (stage file, "Needs the owner" item 14); no package waits on it, only the stage's verification step 7 |
 | 2-B | WP2.4 | Alone |
 | 2-C | WP2.5, WP2.6, WP2.11 | Side by side |
 | 2-D | WP2.7 | Alone |
@@ -164,7 +166,7 @@ schedule to match. WP0.2's baseline of the recovery specs is run again on the ne
 | Group | Packages | Notes |
 | --- | --- | --- |
 | 4-A | WP4.1 | Alone |
-| 4-B | WP4.2 | Alone. A long session that cannot be split: the model moves with its 438 importers in one commit |
+| 4-B | WP4.2 | Alone. A long session that cannot be split: the model moves with its 548 importers (1,332 import lines) in one commit |
 | 4-C | WP4.3 | Alone |
 | 4-D | WP4.4 | Alone |
 | 4-E | WP4.5, WP4.6, WP4.7 | Side by side. WP4.5 and WP4.6 both append to `packages/forge-contracts`; the second rebases |
@@ -195,8 +197,8 @@ schedule to match. WP0.2's baseline of the recovery specs is run again on the ne
 | 6-F | WP6.7 | Alone |
 | 6-G | WP6.8 | Alone |
 | 6-H | WP6.9 | Alone |
-| 6-I | WP6.10, WP6.11, WP6.12, WP6.18, WP6.19, WP7.1 | Side by side. Each adds one line to three shared files; each rebases before it lands and keeps the others' lines |
-| 6-J | WP6.13, WP6.14, WP6.15, WP6.16, WP6.17, WP6.20 | Side by side, with the same three shared lines |
+| 6-I | WP6.10, WP6.11, WP6.12, WP6.18, WP6.19, WP7.1 | Side by side. Each adds one line to three shared files; each rebases before it lands and keeps the others' lines. WP6.19 stops at its step 4 until the owner settles where forge's refusal wording lives (stage file, "Needs the owner" item 12) |
+| 6-J | WP6.13, WP6.14, WP6.15, WP6.16, WP6.17, WP6.20 | Side by side, with the same three shared lines; `pipeline.css` is already linked and listed by WP6.8, so WP6.20 only adds rules to it. WP6.13 to WP6.17 need only WP6.12 and may start while WP6.19 waits on the owner; WP6.20 needs WP6.19 |
 | 6-K | WP6.21 | Alone |
 | 6-L | WP6.22 | Alone |
 | 6-M | WP6.23 | Alone, last: Gaia retires the frame |

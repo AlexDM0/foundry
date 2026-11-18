@@ -27,7 +27,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 0-C | WP0.5 | waiting | | |
 | 0-D | WP1.1 | waiting | | |
 | 0-E | WP1.2 | waiting | | |
-| 0-F | Refresh the plan | running | | Owner moved it before 0-A: `entities/integration` had already landed on `main` (93 commits since `3e6cb660`) |
+| 0-F | Refresh the plan | landed | | Ran before 0-A on the owner's word; stage files now checked against `0a648b2b`. Runs again only if WP1.2 lands another branch |
 | 0-G | WP1.3 | waiting | | |
 | 2-A | WP2.1 | waiting | | |
 | 2-A | WP2.2 | waiting | | |
@@ -127,4 +127,27 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 
 ## Where the code differed from a stage file
 
-Nothing recorded yet.
+The refresh (0-F) corrected all seven stage files against `0a648b2b`. Changes later packages depend on:
+
+- WP0.2 baselines three more resume specs (`JobResumption.entities`, `.adapt`, `.airlockOwner`); WP0.3/WP0.4 name the recorded Claude Code version (now 2.1.327) and add `retry_wait_ms`.
+- WP1.2 is smaller: the edits are committed and `entities/integration` landed; it removes the branch and its worktree.
+- WP2.2 moves to `FakeAgentAdapter.ts` behind `FAKE_AGENT_NETWORK_OUTAGE`; WP2.5's `ChildRecord` gains `workingDirectory` and a `ClientEntry` type; forge's system version raise is 1.19.
+- WP4.2 moves 548 importers (1,332 import lines), not 438.
+- Stages 0, 4 and 6 disagree on where the refusal wording lives (`OperationRefusal.ts`, `OperationRefusalWordingUtil.ts` and kin); the owner settles it at G2.
+
+## Owner questions the refresh raised (for gate G2, beyond `owner-decisions.html`)
+
+1. Where forge's refusal wording that the Bridge now reaches lives (`src/shared/OperationRefusal.ts`, three `src/shared/@types` files, `OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`, `TicketPhraseUtil.ts`, `ExecutableRefusalCause`, `ExecutableResolver.ts`). Proposed default: `packages/board-readings`, moved in stage 4.
+2. Six shared constants the Bridge reaches (`ProductNames`, `RootOverrideVariable`, `DispatchProtocol`, `OverseerLimits`, `OverseerApiContracts`, `TimestampSlices`) have no stage-4 home. Proposed default: `packages/board-readings`.
+3. Gaia's `SUPPORTED_FORGE_VERSION` is 1.1 while forge is 1.18: catch up before stage 6, or stay until then?
+4. `forge-contracts` is still package version 1.0.0: may WP4.4 raise it to 1.1.0 as written, or align it with the system minors first?
+5. Does the vocabulary-package option (owner item 1) stay open now that it would have to take `BoardRefusal.ts` and eight utils?
+6. Stage 3, item 9: may resume lift an `interrupted:merge` hold without a fresh attempt, keeping the failed-pass counts? Default: `Board.liftInterruptedHold`, counts kept.
+7. Stage 5: does `reads.readPipeline()` answer the stored pipeline (default) or the reading `writeTracker` opens the Board on?
+8. Stage 2: who records the fake agent's network-outage scenario, and when? Only stage 2's verification step 7 waits on it.
+9. Stage 2: does Flint's `watcher-spark` attendant keep its name in stage 2?
+10. Stage 2: may Talos's child record keep the launch's `workingDirectory`, or should the Overseer keep that in a job-folder file?
+11. Stage 8: should `gate assistant` refuse with `assistant-without-pipeline` when no pipeline is stored, as `gate approval` does?
+12. Stage 9, item 14: `pipeline.json` is read in versions 2, 3 and 4; does "one format, number 5, read and written alone" still hold?
+13. Stage 9, item 17: does it also cover the constitution preview (the board's and each entity's become Markdown Gaia renders)?
+14. Stage 8, item 10: `.readme-graphics/render-readme.js` imports `marked`; keeping that folder blocks WP8.8 from dropping `marked`.
