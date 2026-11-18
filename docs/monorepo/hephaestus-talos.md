@@ -26,6 +26,30 @@ and Hephaestus drives Talos, which commands every child process of the board.](f
 The Bridge as a separate program goes away: its views become part of Gaia, in one design. The name Zeus is reserved for a future allocator
 of tickets across the forges of a team; nothing of it is built.
 
+**The monorepo** holds two apps, two shared packages, and three libraries inside Gaia's page:
+
+```
+apps/forge/   Hephaestus, Talos, the CLI, the read and command API; the whole tracker model, the readings, the wording
+apps/gaia/    the one interface: server (src/) and page (page/)
+              page/lib/design-system, page/lib/flint, page/lib/brand: libraries, each behind its interface file
+              page/board/: the board's views, moved from forge's Bridge
+packages/forge-contracts/   the wire: the documents forge serves and the commands Gaia sends
+packages/system-versions/   version comparison, for both apps and the contract
+```
+
+- forge and Gaia share only `forge-contracts` and `system-versions`. Neither app imports the other. Code that belongs to
+  an app stays in that app; code moves to `packages/` only when two apps really consume it, and is generalised first.
+- The tracker model, its spec helpers, the readings (`src/shared/monitor`) and the refusal wording stay in `apps/forge`.
+  There is no `tracker-model` package and no `board-readings` package.
+- The contract's types stand on their own and import nothing from forge's model. Forge maps its model into the
+  contract's documents, and the contract's commands into its model, in typed adapters of its own.
+- Gaia maps each forge document into its own model at its boundary (`src/adapters/forge-api`) and serves its page a
+  contract of its own. The page imports no forge code and no `forge-contracts` type.
+- `design-system`, `flint` and `brand` are libraries of Gaia's page, since Gaia is their only consumer once the Bridge
+  is deleted. Each is a top-level folder of `page/lib/` with no `package.json`, independent of the others and of
+  Gaia's features, with its own specs and description. Code outside a library imports only its interface file; inside
+  a library a file imports exactly what it needs, with no barrels. A guard holds this.
+
 ## 2. Decisions
 
 1. The Overseer becomes Hephaestus, without the interface. Talos takes the Watcher's place.
@@ -40,21 +64,22 @@ of tickets across the forges of a team; nothing of it is built.
 7. Talos quits cleanly when it has to quit: it waits for each agent's turn to end, for at most 10 seconds of real time.
    Losing a few turns per agent in the worst case is acceptable.
 8. Talos persists its state either way. An agent that it recorded as paused is resumed automatically.
-9. Talos holds a supervision lease of one minute, measured in real time, which Hephaestus renews every 15 seconds. A
-   Talos that Hephaestus has not contacted for one minute stops its agents.
+9. Talos holds a supervision lease of one minute, measured in real time, which Hephaestus renews every 15 seconds while
+   its passes make progress. A Talos whose lease has not been renewed for one minute stops its agents.
 10. The lease counts the time a machine spent asleep, but sleep alone stops no agent. After a wake, Talos waits one
     renewal interval for Hephaestus to make contact before it stops its agents, or two where the interval is shorter
     than five seconds. A sleeping laptop on which nothing crashed causes no interruption and no recovery.
 11. The forge cannot ask the user anything by itself. A user question halts its ticket, is persisted so it survives a
     reboot, and is never decided by the forge. The forge follows a fixed, programmed workflow, and the user is a step
-    in it. The forge keeps each question with its context, its choices and a recommendation, and Gaia shows it. The
+    in it. The forge keeps each question with its context, its choices and a recommendation, and Gaia shows it; the
+    vendor's mark of the recommended choice becomes a field of the decision document, so it stays visible. The
     session that asked is parked and frees its slot; the answer resumes it.
 12. The forge is robust against reboots: what the pipeline decides from is persisted, not held in memory.
 13. Every start is a recovery, but recovery is not automatic: the forge makes its record truthful by itself and waits
     for an instruction before it starts interrupted work again.
-14. A crash is a bug. It is fixed, not retried. A crash of Talos stops everything of its board. A crashed forge leaves
-    a log complete enough to trace the crash back, Gaia alerts the user, and the forge stays off until the user starts
-    it again.
+14. A crash is a bug. It is fixed, not retried. An unexpected error in a pass is a crash on its first occurrence. A
+    crash of Talos stops everything of its board. A crashed forge leaves a log complete enough to trace the crash back,
+    Gaia alerts the user, and the forge stays off until the user starts it again.
 15. A network error does not end an agent. The agent's own retry handles it; Talos has no retry of its own. When
     those retries run out, Talos recognises that the agent ended on a network outage and reports it, and Gaia shows
     it.
@@ -71,32 +96,79 @@ of tickets across the forges of a team; nothing of it is built.
     offer a control for it.
 21. Gaia warns when a forge goes down.
 22. Outside Hephaestus, state changes through a command: a CLI verb, as with agent-progress, or the forge's command
-    endpoint.
+    endpoint. Nobody hand-edits a ticket file: forge takes an edit of a ticket's content as a command. Gaia's screen
+    for that edit comes after this run; this run builds the command and no editing screen.
 23. Intake and pipeline setup are sessions the forge hosts, and both can also be invoked as a skill in the user's own
     agent. They deliver files or call CLI commands.
-24. The Assistant does not start by default. What it should own is decided later from accumulated data.
-25. Flint's brain is left out of the core.
+24. The Assistant is a switch per board, off by default. Switching it off stops a running Assistant at the end of its
+    turn, and an incident it has not settled takes its default, with the reason recorded and shown. What it should own
+    is decided later from accumulated data.
+25. Flint's brain is left out of the core. Flint shows only inside a forge's board in Gaia, one per forge, with no
+    brain.
 26. Eventually, all of the user's work is done through Gaia.
 27. Gaia and the Bridge become one design and one interface, a unified whole. A single forge can be maximized, also in
     a browser tab of its own. Nothing is embedded by iframe.
-28. `apps/forge` stays the home of the core, and the Bridge's code moves into Gaia.
-29. The lease stops agents only: an install or gate line runs to its end. A gate runs for at most 15 minutes of real
-    time and is then stopped.
+28. `apps/forge` stays the home of the core. The Bridge's views move into Gaia's page, which renders them from Gaia's
+    own model and imports no forge code (decision 51).
+29. The lease stops agents only: an install or gate line runs to its end. A gate line or an install line runs for at
+    most 15 minutes and is then stopped (decisions 36 and 37).
 30. An agent that crashed while the forge did not is resumed twice. After that its job waits for an instruction;
-    nothing starts it again by itself.
+    nothing starts it again by itself. A user's resume gives it its two automatic restarts back (decision 40).
 31. Gaia shows the running and the newest version of Hephaestus and of Talos, and offers to restart each cleanly.
 32. Nothing that exists has to be kept. Forge runs nowhere that matters yet, so stored names, stored formats and
-    installed surfaces change outright, and existing boards are set up anew.
+    installed surfaces change outright, and existing boards are set up anew. No older board, stored format, verb,
+    link form or client is read or kept.
 33. A new package is an architectural decision, taken before the work starts. A ticket names the packages it may
-    create, and a running builder never introduces one.
-34. No forge does this refactoring. Orchestrated Opus sessions in this repository do it, outside both trackers.
+    create, and a running builder never introduces one. Code moves to `packages/` only when two apps really consume
+    it, and is generalised first.
+34. No forge does this refactoring. Orchestrated Opus sessions in this repository do it, outside both trackers. The
+    owner answers how the system behaves; the run decides the migration: where code lives, version numbers, stored
+    formats, recordings, rule files and branches. The run may change anything in this monorepo, the rule files a
+    person owned included, with no approval gate for a rule file.
+35. An agent that ends on a network outage, a provider overload after the retries are spent included, leaves its job
+    waiting, never counted as a failure or a crash, and Gaia alerts the user. One control in Gaia, always clickable,
+    resumes every job that ended this way across all forges; a job that ends on an outage again waits again.
+36. An install line is stopped after 15 minutes and ends as a bounded gate does. Every line's run time is recorded, in
+    the measure the bound uses, and shown in the pipeline overview.
+37. The 15-minute bound of a gate line or an install line does not count a sleep.
+38. A hung Hephaestus counts as gone. After a minute without progress, Talos stops the board's agents at the end of
+    their turn; they wait for the user's resume, and Gaia shows that the forge stopped supervising them.
+39. A crash suspected before a reboot keeps the forge off, as after a crash: Gaia alerts with the crash log, and
+    nothing runs until the user starts the forge.
+40. A user's resume gives an agent its two automatic restarts back.
+41. `resume` restarts interrupted work: one job, one ticket, everything, or everything that ended on a network outage.
+    Undoing a pause is `unpause`.
+42. There is no `hephaestus` verb and no `oversee` verb. `forge start` starts Hephaestus, and the other lifecycle verbs
+    sit beside it at the top level (`stop`, `restart`, `status`, `pause`, `unpause`); stage 9 settles the exact set.
+    Hephaestus is the component's name, not a word the user types.
+43. No forge command opens the board. The user opens Gaia and picks the forge. `forge open` and the `progress.html`
+    stub go, and forge's help and its agents' instructions name no board page.
+44. The forge keeps an unfinished entities draft in pipeline setup. It survives a reload, the pipeline agent sees it,
+    and Continue and Apply are refused while any refusal stands. No shared pipeline-editing package exists.
+45. A refusal reads as the forge's own sentence, the one the command line prints. Forge serves each refusal as its
+    reason code, its structured fields and its sentence; Gaia shows the sentence.
+46. Every in-flight ticket is dropped. Both trackers stop and stay stopped until their boards are set up anew.
+47. Forge owns tickets, and Gaia is a convenience over forge. Gaia holds no ticket and writes no ticket file: every
+    change of a ticket is a command that forge accepts or refuses.
+48. A ticket freezes once it is being built, and once it has had its human review. The Board refuses an edit of a
+    frozen ticket's content with a reason. At the freeze point forge keeps the content it froze, by content hash, and
+    agents build from that, so the freeze holds also where a store lets the text change behind forge.
+49. Forge and Gaia share only `forge-contracts` and `system-versions`, and neither app imports the other. The tracker
+    model, its spec helpers, the readings and the refusal wording stay in `apps/forge`.
+50. The contract's types stand on their own. Forge maps its model into the contract's documents and the contract's
+    commands into its model in typed adapters of its own, and serves finished facts in the board document instead of
+    the views recomputing them (section 4).
+51. Gaia maps each forge document into its own model at its boundary and serves its page a contract of its own. The
+    page imports no forge code and no `forge-contracts` type.
+52. `design-system`, `flint` and `brand` leave `packages/` once the Bridge is deleted and become libraries in Gaia's
+    page `lib/`, each behind its interface file and guarded as section 1 says.
 
 ## 3. The forge
 
 ### 3.1 Hephaestus
 
-One process per board, started by the user, by the forge's own login item, or by Gaia on request. It keeps what the
-Overseer does today, minus everything that serves a client.
+One process per board, started by `forge start`: from the user, the forge's own login item, or Gaia on request. It
+keeps what the Overseer does today, minus everything that serves a client.
 
 ![Inside Hephaestus. Gaia reaches it through the API server; hosted agents reach it through the Hatch inbox,
 which relays their CLI verbs. One control service applies every command. The pipeline loop runs one pass at a time and drives the
@@ -177,10 +249,12 @@ What changes against the Watcher:
   stays off.
 
 **The supervision lease.** Today the Watcher has no check that an Overseer is alive, so an agent whose Overseer is gone
-runs on with nobody routing its questions, watching its spend or noticing that it hangs. With the lease, a Talos that
-has had no contact from Hephaestus for one minute stops its agents, with the clean quit above. Their jobs count as
-interrupted and wait for an instruction; they are not paused. Talos itself stays, and waits for a Hephaestus. The
-lease stops agents only: an install or gate line runs to its end, and a gate is stopped after 15 minutes of real time.
+runs on with nobody routing its questions, watching its spend or noticing that it hangs. With the lease, a Talos whose
+lease Hephaestus has not renewed for one minute stops its agents, with the clean quit above. Hephaestus renews only
+while its passes make progress, so a hung Hephaestus counts as gone. Their jobs count as interrupted and wait for the
+user's resume; they are not paused, and Gaia shows that the forge stopped supervising them. Talos itself stays, and
+waits for a Hephaestus. The lease stops agents only: an install or gate line runs to its end, and is stopped after 15
+minutes, a sleep not counted.
 
 A naive lease makes a healthy forge stop its own agents. The lease is safe only with all of this:
 
@@ -195,9 +269,10 @@ A naive lease makes a healthy forge stop its own agents. The lease is safe only 
   (`agent-crashed`, `watcher-lost`) back to back on jobs of different tickets, with no verified ending between them,
   pause the board with an outage decision. A lease end and a clean quit each need an end reason and an interruption
   cause of their own that is not counted as a crash.
-- **Renewal that the pass cannot starve.** Git runs synchronously with no timeout (`GitProcess.ts`), a worktree add and
-  the landing fast-forward among it, so a timer on Hephaestus's event loop does not fire during them. Renewal runs
-  outside the loop, or every synchronous step is bounded well below the lease.
+- **Renewal that only progress earns.** Git runs synchronously with no timeout (`GitProcess.ts`), a worktree add and
+  the landing fast-forward among it, so a timer on Hephaestus's event loop does not fire during them. Renewal stands
+  for progress, so it cannot run apart from the loop: every synchronous step is bounded well below the lease, and the
+  pass hands every gate line to Talos and carries on rather than waiting through it.
 - **Margin through a Baton pass.** The whole pass may take about 150 seconds (`BATON_PASS_OUTCOME_TRIES`), and after the
   release there is a wait of up to 60 seconds, the length of the lease, with no clear renewer. The successor renews from
   the moment it takes the Baton.
@@ -254,8 +329,8 @@ crash log, starting it again and resuming interrupted work.
 | --- | --- |
 | Builder, reviewer, merge agent | Pipeline jobs under Talos, as today |
 | Intake (product owner) and pipeline setup (pipeline agent) | Each has one definition, a skill. The forge can host it under Talos, confined, on a command; the user can invoke the same skill in an agent of their own. Records leave it only through CLI commands; files are inputs to a command or repository files. Intake already works this way: its hosted session starts by invoking the product owner's skill. Pipeline setup has no skill today, only the prompts under `resources/prompts/` |
-| Assistant | Stays in the code and does not start unless a board turns it on. This needs two changes: today a pass boots one whenever none is live and nothing holds it (`Playbook.ts`), and the `no-assistant` default fires only when no Assistant can come up (a usage limit, a failed authentication, a reached budget, repeated failed boots), not when one is switched off. Without a new trigger, incidents would sit open |
-| Flint's brain | Left out of the new core. Its only transport is an HTTP endpoint that goes away, and its log records stay readable. Flint the sprite is interface and moves with the Bridge's views |
+| Assistant | Stays in the code behind a switch per board, off by default. Switching it off stops a running Assistant at the end of its turn, and an incident it has not settled takes its default with the reason recorded and shown. This needs two changes: today a pass boots one whenever none is live and nothing holds it (`Playbook.ts`), and the `no-assistant` default fires only when no Assistant can come up (a usage limit, a failed authentication, a reached budget, repeated failed boots), not when one is switched off |
+| Flint's brain | Left out of the new core. Its only transport is an HTTP endpoint that goes away, and its log records stay readable. Flint the sprite is interface: it shows only inside a forge's board in Gaia, one per forge, with no brain |
 
 ## 4. The store and the contract
 
@@ -266,7 +341,11 @@ The forge has one contract with three parts. It is shaped so that it can cross a
   Hephaestus a command is a CLI verb or a call to the command endpoint; both reach that one service.
 - **Documents out.** The board, a ticket, a job's progress, the forge's presence. Hephaestus assembles them and serves
   them over the read API, so derived state is built once, on the forge's side. This is what the Overseer does today for
-  the Bridge.
+  the Bridge. The board document carries finished facts that no client recomputes: attention entries with a typed
+  target, worded notices and warnings, today's figures, open decisions in answering order, the moves and controls each
+  ticket and job offers, resolved priority, stop holds, repeat-review facts, effective pipelines per entity, the
+  unfinished entities draft with its refusals, limits and defaults. Each refusal arrives as its reason code, its
+  structured fields and the sentence the command line prints.
 - **A subscription** to changes: the event and job streams of the read API.
 
 The store sits inside the forge, behind a port that the CLI and Hephaestus use in-process:
@@ -291,15 +370,18 @@ gets a job's live output from the read API's job stream, never by knowing where 
 
 Consequences:
 
-- **Hand-editing stored records ends.** It overturns today's local rule that tickets are hand-edited between runs.
+- **Hand-editing stored records ends.** It overturns today's local rule that tickets are hand-edited between runs;
+  an edit of a ticket's content is a command, refused once the ticket is frozen (decision 48).
 - **Version.** The read API keeps the system versions and the compatibility registry it has today, so an endpoint can be
   served at two versions side by side. The stored formats keep their own versions inside the local adapter.
 - **`packages/forge-contracts`** already holds 9 command kinds, the summary and monitor documents and the versions, and
-  Gaia imports it. The board and ticket documents that the Bridge's views read are not in it; adding them is a change of
-  the system version.
+  Gaia's server imports it. The board and ticket documents that the Bridge's views read are not in it. They join it
+  with types of their own that import nothing from forge's model, and forge fills them in typed adapters of its own;
+  adding them is a change of the system version.
 - **Gaia's commands stay under the system versions.** The command endpoint keeps what it has today: the token, and the
   refusal of commands while an install change holds launches. The contract package holds 9 of the 76 command kinds; the
-  views need more of them there, which only adds and so raises the minor version.
+  board's command kinds join it with payload types declared in the contract, which only adds and so raises the minor
+  version. Forge maps each command into its model.
 
 ## 5. Ports and adapters
 
@@ -368,8 +450,8 @@ and a start reads the store and continues from it.
 | --- | --- | --- |
 | `answer-delivery`, `handoff-red`, `usage-limit` | Resumes by itself | Unchanged: these are steps of the workflow |
 | Paused by a clean quit of Talos for a new protocol version | Does not exist | Resumes by itself: a step of the workflow |
-| `reboot`, a stop on purpose, a lease end | A reboot resumes by itself. A stop on purpose interrupts no agent: each Watcher is detached and the next start attaches it (`apps/forge/src/services/overseer/Regrouping.ts:223-244`), and `stop --now` stops only install and gate Watchers (`apps/forge/src/services/overseer/WatcherFleet.ts:340-365`). A lease end does not exist | Waits for an instruction |
-| `agent-crashed`, `watcher-lost` (the agent's side died, the forge did not) | Resumes twice, then starts fresh | Resumes twice, then waits for an instruction |
+| `reboot`, a stop on purpose, a lease end, an ending on a network outage | A reboot resumes by itself. A stop on purpose interrupts no agent: each Watcher is detached and the next start attaches it (`apps/forge/src/services/overseer/Regrouping.ts:223-244`), and `stop --now` stops only install and gate Watchers (`apps/forge/src/services/overseer/WatcherFleet.ts:340-365`). A lease end does not exist, and a session that ends on a network outage ends its job as one generic failure | Waits for an instruction. Gaia alerts on an ending on a network outage, and one control in Gaia resumes every job that ended this way, across all forges |
+| `agent-crashed`, `watcher-lost` (the agent's side died, the forge did not) | Resumes twice, then starts fresh | Resumes twice, then waits for an instruction. A user's resume gives it its two automatic restarts back |
 | `authentication-failed`, `forced-stop-refused` | Does not resume by itself: a refused key opens a board decision that holds every launch, and a refused forced stop never resumes | Unchanged |
 | The forge crashed: Hephaestus, or Talos | A crash of the Overseer interrupts no agent: its Watchers run on and the next start attaches them (`apps/forge/src/services/overseer/Regrouping.ts:223-244`) | A bug: the forge stays off until the user starts it again |
 
@@ -379,13 +461,14 @@ and a start reads the store and continues from it.
 | --- | --- | --- |
 | A Baton pass completed on record | A handover, not a stop | Nothing is interrupted |
 | A stop completed on record | Stopped on purpose | Interrupted tickets wait for an instruction |
-| The boot session differs from the one in the Baton | The machine went down | Interrupted tickets wait for an instruction |
+| The boot session differs from the one in the Baton, and the last heartbeat lies close before the new boot | The machine went down | Interrupted tickets wait for an instruction |
+| The boot session differs from the one in the Baton, and the last heartbeat lies long before the new boot | A crash suspected before a reboot | As after a crash: the forge stays off, Gaia alerts with the crash log, and nothing runs until the user starts the forge |
 | Same boot session, neither on record | The forge crashed | A bug. The forge stayed off until this start, which the user made, and its interrupted tickets wait for an instruction. The crash log is kept (active jobs and their steps, the tail of the log, the uncaught error where there was one) |
 
-Known misreadings of this table, not solved here: a crash followed by a reboot before the next start reads as "the
-machine went down", which is the usual path on a laptop and hides the bug; a stop on record followed by a wedged process
-that is killed reads as "on purpose" and hides a hang; a kill by the user or by the operating system for memory leaves the
-forge off as a bug. Judging a crash by how stale the heartbeat is against the boot time narrows the first.
+Known misreadings of this table, not solved here: a stop on record followed by a wedged process that is killed reads as
+"on purpose" and hides a hang; a kill by the user or by the operating system for memory leaves the forge off as a bug;
+the heartbeat's staleness against the boot time only narrows a crash followed by a reboot, which is the usual path on
+a laptop.
 
 **What reconcile cannot see today.** Merged-tree gates, gate-profile runs and pipeline checks are children of the
 Overseer itself. On disk they leave a gate slot that names the Overseer's process and counts as free once that process
@@ -396,17 +479,23 @@ still runs. They move under Talos, whose persisted record names every child.
 **Failure handling in one list.**
 
 - *Network trouble:* the agent's own retry. When the retries run out, Talos reports an ending on a network outage,
-  the job is not counted as failed or crashed, and Gaia shows it. What follows is open (section 12).
+  the job waits and is not counted as failed or crashed, and Gaia alerts the user. One control in Gaia resumes every
+  job that ended this way, across all forges; a job that ends on an outage again waits again.
 - *Usage limit, parked question, busy slot:* planned waits that end by themselves.
 - *Machine down, or stopped on purpose:* reconciled; interrupted tickets wait.
-- *Forge crash:* a bug, with a crash log, an alert in Gaia and at the CLI, and no retry: the forge stays off until
-  the user starts it again.
-- *Agent crash, the forge still up:* resumed twice, then it waits for an instruction.
-- *Hephaestus silent for the lease:* Talos stops its agents, which then count as interrupted, not as crashed.
+- *Forge crash, or a crash suspected before a reboot:* a bug, with a crash log, an alert in Gaia and at the CLI, and
+  no retry: the forge stays off until the user starts it again.
+- *Agent crash, the forge still up:* resumed twice, then it waits for an instruction; a user's resume gives it its two
+  automatic restarts back.
+- *Hephaestus silent or without progress for the lease:* it counts as gone. Talos stops its agents at the end of their
+  turn; they count as interrupted, not as crashed, wait for the user's resume, and Gaia shows that the forge stopped
+  supervising them.
+- *An install or gate line past 15 minutes, a sleep not counted:* stopped, and it ends as a bounded gate does.
 - *Talos at another protocol version:* a clean quit, the right Talos starts, and the paused agents resume by themselves.
 - *Talos crash:* a bug, like a crash of Hephaestus. Everything of the board stops and the forge stays off.
-- *A pass that fails,* for example because another process held the lock past its five seconds: retried at the next
-  wake-up today. It is neither a crash nor an interruption and needs its own name.
+- *A pass that fails on an expected condition,* for example because another process held the lock past its five
+  seconds: retried at the next wake-up today. It is neither a crash nor an interruption and needs its own name. An
+  unexpected error in a pass is a crash on its first occurrence.
 
 Retrying an expected condition a counted number of times is workflow. Retrying after something that should never happen
 hides it.
@@ -432,12 +521,14 @@ Below are each Hephaestus API, the registry file and the forge CLI.](figures/hep
 | Gaia does | How |
 | --- | --- |
 | Inventory the forges of this machine | The registry file, as today. A forge registers itself; Gaia identifies a project by its forge |
-| Display a board, its progress and its agents' output | The read API of that forge's Hephaestus. The Bridge's views become Gaia's own, in one design, and keep reading what they read today |
+| Display a board, its progress and its agents' output | The read API of that forge's Hephaestus. Gaia's server maps each document into Gaia's own model at its boundary (`src/adapters/forge-api`) and serves the page a contract of its own. The Bridge's views become Gaia's own, in one design, and import no forge code and no `forge-contracts` type |
 | Show one forge maximized | The same views at full size, in the window or in a browser tab of its own. It is a route of Gaia, never an embedded page |
-| Forward the user's instructions | Posts the command to that forge's command endpoint. Validation, role policy and effect are the forge's. The same command from a CLI verb does the same thing |
-| Start or stop a forge, set the machine limit | Through the CLI, as today. A facilitation |
-| Alert that a forge crashed or is down, and what is interrupted | Watches presence. It alerts and offers to start the forge; it never restarts one by itself |
-| Show that an agent ended on a network outage | The job's ending, as Talos reported it, in the read API |
+| Forward the user's instructions | Posts the command to that forge's command endpoint. Validation, role policy and effect are the forge's. The same command from a CLI verb does the same thing. A refusal shows the forge's own sentence, as the command line prints it |
+| Start or stop a forge, set the machine limit | Through the CLI, as today: `forge start` starts Hephaestus. A facilitation |
+| Alert that a forge crashed or is down, and what is interrupted | Watches presence. It alerts, with the crash log after a crash or a crash suspected before a reboot, and offers to start the forge; it never restarts one by itself |
+| Show that a forge stopped supervising its agents | The lease ran out on a Hephaestus that is gone or hung; the agents wait for the user's resume |
+| Alert that agents ended on a network outage, and resume them | The job's ending, as Talos reported it, in the read API. One control, always clickable, sends a resume of every job that ended this way to every forge |
+| Open a forge's board | The user opens Gaia and picks the forge; no forge command opens it |
 | Show the running and the newest version of Hephaestus and of Talos, and restart each cleanly | The versions come from the read API and the installed program. A clean restart of Hephaestus is a Baton pass; of Talos, a clean quit with automatic resume |
 
 How Gaia reaches a forge today, in three ways. It runs the forge's CLI (`start`, `stop`, `init`, `update` and the
@@ -449,8 +540,8 @@ and session codes. The reads and the command call stay, and the session codes go
 What the API keeps, because the views use it today: the board state, the event stream, the job transcript and
 gate-profile streams, job files (the report, the gate log), pictures and their upload, the summary and the monitor
 snapshot, identity and versions, the command endpoint and the nudge. What it loses: the session routes, the page itself
-and Flint's ask route. What needs a new home: `forge open` and the `progress.html` stub lose their target, because a
-forge may not name Gaia (`src/ClientNames.spec.ts`).
+and Flint's ask route. `forge open` and the `progress.html` stub go rather than find a new target, since a forge may
+not name Gaia (`src/ClientNames.spec.ts`): forge's help and its agents' instructions name no board page.
 
 What this path gives and costs:
 
@@ -485,34 +576,37 @@ shared store, relaying live agent output, offline work, and the redesign of Heph
 
 - From Hephaestus: `BrowserSessions` and the session routes, the Bridge bundle build, the render service's HTML, the
   Flint brain files. The server, the command route, the event broker and the monitor stream stay.
+- From the CLI: `forge open`, the `progress.html` stub, and the `oversee` verb, whose lifecycle verbs move to the top
+  level beside `start`.
 - From the system: the Bridge as a program, and the embed machinery between Gaia and a Bridge (the iframe, session
   codes, the message channel, the `frame-ancestors` records).
+- From `packages/`: `design-system`, `flint` and `brand`, which become libraries of Gaia's page.
 - From practice: hand-editing a stored record.
 
 ## 11. Migration
 
 ![Ten stages in order, coloured by where the work lands. Across the repository: trace and decide, close the monorepo
-migration, and the rename at the very end. In forge: Talos the commander, presence and recovery, the package
-extraction, the store port, and shrinking the HTTP surface. In Gaia: the views, one at a time, and conversations
+migration, and the rename at the very end. In forge: Talos the commander, presence and recovery, the standing
+contract, the store port, and shrinking the HTTP surface. In Gaia: the views, one at a time, and conversations
 with hosted agents.](figures/hephaestus-talos/migration.png)
 
 No forge does this work. Orchestrated Opus sessions in this repository do every stage, outside both trackers, so no
-tracker's reach limits a stage and one change may span both apps and the packages. The owner takes the decisions of
-stage 0. Each stage ends with `bun run verify` green at the root and a forge that works end to end on a scratch
-board.
+tracker's reach limits a stage and one change may span both apps and the packages. The owner answers how the system
+behaves; the run decides the migration. Each stage ends with `bun run verify` green at the root and a forge that works
+end to end on a scratch board.
 
 | Stage | What | Where | Size |
 | --- | --- | --- | --- |
-| 0. Trace and decide | Trace recovery from what exists (`CrashMatrix.integration.spec.ts`, `Regrouping.ts`, `JobResumption.ts`) and what an Airlock leaves half done. Record a real session that ends on an outage. The owner settles the items to decide of section 12, and names the packages that stage 4 creates | The repository | M |
+| 0. Trace and decide | Trace recovery from what exists (`CrashMatrix.integration.spec.ts`, `Regrouping.ts`, `JobResumption.ts`) and what an Airlock leaves half done. The owner records a real session that ends on an outage. The owner's answers about behaviour are decisions 35 to 48; the run settles where code lives (decisions 49 to 52) | The repository | M |
 | 1. Close the monorepo migration | Whatever `docs/monorepo/migration.md` still has open, so this work does not start on a moving base | The repository | S |
-| 2. Talos, the commander | One Talos per board in place of the Watcher fleet: its protocol version and the handshake, the persisted state, the clean quit, the lease with an end of its own, and every child under it, the Overseer's own gate runs among them. The fleet, the pinned bundles and the legacy reader go. A gate is bounded at 15 minutes. The ending patterns and the ending on a network outage. No mixed fleet is supported: existing boards are set up anew | forge | L |
+| 2. Talos, the commander | One Talos per board in place of the Watcher fleet: its protocol version and the handshake, the persisted state, the clean quit, the lease with an end of its own, and every child under it, the Overseer's own gate runs among them. The fleet, the pinned bundles and the legacy reader go. A gate line and an install line are each bounded at 15 minutes, a sleep not counted, and every line's run time is recorded. The ending patterns and the ending on a network outage. No mixed fleet is supported: existing boards are set up anew | forge | L |
 | 3. Presence and recovery | The heartbeat and the completed stop and handover on record; reconcile, then resume on instruction; the crash log and the forge that stays off; two resumes of a crashed agent and no more; the CLI path to see a crash, start again and resume | forge | L |
-| 4. Extract the packages | The tracker model (about 110 files, imported by path from about 280 forge files) and the board documents become packages, since a package imports nothing from `apps/` and the views need them in Gaia. The import-direction guard and the Bridge's include list change with it. Which packages exist is settled in stage 0 | forge | XL |
+| 4. The standing contract and the served facts | `forge-contracts` declares the board and ticket documents and the board's command kinds with types of its own, importing nothing from forge's model. Forge maps its model into the documents and each command into its model in typed adapters of its own, and serves the finished facts of section 4 in the board document, each refusal with its reason code, fields and sentence. The forge keeps the unfinished entities draft. The tracker model, its spec helpers, the readings and the wording stay in `apps/forge`; no package is extracted | forge and `forge-contracts` | L |
 | 5. Store port | The port's two faces and the local adapter with its contract spec, around today's stores, lock and hold. The CLI and Hephaestus go through it; nothing else names a record path | forge | M |
-| 6. Gaia hosts the views | The Bridge is about 525 tracked files with 67 DOM specs, more code than the Overseer's services. Move it one view at a time into Gaia's own design, each shipped alone, reading the forge's API and sending commands to it through Gaia's server. The Bridge keeps running beside it until the last view has moved | Gaia | XL |
+| 6. Gaia hosts the views | The Bridge is about 525 tracked files with 67 DOM specs, more code than the Overseer's services. Move it one view at a time into Gaia's own design under `page/board/`, each shipped alone, reading the forge's documents and sending commands to it through Gaia's server, which maps each document into Gaia's own model; the page imports no forge code. The Bridge keeps running beside it until the last view has moved | Gaia | XL |
 | 7. Conversations with hosted agents | Intake and pipeline setup in Gaia: the `job-message` command in, the job stream out, pictures through the upload route. A skill for pipeline setup, as intake has one | forge and Gaia | M |
-| 8. Shrink the HTTP surface | Delete the sessions, the bundle build, the embed machinery and Flint's ask route; the reads and the command endpoint stay. Take the Assistant off by default with its new trigger; remove Flint's brain. A major change of the system version; Gaia records again | forge | M |
-| 9. Rename | Overseer to Hephaestus in identifiers, wording, docs and every stored and installed name: about 835 tracked files in both apps, the contract package and the root's rules, in one commit; existing boards are set up anew. The Watcher's name goes with its code in stage 2: Talos is Talos from its first line | The repository | M |
+| 8. Shrink the HTTP surface | Delete the Bridge, the sessions, the bundle build, the embed machinery and Flint's ask route; the reads and the command endpoint stay. `forge open` and the `progress.html` stub go. Make the Assistant a switch per board, off by default; remove Flint's brain. Fold `design-system`, `flint` and `brand` into Gaia's page `lib/` as libraries, each behind its interface file, with the guard of section 1. A major change of the system version; Gaia records again | forge and Gaia | M |
+| 9. Rename | Overseer to Hephaestus as the component's name in identifiers, wording, docs and every stored and installed name: about 835 tracked files in both apps, the contract package and the root's rules, in one commit; existing boards are set up anew. The `oversee` verb goes: `forge start` starts Hephaestus, and the other lifecycle verbs sit beside it at the top level, `pause` undone by `unpause`; no verb is named after Hephaestus. The Watcher's name goes with its code in stage 2: Talos is Talos from its first line | The repository | M |
 
 **The rename takes the stored and installed names with it.** Nothing that exists has to be kept, so these change in
 the same commit and existing boards are set up anew:
@@ -520,7 +614,9 @@ the same commit and existing boards are set up anew:
 - on a board: `overseerState` in `progress.json`, `overseerOnly` in `pipeline.json`, the `overseer-*` and
   `watcher-lost` records of the log;
 - on the machine: the registry's `overseer` key that Gaia reads, the login item's label, the `oversee` verb that the
-  login item and a Baton pass's successor are started with, and the installed surface.
+  login item and a Baton pass's successor are started with, which `forge start` replaces, and the installed surface.
+
+Every in-flight ticket is dropped: both trackers stop and stay stopped until their boards are set up anew.
 
 The Watcher's own files (its bundles, `watcher-<n>.json`, the socket folder) end with the Watcher in stage 2: Talos
 writes its files under its own name from the start.
@@ -529,17 +625,19 @@ writes its files under its own name from the start.
 
 ### To decide
 
-1. **What follows an ending on a network outage.** Talos recognises the ending and Gaia shows it. Open is what the
-   forge does next: resume the session by itself once the vendor is reachable, which needs a probe on a real-time
-   interval because an outage names no reset time, or wait for an instruction from the user.
-2. **An install line has no bound.** A gate is bounded at 15 minutes; nothing bounds an install line.
+What follows an ending on a network outage is decision 35, and the bound of an install line is decision 36. One
+question of behaviour is open:
+
+1. **How a user changes a frozen ticket** (decision 48). The run's default is an explicit reopen that sends the ticket
+   back to before its freeze point.
 
 ### Risks
 
 1. **The lease can stop a healthy forge's agents** unless every condition of section 3.2 holds. It is the riskiest
    single piece.
-2. **The lease proves that Hephaestus is alive, not that it makes progress.** During a merged-tree gate, for up to its
-   15 minutes, nothing is routed and the lease still renews, unless the pass hands the gate to Talos and carries on.
+2. **The lease renews only on progress, so a slow pass looks hung.** A pass that waits through a merged-tree gate, for
+   up to its 15 minutes, would stop the board's agents after a minute; the pass hands every gate line to Talos and
+   carries on, and every synchronous step is bounded well below the lease.
 3. **Recovery on instruction reverses tested behaviour** and stalls where today's forge carries on. Which interruption
    causes wait is listed in section 7.
 4. **The start classification misreads common cases** (section 7).
@@ -549,9 +647,10 @@ writes its files under its own name from the start.
 6. **A failed pass is not a crash.** A pass that fails on a held lock is retried today, and with the CLI, Hephaestus
    and agents all taking the lock that happens more often. It needs a name of its own.
 7. **The store port has one adapter,** and its command face cannot carry Hephaestus's own pass.
-8. **The contract package holds 9 of the 76 command kinds.** Each view that moves to Gaia brings the kinds it sends, so
-   the contract grows with stage 6.
-9. **Stages 4 and 6 are each far larger** than a rename suggests.
+8. **The contract package holds 9 of the 76 command kinds.** Stage 4 adds the board's kinds and its documents with
+   types of their own, so the contract repeats the shape of forge's model, and a view that moves in stage 6 may still
+   find a fact it needs unserved.
+9. **Stage 6 is far larger** than a move suggests.
 10. **A forge that is down shows nothing but its name** in Gaia and takes no instruction from it.
 11. **The other platforms.** Linux and Windows adapters exist, with no real-system recordings.
 12. **One Talos is one point of failure for a board.**

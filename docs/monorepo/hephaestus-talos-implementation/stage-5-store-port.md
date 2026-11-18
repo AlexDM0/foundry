@@ -9,10 +9,16 @@ lock-free read side. One adapter exists, `LocalFilesBoardStore`, which wraps tod
 and the single hold of `writeTracker`; a contract spec states what any adapter must do, and a guard spec,
 `src/StoreBoundary.spec.ts`, refuses every shipping line outside the adapter that names the path of a record.
 
+The adapter judges a stored pipeline once, in the one reading every read and every write takes. Hand-editing of ticket
+files ends: a ticket's content changes only through the command `ticket-edit`, every other change of a ticket through
+its own command, and no output names where a readable record is kept. The model carries no storage location; only the
+adapter knows where a ticket or an epic is stored.
+
 In this file a path names a file of forge from `apps/forge/`, and a file of the root or of a package from the repository
-root, as `apps/forge/CLAUDE.md` sets. Line numbers are those of the branch `hephaestus-talos` at `0a648b2b` (forge 1.18,
-after the entities work landed); stages 2 to 4 move many of these lines, so find each place by the function or symbol
-named beside it, never by the number alone.
+root, as `apps/forge/CLAUDE.md` sets. Line numbers are those of `b4174bd9`, the head of the branch `hephaestus-talos`,
+where every shipping file this file cites reads as it did at `0a648b2b` (forge 1.18, after the entities work landed).
+Stages 2 to 4 move many of these lines, so find each place by the function or symbol named beside it, never by the
+number alone.
 
 ## Depends on
 
@@ -20,28 +26,40 @@ named beside it, never by the number alone.
 - **Stage 2** (Talos): `DrivePass.ts`, `Regrouping.ts`, `JobLaunch.ts` and `OverseerForeground.ts` are rewritten there.
   This stage changes how those files reach the store, so it runs on stage 2's versions. Talos's files stay outside the
   store, under the operating system port (stage 2's plan says so for its own files).
-- **Stage 3** (presence and recovery): it adds the command `interrupted-work-resume`, the verb `resume`, the log records
-  `start-classified`, `job-resume-instructed` and `job-line-lost`, and the files `presence.json`, `heartbeat.json`,
-  `fatal-error-<generation>.json` and `crash-logs/crash-<generation>.json` under `<data>/overseer/`. Stage 3 leaves to
-  this stage whether those files sit behind the store port; this plan keeps them outside it (Needs the owner, item 5).
-  Its new command goes through the command face like every other kind; its new verb `resume` writes through
-  `cli/RecordedIncidentMove.ts`, which WP5.8 switches.
-- **Stage 4** (packages): the tracker model, with `Board`, `Ticket`, `LogRecord` and `TrackerProgress`, lives in the
-  package stage 0 named (`packages/tracker-model` as stage 0's WP0.5 proposes). Every `src/lib/tracker-model/...` path
-  below means that package's file of the same name. `src/ImportDirection.spec.ts` is changed by stage 4 first; WP5.4
-  changes it again.
+- **Stage 3** (presence and recovery): it adds the command `interrupted-work-resume`, the verb `resume` (decision 41),
+  the log records `start-classified`, `job-resume-instructed` and `job-line-lost`, and the files `presence.json`,
+  `heartbeat.json` and `crash-logs/crash-<generation>.json` under `<data>/overseer/`.
+  Those files stay outside the store port (Decisions this stage carries out). `interrupted-work-resume` is a relayable
+  kind: it stays in `RELAYED_VERB_OF_CONTROL_KIND` (`cli/constants/JobVerbs.ts:48`) as `resume`, the command endpoint
+  accepts it as stage 3 adds it to `packages/forge-contracts`, the Bouncer refuses it for every agent role, and this
+  stage never lists it among the by-hand kinds. The verb `resume` records through `cli/RecordedIncidentMove.ts`, whose
+  relay under a job comes first, and WP5.8 switches its write to the command face.
+- **Stage 4 is no prerequisite.** The tracker model stays at `apps/forge/src/lib/tracker-model/` and its fixtures at
+  `apps/forge/src/testing/BoardFixtures.ts` and `apps/forge/src/lib/tracker-model/testing/` (decision 49), so no path
+  here waits on stage 4. The two stages share files: `src/shared/@types/ControlCommand.ts`,
+  `src/services/control/ControlService.ts`, `cli/overseer/routes/CommandRoute.ts`,
+  `src/adapters/utils/OperationRefusalWordingUtil.ts`, `docs/reference/refusals.md`, `src/ImportDirection.spec.ts`,
+  and the adapter in which stage 4 maps a `Ticket` into the contract's ticket document. A package of this stage that
+  changes one of those files (WP5.4, WP5.6, WP5.7, WP5.8, WP5.13) runs before or after a stage 4 package that changes
+  the same file, never beside it.
 
 Hands to later stages:
 
 - **Stage 6** (Gaia hosts the views): the command endpoint applies every command through the command face, so a view's
-  command does what the same CLI verb does. The by-hand command kinds this stage adds are kept off the endpoint (Needs
-  the owner, item 2); a view that needs one adds it to the endpoint with a minor system version.
+  command does what the same CLI verb does. A ticket's content is edited with `ticket-edit`, which the endpoint already
+  accepts; Gaia's editing screen comes after this run (decision 22). The 16 by-hand kinds this stage adds are kept off
+  the endpoint; a view that needs one adds it to `packages/forge-contracts` and to the endpoint with a minor system
+  version, as design section 4 says for the board's command kinds.
 - **Stage 7** (conversations): `job-message` and `intake-start` go through the command face unchanged.
-- **Stage 8** (shrink the HTTP surface): the read side gives the reads the server keeps; the registry's `progressJson`
-  is filled from `locationOf` and can be dropped there (Needs the owner, item 4).
+- **Stage 8** (shrink the HTTP surface): the read side gives the reads the server keeps. After WP5.9 the registry
+  entry carries no `progressJson`; stage 8 drops `progressHtml` with `Workspace.htmlFilePath`. WP5.13 rewrites lines of
+  `resources/templates/SessionInstructions.md` beside the `open` line that stage 8 removes (decision 43); each stage
+  raises `INSTALL_VERSION` for its own change.
 - **Stage 9** (rename): no identifier this stage adds names the Watcher. Three name the Overseer, as everything does
   until stage 9: `ControlContext.liveOverseerOf`, `writeAsTheOverseer` and its file
-  `cli/overseer/OverseerBoardWrites.ts`; stage 9's replacement table renames them with the rest.
+  `cli/overseer/OverseerBoardWrites.ts`; stage 9's replacement table renames them with the rest. The entries `oversee`,
+  `start` and `stop` of `NOT_RELAYABLE_MUTATING_VERBS` (`cli/ControlContract.spec.ts`) follow stage 9's verb set
+  (decision 42).
 - **A remote adapter, later and not built**: it implements `BoardStore` and must pass
   `src/services/store/BoardStore.contract.spec.ts`. Its transaction face cannot carry a hold that spans a git
   fast-forward (design section 4); that redesign stays out of this plan.
@@ -56,10 +74,44 @@ Hands to later stages:
 - **17.** The remote store is not built; the port and its contract spec keep it possible.
 - **19.** The command endpoint applies through the same command face as the CLI.
 - **22.** Outside Hephaestus, state changes only through a command: every CLI verb that changes the board applies a
-  `ControlCommand`, the by-hand verbs included.
-- **32.** Nothing that exists is kept: names, refusal texts and the place of the Baton check change outright.
+  `ControlCommand`, the by-hand verbs included. Nobody hand-edits a ticket file: the content edit is `ticket-edit`
+  (`src/shared/@types/ControlCommand.ts:89-97`), which exists and which this stage keeps as the one way to change a
+  ticket's title or body (WP5.13).
+- **32.** Nothing that exists is kept: names, refusal texts, output fields, installed text and the place of the Baton
+  check change outright.
 - **33.** This stage creates no package. Its new folder `src/services/store/` is a service unit inside `apps/forge`.
-- **34.** Orchestrated sessions do this work outside both trackers.
+- **34.** Orchestrated sessions do this work outside both trackers, and may change any rule file it touches.
+- **45.** A new refusal is worded once, as the sentence the command line prints, and forge serves that sentence.
+- **46.** Boards are set up anew, so changed outputs and installed text need no reader of the old ones.
+- **47.** Forge owns tickets: every change of a ticket is a command forge accepts or refuses.
+- **49.** The tracker model, its spec helpers, the readings and the refusal wording stay in `apps/forge`; every model
+  path below is under `apps/forge/src/lib/tracker-model/`.
+
+The run settles these for this stage:
+
+- **The by-hand verbs become command kinds.** The verbs that change the board with no kind today (`task`, `log`,
+  `namespace`, eight `ticket` verbs, `epic edit`, `epic remove`) get 16 kinds (WP5.6, WP5.7), so the CLI needs only the
+  command face, the one face a remote adapter can serve (design section 9, seam 1). They are never relayed from a job
+  and never accepted by the command endpoint: `COMMAND_ROUTE_KINDS` leaves them out, so the endpoint answers exactly
+  what it answers today and no system version changes in this stage.
+- **The read side is a third part of the port,** shared by both faces. The CLI's reads and the pass's observation take
+  no lock today (`apps/forge/CLAUDE.md:382-383`, `DrivePass.ts:2-4`), and the port keeps that.
+- **The store judges a stored pipeline once.** Today only a write judges a pipeline with entities in a tracker in a
+  folder (`TrackerPipeline.ts:84-101`); every other reader takes the file as it is. The adapter's one pipeline reading
+  applies that judgement, so `observe`, the gate runs, `gate list`, the board state and every write read the same
+  verdict, and a write still refuses to store such a pipeline (WP5.4).
+- **Record locations leave the model and the output.** `Ticket.filePath`, `Epic.filePath`, the `file:` lines of
+  `ticket show`, `epic show` and `draft show`, the JSON `filePath` and the page payload's `filePath` go (WP5.13), and
+  the registry entry's `progressJson` goes (WP5.9). A record the store cannot read is still reported with its
+  location: an ignored ticket file, a malformed pipeline, a malformed hold journal. Nothing but a repair outside every
+  command can fix such a record, and the location is what that repair needs.
+- **Hand-editing ends in the rules and the installed text** (WP5.13): `apps/forge/CLAUDE.md`'s rule that tickets are
+  hand-edited between runs, the session instructions that point at the file to edit, and the reference's invitation to
+  add a field by hand. `INSTALL_VERSION` rises once for it.
+- **What stays outside the port:** stage 3's presence, heartbeat and crash-log files and the Baton under
+  `<data>/overseer/`, which describe a local process and its boot; Talos's files; job folders; gate profile output;
+  pictures (`src/services/tracker/PictureStore.ts`). Each is a place, read and written as today; the guard names none of
+  them.
 
 ## Today's code
 
@@ -68,8 +120,10 @@ Hands to later stages:
 | `writeTracker`: lock, journal replay, read into a Board, mutate (may be async), write in order, one hold | `src/services/tracker/TrackerPipeline.ts:178` | Kept, inside the adapter; only `LocalFilesBoardStore` calls it (WP5.8, WP5.10) |
 | `TrackerChange`, what a mutation receives, with the whole `Workspace` | `src/services/tracker/TrackerPipeline.ts:35` | Replaced by `BoardTransaction` in `src/services/tracker/BoardTransaction.ts` (WP5.3) |
 | `TrackerWriteRequest`, `TrackerWritten` | `src/services/tracker/TrackerPipeline.ts:52`, `:65` | Changed: `TrackerWritten` carries `unreadableRecords` (WP5.3) |
-| The planned write order of a hold | `src/services/tracker/TrackerPipeline.ts:133` (`plannedHoldOf`) | Kept |
-| A write judges a pipeline with entities in a tracker in a folder: the pipeline it opens the Board on reads as malformed `entities-in-a-folder`, and a mutation that would store one is refused | `src/services/tracker/TrackerPipeline.ts:84-101` (`folderPrefixHoldingEntitiesOf`, `pipelineReadingInPlaceOf`, `refuseEntitiesInAFolder`), called at `:185` and `:201` | Kept, inside the adapter; the read side's `readPipeline()` stays the stored reading, as every reader outside a write has it today (Traps) |
+| The planned write order of a hold; it writes each ticket and epic at its model `filePath` | `src/services/tracker/TrackerPipeline.ts:133` (`plannedHoldOf`), `:144-147` | Kept; the locations come from the adapter (WP5.13) |
+| A write judges a pipeline with entities in a tracker in a folder: the pipeline it opens the Board on reads as malformed `entities-in-a-folder`, and a mutation that would store one is refused | `src/services/tracker/TrackerPipeline.ts:84-101` (`folderPrefixHoldingEntitiesOf`, `pipelineReadingInPlaceOf`, `refuseEntitiesInAFolder`), called at `:185` and `:201` | Changed: the judgement moves into the adapter's one reading, which every read and write takes; the refusal of a write stays (WP5.4) |
+| Readers outside a write take the stored pipeline as it is | `src/services/tracker/TrackerReader.ts:71`, `src/services/overseer/DrivePass.ts:493`, `:1139`, `:1257`, `cli/gates/GatePipelineVerbs.ts:224` | Changed: the judged reading (WP5.4, WP5.9, WP5.10) |
+| `gate list` refuses an `entities-in-a-folder` reading, a branch no reading reaches today | `cli/gates/GatePipelineVerbs.ts:225-227` | Kept; reached once the reading is judged (WP5.9) |
 | `withLock`, the tracker lock with the journal replayed first | `src/services/tracker/TrackerLock.ts:217` | Kept, inside the adapter |
 | `withLockIfFree`, with no caller in the repository | `src/services/tracker/TrackerLock.ts:233` | Deleted (WP5.2) |
 | `withLockAt`, `LockGenerationSteps`, `LockHolderIsGone`, used by the registry, the repository tracker list and the shared-repository landing | `src/services/tracker/TrackerLock.ts:256`, `:184`, `:41`; imported at `src/services/tracker/MonitorRegistration.ts:22`, `src/services/tracker/RepositoryTrackerList.ts:14`, `src/services/lifecycle/Landing.ts:18` | Moved to `src/services/tracker/GenerationLock.ts` (WP5.2) |
@@ -77,24 +131,25 @@ Hands to later stages:
 | `TrackerContents`, `readTracker`, `requireTracker`, `requireProgressFile` | `src/services/tracker/TrackerReader.ts:20`, `:53`, `:84`, `:91` | Kept inside the adapter; the type moves to `src/services/tracker/@types/BoardRecords.ts` as `BoardContents` (WP5.3) |
 | `Workspace` with every record path, `workspacePathsFor`, `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.ts:17`, `:34`, `:69`, `:111` | Changed: `Workspace` keeps `rootDirectory`, `trackerDirectory`, `htmlFilePath`; the record paths move to `LocalStoreLayout` (WP5.11) |
 | A tracker is detected by its progress file | `src/services/tracker/Workspace.ts:55` | Kept, asked of `LocalStoreLayout` (WP5.11) |
-| `listTickets`, `readTicket`, `nextTicketId`, `createTicket`, `everyTicketFilePathIn`, `MalformedTicketFile` | `src/services/tracker/TicketStore.ts:63`, `:112`, `:125`, `:149`, `:172`, `:22` | Kept inside the adapter; `createTicket` is reached through `RecordAllocation.newTicket` (WP5.3, WP5.5) |
-| `listEpics`, `everyEpicFilePathIn`, `epicFilePathOf` | `src/services/tracker/EpicStore.ts:23`, `:38`, `:42` | Kept inside the adapter; reached through `RecordAllocation` (WP5.5) |
-| `listDrafts`, `draftFilePathOf` | `src/services/tracker/DraftStore.ts:23`, `:37` | Kept inside the adapter; reached through `RecordAllocation` and `locationOf` (WP5.5, WP5.9) |
+| `listTickets`, `readTicket`, `nextTicketId`, `createTicket`, `everyTicketFilePathIn`, `MalformedTicketFile` | `src/services/tracker/TicketStore.ts:63`, `:112`, `:125`, `:149`, `:172`, `:22` | Kept inside the adapter; `createTicket` is reached through `RecordAllocation.newTicket` (WP5.3, WP5.5); the listing keeps each ticket's location (WP5.13) |
+| `TicketsSpentInHold` picks each ticket's `filePath`, so a new slug is unused | `src/services/tracker/TicketStore.ts:50-53`, `unusedSlugFor` at `:213-224` | Changed: the hold's locations come from the allocation (WP5.13) |
+| `listEpics`, `everyEpicFilePathIn`, `epicFilePathOf` | `src/services/tracker/EpicStore.ts:23`, `:38`, `:42` | Kept inside the adapter; reached through `RecordAllocation` (WP5.5, WP5.13) |
+| `listDrafts`, `draftFilePathOf` | `src/services/tracker/DraftStore.ts:23`, `:37` | Kept inside the adapter; reached through `RecordAllocation` (WP5.5) |
 | `storeFolderFileNamesIn`, `listStoreFolder` | `src/services/tracker/StoreFolderListing.ts:26`, `:37` | Kept inside the adapter |
 | `createTracker` for `init` | `src/services/tracker/TrackerCreation.ts:21` | Kept, reached through `BoardStore.initialise` (WP5.9) |
 | `TRACKER_FILES`: record names, plus the data folder and page names; the data folder name is also read by `cli/InstalledFiles.ts:37`, `:46`, `:47`, `cli/adoption/init/InitCommand.ts:157` and `src/services/tracker/RepositoryTrackerList.ts:52` | `src/services/tracker/constants/TrackerFiles.ts:4` | Changed: record names become `LOCAL_STORE_FILES` inside the adapter; the data folder name is `PRODUCT_NAMES.DATA_FOLDER` (WP5.11) |
-| The registry reads the progress file and publishes its path as `progressJson` | `src/services/tracker/MonitorRegistration.ts:140`, `:152` | Changed: the caller reads through the port and passes the facts in (WP5.9) |
+| The registry reads the progress file and publishes its path as `progressJson` beside `progressHtml` | `src/services/tracker/MonitorRegistration.ts:140`, `:151-152`; documented at `docs/cli.md:2965`, `:2995`; no code in `apps/` or `packages/` reads `progressJson` | Changed: the caller reads through the port and passes the facts in; `progressJson` is not written (WP5.9) |
 | `ControlService.apply` on a `TrackerChange`; `CONTROL_APPLIERS`; `CONTROL_COMMAND_KINDS` | `src/services/control/ControlService.ts:67`, `:27`, `:56` | Changed: applies on a `BoardTransaction`; gains the by-hand kinds (WP5.3, WP5.6, WP5.7) |
-| `ControlCommand`, 79 kinds (the entities work added `need-declare`, `ticket-entity` and `ticket-group`, all relayed) | `src/shared/@types/ControlCommand.ts:67` | Changed: gains the by-hand kinds (WP5.6, WP5.7) |
-| `ControlContext`; its `mainConstitutionOf` now takes an optional `constitutionPath`, an entity's constitution | `src/shared/@types/ControlContext.ts:57` | Changed: gains `liveOverseerOf` (WP5.7) |
-| `ticket-add` names the new ticket's file through `createTicket(change.workspace, …)` | `src/services/control/TicketControls.ts:64` |
-| The pass files a need's ticket and a dependent's fix ticket through `createTicket(change.workspace, board, …)` | `src/services/overseer/NeedTickets.ts:100`, `src/services/overseer/DependentFixTickets.ts:91` | Changed: `transaction.records.newTicket` (WP5.5) | Changed: `transaction.records.newTicket` (WP5.5) |
-| `epic-add` and `draft-open` name their file and compare it with the unreadable files | `src/services/control/FilingControls.ts:9`, `:21` | Changed: `transaction.records` (WP5.5) |
+| `ControlCommand`, 79 kinds (the entities work added `need-declare`, `ticket-entity` and `ticket-group`, all relayed); the content edit `ticket-edit` among them | `src/shared/@types/ControlCommand.ts:67`, `ticket-edit` at `:89-97` | Changed: gains the by-hand kinds (WP5.6, WP5.7); `ticket-edit` kept |
+| `ControlContext`; its `mainConstitutionOf` takes an optional `constitutionPath`, an entity's constitution | `src/shared/@types/ControlContext.ts:57` | Changed: gains `liveOverseerOf` (WP5.7) |
+| `ticket-add` names the new ticket's file through `createTicket(change.workspace, …)` | `src/services/control/TicketControls.ts:64` | Changed: `transaction.records.newTicket` (WP5.5) |
+| The pass files a need's ticket and a dependent's fix ticket through `createTicket(change.workspace, board, …)` | `src/services/overseer/NeedTickets.ts:100`, `src/services/overseer/DependentFixTickets.ts:91` | Changed: `transaction.records.newTicket` (WP5.5) |
+| `epic-add` and `draft-open` name their file and compare it with the unreadable files | `src/services/control/FilingControls.ts:9`, `:21` | Changed: `transaction.records` (WP5.5, WP5.13) |
 | The pipeline refusals (`older-pipeline`, `entities-in-a-folder`, `malformed-pipeline`) name `pipelineFilePath` | `src/services/control/SettingControls.ts:11-15` | Changed: `transaction.records.locationOf` (WP5.5) |
 | A ticket reference is matched to an unreadable file by parsing its file name | `src/services/control/ControlTicketLookup.ts:11-17`, `cli/tickets/utils/TicketLookupUtil.ts:11-18` | Changed: matched by `UnreadableRecord.key` (WP5.5) |
 | Appliers that run git or reach job folders and pictures through `change.workspace.rootDirectory` and `trackerDirectory` | `src/services/control/AirlockControls.ts:43-89`, `RepairControls.ts:35`, `JobControls.ts:32`, `BoardLifetimeControls.ts:107`, `PipelineSetupControls.ts:249`, `:375`, `:581`, `:622`, `PipelineAgentControls.ts:38`, `:71` | Kept: these are places, not records |
 | The merged-tree gate step named `TRACKER_FILES.PIPELINE_FILE_NAME` | `src/services/overseer/UnreadablePipelineGate.ts:12` | Changed: a wordless step value (WP5.5) |
-| The pass fingerprint reads the bytes of `progress.json`, `log.jsonl` and `gate-profiles.json` | `src/services/overseer/DrivePass.ts:436-459` (`:447-449`), helper `fileTextOrEmpty` at `:417` | Replaced by `reads.revision()` (WP5.10) |
+| The pass fingerprint reads the bytes of `progress.json`, `log.jsonl` and `gate-profiles.json` | `src/services/overseer/DrivePass.ts:436-459` (`:447-449`), helper `fileTextOrEmpty` at `:417-423` | Replaced by `reads.revision()` (WP5.10) |
 | `observe` reads the progress file and the pipeline outside the lock | `src/services/overseer/DrivePass.ts:464`, `:493` | Changed: the read side (WP5.10) |
 | The tracker id and the paused state read outside the lock | `src/services/overseer/DrivePass.ts:1055`, `:1291` | Changed: the read side (WP5.10) |
 | `holdTracker`, the Airlocks', gate profiles' and pipeline checks' hold runner, on `writeTracker` | `src/services/overseer/DrivePass.ts:1170-1183`; type at `src/services/overseer/Airlocks.ts:66-72` | Changed: on `transactions.transact` (WP5.10) |
@@ -107,21 +162,26 @@ Hands to later stages:
 | The data folder watch wakes the pass on any file event | `src/services/overseer/DataFolderWatch.ts:57` | Kept: it watches a place |
 | The CLI's write path: job check, workspace, `--at`, `writeTracker`, report, register, nudge | `cli/OpenTrackerForWriting.ts:15-58` | Replaced by `cli/ApplyCommandOfVerb.ts` (WP5.8) |
 | 33 CLI call sites in 28 files that apply a control command inside `openTrackerForWriting`, the entities work's `cli/tickets/TicketEntity.ts:32`, `cli/tickets/TicketGroup.ts:29` and `cli/needs/NeedCommand.ts:53` among them | listed by `grep -rn "ControlService.apply" cli` | Changed: the command face (WP5.8) |
+| The incident moves record through `recordIncidentMove`: the relay under a job first, then the write | `cli/RecordedIncidentMove.ts:44-53` | Changed: the write through the command face, the relay kept first (WP5.8) |
 | CLI verbs that change the Board directly, with no command kind: `task` (add, move, update, remove), `log`, `namespace`, `ticket link`, `ticket size`, `ticket agent`, `ticket introduced-by`, `ticket release-of`, `ticket rereview`, `ticket reopen`, `ticket status`, `epic edit`, `epic remove` | `cli/tracking/task/TaskAdd.ts:30`, `TaskCommand.ts:37`, `TaskCorrection.ts:40`, `:57`, `cli/tracking/log/LogCommand.ts:20`, `cli/tracking/namespace/NamespaceCommand.ts:103-120`, `:138`, `cli/tickets/TicketSettingSubcommands.ts:43`, `:83`, `:106`, `cli/tickets/TicketIntroducedBy.ts:32`, `cli/tickets/TicketReleaseMarker.ts:24`, `cli/tickets/TicketMoveSubcommands.ts:108`, `cli/tickets/TicketTransition.ts:40`, `cli/epics/EpicChangeSubcommands.ts:76`, `:93` | Replaced by command kinds (WP5.6, WP5.7) |
 | The list of mutating verbs with no kind | `cli/ControlContract.spec.ts:36-57` | Changed: keeps only `init`, `update`, `oversee`, `start`, `stop`, `login-item add`, `login-item remove` (WP5.6, WP5.7) |
-| The unrelayed kinds and their verbs | `cli/constants/JobVerbs.ts:39-43` | Kept; a third map `BY_HAND_VERB_OF_CONTROL_KIND` beside it (WP5.6) |
+| The unrelayed kinds and their verbs; the relayed ones | `cli/constants/JobVerbs.ts:39-43`; `RELAYED_VERB_OF_CONTROL_KIND` at `:48` | Kept; a third map `BY_HAND_VERB_OF_CONTROL_KIND` beside them (WP5.6) |
 | `ticket deliver --by-hand` checks the live Baton inside the hold through `change.workspace.trackerDirectory` | `cli/tickets/TicketMoveSubcommands.ts:67-75` | Changed: `ControlContext.liveOverseerOf`, judged by the applier (WP5.7) |
-| The command endpoint applies through `openTrackerForWriting`; `COMMAND_ROUTE_KINDS` | `cli/overseer/routes/CommandRoute.ts:161`, `:55` | Changed: the command face; the by-hand kinds are left out (WP5.6, WP5.8) |
+| The command endpoint applies through `openTrackerForWriting`; `COMMAND_ROUTE_KINDS` is every control kind and Flint's brain's | `cli/overseer/routes/CommandRoute.ts:161`, `:55` | Changed: the command face; the by-hand kinds are left out (WP5.6, WP5.8) |
 | The Overseer's own board writes from its process | `cli/overseer/OverseerForeground.ts:171`, `:561-568`, `:657`, `:679`, `:692`; `cli/overseer/OverseerFlintBrain.ts:74` | Changed: the transaction face (WP5.8) |
 | The board state reads the tracker and the raw `pipeline.json` text | `cli/overseer/routes/BoardStateReader.ts:133-137`, `:153` | Changed: the read side (WP5.10) |
 | The routes read `log.jsonl` and `gate-profiles.json` by path | `cli/overseer/routes/OverseerRoutes.ts:76-79`, `:88-91`, `:153`, `:161` | Changed: the read side (WP5.10) |
-| CLI reads: `status`, `ticket list`, `ticket show`, `epic`, `draft`, `decisions`, `incidents`, `jobs`, `job`, `merges`, `review-stats`, `await`, `concurrency`, `namespace`, `gate list`, `init`, `login-item`, `oversee`, `start` | `cli/tracking/status/StatusCommand.ts:39-46`, `cli/tickets/TicketList.ts:79`, `cli/tickets/TicketReadingSubcommands.ts:22`, `:66`, `cli/epics/EpicCommand.ts:24`, `cli/drafts/DraftCommand.ts:25`, `:49`, `cli/decisions/DecisionsCommand.ts:28`, `cli/incidents/IncidentsCommand.ts:27`, `cli/jobs/JobsCommand.ts:22`, `:34`, `cli/jobs/JobCommand.ts:72`, `:74`, `:144`, `cli/merges/MergesCommand.ts:95`, `cli/measurement/review-stats/ReviewStatsCommand.ts:21`, `cli/tracking/await/AwaitCommand.ts:58`, `:63`, `cli/dispatch/concurrency/ConcurrencyCommand.ts:37`, `cli/tracking/namespace/NamespaceCommand.ts:61`, `:82`, `:94`, `cli/gates/GatePipelineVerbs.ts:222-229`, `cli/adoption/init/InitCommand.ts:66`, `:160`, `:172`, `cli/setup/login-item/LoginItemCommand.ts:86`, `cli/overseer/OverseerCommand.ts:72`, `:146`, `cli/overseer/StartCommand.ts:42` | Changed: the read side (WP5.9) |
-| A ticket's and an epic's `filePath` in the domain model, printed by the CLI and sent in the page payload | `src/lib/tracker-model/@types/Ticket.ts:79`, `src/lib/tracker-model/@types/Epic.ts:16`, `:25`; `src/adapters/utils/TicketJsonUtil.ts:18`, `src/services/render/PagePayloadAssembly.ts:61`, `cli/tickets/TicketReadingSubcommands.ts:51`, `cli/epics/EpicOutput.ts:7` | Kept as data the adapter fills (Needs the owner, item 3) |
+| CLI reads: `status`, `ticket list`, `ticket show`, `epic`, `draft`, `decisions`, `incidents`, `jobs`, `job`, `merges`, `review-stats`, `await`, `concurrency`, `namespace`, `gate list`, `init`, `login-item`, `oversee`, `start` | `cli/tracking/status/StatusCommand.ts:39-46`, `cli/tickets/TicketList.ts:79`, `cli/tickets/TicketReadingSubcommands.ts:22`, `:66`, `cli/epics/EpicCommand.ts:24`, `cli/drafts/DraftCommand.ts:25`, `cli/decisions/DecisionsCommand.ts:28`, `cli/incidents/IncidentsCommand.ts:27`, `cli/jobs/JobsCommand.ts:22`, `:34`, `cli/jobs/JobCommand.ts:72`, `:74`, `:144`, `cli/merges/MergesCommand.ts:95`, `cli/measurement/review-stats/ReviewStatsCommand.ts:21`, `cli/tracking/await/AwaitCommand.ts:58`, `:63`, `cli/dispatch/concurrency/ConcurrencyCommand.ts:37`, `cli/tracking/namespace/NamespaceCommand.ts:61`, `:82`, `:94`, `cli/gates/GatePipelineVerbs.ts:222-229`, `cli/adoption/init/InitCommand.ts:66`, `:160`, `:172`, `cli/setup/login-item/LoginItemCommand.ts:86`, `cli/overseer/OverseerCommand.ts:72`, `:146`, `cli/overseer/StartCommand.ts:42` | Changed: the read side (WP5.9) |
+| A ticket's and an epic's `filePath` in the model, set at filing and at reading | `src/lib/tracker-model/@types/Ticket.ts:79`, `src/lib/tracker-model/@types/Epic.ts:16`, `:25`, `src/lib/tracker-model/Epics.ts:36`; `src/adapters/tickets/TicketFileIngestion.ts:33`, `src/adapters/epics/EpicFileIngestion.ts:31`; written at `src/adapters/tickets/TicketFileWriter.ts:19-20`, `:34`, `src/adapters/epics/EpicFileWriter.ts:18-32` | Deleted from the model; the adapter keeps each location (WP5.13) |
+| Outputs that name a readable record's file: `ticket show`'s `file:` line, the ticket JSON's `filePath`, `epic show`'s `file:` line and JSON `filePath`, `draft show`'s `file:` line, the page payload's `filePath` | `cli/tickets/TicketReadingSubcommands.ts:51`, `src/adapters/utils/TicketJsonUtil.ts:5`, `:18`, `cli/epics/EpicOutput.ts:7`, `:32`, `cli/drafts/DraftOutput.ts:18` with `cli/drafts/DraftCommand.ts:49`, `src/shared/@types/PagePayload.ts:111`, `src/services/render/PagePayloadAssembly.ts:61`; documented at `docs/cli.md:461`, `:756`, `:799` | Deleted (WP5.13) |
+| The rule that tickets are hand-edited between runs | `apps/forge/CLAUDE.md:387-388` | Replaced: a ticket changes only through a command (WP5.13) |
+| Installed text that sends an agent to the ticket file: the session instructions, the reference's ticket file section and its invitation to add a field by hand, the two skills' pointer to the ticket file's format | `resources/templates/SessionInstructions.md:24-25`, `resources/templates/Reference.md:7`, `:13-17`, `:90-93`, `skills/agent-po/SKILL.md:20`, `skills/agent-progress-orchestrate/SKILL.md:24`; `docs/cli.md:3042`, `:3117-3120` | Changed (WP5.13) |
+| The install version, 36 | `cli/constants/InstallVersion.ts:1` | Raised by one over what earlier stages left (WP5.13) |
 | The port convention: one frozen record of ports, a contract spec per adapter, a boundary guard with an exact allowlist | `src/lib/platform-ports/PlatformPortsFor.ts:43`, `src/testing/PortContract.ts:14`, `src/PlatformBoundary.spec.ts:1-471` | Followed by `BoardStore`, its contract and `src/StoreBoundary.spec.ts` (WP5.1, WP5.4) |
-| The service layers of the import guard | `src/ImportDirection.spec.ts:79-107`, `:236-241` | Changed: `store-service` between `control-service` and `overseer-service` (WP5.4) |
-| The rule that every mutating command writes through `writeTracker` | `CLAUDE.md:379-383` | Changed: through the store port (WP5.12) |
-| The import direction diagram | `CLAUDE.md:58-63` | Changed: `control → store → overseer` (WP5.12) |
-| The Deviations table | `CLAUDE.md:321-352` | Changed: a row for the port with one adapter (WP5.12) |
+| The service layers of the import guard | `src/ImportDirection.spec.ts:39-59`, `:79-107`, `:236-241` | Changed: `store-service` between `control-service` and `overseer-service` (WP5.4) |
+| The rule that every mutating command writes through `writeTracker` | `apps/forge/CLAUDE.md:379-383` | Changed: through the store port (WP5.12) |
+| The import direction diagram | `apps/forge/CLAUDE.md:58-63` | Changed: `control → store → overseer` (WP5.12) |
+| The Deviations table | `apps/forge/CLAUDE.md:321-352` | Changed: a row for the port with one adapter (WP5.12) |
 | Docs naming `writeTracker`, `TrackerChange` and `openTrackerForWriting` | `docs/concepts/overview.md:190`, `:205`, `:210`, `docs/glossary.md:104`, `:682`, `docs/backlog.md:30` | Changed (WP5.12); `docs/research/remote-state/findings.md:64` is a dated record and stays |
 
 ## Work packages
@@ -130,18 +190,23 @@ Order and parallelism:
 
 | Package | Runs after | May run in parallel with | Must run alone |
 | --- | --- | --- | --- |
-| WP5.1 The store boundary guard, today's leaks allowlisted | stages 1 to 4 | none | yes |
+| WP5.1 The store boundary guard, today's leaks allowlisted | stages 1 to 3 | none | yes |
 | WP5.2 The generation lock apart from the tracker lock | WP5.1 | none | no |
 | WP5.3 `BoardTransaction`, record allocation and keyed unreadable records | WP5.2 | none | no |
-| WP5.4 The port, the local-files adapter and the contract spec | WP5.2, WP5.3 | WP5.5, WP5.6 | no |
+| WP5.4 The port, the local-files adapter, the contract spec and the one pipeline reading | WP5.2, WP5.3 | WP5.5, WP5.6 | no |
 | WP5.5 Appliers and lookups through the transaction's records | WP5.3 | WP5.4, WP5.6 | no |
 | WP5.6 By-hand verbs become commands: task, log, namespace | WP5.3 | WP5.4, WP5.5 | no |
 | WP5.7 By-hand verbs become commands: tickets and epics; the deliver-by-hand fact | WP5.5, WP5.6 | WP5.4 | no |
-| WP5.8 The CLI and the command endpoint write through the store | WP5.4, WP5.7 | none | yes |
+| WP5.13 Record locations leave the model and the output; hand-editing ends | WP5.4, WP5.7 | none | yes |
+| WP5.8 The CLI and the command endpoint write through the store | WP5.13 | none | yes |
 | WP5.9 The CLI reads through the read side | WP5.8 | WP5.10 | no |
 | WP5.10 The Overseer's pass, server and reads through the store | WP5.8 | WP5.9 | no |
 | WP5.11 The record paths leave `Workspace`; the guard's final form | WP5.9, WP5.10 | WP5.12 | no |
 | WP5.12 Rules, docs and the Deviations row | WP5.10 | WP5.11 | no |
+
+WP5.13 runs between WP5.7 and WP5.8 although its number is the last: it needs the allocation (WP5.3), the epic filing
+through it (WP5.5) and the adapter (WP5.4), and it changes the CLI's read outputs and the adapter's writers before
+WP5.8 to WP5.11 rework the same files.
 
 Parallel packages touch disjoint source files. WP5.2 and WP5.3 run one after the other: both change
 `src/services/tracker/TrackerPipeline.ts`, `TrackerCreation.ts` and `TrackerPipeline.spec.ts`, which import the lock's
@@ -215,10 +280,10 @@ it. Every later package is done when its entries are gone.
    `src/services/overseer/JobLaunch.ts`, `src/services/overseer/PipelineAgentSessions.ts`, and the entities work's
    `src/services/overseer/NeedTickets.ts`, `src/services/overseer/DependentFixTickets.ts` and
    `src/services/overseer/EntityDecisionAnswers.ts`, `src/services/control/*Controls.ts`,
-   `src/services/control/ControlService.ts`,
-   `src/services/control/ControlTicketLookup.ts`, `src/services/lifecycle/Landing.ts`,
-   `src/services/tracker/MonitorRegistration.ts`, `src/services/tracker/RepositoryTrackerList.ts`, and in `cli/` every
-   file the Today's code table lists.
+   `src/services/control/ControlService.ts`, `src/services/control/ControlTicketLookup.ts`,
+   `src/services/lifecycle/Landing.ts`, `src/services/tracker/MonitorRegistration.ts`,
+   `src/services/tracker/RepositoryTrackerList.ts`, and in `cli/` every file the Today's code table lists,
+   `cli/drafts/DraftCommand.ts` (`draftFilePathOf`, removed by WP5.13) among them.
 5. Write the tests, mirroring `PlatformBoundary.spec.ts:204-471`:
    - "the scan saw the tree": more than 400 shipping paths; the adapter files that exist are found; the forms really
      stand in the adapter (`record-file-name` in `src/services/tracker/constants/TrackerFiles.ts`,
@@ -296,22 +361,23 @@ the record's key. Nothing is switched to the new members yet beyond what the ren
   because the control service (below the store service) applies on it.
 - Create `src/services/tracker/@types/BoardRecords.ts`: `UnreadableRecord`, `UnreadableRecords`, `RecordReference`,
   `BoardContents`, `StoredBoardReading`, `UnfinishedWriteReading`, `LogRecordsReading`, `TicketListing`, `NewTracker`,
-  `TrackerCreation`. These are the port's vocabulary and must be importable without importing an adapter module.
+  `TrackerCreation`, `CreateTicketInput`. These are the port's vocabulary and must be importable without importing an
+  adapter module.
 - Create `src/services/tracker/LocalRecordAllocation.ts` and its spec: the local adapter's `RecordAllocation`.
 - Change `src/services/tracker/TrackerPipeline.ts`, `TrackerReader.ts`, `TicketStore.ts`, `EpicStore.ts`,
   `DraftStore.ts`, `StoreFolderListing.ts`, `TrackerCreation.ts`: use the moved types; report unreadable records with a
   key.
-- Change every file that names `TrackerChange` (`grep -rlw TrackerChange src cli bridge`; `grep -rl` finds 61 files
-  today, 31 of them shipping, the substring hits `bridge/tsconfig.json` and the tracker model's `TrackerChanges.ts`
-  among them, which keep their text), `MalformedTicketFile`, `MalformedEpicFile` or `MalformedDraftFile`, and
-  `cli/utils/OutputUtil.ts` (`reportIgnoredTicketFiles`, `reportIgnoredEpicFiles`, `reportIgnoredDraftFiles`,
-  `ignoredTicketFileText`).
+- Change every file that names `TrackerChange` (`grep -rlw TrackerChange src cli bridge` finds 57 files today, 27 of
+  them shipping; the tracker model's `TrackerChanges.ts` is another word and keeps its name), `MalformedTicketFile`,
+  `MalformedEpicFile` or `MalformedDraftFile`, and `cli/utils/OutputUtil.ts` (`reportIgnoredTicketFiles`,
+  `reportIgnoredEpicFiles`, `reportIgnoredDraftFiles`, `ignoredTicketFileText`).
 - Create `src/testing/FixtureRecordAllocation.ts`: a `RecordAllocation` for specs that build a transaction by hand.
 - Change `src/StoreBoundary.spec.ts`: the entries whose line text changed or disappeared.
 
 **What to do.**
 
-1. Write the types of Interfaces introduced into `BoardRecords.ts` and `BoardTransaction.ts`, exactly.
+1. Write the types of Interfaces introduced into `BoardRecords.ts` and `BoardTransaction.ts`, in the form this package
+   gives them: `RecordAllocation` with `newEpicLocation`, which WP5.13 replaces.
 2. Rename `TrackerChange` to `BoardTransaction` everywhere, importing it from `BoardTransaction.ts`; delete the
    interface from `TrackerPipeline.ts`. Keep every member it had (`board`, `workspace`, `at`, `unreadablePipeline`,
    `storedLogEntryCount`, `storedLogRecords`, `deleteAllTicketFilesAfterwards`), replace `malformedTickets`,
@@ -330,11 +396,10 @@ the record's key. Nothing is switched to the new members yet beyond what the ren
      epic record has that key, as `FilingControls.ts:11-13` does today.
    - `requireDraftKeyIsFree(draftId)` throws the same refusal with `record: 'draft'` when an unreadable draft record has
      that key (`FilingControls.ts:23-25`).
-   - `locationOf(reference)` returns the path of the record the reference names (the progress file, the pipeline, the
-     pipeline setup record, the gate profiles, the constitution sources, the log, the hold journal for
-     `unfinished-write`, a ticket by id from the Board's tickets or the unreadable records, an epic or draft by key). A
-     ticket id that no listing names answers the path a new ticket of that id would get without a slug,
-     `<tickets>/<id>.md`.
+   - `locationOf(reference)` returns the path of the one record the reference names: the progress file, the pipeline,
+     the pipeline setup record, the gate profiles, the constitution sources, the log, or the hold journal for
+     `unfinished-write`. A ticket, an epic or a draft has no reference: a readable one is never named by its location,
+     and an unreadable one carries its own.
    - `writeTracker` builds the allocation after `openBoard` and passes it to the mutation as `records`.
 5. The listings' `malformed` members (`TicketStore.ts:31`, `EpicStore.ts:17`, `DraftStore.ts:17`) become `unreadable`,
    and `TicketListing` drops `verdict`. Rename `TrackerWritten.malformedTickets` and `malformedEpics` to
@@ -346,16 +411,15 @@ the record's key. Nothing is switched to the new members yet beyond what the ren
    and `unreadableRecords`. The specs and testing helpers that cast a partial object to the type (`grep -rln "as unknown
    as TrackerChange" src cli`, 19 files today) change only the type name here; WP5.5 gives `records` to those that reach
    a ticket filing. `FixtureRecordAllocation.ts` answers tickets with the next free id under the fixture tickets folder
-   of `BoardFixtures` (`src/testing/BoardFixtures.ts:64` today, imported as `tracker-model/testing/BoardFixtures` after
-   stage 4) and refuses nothing, so no spec writes its own.
+   of `src/testing/BoardFixtures.ts` (`:64`) and refuses nothing, so no spec writes its own.
 7. Update the allowlist entries whose text changed: an import of `TrackerChange` from `TrackerPipeline.ts` that became
-   an import of `BoardTransaction` from `BoardTransaction.ts` is no longer a finding; delete that entry.
+   an import of `BoardTransaction` from `BoardTransaction.ts` is not a finding; delete that entry.
 
 **Specs.**
 
 - `src/services/tracker/LocalRecordAllocation.spec.ts`: two tickets allocated in one hold get consecutive ids and
   distinct slugs; an epic key held by an unreadable file is refused `unreadable-file-in-the-way`; a draft key held by an
-  unreadable file is refused; `locationOf` answers a path inside the data folder for each reference kind.
+  unreadable file is refused; `locationOf` answers a distinct path inside the data folder for each reference kind.
 - `src/services/tracker/TicketStore.spec.ts`, `StoreFolderListing.spec.ts`: each unreadable entry carries its key, and
   `null` for a ticket file whose name carries no number.
 - `src/services/tracker/TrackerPipeline.spec.ts`: `records` and `unreadableRecords` reach the mutation.
@@ -366,10 +430,12 @@ word match keeps the tracker model's `TrackerChanges.ts` out);
 `bun test --path-ignore-patterns='.claude/**' ./src/services/tracker/ ./src/services/control/` passes; the root's
 `bun run verify` is green.
 
-### WP5.4 The port, the local-files adapter and the contract spec
+### WP5.4 The port, the local-files adapter, the contract spec and the one pipeline reading
 
 **Purpose.** Introduce `BoardStore` with its command face, its transaction face and its read side, the one adapter
-around `writeTracker` and the readers, and the contract spec any adapter must pass. Nothing calls the port yet.
+around `writeTracker` and the readers, and the contract spec any adapter must pass. The adapter judges a stored
+pipeline in one reading that its reads and its writes share. Nothing calls the port yet; the readers that call
+`readTracker` today see the judged pipeline at once.
 
 **Files.**
 
@@ -379,6 +445,8 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
 - Create `src/services/store/LocalFilesBoardStore.ts`: `createLocalFilesBoardStore(options)`.
 - Create `src/services/store/BoardStore.contract.spec.ts`: the contract.
 - Create `src/services/store/LocalFilesBoardStore.spec.ts`: what only the local adapter promises.
+- Change `src/services/tracker/TrackerReader.ts` and `src/services/tracker/TrackerPipeline.ts`: the one pipeline
+  reading.
 - Change `src/ImportDirection.spec.ts`: the layer `store-service`.
 - Change `src/StoreBoundary.spec.ts`: a test that every `*BoardStore.ts` adapter of `src/services/store/` is named by
   the contract spec.
@@ -387,13 +455,20 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
 
 1. In `src/ImportDirection.spec.ts`: add `'store-service'` to the `Layer` union (`:39-59`, between `'control-service'`
    and `'overseer-service'` at `:50-51`), to `SOURCE_LAYERS` between `'control-service'` and `'overseer-service'`
-   (`:79-81`), and to `LAYER_REACH` (`:84-107`) as `'store-service': ['lib', 'shared',
-   'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service',
-   'workspace-package']`; in the unit switch (`:236-241`) map `unitFolder === 'store'` to `'store-service'`. Add planted
-   cases beside `:674-705`: a control file importing `../store/BoardStore.ts` is `layer-imports-upward`; a store file
-   importing `../control/ControlService.ts` and an overseer file importing `../store/BoardStore.ts` pass.
-2. Write `BoardStore.ts` exactly as in Interfaces introduced.
-3. Write `createLocalFilesBoardStore({ workspace, now, lockHolderIsGone, afterFileWritten })` returning a frozen
+   (`:79-81`), and to `LAYER_REACH` (`:84-107`) as `'store-service': ['lib', 'shared', 'adapters', 'render-service',
+   'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'workspace-package']`; in the unit switch
+   (`:236-241`) map `unitFolder === 'store'` to `'store-service'`. Add planted cases beside `:674-705`: a control file
+   importing `../store/BoardStore.ts` is `layer-imports-upward`; a store file importing `../control/ControlService.ts`
+   and an overseer file importing `../store/BoardStore.ts` pass.
+2. The one pipeline reading. Move `folderPrefixHoldingEntitiesOf` and `pipelineReadingInPlaceOf`
+   (`TrackerPipeline.ts:84-94`) into `TrackerReader.ts` as `storedPipelineReadingOf(workspace)`: `PipelineFile.read`
+   of the pipeline, then the judgement, so a readable pipeline with entities in a tracker in a folder reads as
+   `PipelineFile.entitiesInAFolderReadingOf(projectPrefix)`. `readTracker` (`:71`) fills `pipelineReading` from it.
+   `writeTracker` opens the Board on `requireTracker`'s contents as they come (`:185` loses its wrapping), and
+   `refuseEntitiesInAFolder` (`:97-101`) stays and asks `folderPrefixHoldingEntitiesOf`, now exported from
+   `TrackerReader.ts`. No reader outside the adapter judges for itself.
+3. Write `BoardStore.ts` exactly as in Interfaces introduced.
+4. Write `createLocalFilesBoardStore({ workspace, now, lockHolderIsGone, afterFileWritten })` returning a frozen
    `BoardStore`:
    - `commands.apply(request)` runs `writeTracker({ workspace, at: request.at, now, lockHolderIsGone, afterFileWritten,
      mutate: (transaction) => ControlService.apply(request.command, transaction, request.context) })` and answers `{
@@ -402,12 +477,11 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
    - `transactions.transact(request)` runs `writeTracker` with `request.mutate` and answers `{ result, board,
      unreadableRecords }`. It adds no timeout and no retry: the hold lasts as long as the mutation.
    - `reads.readBoard()` returns `readTracker(workspace)` mapped to `StoredBoardReading`, with `unfinishedWrite` from
-     `readHoldJournal(workspace)` (`absent` → `{ verdict: 'none' }`, `readable` → `{ verdict: 'pending' }`, `malformed`
-     → `{ verdict: 'malformed', location: holdJournalFilePathOf(workspace), reason }`). `requireBoard()` is
-     `requireTracker(workspace)`; `requireProgress()` is `requireProgressFile(workspace)`.
-   - `reads.readPipeline()` is `PipelineFile.read(workspace.pipelineFilePath)`, the stored reading: the judgement of
-     entities in a tracker in a folder (`pipelineReadingInPlaceOf`, `TrackerPipeline.ts:90-94`) stays a write's, as
-     today; `reads.storedPipelineText()` moves the logic of `pipelineFileTextOf`
+     `readHoldJournal(workspace)` (`absent` → `{ verdict: 'none' }`, `readable` → `{ verdict: 'pending' }`,
+     `malformed` → `{ verdict: 'malformed', location: holdJournalFilePathOf(workspace), reason }`).
+     `requireBoard()` is `requireTracker(workspace)`; `requireProgress()` is `requireProgressFile(workspace)`.
+   - `reads.readPipeline()` is `storedPipelineReadingOf(workspace)`, the same reading a write opens the Board on.
+     `reads.storedPipelineText()` moves the logic of `pipelineFileTextOf`
      (`cli/overseer/routes/BoardStateReader.ts:133-137`) without its `verdict` argument: the stored text when the file
      is readable as text, else `null`.
    - `reads.readGateProfiles()` is `GateProfilesFile.read(workspace.gateProfilesFilePath)`.
@@ -415,20 +489,20 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
      instead of an empty list.
    - `reads.listTickets()` is `listTickets(workspace)`.
    - `reads.readUnfinishedWrite()` is the mapping above, alone.
-   - `reads.revision()` moves `fileTextOrEmpty` (`DrivePass.ts:377-383`) and the three digest lines (`:407-409`): the
+   - `reads.revision()` moves `fileTextOrEmpty` (`DrivePass.ts:417-423`) and the three digest lines (`:447-449`): the
      sha256, in hex, of the progress file's text, `\0`, the log's text, `\0`, the gate profiles' text, `\0`; a missing
      or unreadable file reads as empty.
-   - `reads.locationOf(reference)` answers what `LocalRecordAllocation` answers, read from a fresh listing.
+   - `reads.locationOf(reference)` answers what `LocalRecordAllocation` answers.
    - `initialise(newTracker)` is `createTracker(workspace, newTracker, now, lockHolderIsGone)`.
-4. Write the contract spec with `runPortContract` (`src/testing/PortContract.ts:14`). The subject type is `() =>
+5. Write the contract spec with `runPortContract` (`src/testing/PortContract.ts:14`). The subject type is `() =>
    Promise<BoardStoreUnderContract>` with `{ store: BoardStore; anotherClientOfTheSameBoard: () => BoardStore }`; the
    local subject makes a scratch directory with `createScratchDirectory('board-store')`, builds a store on
    `workspacePathsFor(directory)` with a fixed `now` and `lockHolderIsGone: () => false`, awaits `initialise` with `{
    project: 'Example Agency', startedAt: <fixed stamp>, trackerId: 'example-tracker' }`, and answers a second store
    built from the same options as `anotherClientOfTheSameBoard`. Every command uses the context of
    `src/testing/EchoedControlContext.ts`. The clauses are the ones listed under Specs below; each uses only the port.
-5. Write the local adapter's own spec for what the contract cannot ask of every adapter (listed under Specs).
-6. In `src/StoreBoundary.spec.ts` add "every board store adapter is named by the contract": every shipping file matching
+6. Write the local adapter's own spec for what the contract cannot ask of every adapter (listed under Specs).
+7. In `src/StoreBoundary.spec.ts` add "every board store adapter is named by the contract": every shipping file matching
    `/^src\/services\/store\/\w+BoardStore\.ts$/` other than `BoardStore.ts` is named on a code line of
    `src/services/store/BoardStore.contract.spec.ts`, with a planted adapter that no contract names failing, as
    `PlatformBoundary.spec.ts:397-430` does for platform adapters.
@@ -444,6 +518,8 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
   Example`, then `draft-claim` of the same draft by `Alex Example` (`src/lib/tracker-model/Drafts.ts:44`).
 - A command the Board refuses changes nothing and leaves as `OperationRefusal` `refused` with detail `board-refusal`:
   `draft-claim` of that draft by `Example Agency` without `forces` (`Drafts.ts:45`); the revision is unchanged.
+- A ticket's content changes only through `ticket-edit`: a `ticket-add`, then a `ticket-edit` that appends to the
+  body, leaves the appended body in every later read.
 - A transaction's changes are in the board it answers and in every later read, and its result is answered.
 - A transaction that throws changes nothing; a thrown `BoardRefusal` leaves as `OperationRefusal` `refused`
   `board-refusal`, any other throw leaves as itself.
@@ -463,18 +539,24 @@ around `writeTracker` and the readers, and the contract spec any adapter must pa
   store over the same folder, and `readUnfinishedWrite()` answers `pending` between the two.
 - A malformed hold journal reads as `malformed` with the journal's location, and every write refuses
   `malformed-hold-journal` (`HoldJournal.ts:142-144`).
-- An unreadable ticket file is listed with its key and is not on the Board.
-- `revision()` is unchanged by a hand edit of a ticket body, and changed by a hand edit of the progress file: the limit
-  of the revision is part of its contract (Traps).
+- An unreadable ticket file is listed with its key and its location and is not on the Board.
+- `revision()` is unchanged by a change of a ticket body on disk, and changed by a change of the progress file: the
+  limit of the revision is part of its contract (Traps).
 - A read answers at once while another store holds the lock: the read side takes no lock.
 - `locationOf` answers paths inside the data folder.
 - `initialise` on an existing tracker answers `already-exists` and writes nothing.
-- On a tracker in a folder of its repository, a transaction that stores a pipeline with entities is refused
-  `entities-in-a-folder` and writes nothing, and `readPipeline()` of such a stored pipeline answers it `readable`, as
-  `PipelineFile.read` does (`src/services/tracker/TrackerPipeline.entitiesInAFolder.spec.ts` shows the fixture).
+- On a tracker in a folder of its repository with a stored pipeline that holds entities, `readPipeline()` and
+  `readBoard()`'s `pipelineReading` both answer malformed with `unsupportedEntities` `entities-in-a-folder`, the
+  reading a write opens the Board on; a transaction that stores such a pipeline is refused `entities-in-a-folder` and
+  writes nothing (`src/services/tracker/TrackerPipeline.entitiesInAFolder.spec.ts` shows the fixture). At the
+  repository's root the same pipeline reads `readable`.
+
+`TrackerPipeline.entitiesInAFolder.spec.ts` passes with its assertions unchanged.
 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**' ./src/services/store/
-./src/ImportDirection.spec.ts ./src/StoreBoundary.spec.ts` passes; the root's `bun run verify` is green.
+./src/services/tracker/ ./src/ImportDirection.spec.ts ./src/StoreBoundary.spec.ts` passes; `grep -n
+"pipelineReadingInPlaceOf" src/services/tracker/TrackerPipeline.ts` prints nothing; the root's `bun run verify` is
+green.
 
 ### WP5.5 Appliers and lookups through the transaction's records
 
@@ -556,13 +638,14 @@ from a job and never accepted by the command endpoint.
      'namespace-board-has-jobs'; jobCount: number }`, `{ kind: 'namespace-branch-list-failed'; reason: string }` and `{
      kind: 'namespace-not-free'; refusal: BranchNamespaceRefusal; wantedNamespace: string }`
      (`src/shared/BranchNames.ts:25`). Spread both new tables into `CONTROL_APPLIERS` (`ControlService.ts:27-43`).
-3. Word the four new refusal details in `OperationRefusalWordingUtil` for the command line with the sentences the verbs
-   print today (`TaskAdd.ts:33-44`, `NamespaceCommand.ts:106-118`), and for the API with sentences that name no command;
-   add rows to `docs/reference/refusals.md`.
+3. Word the four new refusal details in `OperationRefusalWordingUtil` with the sentences the verbs print today
+   (`TaskAdd.ts:33-44`, `NamespaceCommand.ts:106-118`): one sentence each, the command line's, which forge serves with
+   the refusal (decision 45); where the util still words a second channel, that channel gets the same sentence. Add
+   rows to `docs/reference/refusals.md`.
 4. In `cli/constants/JobVerbs.ts` add `BY_HAND_VERB_OF_CONTROL_KIND` beside `UNRELAYED_VERB_OF_CONTROL_KIND` (`:39-43`),
    mapping `task-add`, `task-move`, `task-correct`, `task-remove` to `task`, `log-note` to `log`, `namespace-set` to
    `namespace`. Exclude its keys from `RelayedControlCommandKind` (`:45`) and export `BY_HAND_COMMAND_KINDS` (its keys,
-   frozen).
+   frozen). `interrupted-work-resume` (stage 3) stays a relayed kind with its verb `resume`.
 5. In `cli/ControlContract.spec.ts`: `VERB_OF_KIND` (`:33`) spreads the new map too; remove `task`, `log` and
    `namespace` from `NOT_RELAYABLE_MUTATING_VERBS` (`:36-57`). Rewrite the docblock of the list to say it holds only the
    verbs that apply no control command: machine setup and the Overseer's own start and stop.
@@ -572,12 +655,12 @@ from a job and never accepted by the command endpoint.
 7. The verbs build the command and apply it with `ControlService.apply` inside today's `openTrackerForWriting`; WP5.8
    moves them to the command face. A verb's argument checks stay in the verb, before the command is built.
 
-**Specs.** `TaskControls.spec.ts` and `ByHandBoardControls.spec.ts`, on Board fixtures
-(`tracker-model/testing/BoardFixtures`, moved there by stage 4):
-each kind does what its verb did, and each new refusal leaves with its detail. `ControlService.spec.ts`: an example
-command per new kind in its table. `OperationRefusalWordingUtil.spec.ts`: each new detail is worded for both channels.
-`ControlContract.spec.ts`: passes with the shorter list. The existing verb specs under `cli/tracking/` pass with the
-printed text unchanged; where a refusal sentence changed, the spec changes with it.
+**Specs.** `TaskControls.spec.ts` and `ByHandBoardControls.spec.ts`, on the Board fixtures of
+`src/testing/BoardFixtures.ts`: each kind does what its verb did, and each new refusal leaves with its detail.
+`ControlService.spec.ts`: an example command per new kind in its table. `OperationRefusalWordingUtil.spec.ts`: each new
+detail is worded with the command line's sentence. `ControlContract.spec.ts`: passes with the shorter list. The
+existing verb specs under `cli/tracking/` pass with the printed text unchanged; where a refusal sentence changed, the
+spec changes with it.
 
 **Done when.** `grep -n "openTrackerForWriting" cli/tracking/task cli/tracking/log cli/tracking/namespace` shows only
 calls whose mutation is `ControlService.apply`; `bun test --path-ignore-patterns='.claude/**'
@@ -640,6 +723,103 @@ remove`. The existing specs of these verbs under `cli/tickets/` and `cli/epics/`
 passes a mutation that changes the Board only through `ControlService.apply` calls, and otherwise only reads values to
 print (step 3; `TicketHold.ts` picks one of two kinds) (read each hit); the root's `bun run verify` is green.
 
+### WP5.13 Record locations leave the model and the output; hand-editing ends
+
+**Purpose.** Nobody hand-edits a ticket: a ticket's title and body change only through `ticket edit` (`ticket-edit`),
+from the command line, a job's Hatch or the command endpoint that Gaia's later editing screen sends it to, and every
+other field through its own verb (decisions 22, 47). The model carries no storage location; the local adapter alone
+knows where a ticket or an epic is kept. No output names where a readable record is stored; a record the store cannot
+read is still reported with its location.
+
+**Files.**
+
+- The model: `src/lib/tracker-model/@types/Ticket.ts` (`filePath`, `:79`), `src/lib/tracker-model/@types/Epic.ts`
+  (`Epic.filePath` `:16`, `EpicAddition.filePath` `:25`), `src/lib/tracker-model/Epics.ts` (`:36`).
+- The adapter: `src/services/tracker/TicketStore.ts`, `EpicStore.ts`, `TrackerPipeline.ts` (`plannedHoldOf`,
+  `:144-147`), `LocalRecordAllocation.ts`, `BoardTransaction.ts`, `src/services/store/LocalFilesBoardStore.ts`,
+  `src/adapters/tickets/TicketFileIngestion.ts` (`:33`), `TicketFileWriter.ts` (`:19-20`, `:34`),
+  `src/adapters/epics/EpicFileIngestion.ts` (`:31`), `EpicFileWriter.ts` (`:18-32`).
+- The epic filing: `src/services/control/FilingControls.ts`.
+- The outputs: `cli/tickets/TicketReadingSubcommands.ts` (`:51`), `src/adapters/utils/TicketJsonUtil.ts` (`:5`,
+  `:18`), `cli/epics/EpicOutput.ts` (`:7`, `:32`), `cli/drafts/DraftOutput.ts` (`:12-19`), `cli/drafts/DraftCommand.ts`
+  (`:49`), `src/shared/@types/PagePayload.ts` (`:111`), `src/services/render/PagePayloadAssembly.ts` (`:61`).
+- The fixtures and specs: `src/testing/BoardFixtures.ts` (`:64`, `:75`),
+  `src/lib/tracker-model/testing/LifecycleWorld.ts`, `src/testing/TrackerFileFixtures.ts`,
+  `src/testing/WatcherJob.ts`, `src/testing/EveryBoardLogRecord.ts`, and every spec that builds a `Ticket` or an
+  `Epic` with `filePath` or asserts a `file:` line or a JSON `filePath`. `grep -rln "filePath" src cli bridge | grep
+  "\.spec\.\|/testing/\|\.dom\."` lists 69 files today; read each hit, since most name another record's path.
+- The installed text: `resources/templates/SessionInstructions.md` (`:24-25`), `resources/templates/Reference.md`
+  (`:7`, `:13-17`, `:90-93`, `:96-100`), `skills/agent-po/SKILL.md` (`:20`),
+  `skills/agent-progress-orchestrate/SKILL.md` (`:24`), `cli/constants/InstallVersion.ts` (`:1`),
+  `cli/FrozenInstalledSurface.json` when the surface specs ask for a new key, and the recording of
+  `src/services/overseer/InstallChangeWatch.ts`.
+- The rules and docs: `apps/forge/CLAUDE.md` (`:387-388`), `apps/forge/docs/cli.md` (`:461`, `:756`, `:799`, `:3042`,
+  `:3117-3127`).
+- `src/StoreBoundary.spec.ts`: the entries of the changed files.
+
+**What to do.**
+
+1. Delete `Ticket.filePath`, `Epic.filePath` and `EpicAddition.filePath`; `Epics.addEpic` (`Epics.ts:36`) builds the
+   epic without one. The ingestions read a ticket or an epic without a location.
+2. Tickets in the adapter. `listTickets(workspace)` answers a `LocalTicketListing`, private to `TicketStore.ts`: the
+   port's `TicketListing` plus `ticketLocations: ReadonlyMap<string, string>`, each listed ticket's file by its id.
+   `createTicket` answers `{ ticket, location }`, the location being today's `<tickets>/<id>-<slug>.md`.
+   `TicketsSpentInHold.tickets()` picks only `frontmatter`, and `unusedSlugFor` (`:213-224`) takes the hold's taken
+   file names from the locations the allocation holds instead of `basename(ticket.filePath)`. A retitle renames no file:
+   the location stays the one the ticket was read from.
+3. `LocalRecordAllocation` keeps the ticket locations: seeded from the listing, extended by every `newTicket`. Beside
+   the `RecordAllocation` members it offers the adapter alone `storedTicketLocationOf(ticketId)`, which throws an
+   `Error` naming the id for a ticket neither listed nor allocated: the Board changed a ticket the store never held, a
+   bug that crashes the pass (decision 14).
+4. Epics in the adapter: an epic's location is `epicFilePathOf(workspace, epic.frontmatter.key)`, since an epic is its
+   file name (`EpicStore.ts:22`). `RecordAllocation.newEpicLocation(epicKey)` becomes `requireEpicKeyIsFree(epicKey)`,
+   refusing as before and answering nothing; `FilingControls.addEpic` calls it and passes no location.
+5. `plannedHoldOf` writes each changed ticket at `storedTicketLocationOf(ticket.frontmatter.id)` and each changed or
+   removed epic at its key's location. `TicketFileWriter` and `EpicFileWriter` take the location as a parameter where
+   they read the stored text to splice (`TicketFileWriter.ts:34`, `EpicFileWriter.ts:32`) and where they write.
+   `LocalFilesBoardStore`'s `reads.listTickets()` answers the port's `TicketListing` without the locations.
+6. The outputs: delete the `file:` lines of `ticket show`, `epic show` and `draft show` and the `filePath` field of the
+   ticket document and the epic document; `draftSummaryOf` loses its `filePath` parameter, and `DraftCommand.ts` stops
+   importing `DraftStore.ts`; `PageTicket` and `PagePayloadAssembly` lose `filePath` (the Bridge reads none:
+   `grep -rn "filePath" bridge` finds no shipping reader). The reports of unreadable records keep their `location`:
+   `status`'s ignored lines, `malformed-ticket-file`, `unreadable-file-in-the-way` and the pipeline refusals.
+7. The installed text. In `SessionInstructions.md:24-25`, replace the instruction to edit a ticket below its
+   frontmatter with: "Never edit a file under `{{dataFolder}}`. Change a ticket's title or body with `{{program}}
+   ticket edit`, and each other field with its own `ticket` verb; the board refuses what it does not allow." In
+   `Reference.md`, the section "The ticket file" becomes "A ticket": keep the fields' table and the body sections; drop
+   the file's path and name (`:15-17`), the paragraph on unknown keys and hand-written lines (`:90-93`), and the clause
+   on the frontmatter's bytes in the `ticket edit` paragraph (`:96-100`); `:7` names "the ticket's fields" in place of
+   "the ticket file an agent edits". The two skills name "the ticket's fields" where they name "the ticket file's
+   format". Raise `INSTALL_VERSION` by one over the value the stages before left: an installed file names `ticket show`
+   as printing the file path to edit, which this package makes false. Add the frozen surface key the two surface
+   specs print, if they print one, and in the same commit run
+   `bun run record src/services/overseer/InstallChangeWatch.ts`.
+8. The rules and docs. `apps/forge/CLAUDE.md:387-388` becomes: "Nobody hand-edits a ticket file: a ticket's title and
+   body change through `ticket edit` (`ticket-edit`), each other field through its verb, and every change is a command
+   the board accepts or refuses. The local store reads the frontmatter subset of `docs/cli.md` and keeps any other
+   line it finds." In `docs/cli.md`, `:461`, `:756` and `:799` stop naming a file path; the section at `:3042` states
+   that the file is the local store's format, never edited by hand, and `:3117-3120` drops the invitation to add a
+   field by hand while still saying that unknown lines are kept.
+9. Remove the allowlist entries of the changed files (`cli/drafts/DraftCommand.ts`'s `draftFilePathOf` among them).
+
+**Specs.**
+
+- `TicketStore.spec.ts`: the listing answers each listed ticket's location by id; a ticket filed in the hold gets a
+  slug no listed or allocated file holds.
+- `LocalRecordAllocation.spec.ts`: an allocated ticket's location is answered by `storedTicketLocationOf`; an id never
+  listed nor allocated throws; an epic key held by an unreadable file is refused by `requireEpicKeyIsFree`.
+- `TrackerPipeline.spec.ts`: a changed ticket is written to the file it was read from, also after a retitle; a new
+  ticket to its allocated file; an epic to `<key>.md`.
+- `FilingControls.spec.ts`: `epic-add` files the epic with no location in the model.
+- The verb specs of `ticket show`, `epic show` and `draft show`: no `file:` line, and no `filePath` under `--json`; an
+  ignored ticket file is still named by its path on standard error.
+- `cli/InstalledSurface.spec.ts` and `cli/InstalledSurface.status.spec.ts` pass with the new version key; the
+  `InstallChangeWatch` recording's stamp is the new install version.
+
+**Done when.** In `apps/forge`: `grep -rn "filePath" src/lib/tracker-model` prints nothing; `grep -rnE "file: +\\$\{"
+cli/tickets cli/epics cli/drafts` prints nothing; `grep -n "hand-edited" CLAUDE.md` prints nothing; the root's
+`bun install --frozen-lockfile` and `bun run verify` are green.
+
 ### WP5.8 The CLI and the command endpoint write through the store
 
 **Purpose.** The CLI and the command endpoint apply every command through `commands.apply`; the Overseer process's own
@@ -674,23 +854,26 @@ board records go through `transactions.transact`. `cli/OpenTrackerForWriting.ts`
    COMMAND_CONTROL_CONTEXT).result)` becomes `(await applyCommandOfVerb(arguments, context, command)).result`. A value
    the verb printed from the Board inside the hold (WP5.7, step 3) is read from `written.board`; `ticket hold` and
    `ticket unhold` build their one command before the call.
-4. `CommandRoute.ts:161`: the route receives the Overseer's store (passed in its `CommandRouteRequest`, built once by
+4. `recordIncidentMove` (`cli/RecordedIncidentMove.ts:44-53`) keeps `hatchWhenUnderJob` first, so every incident move
+   and stage 3's `resume` stay relayed under a job, and then applies with `applyCommandOfVerb`.
+5. `CommandRoute.ts:161`: the route receives the Overseer's store (passed in its `CommandRouteRequest`, built once by
    WP5.10; until then, `boardStoreOf(request.context)`), applies with `store.commands.apply` and the endpoint's context
    (`liveOverseerOf` answers `null`), and answers `appliedAnswerOf({ outcome, result })` as before. Its refusal and
    `TypeError` handling (`:163-168`) are unchanged.
-5. `OverseerForeground.ts:171`, `:561-568`, `:657`, `:679`, `:692` and `OverseerFlintBrain.ts:74`: each becomes
+6. `OverseerForeground.ts:171`, `:561-568`, `:657`, `:679`, `:692` and `OverseerFlintBrain.ts:74`: each becomes
    `writeAsTheOverseer(store, context, workspace, (transaction) => …)` with the same Board call; `writeAsTheOverseer`
    runs `store.transactions.transact({ at: context.now() formatted as today, mutate })`, then `registerWrittenTracker`.
    It sends no nudge: the writer is the Overseer itself.
-6. `cli/testing/OverseerTicketMoves.ts`: applies its Overseer moves through `transactions.transact` of a store from
+7. `cli/testing/OverseerTicketMoves.ts`: applies its Overseer moves through `transactions.transact` of a store from
    `boardStoreOf`. It is testing code; the guard does not scan it.
-7. Remove the allowlist entries of every switched file; add the one entry `cli/BoardStoreOf.ts: store-internal-import:
+8. Remove the allowlist entries of every switched file; add the one entry `cli/BoardStoreOf.ts: store-internal-import:
    <its import line>` with the reason "The CLI's composition root picks the store's adapter."
 
 **Specs.** `cli/ApplyCommandOfVerb.spec.ts`: a verb under a job is refused `verb-not-relayable` before any file is read;
 an unreadable ticket file is reported on standard error after a write and the exit code is 0; the nudge is sent after
-the lock is released (observe through the store: a read during the nudge is not blocked). `CommandRoute` specs pass
-unchanged in what they assert. Every verb spec passes.
+the lock is released (observe through the store: a read during the nudge is not blocked). `RecordedIncidentMove` specs:
+under a job the move is relayed and the store is not touched. `CommandRoute` specs pass unchanged in what they assert.
+Every verb spec passes.
 
 **Done when.** `cli/OpenTrackerForWriting.ts` does not exist; `grep -rn "writeTracker\|ControlService.apply" cli` finds
 no shipping line; the root's `bun run verify` is green; the end-to-end check of the whole stage passes on a scratch
@@ -698,8 +881,8 @@ board up to `jobs`.
 
 ### WP5.9 The CLI reads through the read side
 
-**Purpose.** No CLI verb outside the Overseer process reads a record except through `store.reads`, and `init` creates
-the board through `initialise`.
+**Purpose.** No CLI verb outside the Overseer process reads a record except through `store.reads`, `init` creates the
+board through `initialise`, and the registry entry names no record's location.
 
 **Files.** Change the read sites of the Today's code table in `cli/tracking/status/StatusCommand.ts`,
 `cli/tickets/TicketList.ts`, `cli/tickets/TicketReadingSubcommands.ts`, `cli/epics/EpicCommand.ts`,
@@ -709,8 +892,8 @@ the board through `initialise`.
 `cli/dispatch/concurrency/ConcurrencyCommand.ts`, `cli/tracking/namespace/NamespaceCommand.ts`,
 `cli/gates/GatePipelineVerbs.ts`, `cli/adoption/init/InitCommand.ts`, `cli/setup/login-item/LoginItemCommand.ts`,
 `cli/overseer/OverseerCommand.ts`, `cli/overseer/StartCommand.ts`, `cli/overseer/StopCommand.ts`,
-`cli/RegisterWrittenTracker.ts`, `src/services/tracker/MonitorRegistration.ts`, their specs, and
-`src/StoreBoundary.spec.ts`.
+`cli/RegisterWrittenTracker.ts`, `src/services/tracker/MonitorRegistration.ts`, `docs/cli.md` (`:2964-2965`, `:2995`),
+their specs, and `src/StoreBoundary.spec.ts`.
 
 **What to do.**
 
@@ -719,26 +902,29 @@ the board through `initialise`.
    `store.reads.listTickets()` and a find over it by `TicketIdUtil.parseTicketReference`.
 2. `StatusCommand.ts:39-43`: `store.reads.readUnfinishedWrite()`; on `malformed` print the same sentence with `location`
    where it printed `holdJournalFilePathOf(workspace)`.
-3. `DraftCommand.ts:49`: the draft's path is `store.reads.locationOf({ record: 'draft', draftId })`.
-4. `GatePipelineVerbs.ts:222-229` (`listPipeline`): `store.reads.readPipeline()`; its three refusals (the
-   `entities-in-a-folder` spread, `malformed-pipeline`, `older-pipeline`) take `filePath` from
+3. `GatePipelineVerbs.ts:222-229` (`listPipeline`): `store.reads.readPipeline()`, the judged reading, so its
+   `entities-in-a-folder` refusal (`:225-227`) is reached; its three refusals take `filePath` from
    `store.reads.locationOf({ record: 'pipeline' })`.
-5. `InitCommand.ts:160`: `store.initialise({…})`; `:172` reports `store.reads.listTickets().unreadable`; `:66`
+4. `InitCommand.ts:160`: `store.initialise({…})`; `:172` reports `store.reads.listTickets().unreadable`; `:66`
    `store.reads.requireProgress()`.
-6. `MonitorRegistration.ts`: `MonitorRegistrationRequest` (`:26-41`) loses `workspace`'s record use: it takes
-   `rootDirectory`, `htmlFilePath`, `progress: ProgressRegistrationReading` (`{ verdict: 'readable'; trackerId; project
-   } | { verdict: 'absent' } | { verdict: 'unreadable'; reason }`) and `progressLocation: string`; the reading at
-   `:140-142` moves to the caller. `cli/RegisterWrittenTracker.ts` builds both from `store.reads.requireProgress`
-   (caught as a verdict) and `store.reads.locationOf({ record: 'progress' })`. The registry file keeps its
-   `progressJson` field (Needs the owner, item 4).
-7. Remove the switched files' allowlist entries.
+5. `MonitorRegistration.ts`: `MonitorRegistrationRequest` (`:26-41`) replaces `workspace` with `rootDirectory`,
+   `htmlFilePath` and `progress: ProgressRegistrationReading` (`{ verdict: 'readable'; trackerId; project } | {
+   verdict: 'absent' } | { verdict: 'unreadable'; reason }`); the reading at `:140-142` moves to the caller.
+   `cli/RegisterWrittenTracker.ts` builds `progress` from `store.reads.requireProgress` (caught as a verdict). The entry
+   stops writing `progressJson` (`:152`): no code in `apps/` or `packages/` reads it (`git grep -n "progressJson" --
+   apps packages ':!*.spec.ts'` names only the writer, `docs/cli.md` and Gaia's recording), and a board's records are
+   reached through the forge, never by path. `docs/cli.md:2965` and `:2995` drop it. The registry's format version is
+   unchanged: nothing reads the key.
+6. Remove the switched files' allowlist entries.
 
 **Specs.** The existing verb specs pass with the same output. `MonitorRegistration` specs build the request with the new
-fields. A `StatusCommand` spec: a malformed hold journal prints its location and `status` still prints the board.
+fields, and an entry it writes holds no `progressJson`. A `StatusCommand` spec: a malformed hold journal prints its
+location and `status` still prints the board. A `GatePipelineVerbs` spec: in a tracker in a folder with a stored
+pipeline that holds entities, `gate list` is refused `entities-in-a-folder`.
 
 **Done when.** `grep -rnE "tracker/(TrackerReader|TicketStore|EpicStore|DraftStore|HoldJournal|TrackerCreation)\.ts"
-cli` finds no shipping line (specs and `testing/` folders aside); the allowlist holds no entry of the files above; the
-root's `bun run verify` is green.
+cli` finds no shipping line (specs and `testing/` folders aside); `grep -rn "progressJson" src cli` prints nothing; the
+allowlist holds no entry of the files above; the root's `bun run verify` is green.
 
 ### WP5.10 The Overseer's pass, server and reads through the store
 
@@ -766,10 +952,11 @@ in its place), `cli/overseer/OverseerForeground.ts`, `cli/overseer/OverseerFlint
    `written.result` and `written.board` as before.
 4. `observe` (`:464`, `:493`): `request.boardStore.reads.requireProgress()` and `reads.readPipeline()`. `fingerprintOf`
    (`:436-459`) takes the revision in place of the workspace and digests `revision ${boardStore.reads.revision()}\n`
-   where the three file digests were; delete `fileTextOrEmpty`.
+   where the three file digests were (`:447-449`); delete `fileTextOrEmpty` (`:417-423`).
 5. `:1055` and `:1291`: `reads.requireProgress()`. `:1257`: `reads.readPipeline()`, still read afresh at every gate run.
    `pipelineOnDisk` (`:1138-1141`), which the entities work added for the confined lines of a gate profile and a
-   pipeline check: `reads.readPipeline()`, still read afresh at every line.
+   pipeline check: `reads.readPipeline()`, still read afresh at every line. Each now takes the judged reading, the one
+   the pass's own write opens the Board on.
 6. Regrouping (`Regrouping.ts:224`), or stage 2's reconnect: `reads.requireProgress()`.
 7. `OverseerForeground.ts:269`, `:275`, `:339`, and `OverseerFlintBrain.ts:42`: `reads.requireProgress()`.
 8. `BoardStateReader.ts:133-137`, `:153`: `reads.requireBoard()` and `reads.storedPipelineText()`.
@@ -778,10 +965,12 @@ in its place), `cli/overseer/OverseerForeground.ts`, `cli/overseer/OverseerFlint
 10. `src/testing/DrivePassHarness.ts`: build the store for the harness's scratch workspace.
 11. Remove the switched files' allowlist entries.
 
-**Specs.** The DrivePass specs pass with their assertions unchanged; a new `DrivePass` case: a write by another client
+**Specs.** The DrivePass specs pass with their assertions unchanged. New `DrivePass` cases: a write by another client
 of the store between two wakes is seen by the next pass, and an unforced wake with no write is skipped by the
-fingerprint. The routes' specs pass. The crash matrix (`CrashMatrix.integration.spec.ts`) is not run by `verify`; run it
-only when the owner asks (`apps/forge/CLAUDE.md:20`).
+fingerprint; in a tracker in a folder with a stored pipeline that holds entities, the merged-tree gate answers the
+unreadable pipeline's step, as the pass's write reads the pipeline unreadable. The routes' specs pass. The crash matrix
+(`CrashMatrix.integration.spec.ts`) is not run by `verify`; it runs when the owner asks for `bun run verify:integration`
+(gate G4, `apps/forge/CLAUDE.md:20`).
 
 **Done when.** `src/StoreBoundary.spec.ts`'s allowlist holds no entry of `src/services/overseer/` or `cli/overseer/` but
 the composition-root import of `OverseerForeground.ts`; the root's `bun run verify` is green; the end-to-end check of
@@ -819,7 +1008,8 @@ the adapter's. The allowlist holds only the composition roots.
    `LOCAL_STORE_FILES` names onto `workspace.trackerDirectory` as `workspacePathsFor` does today (`Workspace.ts:34-52`).
    `boardIsStoredAt(rootDirectory)` is today's `directoryHoldsATracker` (`:55-63`).
 2. `Workspace` keeps `rootDirectory`, `trackerDirectory` and `htmlFilePath`. `workspacePathsFor` builds those three;
-   `findWorkspace` asks `boardIsStoredAt`. `progress.html` keeps its name in a constant private to `Workspace.ts`.
+   `findWorkspace` asks `boardIsStoredAt`. `progress.html` keeps its name in a constant private to `Workspace.ts`, which
+   stage 8 deletes with the stub.
 3. `LOCAL_STORE_FILES` holds the record names of today's `TRACKER_FILES` (`TrackerFiles.ts:5-17` without
    `TRACKER_DIRECTORY_NAME` and `HTML_FILE_NAME`). `cli/InstalledFiles.ts` (`:37`, `:46`, `:47`), `InitCommand.ts:157`
    and `RepositoryTrackerList.ts:52` use `PRODUCT_NAMES.DATA_FOLDER`; `cli/InstalledFiles.spec.ts` and
@@ -848,8 +1038,8 @@ forms of the new patterns; the allowlist holds the two lines.
 **Purpose.** The rules and docs state what is true after this stage.
 
 **Files.** Change `apps/forge/CLAUDE.md`, `apps/forge/docs/concepts/overview.md`, `apps/forge/docs/glossary.md`,
-`apps/forge/docs/backlog.md`. No rule under the root's `.claude/rules/` names `writeTracker` or `TrackerChange` today;
-if one does by then, it is the owner's: list it for the owner and leave it.
+`apps/forge/docs/backlog.md`, and any rule under the root's `.claude/rules/` that names `writeTracker`,
+`TrackerChange` or `openTrackerForWriting` by then (none does at `b4174bd9`; the run changes rule files as it needs).
 
 **What to do.**
 
@@ -857,8 +1047,8 @@ if one does by then, it is the owner's: list it for the owner and leave it.
 2. `CLAUDE.md`, Stored files: add the rule "The core reaches a stored record only through the store port, `BoardStore`
    in `src/services/store/BoardStore.ts`: commands through its command face, the Overseer's pass through its transaction
    face, every read through its read side. Its one adapter, `LocalFilesBoardStore`, is the only code that names a
-   record's path; `src/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
-   adapter must pass."
+   record's path or judges a stored pipeline; `src/StoreBoundary.spec.ts` holds it, and
+   `src/services/store/BoardStore.contract.spec.ts` is what any adapter must pass."
 3. `CLAUDE.md`, Command surface (`:379-383`): "Every mutating command applies a `ControlCommand` through the store's
    command face (`cli/ApplyCommandOfVerb.ts`), whose local adapter runs `writeTracker` in
    `src/services/tracker/TrackerPipeline.ts` (lock, read into a Board, change, writes in `docs/cli.md`'s order, one lock
@@ -875,17 +1065,17 @@ if one does by then, it is the owner's: list it for the owner and leave it.
 **Specs.** `src/ProseWrap.spec.ts` holds the 120-column wrap of `CLAUDE.md`.
 
 **Done when.** From the repository root, `grep -rnwE "TrackerChange|OpenTrackerForWriting|openTrackerForWriting"
---exclude-dir=research apps/forge/CLAUDE.md apps/forge/docs` prints nothing; the root's `bun run verify` is green.
-`docs/research/` is a dated record and is not changed.
+--exclude-dir=research apps/forge/CLAUDE.md apps/forge/docs .claude/rules` prints nothing; the root's `bun run verify`
+is green. `docs/research/` is a dated record and is not changed.
 
 ## Interfaces introduced
 
 ### The port: `src/services/store/BoardStore.ts`
 
 ```ts
-import type { Board }                         from 'tracker-model/Board';
-import type { TrackerProgress }               from 'tracker-model/TrackerProgress';
-import type { GateProfilesReading }           from 'tracker-model/GateProfile';
+import type { Board }                         from '../../lib/tracker-model/Board.ts';
+import type { TrackerProgress }               from '../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { GateProfilesReading }           from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { PipelineReading }               from '../../adapters/pipeline/PipelineFile.ts';
 import type { ControlCommand }                from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
@@ -951,6 +1141,7 @@ export interface StoreReadFace {
   requireBoard():        BoardContents;
   /** The progress record alone; the log is not read, so a broken log does not stop it. */
   requireProgress():     TrackerProgress;
+  /** The stored pipeline as the store judges it: the reading every write opens the Board on. */
   readPipeline():        PipelineReading;
   /** The pipeline as stored, for display; `null` when none is stored or it cannot be read as text. */
   storedPipelineText():  string | null;
@@ -992,6 +1183,11 @@ export interface LocalFilesBoardStoreOptions {
 export function createLocalFilesBoardStore(options: LocalFilesBoardStoreOptions): BoardStore;
 ```
 
+Inside the adapter, `src/services/tracker/TrackerReader.ts` exports `storedPipelineReadingOf(workspace):
+PipelineReading` and `folderPrefixHoldingEntitiesOf(workspace, pipeline): string | null` (WP5.4), and
+`LocalRecordAllocation` adds `storedTicketLocationOf(ticketId): string` (WP5.13). Nothing outside the adapter imports
+them.
+
 ### The transaction: `src/services/tracker/BoardTransaction.ts`
 
 ```ts
@@ -1011,15 +1207,18 @@ export interface BoardTransaction {
 }
 
 export interface RecordAllocation {
-  /** A ticket with the next free id and its storage location, written by this transaction's commit; only safe inside it. */
+  /** A ticket with the next free id, stored by this transaction's commit; only safe inside it. */
   newTicket(input: CreateTicketInput): Ticket;
   /** Refuses `unreadable-file-in-the-way` (record `epic`) when an unreadable record holds the key. */
-  newEpicLocation(epicKey: string): string;
+  requireEpicKeyIsFree(epicKey: string): void;
   /** Refuses `unreadable-file-in-the-way` (record `draft`) when an unreadable record holds the key. */
   requireDraftKeyIsFree(draftId: string): void;
   locationOf(record: RecordReference): string;
 }
 ```
+
+This is the form after WP5.13. From WP5.3 to WP5.13, `requireEpicKeyIsFree` is `newEpicLocation(epicKey: string):
+string`, which refuses the same way and answers the new epic's file for `EpicAddition.filePath`.
 
 `CreateTicketInput` is today's (`src/services/tracker/TicketStore.ts:34-45`, its `group` member included), moved to
 `@types/BoardRecords.ts`.
@@ -1034,7 +1233,7 @@ export interface UnreadableRecord {
   record:   RecordKind;
   /** The ticket id, epic key or draft id the record's storage names; `null` when it names none. */
   key:      string | null;
-  /** Where it is kept, for the report; the local adapter's file path. */
+  /** Where it is kept, for the report a repair needs; the local adapter's file path. */
   location: string;
   reason:   string;
   /** The line the reason points at; 0 where there is none. */
@@ -1047,15 +1246,15 @@ export interface UnreadableRecords {
   drafts:  readonly UnreadableRecord[];
 }
 
-export type RecordReference =
-  | { record: 'progress' | 'pipeline' | 'pipeline-setup' | 'gate-profiles' | 'constitution-sources' | 'log' | 'unfinished-write' }
-  | { record: 'ticket'; ticketId: string }
-  | { record: 'epic'; epicKey: string }
-  | { record: 'draft'; draftId: string };
+/** The records a board holds one of; a ticket, an epic or a draft is never named by where it is kept. */
+export type RecordReference = {
+  record: 'progress' | 'pipeline' | 'pipeline-setup' | 'gate-profiles' | 'constitution-sources' | 'log' | 'unfinished-write';
+};
 
 /** Today's `TrackerContents` (`src/services/tracker/TrackerReader.ts:20-34`), its listings' `malformed` replaced. */
 export interface BoardContents {
   progress:                   TrackerProgress;
+  /** Judged by the store: the reading every write opens the Board on. */
   pipelineReading:            PipelineReading;
   pipelineSetupReading:       PipelineSetupReading;
   gateProfilesReading:        GateProfilesReading;
@@ -1090,6 +1289,13 @@ export type TrackerCreation = { verdict: 'created' } | { verdict: 'already-exist
 ```
 
 `TicketListing` loses today's `verdict: 'listed'` member (`TicketStore.ts:29`), which carries nothing.
+
+### The model without locations (WP5.13)
+
+`Ticket` (`src/lib/tracker-model/@types/Ticket.ts:76-84`) keeps `frontmatter`, `body`, `lineEnding` and `storedType`
+and loses `filePath`. `Epic` (`src/lib/tracker-model/@types/Epic.ts:13-19`) keeps `frontmatter`, `body` and
+`lineEnding`; `EpicAddition` keeps `key`, `title` and `body`. The ticket document of `TicketJsonUtil`, the epic
+document of `cli/epics/EpicOutput.ts` and `PageTicket` lose `filePath`.
 
 ### `Workspace` and the local layout (WP5.11)
 
@@ -1128,7 +1334,7 @@ requireStillHeld(): void }`, moved from `HoldJournal.ts:20-22`.
 ### New command kinds (WP5.6, WP5.7), added to `ControlCommand`
 
 Never relayed from a job, never accepted by `POST /api/commands`; listed in `BY_HAND_VERB_OF_CONTROL_KIND` and
-`BY_HAND_COMMAND_KINDS` (`cli/constants/JobVerbs.ts`).
+`BY_HAND_COMMAND_KINDS` (`cli/constants/JobVerbs.ts`). Stage 3's `interrupted-work-resume` is not among them.
 
 ```ts
   | { kind: 'task-add'; name: string; ticketReference?: string; reviewOfReference?: string; owner?: string; note?: string;
@@ -1152,14 +1358,14 @@ Never relayed from a job, never accepted by `POST /api/commands`; listed in `BY_
 ```
 
 `MovedToStatus` is today's (`src/adapters/utils/StatusWordingUtil.ts`); `TaskAnnotation`, `TaskCorrection`,
-`AgentAssignment` are the tracker model's (`@types/BoardChanges.ts`). Results are what the Board call answered, as each
-verb's mutation returned it today. `causeTicketId` is the padded id the verb parses before the hold, `null` to clear
-(`cli/tickets/TicketIntroducedBy.ts:27`, `TicketArgumentUtil.linkedTicketIdFrom`).
+`AgentAssignment` are the tracker model's (`src/lib/tracker-model/@types/BoardChanges.ts`). Results are what the Board
+call answered, as each verb's mutation returned it today. `causeTicketId` is the padded id the verb parses before the
+hold, `null` to clear (`cli/tickets/TicketIntroducedBy.ts:27`, `TicketArgumentUtil.linkedTicketIdFrom`).
 
 New refusal details: `{ kind: 'task-ticket-missing'; option: 'ticket' | 'review-of'; reference: string }`, `{ kind:
 'namespace-board-has-jobs'; jobCount: number }`, `{ kind: 'namespace-branch-list-failed'; reason: string }`, `{ kind:
 'namespace-not-free'; refusal: BranchNamespaceRefusal; wantedNamespace: string }`, with `BranchNamespaceRefusal` from
-`src/shared/BranchNames.ts:25`.
+`src/shared/BranchNames.ts:25`. Each is worded once, as the command line prints it.
 
 ### `ControlContext` (WP5.7)
 
@@ -1194,9 +1400,14 @@ export function writeAsTheOverseer<Result>(
 ### The registry request (WP5.9)
 
 `MonitorRegistrationRequest` (`src/services/tracker/MonitorRegistration.ts:26`) replaces `workspace` with
-`rootDirectory: string`, `htmlFilePath: string`, `progress: { verdict: 'readable'; trackerId: string; project: string }
-| { verdict: 'absent' } | { verdict: 'unreadable'; reason: string }` and `progressLocation: string`. The registry file's
-format is unchanged.
+`rootDirectory: string`, `htmlFilePath: string` and `progress: { verdict: 'readable'; trackerId: string; project: string
+} | { verdict: 'absent' } | { verdict: 'unreadable'; reason: string }`. The registry entry holds no
+`progressJson`; its other keys and the registry's version are unchanged.
+
+### Installed surface (WP5.13)
+
+`INSTALL_VERSION` rises by one. `SessionInstructions.md` and `Reference.md` name no ticket file and invite no hand edit;
+`ticket show`, `epic show` and `draft show` print no `file:` line, and their `--json` documents hold no `filePath`.
 
 ### Guard and contract
 
@@ -1220,9 +1431,9 @@ format is unchanged.
   lock's own staleness (`LIMITS.LOCK_STALE_MILLISECONDS`, 30 seconds, `src/shared/constants/Limits.ts:3`) already lets
   another process take over a hold that runs longer, and the fence then refuses the stale holder's writes
   (`TrackerLock.ts:193-199`). Keep that behaviour exactly; do not lengthen or shorten it here.
-- **Reads take no lock.** `status` takes no lock (`CLAUDE.md:382-383`) and the pass observes outside the hold
-  (`DrivePass.ts:2-4`). Implement every `reads` member without `withLock`. A read can see a write half done; that is the
-  documented limit, not a bug to fix here.
+- **Reads take no lock.** `status` takes no lock (`apps/forge/CLAUDE.md:382-383`) and the pass observes outside the
+  hold (`DrivePass.ts:2-4`). Implement every `reads` member without `withLock`. A read can see a write half done; that
+  is the documented limit, not a bug to fix here.
 - **A command waits at most about five seconds for the lock** (`LIMITS.LOCK_RETRY_COUNT` 50 × 100 ms) and then throws
   `tracker-lock-held`, while a pass may hold the lock for a git fast-forward. This is today's behaviour; the contract
   clause on waiting must use `parkingLockRetries` so it neither sleeps nor runs out the budget.
@@ -1241,11 +1452,15 @@ format is unchanged.
   own command.
 - **New command kinds widen the endpoint unless excluded.** `COMMAND_ROUTE_KINDS` is built from `CONTROL_COMMAND_KINDS`
   (`CommandRoute.ts:55`). Leaving out `BY_HAND_COMMAND_KINDS` keeps the served contract as it is; forgetting it changes
-  a route without a system version (`CLAUDE.md:93-97`). The Bouncer refuses the new kinds by default
+  a route without a system version (`apps/forge/CLAUDE.md:93-97`). The Bouncer refuses the new kinds by default
   (`Bouncer.ts:201-210`), and `ALLOWED_MOVES_BY_INCIDENT_KIND` does not name them; do not add them there.
+- **The resume command is no by-hand kind.** Stage 3's `interrupted-work-resume` is relayed and accepted by the
+  endpoint. `recordIncidentMove` must keep its relay under a job before the write (WP5.8, step 4), or `resume` under a
+  job is refused `verb-not-relayable` instead of reaching the Bouncer.
 - **Refusal texts move with the appliers.** The CLI words its refusals in place today (`TaskAdd.ts:33-44`,
-  `NamespaceCommand.ts:106-118`); in `src/` a refusal is a wordless detail. Each new detail needs both wordings
-  (`messageOf`, `apiMessageOf`) and a row in `docs/reference/refusals.md`. Specs that assert a sentence change with it.
+  `NamespaceCommand.ts:106-118`); in `src/` a refusal is a wordless detail. Each new detail is worded once in
+  `OperationRefusalWordingUtil`, with the command line's sentence, and gets a row in `docs/reference/refusals.md`.
+  Specs that assert a sentence change with it.
 - **`TicketLookupUtil.requireTicket` and `ticketIdOfReference` word a missing ticket differently**
   (`cli/tickets/utils/TicketLookupUtil.ts:21-29` against `src/services/control/ControlTicketLookup.ts:20-30`). Moving a
   verb into an applier changes its printed refusal to the wording util's; check the verb's specs and accept the util's
@@ -1258,14 +1473,26 @@ format is unchanged.
 - **Unreadable records keyed by file name.** Today a ticket reference finds its unreadable file by the file name's
   number (`ControlTicketLookup.ts:14-17`). The key must be derived the same way, including `012.md` with no slug and a
   file whose name and `id` disagree, or a reference to a broken ticket reads as "no ticket" instead of "malformed".
+- **Unreadable records keep their location.** WP5.13 strips locations from every report of a readable record. The
+  reports of a record the store cannot read (`status`'s ignored lines, `malformed-ticket-file`,
+  `unreadable-file-in-the-way`, the pipeline refusals, the malformed hold journal) keep naming the file: it is the only
+  thing a repair can go by.
+- **A ticket's location is the adapter's alone.** After WP5.13 the Board holds no path, so `plannedHoldOf` must find
+  every changed ticket's file in the allocation: listed at the hold's start or allocated in it. A ticket the Board
+  changed that the store never held is a bug and throws; never fall back to a fresh `<id>-<slug>.md`, which would
+  write a second file for a retitled ticket. A retitle renames no file.
+- **`INSTALL_VERSION` and its recording move together.** WP5.13 raises the version and runs `bun run record
+  src/services/overseer/InstallChangeWatch.ts` in the same commit; `bun run verify` fails on a stale stamp
+  (`apps/forge/CLAUDE.md:190-196`). Raise it over whatever the stages before left, never to a fixed number.
 - **`TRACKER_FILES` mixes records and places.** `TRACKER_DIRECTORY_NAME` and `HTML_FILE_NAME` are not records and are
   used by `cli/InstalledFiles.ts`, `cli/adoption/init/InitCommand.ts:157` and
   `src/services/tracker/RepositoryTrackerList.ts:52`; move them before deleting the constant.
-- **Only a write judges entities in a folder.** `writeTracker` opens the Board on `pipelineReadingInPlaceOf`, which
-  reads a stored pipeline with entities as malformed `entities-in-a-folder` in a tracker in a folder, and refuses a
-  mutation that would store one (`TrackerPipeline.ts:84-101`). Every read outside a write (`observe`, the gate runs,
-  `pipelineOnDisk`, `gate list`) reads the file as it is. Keep both: `readPipeline()` answers the stored reading, and
-  the judgement stays in the adapter's write, never in a caller.
+- **The store judges a stored pipeline once.** The judgement of entities in a tracker in a folder lives in
+  `storedPipelineReadingOf` and nowhere else; a caller never judges for itself. Its effect reaches readers that took
+  the file as it is: `observe`'s build jobs see no pipeline, the merged-tree gate answers the unreadable pipeline's
+  step, and `gate list` refuses `entities-in-a-folder`, as a write already does. `storedPipelineText()` stays the
+  stored text, for display. The judgement reads `projectLocationOf` (`src/services/tracker/ProjectLocation.ts:37`)
+  only for a pipeline that holds entities, and that reading runs no git, so judging on every pass costs nothing new.
 - **`logFilePath` and `lockDirectoryPath` are ambiguous names.** The Overseer's own log (`OverseerFiles.ts:9`), the
   registry lock and the landing lock use the same words. The guard matches them only on a workspace until WP5.11 renames
   the record fields.
@@ -1277,8 +1504,8 @@ format is unchanged.
 - **Specs that build a `Workspace` by hand** break at WP5.11. Find them with the grep of WP5.11 before starting it, and
   move them to `localStoreLayoutOf`.
 - **`programTypeScriptSources` scans declared workspace packages too** (`src/testing/RepositorySources.ts:195`). The
-  tracker-model package holds `Ticket.filePath` as a field; the guard's forms do not match a `.filePath` read, by
-  design.
+  guard's forms do not match a `.filePath` read, by design: the hold journal's `file.filePath` and the refusal details'
+  `filePath` are no record path the guard should see.
 
 ## Verification of the whole stage
 
@@ -1298,6 +1525,7 @@ In `apps/forge`, the specs that matter most, each run as `bun test --path-ignore
 - `src/ImportDirection.spec.ts`: the `store-service` layer.
 - `src/services/tracker/` and `src/services/control/`.
 - `cli/ControlContract.spec.ts` and `cli/overseer/routes/CommandRoute.controlContract.spec.ts`.
+- `cli/InstalledSurface.spec.ts` and `cli/InstalledSurface.status.spec.ts`.
 - `src/services/overseer/DrivePass*.spec.ts`.
 
 Greps that must print nothing (from `apps/forge`):
@@ -1305,25 +1533,34 @@ Greps that must print nothing (from `apps/forge`):
 ```sh
 grep -rnwE "TrackerChange|OpenTrackerForWriting|openTrackerForWriting|withLockIfFree" --exclude-dir=research src cli bridge docs CLAUDE.md
 grep -rn "progressFilePath\|ticketsDirectory\|epicsDirectory\|draftsDirectory\|TRACKER_FILES" src cli bridge
+grep -rn "filePath" src/lib/tracker-model
+grep -rn "progressJson" src cli
+grep -n "hand-edited" CLAUDE.md
+grep -n "pipelineReadingInPlaceOf" src/services/tracker/TrackerPipeline.ts
 ```
 
 End to end on a scratch board, as `docs/development/contributing.md:76-179` prescribes, from `apps/forge` in one scratch
 shell: create `SCRATCH="$(mktemp -d /tmp/ap-scratch.XXXXXX)"` with a scratch `HOME`, run `init --root`, set
-`FORGE_ROOT`, `FORGE_FAKE_AGENT=1` and `FORGE_FAKE_AGENT_KEEPS_WORKING=1`, then check each of these:
+`FORGE_ROOT`, `FORGE_FAKE_AGENT=1` and `FORGE_FAKE_AGENT_KEEPS_WORKING=1`, then check each of these. The lifecycle
+verbs are named as stage 3 leaves them; stage 9 renames them (decision 42).
 
 1. `ticket add "Double-click a role to edit it" --type ticket`, `log "Scratch board started"`, `task add "Example row"`,
    `task start 1`, `epic add example "Example"`, `epic edit example --title "Example epic"`, `ticket size 001 S`, then
    `status`: every change is listed and `status` exits 0. `namespace` is left to its specs.
-2. `oversee --port 0 --detach`, `oversee status` (serving, paused), `gate none`, `ticket edit 001 --append --body "##
-   Brief …"`, `ticket ready 001`, `oversee resume`, `jobs`: within seconds a `build/builder` job on `#001` is listed, so
-   the pass's transaction and the command face work together.
-3. With the Overseer live, `ticket deliver 001 --by-hand` is refused `overseer-owns-the-lifecycle`, naming its URL, and
-   writes nothing.
-4. A command posted to the endpoint with the token from the Baton's `tokenFile` (`concurrency-set`) answers 200; a body
-   of kind `task-add` answers 400 `malformed-body`.
-5. Hand-break a ticket file's frontmatter: `status` reports it as ignored with its path and exits 0; `ticket show` of
+2. `ticket edit 001 --append --body "## Brief …"`, then `ticket show 001` and `ticket show 001 --json`: the body holds
+   the appended Brief, no `file:` line is printed and the document holds no `filePath`; `epic show example` and
+   `draft show` of a draft opened with `draft open` print no `file:` line either.
+3. `oversee --port 0 --detach`, `oversee status` (serving, paused), `gate none`, `ticket ready 001`, `oversee resume`,
+   `jobs`: within seconds a `build/builder` job on `#001` is listed, so the pass's transaction and the command face work
+   together.
+4. With the Overseer live, `ticket deliver 001 --by-hand` is refused `overseer-owns-the-lifecycle`, naming its URL, and
+   writes nothing. `resume --all` answers nothing to do and exits 0.
+5. A command posted to the endpoint with the token from the Baton's `tokenFile` (`concurrency-set`) answers 200; a body
+   of kind `interrupted-work-resume` with target `all` answers 200; a body of kind `task-add` answers 400
+   `malformed-body`.
+6. Break a ticket file's frontmatter on disk: `status` reports it as ignored with its path and exits 0; `ticket show` of
    its id exits 2 and names the file.
-6. End the board with `oversee stop --now`, `pkill -f "$REPOSITORY/.forge"`, restore `HOME` and remove the scratch
+7. End the board with `oversee stop --now`, `pkill -f "$REPOSITORY/.forge"`, restore `HOME` and remove the scratch
    folder.
 
 Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothing runs in this checkout's own tracker.
@@ -1332,42 +1569,37 @@ Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothi
 
 - The remote adapter, a server-side store, a change feed for the pass, and the redesign of the pass that a remote store
   needs (design section 4 and section 9).
-- Removing `filePath` from `Ticket` and `Epic`, the `file:` lines and the JSON `filePath`, and ending hand-edits of
-  ticket files in the installed text (`resources/templates/Reference.md:15`,
-  `resources/templates/SessionInstructions.md:24`), which bumps `INSTALL_VERSION` (Needs the owner, item 3).
-- Accepting any by-hand kind on the command endpoint, or adding any kind to `packages/forge-contracts`: stage 6.
-- Changing the lock's timing, the hold journal's format, the write order of a hold or any stored format.
+- The freeze of a ticket's content once it is being built and once it has had its human review (decision 48), and the
+  way a user changes a frozen ticket (design section 12). They are the Board's rules on `ticket-edit`
+  (`TicketEdits.editTicket`, `src/lib/tracker-model/TicketEdits.ts`, whose `--force` past `pending` they replace) and
+  on the moves, placed by the schedule. Nothing here depends on them: this stage keeps `ticket-edit`'s Board call as it
+  is, so the freeze lands on it after this stage unchanged by the store.
+- Gaia's screen for editing a ticket's content (decision 22), and accepting any by-hand kind on the command endpoint or
+  adding any kind to `packages/forge-contracts`: stage 6, or after this run.
+- The worker prompts' "Never edit the ticket file" (`resources/prompts/BuildPrompt.md:26`, `ReviewPrompt.md:26`,
+  the built-in briefs): they forbid what this stage ends and stay true.
+- Changing the lock's timing, the hold journal's format, the write order of a hold or any stored format. The ticket
+  file keeps its frontmatter subset and keeps unknown lines it reads.
 - Moving pictures (`src/services/tracker/PictureStore.ts`), job folders, gate profile output, Talos's files, the Baton
   or stage 3's presence and crash files behind the port.
-- The two open decisions of design section 12: what follows an ending on a network outage, and a bound on an install
-  line. This stage touches neither.
+- The ending on a network outage and the bound of gate and install lines (decisions 35 to 37): stage 2.
 - Naming a failed pass (design section 7) and the Overseer-to-Hephaestus rename: stages 3 and 9.
+- `forge open`, the `progress.html` stub and `Workspace.htmlFilePath` (decision 43): stage 8.
 
 ## Needs the owner
 
-1. **The by-hand verbs become command kinds.** Recommended default: yes, as WP5.6 and WP5.7 plan, so the CLI needs only
-   the command face (decision 22, design section 9, seam 1). The alternative keeps those verbs on the transaction face,
-   which leaves the CLI a face a remote adapter cannot serve; WP5.6 and WP5.7 are then skipped and the verbs call
-   `transactions.transact` in WP5.8.
-2. **The by-hand kinds stay off the command endpoint.** Recommended default: yes, so no system version changes and Gaia
-   records nothing again in this stage; a view that needs one adds it in stage 6 with a minor version.
-3. **A ticket's and an epic's `filePath`.** Recommended default: keep them in the tracker model as values the adapter
-   fills, and keep the `file:` lines and JSON fields. Removing them belongs with ending hand-edits, which the design
-   names as a consequence (section 4) but no stage owns; it changes installed files and needs an `INSTALL_VERSION` bump
-   and the rule "Tickets are hand-edited between runs" (`CLAUDE.md:387-388`) replaced.
-4. **The registry's `progressJson`.** Recommended default: keep the field, filled from `locationOf({ record: 'progress'
-   })`; no code in `apps/gaia/src` reads it (only a recording does), so stage 8 may drop it.
-5. **Stage 3's presence, heartbeat, fatal-error and crash files.** Recommended default: outside the store port, beside
-   the Baton under `<data>/overseer/`: they describe a local process and its boot, which a remote store could not hold
-   truthfully. The guard does not name them.
-6. **The read side as a third part of the port.** The design names two faces; the CLI's reads and the pass's observation
-   need lock-free reads. Recommended default: the read side is shared by both faces, as planned.
-7. **Pictures.** Recommended default: they stay outside the port, under the data folder, as today.
+No question about behaviour is open in this stage. One act is the owner's, and the stage is done without it:
+
+1. **Gate G4:** asking for `bun run verify:integration` after WP5.10, so the crash matrix
+   (`CrashMatrix.integration.spec.ts`) runs over the pass's transaction face. `apps/forge/CLAUDE.md:20` lets a session
+   run it only when a person asks.
 
 ## Not established
 
-- The state of `DrivePass.ts`, `Regrouping.ts`, `OverseerForeground.ts` and `JobLaunch.ts` after stages 2 and 3, and the
-  final name of the tracker-model package after stage 4; this plan was written against today's code.
+- The state of `DrivePass.ts`, `Regrouping.ts`, `OverseerForeground.ts` and `JobLaunch.ts` after stages 2 and 3; this
+  plan reads the code at `b4174bd9`.
+- Whether stage 4's adapter that maps a `Ticket` into the contract's ticket document reads `Ticket.filePath`; if it
+  lands before WP5.13 and does, WP5.13 removes that read with the field.
 - Whether every Board change writes a log record; if one does not and changes no progress field, the revision does not
   see it. Not traced.
 - Whether a spec, the Bridge or a wording util reads the stored step value `pipeline.json` of an unreadable pipeline
@@ -1379,3 +1611,5 @@ Nothing in this check reads or writes `~/.forge-monitor` or `~/.gaia`, and nothi
 - Whether `readBoard()` on every HTTP request of the board state costs more than today's `requireTracker` (it is the
   same call); not measured.
 - Whether `TrackerLock.integration.spec.ts` holds cases of the generic lock only, which decides whether WP5.2 moves it.
+- Whether the two surface specs print a new frozen key for WP5.13's version; the key holds whatever surface they print,
+  and none if they print none.

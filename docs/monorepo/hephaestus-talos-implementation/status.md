@@ -8,12 +8,12 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | Gate | State | Note |
 | --- | --- | --- |
 | G0 | passed | Owner said go on 2026-11-18; branch `hephaestus-talos` |
-| G1 | owner | WP0.3: the owner records a session that ends on a network outage |
-| G2 | owner | Round 1 answered 2026-11-18 (11 items, below); the rest reworked into abstract questions |
-| G3 | waiting | WP1.2 |
-| G4 | waiting | End of WP2.13 |
-| G5 | waiting | Before WP6.4 |
-| G6 | waiting | Before and after stage 9 |
+| G1 | owner | WP0.3: the owner records recordings A and B; later the fake agent's outage scenario, after WP2.2 |
+| G2 | passed | Answered 2026-11-18: `owner-answers.md` |
+| G3 | waiting | Before WP1.2: the owner stops both trackers and removes their login items |
+| G4 | waiting | End of WP2.13; optionally after WP3.14 and WP5.10 |
+| G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
+| G6 | waiting | Before and after stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
 
 ## Packages
@@ -42,12 +42,14 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 2-F | WP2.9 | waiting | | |
 | 2-F | WP2.10 | waiting | | |
 | 2-G | WP2.12 | waiting | | |
+| 2-G | WP2.19 | waiting | | |
 | 2-H | WP2.13 | waiting | | |
 | 2-I | WP2.14 | waiting | | |
-| 2-J | WP2.15 | waiting | | |
-| 2-K | WP2.16 | waiting | | |
-| 2-L | WP2.17 | waiting | | |
-| 2-M | WP2.18 | waiting | | |
+| 2-J | WP2.20 | waiting | | |
+| 2-K | WP2.15 | waiting | | |
+| 2-L | WP2.16 | waiting | | |
+| 2-M | WP2.17 | waiting | | |
+| 2-N | WP2.18 | waiting | | |
 | 3-A | WP3.1 | waiting | | |
 | 3-A | WP3.4 | waiting | | |
 | 3-A | WP3.5 | waiting | | |
@@ -58,18 +60,19 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 3-D | WP3.8 | waiting | | |
 | 3-E | WP3.9 | waiting | | |
 | 3-F | WP3.10 | waiting | | |
+| 3-F | WP3.15 | waiting | | |
 | 3-G | WP3.11 | waiting | | |
 | 3-G | WP3.13 | waiting | | |
 | 3-H | WP3.12 | waiting | | |
 | 3-I | WP3.14 | waiting | | |
-| 4-A | WP4.1 | waiting | | |
-| 4-B | WP4.2 | waiting | | |
-| 4-C | WP4.3 | waiting | | |
-| 4-D | WP4.4 | waiting | | |
-| 4-E | WP4.5 | waiting | | |
-| 4-E | WP4.6 | waiting | | |
-| 4-E | WP4.7 | waiting | | |
-| 4-F | WP4.8 | waiting | | |
+| 4-A | WP4.4 | waiting | | |
+| 4-B | WP4.5 | waiting | | |
+| 4-B | WP4.6 | waiting | | |
+| 4-B | WP4.7 | waiting | | |
+| 4-B | WP4.12 | waiting | | |
+| 4-C | WP4.8 | waiting | | |
+| 4-D | WP4.10 | waiting | | |
+| 4-E | WP4.11 | waiting | | |
 | 4-F | WP4.9 | waiting | | |
 | 5-A | WP5.1 | waiting | | |
 | 5-B | WP5.2 | waiting | | |
@@ -78,49 +81,56 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 | 5-D | WP5.5 | waiting | | |
 | 5-D | WP5.6 | waiting | | |
 | 5-E | WP5.7 | waiting | | |
-| 5-F | WP5.8 | waiting | | |
-| 5-G | WP5.9 | waiting | | |
-| 5-G | WP5.10 | waiting | | |
-| 5-H | WP5.11 | waiting | | |
-| 5-H | WP5.12 | waiting | | |
+| 5-F | WP5.13 | waiting | | |
+| 5-G | WP5.8 | waiting | | |
+| 5-H | WP5.9 | waiting | | |
+| 5-H | WP5.10 | waiting | | |
+| 5-I | WP5.11 | waiting | | |
+| 5-I | WP5.12 | waiting | | |
 | 6-A | WP6.1 | waiting | | |
 | 6-B | WP6.2 | waiting | | |
+| 6-B | WP6.4 | waiting | | |
 | 6-B | WP7.2 | waiting | | |
-| 6-C | WP6.3 | waiting | | |
-| 6-C | WP6.4 | waiting | | |
-| 6-D | WP6.5 | waiting | | |
-| 6-E | WP6.6 | waiting | | |
-| 6-F | WP6.7 | waiting | | |
-| 6-G | WP6.8 | waiting | | |
-| 6-H | WP6.9 | waiting | | |
-| 6-I | WP6.10 | waiting | | |
-| 6-I | WP6.11 | waiting | | |
-| 6-I | WP6.12 | waiting | | |
-| 6-I | WP6.18 | waiting | | |
-| 6-I | WP6.19 | waiting | | |
-| 6-I | WP7.1 | waiting | | |
-| 6-J | WP6.13 | waiting | | |
-| 6-J | WP6.14 | waiting | | |
-| 6-J | WP6.15 | waiting | | |
-| 6-J | WP6.16 | waiting | | |
-| 6-J | WP6.17 | waiting | | |
-| 6-J | WP6.20 | waiting | | |
-| 6-K | WP6.21 | waiting | | |
-| 6-L | WP6.22 | waiting | | |
-| 6-M | WP6.23 | waiting | | |
+| 6-C | WP6.24 | waiting | | |
+| 6-D | WP6.25 | waiting | | |
+| 6-E | WP6.3 | waiting | | |
+| 6-F | WP6.5 | waiting | | |
+| 6-G | WP6.6 | waiting | | |
+| 6-H | WP6.7 | waiting | | |
+| 6-I | WP6.8 | waiting | | |
+| 6-J | WP6.9 | waiting | | |
+| 6-K | WP6.10 | waiting | | |
+| 6-K | WP6.11 | waiting | | |
+| 6-K | WP6.12 | waiting | | |
+| 6-K | WP6.18 | waiting | | |
+| 6-K | WP6.19 | waiting | | |
+| 6-K | WP7.1 | waiting | | |
+| 6-L | WP6.13 | waiting | | |
+| 6-L | WP6.14 | waiting | | |
+| 6-L | WP6.15 | waiting | | |
+| 6-L | WP6.16 | waiting | | |
+| 6-L | WP6.17 | waiting | | |
+| 6-L | WP6.20 | waiting | | |
+| 6-M | WP6.21 | waiting | | |
+| 6-N | WP6.26 | waiting | | |
+| 6-O | WP6.22 | waiting | | |
+| 6-P | WP6.23 | waiting | | |
 | 8-A | WP8.1 | waiting | | |
 | 8-A | WP8.3 | waiting | | |
 | 8-B | WP8.2 | waiting | | |
 | 8-C | WP8.4 | waiting | | |
 | 8-C | WP8.5 | waiting | | |
 | 8-D | WP8.6 | waiting | | |
+| 8-D | WP8.13 | waiting | | |
 | 8-E | WP8.7 | waiting | | |
 | 8-F | WP8.8 | waiting | | |
 | 8-G | WP8.9 | waiting | | |
-| 8-H | WP8.10 | waiting | | |
-| 8-I | WP8.11 | waiting | | |
-| 8-I | WP8.12 | waiting | | |
+| 8-H | WP6.27 | waiting | | |
+| 8-I | WP8.10 | waiting | | |
+| 8-J | WP8.11 | waiting | | |
+| 8-J | WP8.12 | waiting | | |
 | 9-A | WP9.1 | waiting | | |
+| 9-A | WP9.6 | waiting | | |
 | 9-A | WP9.2 | waiting | | |
 | 9-A | WP9.3 | waiting | | |
 | 9-A | WP9.4 | waiting | | |
@@ -133,8 +143,8 @@ The refresh (0-F) corrected all seven stage files against `0a648b2b`. Changes la
 - WP0.2 baselines three more resume specs (`JobResumption.entities`, `.adapt`, `.airlockOwner`); WP0.3/WP0.4 name the recorded Claude Code version (now 2.1.327) and add `retry_wait_ms`.
 - WP1.2 is smaller: the edits are committed and `entities/integration` landed; it removes the branch and its worktree.
 - WP2.2 moves to `FakeAgentAdapter.ts` behind `FAKE_AGENT_NETWORK_OUTAGE`; WP2.5's `ChildRecord` gains `workingDirectory` and a `ClientEntry` type; forge's system version raise is 1.19.
-- WP4.2 moves 548 importers (1,332 import lines), not 438.
-- Stages 0, 4 and 6 disagree on where the refusal wording lives (`OperationRefusal.ts`, `OperationRefusalWordingUtil.ts` and kin); the owner settles it at G2.
+- WP4.2 moves 548 importers (1,332 import lines), not 438. WP4.1 to WP4.3 are gone: no package is extracted (`owner-answers.md`).
+- Stages 0, 4 and 6 disagree on where the refusal wording lives (`OperationRefusal.ts`, `OperationRefusalWordingUtil.ts` and kin). Settled by `owner-answers.md`: it stays in `apps/forge`, and forge serves each refusal's sentence.
 
 ## The two red recovery specs (WP0.2)
 
@@ -161,32 +171,6 @@ No product change and no `bun run record` is needed for either.
 - Guidance: code that belongs to an app stays in that app; only code shared across apps is hoisted to a package, by the
   coding conventions' hoisting rules. Remaining decisions are to be posed abstractly, in the concepts the plan introduces.
 
-## Proposed approach after round 1 (awaiting the owner; nothing of it is implemented)
+## The approach and the open questions
 
-The owner answers only how the system behaves; the run decides migration mechanics, may change anything in the
-monorepo and keeps nothing compatible. Two independent analyses of the Bridge's imports agree:
-
-- No `tracker-model` and no `board-readings` package. Forge keeps its whole model, readings and wording, and serves
-  finished documents; the contract's types stand on their own. WP4.1 to WP4.3 go, stage 5 no longer waits on stage 4.
-- Packages that stay: `forge-contracts` and `system-versions` (both apps consume them). `design-system`, `flint` and
-  `brand` fold into Gaia as top-level `lib/` libraries, each imported only through its interface file, no
-  `package.json` (owner, 2026-11-18); forge reaches them only through the Bridge, which stage 8 deletes.
-- The 85 items shrink to seven behaviour questions, posed to the owner in the session of 2026-11-18. Every other
-  item is the run's call. The stage files and `owner-decisions.html` are not yet rewritten to match.
-
-## Owner questions the refresh raised (for gate G2; also on `owner-decisions.html` as R.1 to R.14)
-
-1. Where forge's refusal wording that the Bridge now reaches lives (`src/shared/OperationRefusal.ts`, three `src/shared/@types` files, `OperationRefusalWordingUtil.ts`, `StatusWordingUtil.ts`, `TicketPhraseUtil.ts`, `ExecutableRefusalCause`, `ExecutableResolver.ts`). Proposed default: `packages/board-readings`, moved in stage 4.
-2. Six shared constants the Bridge reaches (`ProductNames`, `RootOverrideVariable`, `DispatchProtocol`, `OverseerLimits`, `OverseerApiContracts`, `TimestampSlices`) have no stage-4 home. Proposed default: `packages/board-readings`.
-3. Gaia's `SUPPORTED_FORGE_VERSION` is 1.1 while forge is 1.18: catch up before stage 6, or stay until then?
-4. `forge-contracts` is still package version 1.0.0: may WP4.4 raise it to 1.1.0 as written, or align it with the system minors first?
-5. Does the vocabulary-package option (owner item 1) stay open now that it would have to take `BoardRefusal.ts` and eight utils?
-6. Stage 3, item 9: may resume lift an `interrupted:merge` hold without a fresh attempt, keeping the failed-pass counts? Default: `Board.liftInterruptedHold`, counts kept.
-7. Stage 5: does `reads.readPipeline()` answer the stored pipeline (default) or the reading `writeTracker` opens the Board on?
-8. Stage 2: who records the fake agent's network-outage scenario, and when? Only stage 2's verification step 7 waits on it.
-9. Stage 2: does Flint's `watcher-spark` attendant keep its name in stage 2?
-10. Stage 2: may Talos's child record keep the launch's `workingDirectory`, or should the Overseer keep that in a job-folder file?
-11. Stage 8: should `gate assistant` refuse with `assistant-without-pipeline` when no pipeline is stored, as `gate approval` does?
-12. Stage 9, item 14: `pipeline.json` is read in versions 2, 3 and 4; does "one format, number 5, read and written alone" still hold?
-13. Stage 9, item 17: does it also cover the constitution preview (the board's and each entity's become Markdown Gaia renders)?
-14. Stage 8, item 10: `.readme-graphics/render-readme.js` imports `marked`; keeping that folder blocks WP8.8 from dropping `marked`.
+Settled by the owner's answers of 2026-11-18 and the run's calls: [`owner-answers.md`](owner-answers.md).

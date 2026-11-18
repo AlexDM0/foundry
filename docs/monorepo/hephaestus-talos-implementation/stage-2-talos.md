@@ -3,31 +3,43 @@
 ## Goal
 
 Every child process of a board, agent sessions and install, gate and merge lines alike, the gates the Overseer runs
-itself among them, runs under one Talos per board: a detached process with a protocol version of its own, a frozen first
-handshake frame, a persisted record per child, a clean quit within 10 seconds and a supervision lease of one minute that
-the Overseer renews every 15 seconds from outside its event loop. A gate line is stopped after 15 minutes, an agent that
-ended on a network outage is recognised by fields of its closing result line and reported under a name of its own, and
-the Watcher fleet, its pinned bundles and the legacy reader are gone from the repository.
+itself among them, runs under one Talos per board: a detached process inside `apps/forge` with a protocol version of
+its own, a frozen first handshake frame, a persisted record per child, a clean quit within 10 seconds and a supervision
+lease of one minute. The Overseer renews the lease every 15 seconds from its main loop and only while its passes make
+progress, so a hung Overseer loses the lease within a minute and Talos stops its agents at the end of their turn; the
+merged-tree gate runs beside the pass, so no landing holds a pass. Every install, prepare and gate line is stopped
+after 15 minutes of awake time, and every line's run time is recorded in that measure and served in the pipeline
+facts. An agent that ended on a network outage, a provider overload after its spent retries included, is recognised by
+fields of its closing result line and served under a cause of its own in the monitor document Gaia reads. The Watcher
+fleet, its pinned bundles and the legacy reader are gone from the repository.
 
 ## Depends on
 
 - **Stage 0** must be finished. It supplies the recorded Claude Code session that ends on a network outage, committed
   as the fixture pair `src/lib/claude-code/testing/fixtures/network-outage-retries-spent.{stdout,stdin}.jsonl` with its
   claims block in `ClaudeStreamFixtures.spec.ts` (stage 0, WP0.4), which this stage holds its ending pattern against
-  (WP2.2), and the owner's answers to the two open items of the design's section 12. Where an answer is not there yet,
-  the fallbacks under "Needs the owner" apply.
-- **Stage 1** must be finished, so the monorepo layout, the root `verify` and the gate scripts no longer move.
+  (WP2.2). The owner's answers are in `owner-answers.md` and the design's decisions 35 to 52; this stage waits on none
+  of them.
+- **Stage 1** must be finished, so the monorepo layout, the root `verify` and the gate scripts hold still.
 - **Hands to stage 3** (presence and recovery): the child record with its end reasons `paused`, `lease-ended` and
-  `time-bound`; the interruption causes `talos-paused`, `lease-ended` and `network-outage`; the orphan sweep after a
-  lost Talos; the two places the Overseer finds its Talos lost (`ensureTalos` answering `previousTalos: 'lost'` at
-  start and while serving, WP2.9 and WP2.13), which stage 3 turns into a crash of Talos; Talos's own record with its
-  start number, protocol version and state; the lease renewal thread (`LeaseRenewal.ts`, `LeaseRenewalThread.ts`),
-  which stage 3 makes write the heartbeat; `lineEndOf` in `JobLaunch.ts`. Stage 3 turns `lease-ended` and `reboot`
-  into causes that wait for an instruction, replaces `INTERRUPTION_CAUSES_HELD_FROM_RESUMING` with its resume policy
-  table, adds the crash log and the forge that stays off, and builds the instruction that resumes a `network-outage`
-  job.
+  `time-bound`; the interruption causes `talos-paused`, `lease-ended` and `network-outage`, and the list
+  `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage', 'lease-ended']`, which stage 3 replaces with its resume
+  policy table (both causes wait for an instruction there too); the orphan sweep after a lost Talos; the two places the
+  Overseer finds its Talos lost (`ensureTalos` answering `previousTalos: 'lost'` at start and while serving, WP2.9 and
+  WP2.13), which stage 3 turns into a crash of Talos; Talos's own record with its start number, protocol version and
+  state; the lease renewal (`LeaseRenewal.ts`), a timer on the Overseer's main loop with no thread of its own, whose
+  `onRenewed` hook is where stage 3 writes the heartbeat; `lineEndOf` in `JobLaunch.ts`. Stage 3 turns `reboot` into a
+  cause that waits for an instruction, builds `resume` (one job, one ticket, everything, or everything that ended on a
+  network outage) with the two automatic restarts it gives back (decisions 40 and 41), and adds the crash log and the
+  forge that stays off.
+- **Hands to stage 4** (the standing contract and the served facts): the monitor job's `interruption` key with its
+  contract union `MonitorInterruptionCause` (WP2.11), and the pipeline facts' `stepRunTimes` (WP2.20), which stage 4
+  declares in the contract's pipeline facts document with types of its own (decision 50).
 - **Hands to stage 6** (Gaia hosts the views): `talosProtocolVersion` in the identity document and the `quit` frame
-  with reason `restart`, from which stage 6 (WP6.22) shows the running Talos and restarts it cleanly (decision 31).
+  with reason `restart`, from which stage 6 (WP6.22) shows the running Talos and restarts it cleanly (decision 31); a
+  monitor job's `interruption`, from which Gaia alerts on an ending on a network outage, offers the one control that
+  resumes every such job across forges, and shows that a forge stopped supervising its agents (decisions 35 and 38);
+  the step run times the pipeline overview shows (decision 36).
 - **Hands to stage 9** (rename): the stored interruption cause `watcher-lost`, which keeps its value here as section 11
   of the design assigns it to the rename.
 
@@ -45,8 +57,8 @@ the Watcher fleet, its pinned bundles and the legacy reader are gone from the re
   time, then stops what still runs; a line is stopped at once and run again later.
 - **8.** Talos records each child's status whatever happens; an agent ended `paused` by a clean quit is resumed by
   itself.
-- **9.** The supervision lease: one minute of real time, renewed every 15 seconds; without contact Talos stops its
-  agents.
+- **9.** The supervision lease: one minute of real time, renewed every 15 seconds while the Overseer's passes make
+  progress; without a renewal Talos stops its agents.
 - **10.** The wake rule: after a gap in its own ticks Talos waits one renewal interval (two below five seconds) before
   it stops agents.
 - **14** (in part). A Talos that is gone leaves records from which the Overseer stops every orphan and marks its jobs
@@ -55,11 +67,69 @@ the Watcher fleet, its pinned bundles and the legacy reader are gone from the re
   it.
 - **16** (agent port). The patterns, the closing line and the request to stop at the end of a turn are rendered by the
   Claude Code adapter into the launch plan, so Talos stays without a vendor.
-- **29.** The lease stops agents only; an install or gate line runs to its end; a gate is stopped after 15 minutes.
-- **32.** No compatibility: no mixed fleet, no legacy reader, no migration of Watcher files; boards are set up anew.
+- **29.** The lease stops agents only; an install or gate line runs to its end, and is stopped after 15 minutes.
+- **32.** No compatibility: no mixed fleet, no legacy reader, no migration of Watcher files or of renamed stored keys;
+  boards are set up anew.
 - **33.** The packages this stage creates are named here and nowhere else: the lib package `src/lib/talos/` and the
-  entry file `talos.ts`. No workspace package is created.
-- **34.** Orchestrated sessions in this repository do the work, outside both trackers.
+  entry file `talos.ts`, both inside `apps/forge`, since only forge runs Talos. No workspace package is created.
+- **34.** Orchestrated sessions in this repository do the work, outside both trackers; the run changes any rule file
+  the work invalidates, with no approval gate.
+- **35** (in part). An ending on a network outage, a provider overload after spent retries included, is recognised,
+  never counted as a failure or a crash, held from resuming, and served as its own cause in the monitor document. The
+  instruction that resumes it is stage 3's; Gaia's alert and its one control across forges are stage 6's.
+- **36.** An install line is stopped after 15 minutes as a gate line is; every line's run time is recorded in the
+  bound's measure and served in the pipeline facts. The overview that shows it is Gaia's (stage 6).
+- **37.** The 15-minute bound does not count a sleep: Talos adds every gap in its own ticks to a line's allowance.
+- **38** (in part). A hung Overseer counts as gone: the renewal is earned by progress, so after a minute without it
+  Talos stops the board's agents at the end of their turn, and their jobs are interrupted `lease-ended` and wait for
+  the user's resume. Gaia's mark that the forge stopped supervising them is stage 6's.
+- **46.** Every in-flight ticket is dropped and boards are set up anew, so nothing here reads a Watcher's file.
+
+The run's calls in this stage, each settled here:
+
+- **The progress a renewal needs.** The Overseer numbers its passes. Its renewal timer fires every renewal interval on
+  the main loop and renews when no pass runs or a different pass runs than at the previous tick; it withholds while
+  the same pass is in flight at two ticks in a row. A tick that comes later than one interval plus
+  `TALOS_TICK_GAP_MILLISECONDS` (a sleep, a suspension, or a loop blocked a while) renews and starts the comparison
+  afresh, as Talos's own wake rule does. A blocked loop sends nothing at all. So a pass that hangs in an await, or a
+  loop blocked in a synchronous call, loses the lease one minute after the last renewal (WP2.9).
+- **The merged-tree gate leaves the pass.** It is the one wait a pass makes that lasts as long as a gate
+  (`Airlocks.ts` awaits it, `:703`, `:864-866`). It runs beside the pass from a run folder whose finished outcome is
+  kept on disk, and a later pass settles the Airlock from that outcome (WP2.19). A run whose Overseer stopped is stopped
+  at the next start and run again: the `gating` phase is safe to redo (stage 0, table B).
+- **Gate profiles and pipeline checks across a restart.** They already run beside the pass, driven by a promise of the
+  Overseer that started them. The next start stops their lines and marks them stopped, as it marks them today
+  (WP2.14 item 5).
+- **Which lines are bounded.** Every pipeline step line carries the 15-minute bound: install steps, gate-prepare steps
+  and gates, in a job's gate run, a merged-tree gate, a gate profile and a pipeline check. Merges and Flint's brain
+  carry none. One constant, `LINE_TIME_BOUND_MILLISECONDS`. A bounded gate judges `cannot-run`, a bounded install step
+  reads as not passed (`install-failed`), and a bounded profile ends `timed-out`; each line's output names the bound.
+- **The run time's measure.** Wall time from a child's spawn to its end less every gap Talos added to its allowance,
+  kept for every child in `ChildEnd.runMilliseconds`; the pipeline's step lines are written to the log and served
+  (WP2.20). It is recorded and shown only, never a decision.
+- **`lease-ended` waits from this stage on,** beside `network-outage`; `talos-paused` resumes by itself. Until stage 3
+  builds `resume`, a waiting job leaves its state by `job stop` or `job fresh`.
+- **The ending pattern counts at least one retry line** (`minimumCountedLines: 1`): one `api_retry` line since the
+  previous closing line proves the agent's own retries ran, whatever retry setting bounded them.
+- **The cause served to Gaia.** The monitor document's job gains `interruption`, the cause while the job is
+  `interrupted` and `null` otherwise, as a union the contract declares on its own (decision 50).
+- **The identity key and the system version.** `watcherProtocolVersion` becomes `talosProtocolVersion`; no Gaia code
+  reads the old key. The forge system version rises one minor, to 1.19, once for the stage: WP2.11 raises it, and WP2.13
+  and WP2.20 add their clauses to the same history sentence. `OVERSEER_CONTRACT_VERSIONS` stays.
+- **`watcher-lost` keeps its stored value** until stage 9 (design section 11), meaning "Talos was lost while the child
+  ran".
+- **`Job.watcherInstance` is renamed in this stage,** with its stored key, as its own package (WP2.16); nothing
+  migrates.
+- **A Talos just started that answers another protocol version** is started once: `ensureTalos` answers `held` with
+  `talos-protocol-differs` and the Overseer's start is refused (WP2.9 step 2.6, WP2.13 item 1); a restart with the
+  program on disk then starts the matching Talos.
+- **Talos syncs a child's event log at its end and at the quit.** No production reader asks for history over the socket
+  (`src/services/overseer/DrivePass.ts:471` reads the files), so no `history` or `message` frame exists.
+- **The child record keeps the launch's `workingDirectory`,** which a resumed session starts in (WP2.13 item 14).
+- **Flint's `watcher-spark` attendant keeps its name.** It is Flint's word for a spark per agent in flight, not the
+  Watcher's code; it moves with Flint into Gaia's page `lib/` in stage 8 (decision 52).
+- **The agent port's other leaks stay as they are in this run** (design section 5, row "Agent"): this stage puts behind
+  the adapter only what Talos needs.
 
 ## Today's code
 
@@ -114,8 +184,8 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | The plan types | `src/lib/agent-launch/AgentLaunchPlan.ts`, `AgentAdapter.ts` | Changed: new plan fields, `AgentEndingName` |
 | Interruption causes and the counted crashes | `src/lib/tracker-model/@types/Job.ts:83-91`; `constants/JobStates.ts:73-91` | Changed: `talos-paused`, `lease-ended`, `network-outage` added, none counted |
 | The job's Watcher instance and event cursor | `src/lib/tracker-model/@types/Job.ts:130-133`, `:152-153`; `constants/JobStates.ts:109` | Changed: `watcherInstance` becomes `childInstance` |
-| The crash bound and the session replace rule | `src/lib/tracker-model/Playbook.ts:182-200` (`outageIsDueWith`), `:473-489` (`crashBoundStepsOf`) | Changed: `network-outage` is neither resumed nor replaced; `talos-paused` always resumes |
-| Git spawned synchronously with no timeout | `src/lib/git/GitProcess.ts:58-84` | Kept; renewal moves off the event loop instead |
+| The crash bound and the session replace rule | `src/lib/tracker-model/Playbook.ts:182-200` (`outageIsDueWith`), `:473-489` (`crashBoundStepsOf`) | Changed: `network-outage` and `lease-ended` are neither resumed nor replaced; `talos-paused` always resumes |
+| Git spawned synchronously with no timeout | `src/lib/git/GitProcess.ts:58-84` | Kept; a call that blocks the main loop past the lease ends the lease, as a hung Overseer does (WP2.9) |
 | The process table read through `/bin/ps` with `Bun.spawnSync` | `src/lib/process-identity/DarwinProcessIdentity.ts:1-11`; `ProcessSupervisionFor.ts:19` | Kept; Talos calls it only from its synchronous-calls thread |
 | Spawn options per child kind, `watcher` among them | `src/lib/process-identity/ProcessSupervision.ts:18`; `SpawnOptionsFor.ts:15-21` | Changed: kind `watcher` becomes `talos` |
 | The worker profiles' deny of the owner-only folder and of `jobs/*/launch-*.json` | `src/services/overseer/WorkerProfiles.ts:221-241` | Changed: `<monitor>/private`; the launch-file glob goes, no launch file exists |
@@ -126,6 +196,12 @@ Paths are from `apps/forge/` unless they start with `packages/` or `docs/`.
 | Guards naming the Watcher | `src/ImportDirection.spec.ts:68-69`, `:221`, `:334`; `src/PlatformBoundary.spec.ts:90-91`, `:211`, `:243`, `:247`; `src/SpecSleeps.spec.ts:30-45`; `src/RealSystemSpecs.spec.ts:41-45`; `eslint.config.js:27`, `:38`, `:47-48`, `:116-117` | Changed to name `talos.ts` and `src/lib/talos/` |
 | The retired names guard | `src/ComponentNames.spec.ts:27-63` | Changed in WP2.17: the Watcher's code names are added, after the documents stop naming them |
 | The rules naming the Watcher | `apps/forge/CLAUDE.md:46`, `:134-135`, `:161-163`, `:326`, `:328`, `:336-338`; `apps/gaia/CLAUDE.md:148` | Changed in WP2.17 |
+| The pass loop: `runOnePass` run by `drain` until no wake is left, one pass at a time | `src/services/overseer/DrivePass.ts:1330`, `:1552-1576` | Changed: passes are numbered, and the number in flight is the renewal's progress (WP2.13) |
+| The Airlock awaits a merged-tree gate inside the pass, its gate slot included | `src/services/overseer/Airlocks.ts:107`, `:703`, `:864-866`; `DrivePass.ts:1254-1277`; `src/services/lifecycle/GateRun.ts:346` | Changed: the gate runs beside the pass and a later pass settles it (WP2.19) |
+| The monitor document's job: state, figures and route, no interruption cause | `packages/forge-contracts/@types/MonitorSnapshotDocument.ts:63-86`; `src/services/overseer/MonitorSnapshotAssembly.ts:236-260`, `:353`; Gaia reads only the keys it knows (`apps/gaia/src/adapters/forge-api/MonitorSnapshotIngestion.ts:67-90`) | Changed: `interruption` (WP2.11) |
+| A gate profile's ending `timed-out`, declared and never produced; its time measured by the Overseer's clock | `src/lib/tracker-model/@types/GateProfile.ts:11`; `src/services/overseer/GateProfiling.ts:55-59`, `:162-170`; `src/services/lifecycle/GateLineRun.ts:120-124` | Changed: `timed-out` from an end `time-bound`; the time is the line's run time (WP2.14) |
+| A job's gate run and a merged-tree gate record `gate-ran` with each gate's cache report; the pipeline facts' cache marks are assembled from those records | `src/lib/tracker-model/constants/LogRecordSchema.ts:285-291`; `src/services/overseer/JobLaunch.ts:1523`, `:2052`; `Airlocks.ts:634`, `:868`; `src/services/render/PipelineFactsAssembly.ts:539`, `:608` | Kept; each step line's run time is recorded and assembled beside them (WP2.20) |
+| The install steps: the pipeline's prepare steps, one line each, judged outside the lock and acted on in the hold | `src/services/overseer/JobLaunch.ts:533-536`, `:575-586`, `:881-896` | Changed: bounded, and their run times recorded (WP2.13, WP2.20) |
 
 ## Work packages
 
@@ -144,16 +220,21 @@ Order and parallelism:
 | WP2.6 The synchronous-calls thread | WP2.4 | WP2.5, WP2.11 |
 | WP2.7 The Talos process, part one: start, handshake, lines | WP2.5, WP2.6 | WP2.11 |
 | WP2.8 The Talos process, part two: agents, lease, clean quit | WP2.7 | WP2.11 |
-| WP2.9 The Overseer's side: connection, start, lease renewal | WP2.8 | WP2.10, WP2.11 |
+| WP2.9 The Overseer's side: connection, start, lease renewal on progress | WP2.8 | WP2.10, WP2.11, WP2.19 |
 | WP2.10 The `BoardChildren` port over the Watcher fleet | WP2.4 | WP2.9, WP2.11 |
-| WP2.11 New interruption causes in the tracker model | WP2.4 | WP2.5 to WP2.10 |
-| WP2.12 The Talos adapter of `BoardChildren` | WP2.9, WP2.10, WP2.11 | none |
-| WP2.13 The switch to Talos | WP2.12 | alone |
+| WP2.11 New interruption causes in the tracker model and the monitor document | WP2.4 | WP2.5 to WP2.10, WP2.19 |
+| WP2.12 The Talos adapter of `BoardChildren` | WP2.9, WP2.10, WP2.11 | WP2.19 |
+| WP2.19 The merged-tree gate leaves the pass | WP2.10 | WP2.9, WP2.11, WP2.12 |
+| WP2.13 The switch to Talos | WP2.12, WP2.19 | alone |
 | WP2.14 The Overseer's own gates under Talos | WP2.13 | alone |
-| WP2.15 Removal of the fleet, the bundles and the legacy reader | WP2.14 | alone |
+| WP2.20 Line run times recorded and served | WP2.14 | alone |
+| WP2.15 Removal of the fleet, the bundles and the legacy reader | WP2.20 | alone |
 | WP2.16 The Watcher's remaining names | WP2.15 | alone |
 | WP2.17 Rules and documentation | WP2.16 | none |
 | WP2.18 Recordings and the end-to-end check | WP2.17 | alone |
+
+WP2.19 lands before WP2.13: once the renewal waits on progress, a pass that awaited a merged-tree gate would end the
+lease at every landing.
 
 ### WP2.1 Line conditions and ending recognition
 
@@ -203,7 +284,8 @@ booleans, and to recognise a named ending from a closing line and a count of oth
 ### WP2.2 The plan carries the closing line, the ending patterns and the quit act
 
 **Purpose.** The vendor's knowledge reaches Talos only through the launch plan (design section 3.2, "No vendor in
-Talos"). The Claude Code adapter renders the closing line, the network outage pattern and the request to stop at the end
+Talos"). The Claude Code adapter renders the closing line, the network outage pattern, which covers a host that could
+not be reached and a provider overload after the retries were spent (decision 35), and the request to stop at the end
 of a turn.
 
 **Files.**
@@ -218,7 +300,8 @@ of a turn.
   `network-outage-retries-spent.stdout.jsonl` and its `.stdin.jsonl` partner (stage 0, WP0.4). No second fixture of
   the same session is created: `ClaudeStreamFixtures.spec.ts:43-52` fails a `.stdout.jsonl` without its partner.
 - Change `src/lib/claude-code/ClaudeCodeAdapter.spec.ts`, and `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` inside
-  stage 0's block `describe('network-outage-retries-spent (P23, Claude Code <version>)')` (the version the recording's notes.txt names).
+  stage 0's block `describe('network-outage-retries-spent (P23, Claude Code <version>)')` (the version the recording's
+  notes.txt names).
 - The fake agent's outage scenario. `src/testing/fake-agent/FakeAgentChild.ts` stays as it is: it plays a scenario file
   and prints only lines its recording holds (`RecordedClaudeLines.ts:15-24`, `:63-77`; a selector naming a key no
   recorded line has exits 3), and that recording holds no `system`/`api_retry` line and no outage result today. So:
@@ -234,7 +317,7 @@ of a turn.
     call with a 529 until the session ends, recorded with `bun run record src/testing/fake-agent/`
     (`src/testing/fake-agent/ClaudeWireRecorder.ts`). `sessionsOf` refuses a recording that lacks any listed
     scenario, so the name and the new `src__testing__fake-agent.json` land in one commit. That command also re-runs
-    P22, one real model call, and starts the installed `claude`: the owner runs it ("Needs the owner", item 14).
+    P22, one real model call, and starts the installed `claude`: the owner runs it at gate G1 ("Needs the owner").
   - Until that recording exists, nothing else in this stage waits on it: WP2.8's outage spec plays stage 0's fixture
     through a plain child, and only verification step 7 needs the fake scenario.
 
@@ -243,8 +326,9 @@ of a turn.
    - `closingLine`: `allOf` `[{ test: 'equals', path: 'type', value: 'result' }]`.
    - one `endingPatterns` entry: `name: 'network-outage'`; `closingLineMatches`: `allOf` `type` equals `result`,
      `is_error` equals `true`, `terminal_reason` equals `api_error`; `anyOf` `api_error` equals `connection_failed`,
-     `api_error_status` `number-between` 500 and 599 (529 lies inside); `countedLineMatches`: `allOf` `type` equals
-     `system`, `subtype` equals `api_retry`; `minimumCountedLines`: the owner's value from stage 0, default `1`.
+     `api_error_status` `number-between` 500 and 599 (529, a provider overload, lies inside; 429 does not);
+     `countedLineMatches`: `allOf` `type` equals `system`, `subtype` equals `api_retry`; `minimumCountedLines`: `1`
+     (the run's call above).
    - `quitAtTurnEnd`: `{ act: 'close-input' }`: closing stdin is how a session is wound down today
      (`src/services/overseer/JobControlDelivery.ts:105-110`).
 2. Before writing the values, read the stage 0 fixture (`network-outage-retries-spent.stdout.jsonl`) and its P23 entry
@@ -263,6 +347,9 @@ of a turn.
   specs; if it does not, the spec checks the field values by hand) recognises `network-outage` on the closing line with
   the fixture's own retry count; the closing line of `rate-limit-rejected.stdout.jsonl` (a 429) and of a fixture with
   `is_error: false` do not match. The mapper's replay list (`ClaudeStreamMapper.spec.ts:102`) stays as it is.
+- The same block, with the same matching, on planted lines built from the fixture's closing line: one `api_retry` line
+  and a closing line with `api_error_status` 529 (an overload) match; the same with `api_error` `connection_failed`
+  matches; either closing line with no retry line before it does not.
 
 **Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/claude-code/` in `apps/forge` passes, and `bun
 run verify` at the root is green.
@@ -316,7 +403,7 @@ the Watcher's name in one step, because the token, every secret and every socket
   `PosixSocketEndpoint.ts`, `PosixSocketEndpoint.spec.ts`, `WindowsPipeEndpoint.ts`, `UnsupportedLocalEndpoint.ts`,
   `LocalEndpoint.answers.integration.spec.ts`, `LocalEndpoint.contract.integration.spec.ts`.
 - Delete `src/lib/watcher/LocalEndpoint.frozen.spec.ts` and `src/lib/watcher/FrozenLocalEndpoint.json`: their claim,
-  that an extraction changed no socket path, no longer holds by design (decision 32).
+  that an extraction changed no socket path, does not hold by design (decision 32).
 - Create `src/lib/talos/TalosFiles.ts` with `PRIVATE_FOLDER_NAME = 'private'` and `privateFolderOf(monitorFolder,
   trackerId)`, replacing `ownerOnlyFolderOf` and `WATCHER_FOLDER_NAME` (`src/lib/watcher/WatcherFiles.ts:6-8`,
   `constants/WatcherProtocol.ts:23`).
@@ -498,8 +585,10 @@ bound. Agents follow in WP2.8, so this package stays one sitting.
    `Watcher.ts:345` does.
 7. `stop-lines`: a `stop` with grace 0 for every live line.
 8. The time bound: a line with `timeBoundMilliseconds` gets `allowanceEndsAtWall = launchWall + bound`. On every tick,
-   add `gapLengthOf(previousTick, now, tick)` to the allowance of every live line (owner item 3), and stop a line whose
-   allowance passed with grace 0; its end reason is `time-bound` whatever its exit code.
+   add `gapLengthOf(previousTick, now, tick)` to the allowance of every live line (decision 37), and stop a line whose
+   allowance passed with grace 0; its end reason is `time-bound` whatever its exit code. Keep the sum of the gaps added
+   to each live child, a line or an agent, and write its `ChildEnd.runMilliseconds` at its end: the wall time from its
+   spawn to its end less that sum, the measure the bound uses (decision 36); a spawn that failed has 0.
 9. At a child's end: drain stderr as `CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS` bounds it, `sync-and-close-event-log`,
    then write the record `ended`, then broadcast `state`. The order is the Watcher's (`Watcher.ts:463-466`): a reader
    that sees `ended` has the whole log.
@@ -523,8 +612,10 @@ bound. Agents follow in WP2.8, so this package stays one sitting.
 - `Talos.lines.integration.spec.ts` (real, small `bun -e` children): a line's stdout lines are numbered in the event
   log; its stderr is in `child-<i>.log`; its record names both identities and its end; `stop` reaches a group below the
   child (as `src/lib/watcher/Watcher.processTree.integration.spec.ts`); a line with a 300-millisecond bound ends
-  `time-bound`; `stop-lines` ends every line; a launch outside the board folder is refused; the same `childId` twice
-  spawns once.
+  `time-bound` with a `runMilliseconds` of at least 300; a Talos suspended (`SIGSTOP`, tick gap 200 milliseconds) for
+  longer than a line's bound and then continued (`SIGCONT`) does not end that line `time-bound`, and the line's
+  `runMilliseconds` leaves the suspension out (skipped on Windows through `src/testing/ToolGuard.ts`); `stop-lines`
+  ends every line; a launch outside the board folder is refused; the same `childId` twice spawns once.
 
 **Done when.** `bun run record src/lib/talos/Talos.ts` in `apps/forge` passes and writes its recording; the root `bun
 run verify` is green.
@@ -592,17 +683,17 @@ quit within 10 seconds.
 
 **Done when.** `bun run record src/lib/talos/Talos.ts` passes; the root `bun run verify` is green.
 
-### WP2.9 The Overseer's side: connection, start, lease renewal
+### WP2.9 The Overseer's side: connection, start, lease renewal on progress
 
 **Purpose.** The Overseer finds, starts and talks to its board's Talos at the required protocol version, and renews the
-lease from a thread its synchronous git cannot block (design section 3.2, "Renewal that the pass cannot starve";
-`src/lib/git/GitProcess.ts:58-61`, `:68`).
+lease from its main loop only while its passes make progress, so a hung Overseer loses it (decisions 9 and 38; design
+section 3.2, "Renewal that only progress earns").
 
 **Files.**
-- Create in `src/services/overseer/`: `TalosConnection.ts`, `TalosStart.ts`, `LeaseRenewal.ts`, `LeaseRenewalThread.ts`
-  (worker entry), and specs `TalosConnection.spec.ts` (over the recorded endpoint), `TalosStart.spec.ts` (over fakes of
-  the connection and the spawn), `LeaseRenewal.spec.ts` (over a fake transport), `TalosStart.integration.spec.ts` and
-  `LeaseRenewal.integration.spec.ts` (real).
+- Create in `src/services/overseer/`: `TalosConnection.ts`, `TalosStart.ts`, `LeaseRenewal.ts`, and specs
+  `TalosConnection.spec.ts` (over the recorded endpoint), `TalosStart.spec.ts` (over fakes of the connection and the
+  spawn), `LeaseRenewal.spec.ts` (over a fake connection, a fake clock and a fake pass progress),
+  `TalosStart.integration.spec.ts` and `LeaseRenewal.integration.spec.ts` (real).
 - Change `src/shared/constants/OverseerLimits.ts`: add the Overseer constants of "Interfaces introduced".
 - Change `src/services/overseer/ProcessStarts.ts`: add `startTalos` so specs replace the spawn.
 - Change `src/testing/BoundarySpecs.ts`, `BoundaryRecordings.ts`: boundaries `src/services/overseer/TalosStart.ts` and
@@ -638,11 +729,22 @@ lease from a thread its synchronous git cannot block (design section 3.2, "Renew
    6. Wait for the record `serving`, then connect. `welcomed` at the required version answers `started`. A
       `version-mismatch` from the Talos just started means the program on disk is not the Overseer's code: answer `held`
       with reason `talos-protocol-differs`, and never start again within this Overseer's life.
-3. `LeaseRenewal.ts` exports `startLeaseRenewal({ endpoint, secret, renewer, intervalMilliseconds })` answering `{
-   moveTo(endpoint, secret), stop() }`. It starts a `Worker` of `LeaseRenewalThread.ts` and posts it the facts. The
-   thread connects on its own (a second connection), says `hello`, sends `lease-renewal` at once and then every interval
-   on its own timer, reconnects after a close at the next interval, and posts `renewed` and `refused` notes back for the
-   Overseer's log. It stops only on `stop()` or with the process. A `version-mismatch` answer stops it until `moveTo`.
+3. `LeaseRenewal.ts` exports `startLeaseRenewal(request: LeaseRenewalRequest): LeaseRenewal` ("Interfaces
+   introduced"). It sends one renewal at once, then runs a `setInterval` of `intervalMilliseconds` on the main loop. No
+   worker thread and no second connection: a renewal is only worth what the main loop proves.
+   1. Each tick reads the wall clock. A tick later than `intervalMilliseconds + tickGapMilliseconds` after the previous
+      one, or earlier than it (a clock moved back), is a gap: it renews and remembers the pass in flight, as Talos's own
+      wake rule gives a waking Overseer its chance (WP2.3).
+   2. Otherwise it reads `passProgress.passInFlight()`. It renews when that is `null` (no pass runs: an idle Overseer
+      has nothing to make progress on) or differs from the number the previous tick saw. It withholds when the same
+      pass is in flight at two ticks in a row, and logs once per withheld streak: "The lease renewal is withheld: pass
+      <n> has run for more than one renewal interval."
+   3. A renewal sends a `lease-renewal` frame with the renewer over `connection()`. No connection, `no-answer` or a
+      refusal is logged and waits for the next tick; `done` calls `onRenewed` with the tick's wall time. Nothing
+      throws.
+   4. `stop()` clears the timer; nothing else stops it, so it ends with the process.
+   5. The file header names the clock rule it follows (`apps/forge/CLAUDE.md:176-178`: a heartbeat and a timeout
+      measure real time) and says that progress is a pass number, never an elapsed time.
 4. Nothing here is wired into the Overseer yet; WP2.13 does that.
 
 **Specs.**
@@ -650,11 +752,15 @@ lease from a thread its synchronous git cannot block (design section 3.2, "Renew
   `state` frame reaches the listeners; a close rejects nothing twice.
 - `TalosStart.spec.ts` covers every branch of step 2 with fake records, fake identity and a fake spawn, and that a
   second `held` never spawns again.
-- `LeaseRenewal.spec.ts`: renewals at the interval, reconnect after close, `moveTo`.
-- `LeaseRenewal.integration.spec.ts` (real Talos from `src/testing/ScratchTalos.ts`, short bounds): while the main
-  thread runs `Bun.spawnSync(['/bin/sleep', '2'])` three times in a row, Talos receives renewals and its agents keep
-  running past twice the lease. This case is the proof that a Bun worker keeps a `node:net` socket going while the main
-  thread blocks; if it fails, stop and report to the owner rather than choose another mechanism.
+- `LeaseRenewal.spec.ts`, on a fake clock: a renewal at start; an idle loop renews at every tick; a pass that ends
+  between two ticks renews; the same pass at two ticks withholds, and the first tick after it ended renews; a late tick
+  renews though the same pass is in flight; a clock moved back is a gap; no connection renews nothing and throws
+  nothing; `onRenewed` runs only on `done`; a withheld streak logs once.
+- `LeaseRenewal.integration.spec.ts` (real Talos from `src/testing/ScratchTalos.ts`; lease 600, interval 150, tick 50,
+  gap 200 milliseconds): with an idle pass progress, an agent keeps running past twice the lease; with a pass progress
+  that answers one number for ever (a pass that never ends), the agent ends `lease-ended` within the lease plus two
+  intervals of the last renewal; with the main thread blocked in `Bun.spawnSync(['/bin/sleep', '1'])`, longer than
+  the lease, the agent ends `lease-ended`, and the first tick after the block holds the lease again.
 - `TalosStart.integration.spec.ts` (real): start from nothing; attach to a live Talos; a Talos of another protocol
   version (started from a start file with a test protocol override in `src/testing/ScratchTalos.ts`) quits and a new one
   starts; a Talos killed with `SIGKILL` leaves its orphan line, which `ensureTalos` stops before it starts the next one.
@@ -698,10 +804,11 @@ for the mapping of item 1.
 **Done when.** `git grep -ln "WatcherFleet\.ts'" -- apps/forge/src apps/forge/cli` names only `WatcherBoardChildren.ts`,
 `ProcessStarts.ts`, the Watcher's own harnesses and specs of the fleet itself; the root `bun run verify` is green.
 
-### WP2.11 New interruption causes in the tracker model
+### WP2.11 New interruption causes in the tracker model and the monitor document
 
 **Purpose.** A lease end, a clean quit and a network outage each get a cause of their own that is not counted as a crash
-(design section 3.2, "An end of its own").
+(design section 3.2, "An end of its own"); a lease end and an outage wait for the user's resume (decisions 35 and 38);
+and each cause reaches Gaia as itself, in the monitor document it already reads.
 
 **Files.**
 - Change `src/lib/tracker-model/@types/Job.ts:83-91` (and its comment above),
@@ -711,29 +818,54 @@ for the mapping of item 1.
   cause against `INTERRUPTION_CAUSES` and take the new ones with no change. No code words a cause one by one:
   `src/adapters/utils/LogUtil.ts:301-304` prints the stored value, and the Bridge reads only `usage-limit` and
   `handoff-red` (`bridge/views/agents/AgentPanelSpriteModel.ts:66`, `:164`).
+- Change `packages/forge-contracts/@types/MonitorSnapshotDocument.ts`: `MonitorJobDocument` (`:63-86`) gains
+  `interruption`; the contract declares `MONITOR_INTERRUPTION_CAUSES` and `type MonitorInterruptionCause` on its own,
+  importing nothing from forge (decision 50).
+- Change `src/services/overseer/MonitorSnapshotAssembly.ts` (`jobOf`, `:235-262`) and
+  `src/shared/monitor/@types/MonitorSnapshot.ts` (`MonitorJob` extends the document).
+- Change `apps/gaia/src/adapters/forge-api/MonitorSnapshotIngestion.ts` (`JOB_SHAPE`, `:67-89`: `ShapeOf` names every
+  key of the document, so the key lands in the same commit),
+  `apps/gaia/src/adapters/forge-api/utils/ForgeReadingMapUtil.ts` (`agentRowOfMonitorJob`, `:86-111`;
+  `agentRowOfSummaryJob`, `:114-138`) and `apps/gaia/src/shared/@types/AgentRow.ts`.
+- Change `packages/forge-contracts/constants/ForgeSystemVersions.ts` (`:41`): the stage's one minor raise.
 - Change the specs: `src/lib/tracker-model/Playbook*.spec.ts` touched by the rule, `Board.jobs.spec.ts`,
-  `src/adapters/utils/LogUtil.spec.ts`.
+  `src/adapters/utils/LogUtil.spec.ts`, `src/services/overseer/MonitorSnapshotAssembly.spec.ts`, and Gaia's specs of
+  the monitor ingestion and the reading map.
 
 **What to do.**
 1. Add `'talos-paused'`, `'lease-ended'`, `'network-outage'` to `InterruptionCause` and `INTERRUPTION_CAUSES`; leave
    `CRASH_INTERRUPTION_CAUSES` as it is.
-2. Export from `JobStates.ts` `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage']`, the one list the Playbook
-   reads for the owner's fork (owner item 1).
+2. Export from `JobStates.ts` `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage', 'lease-ended']`, the one
+   list the Playbook reads for the causes that wait for the user's resume.
 3. In `crashBoundStepsOf`, after the red handoff line (`Playbook.ts:480`) and before the session-kind replace rule
    (`:481`, `if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job' ... }]`) and the pipeline agent's
    branch (`:483`), a job whose interruption is in that list gets no step. In `productOwnerStepsOf`, the same before its
-   resume. `talos-paused` and `lease-ended` follow the path of `reboot`: resumed, never counted.
+   resume. `talos-paused` follows the path of `reboot`: resumed by itself, never counted.
 4. `outageIsDueWith` (`Playbook.ts:188-200`) counts only crash causes, so it needs no change; add a spec case that
-   proves a `network-outage` interruption breaks no run of counted crashes and adds none.
+   proves a `network-outage` or `lease-ended` interruption breaks no run of counted crashes and adds none.
 5. Wording: none is needed (see "Files"); `LogUtil.spec.ts` holds that a `job-interrupted` record of each new cause
    prints the cause as stored, naming no command (`apps/forge/CLAUDE.md:90-92`).
+6. The monitor document: `MONITOR_INTERRUPTION_CAUSES` lists the eleven causes as the wire spells them (`watcher-lost`
+   as `child-lost`, since the contract carries no name stage 9 retires), and
+   `MonitorJobDocument.interruption` is `MonitorInterruptionCause | null`. `jobOf` serves the job's cause while its
+   state is `interrupted` and `null` otherwise (the model keeps the last cause after a resume; a served fact does not),
+   mapped through one record `Readonly<Record<InterruptionCause, MonitorInterruptionCause>>` in the assembly, so a new
+   model cause fails the compiler until it is mapped.
+7. Gaia: `JOB_SHAPE` reads `interruption` as `{ nullable: { oneOf: MONITOR_INTERRUPTION_CAUSES } }`, and `AgentRow`
+   gains `interruption: string | null`, the monitor job's cause and `null` from a summary. Nothing in the page reads it
+   yet: Gaia's alert, its resume control and its mark of a forge that stopped supervising come with stage 6.
+8. Raise `FORGE_SYSTEM_VERSIONS.current` to 1.19 with a sentence in its history comment: 1.19 adds a monitor job's
+   interruption cause. WP2.13 and WP2.20 add their clauses to this sentence and raise nothing more.
 
-**Specs.** `Playbook` specs prove: `network-outage` is neither resumed nor replaced, for a build, a review, a session
-kind, a pipeline agent and a product owner; `talos-paused` and `lease-ended` resume whatever `crashResumes` holds; none
+**Specs.** `Playbook` specs prove: `network-outage` and `lease-ended` are neither resumed nor replaced, for a build, a
+review, a session kind, a pipeline agent and a product owner; `talos-paused` resumes whatever `crashResumes` holds; none
 of the three raises `crashResumes` (`src/lib/tracker-model/Jobs.ts:145-147`). `LogUtil.spec.ts` prints each cause.
+`MonitorSnapshotAssembly.spec.ts`: a job interrupted `network-outage` serves `interruption: 'network-outage'`, one
+interrupted `lease-ended` serves `'lease-ended'`, and a running job that was interrupted before serves `null`. Gaia's
+specs: a monitor job's cause reaches its `AgentRow`; a value outside the list is a shape failure.
 
-**Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/` passes; the root `bun run verify`
-is green.
+**Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/` and the assembly spec pass in
+`apps/forge`, Gaia's ingestion specs pass in `apps/gaia`; the root `bun run verify` is green.
 
 ### WP2.12 The Talos adapter of `BoardChildren`
 
@@ -771,15 +903,16 @@ launch writes the plan's files before the frame.
 
 ### WP2.13 The switch to Talos
 
-**Purpose.** The Overseer runs every agent and every job line under Talos, renews the lease from its thread, and maps
-every Talos end to the job. Must run alone: it touches the pass, the start, the stop and the Baton pass.
+**Purpose.** The Overseer runs every agent and every job line under Talos, renews the lease from its main loop while its
+passes make progress, and maps every Talos end to the job. Must run alone: it touches the pass, the start, the stop and
+the Baton pass.
 
 **Files.**
 - Change `cli/overseer/OverseerForeground.ts`, `src/services/overseer/DrivePass.ts`, `Regrouping.ts`, `JobLaunch.ts`,
   `GateRunSlots.ts`, `BatonPass.ts` (`BatonPassStep`, `:14-20`), `Baton.ts` (`talosProtocolVersion`),
   `OverseerServer.ts` (`talosProtocolVersion`), `FlintBrainSessionHost.ts`, `cli/overseer/OverseerFlintBrain.ts`,
-  `SessionPlace.ts`, `JobTranscript.ts`, `JobLiveFactsReader.ts`; the system version for the identity key
-  (`packages/forge-contracts/constants/ForgeSystemVersions.ts:41`, "Needs the owner", item 6).
+  `SessionPlace.ts`, `JobTranscript.ts`, `JobLiveFactsReader.ts`; the identity key's clause in the 1.19 sentence of
+  `packages/forge-contracts/constants/ForgeSystemVersions.ts` (WP2.11 raised the version).
 - Change the specs that drive the pass: `cli/overseer/OverseerDrivePass*.spec.ts`, `OverseerBuildJob*.spec.ts`,
   `OverseerPipelineSetup.spec.ts`, `src/services/overseer/DrivePass*.spec.ts`, `JobLaunch.*.spec.ts`,
   `Regrouping*.spec.ts`, `CrashMatrix*.spec.ts`, `JobResumption*.spec.ts`, `SessionPlace.spec.ts`,
@@ -787,10 +920,14 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
   `src/testing/RecordedWatcherStages.ts` (becomes recorded Talos stages).
 
 **What to do.**
-1. **Start.** In `startServing` (`OverseerForeground.ts:398-648`), right after the Baton is acquired (`:521-526`), start
-   the lease renewal, then `ensureTalos`. `held` makes the start fail with `OperationRefusal('unrepaired', { kind:
+1. **Start.** In `startServing` (`OverseerForeground.ts:398-648`), right after the Baton is acquired (`:521-526`), call
+   `ensureTalos`, then `startLeaseRenewal` (WP2.9) with the connection it answered, the renewer and the DrivePass's
+   pass progress; it renews at once. `held` makes the start fail with `OperationRefusal('unrepaired', { kind:
    'talos-protocol-differs', requiredProtocolVersion, answeredProtocolVersion })`, worded in `cli/`. Remove
    `pinWatcherBundle` (`:379-383`) and the bundle path from every request.
+   **Pass progress.** `runOnePass` (`DrivePass.ts:1330`) numbers its passes from 1 for the Overseer's life; the
+   DrivePass exports `passInFlight()`, that number while a pass runs and `null` between passes (`drain`, `:1552-1566`).
+   WP2.19 has taken the merged-tree gate out of the pass, so no pass waits through a gate line.
 2. **Regrouping.** `regroup` keeps the leftover worktrees and the list of jobs whose current instance is unlaunched
    (`Regrouping.ts:204-244`), drops the hello and history (`:137-171`), and settles every job child that reads `lost`
    with `settleLostChild` (WP2.9).
@@ -801,10 +938,11 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
    1. A `result` event whose entry's sequence is a recognised `network-outage`: interrupt the job `network-outage`, add
       it to `stoppedSessions` so the pass stops the session after the hold, and treat it as no closing result. Map an
       `AgentEndingName` to its cause in one record in `DrivePass.ts`.
-   2. A child that ended with reason `paused`: interrupt `talos-paused`. With reason `lease-ended`: interrupt
-      `lease-ended`. Both before the `agent-crashed` branch (`:614-615`).
+   2. A child that ended with reason `paused`: interrupt `talos-paused`, which resumes by itself. With reason
+      `lease-ended`: interrupt `lease-ended`, which waits for the user's resume (WP2.11). Both before the
+      `agent-crashed` branch (`:614-615`).
    3. `lost`: `lostWatcherCauseOf` as today (`:517-520`), on the child's side files; the stored cause stays
-      `watcher-lost` (owner item 5).
+      `watcher-lost` until stage 9.
    4. Everything else as today.
 5. **Launch.** `launchWatcher` (`:843-959`) becomes `launchAgentChild`, async, through `launchAgent`; the endpoint fit
    check (`:861-864`) and its notice `watcher-endpoint-does-not-fit` go, since the endpoint is Talos's.
@@ -813,11 +951,11 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
 6. **Job lines** (`JobLaunch.ts`): `processWatcherEnd` (`:552-556`) becomes `lineEndOf(folder)`, reading the newest
    instance: `pending` while live or unlaunched, `rerun` when it ended `paused` or reads `lost`, otherwise its end. On
    `rerun` the next pass launches instance `newest + 1`; a step's verdict is read only from an end that is not `paused`.
-   A gate step's launch carries `timeBoundMilliseconds: GATE_TIME_BOUND_MILLISECONDS`; an install step's carries
-   `INSTALL_LINE_TIME_BOUND_MILLISECONDS` (owner item 2); a prepare step's and a merge's carry `null`. An end
-   `time-bound` reads as exit code `null` and signal `null`, so
-   `GateRun.gateOutcomeOf` judges it `cannot-run`; its output gets one line naming the bound, worded in
-   `src/services/lifecycle/GateRun.ts` beside `RUN_REFUSAL_WORDING` (`:169-172`). A gate step's cache report file
+   Every install, gate-prepare and gate step's launch carries `timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS`
+   (decisions 29 and 36); a merge's carries `null`. An end `time-bound` reads as exit code `null` and signal `null`, so
+   `GateRun.gateOutcomeOf` judges a gate `cannot-run` and an install step reads as not passed (`install-failed`,
+   `JobLaunch.ts:575-586`); the step's output gets one line naming the bound, worded in
+   `src/services/lifecycle/GateRun.ts` beside `RUN_REFUSAL_WORDING` (`:169-175`). A gate step's cache report file
    (`stepReportFileOf`, `JobLaunch.ts:798-800`, handed in `FORGE_GATE_REPORT`) is removed before each launch, a re-run
    included, as `spawnProcessWatcher` does today (`:2376-2377`).
 7. **Gate slots.** Every holder is a child folder: `gateRunHolderIsLive` (`GateRunSlots.ts:107-118`) reads the newest
@@ -829,10 +967,11 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
    `JobTranscript.ts:89-94` and `JobLiveFactsReader.ts:241-246`, read them with `clientEntryOf` (WP2.5): `write-line`
    where they read `write`, `close` where they read `close-input` (the transcript's act stays `close-input`).
 9. **Stop.** In the stop waits (`OverseerForeground.ts:778-792`): `--now` sends `stop-lines`; the reap of ended Watchers
-   goes; the lease renewal is not stopped: it ends with the process, so a quick restart keeps every agent.
-10. **Baton pass margin.** The predecessor keeps renewing through its release until it exits, because its renewal thread
-    is never stopped in `release` (`:651-660`); the successor starts its own renewal as soon as it holds the Baton (item
-    1). The two overlap, which Talos accepts. The preparation steps (`:267-305`) lose `build-bundles` and
+   goes; the lease renewal is not stopped: its timer ends with the process, so a quick restart keeps every agent.
+10. **Baton pass margin.** The predecessor keeps renewing through its release until it exits, because its renewal timer
+    is never stopped in `release` (`:651-660`) and its stopped passes leave an idle loop, which renews; the successor
+    starts its own renewal as soon as it holds the Baton and its Talos answered (item 1). The two overlap, which Talos
+    accepts. The preparation steps (`:267-305`) lose `build-bundles` and
     `read-watcher-files` and gain `read-child-records` (every job's newest child record reads, its event log is not
     malformed). Update `BatonPassStep`.
 11. **Flint's brain** runs as an agent child in `flint-brain/` through the port; its `acknowledgeEnd` and
@@ -851,30 +990,34 @@ every Talos end to the job. Must run alone: it touches the pass, the start, the 
 **Specs.**
 - `cli/overseer/OverseerDrivePass.spec.ts` and the build job specs over recorded Talos stages prove: a launch is a
   `launch` frame; a recognised outage interrupts `network-outage`, the session gets a `stop`, and the job does not move
-  to `in-customs`; ends `paused` and `lease-ended` interrupt with their causes and resume on the next pass; a `lost`
-  child is settled as before.
+  to `in-customs`; an end `paused` interrupts `talos-paused` and resumes on the next pass; an end `lease-ended`
+  interrupts `lease-ended` and nothing resumes it; a `lost` child is settled as before.
 - `JobLaunch.gating.spec.ts`: a gate step ended `paused` is launched again as instance 2 and its first end is never
-  judged; a `time-bound` end judges `cannot-run`.
+  judged; a `time-bound` end judges `cannot-run`; every install, gate-prepare and gate launch carries the bound and a
+  merge's carries none. An install step ended `time-bound` reads `install-failed`.
+- `DrivePass` specs: passes are numbered, `passInFlight()` answers the running pass's number and `null` between them.
 - `SessionPlace.spec.ts`: a resumed session starts in the `workingDirectory` of its owner's first child record.
 - `JobTranscript` and `JobLiveFactsReader` specs: a `write-line` entry reads as the chat it carries, a `close` entry as
   a closed input.
 - `OverseerForeground` specs (find them with `git grep -ln runOverseerInTheForeground apps/forge/cli`): the renewal
-  starts after the Baton, before regrouping; `talos-protocol-differs` refuses the start.
+  starts after the Baton and `ensureTalos`, before regrouping; `talos-protocol-differs` refuses the start.
 
-**Done when.** `bun run verify` at the root is green, and `bun run verify:integration` in `apps/forge`, run once by the
-person who runs this package, passes (CLAUDE.md asks that it run only when a person asks for it: ask the owner).
+**Done when.** `bun run verify` at the root is green, and `bun run verify:integration` in `apps/forge` passes, run once
+when the owner asks for it at gate G4 (forge's rules allow it only on a person's word).
 
 ### WP2.14 The Overseer's own gates under Talos
 
-**Purpose.** No child of the board runs outside Talos: merged-tree gates, gate profiles and pipeline checks become line
-children (design sections 3.3 and 7, "What reconcile cannot see today").
+**Purpose.** No child of the board runs outside Talos: merged-tree gates, which already run beside the pass (WP2.19),
+gate profiles and pipeline checks become line children, bounded and timed as every pipeline line is (design sections
+3.3 and 7, "What reconcile cannot see today"; decisions 36 and 37).
 
 **Files.**
 - Change `src/services/lifecycle/GateRun.ts` (with `runEntityPipelines`, `:370-390`), `GateLineRun.ts`,
   `ProposalTwiceRun.ts` and their specs, `GateRun.entities.spec.ts` among them.
 - Create `src/services/overseer/TalosLines.ts` (the `LineRunner` over `BoardChildren` and the connection) and
   `TalosLines.spec.ts`.
-- Change `src/services/overseer/DrivePass.ts` (`:1143-1277`), `MergedTreeGateRun.ts` and its spec, `GateProfiling.ts`,
+- Change `src/services/overseer/DrivePass.ts` (`:1143-1277`), `MergedTreeGateRun.ts` and its spec,
+  `MergedTreeGateRuns.ts` (WP2.19), `GateProfiling.ts` (with `endingOf`, `:162-170`, and `OUTCOME_ENDINGS`, `:55-59`),
   `PipelineChecking.ts`, `GateRunSlots.ts` (drop `inProcessHolderOf`, `:88-94`, `:109-113`; its callers are
   `DrivePass.ts:1261`, `GateProfiling.ts:254`, `PipelineChecking.ts:216`), `ProcessStarts.ts`,
   `src/services/overseer/testing/AirlocksHarness.ts`, `src/testing/RecordedWatcherStages.ts` (its `runGatePipeline`
@@ -894,30 +1037,38 @@ children (design sections 3.3 and 7, "What reconcile cannot see today").
    `timeBoundMilliseconds`), then wait for its end: the `state` frame of its `childId`, and as a fallback a look at its
    record every `TALOS_LINE_LOOK_MILLISECONDS` (a schedule only, never a decision). While waiting, hand each new event
    entry to `onOutputLine`. At the end, the output is every `agent` entry's line joined with line feeds.
-   `talos-unavailable` answers a run with exit code `null`, which judges `cannot-run`.
-3. Run folders (`childFolder`), all under the board folder: a merged-tree gate `merge-gates/<16 hex of sha256(worktree +
-   '\n' + tree + '\n' + phase)>`, also when it re-gates a stale green (`Airlocks.ts:703`); a gate profile
+   `talos-unavailable` answers a run with exit code `null`, which judges `cannot-run`, and a run time of 0. Every other
+   end hands its `ChildEnd.runMilliseconds` on as `LineRunEnd.runMilliseconds`.
+3. Run folders (`childFolder`), all under the board folder: a merged-tree gate the run folder WP2.19 gives it
+   (`merge-gates/<16 hex>`), also when it re-gates a stale green (`Airlocks.ts:703`); a gate profile
    `gate-profile-runs/<profileRunId>`; a pipeline check `pipeline-checks/<checkName>/run-<r>`, where `checkName` is the
    setup id, or the setup id and the escaped entity key for an entity's check (`PipelineChecking.ts:92-95`), since the
    forge's and each entity's checks of one setup run side by side, and `r` is 1 or 2 for the proposal's two runs. Gate
    profiles keep `<data>/gate-profile-runs/<P>.ndjson` for their stream, appended from `onOutputLine`.
 4. A Stop of a profile or a check sends `stop` with grace 0 to its running child (`GateProfiling.ts:190-198`,
-   `PipelineChecking.ts:135-143`). Only gate lines carry the 15-minute bound.
-5. At start, before `settleAtStart` removes worktrees (`GateProfiling.ts:262-266`, `PipelineChecking.ts:223-227`), stop
-   every live child under the three roots and wait for their ends (bounded tries): their owner, an earlier Overseer's
-   promise, is gone. Without this the next Overseer removes a worktree a line still runs in.
+   `PipelineChecking.ts:135-143`). Every prepare and gate line of these runs carries `LINE_TIME_BOUND_MILLISECONDS`. A
+   profile whose gate ended `time-bound` ends `timed-out` (`GateProfile.ts:11`, declared and never produced today), and
+   its `elapsedMilliseconds` is the gate line's `runMilliseconds`: `GateLineRun`'s own clock (`GateLineRun.ts:120-124`)
+   and the request's `millisecondsNow` go.
+5. At start, before `settleAtStart` removes worktrees (`GateProfiling.ts:262-266`, `PipelineChecking.ts:223-227`) and
+   before WP2.19's `settleAtStart` removes run folders with no outcome, stop every live child under the three roots
+   (`merge-gates/`, `gate-profile-runs/`, `pipeline-checks/`) and wait for their ends (bounded tries): their owner, an
+   earlier Overseer's promise, is gone. Without this the next Overseer removes a worktree a line still runs in, or runs
+   a merged-tree gate twice on one worktree.
 6. Gate slots: the holder of every gate is its child folder; delete `inProcessHolderOf` and the `process:` branch.
 7. `mergedTreeGateProcesses` and `stopMergedTreeGate` (`DrivePass.ts:1143-1150`) and the `onSpawned` bookkeeping of
-   `runMergedTreeGatePipeline` (`:1152-1168`) go: the stop at the Overseer's stop is `stop-lines`.
+   `runMergedTreeGatePipeline` (`:1152-1168`) go: `MergedTreeGateRuns.stopAll` sends `stop` to its runs' live lines,
+   and the stop at the Overseer's `--now` is `stop-lines`.
 
 **Specs.**
 - `GateRun.spec.ts`, `GateRun.entities.spec.ts`, `GateLineRun.spec.ts`, `ProposalTwiceRun.spec.ts` and
   `MergedTreeGateRun.spec.ts` over a fake `LineRunner` prove what they proved over a spawn, and that two entity parts
   of one run never share a step folder.
-- `TalosLines.spec.ts`: the end arrives by frame or by the look; output is the joined lines; a `time-bound` end judges
-  `cannot-run`; `talos-unavailable` judges `cannot-run`.
+- `TalosLines.spec.ts`: the end arrives by frame or by the look; output is the joined lines; the run time is the child
+  end's; a `time-bound` end judges `cannot-run`; `talos-unavailable` judges `cannot-run`.
 - `GateProfiling.spec.ts` and `PipelineChecking.spec.ts`: a Stop sends `stop`; the start stops leftover children before
-  removing worktrees.
+  removing worktrees; a profile's gate ended `time-bound` ends the profile `timed-out`, its time the line's run time.
+- `MergedTreeGateRuns.spec.ts`: the start stops a leftover run's live lines before it removes the run folder.
 - `GateRunSlots.spec.ts`: a child-folder holder is live while its child is, and free once it ended or is lost.
 
 **Done when.** `git grep -n "Bun.spawn(" apps/forge/src/services` finds no spawn of a gate line; the root `bun run
@@ -952,7 +1103,7 @@ verify` is green.
 - Note for WP2.17 the names this package retires: `'WatcherFleet'`, `'WatcherBundle'`, `'LegacyWatcherReader'`,
   `'runWatcher'`, `'WATCHER_PROTOCOL_VERSION'`, `'src/lib/watcher'`, `'watcher-bundle-failed'`,
   `'watcher-endpoint-does-not-fit'`, `'legacy-watcher'`, `'pinWatcherBundle'`. They join `RETIRED_NAMES` in WP2.17,
-  once `apps/forge/CLAUDE.md` and `docs/` no longer name them: `src/ComponentNames.spec.ts` scans those files too, so
+  once `apps/forge/CLAUDE.md` and `docs/` name them nowhere: `src/ComponentNames.spec.ts` scans those files too, so
   adding the names here turns `bun run verify` red.
 
 **What to do.** Delete, then follow the compiler and the guards until green. Words in comments that name the Watcher in
@@ -1001,7 +1152,7 @@ git grep -l -E "watcherInstance|FIRST_WATCHER_INSTANCE|watcher-instance|ProcessW
    `.forge-monitor/watchers/...` token paths of Gaia's specs (`private` now).
 5. Leave Flint's own names: the `watcher-spark` attendant of `packages/flint/` (about 118 lines, from
    `attendants/watcher-spark/`) and its host in `bridge/flint/` count agents in flight and are Flint's design vocabulary
-   (`packages/flint/README.md`, Flint's design docs), not the Watcher's code. "Needs the owner", item 15.
+   (`packages/flint/README.md`, Flint's design docs), not the Watcher's code (the run's call above).
 6. Leave Gaia's recordings (`apps/gaia/src/testing/recordings/darwin/forge-registry.json`, `overseer-fetch-*.json`):
    they are a real forge's recorded answers and change when Gaia records again (stage 8).
 
@@ -1021,24 +1172,27 @@ root `bun run verify` is green.
 - Change `apps/forge/CLAUDE.md`: the component names (`:46`), Runtime (`:134-135`: Talos has no context, so `talos.ts`
   passes `process.platform` to `runTalos`), the `eslint.config.js` paragraph (`:161-163`, `watcher.ts` among the files
   that may exit), the Deviations rows naming `watcher.ts` or the Watcher (`:326`, `:328`, `:337`, `:338`) and the
-  legacy row (`:336`, deleted), a new row for the synchronous-calls thread and the lease renewal thread as entry
-  modules, and a row for `FrozenTalosHandshake.json`, a frozen table that is never retaken.
+  legacy row (`:336`, deleted), a new row for the synchronous-calls thread as an entry module, and a row for
+  `FrozenTalosHandshake.json`, a frozen table that is never retaken.
 - Change `apps/gaia/CLAUDE.md:148` (a Watcher's socket path below the scratch home): Talos's socket now. Gaia's rules
-  are in no tracker's reach, but this stage runs outside both trackers.
+  are in no tracker's reach, and the run changes them (decision 34).
 - Change `docs/cli.md` (the Watcher passages, for example `:203`, `:268`, `:851`, `:870`, `:1094`; the files of a job
-  folder; the new interruption causes), `docs/glossary.md`, `docs/development/guards-and-testing.md`,
-  `docs/development/platform-status.md` (Talos boundaries: macOS recorded, Linux and Windows never ran),
-  `docs/development/contributing.md` (the scratch isolation figure's words), `docs/operations/*.md`,
-  `docs/concepts/*.md`, `docs/reference/overseer-api.md` (identity key), `docs/reference/refusals.md`.
+  folder; the new interruption causes, `lease-ended` and `network-outage` waiting), `docs/glossary.md`,
+  `docs/development/guards-and-testing.md`, `docs/development/platform-status.md` (Talos boundaries: macOS recorded,
+  Linux and Windows never ran), `docs/development/contributing.md` (the scratch isolation figure's words),
+  `docs/operations/*.md`, `docs/concepts/*.md`, `docs/reference/overseer-api.md` (the identity key, the monitor job's
+  `interruption`), `docs/reference/refusals.md`.
 - The root `.claude/rules/` files hold no Watcher rule today (`git grep -n -i watcher -- .claude/rules` prints nothing);
-  if one appears, list it for the owner, who changes those files.
+  if one appears, change it in this package (decision 34).
 - Change `src/ComponentNames.spec.ts`: add to `RETIRED_NAMES` the names WP2.15 and WP2.16 noted, with a planted case
   for one of each kind (path, identifier, wire value). A dated record that names one and is not rewritten, such as
   `docs/research/compounding/data-and-improvements.md` or a probe entry of
   `docs/development/overseer-claude-probe.md`, gets an exact `ALLOWED_RETIRED_NAMES` entry instead of an edit.
 
-**What to do.** Replace the Watcher's description with Talos's: one per board, its protocol version, the lease and the
-wake rule, the clean quit, the child record, the 15-minute gate bound, the network outage ending. Wrap at 120 columns
+**What to do.** Replace the Watcher's description with Talos's: one per board, its protocol version, the lease renewed
+only while passes make progress and the wake rule, the clean quit, the child record, the 15-minute bound of install,
+prepare and gate lines with a sleep not counted, each line's run time, the merged-tree gate beside the pass, and the
+network outage ending, which waits as a lease end does. Wrap at 120 columns
 where `src/ProseWrap.spec.ts` holds a file. Figures that show Watchers (`docs/images/architecture.svg`) are redrawn or
 named in the commit as stale. Then add the retired names, and run `src/ComponentNames.spec.ts`: each finding is a
 document line still to rewrite, or a dated record for the allowlist.
@@ -1064,6 +1218,110 @@ the root `bun run verify` is green.
 **Done when.** The stamp check in `bun run verify` is green at the root, and every step of the end-to-end check observed
 its result.
 
+### WP2.19 The merged-tree gate leaves the pass
+
+**Purpose.** The lease is renewed only while passes make progress (WP2.9), and today the Airlock awaits a merged-tree
+gate inside the pass for as long as its lines run, its gate slot included (`Airlocks.ts:703`, `:864-866`;
+`GateRun.ts:346`). The gate runs beside the pass instead: a pass starts it and carries on, and a later pass settles the
+Airlock from the outcome the run kept on disk (design section 3.2, "Renewal that only progress earns"; risk 2). Built on
+today's spawn, before the switch, so the renewal never meets a pass that waits through a gate.
+
+**Files.**
+- Create `src/services/overseer/MergedTreeGateRuns.ts` (the runs in flight and their kept outcomes) and
+  `MergedTreeGateRuns.spec.ts`.
+- Change `src/services/overseer/Airlocks.ts`: `AirlocksContext.gateMergedTree` (`:107`) and its two callers, the re-gate
+  of a stale green (`:695-704`) and the gate before a landing (`:855-890`).
+- Change `src/services/overseer/DrivePass.ts`: the context's `gateMergedTree` (`:1254-1277`), `regroup` (`:1578-1587`)
+  and `stop` (`:1589-1596`).
+- Change `src/services/overseer/testing/AirlocksHarness.ts` (`:227`) and the specs the compiler names
+  (`Airlocks*.spec.ts` among them).
+
+**What to do.**
+1. `AirlocksContext.gateMergedTree` becomes `mergedTreeGateOf(worktreePath, treeId, phase, gatedEntities?):
+   MergedTreeGate | 'running'`, synchronous.
+2. `MergedTreeGateRuns.ts` exports `createMergedTreeGateRuns(request)` ("Interfaces introduced"). A run's folder is
+   `merge-gates/<16 hex>` under the board folder, the hex the first 16 of `sha256(worktree + '\n' + tree + '\n' + phase
+   + '\n' + the gated entity keys, sorted and joined by ',' + '\n' + the stamp's phase hash + '\n' + its entity phase
+   hashes as sorted key=hash pairs)`, so a changed pipeline or another entity set is another run. `gateOf(request)`:
+   1. the folder holds a readable `outcome.json`: answer its `MergedTreeGate`;
+   2. a run of that folder is in flight in this process: answer `running`;
+   3. otherwise start the run (`request.run`, the promise of today's `runMergedTreeGates` call), answer `running`. At
+      its end the run writes `outcome.json` through the atomic-file package, with a format version (decision 3), and
+      calls `wake(true)`: the file is in no pass fingerprint.
+   `settled(request)` removes the run's folder; `stopAll()` stops every run's processes as `stopMergedTreeGate` does
+   today and awaits the runs; `settleAtStart()` removes every folder under `merge-gates/` that holds no outcome, since
+   its run died with the Overseer that started it.
+3. The DrivePass's closure reads the pipeline as today (`:1255-1260`), answers an unreadable pipeline as today, computes
+   the stamp (`PipelineUtil.gateRunStampOf`, or `entitiesGateRunStampOf` with the gated entities) for the folder, and
+   asks `gateOf`. The gate slot is still taken inside the run (`GateRun.ts:346`), now outside any pass.
+4. In the Airlock, `running` leaves the job in `gating`, counts as no move, and the sweep goes on with the next target.
+   An outcome settles in the hold as today; after that hold, `settled` removes the run folder. A stop between the two
+   leaves an outcome that the same tree, phase, entities and stamp would give again.
+5. `regroup` calls `settleAtStart` before its first pass; `stop` calls `stopAll` after the running pass ended. A run the
+   stop ended writes no outcome, so the next start runs it again: the `gating` phase is safe to redo (stage 0, table B).
+6. Log one line when a run starts and one when it ends, naming the ticket, the phase and the outcome.
+
+**Specs.**
+- `MergedTreeGateRuns.spec.ts` (over a fake run): the first ask starts one run and answers `running`; an ask while it
+  runs starts nothing; after the run the ask answers the kept outcome; a changed stamp or entity set is another folder;
+  `settled` removes the folder; `settleAtStart` removes folders with no outcome and keeps those with one; an unreadable
+  `outcome.json`, or one of another format version, is no outcome.
+- Airlocks specs over the harness: a gating Airlock answers `running` and moves nothing until the outcome; a pass during
+  a running gate merges another target's ticket; a passed, a red and a cannot-run outcome settle as before; a stale
+  green's re-gate goes the same way.
+
+**Done when.** `git grep -n "await context.gateMergedTree" apps/forge/src` finds nothing; the root `bun run verify` is
+green.
+
+### WP2.20 Line run times recorded and served
+
+**Purpose.** Every line's run time is recorded in the measure its bound uses, a sleep not counted, and shown in the
+pipeline overview (decision 36). Talos measures it (`ChildEnd.runMilliseconds`, WP2.7); this package records the run
+time of each pipeline step line on the board and serves it in the pipeline facts. The overview that shows it is
+Gaia's, built in stage 6 on the contract stage 4 declares.
+
+**Files.**
+- Change `src/lib/tracker-model/constants/LogRecordSchema.ts`: a record `pipeline-step-ran` beside `gate-ran`
+  (`:285-291`), its field kinds beside `optional-cache-reports`, and the record's type and Board method beside
+  `recordGateRan`.
+- Change `src/lib/tracker-model/@types/PipelineFacts.ts` (`PipelineStepRunTimeFacts`, and `stepRunTimes` beside
+  `gateCacheMarks`) and `src/services/render/PipelineFactsAssembly.ts` (`stepRunTimesOf` beside `gateCacheMarksOf`,
+  `:539`, `:608`).
+- Change `src/services/lifecycle/GateRun.ts`: a pipeline run's result carries each step's name, kind, run time and
+  ending, from its `LineRunEnd`.
+- Change `src/services/overseer/JobLaunch.ts` (the install steps' observation, `:575-586`, `:881-896`, and the holds
+  that record a job's gate run, `:1523`, `:2052`), `Airlocks.ts` (`:634`, `:868`), `GateProfiling.ts` (the profile's
+  end).
+- Change `src/adapters/utils/LogUtil.ts` (the record's printed line) and
+  `packages/forge-contracts/constants/ForgeSystemVersions.ts` (the 1.19 clause).
+- Change the specs: `Board.gateRan.spec.ts` or a `Board.stepRan.spec.ts` beside it, `PipelineFactsAssembly.spec.ts`,
+  `LogUtil.spec.ts`, `JobLaunch.*.spec.ts` of install and gating, `Airlocks*.spec.ts`, `GateProfiling.spec.ts`,
+  `src/testing/EveryBoardLogRecord.ts`.
+
+**What to do.**
+1. The record `pipeline-step-ran`, subject `board`: `stepKind` (`prepare` or `gate`), `stepName`, `phase` (the gate
+   run's phase; absent for an install step, which runs the pipeline's prepare steps before any gate run), `entity`
+   (absent on a forge without entities), `runMilliseconds` (a count) and `ending` (`passed`, `failed` or
+   `time-bound`). A comment says that the time is recorded and shown only (`apps/forge/CLAUDE.md:174-175`).
+2. Written once per step line that ran, in the hold that consumes the step: the hold that acts on a build or review
+   job's install verdict writes one per install step; each hold that records `gate-ran` for a job's gate run or a
+   merged-tree gate writes one per prepare and gate step of that run (a cache hit ran nothing and writes none); a gate
+   profile's end writes its gate. A pipeline check writes none: it checks a draft, not the pipeline. A step that ended
+   `paused` and ran again writes only the run that was judged.
+3. `stepRunTimesOf(logRecords)` keeps the newest record per entity, step kind, step name and phase, as
+   `gateCacheMarksOf` keeps the newest cache report, and `PipelineFacts.stepRunTimes` serves them on the board state.
+4. A gate profile's `elapsedMilliseconds` is the run time WP2.14 hands it, so a profile and a step read in one measure.
+5. No Bridge view changes: its views move to Gaia in stage 6, which shows the times in the pipeline overview.
+6. The 1.19 sentence of `ForgeSystemVersions.ts` adds the pipeline facts' step run times.
+
+**Specs.** The Board spec round-trips the record through the log. `PipelineFactsAssembly.spec.ts`: the newest run of a
+step wins, per entity and per phase. `JobLaunch` specs: a job whose install ran two steps writes two records, once,
+across passes; a gate run writes one per step; a cache hit writes none; a `time-bound` gate writes `ending:
+'time-bound'`. `Airlocks` specs: a merged-tree gate writes one per step. `LogUtil.spec.ts` prints the record.
+
+**Done when.** `bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/services/render/` passes in
+`apps/forge`; the root `bun run verify` is green.
+
 ## Interfaces introduced
 
 All in TypeScript as they are to be written. Field names are exact.
@@ -1088,17 +1346,21 @@ export const TALOS_FOLDER_NAME = 'talos';
 export const PRIVATE_FOLDER_NAME = 'private';
 ```
 
-`src/shared/constants/OverseerLimits.ts` (the Overseer writes them into the start file; specs pass short ones):
+`src/shared/constants/OverseerLimits.ts` (the Overseer writes the lease's bounds into the start file and the line bound
+into each launch; specs pass short ones):
 
 ```ts
 export const SUPERVISION_LEASE_MILLISECONDS = 60_000;
+/** Renewed from the main loop, and only while the Overseer's passes make progress (`LeaseRenewal.ts`). */
 export const LEASE_RENEWAL_INTERVAL_MILLISECONDS = 15_000;
 export const CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS = 10_000;
-export const GATE_TIME_BOUND_MILLISECONDS = 900_000;
-/** The owner's answer to design section 12, item 2, recorded in stage 0; `null` is no bound. */
-export const INSTALL_LINE_TIME_BOUND_MILLISECONDS: number | null = null;
+/** Every install, prepare and gate line, a sleep not counted; a merge carries no bound. */
+export const LINE_TIME_BOUND_MILLISECONDS = 900_000;
 export const TALOS_TICK_MILLISECONDS = 1000;
-/** Two ticks further apart than one tick plus this are a gap: a sleep, a suspension, or a clock that moved. */
+/**
+ * Two ticks further apart than one tick plus this are a gap: a sleep, a suspension, or a clock that moved. The lease
+ * renewal reads its own timer's gaps by the same allowance.
+ */
 export const TALOS_TICK_GAP_MILLISECONDS = 5000;
 export const TALOS_FRAME_TIMEOUT_MILLISECONDS = 2000;
 export const TALOS_START_TRIES = 40;
@@ -1125,6 +1387,7 @@ Board folder means the tracker's data folder (`workspace.trackerDirectory`).
 | `<board>/<childFolder>/child-<i>.log` | Talos | the child's stderr, appended |
 | `<board>/<childFolder>/child-<i>.lost-cause` | Overseer | one `InterruptionCause` and a line feed |
 | `<board>/<childFolder>/child-<i>.refused-forced-stops` | Overseer | `{ refusals, treeProcessIds }`, as `Regrouping.ts:78-94` |
+| `<board>/merge-gates/<16 hex>/outcome.json` | Overseer | `{ formatVersion: 1, gate: MergedTreeGate }`, written once at the run's end (WP2.19) |
 | `<monitor>/private/<trackerId>/talos-<n>.secret` | Overseer | the secret, owner-only |
 | `<monitor>/private/<trackerId>/token` | Overseer | the API token (moved from `watchers/`) |
 | `<monitor>/private/<16 hex>.sock` | Talos | the endpoint on macOS and Linux; a named pipe on Windows |
@@ -1207,11 +1470,16 @@ export type ChildState = 'starting' | 'running' | 'stopping' | 'ended';
 export type ChildEndReason = 'exited' | 'signalled' | 'spawn-failed' | 'paused' | 'lease-ended' | 'time-bound';
 
 export interface ChildEnd {
-  reason:   ChildEndReason;
-  exitCode: number | null;
-  signal:   string | null;
+  reason:          ChildEndReason;
+  exitCode:        number | null;
+  signal:          string | null;
   /** Why no child ran; `null` when one did. */
-  detail:   string | null;
+  detail:          string | null;
+  /**
+   * Wall time from the spawn to the end less every gap Talos added to the allowance: the bound's measure. Recorded and
+   * shown only; 0 when no child ran.
+   */
+  runMilliseconds: number;
 }
 
 export interface RecognisedEnding {
@@ -1458,10 +1726,54 @@ export type TalosAvailability =
   | { verdict: 'held'; reason: 'talos-protocol-differs'; answeredProtocolVersion: number };
 
 // src/services/overseer/LeaseRenewal.ts
-export interface LeaseRenewal {
-  readonly moveTo: (endpoint: string, secret: string) => void;
-  readonly stop:   () => void;
+export interface PassProgress {
+  /** The number of the pass running now, counted from 1 over the Overseer's life; `null` between passes. */
+  readonly passInFlight: () => number | null;
 }
+export interface LeaseRenewalRequest {
+  /** The connection `ensureTalos` answered, read at each renewal, so a Talos started while serving is followed. */
+  connection:           () => TalosConnection | null;
+  renewer:              LeaseRenewer;
+  intervalMilliseconds: number;
+  tickGapMilliseconds:  number;
+  passProgress:         PassProgress;
+  wallNowMilliseconds:  () => number;
+  log:                  (sentence: string) => void;
+  /** After each renewal Talos answered `done`; stage 3 writes the heartbeat here. */
+  onRenewed?:           (renewedAtWallMilliseconds: number) => void;
+}
+export interface LeaseRenewal {
+  readonly stop: () => void;
+}
+export function startLeaseRenewal(request: LeaseRenewalRequest): LeaseRenewal;
+
+// src/services/overseer/MergedTreeGateRuns.ts
+export interface MergedTreeGateRunRequest {
+  worktreePath:  string;
+  treeId:        string;
+  phase:         GatePhase;
+  gatedEntities: readonly EntityKey[] | undefined;
+  /** The gate-run stamp of the pipeline read for this ask; its hashes key the run folder. */
+  stamp:         GateRunStamp;
+  /** Starts the run; called once per run folder. */
+  run:           () => Promise<MergedTreeGate>;
+}
+export interface MergedTreeGateRuns {
+  readonly gateOf:        (request: MergedTreeGateRunRequest) => MergedTreeGate | 'running';
+  /** Removes the run folder once its outcome settled the Airlock. */
+  readonly settled:       (request: Pick<MergedTreeGateRunRequest, 'worktreePath' | 'treeId' | 'phase' | 'gatedEntities' | 'stamp'>) => void;
+  readonly stopAll:       () => Promise<void>;
+  readonly settleAtStart: () => void;
+}
+export interface MergedTreeGateRunsRequest {
+  boardFolder: string;
+  wake:        (forced: boolean) => void;
+  log:         (sentence: string) => void;
+}
+export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): MergedTreeGateRuns;
+
+// src/services/overseer/Airlocks.ts, in AirlocksContext, in place of `gateMergedTree`
+mergedTreeGateOf: (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities?: readonly EntityKey[]) => MergedTreeGate | 'running';
 
 // src/services/lifecycle/GateRun.ts
 export interface LineRunRequest {
@@ -1476,10 +1788,12 @@ export interface LineRunRequest {
   onOutputLine?:         (line: string) => void;
 }
 export interface LineRunEnd {
-  exitCode:   number | null;
-  signalCode: string | null;
-  endReason:  ChildEndReason | 'talos-unavailable';
-  output:     string;
+  exitCode:        number | null;
+  signalCode:      string | null;
+  endReason:       ChildEndReason | 'talos-unavailable';
+  output:          string;
+  /** The child end's `runMilliseconds`; 0 when Talos was unavailable. */
+  runMilliseconds: number;
 }
 export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
 ```
@@ -1487,7 +1801,30 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
 ### Model, documents and refusals
 
 - `InterruptionCause` gains `'talos-paused' | 'lease-ended' | 'network-outage'`; `JobStates.ts` gains
-  `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage']`.
+  `INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage', 'lease-ended']`.
+- `packages/forge-contracts`: `MONITOR_INTERRUPTION_CAUSES` and `type MonitorInterruptionCause`, the eleven causes as
+  the wire spells them (`watcher-lost` as `child-lost`), the contract's one cause union, which stage 3 widens; `MonitorJobDocument.interruption: MonitorInterruptionCause | null`, the cause while the job is
+  `interrupted`. Gaia's `AgentRow` gains `interruption: string | null`.
+- The log record `pipeline-step-ran` (`stepKind`, `stepName`, `phase`, `entity`, `runMilliseconds`, `ending`), and
+  `PipelineFacts.stepRunTimes`:
+
+  ```ts
+  export interface PipelineStepRunTimeFacts {
+    /** Only on a step of an entity's pipeline. */
+    entity?:         EntityKey;
+    stepKind:        'prepare' | 'gate';
+    stepName:        string;
+    /** The gate run's phase; absent for an install step. */
+    phase?:          GatePhase;
+    /** Recorded and shown only, in the measure of the line's bound. */
+    runMilliseconds: number;
+    ending:          'passed' | 'failed' | 'time-bound';
+    /** The stamp of the record it comes from. */
+    at:              string;
+  }
+  ```
+- The forge system version 1.19: a monitor job's interruption cause, the identity's `talosProtocolVersion`, the
+  pipeline facts' step run times.
 - `Job.watcherInstance` becomes `Job.childInstance` (stored key `childInstance`); `FIRST_WATCHER_INSTANCE` becomes
   `FIRST_CHILD_INSTANCE`.
 - `SupervisedChildKind` loses `watcher` and gains `talos`.
@@ -1517,23 +1854,39 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
 - **Synchronous work on Talos's main thread.** `ProcessSupervision` runs `/bin/ps` with `Bun.spawnSync`
   (`ProcessSupervisionFor.ts:19`); a stop listing per child blocks the loop. Everything synchronous goes to the
   synchronous-calls thread; `TalosMainThread.spec.ts` holds it. A blocked loop is also read as a gap by the lease, which
-  is harmless (it grants grace) but delays every frame.
-- **A renewal on the Overseer's event loop.** `GitProcess.run` has no timeout and runs synchronously
-  (`src/lib/git/GitProcess.ts:58-61`, `:68`), and the Airlock awaits a merged-tree gate in the pass
-  (`Airlocks.ts:864-866`, and `:703` for a stale green's re-gate). A `setInterval` in the main thread misses renewals
-  during a long `worktree add` or a landing. The renewal runs in its own worker with its own connection.
+  grants grace and delays every frame.
+- **A renewal that proves only life.** A renewal from a worker thread, a second process or a bare timer goes on while a
+  pass hangs in an await, so a hung Overseer would keep its agents running with nobody routing their questions. The
+  renewal runs on the main loop and is withheld while one pass stays in flight (WP2.9 item 3). Do not move it off the
+  loop to survive a slow pass; make the pass faster.
+- **A pass that waits through a gate.** The Airlock awaits a merged-tree gate in the pass today (`Airlocks.ts:703`,
+  `:864-866`), up to 15 minutes a line, and its gate slot before that (`GateRun.ts:346`). With the renewal on progress
+  every landing would end the lease after a minute. WP2.19 runs the gate beside the pass and lands before WP2.13 wires
+  the renewal.
+- **A sleep read as a hang.** After a sleep the renewal timer's first tick can find the pass that ran before the sleep
+  still in flight. A late tick renews and starts the comparison afresh (WP2.9 item 3.1); without that, a pass caught by
+  a sleep withholds the renewal past Talos's wake grace and stops every agent.
+- **Two runs of one merged-tree gate.** A pass that reaches a gating Airlock while its run is in flight must answer
+  `running`, never start a second run on the same worktree; the run folder is the key (WP2.19 item 2).
+- **A kept outcome of another pipeline.** An outcome kept by tree and phase alone would settle a re-gate after the
+  pipeline changed with the old result. The folder's key holds the gate-run stamp and the gated entities.
 - **Stopping the renewal at a release.** The successor holds the Baton only after the predecessor released
   (`OverseerForeground.ts:651-660`, `:724-738`), up to `BATON_PASS_RELEASE_TRIES` intervals later
-  (`OverseerLimits.ts:69-72`). If the predecessor stops renewing at its release, a slow pass lets the lease end. The
-  predecessor renews until it exits.
+  (`OverseerLimits.ts:69-72`). If the predecessor stops renewing at its release, the lease can end in that wait. The
+  predecessor's timer runs until it exits, and with its passes stopped it renews as an idle loop.
 - **Counting a lease end or a clean quit as a crash.** `Jobs.ts:145` defaults a missing cause to `watcher-lost`, a
   counted crash. Map `paused` and `lease-ended` before the `agent-crashed` branch (`DrivePass.ts:614-615`); two counted
   crashes in a row open an `outage` decision (`Playbook.ts:188-200`).
+- **A lease end resumed by itself.** A `lease-ended` job left off `INTERRUPTION_CAUSES_HELD_FROM_RESUMING` comes back at
+  the hung Overseer's next pass, which decision 38 forbids. It sits beside `network-outage` (WP2.11 item 2).
 - **A session job replaced on an outage.** `crashBoundStepsOf` replaces every interrupted session kind before it looks
   at the cause, and resumes a pipeline agent by its own branch. Put the held causes before both (WP2.11 item 3).
 - **A paused line judged.** A gate stopped by a clean quit exits by a signal, which judges `cannot-run` and opens an
   incident. A `paused` end is never judged; the step runs again as the next instance (WP2.13 item 6). The fixed
   `PROCESS_WATCHER_INSTANCE = 1` (`JobLaunch.ts:360`) cannot express a re-run.
+- **An unbounded install.** The bound is a field of each launch. A prepare or install step launched with `null` runs
+  for ever; every install, prepare and gate launch carries `LINE_TIME_BOUND_MILLISECONDS` (WP2.13 item 6, WP2.14
+  item 4).
 - **Two entity parts in one folder.** A merged-tree gate on a pipeline with entities runs one pipeline per entity, each
   counting its steps from the first again (`MergedTreeGateRun.ts:45-63`, `GateRun.ts:370-390`). A run folder keyed by
   the tree alone would hand the second entity's first gate the first entity's ended child; each part gets its own
@@ -1547,14 +1900,13 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
   moves both readers to it in the same change as the switch.
 - **Removing a worktree under a running line.** Gate profiles and pipeline checks are marked stopped and their worktrees
   removed at start (`GateProfiling.ts:262-266`, `PipelineChecking.ts:223-227`). Under Talos their lines outlive the
-  Overseer, so stop them first (WP2.14 item 5).
-- **The gate bound counting a sleep.** On a laptop, a gate running across a sleep would be stopped on wake and open a
-  `gate-cannot-run` incident. Add every detected gap to the line's allowance (WP2.7 item 8), unless the owner decides
-  otherwise.
+  Overseer, so stop them first (WP2.14 item 5), and the leftover lines of a merged-tree gate too.
+- **The bound counting a sleep.** On a laptop, a gate or an install running across a sleep would be stopped on wake.
+  Add every detected gap to the line's allowance (WP2.7 item 8, decision 37), and leave the gaps out of its run time.
 - **The lease ending a line.** The lease stops agents only (decision 29); a lease end that ran the clean quit's line
   step would stop installs on every sleep with a dead Overseer.
 - **Writing the environment.** The child's environment holds the vendor's login variables (`ClaudeCodeAdapter.ts:44-60`,
-  inherited through `inheritedVariableNames`). No launch file exists any more; Talos must not log a launch frame, and
+  inherited through `inheritedVariableNames`). No launch file exists; Talos must not log a launch frame, and
   `talos-<n>.log` gets the label and `childId` only. The API key reaches the child only through `environmentFromTalos`.
 - **A frame counted as taken on connect.** Today a frame counts as taken once the socket connected
   (`WatcherFleet.ts:225-231`). Write a marker only after `done`, or a message is lost when Talos refuses it.
@@ -1563,10 +1915,13 @@ export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
   Boards are set up anew.
 - **The planted `watcher-lost` in the names guard.** `src/ComponentNames.spec.ts` plants `watcher-lost` as allowed.
   Adding the bare word `watcher` to `RETIRED_NAMES` breaks stage 9's ownership of that value; add only the code names.
+- **A monitor key Gaia does not name.** Gaia's `ShapeOf` names every key of a document
+  (`apps/gaia/src/adapters/forge-api/utils/DocumentShapeUtil.ts:24-25`), so `interruption` on `MonitorJobDocument`
+  turns Gaia's typecheck red unless `JOB_SHAPE` gains it in the same commit (WP2.11).
 - **`node:net` data left unread.** A socket whose data nobody reads never sees `close` (`WatcherFleet.ts:221`); every
-  Talos connection reads data, the renewal thread's too.
-- **Specs waiting out production bounds.** Every bound reaches Talos through the start file; specs pass milliseconds. No
-  `Bun.sleep` before an assertion (`src/SpecSleeps.spec.ts`).
+  Talos connection reads data.
+- **Specs waiting out production bounds.** Every bound reaches Talos through the start file or the launch; specs pass
+  milliseconds. No `Bun.sleep` before an assertion (`src/SpecSleeps.spec.ts`).
 
 ## Verification of the whole stage
 
@@ -1581,149 +1936,116 @@ In `apps/forge`, the specs that matter most:
 
 ```sh
 bun test --path-ignore-patterns='.claude/**' ./src/lib/talos/
-bun test --path-ignore-patterns='.claude/**' ./src/services/overseer/TalosChildren.spec.ts ./src/services/overseer/TalosStart.spec.ts ./src/services/overseer/LeaseRenewal.spec.ts ./src/services/overseer/TalosLines.spec.ts
-bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/
+bun test --path-ignore-patterns='.claude/**' ./src/services/overseer/TalosChildren.spec.ts ./src/services/overseer/TalosStart.spec.ts ./src/services/overseer/LeaseRenewal.spec.ts ./src/services/overseer/TalosLines.spec.ts ./src/services/overseer/MergedTreeGateRuns.spec.ts
+bun test --path-ignore-patterns='.claude/**' ./src/lib/tracker-model/ ./src/services/render/
 bun test --path-ignore-patterns='.claude/**' ./cli/overseer/
 bun run record src/lib/talos/Talos.ts
 bun run record src/services/overseer/TalosStart.ts
 bun run record src/services/overseer/LeaseRenewal.ts
 ```
 
-`bun run verify:integration` in `apps/forge` runs every real-system spec; run it only when the owner asks for it.
+`bun run verify:integration` in `apps/forge` runs every real-system spec; it runs only when the owner asks for it (gate
+G4).
 
 End to end on a scratch forge, as `docs/development/contributing.md:76-110` sets one up (`HOME` in a scratch folder,
 `FORGE_ROOT` at a scratch repository, `FORGE_FAKE_AGENT=1`, the program run from this checkout with `bun
-agent-progress.ts`). Never on the real home or the live board.
+agent-progress.ts`). Never on the real home or the live board. The verb that starts the Overseer is `oversee` until
+stage 9 replaces it with `forge start`. The monitor document is `GET /api/monitor` with the token in
+`<scratch home>/.forge-monitor/private/<trackerId>/token`.
 
 1. `oversee --port 0` in the background. `<board>/talos/talos-1.json` reads `serving` with protocol 1; the Overseer's
    log says the lease renewal started.
 2. With `FORGE_FAKE_AGENT_REPORTS=1` and only `overseerOnly: true` gates (`docs/development/contributing.md:161-165`),
    ready a ticket. Its build runs: `jobs/<J>/child-1.json` is `running`, `install/child-1.json` and the gate steps'
-   records (`gate-1/child-1.json`) appear in turn, and the ticket reaches review and lands as before, its merged-tree
-   gate under `merge-gates/`. Unset `FORGE_FAKE_AGENT_REPORTS` for the steps below.
+   records (`gate-1/child-1.json`) appear in turn, each ended with its `runMilliseconds`, and the ticket reaches review
+   and lands as before. Its merged-tree gate runs under `merge-gates/<key>/` while the Overseer's log shows passes
+   that end, and `outcome.json` appears before the landing. The board state's pipeline facts list a `stepRunTimes`
+   entry per install and gate step, and the Overseer's log holds no withheld renewal. Unset `FORGE_FAKE_AGENT_REPORTS`
+   for the steps below.
 3. Stop the Overseer while a fake agent works (`FORGE_FAKE_AGENT_KEEPS_WORKING=1`). Within one minute the agent still
    runs; start the Overseer again: it attaches to `talos-1` and the job goes on.
 4. Stop the Overseer and wait past one minute: the agent's record ends `lease-ended`, an install line started before the
-   stop runs to its end; on the next start the job is interrupted `lease-ended` and resumed.
-5. Suspend the Overseer (`kill -STOP`) for 90 seconds and continue it: Talos records the lease as ended only if no
-   renewal came within the grace after the Overseer continued; with the renewal thread running, nothing stops.
+   stop runs to its end; on the next start the job is interrupted `lease-ended` and waits, nothing resumes it, and the
+   monitor document lists it with `interruption: 'lease-ended'`.
+5. Suspend the Overseer (`kill -STOP`) for 30 seconds and continue it: nothing stops. Suspend it for 90 seconds and
+   continue it: Talos ended the lease a minute after the last renewal, the agent's record ends `lease-ended`, the first
+   tick after the continue renews, and the job waits as in step 4.
 6. Raise `TALOS_PROTOCOL_VERSION` in a throwaway local edit and restart the Overseer: the old Talos answers
    `version-mismatch`, its agents end `paused`, `talos-2.json` serves, the jobs are interrupted `talos-paused` and
    resumed by themselves. Revert the edit.
-7. Run the fake agent's outage scenario on a ticket (`FORGE_FAKE_AGENT_NETWORK_OUTAGE=1`, once the owner recorded it,
-   WP2.2): the record lists `network-outage`, the job is interrupted `network-outage`, its session is stopped, nothing
-   resumes it, and no `outage` decision opens. Without that recording, this step waits and the stage report says so.
+7. Run the fake agent's outage scenario on a ticket (`FORGE_FAKE_AGENT_NETWORK_OUTAGE=1`, once the owner recorded it at
+   gate G1): the record lists `network-outage`, the job is interrupted `network-outage`, its session is stopped, nothing
+   resumes it, no `outage` decision opens, and the monitor document lists it with `interruption: 'network-outage'`.
+   Without that recording, this step waits and the stage report says so.
 8. `kill -9` the Talos process while a gate line runs: the next pass finds Talos lost, stops the gate's tree, and starts
    `talos-3`.
 9. Queue a gate profile and a pipeline check: their lines show as children under `gate-profile-runs/<P>/` and
-   `pipeline-checks/<checkName>/run-1/`; a Stop ends them.
+   `pipeline-checks/<checkName>/run-1/`; a Stop ends them; the profile's time is its line's `runMilliseconds`.
 10. End the scratch board, then check that no `bun` process of `talos.ts` and no child of the scratch board is left (`ps
     -A -o pid,command | grep talos.ts`).
 
 ## Out of scope
 
-- Turning `reboot` and `lease-ended` into causes that wait for an instruction, the resume instruction, the crash log,
-  the forge that stays off after a crash of the Overseer or of Talos, the heartbeat and the completed stop on record:
-  stage 3.
+- Turning `reboot` into a cause that waits for an instruction, the `resume` instruction (one job, one ticket,
+  everything, or everything that ended on a network outage), the two automatic restarts a user's resume gives back, the
+  crash log, the forge that stays off after a crash of the Overseer or of Talos or a crash suspected before a reboot,
+  the heartbeat and the completed stop on record: stage 3 (decisions 39 to 41).
 - Two resumes of a crashed agent and no more: stage 3. `JOB_RESUMES_BEFORE_FRESH` keeps its meaning here.
+- Gaia's alert on an ending on a network outage, its one control that resumes every such job across forges, and its
+  mark of a forge that stopped supervising its agents (decisions 35 and 38): stage 6, reading the monitor job's
+  `interruption` and Gaia's `AgentRow` of WP2.11.
+- The pipeline overview that shows each line's run time: stage 6; the contract's field for it: stage 4.
 - A command kind and a Gaia control to restart Talos cleanly (decision 31): the mechanism exists (`quit` frame,
   `restart`), the command `talos-restart` and its control come with stage 6 (WP6.22).
 - Gaia showing the running and the newest Talos: stage 6 (WP6.22) reads `talosProtocolVersion`.
 - A crash log and a stop when Talos is found lost: stage 3 (its need N6) changes the two `ensureTalos` call sites of
   WP2.9 and WP2.13 item 13.
-- Renaming the stored cause `watcher-lost`, the `overseer-*` records and anything named Overseer: stage 9.
-- Handing a merged-tree gate to Talos without the pass awaiting it (design risk 2): not in this plan.
-- A probe that resumes a `network-outage` job when the vendor is reachable: only if the owner chooses that answer, and
-  then as its own package after this stage.
-- Choosing a time bound for install lines: open item 2, the owner's (stage 0). This stage only carries the answer in
-  `INSTALL_LINE_TIME_BOUND_MILLISECONDS`.
+- Renaming the stored cause `watcher-lost`, the `overseer-*` records and anything named Overseer, and the `oversee` verb
+  that `forge start` and the top-level lifecycle verbs replace: stage 9 (decision 42).
+- Carrying a merged-tree gate, a gate profile or a pipeline check across a restart of the Overseer: the next start stops
+  their lines and runs the gate again or marks the run stopped (the run's calls above).
 - Removing Flint's brain: stage 8; here it only moves under Talos.
-- Closing the agent port's other leaks of design section 5 (the Overseer's `ClaudeTranscripts.ts`, the hook entries,
-  confinement): no stage owns them yet ("Needs the owner", item 10).
+- The agent port's other leaks of design section 5 (the Overseer's `ClaudeTranscripts.ts`, the hook entries,
+  confinement): they stay as they are in this run (the run's calls above).
 - The store port: stage 5. Talos's files stay under the operating system port, as design section 4 has them.
-- Any new workspace package; any change to `packages/` beyond the system version of "Needs the owner", item 6, which
-  WP2.13 raises with the identity key; Flint's `watcher-spark` names stay (item 15).
+- Any new workspace package; any change to `packages/` beyond the monitor job's `interruption` and the system version
+  in `forge-contracts`; Flint's `watcher-spark` names stay.
 
 ## Needs the owner
 
-1. **What follows an ending on a network outage** (design section 12, item 1). Built here for both answers: the pattern,
-   the recognition, the record, the cause `network-outage`, not counted, the session stopped, and the Playbook neither
-   resuming nor replacing the job (`INTERRUPTION_CAUSES_HELD_FROM_RESUMING`). The fork: a probe that resumes by itself,
-   or an instruction. Recommended default: wait for an instruction, built in stage 3; until then the job leaves that
-   state only by `job stop` or `job fresh`.
-2. **A time bound for install lines** (design section 12, item 2). Built for both answers: `timeBoundMilliseconds` on
-   every line launch, and `INSTALL_LINE_TIME_BOUND_MILLISECONDS` on every install step's launch, stopped and ended
-   `time-bound` as a gate is. The fork: no bound (`null`) or a bound. Stage 0 asks the owner and recommends 15 minutes
-   (stage 0, "Needs the owner", item 2); the constant holds the owner's answer, and `null` while there is none, so
-   nothing changes until the owner names a bound. Prepare steps and merges carry `null` either way.
-3. **Whether the 15-minute gate bound counts a sleep.** Recommended default: no; Talos adds each detected gap to the
-   gate's allowance, so a laptop that slept does not open a `gate-cannot-run` incident.
-4. **`lease-ended` before stage 3.** Recommended default: resumed by itself like `reboot`, never counted, until stage 3
-   moves both to waiting for an instruction.
-5. **The stored cause `watcher-lost`.** Section 11 of the design renames it in stage 9. Recommended default: keep the
-   value here, meaning "Talos was lost while the child ran".
-6. **The identity document's key and the system version.** `watcherProtocolVersion` becomes `talosProtocolVersion`; no
-   Gaia code reads the old key (it appears only in Gaia's recordings). Recommended default: raise
-   `FORGE_SYSTEM_VERSIONS.current` by one minor in `packages/forge-contracts/constants/ForgeSystemVersions.ts` (`:41`;
-   1.18 today, so 1.19 unless another change raised it first), with a sentence in its history comment, as a change
-   that no supported client needs to see; Gaia's supported-forge check then warns until Gaia moves.
-7. **The lease proves that the Overseer lives, not that it makes progress** (design risk 2). The renewal thread renews
-   while the process lives, also with a hung main thread. Recommended default: accept for this stage; a check of the
-   main thread's progress in the renewal thread can follow.
-8. **The minimum number of retry lines** for the outage pattern. Recommended default: the number stage 0's recording
-   shows, and `1` if it shows none.
-9. **Renaming `Job.watcherInstance` in this stage** (WP2.16, 92 files). Recommended default: yes, as its own package,
-   since the design says the Watcher's name goes with its code.
-10. **The rest of the agent port's work** (decision 16, design section 5, row "Agent"). This stage puts only the
-    vendor's ending patterns, closing line and quit act behind the adapter. The leaks the design lists stay: the
-    Overseer's own `src/services/overseer/ClaudeTranscripts.ts` beside the adapter's
-    `src/lib/claude-code/ClaudeTranscripts.ts`, the install-time hook entry in a repository's
-    `.claude/settings.local.json`, the `bash-domains` hook (`cli/hooks/BashDomainsHook.ts`), and session confinement
-    resting on the vendor's sandbox. No stage of design section 11 carries them, and no plan in this folder does.
-    Recommended default: the owner names a stage for them; until then they stay as they are.
-11. **A Talos just started that answers another protocol version** (design decision 6 says "the right one starts").
-    With no pinned bundle, Talos starts from the program on disk, so after a pull the Overseer can start a Talos of
-    another protocol, and starting again gives the same one. Built: start once, answer `held` with
-    `talos-protocol-differs`, and refuse the Overseer's start (WP2.9 step 2.6, WP2.13 item 1). Recommended default: as
-    built; the user restarts the forge with the program on disk, which then starts the matching Talos.
-12. **When Talos syncs an event log** (design section 3.2: "when a client asks for the durable entries and at the
-    close"). No production reader asks for history over the socket today: the pass reads the event-log files
-    (`src/services/overseer/DrivePass.ts:471`). Built: no `history` or `message` frame; Talos syncs a child's log at
-    its end and at the quit. Recommended default: as built.
-13. **The Overseer's own gates across its restart** (design section 3.3: Talos and its children outlive a restart).
-    Merged-tree gates, gate profiles and pipeline checks are awaited by promises of the Overseer that started them, so
-    at the next start nothing would read their end. Built: the next Overseer stops those line children at start
-    (WP2.14 item 5), while agents and job lines carry on. Recommended default: as built; carrying them across a restart
-    needs the pass redesign of design risk 2.
-14. **The fake agent's outage recording** (WP2.2). The fake agent prints only lines of its own recording, and recording
-    a new scenario re-runs every Claude probe of `bun run record src/testing/fake-agent/`, P22's real model call among
-    them, against the installed `claude`. Built: the probe case and the scenario name, in one commit with the
-    recording. Recommended default: the owner runs the recording once WP2.2's probe case exists; until then WP2.8 holds
-    the recognition against stage 0's fixture and verification step 7 waits.
-15. **Flint's `watcher-spark` attendant** (`packages/flint/attendants/watcher-spark/`, and `bridge/flint/`). It shows
-    one spark per agent in flight and carries the Watcher's name as Flint's own vocabulary, in a package forge depends
-    on. Recommended default: keep it in this stage (WP2.16 item 5); a rename belongs with Flint's design docs, and the
-    owner names it.
+No question of behaviour is left: decisions 35 to 38 settle what this stage builds. Two acts are the owner's alone:
+
+1. **Gate G1: the recordings.** Stage 0's session that ends on a network outage (WP0.3), and the fake agent's outage
+   scenario: `bun run record src/testing/fake-agent/` once WP2.2's probe case exists, which starts the installed
+   `claude` and re-runs P22's real model call, so no session may run it. Until then WP2.8 holds the recognition against
+   stage 0's fixture and verification step 7 waits.
+2. **Gate G4: `bun run verify:integration`** at the end of WP2.13, which forge's rules allow only on a person's word.
 
 ## Not established
 
-- That a Bun 1.4.2 `Worker` (`.bun-version`) keeps a `node:net` connection writing while the main thread is blocked in
-  `Bun.spawnSync`, and that `bun:ffi` loads in a worker on Windows. No module of the repository creates a `Worker`
-  today. WP2.6 and WP2.9 prove the first on macOS before anything depends on it.
+- That a Bun 1.4.2 `Worker` (`.bun-version`) runs Talos's synchronous calls while Talos's main-thread timers keep
+  firing, and that `bun:ffi` loads in a worker on Windows. No module of the repository creates a `Worker` today. WP2.6
+  proves the first on macOS before anything depends on it.
+- That every pass stays below two renewal intervals on a large repository. Git runs synchronously with no timeout
+  (`src/lib/git/GitProcess.ts:58-84`); a pass in flight at three renewal ticks in a row ends the lease. WP2.18's
+  end-to-end check reads the Overseer's log for withheld renewals; nothing measures a large repository.
+- Whether Bun's `setInterval` fires once or several times after a sleep or a blocked loop. The renewal's gap rule
+  covers both; only a spec on a fake clock shows it.
 - The exact fields of a Claude Code result line after its retries ran out: no such session is recorded in the repository
   (design risk 13). The plan takes the field names from the design and from stage 0's recording; only `terminal_reason`
-  was seen, with the value `completed`, in an ordinary result line.
+  was seen, with the value `completed`, in an ordinary result line. Whether a provider overload (529) after spent
+  retries writes the same fields is known only from the program text until a stand-in or a real one is recorded.
 - Whether a `claude -p` session in stream-json input mode exits after an error result or waits for more input. The plan
   stops the session either way.
 - That closing stdin mid-turn lets a session finish its turn and exit; today's code relies on it
   (`JobControlDelivery.ts:105-110`), but no spec shown here measures a turn's end against the 10 seconds.
 - Whether `job fresh` or `job stop` moves an interrupted job: `JobMoveLegality.ts:14` allows `interrupted` to
-  `stopping`, but the control path was not traced.
+  `stopping`, but the control path was not traced. A `network-outage` or `lease-ended` job relies on it until stage 3.
 - How `src/testing/ImportGraph.ts` treats `import type`, which `TalosMainThread.spec.ts` depends on.
 - Whether a 529 from a local stand-in makes Claude Code spend its retries quickly enough for a probe, and whether the
   result it then writes carries the fields of stage 0's recording (WP2.2's fake agent recording).
-- Whether every Airlock step is safe when a merged-tree gate child is stopped by a restart of the Overseer and the gate
-  runs again: stage 0's table B traces the `gating` phase as safe to redo for the board, but no run of a gate child
-  stopped mid-run under Talos was traced.
+- Whether every Airlock step is safe when a merged-tree gate's run dies with the Overseer and the next start runs it
+  again: stage 0's table B traces the `gating` phase as safe to redo for the board, but no such run under WP2.19 was
+  traced.
 - Whether `clear` stops a board's Talos; `clear` was not read.
-- Linux and Windows: Talos, the worker threads and the lease never ran there; the plan records macOS only.
+- Linux and Windows: Talos, the worker thread and the lease never ran there; the plan records macOS only.
