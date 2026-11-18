@@ -216,7 +216,7 @@ describe('the scan saw the tree', () => {
   test('it recognises the adapters, and the forms it looks for really stand in them', () => {
     const adapters = SOURCES.filter((source) => isPlatformAdapter(source.path));
     expect(adapters.map((source) => source.path)).toEqual(expect.arrayContaining([
-      'cli/OpenerFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/watcher/PosixSocketEndpoint.ts',
+      'cli/OpenerFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
     ]));
     const formsInAdapters = new Set(adapters.flatMap((source) => source.text.split('\n').flatMap(formsNamedBy)));
     expect([...formsInAdapters]).toEqual(expect.arrayContaining([
@@ -409,16 +409,16 @@ describe('every Linux and Windows adapter is named by a contract spec', () => {
   });
 
   test('an adapter file no contract names fails, and so does one only a comment or a plain spec names', () => {
-    const plantedAdapter = { path: 'src/lib/watcher/LinuxPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
-    const commentOnly = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: '// LinuxPlantedEndpoint\n' };
-    const plainSpec = { path: 'src/lib/watcher/LinuxPlantedEndpoint.spec.ts', text: 'import { planted } from \'./LinuxPlantedEndpoint.ts\';\n' };
+    const plantedAdapter = { path: 'src/lib/talos/LinuxPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const commentOnly = { path: 'src/lib/talos/Planted.contract.spec.ts', text: '// LinuxPlantedEndpoint\n' };
+    const plainSpec = { path: 'src/lib/talos/LinuxPlantedEndpoint.spec.ts', text: 'import { planted } from \'./LinuxPlantedEndpoint.ts\';\n' };
     expect(contractReportOf([...SOURCES, plantedAdapter, commentOnly, plainSpec], allowedAdapters).unnamedAdapters).toEqual([plantedAdapter.path]);
   });
 
   test('an import or a subject name in a contract names it', () => {
-    const plantedAdapter = { path: 'src/lib/watcher/WindowsPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
-    const importingContract = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: 'import { planted } from \'./WindowsPlantedEndpoint.ts\';\n' };
-    const namingContract = { path: 'src/lib/watcher/Planted.contract.spec.ts', text: '{ name: \'WindowsPlantedEndpoint over a fake pipe\', build },\n' };
+    const plantedAdapter = { path: 'src/lib/talos/WindowsPlantedEndpoint.ts', text: 'export const planted = 1;\n' };
+    const importingContract = { path: 'src/lib/talos/Planted.contract.spec.ts', text: 'import { planted } from \'./WindowsPlantedEndpoint.ts\';\n' };
+    const namingContract = { path: 'src/lib/talos/Planted.contract.spec.ts', text: '{ name: \'WindowsPlantedEndpoint over a fake pipe\', build },\n' };
     expect(contractReportOf([...SOURCES, plantedAdapter, importingContract], allowedAdapters).unnamedAdapters).toEqual([]);
     expect(contractReportOf([...SOURCES, plantedAdapter, namingContract], allowedAdapters).unnamedAdapters).toEqual([]);
   });
@@ -430,16 +430,16 @@ describe('every Linux and Windows adapter is named by a contract spec', () => {
 });
 
 describe('what the boundary exempts is exact', () => {
-  const pipeLine = 'const endpoint = \'//./pipe/watcher\';';
+  const pipeLine = 'const endpoint = \'//./pipe/talos\';';
 
   test('an adapter or a selector under src/lib may name a primitive', () => {
     for (const fileName of ['WindowsPipeEndpoint', 'LinuxEndpoint', 'DarwinEndpoint', 'PosixEndpoint', 'EndpointFor']) {
-      expect(violationsOfPlanted(`src/lib/watcher/${fileName}.ts`, pipeLine)).toEqual([]);
+      expect(violationsOfPlanted(`src/lib/talos/${fileName}.ts`, pipeLine)).toEqual([]);
     }
   });
 
   test('a core file in an adapter\'s folder, or an adapter name outside src/lib, is judged like any other', () => {
-    for (const path of ['src/lib/watcher/WatcherHelper.ts', 'src/services/overseer/PosixHelper.ts', 'src/services/overseer/HelperFor.ts', 'cli/WindowsOpener.ts']) {
+    for (const path of ['src/lib/talos/TalosHelper.ts', 'src/services/overseer/PosixHelper.ts', 'src/services/overseer/HelperFor.ts', 'cli/WindowsOpener.ts']) {
       expect(violationsOfPlanted(path, pipeLine)).toEqual([`${path}: pipe-name: ${pipeLine}`]);
     }
   });

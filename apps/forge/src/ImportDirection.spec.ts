@@ -645,7 +645,7 @@ describe('the scan itself', () => {
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
     expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
-    expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'owner-only-files', 'process-identity']);
+    expect(declaredLibDependenciesOf(GRAPH).get('watcher')).toEqual(['atomic-file', 'process-identity', 'talos']);
   });
 
   test('it resolves the design-system package\'s specifiers through its package.json exports, each source entry exists and the Bridge uses them', () => {

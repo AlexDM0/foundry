@@ -45,7 +45,7 @@ const ADAPTER_PROBES: Readonly<Record<keyof PlatformPorts, (ports: PlatformPorts
   processSupervision: (ports) => ports.processSupervision.identitySourcesOf(UNKNOWN_PROCESS_ID).length > 0,
   localEndpoint:      (ports) => {
     const endpoint = ports.localEndpoint.endpointOf({
-      monitorFolder: SHORT_MONITOR_FOLDER, trackerId: 'example', jobId: '1', instance: 1
+      monitorFolder: SHORT_MONITOR_FOLDER, trackerId: 'example', name: '1', instance: 1
     });
     return ports.localEndpoint.endpointFits(endpoint);
   },

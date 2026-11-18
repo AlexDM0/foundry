@@ -41,7 +41,7 @@ function restrictedSocketFolder(): string {
   // The short prefix keeps a socket path under the macOS limit inside the scratch root.
   const monitorFolder = createScratchDirectory('o');
   scratchFolders.push(monitorFolder);
-  const socketFolder = join(monitorFolder, 'watchers');
+  const socketFolder = join(monitorFolder, 'private');
   ownerOnlyFilesFor(process.platform).restrictFolder(socketFolder);
   return socketFolder;
 }

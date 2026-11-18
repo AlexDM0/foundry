@@ -6,7 +6,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
 
-import type { StandingReply }                             from '../lib/watcher/StandingReplies.ts';
+import type { StandingReply }                             from '../lib/talos/StandingReplies.ts';
 import { watcherFilesOf }                                 from '../lib/watcher/WatcherFiles.ts';
 import type { WatcherKind, WatcherLaunch }                from '../lib/watcher/WatcherLaunch.ts';
 import { WATCHER_PROTOCOL_VERSION }                       from '../lib/watcher/constants/WatcherProtocol.ts';
@@ -51,7 +51,7 @@ export function createWatcherJob(): WatcherJob {
   // An adapter may draw a new endpoint each call, so one instance keeps the first it was answered, as a launch does.
   const socketPathOf = (instance: number): string => {
     const socketPath = socketPaths.get(instance) ?? nativePlatformPorts().localEndpoint.endpointOf({
-      monitorFolder, trackerId: 'tracker-example', jobId: WATCHER_JOB_IDENTIFIER, instance
+      monitorFolder, trackerId: 'tracker-example', name: WATCHER_JOB_IDENTIFIER, instance
     });
     socketPaths.set(instance, socketPath);
     return socketPath;

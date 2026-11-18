@@ -20,9 +20,9 @@ import type { AgentLaunchPlan }                                       from '../.
 import { writeFileAtomically, writeOwnerOnlyFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessTreeMember }                                     from '../../lib/process-identity/ProcessSupervision.ts';
+import type { EventLogEntry }                                         from '../../lib/talos/EventLog.ts';
+import type { EndpointInstanceFacts }                                 from '../../lib/talos/LocalEndpoint.ts';
 import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
-import type { EventLogEntry }                                         from '../../lib/watcher/EventLog.ts';
-import type { EndpointInstanceFacts }                                 from '../../lib/watcher/LocalEndpoint.ts';
 import { watcherFilesOf, watcherSecretPathOf }                        from '../../lib/watcher/WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }   from '../../lib/watcher/WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
@@ -132,7 +132,7 @@ function fittingEndpointOf({ localEndpoint }: PlatformPorts, facts: EndpointInst
 }
 
 function writeLaunchFiles(ports: PlatformPorts, request: WatcherLaunchFileRequest): void {
-  const socketPath = fittingEndpointOf(ports, request);
+  const socketPath = fittingEndpointOf(ports, { ...request, name: request.jobId });
   mkdirSync(request.jobFolder, { recursive: true });
   for (const file of request.plan.files) {
     mkdirSync(dirname(file.path), { recursive: true });
@@ -173,7 +173,7 @@ export interface ProcessLaunchFileRequest {
 
 /** A process Watcher's launch: no standing replies and no input, its child's output logged as events. */
 function writeProcessLaunchFile(ports: PlatformPorts, request: ProcessLaunchFileRequest): void {
-  const socketPath = fittingEndpointOf(ports, { ...request, jobId: request.socketName });
+  const socketPath = fittingEndpointOf(ports, { ...request, name: request.socketName });
   mkdirSync(request.watcherFolder, { recursive: true });
   const launch: WatcherLaunch = {
     kind:               'process',

@@ -27,6 +27,7 @@ import {
   test
 } from 'bun:test';
 
+import { listenOnIdleWatcherSocket, type WatcherSocketListening }                                 from '../../testing/IdleWatcherSocket.ts';
 import { type PortClause, type PortSubject, runPortContract }                                     from '../../testing/PortContract.ts';
 import { createScratchDirectory, removeScratchDirectory }                                         from '../../testing/ScratchWorkspace.ts';
 import { ownerOnlyFilesFor }                                                                      from '../owner-only-files/OwnerOnlyFilesFor.ts';
@@ -34,7 +35,6 @@ import type { EndpointInstanceFacts, LocalEndpoint }                            
 import { localEndpointFor, REAL_ENDPOINT_PRIMITIVES }                                             from './LocalEndpointFor.ts';
 import { createPosixSocketEndpoint, MACOS_SOCKET_PATH_LIMIT_BYTES, type PosixEndpointPrimitives } from './PosixSocketEndpoint.ts';
 import { createUnsupportedLocalEndpoint }                                                         from './UnsupportedLocalEndpoint.ts';
-import { listenOnWatcherSocket, type WatcherSocketListening }                                     from './WatcherSocketServer.ts';
 import { createWindowsPipeEndpoint, WINDOWS_PIPE_ACCESS, type WindowsPipePrimitives }             from './WindowsPipeEndpoint.ts';
 
 const OWNER_ONLY_MODE_BITS = 0o777;
@@ -54,7 +54,7 @@ function scratchFacts(instance: number): EndpointInstanceFacts {
   const monitorFolder = createScratchDirectory('e');
   scratchFolders.push(monitorFolder);
   return {
-    monitorFolder, trackerId: 'tracker-example', jobId: 'J-1', instance
+    monitorFolder, trackerId: 'tracker-example', name: 'J-1', instance
   };
 }
 
@@ -141,17 +141,7 @@ async function connectIsRefused(port: LocalEndpoint, endpoint: string): Promise<
 }
 
 async function watcherSocketOn(port: LocalEndpoint, socketPath: string): Promise<WatcherSocketListening> {
-  return await listenOnWatcherSocket({
-    endpoint:          port,
-    socketPath,
-    watcherSecret:     'example-secret',
-    acceptedKinds:     [],
-    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries:    () => [],
-    onClientLine:      () => undefined,
-    onActingFrame:     () => undefined,
-    onHandlingFailure: () => undefined,
-  });
+  return await listenOnIdleWatcherSocket(port, socketPath, 'example-secret');
 }
 
 /** A process that binds the socket and dies by SIGKILL, so nothing of it runs to close the socket or clear its file. */
@@ -270,7 +260,7 @@ test('a folder that cannot be made is a refused verdict, never a throw', () => {
       throw new Error('example EACCES');
     },
   }, MACOS_SOCKET_PATH_LIMIT_BYTES);
-  expect(failing.prepareEndpoint('/example/watchers/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EACCES' });
+  expect(failing.prepareEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EACCES' });
 });
 
 test('a socket file that cannot be removed is a refused verdict at the release, never a throw', () => {
@@ -280,7 +270,7 @@ test('a socket file that cannot be removed is a refused verdict at the release, 
       throw new Error('example EPERM');
     },
   }, MACOS_SOCKET_PATH_LIMIT_BYTES);
-  expect(failing.releaseEndpoint('/example/watchers/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EPERM' });
+  expect(failing.releaseEndpoint('/example/private/a.sock')).toEqual({ verdict: 'refused', reason: 'Error: example EPERM' });
 });
 
 describe('a Windows pipe', () => {
@@ -313,7 +303,7 @@ describe('a Windows pipe', () => {
     const namespaceCharacters = fillerOf(0).length;
     expect(pipe.endpointFits(fillerOf(PIPE_NAME_LIMIT_CHARACTERS - namespaceCharacters))).toBe(true);
     expect(pipe.endpointFits(fillerOf(PIPE_NAME_LIMIT_CHARACTERS - namespaceCharacters + 1))).toBe(false);
-    expect(pipe.endpointFits('/example/watchers/a.sock')).toBe(false);
+    expect(pipe.endpointFits('/example/private/a.sock')).toBe(false);
   });
 
   test('its name and each hello\'s secret are its only guard: no permission is attempted', () => {

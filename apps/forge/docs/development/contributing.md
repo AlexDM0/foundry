@@ -368,7 +368,7 @@ bun test src/ComponentNames.spec.ts
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Scratch path bound | `src/lib/watcher/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/watcher/PosixSocketEndpoint.spec.ts` |
+| Scratch path bound | `src/lib/talos/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/talos/PosixSocketEndpoint.spec.ts` |
 | Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |

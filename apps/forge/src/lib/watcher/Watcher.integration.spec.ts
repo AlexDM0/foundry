@@ -19,8 +19,8 @@ import {
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                from '../../testing/ChildProcessCaseTimeout.ts';
 import { type WatcherJob, type SpawnedWatcher, createWatcherJob } from '../../testing/WatcherJob.ts';
 import { connectIsRefused }                                       from '../../testing/WatcherProtocolClient.ts';
-import { type EventLogEntry, eventLogEntriesOf }                  from './EventLog.ts';
-import type { StandingReply }                                     from './StandingReplies.ts';
+import { type EventLogEntry, eventLogEntriesOf }                  from '../talos/EventLog.ts';
+import type { StandingReply }                                     from '../talos/StandingReplies.ts';
 import { watcherFilesOf }                                         from './WatcherFiles.ts';
 import type { WatcherKind }                                       from './WatcherLaunch.ts';
 import type { WatcherRecord }                                     from './WatcherRecord.ts';

@@ -2402,7 +2402,7 @@ function launchProcessWatcher(context: JobLaunchContext, trackerId: string, job:
   const watcherFolder = join(jobFolderOf(context.workspace, job), folderName);
   const socketName = `${job.id}/${folderName}`;
   const unfitEndpoint = WatcherFleet.unfitEndpointOf(context.platformPorts, {
-    monitorFolder: context.monitorFolder, trackerId, jobId: socketName, instance: PROCESS_WATCHER_INSTANCE
+    monitorFolder: context.monitorFolder, trackerId, name: socketName, instance: PROCESS_WATCHER_INSTANCE
   });
   if (unfitEndpoint !== null) return { verdict: 'unfit-endpoint', reason: `this platform cannot bind the Watcher endpoint ${unfitEndpoint}` };
   WatcherFleet.writeProcessLaunchFile(context.platformPorts, {

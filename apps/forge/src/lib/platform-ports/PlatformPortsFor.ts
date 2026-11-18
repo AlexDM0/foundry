@@ -1,7 +1,7 @@
 /**
  * The composition root of the platform ports: one frozen record per process, which reaches every service as a parameter. It depends on
  * `src/lib/agent-launch`, `src/lib/data-folders`, `src/lib/executable-resolver`, `src/lib/gate-confinement`, `src/lib/owner-only-files`,
- * `src/lib/process-identity`, `src/lib/shell-line` and `src/lib/watcher`.
+ * `src/lib/process-identity`, `src/lib/shell-line` and `src/lib/talos`.
  */
 import type { LaunchEnvironment }  from '../agent-launch/LaunchEnvironment.ts';
 import { launchEnvironmentFor }    from '../agent-launch/LaunchEnvironmentFor.ts';
@@ -17,8 +17,8 @@ import type { ProcessSupervision } from '../process-identity/ProcessSupervision.
 import { processSupervisionFor }   from '../process-identity/ProcessSupervisionFor.ts';
 import type { ShellLine }          from '../shell-line/ShellLine.ts';
 import { shellLineFor }            from '../shell-line/ShellLineFor.ts';
-import type { LocalEndpoint }      from '../watcher/LocalEndpoint.ts';
-import { localEndpointFor }        from '../watcher/LocalEndpointFor.ts';
+import type { LocalEndpoint }      from '../talos/LocalEndpoint.ts';
+import { localEndpointFor }        from '../talos/LocalEndpointFor.ts';
 
 export interface PlatformPorts {
   readonly processSupervision: ProcessSupervision;

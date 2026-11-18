@@ -15,9 +15,9 @@ import { GitProcess }                                                      from 
 import type { PlatformPorts }                                              from '../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                                            from '../lib/process-identity/ProcessIdentity.ts';
 import type { ProcessTreeMember }                                          from '../lib/process-identity/ProcessSupervision.ts';
+import { type EventLogWriter, type EventOrigin }                           from '../lib/talos/EventLog.ts';
+import { createEventLogWriter, eventLogEntriesOf }                         from '../lib/talos/EventLog.ts';
 import type { ActingFrame, WatcherActivity, WatcherFrame }                 from '../lib/watcher/@types/WatcherFrame.ts';
-import { type EventLogWriter, type EventOrigin }                           from '../lib/watcher/EventLog.ts';
-import { createEventLogWriter, eventLogEntriesOf }                         from '../lib/watcher/EventLog.ts';
 import { type WatcherFiles, watcherFilesOf }                               from '../lib/watcher/WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }        from '../lib/watcher/WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf }        from '../lib/watcher/WatcherRecord.ts';

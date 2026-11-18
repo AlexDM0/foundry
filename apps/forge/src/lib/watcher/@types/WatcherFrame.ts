@@ -1,4 +1,4 @@
-import type { EventLogEntry } from '../EventLog.ts';
+import type { EventLogEntry } from '../../talos/EventLog.ts';
 import type { WatcherEnd }    from '../WatcherRecord.ts';
 
 /** Watcher-level only: busy is a line arrived since the last `close-input`, ended is the child exited; the Overseer derives the job state. */

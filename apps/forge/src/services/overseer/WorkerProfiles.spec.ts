@@ -191,7 +191,7 @@ describe('a builder\'s profile', () => {
 
   test.each([
     ['the launch files', '/example/repository/.forge/jobs/*/launch-*.json'],
-    ['the Watcher sockets, the Overseer token and the Watcher secrets', '/home/alex-example/.forge-monitor/watchers'],
+    ['the private folder: every socket, the Overseer token and every secret', '/home/alex-example/.forge-monitor/private'],
     ['~/.ssh', '/home/alex-example/.ssh'],
     ['~/.aws', '/home/alex-example/.aws'],
     ['~/.gnupg, whole while commits go unsigned', '/home/alex-example/.gnupg'],
@@ -204,7 +204,7 @@ describe('a builder\'s profile', () => {
     const deniedRoots = WorkerProfiles.sessionDeniedReadableRootsOf({ ...FACTS, dataFolder: '/example/repository/.forge', monitorFolder });
     expect(deniedRoots).toEqual([
       '/example/repository/.forge/overseer',
-      join(monitorFolder, 'watchers'),
+      join(monitorFolder, 'private'),
       '/home/alex-example/.ssh',
       '/home/alex-example/.aws',
       '/home/alex-example/.gnupg',
@@ -219,7 +219,7 @@ describe('a builder\'s profile', () => {
 
   test('the token and a Watcher secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
     const monitorFolder = '/home/alex-example/.forge-monitor';
-    const deniedFolder  = join(monitorFolder, 'watchers');
+    const deniedFolder  = join(monitorFolder, 'private');
     expect(profile.deniedReadableRoots).toContain(deniedFolder);
     expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedFolder}/`)).toBe(true);
     expect(watcherSecretPathOf(monitorFolder, 'tracker-example', 'J1/gate-1', 1).startsWith(`${deniedFolder}/`)).toBe(true);
@@ -296,7 +296,7 @@ const LINUX_TREE = new Set([
   '/example/repository/.forge',
   '/example/repository/.forge/jobs',
   '/home/alex-example/.forge-monitor',
-  '/home/alex-example/.forge-monitor/watchers',
+  '/home/alex-example/.forge-monitor/private',
   '/example/repository/.git/packed-refs',
   '/example/repository/.git/refs/heads/group-example',
   '/example/repository/.git/refs/heads/ticket-003',
@@ -325,7 +325,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
   test('denies reads of the jobs folder by its literal name, the watchers folder and each existing credential folder, and of no absent path', () => {
     expect(profile.deniedReadableRoots).toEqual([
       '/example/repository/.forge/jobs',
-      '/home/alex-example/.forge-monitor/watchers',
+      '/home/alex-example/.forge-monitor/private',
       '/home/alex-example/.ssh',
       '/home/alex-example/.gnupg',
     ]);

@@ -8,8 +8,8 @@ import { createHash } from 'node:crypto';
 
 import type { AgentPicture, SentLine }                                  from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                                       from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { EventLogEntry }                                           from '../../lib/talos/EventLog.ts';
 import type { LogRecord }                                               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { EventLogEntry }                                           from '../../lib/watcher/EventLog.ts';
 import { clientFrameOf }                                                from '../../lib/watcher/WatcherFrames.ts';
 import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';

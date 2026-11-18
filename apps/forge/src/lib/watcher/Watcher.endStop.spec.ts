@@ -127,7 +127,7 @@ async function stopTreeCallsOfAnEndedWatcher(launchKeys: Partial<WatcherLaunch>)
   const stopTreeCalls: StopTreeCall[] = [];
   const { endpoint } = recordedEndpoint;
   const socketPath = endpoint.endpointOf({
-    monitorFolder: jobFolder, trackerId: 'tracker-example', jobId: 'J-1', instance: 1
+    monitorFolder: jobFolder, trackerId: 'tracker-example', name: 'J-1', instance: 1
   });
   const secretFilePath = join(jobFolder, 'secret-1');
   writeFileSync(secretFilePath, EXAMPLE_WATCHER_SECRET);

@@ -6,6 +6,8 @@
 import { timingSafeEqual }     from 'node:crypto';
 import type { Server, Socket } from 'node:net';
 
+import type { EventLogEntry } from '../talos/EventLog.ts';
+import type { LocalEndpoint } from '../talos/LocalEndpoint.ts';
 import type {
   ActingFrame,
   ClientFrame,
@@ -13,8 +15,6 @@ import type {
   WatcherRefusalReason,
   WelcomeFrame
 } from './@types/WatcherFrame.ts';
-import type { EventLogEntry }                                             from './EventLog.ts';
-import type { LocalEndpoint }                                             from './LocalEndpoint.ts';
 import { clientFrameOf, watcherFrameLineOf }                              from './WatcherFrames.ts';
 import { WATCHER_CLIENT_LINE_LIMIT_CHARACTERS, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 

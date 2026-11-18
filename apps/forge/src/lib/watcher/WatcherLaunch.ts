@@ -5,8 +5,8 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute }   from 'node:path';
 
-import type { LocalEndpoint }                                          from './LocalEndpoint.ts';
-import type { StandingReply }                                          from './StandingReplies.ts';
+import type { LocalEndpoint }                                          from '../talos/LocalEndpoint.ts';
+import type { StandingReply }                                          from '../talos/StandingReplies.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
 export type WatcherKind = 'agent' | 'process';

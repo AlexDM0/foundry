@@ -35,11 +35,11 @@ import type { AgentAdapter }                                  from '../../lib/ag
 import type { AgentLaunchRequest }                            from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                                 from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { sameProcess, type ProcessIdentity }                  from '../../lib/process-identity/ProcessIdentity.ts';
+import type { EventLogEntry }                                 from '../../lib/talos/EventLog.ts';
 import type { Decision }                                      from '../../lib/tracker-model/@types/Decision.ts';
 import type { Incident }                                      from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                         from '../../lib/tracker-model/Board.ts';
-import type { EventLogEntry }                                 from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                                 from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED }                  from '../../lib/watcher/constants/WatcherProtocol.ts';

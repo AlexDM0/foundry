@@ -1,6 +1,6 @@
 {
   "stamp": {
-    "boundary": "src/lib/watcher/LocalEndpointFor.ts",
+    "boundary": "src/lib/talos/LocalEndpointFor.ts",
     "system": "operating system",
     "version": "Darwin 25.6.0",
     "os": "darwin"

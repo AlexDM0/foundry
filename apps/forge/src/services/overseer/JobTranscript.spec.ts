@@ -22,9 +22,9 @@ import {
 
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { CLAUDE_STREAM_LINES }                            from '../../lib/claude-code/ClaudeStreamLines.ts';
+import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { ActingFrame }                               from '../../lib/watcher/@types/WatcherFrame.ts';
-import { createEventLogWriter }                           from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import type { TranscriptEntry }                           from '../../shared/@types/TranscriptEntry.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

@@ -18,6 +18,3 @@ export const WATCHER_CLIENT_LINE_LIMIT_CHARACTERS = 33_554_432;
 
 /** How long an ended child's piped stderr may finish before its end is recorded: it bounds a wait and decides nothing about the end. */
 export const CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS = 500;
-
-/** The folder of the monitor folder that holds the Watcher sockets and every secret. */
-export const WATCHER_FOLDER_NAME = 'watchers';

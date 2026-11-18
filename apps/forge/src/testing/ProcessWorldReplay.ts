@@ -162,25 +162,3 @@ export const FROZEN_IDENTITY_SCENARIOS: readonly { readonly name: string; readon
   { name: 'a negative process id', world: LIVE_LEADER_WORLD, processId: -1 },
   { name: 'a fractional process id', world: LIVE_LEADER_WORLD, processId: 1.5 },
 ];
-
-export const FROZEN_ENDPOINT_FACTS: readonly {
-  readonly monitorFolder: string;
-  readonly trackerId:     string;
-  readonly jobId:         string;
-  readonly instance:      number;
-}[] = [
-  {
-    monitorFolder: '/Users/alex-example/.agent-progress-monitor', trackerId: 'tracker-example', jobId: 'J-1', instance: 1
-  },
-  {
-    monitorFolder: '/Users/alex-example/.agent-progress-monitor', trackerId: 'tracker-example', jobId: 'J-1', instance: 2
-  },
-  {
-    monitorFolder: '/Users/alex-example/.agent-progress-monitor', trackerId: 'tracker-example', jobId: 'J-123-install', instance: 7
-  },
-  {
-    monitorFolder: '/private/tmp/example', trackerId: 'another-tracker', jobId: 'J-9-gate-3', instance: 12
-  },
-];
-
-export const FROZEN_ENDPOINT_FIT_LENGTHS: readonly number[] = [1, 102, 103, 104, 105];

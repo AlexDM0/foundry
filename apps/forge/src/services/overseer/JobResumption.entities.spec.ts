@@ -17,9 +17,9 @@ import {
   test
 } from 'bun:test';
 
+import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Job, JobKind, JobRole }                     from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { createEventLogWriter }                           from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

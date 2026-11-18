@@ -455,7 +455,7 @@ remain:
 | --- | --- |
 | Log record kinds and fields | `src/lib/tracker-model/constants/LogRecordSchema.ts`, `docs/cli.md` ("`<data>/log.jsonl`") |
 | A job's token total and cost | `src/services/overseer/EndedJobTokens.ts`, `src/services/lifecycle/TokenCrediting.ts` |
-| The event log and its stamps | `src/lib/watcher/EventLog.ts` |
+| The event log and its stamps | `src/lib/talos/EventLog.ts` |
 | What a stream line maps to | `src/lib/agent-launch/AgentSessionEvent.ts`, `src/lib/claude-code/ClaudeStreamMapper.ts` |
 | A raw result line | `src/lib/claude-code/testing/fixtures/resume-structured-output.stdout.jsonl` |
 | Job folder files, step verdicts, `gate.log` | `src/services/overseer/JobLaunch.ts` |

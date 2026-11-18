@@ -104,7 +104,7 @@ export function createWatcherFlintBrainSessionHost(facts: FlintBrainHostFacts): 
       if (earlierRuns.length > 0) removeEndedRuns(ports, brainFolder, earlierRuns);
       const run = Math.max(0, ...earlierRuns) + 1;
       const unfitEndpoint = WatcherFleet.unfitEndpointOf(ports, {
-        monitorFolder: facts.monitorFolder, trackerId: facts.trackerId, jobId: FLINT_BRAIN_WATCHER_NAME, instance: run
+        monitorFolder: facts.monitorFolder, trackerId: facts.trackerId, name: FLINT_BRAIN_WATCHER_NAME, instance: run
       });
       if (unfitEndpoint !== null) return { verdict: 'refused', reason: `the Watcher's endpoint ${unfitEndpoint} does not fit` };
       const place = { run, workingDirectory: join(brainFolder, SESSION_FOLDER_NAME), jobFilesDirectory: runFolderOf(brainFolder, run) };

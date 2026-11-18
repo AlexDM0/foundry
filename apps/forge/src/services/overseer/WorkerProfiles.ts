@@ -20,11 +20,11 @@ import type {
 import { type GitPathStyle, GitPaths }                from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                 from '../../lib/git/GitProcess.ts';
 import type { ShellLine }                             from '../../lib/shell-line/ShellLine.ts';
+import { PRIVATE_FOLDER_NAME }                        from '../../lib/talos/TalosFiles.ts';
 import type { JobRole }                               from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { PipelineUtil }                               from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { WATCHER_FOLDER_NAME }                        from '../../lib/watcher/constants/WatcherProtocol.ts';
 import type { BranchNames }                           from '../../shared/BranchNames.ts';
 import { type CacheFolderStyle, GateCachePaths }      from './GateCachePaths.ts';
 import { GpgDirectories }                             from './GpgDirectories.ts';
@@ -218,12 +218,12 @@ function commitSigningUnder(facts: SandboxFacts): CommitSigning {
 }
 
 /**
- * The monitor's `watchers` folder holds the API token and every Watcher secret, and exists before any worker starts, so a file that appears
+ * The monitor's `private` folder holds the API token, every socket and every secret, and exists before any worker starts, so a file that appears
  * in it later is covered on every OS. Under `path-rules` the launch files are named by a glob, which the sandbox and the permission rules
  * both read as one; under `mount-points` a glob covers only the files at launch, so the whole `jobs` folder is denied instead.
  */
 function deniedReadableRootsOf(facts: SandboxFacts, hostPaths: HostPathCheck = REAL_HOST_PATHS): string[] {
-  const credentialRoots = [join(facts.monitorFolder, WATCHER_FOLDER_NAME), ...credentialRootsOf(facts, commitSigningUnder(facts))];
+  const credentialRoots = [join(facts.monitorFolder, PRIVATE_FOLDER_NAME), ...credentialRootsOf(facts, commitSigningUnder(facts))];
   if (facts.sandboxDenyShape === 'path-rules') return [join(facts.dataFolder, 'jobs', '*', 'launch-*.json'), ...credentialRoots];
   return [join(facts.dataFolder, 'jobs'), ...credentialRoots].filter(hostPaths.exists);
 }
@@ -236,7 +236,7 @@ function sessionDeniedReadableRootsOf(facts: SessionDenyFacts, hostPaths: HostPa
   const credentialRoots = credentialRootsOf(facts, { kind: 'unsigned' });
   return [
     overseerFilesIn(facts.dataFolder).overseerDirectory,
-    join(facts.monitorFolder, WATCHER_FOLDER_NAME),
+    join(facts.monitorFolder, PRIVATE_FOLDER_NAME),
     ...facts.sandboxDenyShape === 'path-rules' ? credentialRoots : credentialRoots.filter(hostPaths.exists),
   ];
 }

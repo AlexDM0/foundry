@@ -7,9 +7,9 @@
 
 import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }               from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { EventLogEntry }                   from '../../lib/talos/EventLog.ts';
 import type { Job, JobKind }                    from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import type { EventLogEntry }                   from '../../lib/watcher/EventLog.ts';
 import { clientFrameOf }                        from '../../lib/watcher/WatcherFrames.ts';
 import type { TranscriptEntry, TranscriptRole } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot }                        from './AssistantBoot.ts';

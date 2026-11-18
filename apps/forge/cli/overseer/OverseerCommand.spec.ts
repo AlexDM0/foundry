@@ -204,7 +204,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
       program:              '/example/bin/forge',
       now:                  SPEC_CLOCK,
       overseer:             {
-        url: UNANSWERING_URL, processId: WEDGED_PROCESS_ID, startedAt: '2026-09-18T20:11:03+00:00', tokenPath: '/example/monitor/watchers/example/token'
+        url: UNANSWERING_URL, processId: WEDGED_PROCESS_ID, startedAt: '2026-09-18T20:11:03+00:00', tokenPath: '/example/monitor/private/example/token'
       },
     });
   }

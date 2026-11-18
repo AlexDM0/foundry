@@ -28,15 +28,16 @@ import {
 } from '../../testing/WatcherJob.ts';
 import { type WatcherProtocolClient, connectIsRefused, connectToWatcher } from '../../testing/WatcherProtocolClient.ts';
 import { processIsGone }                                                  from '../process-identity/ProcessIdentity.ts';
+import { type EventLogEntry, eventLogEntriesOf }                          from '../talos/EventLog.ts';
+import { PRIVATE_FOLDER_NAME }                                            from '../talos/TalosFiles.ts';
 import type {
   WatcherFrame,
   WatcherRefusalReason,
   MessageFrame,
   StateFrame
 } from './@types/WatcherFrame.ts';
-import { type EventLogEntry, eventLogEntriesOf }                                from './EventLog.ts';
-import { watcherFilesOf }                                                       from './WatcherFiles.ts';
-import { WATCHER_FOLDER_NAME, WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
+import { watcherFilesOf }                                  from './WatcherFiles.ts';
+import { WATCHER_LINGER_FRAMES, WATCHER_PROTOCOL_VERSION } from './constants/WatcherProtocol.ts';
 
 const STOP_GRACE_MILLISECONDS = 300;
 
@@ -90,7 +91,7 @@ describe('the socket', () => {
     const watcher = watcherJob().spawnWatcher(1);
     const client = await watcherJob().attach(1);
     await client.nextFrame((frame) => frame.kind === 'welcome');
-    expect(nativePlatformPorts().ownerOnlyFiles.isOwnerOnly(join(watcherJob().monitorFolder, WATCHER_FOLDER_NAME))).toBe(true);
+    expect(nativePlatformPorts().ownerOnlyFiles.isOwnerOnly(join(watcherJob().monitorFolder, PRIVATE_FOLDER_NAME))).toBe(true);
     expect(await connectIsRefused(watcherJob().socketPathOf(1))).toBe(false);
     expect(await endAndAcknowledge(watcher, client)).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

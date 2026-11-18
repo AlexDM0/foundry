@@ -352,7 +352,7 @@ as behaviour.
 | Stream mapping | `src/lib/claude-code/ClaudeStreamMapper.ts` | `claudeStreamEventsOf` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Lines written | `src/lib/claude-code/ClaudeStreamLines.ts` | `CLAUDE_STREAM_LINES` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Fixtures | `src/lib/claude-code/testing/fixtures/` | | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` |
-| Standing reply | `src/lib/watcher/StandingReplies.ts` | `standingReplyFor` | `src/lib/watcher/StandingReplies.spec.ts` |
+| Standing reply | `src/lib/talos/StandingReplies.ts` | `standingReplyFor` | `src/lib/talos/StandingReplies.spec.ts` |
 | Network guard | `cli/hooks/BashDomainsHook.ts` | `guardTheNetworkDomains` | `cli/hooks/BashDomainsHook.spec.ts` |
 | Transcript folders | `src/lib/claude-code/ClaudeTranscripts.ts` | `transcriptFolderFor`, `listSessionSubagentTranscripts` | `src/lib/claude-code/ClaudeTranscripts.spec.ts` |
 | A job's subagents | `src/services/overseer/ClaudeTranscripts.ts` | `ClaudeTranscripts.subagentFactsOf` | `src/services/overseer/ClaudeTranscripts.spec.ts` |

@@ -38,7 +38,7 @@ interface ServedSocket {
 async function servedSocket(optionChanges: Partial<WatcherSocketOptions>): Promise<ServedSocket> {
   const { endpoint } = recordedEndpoint;
   const socketPath = endpoint.endpointOf({
-    monitorFolder, trackerId: 'tracker-example', jobId: 'J-1', instance: 1
+    monitorFolder, trackerId: 'tracker-example', name: 'J-1', instance: 1
   });
   let clientLines = 0;
   const failureCauses: unknown[] = [];

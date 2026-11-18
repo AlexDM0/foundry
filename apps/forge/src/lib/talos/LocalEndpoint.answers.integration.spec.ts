@@ -7,7 +7,8 @@
 import type { Server, Socket }    from 'node:net';
 import { afterAll, expect, test } from 'bun:test';
 
-import { recordAnswer }      from '../../testing/RecordedAnswers.ts';
+import { listenOnIdleWatcherSocket, watcherHelloLineOf } from '../../testing/IdleWatcherSocket.ts';
+import { recordAnswer }                                  from '../../testing/RecordedAnswers.ts';
 import {
   type ConnectAnswer,
   type DestroyAnswer,
@@ -23,8 +24,6 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { LocalEndpoint }                             from './LocalEndpoint.ts';
 import { localEndpointFor }                               from './LocalEndpointFor.ts';
-import { listenOnWatcherSocket }                          from './WatcherSocketServer.ts';
-import { WATCHER_PROTOCOL_VERSION }                       from './constants/WatcherProtocol.ts';
 
 
 const PIPE_NAME_PREFIX = 'example-product';
@@ -48,7 +47,7 @@ function preparedEndpoint(): string {
   const monitorFolder = createScratchDirectory('e');
   scratchFolders.push(monitorFolder);
   const endpoint = port.endpointOf({
-    monitorFolder, trackerId: 'tracker-example', jobId: 'J-1', instance: 1
+    monitorFolder, trackerId: 'tracker-example', name: 'J-1', instance: 1
   });
   expect(port.prepareEndpoint(endpoint)).toEqual({ verdict: 'done' });
   return endpoint;
@@ -105,17 +104,7 @@ async function arrives(emitter: Socket, event: 'end' | 'close'): Promise<boolean
 
 async function helloAnswerOf(watcherSecret: string): Promise<HelloAnswer> {
   const endpoint = preparedEndpoint();
-  const listening = await listenOnWatcherSocket({
-    endpoint:          port,
-    socketPath:        endpoint,
-    watcherSecret:     WATCHER_SECRET,
-    acceptedKinds:     [],
-    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries:    () => [],
-    onClientLine:      () => undefined,
-    onActingFrame:     () => undefined,
-    onHandlingFailure: () => undefined,
-  });
+  const listening = await listenOnIdleWatcherSocket(port, endpoint, WATCHER_SECRET);
   if (listening.verdict !== 'listening') throw new Error(listening.reason);
   const client = await connected(endpoint);
   let received = '';
@@ -128,9 +117,7 @@ async function helloAnswerOf(watcherSecret: string): Promise<HelloAnswer> {
   });
   const startedAt = performance.now();
   const closing = arrives(client, 'close');
-  client.write(`${JSON.stringify({
-    kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence: 0, watcherSecret
-  })}\n`);
+  client.write(watcherHelloLineOf(watcherSecret));
   const closeArrived = await closing;
   const frames = received.split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as unknown);
   const timing = timingOf(closeArrived ? millisecondsSince(startedAt) : 0);

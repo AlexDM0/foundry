@@ -1,6 +1,6 @@
 /**
- * The socket path's contract: the first 16 hex digits of sha256 over tracker id, job id and instance joined by newlines, under the monitor
- * folder's `watchers/`, the same at every call, fitting the 104 bytes macOS keeps with a realistic home; and the fit table per system, whose
+ * The socket path's contract: the first 16 hex digits of sha256 over tracker id, name and instance joined by newlines, under the monitor
+ * folder's `private/`, the same at every call, fitting the 104 bytes macOS keeps with a realistic home; and the fit table per system, whose
  * boundary counts the zero byte.
  */
 import { expect, test } from 'bun:test';
@@ -13,27 +13,27 @@ const MONITOR_FOLDER = '/Users/alex.example/.forge-monitor';
 const { endpointFits: socketPathFits, endpointOf } = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, MACOS_SOCKET_PATH_LIMIT_BYTES);
 const linuxEndpoint = createPosixSocketEndpoint(REAL_ENDPOINT_PRIMITIVES, LINUX_SOCKET_PATH_LIMIT_BYTES);
 
-function watcherSocketPathOf(monitorFolder: string, trackerId: string, jobId: string, instance: number): string {
+function socketPathOf(monitorFolder: string, trackerId: string, name: string, instance: number): string {
   return endpointOf({
-    monitorFolder, trackerId, jobId, instance
+    monitorFolder, trackerId, name, instance
   });
 }
 
-test('names the socket by the first 16 hex of sha256(trackerId, jobId, instance) under watchers/', () => {
+test('names the socket by the first 16 hex of sha256(trackerId, name, instance) under private/', () => {
   // Computed by `printf 'tracker-example\nJ-1\n1' | shasum -a 256 | cut -c1-16`.
   const digest = new Bun.CryptoHasher('sha256').update('tracker-example\nJ-1\n1').digest('hex').slice(0, 16);
-  expect(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1)).toBe(`${MONITOR_FOLDER}/watchers/${digest}.sock`);
-  expect(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 2)).not.toBe(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1));
+  expect(socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1)).toBe(`${MONITOR_FOLDER}/private/${digest}.sock`);
+  expect(socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 2)).not.toBe(socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1));
 });
 
 test('fits the limit under a realistic home', () => {
-  const socketPath = watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-123', 7);
+  const socketPath = socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-123', 7);
   expect(Buffer.byteLength(socketPath)).toBeLessThan(MACOS_SOCKET_PATH_LIMIT_BYTES);
   expect(socketPathFits(socketPath)).toBe(true);
 });
 
 test('one instance answers the same path at every call', () => {
-  expect(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1)).toBe(watcherSocketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1));
+  expect(socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1)).toBe(socketPathOf(MONITOR_FOLDER, 'tracker-example', 'J-1', 1));
 });
 
 test('a path one byte short of the limit fits, and one of the limit does not', () => {

@@ -13,7 +13,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -134,7 +134,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -255,7 +255,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -358,7 +358,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -391,7 +391,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -426,7 +426,7 @@
       ],
       "deniedReadableRoots": [
         "/example/repository/.example-data/jobs/*/launch-*.json",
-        "/example/home/alex-example/.example-monitor/watchers",
+        "/example/home/alex-example/.example-monitor/private",
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
@@ -490,7 +490,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -549,8 +549,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -669,7 +669,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -728,8 +728,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -846,7 +846,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -902,8 +902,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -971,7 +971,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1015,8 +1015,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1066,7 +1066,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1110,8 +1110,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1160,7 +1160,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1204,8 +1204,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1255,7 +1255,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1314,8 +1314,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1434,7 +1434,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1493,8 +1493,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1611,7 +1611,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1667,8 +1667,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1736,7 +1736,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1780,8 +1780,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1831,7 +1831,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1875,8 +1875,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",
@@ -1925,7 +1925,7 @@
           ],
           "denyRead": [
             "//example/repository/.example-data/jobs/*/launch-*.json",
-            "//example/home/alex-example/.example-monitor/watchers",
+            "//example/home/alex-example/.example-monitor/private",
             "//example/home/alex-example/.ssh",
             "//example/home/alex-example/.gnupg"
           ]
@@ -1969,8 +1969,8 @@
           "Write(//example/repository/.git/worktrees/ticket-003/**)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json)",
           "Read(//example/repository/.example-data/jobs/*/launch-*.json/**)",
-          "Read(//example/home/alex-example/.example-monitor/watchers)",
-          "Read(//example/home/alex-example/.example-monitor/watchers/**)",
+          "Read(//example/home/alex-example/.example-monitor/private)",
+          "Read(//example/home/alex-example/.example-monitor/private/**)",
           "Read(//example/home/alex-example/.ssh)",
           "Read(//example/home/alex-example/.ssh/**)",
           "Read(//example/home/alex-example/.gnupg)",

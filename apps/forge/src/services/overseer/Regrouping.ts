@@ -15,9 +15,9 @@ import { writeFileAtomically }                              from '../../lib/atom
 import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                               from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { sameBoot }                                         from '../../lib/process-identity/ProcessIdentity.ts';
+import type { EventLogEntry }                               from '../../lib/talos/EventLog.ts';
 import type { InterruptionCause, Job }                      from '../../lib/tracker-model/@types/Job.ts';
 import type { HistoryFrame, WatcherFrame }                  from '../../lib/watcher/@types/WatcherFrame.ts';
-import type { EventLogEntry }                               from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch, readWatcherSecret }             from '../../lib/watcher/WatcherLaunch.ts';
 import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/WorktreesFolder.ts';

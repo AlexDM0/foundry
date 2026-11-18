@@ -36,7 +36,7 @@ beforeEach(() => {
 function nextEndpoint(): string {
   lastInstance += 1;
   return recorded.endpoint.endpointOf({
-    monitorFolder: '/example/monitor', trackerId: 'tracker-example', jobId: 'J-1', instance: lastInstance
+    monitorFolder: '/example/monitor', trackerId: 'tracker-example', name: 'J-1', instance: lastInstance
   });
 }
 

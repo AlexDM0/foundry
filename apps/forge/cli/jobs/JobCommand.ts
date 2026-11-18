@@ -4,9 +4,9 @@
  */
 import type { AgentAdapter }                   from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }              from '../../src/lib/agent-launch/AgentSessionEvent.ts';
+import type { EventLogEntry }                  from '../../src/lib/talos/EventLog.ts';
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { FIRST_WATCHER_INSTANCE }              from '../../src/lib/tracker-model/constants/JobStates.ts';
-import type { EventLogEntry }                  from '../../src/lib/watcher/EventLog.ts';
 import { WatcherFleet }                        from '../../src/services/overseer/WatcherFleet.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace, type Workspace }    from '../../src/services/tracker/Workspace.ts';

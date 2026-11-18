@@ -36,10 +36,10 @@ import type { AgentAdapter }                                from '../../lib/agen
 import type { AgentLaunchRequest }                          from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                               from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { WorkerProfile }                               from '../../lib/agent-launch/WorkerProfile.ts';
+import { createEventLogWriter, type EventLogEntry }         from '../../lib/talos/EventLog.ts';
 import type { Decision }                                    from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                       from '../../lib/tracker-model/Board.ts';
-import { createEventLogWriter, type EventLogEntry }         from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
 import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';

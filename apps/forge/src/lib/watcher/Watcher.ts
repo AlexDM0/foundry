@@ -2,7 +2,7 @@
  * A thin Watcher: claims one instance of a job by creating its Watcher file exclusively, runs the one child its launch file names under the
  * port's spawn options, logs every line to and from it, speaks protocol 1 on its socket, and records how the child ended. It writes its job
  * folder, its socket and the child's stdin and nothing else.
- * It depends on `src/lib/atomic-file`, `src/lib/owner-only-files` and `src/lib/process-identity`.
+ * It depends on `src/lib/atomic-file`, `src/lib/process-identity` and `src/lib/talos`.
  */
 import {
   appendFileSync,
@@ -17,18 +17,18 @@ import { fileReplaceOfThisProcess }                                     from '..
 import type { ProcessIdentity }                                         from '../process-identity/ProcessIdentity.ts';
 import type { ProcessStopStage, ProcessSupervision, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';
 import { processSupervisionFor }                                        from '../process-identity/ProcessSupervisionFor.ts';
-import type { ActingFrame, WatcherActivity }                            from './@types/WatcherFrame.ts';
 import {
   type EventLogEntry,
   type EventLogWriter,
   type EventOrigin,
   createEventLogWriter,
   eventLogEntriesOf
-} from './EventLog.ts';
-import type { LocalEndpoint }                                       from './LocalEndpoint.ts';
-import { localEndpointFor }                                         from './LocalEndpointFor.ts';
-import { standingReplyFor }                                         from './StandingReplies.ts';
-import { forEachLine }                                              from './StreamLines.ts';
+} from '../talos/EventLog.ts';
+import type { LocalEndpoint }                                       from '../talos/LocalEndpoint.ts';
+import { localEndpointFor }                                         from '../talos/LocalEndpointFor.ts';
+import { standingReplyFor }                                         from '../talos/StandingReplies.ts';
+import { forEachLine }                                              from '../talos/StreamLines.ts';
+import type { ActingFrame, WatcherActivity }                        from './@types/WatcherFrame.ts';
 import { type WatcherFiles, watcherFilesOf }                        from './WatcherFiles.ts';
 import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret } from './WatcherLaunch.ts';
 import { type WatcherEnd, type WatcherRecord, watcherRecordTextOf } from './WatcherRecord.ts';

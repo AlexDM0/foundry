@@ -28,6 +28,7 @@ import { GitProcess }                                        from '../../lib/git
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                              from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
+import type { EventLogEntry }                                from '../../lib/talos/EventLog.ts';
 import type { DecisionAnswer }                               from '../../lib/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }           from '../../lib/tracker-model/@types/Incident.ts';
 import type { InterruptionCause, Job, JobKind }              from '../../lib/tracker-model/@types/Job.ts';
@@ -39,7 +40,6 @@ import { FORCED_STOP_REFUSED_INTERRUPTION }                  from '../../lib/tra
 import { EntityOwnershipUtil, ROOT_ENTITY_KEY }              from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { LaunchSlotUtil }                                    from '../../lib/tracker-model/utils/LaunchSlotUtil.ts';
 import { TicketStageUtil }                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { EventLogEntry }                                from '../../lib/watcher/EventLog.ts';
 import type { SetupMessage }                                 from '../../shared/@types/ControlContext.ts';
 import type { BranchNames }                                  from '../../shared/BranchNames.ts';
 import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }         from '../../shared/Environment.ts';
@@ -859,7 +859,7 @@ function launchWatcher(
     kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
   };
   const unfitEndpoint = WatcherFleet.unfitEndpointOf(request.platformPorts, {
-    monitorFolder: request.monitorFolder, trackerId, jobId: job.id, instance: job.watcherInstance
+    monitorFolder: request.monitorFolder, trackerId, name: job.id, instance: job.watcherInstance
   });
   if (unfitEndpoint !== null) return { kind: 'watcher-endpoint-does-not-fit', jobId: job.id, endpoint: unfitEndpoint };
   const jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);

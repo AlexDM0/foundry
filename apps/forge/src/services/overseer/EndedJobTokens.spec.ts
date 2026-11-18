@@ -14,8 +14,8 @@ import {
 
 import type { AgentAdapter }                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
+import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Job, JobLaunch }                            from '../../lib/tracker-model/@types/Job.ts';
-import { createEventLogWriter }                           from '../../lib/watcher/EventLog.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { boardFixture, taskFixture, ticketFixture }       from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';

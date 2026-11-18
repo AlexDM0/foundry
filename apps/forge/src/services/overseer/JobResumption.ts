@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 import type { AgentAdapter }   from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import type { PlatformPorts }  from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { EventLogEntry }  from '../../lib/talos/EventLog.ts';
 import type {
   InterruptionCause,
   Job,
@@ -25,7 +26,6 @@ import type {
 import type { LogRecord, LogRecordFieldsOf }                   from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                                          from '../../lib/tracker-model/Board.ts';
 import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
-import type { EventLogEntry }                                  from '../../lib/watcher/EventLog.ts';
 import { PictureStore }                                        from '../tracker/PictureStore.ts';
 import { IntakeSessions }                                      from './IntakeSessions.ts';
 import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';

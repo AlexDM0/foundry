@@ -27,8 +27,8 @@ const FAKE_AGENT_SPEC = 'src/testing/FakeAgentAdapter.integration.spec.ts';
 const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/owner-only-files/OwnerOnlyFiles.answers.integration.spec.ts',
-  'src/lib/watcher/LocalEndpoint.answers.integration.spec.ts',
-  'src/lib/watcher/LocalEndpoint.contract.integration.spec.ts',
+  'src/lib/talos/LocalEndpoint.answers.integration.spec.ts',
+  'src/lib/talos/LocalEndpoint.contract.integration.spec.ts',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts',
   'src/services/overseer/JobControlDelivery.integration.spec.ts',
   'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
@@ -110,10 +110,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/watcher/Watcher.windowsEnd.integration.spec.ts',
     ],
   },
-  { boundary: 'src/lib/watcher/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/watcher/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/watcher/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/watcher/WindowsPipeEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/talos/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/talos/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/talos/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
+  { boundary: 'src/lib/talos/WindowsPipeEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/watcher/WatcherSocketServer.ts', specs: ['src/lib/watcher/Watcher.protocol.integration.spec.ts'] },
   {

@@ -4,8 +4,8 @@
  */
 import { expect, test } from 'bun:test';
 
-import { REAL_ENDPOINT_PRIMITIVES }                                 from './LocalEndpointFor.ts';
-import { createPosixSocketEndpoint, MACOS_SOCKET_PATH_LIMIT_BYTES } from './PosixSocketEndpoint.ts';
+import { REAL_ENDPOINT_PRIMITIVES }                                 from '../talos/LocalEndpointFor.ts';
+import { createPosixSocketEndpoint, MACOS_SOCKET_PATH_LIMIT_BYTES } from '../talos/PosixSocketEndpoint.ts';
 import { watcherLaunchOf }                                          from './WatcherLaunch.ts';
 import { WATCHER_PROTOCOL_VERSION }                                 from './constants/WatcherProtocol.ts';
 
@@ -20,8 +20,8 @@ const WELL_FORMED = {
   protocolVersion:    WATCHER_PROTOCOL_VERSION,
   jobId:              'J-1',
   watcherCodeVersion: 'code-1',
-  socketPath:         '/tmp/watchers/0123456789abcdef.sock',
-  secretFilePath:     '/tmp/watchers/tracker-example/J-1-1.secret',
+  socketPath:         '/tmp/private/0123456789abcdef.sock',
+  secretFilePath:     '/tmp/private/tracker-example/J-1-1.secret',
 };
 
 test('reads a well-formed launch file and leaves a key a later protocol adds unread', () => {
@@ -53,7 +53,7 @@ test.each([
   ['a protocol that is no number', JSON.stringify({ ...WELL_FORMED, protocolVersion: '2' }), 'protocolVersion'],
   ['no job id', JSON.stringify({ ...WELL_FORMED, jobId: '' }), 'jobId'],
   ['no Watcher code version', JSON.stringify({ ...WELL_FORMED, watcherCodeVersion: 1 }), 'watcherCodeVersion'],
-  ['a relative socket path', JSON.stringify({ ...WELL_FORMED, socketPath: 'watchers/a.sock' }), 'socketPath'],
+  ['a relative socket path', JSON.stringify({ ...WELL_FORMED, socketPath: 'private/a.sock' }), 'socketPath'],
   ['a socket path of 104 bytes', JSON.stringify({ ...WELL_FORMED, socketPath: `/${'s'.repeat(103)}` }), 'socketPath'],
   ['a relative secret path', JSON.stringify({ ...WELL_FORMED, secretFilePath: 'J-1-1.secret' }), 'secretFilePath'],
 ])('refuses %s, naming it', (_title, launchText, namedInReason) => {

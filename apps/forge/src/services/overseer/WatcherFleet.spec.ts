@@ -27,7 +27,7 @@ import {
 } from 'bun:test';
 
 
-import { localEndpointFor }                                  from '../../lib/watcher/LocalEndpointFor.ts';
+import { localEndpointFor }                                  from '../../lib/talos/LocalEndpointFor.ts';
 import { watcherFilesOf }                                    from '../../lib/watcher/WatcherFiles.ts';
 import { refusalIsOperationRefusal }                         from '../../shared/OperationRefusal.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                          from '../../testing/DrivePassHarness.ts';
@@ -124,7 +124,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
   function assertSecretIsOnlyInTheOwnerOnlyFolder(launchFolder: string, secretName: string): void {
     const launchText = readFileSync(watcherFilesOf(launchFolder, 1).launchPath, 'utf8');
     const { secretFilePath } = JSON.parse(launchText) as { secretFilePath: string };
-    expect(secretFilePath).toBe(join(monitorFolder, 'watchers', 'tracker-example', secretName));
+    expect(secretFilePath).toBe(join(monitorFolder, 'private', 'tracker-example', secretName));
     const secret = readFileSync(secretFilePath, 'utf8');
     expect(secret).toMatch(/^[0-9a-f]{48}$/);
     expect(launchText).not.toContain(secret);
@@ -141,7 +141,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
 
   test('a process launch file does too, its slash in the socket name a subfolder', () => {
     const { watcherFolder } = spawnProcessWatcher('gate-1', RUNNING_LINE);
-    const [secretFilePath = ''] = readdirSync(join(monitorFolder, 'watchers', 'tracker-example'), { recursive: true, encoding: 'utf8' }).filter((path) => path.endsWith('.secret'));
+    const [secretFilePath = ''] = readdirSync(join(monitorFolder, 'private', 'tracker-example'), { recursive: true, encoding: 'utf8' }).filter((path) => path.endsWith('.secret'));
     assertSecretIsOnlyInTheOwnerOnlyFolder(watcherFolder, secretFilePath);
   });
 
@@ -191,7 +191,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
       argv:               [RUNNING_LINE],
       environment:        {},
     };
-    expect(WatcherFleet.unfitEndpointOf(ports, { ...request, jobId: request.socketName })).not.toBeNull();
+    expect(WatcherFleet.unfitEndpointOf(ports, { ...request, name: request.socketName })).not.toBeNull();
     let refusal: unknown = null;
     try {
       WatcherFleet.writeProcessLaunchFile(ports, request);
@@ -205,7 +205,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Watcher secret', () => {
 
   test('an endpoint that fits is no refusal', () => {
     expect(WatcherFleet.unfitEndpointOf(world.ports, {
-      monitorFolder, trackerId: 'tracker-example', jobId: JOB_IDENTIFIER, instance: 1
+      monitorFolder, trackerId: 'tracker-example', name: JOB_IDENTIFIER, instance: 1
     })).toBeNull();
   });
 });

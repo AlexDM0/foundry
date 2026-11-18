@@ -1376,8 +1376,8 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 
 #### Where the secrets live
 
-The API token and every Watcher secret sit in `<monitor>/watchers/<trackerId>/`, under the user's home on every OS; a
-launch file names its secret's file and holds no copy. Every session's read deny covers `<monitor>/watchers`.
+The API token and every Watcher secret sit in `<monitor>/private/<trackerId>/`, under the user's home on every OS; a
+launch file names its secret's file and holds no copy. Every session's read deny covers `<monitor>/private`.
 
 | OS | The guarantee |
 |---|---|
@@ -2973,7 +2973,7 @@ A file recording another version, holding anything else or unreadable is a misma
         "url": "http://127.0.0.1:4987/",
         "processId": 4242,
         "startedAt": "2026-10-21T10:05:00+02:00",
-        "tokenPath": "/Users/alex.example/.forge-monitor/watchers/5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37/token"
+        "tokenPath": "/Users/alex.example/.forge-monitor/private/5f0c2a9e-7b1d-4c3e-9a8f-2d6b4e1c0a37/token"
       }
     }
   }
