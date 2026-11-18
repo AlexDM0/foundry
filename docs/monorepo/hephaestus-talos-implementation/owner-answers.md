@@ -67,13 +67,27 @@ packages/system-versions/   version comparison, for both apps and the contract
     reason code, its structured fields and its sentence; Gaia shows the sentence.
 12. **Every in-flight ticket is dropped.** Both trackers stop and stay stopped until the boards are set up anew.
 
+13. **Forge owns tickets; Gaia is a convenience over forge.** Gaia holds no ticket and writes no ticket file: every
+    change of a ticket is a command forge accepts or refuses.
+14. **A committed ticket's content is fixed.** Committed is the state in which an agent may pick the ticket up at any
+    moment: the user has reviewed it and it waits for an agent. Today's ticket statuses run `draft`,
+    `ready-for-review`, `pending`, `in-progress`, `in-review`, `reviewed`, `delivered`, `abandoned`; committed is
+    today's `pending`, which takes the name, and from committed onward the Board refuses an edit of the ticket's
+    content, with a reason (today a `pending` ticket is still editable). At the commit forge keeps the content by
+    content hash and agents build from that, so it holds also where a store lets the text change behind forge.
+    Committed is a recorded state of the ticket, never a lock a process holds, so a crashed Hephaestus leaves nothing
+    to release. The store's own write lock is taken over from a holder that is no longer alive, judged by the process
+    and not by the lock's age, and a crash case holds that. A committed ticket no agent has picked up can be put back into `draft`, as a `pending` ticket can today, and is edited there; once an agent has picked it up, its work is stopped first, by the moves the Board has today.
+
 ## The run's calls a user would notice
 
 - An unexpected error in a pass is a crash on its first occurrence (design decision 14).
 - The Assistant is a switch per board, off by default; switching it off stops a running Assistant at the end of its
   turn, and an incident it has not settled takes its default with the reason recorded and shown.
 - Flint shows only inside a forge's board in Gaia, one per forge, with no brain.
-- Hand-editing of ticket files ends; editing a ticket's description is a command.
+- Hand-editing of ticket files ends. Forge takes an edit of a ticket's content as a command; the screen for it is
+  Gaia's, built after this run, and Gaia sends the edit through that command rather than writing a file (owner,
+  2026-11-18). This run builds the command and no editing screen.
 - A question's recommendation stays visible: forge maps the vendor's mark into a field of the decision document.
 
 ## What only the owner can do
