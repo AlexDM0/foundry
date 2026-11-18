@@ -7,7 +7,7 @@
  */
 import type { EntityKey, PipelineEntity, PipelineEntityKind }  from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunState, PipelineChange }            from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { SetupQuestion }                                  from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineSetupMode, SetupQuestion }               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { EntityGroupUtil }                                     from '../../../utils/EntityGroupUtil.ts';
 import { PipelineViewModel, type ShownEntitiesFacts }          from '../PipelineViewModel.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
@@ -22,7 +22,7 @@ export type PipelineLevelRailStatus = 'gate-running' | 'no-gates' | 'kept-for-a-
 /** The facts the rail reads: the entities shown, the open questions of each session, the change list and the profile runs. */
 export interface PipelineLevelRailFacts extends ShownEntitiesFacts {
   readonly pipelineSetup?: {
-    readonly record:    ShownEntitiesRecord & { readonly questions: readonly Pick<SetupQuestion, 'answer'>[] };
+    readonly record:    ShownEntitiesRecord & { readonly questions: readonly Pick<SetupQuestion, 'answer'>[]; readonly mode?: PipelineSetupMode };
     readonly entities?: Readonly<Record<EntityKey, { readonly openQuestionCount: number }>>;
   } | null;
   readonly pipelineFlow?: { readonly changeList: readonly Pick<PipelineChange, 'field'>[] } | null;
@@ -96,7 +96,9 @@ function statusOf(entityKey: EntityKey, entity: PipelineEntity, facts: PipelineL
   return 'checked';
 }
 
+/** A first setup proposes every field, so only an update or an advise counts the edits that wait for Apply. */
 function pendingEditCountOf(level: PipelineLevel, facts: PipelineLevelRailFacts): number {
+  if (facts.pipelineSetup?.record.mode === 'setup') return 0;
   const changeList = facts.pipelineFlow?.changeList ?? [];
   return changeList.filter((change) => PipelineLevelModel.levelsAreEqual(PipelineLevelModel.levelOfField(change.field), level)).length;
 }

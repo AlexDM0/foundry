@@ -32,8 +32,8 @@ const FOCUSABLE_SELECTOR = [
 
 export type DialogDismissalReason = 'escape' | 'close' | 'backdrop';
 
-/** 460, 560, 600 and 640 pixels wide. */
-export type DialogWidth = 'narrow' | 'standard' | 'wide' | 'widest';
+/** 460, 560, 600 and 640 pixels wide, and `page` 1208, a page's content row. */
+export type DialogWidth = 'narrow' | 'standard' | 'wide' | 'widest' | 'page';
 
 export interface DialogProps {
   readonly title:         string;

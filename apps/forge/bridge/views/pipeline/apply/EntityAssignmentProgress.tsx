@@ -61,7 +61,7 @@ export function EntityAssignmentProgress({ assignment, onClose }: EntityAssignme
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="wide"
+      width="widest"
       foot={(
         <div className="bridge-pipeline-dialog-foot-row">
           <Text muted>Nothing to do here: this shows what the product owner did.</Text>
@@ -71,7 +71,7 @@ export function EntityAssignmentProgress({ assignment, onClose }: EntityAssignme
       )}
     >
       <View gap="twelve">
-        <DataTable label="Tickets the product owner gives an entity" columns={ASSIGNMENT_COLUMNS} columnWidths={ASSIGNMENT_COLUMN_WIDTHS} rows={rows} />
+        <DataTable label="Tickets the product owner gives an entity" columns={ASSIGNMENT_COLUMNS} columnWidths={ASSIGNMENT_COLUMN_WIDTHS} rows={rows} rowHeight="tall" />
         <div role="status">
           <Text element="p">
             <Text bold>{view.summary}</Text>

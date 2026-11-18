@@ -1,7 +1,7 @@
 /**
  * The live flow's footer bar (A5Live), as FlowLive draws it: the green Applied pill, the applied version with its time and who applied
- * it, the content hash and the constitution commit the newest Apply made; View pipeline.json opens the stored text, and Update pipeline
- * opens an update of it with `pipeline-update-start` and moves to `#pipeline/edit`.
+ * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View pipeline.json
+ * opens the stored text, and Update pipeline opens an update of it with `pipeline-update-start` and moves to `#pipeline/edit`.
  */
 import { ActionBar } from 'design-system/ActionBar';
 import { Button }    from 'design-system/Button';

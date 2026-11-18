@@ -100,6 +100,12 @@ function fieldWithinEntityOf(field: PipelineDraftField): PipelineDraftField | En
   return separatorIndex === -1 ? null : field.slice(separatorIndex + 1) as EntityDraftField;
 }
 
+/** An entity's summary as the first sentence of a page's lead: research words it as a phrase, "Next.js storefront", so it gains its stop. */
+function summarySentenceOf(summary: string): string {
+  const trimmed = summary.trim();
+  return /[.!?]$/u.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 export const PipelineLevelModel = Object.freeze({
   isForgeLevel,
   entityLevelOf,
@@ -113,4 +119,5 @@ export const PipelineLevelModel = Object.freeze({
   levelNameOf,
   levelOfField,
   fieldWithinEntityOf,
+  summarySentenceOf,
 });

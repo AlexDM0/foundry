@@ -38,6 +38,12 @@ describe('footerOf', () => {
     expect(LivePipelineModel.footerOf(withoutCommit, null)).toMatchObject({ versionText: 'Version 2 · applied by User', commitText: null });
   });
 
+  test('over entities the commit held each entity\'s constitution, so it names none of the forge\'s', () => {
+    const pipeline = appliedPipeline();
+    const overEntities = { ...pipeline, pipeline: { ...pipeline.pipeline, entities: {} } } as AppliedPipelineFacts;
+    expect(LivePipelineModel.footerOf(overEntities, FORMAT)?.commitText).toBe('constitutions 2222222');
+  });
+
   test('a pipeline the gate verbs wrote has no version, and an unreadable one no footer', () => {
     expect(LivePipelineModel.footerOf({ ...appliedPipeline(), application: null }, FORMAT)?.versionText).toBe('Set with the gate verbs, never applied here');
     expect(LivePipelineModel.footerOf({ readingVerdict: 'absent' }, FORMAT)).toBeNull();
@@ -106,6 +112,17 @@ describe('levelPageWordsOf', () => {
       lead:  'The Example Agency components. Home: packages/design-system. Version 1 is live. Each step shows design-system’s tickets at it now.',
     });
     expect(LivePipelineModel.levelPageWordsOf(FORGE_LEVEL, pipeline).title).toBe('Forge');
+  });
+
+  test('a summary worded as a phrase gains its full stop before the home', () => {
+    const { pipeline } = monorepoLive();
+    if (pipeline?.readingVerdict !== 'readable') throw new Error('the fixture holds a readable pipeline');
+    const entities = pipeline.pipeline.entities ?? {};
+    const designSystem = entities['design-system'];
+    if (designSystem === undefined) throw new Error('the fixture holds design-system');
+    const phrased = { ...pipeline, pipeline: { ...pipeline.pipeline, entities: { ...entities, 'design-system': { ...designSystem, summary: 'React components' } } } };
+    expect(LivePipelineModel.levelPageWordsOf({ kind: 'entity', key: 'design-system' }, phrased).lead)
+      .toBe('React components. Home: packages/design-system. Version 1 is live. Each step shows design-system’s tickets at it now.');
   });
 });
 

@@ -3,7 +3,8 @@
  * real button named by its key, kind, mark and counts; the selected row is the current one with the selection look and the one tab stop;
  * a press moves to that row's level; the arrow keys, Home and End move the focus between rows, wrapping, without moving the level; the
  * filter field narrows the entities and says when none matches; the attention line and the note show only while an entity needs a look,
- * the note saying that an entity without gates lands its tickets unchecked (E27).
+ * the note saying that an entity without gates lands its tickets unchecked (E27); a live screen's work follows an entity's kind, and stands
+ * alone under the forge.
  */
 import {
   cleanup,
@@ -115,5 +116,14 @@ describe('the pipeline level rail', () => {
   test('a gate profile under way marks its entity', () => {
     renderRail(pipelineBoardStateOf('mono-live'), FORGE_LEVEL);
     expect(rowButtons()[1]?.getAttribute('aria-label')).toBe('web, app, Gate running');
+  });
+
+  test('a live screen\'s work follows an entity\'s kind, and stands alone under the forge', () => {
+    const activityTextOf = (level: PipelineLevel): string => (PipelineLevelModel.isForgeLevel(level) ? '2 of 2 jobs' : '1 ticket');
+    render(<PipelineLevelRail facts={pipelineBoardStateOf('mono-design')} level={FORGE_LEVEL} onSelect={() => undefined} activityTextOf={activityTextOf} />);
+    const [forge, web] = rowButtons();
+    expect(forge?.textContent).toContain('2 of 2 jobs');
+    expect(forge?.textContent).not.toContain('Shared by every entity');
+    expect(web?.textContent).toContain('app · 1 ticket');
   });
 });

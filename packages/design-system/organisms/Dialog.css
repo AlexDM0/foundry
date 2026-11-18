@@ -9,6 +9,8 @@
 .design-system-dialog[data-width="narrow"] { width: min(460px, calc(100vw - 2 * var(--sp-4))); }
 .design-system-dialog[data-width="wide"] { width: min(600px, calc(100vw - 2 * var(--sp-4))); }
 .design-system-dialog[data-width="widest"] { width: min(640px, calc(100vw - 2 * var(--sp-4))); }
+/* As wide as a page's content: a row of side-by-side cards that a narrower dialog would squeeze into columns of a few words. */
+.design-system-dialog[data-width="page"] { width: min(1208px, calc(100vw - 2 * var(--sp-4))); }
 .design-system-dialog::backdrop { background: var(--overlay); }
 .design-system-dialog-panel {
   display: flex; flex-direction: column; box-sizing: border-box;

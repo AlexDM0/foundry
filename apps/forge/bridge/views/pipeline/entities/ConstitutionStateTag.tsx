@@ -1,6 +1,6 @@
 /**
- * The state of one entity's constitution as a tag, its meaning in the title: Adopted and Drafted in their state tones, Default plain,
- * Not started dashed, and a root kept for a person as quiet text.
+ * The state of one entity's constitution as a tag, its meaning in the title, as MonoConstitution's legend draws them: Adopted in the
+ * success tone, Drafted on the wash, Default dashed, Not started outlined, and a root kept for a person as quiet text.
  */
 import { Tag }  from 'design-system/Tag';
 import { Text } from 'design-system/Text';
@@ -18,11 +18,11 @@ export function ConstitutionStateTag({ state }: ConstitutionStateTagProps) {
     case 'adopted':
       return <Tag text={text} tone="state" stateTone="success" title={title} />;
     case 'drafted':
-      return <Tag text={text} tone="state" stateTone="accent" title={title} />;
-    case 'default':
       return <Tag text={text} tone="neutral" title={title} />;
-    case 'not-started':
+    case 'default':
       return <Tag text={text} tone="neutral" dashed title={title} />;
+    case 'not-started':
+      return <Tag text={text} tone="state" stateTone="muted" title={title} />;
     case 'kept-for-a-person':
       return <span title={title}><Text typeRole="small" subtle>{text}</Text></span>;
   }

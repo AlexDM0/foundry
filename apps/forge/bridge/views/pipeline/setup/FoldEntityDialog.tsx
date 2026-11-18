@@ -23,10 +23,10 @@ export interface FoldEntityDialogProps {
   readonly onClose:    () => void;
 }
 
-function FolderList({ label, folders }: { readonly label: string; readonly folders: readonly string[] }) {
+function FolderList({ caption, label, folders }: { readonly caption: string; readonly label: string; readonly folders: readonly string[] }) {
   return (
     <View gap="four">
-      <Text typeRole="micro" subtle>{label}</Text>
+      <Text typeRole="small" subtle>{caption}</Text>
       <ul className="bridge-fold-folders" aria-label={label}>
         {folders.map((folder) => <li key={folder} className="bridge-fold-folder">{folder}</li>)}
       </ul>
@@ -81,8 +81,8 @@ export function FoldEntityDialog({
           <Text element="p" muted>{words.tradeDetail}</Text>
         </Callout>
         <div className="bridge-fold-before-after">
-          <FolderList label={`${targetKey} before`} folders={folders.before} />
-          <FolderList label={`${targetKey} after`} folders={folders.after} />
+          <FolderList caption="Before" label={`${targetKey} before`} folders={folders.before} />
+          <FolderList caption="After" label={`${targetKey} after`} folders={folders.after} />
         </div>
         <Text typeRole="small" muted element="p">{`Nothing is stored until you apply. You can add ${packageKey} back as a package later.`}</Text>
       </View>

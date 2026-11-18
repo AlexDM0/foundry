@@ -58,6 +58,16 @@ function ApprovalRow({ view, editSender }: ApprovalRowProps) {
   );
 }
 
+/** The phase's dot in its colour, then which phase it is and that every entity shares it. */
+function PhaseKicker({ phase, text }: { readonly phase: 'ticket' | 'merge'; readonly text: string }) {
+  return (
+    <Row centerY gap="six">
+      <span className="bridge-pipeline-phase-dot" data-phase={phase} aria-hidden="true" />
+      <Text typeRole="small" muted>{text}</Text>
+    </Row>
+  );
+}
+
 function BoardLimit({ limit, capLines }: { readonly limit: number; readonly capLines: readonly string[] }) {
   const [wantedLimit, setWantedLimit] = useState(limit);
   return (
@@ -97,47 +107,49 @@ export function ForgeLevelPage({ facts, selection, entityHrefOf }: ForgeLevelPag
   return (
     <div className="bridge-forge-level">
       {editSender.refusal === null ? null : <span className="bridge-refusal" role="status">{editSender.refusal}</span>}
-      <section className="bridge-forge-level-section" aria-label="Ticket phase">
-        <Text typeRole="small" muted>Ticket phase · every entity</Text>
-        <Text typeRole="lead" bold element="h3">Tickets</Text>
-        {ticketNode === null
-          ? null
-          : (
-            <div className="bridge-forge-level-step">
-              <StepCard
-                view={PipelineFlowModel.nodeViewOf(ticketNode, facts.pipelineChoices?.efforts ?? [])}
-                occupants={null}
-                questionCount={0}
-                selected={false}
-                editable={editSender.enabled}
-                onOpen={selection.open}
-                onEdits={editSender.sendEdits}
-              />
-            </div>
-          )}
-        {ticketsApproval === undefined ? null : <ApprovalRow view={ticketsApproval} editSender={editSender} />}
-      </section>
-      <section className="bridge-forge-level-section" aria-label="Merge and the Airlock">
-        <Text typeRole="small" muted>Merge phase · every entity</Text>
-        <Text typeRole="lead" bold element="h3">Merge and the Airlock</Text>
-        {mergeApproval === undefined ? null : <ApprovalRow view={mergeApproval} editSender={editSender} />}
-        <Row between centerY gap="twelve">
-          <View>
-            <Text bold>Conflict re-review</Text>
-            <Text typeRole="tab" muted>{`A conflict fix over this many lines gets a clean re-review: ${ForgeLevelPageModel.conflictReReviewTextOf(draft)}.`}</Text>
-          </View>
-          {airlockNode === null
+      <div className="bridge-forge-level-phases">
+        <section className="bridge-forge-level-section" aria-label="Ticket phase">
+          <PhaseKicker phase="ticket" text="Ticket phase · every entity" />
+          <Text typeRole="section" element="h3">Tickets</Text>
+          {ticketNode === null
             ? null
             : (
-              <Button
-                compact
-                label="Change"
-                accessibleName="Change the conflict re-review"
-                onPress={() => selection.open({ kind: 'node', nodeId: airlockNode.nodeId, action: { kind: 'dialog', dialog: 'merge-step', focusesReReview: true }, })}
-              />
+              <div className="bridge-forge-level-step">
+                <StepCard
+                  view={PipelineFlowModel.nodeViewOf(ticketNode, facts.pipelineChoices?.efforts ?? [])}
+                  occupants={null}
+                  questionCount={0}
+                  selected={false}
+                  editable={editSender.enabled}
+                  onOpen={selection.open}
+                  onEdits={editSender.sendEdits}
+                />
+              </div>
             )}
-        </Row>
-      </section>
+          {ticketsApproval === undefined ? null : <ApprovalRow view={ticketsApproval} editSender={editSender} />}
+        </section>
+        <section className="bridge-forge-level-section" aria-label="Merge and the Airlock">
+          <PhaseKicker phase="merge" text="Merge phase · every entity" />
+          <Text typeRole="section" element="h3">Merge and the Airlock</Text>
+          {mergeApproval === undefined ? null : <ApprovalRow view={mergeApproval} editSender={editSender} />}
+          <Row between centerY gap="twelve">
+            <View>
+              <Text bold>Conflict re-review</Text>
+              <Text typeRole="tab" muted>{`A conflict fix over this many lines gets a clean re-review: ${ForgeLevelPageModel.conflictReReviewTextOf(draft)}.`}</Text>
+            </View>
+            {airlockNode === null
+              ? null
+              : (
+                <Button
+                  compact
+                  label="Change"
+                  accessibleName="Change the conflict re-review"
+                  onPress={() => selection.open({ kind: 'node', nodeId: airlockNode.nodeId, action: { kind: 'dialog', dialog: 'merge-step', focusesReReview: true }, })}
+                />
+              )}
+          </Row>
+        </section>
+      </div>
       {facts.concurrency === undefined
         ? null
         : <BoardLimit key={facts.concurrency.limit} limit={facts.concurrency.limit} capLines={ForgeLevelPageModel.entityCapLinesOf(draft)} />}

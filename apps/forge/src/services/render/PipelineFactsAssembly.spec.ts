@@ -8,7 +8,8 @@
  * forge over entities: the forge's flow beside each entity's flow, drawn from its single pipeline and marked against the applied entity;
  * each entity's setup facts from its part of the record, a record-only entity included, read by the entity's roles alone; and profile runs
  * and cache marks kept by entity, gate and phase; and the product owner the first Apply over entities started, with its job's state and
- * each of its tickets' entity and reason from the newest assignment since its launch. A forge without entities gets none of these keys.
+ * each of its tickets' entity and reason from the newest assignment since its launch; an update over entities lists no forge constitution.
+ * A forge without entities gets none of these keys.
  * The main line's texts arrive as a parameter, so no case runs git.
  */
 import { describe, expect, test } from 'bun:test';
@@ -695,6 +696,18 @@ describe('a forge over entities', () => {
     entities: { web: webEntity, ui: packageEntity },
   };
   const readable = (pipeline: Pipeline): PipelineReading => ({ verdict: 'readable', pipeline });
+
+  test('an update over entities lists no forge constitution, which a forge over entities does not have', () => {
+    const record = setupRecordOf({
+      mode:         'update',
+      draft:        entityPipeline,
+      constitution: {
+        markdown: '', annotations: [], draftedFrom: { contributing: true, research: true, installedDefault: false }, baseBlob: null, revision: 0
+      },
+    });
+    const facts = pipelineFactsOf(inputOf({ pipelineReading: readable(entityPipeline), pipelineSetupReading: { verdict: 'readable', setup: record } }));
+    expect(facts.pipelineFlow?.changeList).toEqual([]);
+  });
 
   test('a forge without entities gets no entity key in its setup, flow or profile facts', () => {
     const facts = pipelineFactsOf(inputOf({ pipelineSetupReading: { verdict: 'readable', setup: setupRecordOf({ draft: FULL_PIPELINE }) } }));

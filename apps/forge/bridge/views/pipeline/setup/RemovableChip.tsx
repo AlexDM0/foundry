@@ -1,9 +1,8 @@
 /**
  * A mono chip of the entities step with its own remove button: a home folder, a whitelisted package or a reach path. A refused chip takes
- * the error colours and says in a few words why; a chip that may not go keeps its button disabled, with the reason as its title.
+ * the error colours and says in a few words why; a chip that may not go keeps its button disabled, with the reason as its title. The
+ * button sits inside the chip with no edge of its own, as the boards draw "apps/web ×".
  */
-import { IconButton } from 'design-system/IconButton';
-
 export interface RemovableChipProps {
   readonly text:        string;
   readonly removeLabel: string;
@@ -22,7 +21,16 @@ export function RemovableChip({
     <span className="bridge-removable-chip" data-refused={refused === null ? undefined : ''} title={refused === null ? undefined : `${text}: ${refused}`}>
       <span className="bridge-removable-chip-text">{text}</span>
       {refused === null ? null : <span className="bridge-removable-chip-refusal">{refused}</span>}
-      <IconButton glyph="close" accessibleName={removeLabel} title={keepReason ?? removeLabel} disabled={disabled || keepReason !== null} onPress={onRemove} />
+      <button
+        type="button"
+        className="bridge-removable-chip-remove"
+        aria-label={removeLabel}
+        title={keepReason ?? removeLabel}
+        disabled={disabled || keepReason !== null}
+        onClick={onRemove}
+      >
+        <span aria-hidden="true">×</span>
+      </button>
     </span>
   );
 }

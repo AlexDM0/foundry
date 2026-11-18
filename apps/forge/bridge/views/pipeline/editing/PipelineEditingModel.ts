@@ -55,7 +55,8 @@ function levelPageWordsOf(level: PipelineLevel, draft: Pick<Pipeline, 'entities'
   }
   const entities = draft?.entities ?? {};
   const summary = Object.hasOwn(entities, level.key) ? entities[level.key]?.summary?.trim() ?? '' : '';
-  return { title: level.key, lead: [...(summary === '' ? [] : [summary]), 'Changes show on the steps and gates.', runsOn].join(' ') };
+  const summarySentences = summary === '' ? [] : [PipelineLevelModel.summarySentenceOf(summary)];
+  return { title: level.key, lead: [...summarySentences, 'Changes show on the steps and gates.', runsOn].join(' ') };
 }
 
 /** "Version 2 → 3" beside the Changes panel's name, "Version 2 → 3 · by level" over entities; null for a pipeline no Apply numbered. */

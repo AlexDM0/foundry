@@ -295,9 +295,12 @@ function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>)
   };
 }
 
-/** A drafted text that main does not hold is a change; a main that git could not read is never taken to hold it. */
+/**
+ * A drafted text that main does not hold is a change; a main that git could not read is never taken to hold it. A draft over entities gives
+ * the forge no constitution of its own, so the forge's text is never a change there: each entity's is its own row.
+ */
 function constitutionTextChanged(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): boolean {
-  if (setup.constitution === null) return false;
+  if (setup.constitution === null || setup.draft?.entities !== undefined) return false;
   const main = input.mainLineTexts.mainConstitution();
   return main.verdict !== 'read' || main.constitution.markdown !== setup.constitution.markdown;
 }

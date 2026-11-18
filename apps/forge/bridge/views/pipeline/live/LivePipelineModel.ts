@@ -7,8 +7,8 @@
  * level shows only its own tickets, on its own flow. The page words, the pipeline agent's tab, the advise command and the gate profiles
  * under way follow the level. An occupant whose job names no entity belongs to no entity yet.
  */
-import type { GatePhase } from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
-import type { EntityKey } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { GatePhase }           from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
+import type { EntityKey, Pipeline } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
   GateProfileRunFacts,
@@ -53,6 +53,11 @@ function versionTextOf(application: PipelineApplication | null, stampFormat: Sta
   return `Version ${String(application.appliedRevision)} · applied${time} by ${applier}`;
 }
 
+/** What the constitution commit held: the forge's one file, or over entities each entity's own, since the forge has none there. */
+function committedFilesTextOf(pipeline: Pick<Pipeline, 'entities'>): string {
+  return pipeline.entities === undefined ? 'CONSTITUTION.md' : 'constitutions';
+}
+
 /** The footer of a readable pipeline; null for any other reading. */
 function footerOf(pipeline: AppliedPipelineFacts | undefined, stampFormat: StampFormat | null): LiveFooterView | null {
   if (pipeline?.readingVerdict !== 'readable') return null;
@@ -60,7 +65,7 @@ function footerOf(pipeline: AppliedPipelineFacts | undefined, stampFormat: Stamp
   return {
     versionText: versionTextOf(pipeline.application, stampFormat),
     hashText:    `content hash ${pipeline.contentHash.slice(0, SHORT_HASH_LENGTH)}`,
-    commitText:  constitutionCommit === null ? null : `CONSTITUTION.md ${constitutionCommit.slice(0, SHORT_COMMIT_LENGTH)}`,
+    commitText:  constitutionCommit === null ? null : `${committedFilesTextOf(pipeline.pipeline)} ${constitutionCommit.slice(0, SHORT_COMMIT_LENGTH)}`,
     fileText:    pipeline.fileText,
   };
 }
@@ -160,7 +165,7 @@ function levelPageWordsOf(level: PipelineLevel, pipeline: AppliedPipelineFacts |
   const entity = Object.hasOwn(entities, level.key) ? entities[level.key] : undefined;
   const revision = readable?.application?.appliedRevision ?? null;
   const sentences = [
-    ...(entity?.summary === undefined ? [] : [entity.summary.trim()]),
+    ...(entity?.summary === undefined ? [] : [PipelineLevelModel.summarySentenceOf(entity.summary)]),
     ...(entity === undefined ? [] : [`Home: ${homeTextOf(entity.home)}.`]),
     ...(revision === null ? [] : [`Version ${String(revision)} is live.`]),
     `Each step shows ${level.key}’s tickets at it now.`,

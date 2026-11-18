@@ -38,6 +38,7 @@ export const Standard: Story = {};
 export const Narrow: Story = { args: { width: 'narrow' } };
 export const Wide: Story = { args: { width: 'wide' } };
 export const Widest: Story = { args: { width: 'widest' } };
+export const Page: Story = { args: { width: 'page' } };
 export const WithKickerAndDescription: Story = { args: { kicker: 'Example kicker', description: 'An example description of the step.' } };
 export const WithFoot: Story = { args: { foot: <Button label="Save" emphasis="primary" onPress={() => undefined} /> } };
 export const WithHeadEnd: Story = { args: { headEnd: <Text typeRole="small" muted>Example note</Text> } };

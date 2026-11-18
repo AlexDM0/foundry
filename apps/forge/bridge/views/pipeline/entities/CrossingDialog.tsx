@@ -59,7 +59,7 @@ export function CrossingDialog({ appKey, entities, onClose }: CrossingDialogProp
       isOpen
       onDismiss={onClose}
       closeLabel="Close"
-      width="widest"
+      width="page"
       foot={(
         <>
           <Text typeRole="small" muted>{crossing.reviewNote}</Text>

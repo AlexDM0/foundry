@@ -4,6 +4,8 @@
 .design-system-selection-rail {
   display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--space-10); min-height: 0; overflow-y: auto;
 }
+/* The filter field keeps its own height in the column; a field grows only along a row. */
+.design-system-selection-rail > .design-system-text-field { flex: none; }
 .design-system-selection-rail-attention { padding: 0 var(--space-4); }
 .design-system-selection-rail-rows { display: flex; flex-direction: column; gap: var(--space-2); }
 .design-system-selection-rail-group { display: flex; flex-direction: column; gap: var(--space-2); }
@@ -16,8 +18,9 @@
 .design-system-selection-rail-row:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
 .design-system-selection-rail-row:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 .design-system-selection-rail-row[data-selected] { border-color: var(--line-strong); background: var(--surface-selected); }
-.design-system-selection-rail-mark { display: inline-flex; flex: none; color: var(--ink); }
+.design-system-selection-rail-mark { display: inline-flex; flex: none; width: 16px; height: 16px; color: var(--ink); }
 .design-system-selection-rail-row-text { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+.design-system-selection-rail-row-text > :first-child,
 .design-system-selection-rail-subtitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .design-system-selection-rail-row-end { display: inline-flex; flex: none; align-items: center; gap: var(--space-6); }
 .design-system-selection-rail-no-match { margin: 0; padding: var(--space-4) var(--space-10); font-size: var(--fs-small); color: var(--ink-muted); }

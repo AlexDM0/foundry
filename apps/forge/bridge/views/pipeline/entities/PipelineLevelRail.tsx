@@ -69,6 +69,12 @@ function rowKeyOf(row: PipelineLevelRailRowView): string {
   return PipelineLevelModel.isForgeLevel(row.level) ? FORGE_LEVEL_ROW_KEY : `entity:${row.name}`;
 }
 
+/** The kind, then the level's work; the forge row's work alone, as MonoLive draws "4 of 6 jobs", since its kind says no more. */
+function subtitleOf(row: PipelineLevelRailRowView, isForge: boolean): string {
+  if (row.activityText === null) return row.kindText;
+  return isForge ? row.activityText : `${row.kindText} · ${row.activityText}`;
+}
+
 function selectionRailRowOf(row: PipelineLevelRailRowView, marks: PipelineLevelRailMarks | null): SelectionRailRow {
   const isForge = PipelineLevelModel.isForgeLevel(row.level);
   return {
@@ -76,7 +82,7 @@ function selectionRailRowOf(row: PipelineLevelRailRowView, marks: PipelineLevelR
     accessibleName: row.accessibleName,
     selected:       row.selected,
     title:          isForge ? <Text bold>{row.name}</Text> : <MonoId text={row.name} tone="strong" weight={row.selected ? 'bold' : 'medium'} />,
-    subtitle:       row.activityText === null ? row.kindText : `${row.kindText} · ${row.activityText}`,
+    subtitle:       subtitleOf(row, isForge),
     ...isForge ? { mark: <Icon name="flow" label={null} /> } : {},
     end:            (
       <>
