@@ -78,6 +78,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   real board lock past its wait (the abandoned-pass notice); kill Talos while serving (presence names `talos`); stop a
   two-tracker forge between a fast-forward and its journal line, and after a release's landing hold.
 
+- WP3.12: read `/api/v1/presence` on a real serving forge (heartbeat, supervision) and `/api/v1/crash-log` on a forge
+  that crashed and started again.
+
 ### Assumptions to confirm
 
 - WP3.10: a line lost mid-serve (Talos lost while serving) reruns by itself; only the start's reconcile window makes it
@@ -169,6 +172,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### Worth a look
 
+- WP3.12: `?number=abc`, `0` or empty answers 404 `no-crash-log` with a sentence saying no crash was logged, which is
+  wrong when logs exist; presence's `lastStart.crashLogNumber` is the newest readable log, `oversee status` the newest on
+  disk; `resumeWaitOf` answers `decision` for an `authentication-failed` job until the next pass resumes it.
 - Crash-log number: a number comes back when the newest log is removed or the folder emptied, so an old
   `start-classified` `crashLogNumber` could then point at another crash. The crash path passes no Baton holder, so two
   crashes at one generation whose presence read both failed would share a log (hard to reach). The crash path and the
@@ -311,7 +317,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-F | WP3.15 | landed | 21378127 | First round. A rerun answering `already-landed` writes the missing landing-journal line (previous tip = the slot's `expectedTargetTip`); the first sweep after any start redoes a release cleanup a stop left undone, but skips a group an open ticket or live job still uses (`releasedGroupsOf`, a guard beyond the stage text) |
 | 3-G | WP3.11 | landed | b145b391 | First round. `AbandonedPassReason.of`: a pass abandoned on the tracker lock (`tracker-lock-held`, `lock-taken-over`) is counted in presence with a notice; any other throw in a pass runs the crash path (before, it was only logged and retried). `recordThePassCrash` skips when a crash is already recorded, so a Talos crash keeps component `talos` (WP3.7's handoff). The notice comes from `state()`, not `noticesOf`; an abandoned forced pass stays forced. **Red integration spec** for the stage gate: `cli/SetupScript.integration.spec.ts:155` still expects the LaunchAgent to run `oversee --detach` (WP3.8 made it `start --started-by login-item`) |
 | 3-G | WP3.13 | landed | ccb723b7 | First round, beside WP3.9. `oversee status` gains `presence` (`StatusPresence`) and the off-after-crash line; verb `crash-log [<number>] [--json]` (read-only, refused under a job), refusal `no-crash-log`; `status` prints a crash notice on standard error only. New `PresenceStatus.ts`, `PresenceWording.ts`; `StartGate` exports `crashToLogOf`, `loggedCrashLogOf`; `CrashLog.newestLogOfTheSameCrash`. For WP3.12: reuse `SUPERVISION_OF_LEASE_STANDING` (held: supervising, ended: stopped, waiting-after-gap: checking-after-a-gap, unheld: not-yet-renewed, no live Talos: no-talos). No spec covers the live presence lines |
-| 3-H | WP3.12 | waiting | | |
+| 3-H | WP3.12 | landed | f535586a | First round. Contract `ForgePresenceDocument`, `ForgeCrashLogDocument` (`number`, `generation`; `activeJobs`, `logTail` may be null) and named part types; `endpointAddedIn` dates `presence` and `crash-log` at 1.20 (WP4.8 uses it); `GET /api/presence` (503 `starting` until this generation's presence is classified) and `GET /api/crash-log?number=<n>`. `waitsFor` from the new `Playbook.resumeWaitOf`; causes reuse `MONITOR_INTERRUPTION_CAUSE_OF_CAUSE`; supervision reuses `PresenceStatus.supervisionOfTalosRecord`. For WP4.8: `automaticRestartsLeft` = `CRASH_RESUMES_BEFORE_WAITING` minus `crashResumes` (a job interrupted for the first time reads 2). Fixed the stale `SetupScript.integration` expectation. No spec covers `PresenceReader` (route 404 and 503 proven by a probe only) |
 | 3-I | WP3.14 | waiting | | |
 | 4-A | WP4.4 | waiting | | |
 | 4-B | WP4.5 | waiting | | |
