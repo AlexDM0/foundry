@@ -643,7 +643,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.20` and `0.0`: 1.1 adds [Flint's
+moment the server answers, while the Overseer starts too. This forge answers `1.21` and `0.0`: 1.1 adds [Flint's
 brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and crosses, the
 entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity` command, a
 ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields and a setup
@@ -680,10 +680,11 @@ command, the `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusal
 `dependentsFixedInGroup` start key, the `reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and
 install version 35, 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's
 non-converging review against the pipeline of the stage its review ran in, and adds install version 36, whose installed
-surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, and 1.20 adds the
+surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, 1.20 adds the
 `interrupted-work-resume` command, the `ticket-not-interrupted` refusal, the `ticket-interrupted-hold-lifted` record,
-and the presence and crash-log endpoints with the `no-crash-log` refusal,
-each minor only adds, and version 0.0 stands for every forge released before system versions.
+and the presence and crash-log endpoints with the `no-crash-log` refusal, and 1.21 adds the board document at
+`/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused
+command, and keeps an unfinished entities draft, each minor only adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
