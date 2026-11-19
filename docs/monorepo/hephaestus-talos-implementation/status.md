@@ -34,6 +34,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Assumptions to confirm
 
+- WP2.10: a Watcher end where no child ran (`launch-unreadable`, `socket-unbindable`) maps to `spawn-failed`
+  (`CHILD_END_REASON_OF_WATCHER_END`); the adapter remembers the Watcher a gate slot just spawned and `recordOf`
+  answers `starting` until it claims. Confirm with gates and slots in a real run.
 - WP2.8: Talos logs a quit act and the final grace-0 stop as `client` entries (`close`, `write-line`, `stop`), read
   from the `ClientEntry` doc and WP2.25 (`ChildSupervisor.quitAtTurnEnd`); WP2.13's transcript reader must read them.
   An agent's stop closes its stdin after listing its tree, as the Watcher did. New agent launches are not refused
@@ -68,6 +71,12 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- Three integration specs were already red on `main` at `e9b5d057` and stay red: `GitVersionFloor` (a stale
+  recording: `oversee` now asks git for its common folder before the version), `PlatformProbes` "a whole run exits 0"
+  (probe `claude-p14-signing-and-ref-denies.js` runs `gpgconf`, which the trap catches) and
+  `OverseerCommand.integration.spec.ts:420` "a failed Baton pass exits 1" (exits 0: the planted fault no longer fails
+  the pass; stale spec or a real regression, to diagnose). A stale-spec package runs before WP2.13 so that G4's
+  `verify:integration` can be green.
 - WP2.11 hand-edited recordings and frozen fixtures to add `"interruption": null`: Gaia's
   `overseer-fetch-{supported-forge,flint-brain,versions}.json` (Gaia's rules say every forge answer is recorded from a
   real forge) and forge's `monitor-v3.json`, `monitor-v3-flint-brain.json` (frozen, never edited). Retaking them is
@@ -118,7 +127,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-D2 | WP2.21 | landed | ec9fb0b1 | First round. `StandingReply.requestIdentifierPath` (both twins); placeholder `{{request-identifier}}`; the adapter names `request_id`. `cli/FrozenPlatformPorts.json` edited by hand per its own retake rule. Left for later: the fake agent plans `standingReplies: []` (the trap "A capability the fake agent lacks"); `LaunchEnvironment.spec.ts:18-30` names `CLAUDE_CODE_*` (WP2.24) |
 | 2-E | WP2.8 | landed | a32e38f6 | Third round (night rule): round 1 an agent launched during a lease end's wait was killed; round 2 the tree stop at an agent's end waited out the launch's grace twice inside a clean quit (10 s+ with the production 5000 ms grace); both fixed and specced (`ChildSupervisor.treeStopAtEnd.spec.ts`). `quitLiveAgentsAtTurnEnd` returns the agents it asked. Claude Code's standing reply moved into `ClaudeStreamLines.ts` as `CLAUDE_CODE_STANDING_REPLIES` and the fake agent now plans it (WP2.21's leftover closed). Quit acts and the final grace-0 stop are logged as `client` entries (`close`, `write-line`, `stop`) |
 | 2-F | WP2.9 | landed | e0506ca9 | First round. For WP2.13: `TalosAvailability` has a fourth variant `{ verdict: 'unavailable'; reason: 'endpoint-does-not-fit' \| 'start-refused' \| 'not-serving'; startNumber }` (`TalosStart.ts:57-58`) to handle beside `held`. A hello refused `quitting` is waited out as a quitting Talos, not lost; `claimed` is waited on; the next start number counts `start-<n>.json` too. The Overseer draws the endpoint with its own pipe prefix and writes it into the start file (WP2.7's empty-prefix assumption holds by code). Test helper `connectToTalos` is now `connectProtocolClientToTalos`; protocol override is the preload `src/testing/TalosOfTheNextProtocolPreload.ts`. `REGROUP_HELLO_TIMEOUT_MILLISECONDS` stays until WP2.15. Stage-file drift: `WatcherFleet.ts:114-119` is :115-120, :221 is :223; `Environment.ts:149` is :156 |
-| 2-F | WP2.10 | waiting | | |
+| 2-F | WP2.10 | landed | 4f6f334d | First round, then a touch-up: the launch records (`recordInstructionsRead`, `recordLaunchSettings`) were moved back before `children.launchAgent`, and the unused `JobLaunchContext.processStarts` removed. Port `BoardChildren.ts`, Watcher adapter `WatcherBoardChildren.ts`; `jobFolderIn` in `OverseerFiles.ts`. For WP2.13: the adapter is composed in six places, not one (`OverseerForeground.ts:290` and `:408`, `OverseerFlintBrain.ts:73`, `cli/jobs/JobCommand.ts:124` which WP2.13 does not name, `DrivePassHarness.ts:55`, `testing/WatcherChildReadings.ts`); drop `DrivePassRequest.reapEndedWatchers` and the adapter's `reapEndedWatchers`; endpoint-fit checks inline in `DrivePass.ts`, `JobLaunch.ts`, `FlintBrainSessionHost.ts` (item 5 removes them). Watcher records are read through `LegacyWatcherReader.watcherRecordIn` (goes in WP2.15). `WatcherFleet.ts` citations past ~:80 are 7 lower than after WP2.5 (`livenessOf` :83, `sendFramesOnce` :235, `claimedInstancesIn` :270): WP2.12's `:95`, `:137-140`, `:235-247` moved |
 | 2-G | WP2.12 | waiting | | |
 | 2-G | WP2.19 | waiting | | |
 | 2-H | WP2.13 | waiting | | |
