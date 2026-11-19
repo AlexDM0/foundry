@@ -82,6 +82,8 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'child-instance':           sameValue,
   'permission-names':         listCopyOf,
   'overseer-stop-reason':     sameValue,
+  'start-kind':               sameValue,
+  'start-origin':             sameValue,
   'job-stop-mode':            sameValue,
   'decision-kind':            sameValue,
   'decision-answer':          (value) => ({ ...(value as Readonly<Record<string, string>>) }),

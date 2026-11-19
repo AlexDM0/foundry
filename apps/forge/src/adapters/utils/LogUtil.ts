@@ -3,9 +3,14 @@
  * the page through `identifiedEntryOf`, which also carries every task and ticket id the record concerns, so a detail panel never reads ids
  * out of the sentence.
  */
-import { TokenCountUtil }                       from '../../lib/token-count/TokenCountUtil.ts';
-import type { IncidentDefaultCause }            from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobStopMode, PipelineStepEnding } from '../../lib/tracker-model/@types/Job.ts';
+import { TokenCountUtil }            from '../../lib/token-count/TokenCountUtil.ts';
+import type { IncidentDefaultCause } from '../../lib/tracker-model/@types/Incident.ts';
+import type {
+  JobStopMode,
+  PipelineStepEnding,
+  StartKind,
+  StartOrigin
+} from '../../lib/tracker-model/@types/Job.ts';
 import type {
   AgentUsage,
   FlintBrainEndedReason,
@@ -296,6 +301,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Overseer started on code ${record.fields.codeVersion}, install version ${record.fields.installVersion}`;
     case 'overseer-stopped':
       return record.fields.reason === 'baton-passed' ? 'Overseer handed the board over to its successor' : 'Overseer stopped';
+    case 'start-classified':
+      return startClassifiedTextOf(record.fields);
     case 'baton-pass-failed':
       return `Overseer Baton pass to code ${record.fields.successorCodeVersion} failed at ${record.fields.step}: ${record.fields.error}; the old Overseer keeps driving`;
     case 'job-launched':
@@ -304,6 +311,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Job ${record.jobId} interrupted (${record.fields.cause}) in child instance ${record.fields.childInstance}`;
     case 'job-resumed':
       return `Job ${record.jobId} resumed in child instance ${record.fields.childInstance} after ${record.fields.cause}`;
+    case 'job-resume-instructed':
+      return `User asked to resume job ${record.jobId}, interrupted in child instance ${record.fields.childInstance}`;
     case 'usage-limit-hit':
       return `Job ${record.jobId} hit the ${record.fields.window} usage limit; nothing launches or resumes before ${record.fields.resetsAt}`;
     case 'job-ended':
@@ -365,6 +374,27 @@ const FLINT_BRAIN_ENDING_PHRASES: Readonly<Record<FlintBrainEndedReason, string>
   'usage-limit': 'stopped at the usage limit',
   'failed':      'failed',
 };
+
+const START_KIND_PHRASES: Readonly<Record<StartKind, string>> = {
+  'first-start':        'for the first time',
+  'handover':           'on a handover',
+  'stopped-on-purpose': 'after a stop on purpose',
+  'machine-went-down':  'after the machine went down',
+  'crashed':            'after a crash',
+};
+
+const START_ORIGIN_PHRASES: Readonly<Record<StartOrigin, string>> = {
+  'user':       'User',
+  'login-item': 'the login item',
+  'successor':  'its predecessor',
+};
+
+function startClassifiedTextOf(start: LogRecordFieldsOf<'start-classified'>): string {
+  const previous  = start.previousGeneration === undefined ? '' : ` (previous Baton ${start.previousGeneration})`;
+  const suspected = start.crashSuspected === true ? ', a crash suspected before it' : '';
+  const crashLog  = start.crashLogGeneration === undefined ? '' : `; crash log ${start.crashLogGeneration} recorded`;
+  return `Forge started by ${START_ORIGIN_PHRASES[start.startOrigin]} ${START_KIND_PHRASES[start.kind]}${previous}${suspected}${crashLog}`;
+}
 
 const PIPELINE_STEP_ENDING_PHRASES: Readonly<Record<PipelineStepEnding, string>> = {
   'passed':     'passed',

@@ -133,3 +133,23 @@ test('a launch stored without entity and stage reads back without them, and one 
   const firstFields = reading.verdict === 'readable' ? reading.records[0]?.fields : undefined;
   expect(Object.keys(firstFields ?? {})).toEqual(['kind', 'role', 'ticketIds', 'attempt', 'target', 'parentJobId']);
 });
+
+test('a start classification and a resume instruction read back as stored, the start\'s optional fields only where written', () => {
+  const firstStart: LogRecord = { at: STARTED_AT, kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } };
+  const suspectedCrash: LogRecord = {
+    at:     STARTED_AT,
+    kind:   'start-classified',
+    fields: {
+      kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 2, crashSuspected: true, crashLogGeneration: 2
+    }
+  };
+  const resumeInstructed: LogRecord = {
+    at: STARTED_AT, kind: 'job-resume-instructed', jobId: 'J4', fields: { childInstance: 3 }
+  };
+  const text = `${[firstStart, suspectedCrash, resumeInstructed].map((record) => JSON.stringify(record)).join('\n')}\n`;
+  const { logFilePath, reading } = readBack('log-start-and-resume', text);
+  expect(reading).toEqual({ verdict: 'readable', records: [firstStart, suspectedCrash, resumeInstructed] });
+  expect(readFileSync(logFilePath, 'utf8')).toBe(text);
+  const firstFields = reading.verdict === 'readable' ? reading.records[0]?.fields : undefined;
+  expect(Object.keys(firstFields ?? {})).toEqual(['kind', 'startOrigin']);
+});

@@ -240,6 +240,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     outputTokens:         9_000,
   }, [], at);
   board.recordOverseerStarted({ codeVersion: 'a1b2c3d', installVersion: 17 }, at);
+  board.recordStartClassified({
+    kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 3, crashSuspected: true, crashLogGeneration: 3
+  }, at);
   const { job } = board.launchJob({
     kind:        'build',
     role:        'builder',
@@ -250,6 +253,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   }, at);
   board.moveJob(job.id, 'running', at);
   board.interruptJob(job.id, 'agent-crashed', at);
+  board.recordJobResumeInstructed(job.id, at);
   board.recordUsageLimitHit(job.id, { window: 'five_hour', resetsAt: '2026-09-26T13:00:34.000Z' }, at);
   board.moveJob(job.id, 'running', at);
   board.messageJob(job.id, 'Keep the example export small.', [], at);

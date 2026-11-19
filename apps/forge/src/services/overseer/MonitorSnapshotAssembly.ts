@@ -168,11 +168,13 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'tracker-cleared':                 'forge',
   'overseer-started':                'forge',
   'overseer-stopped':                'forge',
+  'start-classified':                'forge',
   'flint-brain-ended':               'agent',
   'baton-pass-failed':               'forge',
   'job-launched':                    'agent',
   'job-interrupted':                 'agent',
   'job-resumed':                     'agent',
+  'job-resume-instructed':           'agent',
   'usage-limit-hit':                 'agent',
   'job-stop-requested':              'agent',
   'job-messaged':                    null,
@@ -222,6 +224,8 @@ const MONITOR_INTERRUPTION_CAUSE_OF_CAUSE: Readonly<Record<InterruptionCause, Mo
   'talos-paused':          'talos-paused',
   'lease-ended':           'lease-ended',
   'network-outage':        'network-outage',
+  'forge-stopped':         'forge-stopped',
+  'forge-crashed':         'forge-crashed',
 };
 
 /** The Bridge route a record's subject opens: its question, its ticket or draft on the Kanban, its job or the Assistant; `null` for the board's own. */

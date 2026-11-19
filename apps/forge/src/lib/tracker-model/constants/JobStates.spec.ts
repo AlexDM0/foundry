@@ -11,7 +11,9 @@ import type {
   JobRole,
   JobState,
   OverseerStopReason,
-  AirlockPhase
+  AirlockPhase,
+  StartKind,
+  StartOrigin
 }                                  from '../@types/Job.ts';
 import type { TupleCoversTheUnion } from '../testing/TupleCoversTheUnion.ts';
 import {
@@ -22,7 +24,9 @@ import {
   JOB_ROLES,
   JOB_STATES,
   OVERSEER_STOP_REASONS,
-  AIRLOCK_PHASES
+  AIRLOCK_PHASES,
+  START_KINDS,
+  START_ORIGINS
 }                                  from './JobStates.ts';
 
 const EVERY_TUPLE_COVERS_ITS_UNION: readonly true[] = [
@@ -33,11 +37,13 @@ const EVERY_TUPLE_COVERS_ITS_UNION: readonly true[] = [
   true satisfies TupleCoversTheUnion<InterruptionCause, typeof INTERRUPTION_CAUSES>,
   true satisfies TupleCoversTheUnion<AirlockPhase, typeof AIRLOCK_PHASES>,
   true satisfies TupleCoversTheUnion<OverseerStopReason, typeof OVERSEER_STOP_REASONS>,
+  true satisfies TupleCoversTheUnion<StartKind, typeof START_KINDS>,
+  true satisfies TupleCoversTheUnion<StartOrigin, typeof START_ORIGINS>,
 ];
 
 test('every job vocabulary tuple covers its union, and none names a member twice', () => {
   expect(EVERY_TUPLE_COVERS_ITS_UNION.every(Boolean)).toBe(true);
-  for (const tuple of [JOB_KINDS, JOB_ROLES, JOB_STATES, JOB_OUTCOMES, INTERRUPTION_CAUSES, AIRLOCK_PHASES, OVERSEER_STOP_REASONS]) {
+  for (const tuple of [JOB_KINDS, JOB_ROLES, JOB_STATES, JOB_OUTCOMES, INTERRUPTION_CAUSES, AIRLOCK_PHASES, OVERSEER_STOP_REASONS, START_KINDS, START_ORIGINS]) {
     expect(new Set<string>(tuple).size).toBe(tuple.length);
   }
 });

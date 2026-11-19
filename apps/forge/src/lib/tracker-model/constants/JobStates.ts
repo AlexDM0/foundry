@@ -10,7 +10,9 @@ import type {
   OverseerStopReason,
   AirlockPhase,
   PipelineStepEnding,
-  PipelineStepKind
+  PipelineStepKind,
+  StartKind,
+  StartOrigin
 } from '../@types/Job.ts';
 
 export const JOB_KINDS = [
@@ -84,6 +86,8 @@ export const INTERRUPTION_CAUSES = [
   'talos-paused',
   'lease-ended',
   'network-outage',
+  'forge-stopped',
+  'forge-crashed',
 ] as const satisfies readonly InterruptionCause[];
 
 /** The interruption of a job whose lost child left a child tree that refused the forced stop: never resumed, the stop tried again. */
@@ -101,6 +105,10 @@ export const INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage', 'lease-
 export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'committing', 'landing'] as const satisfies readonly AirlockPhase[];
 
 export const OVERSEER_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly OverseerStopReason[];
+
+export const START_KINDS = ['first-start', 'handover', 'stopped-on-purpose', 'machine-went-down', 'crashed'] as const satisfies readonly StartKind[];
+
+export const START_ORIGINS = ['user', 'login-item', 'successor'] as const satisfies readonly StartOrigin[];
 
 export const JOB_STOP_MODES = ['stop', 'wind-down', 'fresh'] as const satisfies readonly JobStopMode[];
 

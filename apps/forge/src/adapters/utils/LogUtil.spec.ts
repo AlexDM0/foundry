@@ -5,6 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { InterruptionCause }                       from '../../lib/tracker-model/@types/Job.ts';
 import type { AgentUsage, LogRecord, LogRecordContent } from '../../lib/tracker-model/@types/LogRecord.ts';
 import { LogUtil }                                      from './LogUtil.ts';
 
@@ -198,6 +199,38 @@ describe('the Overseer and its jobs', () => {
     ],
     [{ kind: 'job-interrupted', jobId: 'J3', fields: { cause: 'reboot', childInstance: 1 } }, 'Job J3 interrupted (reboot) in child instance 1', []],
     [{ kind: 'job-resumed', jobId: 'J3', fields: { childInstance: 2, cause: 'reboot' } }, 'Job J3 resumed in child instance 2 after reboot', []],
+    [{ kind: 'job-resume-instructed', jobId: 'J3', fields: { childInstance: 1 } }, 'User asked to resume job J3, interrupted in child instance 1', []],
+    [{ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } }, 'Forge started by User for the first time', []],
+    [
+      { kind: 'start-classified', fields: { kind: 'handover', startOrigin: 'successor', previousGeneration: 4 } },
+      'Forge started by its predecessor on a handover (previous Baton 4)',
+      [],
+    ],
+    [
+      { kind: 'start-classified', fields: { kind: 'stopped-on-purpose', startOrigin: 'user', previousGeneration: 4 } },
+      'Forge started by User after a stop on purpose (previous Baton 4)',
+      [],
+    ],
+    [
+      {
+        kind:   'start-classified',
+        fields: {
+          kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 4, crashSuspected: true, crashLogGeneration: 4
+        }
+      },
+      'Forge started by the login item after the machine went down (previous Baton 4), a crash suspected before it; crash log 4 recorded',
+      [],
+    ],
+    [
+      {
+        kind:   'start-classified',
+        fields: {
+          kind: 'crashed', startOrigin: 'user', previousGeneration: 4, crashLogGeneration: 4
+        }
+      },
+      'Forge started by User after a crash (previous Baton 4); crash log 4 recorded',
+      [],
+    ],
     [{ kind: 'job-ended', jobId: 'J3', fields: { outcome: 'built', commit: 'b2c3d4e', deniedPermissions: [] } }, 'Job J3 ended built at b2c3d4e', []],
     [
       { kind: 'job-ended', jobId: 'J4', fields: { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch', 'Bash(curl:*)'] } },
@@ -212,10 +245,12 @@ describe('the Overseer and its jobs', () => {
     expect(identified.ticketIds).toEqual([...ticketIds]);
   });
 
-  test.each(['talos-paused', 'lease-ended', 'network-outage'] as const)('an interruption by %s prints the cause as stored and names no command', (cause) => {
+  const CAUSES_THAT_WAIT_OR_RESUME_BY_THEMSELVES: InterruptionCause[] = ['talos-paused', 'lease-ended', 'network-outage', 'forge-stopped', 'forge-crashed'];
+
+  test.each(CAUSES_THAT_WAIT_OR_RESUME_BY_THEMSELVES)('an interruption by %s prints the cause as stored and names no command', (cause) => {
     const sentence = sentenceOf({ kind: 'job-interrupted', jobId: 'J3', fields: { cause, childInstance: 1 } });
     expect(sentence).toBe(`Job J3 interrupted (${cause}) in child instance 1`);
-    expect(sentence).not.toMatch(/\bforge\b|--|\bresume\b/);
+    expect(sentence.replace(`(${cause})`, '')).not.toMatch(/\bforge\b|--|\bresume\b/);
   });
 });
 

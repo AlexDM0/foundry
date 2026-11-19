@@ -48,6 +48,8 @@ export type LogFieldShape =
   | 'child-instance'
   | 'permission-names'
   | 'overseer-stop-reason'
+  | 'start-kind'
+  | 'start-origin'
   | 'job-stop-mode'
   | 'decision-kind'
   | 'decision-answer'
@@ -300,9 +302,17 @@ export const LOG_RECORD_SCHEMA = {
       stepKind: 'pipeline-step-kind', stepName: 'text', phase: 'optional-gate-phase', entity: 'optional-text', runMilliseconds: 'count', ending: 'pipeline-step-ending'
     }
   },
-  'tracker-cleared':   { subject: 'board', fields: NO_FIELDS },
-  'overseer-started':  { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
-  'overseer-stopped':  { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
+  'tracker-cleared':  { subject: 'board', fields: NO_FIELDS },
+  'overseer-started': { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
+  'overseer-stopped': { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
+  // What the forge's start found before it; `previousGeneration` only when there is one, `crashSuspected` only when true,
+  // `crashLogGeneration` only when a crash log exists for this start.
+  'start-classified': {
+    subject: 'board',
+    fields:  {
+      kind: 'start-kind', startOrigin: 'start-origin', previousGeneration: 'optional-count', crashSuspected: 'optional-flag', crashLogGeneration: 'optional-count'
+    },
+  },
   // One run of Flint's brain that ended, with its tokens and model calls in total; the brain is no job, so its record names none.
   'flint-brain-ended': {
     subject: 'board',
@@ -333,18 +343,20 @@ export const LOG_RECORD_SCHEMA = {
       entitiesToAssign: 'optional-ticket-ids',
     },
   },
-  'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', childInstance: 'child-instance' } },
-  'job-resumed':        { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause' } },
+  'job-interrupted':       { subject: 'job', fields: { cause: 'interruption-cause', childInstance: 'child-instance' } },
+  'job-resumed':           { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause' } },
+  // User asked to resume the interrupted job; `childInstance` is its instance then.
+  'job-resume-instructed': { subject: 'job', fields: { childInstance: 'child-instance' } },
   // The vendor refused the job's requests: `window` as the vendor names it, `resetsAt` the ISO stamp no launch or resume precedes.
-  'usage-limit-hit':    { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
+  'usage-limit-hit':       { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
   // User's stop, wind-down or fresh agent, recorded whether or not its child is up; the Overseer sends the frames from the job record.
-  'job-stop-requested': { subject: 'job', fields: { mode: 'job-stop-mode' } },
+  'job-stop-requested':    { subject: 'job', fields: { mode: 'job-stop-mode' } },
   // A chat turn for the session, which the Overseer writes from the log in order; `pictures` is set only when User sent some.
   // `byOverseer` is set only on the Overseer's own wording of User's setup move, so the transcript never reads it as User's.
-  'job-messaged':       { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byOverseer: 'optional-flag' } },
+  'job-messaged':          { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byOverseer: 'optional-flag' } },
   // A message reopened a closed product owner or pipeline agent: `childInstance` resumes its session with `text` (and `pictures`,
   // when set) first; `offeredTicketIds` is recorded only; `byOverseer` as on `job-messaged`.
-  'job-reopened':       {
+  'job-reopened':          {
     subject: 'job',
     fields:  {
       childInstance: 'child-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byOverseer: 'optional-flag'

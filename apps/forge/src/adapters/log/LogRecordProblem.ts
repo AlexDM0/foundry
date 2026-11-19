@@ -21,7 +21,9 @@ import {
   OVERSEER_STOP_REASONS,
   JOB_STOP_MODES,
   PIPELINE_STEP_ENDINGS,
-  PIPELINE_STEP_KINDS
+  PIPELINE_STEP_KINDS,
+  START_KINDS,
+  START_ORIGINS
 }                                                            from '../../lib/tracker-model/constants/JobStates.ts';
 import type { LogFieldShape } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import {
@@ -184,6 +186,8 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'child-instance':           childInstanceProblem,
   'permission-names':         (value, path) => listOfTextProblem(value, path, 'permission names'),
   'overseer-stop-reason':     (value, path) => vocabularyProblem(value, path, OVERSEER_STOP_REASONS),
+  'start-kind':               (value, path) => vocabularyProblem(value, path, START_KINDS),
+  'start-origin':             (value, path) => vocabularyProblem(value, path, START_ORIGINS),
   'job-stop-mode':            (value, path) => vocabularyProblem(value, path, JOB_STOP_MODES),
   'decision-kind':            (value, path) => vocabularyProblem(value, path, DECISION_KINDS),
   'decision-answer':          decisionAnswerProblem,

@@ -104,9 +104,12 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"agent-stopped","fields":{"agentId":"example-agent","agentType":"agent-progress-worker",'
     + '"apiCallCount":12,"endContextTokens":48000,"totalInputTokens":310000,"cacheReadInputTokens":250000,"outputTokens":9000}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-started","fields":{"codeVersion":"a1b2c3d","installVersion":17}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"start-classified","fields":{"kind":"machine-went-down","startOrigin":"login-item","previousGeneration":3,'
+    + '"crashSuspected":true,"crashLogGeneration":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J2","fields":{"kind":"build","role":"builder","ticketIds":["002"],'
     + '"attempt":1,"target":"main","parentJobId":null}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-interrupted","jobId":"J2","fields":{"cause":"agent-crashed","childInstance":1}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resume-instructed","jobId":"J2","fields":{"childInstance":1}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"usage-limit-hit","jobId":"J2","fields":{"window":"five_hour","resetsAt":"2026-09-26T13:00:34.000Z"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resumed","jobId":"J2","fields":{"childInstance":2,"cause":"agent-crashed"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-messaged","jobId":"J2","fields":{"text":"Keep the example export small."}}',

@@ -17,6 +17,7 @@ import {
 
 import type { LogRecord, LogRecordKind }                  from '../../lib/tracker-model/@types/LogRecord.ts';
 import { DECISION_KINDS, INCIDENT_KINDS, INCIDENT_MOVES } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { START_KINDS }                                    from '../../lib/tracker-model/constants/JobStates.ts';
 import { LOG_RECORD_SCHEMA, LOG_RECORD_SUBJECT_IDS }      from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import { everyRecordKindTheBoardLogs }                    from '../../testing/EveryBoardLogRecord.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -92,6 +93,8 @@ const EXACT_REASONS: readonly (readonly [string, Record<string, unknown>, string
   ['pipeline step kind', withFields('pipeline-step-ran', { stepKind: 'install' }), 'fields.stepKind is "install", which is not one of prepare, gate'],
   ['optional gate phase', withFields('pipeline-step-ran', { phase: 'deploy' }), 'fields.phase is "deploy", which is not one of build, review, merge'],
   ['pipeline step ending', withFields('pipeline-step-ran', { ending: 'cancelled' }), 'fields.ending is "cancelled", which is not one of passed, failed, time-bound'],
+  ['start kind', withFields('start-classified', { kind: 'rebooted' }), `fields.kind is "rebooted", which is not one of ${START_KINDS.join(', ')}`],
+  ['start origin', withFields('start-classified', { startOrigin: 'gaia' }), 'fields.startOrigin is "gaia", which is not one of user, login-item, successor'],
   ['decision id', withKeys('decision-answered', { decisionId: 7 }), 'decisionId is not a string'],
   ['incident id', withKeys('incident-escalated', { incidentId: null }), 'incidentId is not a string'],
   ['ticket id', withKeys('ticket-started', { ticketId: null }), 'ticketId is not a string'],

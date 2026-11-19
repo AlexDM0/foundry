@@ -1,7 +1,7 @@
 /**
  * The Overseer's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
- * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, a resume, an end, a
- * reopening, a stop request, a message and an intake title are logged.
+ * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, User's resume
+ * instruction, a resume, an end, a reopening, a stop request, a message and an intake title are logged.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -329,6 +329,22 @@ export class Jobs {
 
   recordOverseerStopped(reason: OverseerStopReason, at: string): Logged {
     return { logged: [this.records.logger.log({ kind: 'overseer-stopped', fields: { reason } }, at)] };
+  }
+
+  recordStartClassified(start: LogRecordFieldsOf<'start-classified'>, at: string): Logged {
+    const fields = {
+      kind:        start.kind,
+      startOrigin: start.startOrigin,
+      ...(start.previousGeneration === undefined ? {} : { previousGeneration: start.previousGeneration }),
+      ...(start.crashSuspected === true ? { crashSuspected: true } : {}),
+      ...(start.crashLogGeneration === undefined ? {} : { crashLogGeneration: start.crashLogGeneration }),
+    };
+    return { logged: [this.records.logger.log({ kind: 'start-classified', fields }, at)] };
+  }
+
+  recordJobResumeInstructed(jobId: string, at: string): Logged {
+    const job = this.requireLiveJob(jobId);
+    return { logged: [this.records.logger.log({ kind: 'job-resume-instructed', jobId, fields: { childInstance: job.childInstance } }, at)] };
   }
 
   recordFlintBrainEnded(run: LogRecordFieldsOf<'flint-brain-ended'>, at: string): Logged {

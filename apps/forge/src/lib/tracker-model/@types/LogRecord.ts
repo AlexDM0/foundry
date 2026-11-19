@@ -24,7 +24,9 @@ import type {
   OverseerStopReason,
   PictureReference,
   PipelineStepEnding,
-  PipelineStepKind
+  PipelineStepKind,
+  StartKind,
+  StartOrigin
 }                                                                        from './Job.ts';
 import type { PipelineBilling }                                              from './Pipeline.ts';
 import type { PipelineSetupMode, PipelineSetupStep, PipelineSetupStepState } from './PipelineSetup.ts';
@@ -82,6 +84,8 @@ interface ValueOfFieldShape {
   'child-instance':           number;
   'permission-names':         readonly string[];
   'overseer-stop-reason':     OverseerStopReason;
+  'start-kind':               StartKind;
+  'start-origin':             StartOrigin;
   'job-stop-mode':            JobStopMode;
   'decision-kind':            DecisionKind;
   'decision-answer':          DecisionAnswer;

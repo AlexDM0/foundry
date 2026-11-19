@@ -80,7 +80,9 @@ export type JobOutcome =
  * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
  * `authentication-failed` is a session whose API key was refused: it resumes once User answers the decision that names the failure.
  * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of an Overseer that lost
- * its lease) and `network-outage` (the agent ended on an outage its retries did not outlast) wait for User's resume.
+ * its lease) and `network-outage` (the agent ended on an outage its retries did not outlast) wait for User's resume. `forge-stopped` is a
+ * child that ended with a stop of the forge on purpose, and `forge-crashed` one gone with the forge's crash (the Overseer or Talos); the
+ * next start finds either gone, and the job waits for User's resume. `RESUME_POLICY_OF_CAUSE` names each cause's resume policy.
  */
 export type InterruptionCause =
   | 'watcher-lost'
@@ -93,7 +95,9 @@ export type InterruptionCause =
   | 'authentication-failed'
   | 'talos-paused'
   | 'lease-ended'
-  | 'network-outage';
+  | 'network-outage'
+  | 'forge-stopped'
+  | 'forge-crashed';
 
 /**
  * `re-reviewing`: a conflict re-reviewer judges a resolution that changed more lines than `airlock.reReview.thresholdLines`.
@@ -200,6 +204,12 @@ export interface JobEnding {
 }
 
 export type OverseerStopReason = 'stopped' | 'baton-passed';
+
+/** What the forge's start found before it: no earlier start, a Baton pass, a stop on purpose, a machine that went down, or a crash. */
+export type StartKind = 'first-start' | 'handover' | 'stopped-on-purpose' | 'machine-went-down' | 'crashed';
+
+/** Who started the forge: User, the login item after a sign-in, or a predecessor handing the Baton over. */
+export type StartOrigin = 'user' | 'login-item' | 'successor';
 
 /** How a merge reached its target: `landed` fast-forwarded the main line, `integrated` a group branch. */
 export type LandingKind = 'landed' | 'integrated';

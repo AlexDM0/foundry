@@ -499,6 +499,15 @@ export class Board {
     return this.jobRules.recordOverseerStopped(reason, at);
   }
 
+  recordStartClassified(start: LogRecordFieldsOf<'start-classified'>, at: string): Logged {
+    return this.jobRules.recordStartClassified(start, at);
+  }
+
+  /** Records User's resume of a job at its current child instance; the move itself is the Playbook's. */
+  recordJobResumeInstructed(jobId: string, at: string): Logged {
+    return this.jobRules.recordJobResumeInstructed(jobId, at);
+  }
+
   /** Flint's brain is no job, but its Overseer logs each run that ended beside its own start and stop. */
   recordFlintBrainEnded(run: LogRecordFieldsOf<'flint-brain-ended'>, at: string): Logged {
     return this.jobRules.recordFlintBrainEnded(run, at);
