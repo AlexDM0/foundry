@@ -76,6 +76,7 @@ macOS; on Linux they have never run. The Linux-only adapters have never run anyw
 | Platforms section | #554 | a Watcher ending at logout under `KillUserProcesses=yes`, and a container run without `--init`. |
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a gate profile's line under bwrap, its output read piece by piece, and Stop ending its tree on a real /proc. |
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a pipeline check's two runs under bwrap, and an Overseer stop ending its tree on a real /proc. |
+| `ProcessSupervision` (boot start) | none | the `btime` line of a real /proc/stat, read for a crash suspected before a reboot. |
 
 ## Windows
 
@@ -107,6 +108,7 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `Opener` | #554 | `rundll32.exe url.dll,FileProtocolHandler` opening a real browser. |
 | `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
 | `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and an Overseer stop ending its tree through taskkill. |
+| `ProcessSupervision` (boot start) | none | no read exists: the boot's start answers `null`, so a crash suspected before a reboot is never judged on Windows. |
 
 ## Repository tooling
 

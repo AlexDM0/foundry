@@ -115,7 +115,7 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
     'The port\'s type, not a spawn.',
-  'src/lib/process-identity/UnsupportedProcessSupervision.ts: detached-spawn: spawnOptionsFor:      () => ({ detached: false }),':
+  'src/lib/process-identity/UnsupportedProcessSupervision.ts: detached-spawn: spawnOptionsFor:           () => ({ detached: false }),':
     'The answer for a platform with no adapter; the guard reads this name as no adapter.',
   'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts: mode-change: import { chmodSync, mkdirSync, statSync } from \'node:fs\';':
     'The real primitive the POSIX adapter of the OwnerOnlyFiles port runs on.',

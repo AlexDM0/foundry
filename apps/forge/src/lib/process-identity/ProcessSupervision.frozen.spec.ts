@@ -6,11 +6,16 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { FROZEN_IDENTITY_SCENARIOS, FROZEN_STOP_SCENARIOS, replayProcessWorld } from '../../testing/ProcessWorldReplay.ts';
-import { createDarwinProcessIdentity }                                          from './DarwinProcessIdentity.ts';
-import frozenTable                                                              from './FrozenProcessSupervision.json';
-import { createPosixProcessGroups }                                             from './PosixProcessGroups.ts';
-import { REAL_PROCESS_IDENTITY_PRIMITIVES, REAL_PROCESS_SIGNAL_PRIMITIVE }      from './ProcessSupervisionFor.ts';
+import {
+  FROZEN_BOOT_START_SCENARIOS,
+  FROZEN_IDENTITY_SCENARIOS,
+  FROZEN_STOP_SCENARIOS,
+  replayProcessWorld
+} from '../../testing/ProcessWorldReplay.ts';
+import { createDarwinProcessIdentity }                                     from './DarwinProcessIdentity.ts';
+import frozenTable                                                         from './FrozenProcessSupervision.json';
+import { createPosixProcessGroups }                                        from './PosixProcessGroups.ts';
+import { REAL_PROCESS_IDENTITY_PRIMITIVES, REAL_PROCESS_SIGNAL_PRIMITIVE } from './ProcessSupervisionFor.ts';
 
 const STAGE_OF_SIGNAL = { SIGTERM: 'ask', SIGKILL: 'force' } as const;
 
@@ -20,6 +25,7 @@ describe('the frozen process supervision table', () => {
   test('it holds every scenario', () => {
     expect(frozenTable.identities.map(({ name }) => name)).toEqual(FROZEN_IDENTITY_SCENARIOS.map(({ name }) => name));
     expect(frozenTable.stops.map(({ name }) => name)).toEqual(FROZEN_STOP_SCENARIOS.map(({ name }) => name));
+    expect(frozenTable.bootStarts.map(({ name }) => name)).toEqual(FROZEN_BOOT_START_SCENARIOS.map(({ name }) => name));
   });
 
   for (const scenario of FROZEN_IDENTITY_SCENARIOS) {
@@ -33,6 +39,13 @@ describe('the frozen process supervision table', () => {
     test(`a group stop: ${scenario.name}`, () => {
       const replay = replayProcessWorld(scenario.world, () => supervision.stopTree(scenario.leader, STAGE_OF_SIGNAL[scenario.signal]));
       expect({ name: scenario.name, ...replay }).toEqual(frozenTable.stops.find(({ name }) => name === scenario.name) as never);
+    });
+  }
+
+  for (const scenario of FROZEN_BOOT_START_SCENARIOS) {
+    test(`a boot start: ${scenario.name}`, () => {
+      const replay = replayProcessWorld(scenario.world, () => supervision.bootStartedAtEpochSeconds());
+      expect({ name: scenario.name, ...replay }).toEqual(frozenTable.bootStarts.find(({ name }) => name === scenario.name) as never);
     });
   }
 });

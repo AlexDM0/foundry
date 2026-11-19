@@ -45,6 +45,7 @@ export const PROCESS_CALL_SHAPES = {
   IDENTITY_AFTER_OUTLIVING_A_STOP:     'identityOf <process>, a member of the caller\'s group after stopTree force',
   GONE_AFTER_OUTLIVING_A_STOP:         'processIsGone <process>, a member of the caller\'s group after stopTree force',
   FORCED_STOP_OF_ANOTHER_USERS_LEADER: 'stopTree <identity> force <its tree members>, a process of another user leading its own group',
+  BOOT_START:                          'bootStartedAtEpochSeconds, the current boot',
 } as const;
 
 export type ProcessCallShape = typeof PROCESS_CALL_SHAPES[keyof typeof PROCESS_CALL_SHAPES];
@@ -249,6 +250,7 @@ export function createRecordedProcessTable(nativePorts: PlatformPorts): Controll
           throw unansweredError(call, `no tree of a process ${mocked.stage} is recorded`);
         },
         stopTree,
+        bootStartedAtEpochSeconds: () => answerOf(PROCESS_CALL_SHAPES.BOOT_START, process.pid) as number | null,
       },
     },
     bornProcess:      () => born('born-leader', PROCESS_CALL_SHAPES.IDENTITY_OF_A_BORN_LEADER),

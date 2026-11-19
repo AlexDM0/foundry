@@ -163,6 +163,24 @@ describe('the boot identity', () => {
   });
 });
 
+describe('the boot\'s start', () => {
+  test('answers null, so the rule that needs it is off, and runs no program and opens no kernel', () => {
+    const programs: (readonly string[])[] = [];
+    const kernel = createFakeWindowsKernel();
+    const reader = createWindowsProcessIdentity(kernel.api, {
+      outputOfProgram: (argv) => {
+        programs.push(argv);
+        return null;
+      },
+    }, windowsSystemToolsOf(EXAMPLE_SYSTEM_ROOT));
+    expect(reader.bootStartedAtEpochSeconds()).toBeNull();
+    expect(fakeWindowsSupervision(kernel).bootStartedAtEpochSeconds()).toBeNull();
+    expect(processSupervisionFor('win32').bootStartedAtEpochSeconds()).toBeNull();
+    expect(programs).toEqual([]);
+    expect(kernel.opens()).toBe(0);
+  });
+});
+
 describe('the selector', () => {
   test('answers win32 with the Windows adapter, whose sources name the kernel route and the boot value, and which cannot ask one process to stop', () => {
     const supervision = processSupervisionFor('win32');

@@ -5,10 +5,17 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { createLinuxProcessIdentity, processStatOf, statReadsAsGone } from './LinuxProcessIdentity.ts';
-import { createPosixProcessGroups }                                   from './PosixProcessGroups.ts';
+import {
+  bootTimeEpochSecondsOfKernelStatistics,
+  createLinuxProcessIdentity,
+  processStatOf,
+  statReadsAsGone
+} from './LinuxProcessIdentity.ts';
+import { createPosixProcessGroups } from './PosixProcessGroups.ts';
 
 const BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
+const KERNEL_STATISTICS_PATH = '/proc/stat';
+const KERNEL_STATISTICS_TEXT = 'cpu  10 0 20 300 0 0 0 0 0 0\nintr 12345 0 0\nctxt 67890\nbtime 1793150000\nprocesses 4242\nprocs_running 1\n';
 
 function statLine(comm: string, state: string, processGroupId: number, startTicks: string): string {
   const fieldsFourToTwentyOne = `1 ${processGroupId} 5 0 -1 4194304 100 0 0 0 1 1 0 0 20 0 1 0`;
@@ -137,5 +144,21 @@ describe('a group listing', () => {
   test('an unreadable table or a malformed stat is no listing, never an empty group', () => {
     expect(readerOver({}, null).groupMembersOf(10)).toBeNull();
     expect(readerOver({ '/proc/10/stat': 'garbage' }, ['10']).groupMembersOf(10)).toBeNull();
+  });
+});
+
+describe('the boot\'s start', () => {
+  test('it is the `btime` line of /proc/stat, read through the Linux supervision', () => {
+    expect(bootTimeEpochSecondsOfKernelStatistics(KERNEL_STATISTICS_TEXT)).toBe(1793150000);
+    const supervision = createPosixProcessGroups(readerOver({ [KERNEL_STATISTICS_PATH]: KERNEL_STATISTICS_TEXT }), { sendSignal: () => undefined });
+    expect(supervision.bootStartedAtEpochSeconds()).toBe(1793150000);
+  });
+
+  test('an unreadable /proc/stat, one without `btime`, or a `btime` that is no safe whole number answers null', () => {
+    expect(readerOver({}).bootStartedAtEpochSeconds()).toBeNull();
+    expect(bootTimeEpochSecondsOfKernelStatistics('cpu  10 0 20 300\nctxt 67890\n')).toBeNull();
+    expect(bootTimeEpochSecondsOfKernelStatistics('btime soon\n')).toBeNull();
+    expect(bootTimeEpochSecondsOfKernelStatistics('btime 99999999999999999999\n')).toBeNull();
+    expect(bootTimeEpochSecondsOfKernelStatistics('xbtime 1793150000\n')).toBeNull();
   });
 });

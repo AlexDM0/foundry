@@ -7,8 +7,10 @@ import type { ProcessIdentity } from '../lib/process-identity/ProcessIdentity.ts
 export interface ProcessWorld {
   /** The `ps -o lstart=` line per process id; an absent id exits non-zero, as ps does for a process that is gone. */
   readonly startStampsByProcessId: Readonly<Record<string, string>>;
-  /** What `sysctl -n` prints; `null` exits non-zero. */
+  /** What `sysctl -n kern.bootsessionuuid` prints; `null` exits non-zero. */
   readonly bootSession:            string | null;
+  /** What `sysctl -n kern.boottime` prints; `null` exits non-zero. */
+  readonly bootTime:               string | null;
   /** What `ps -A` prints; `null` exits non-zero. */
   readonly processListing:         string | null;
   readonly groupHasMembers:        boolean;
@@ -26,13 +28,17 @@ const NO_SUCH_PROCESS_CODE = 'ESRCH';
 const SUCCESS_EXIT_CODE    = 0;
 const FAILURE_EXIT_CODE    = 1;
 const PROCESS_ID_ARGUMENT_INDEX = 4;
+const SYSTEM_CONTROL_NAME_ARGUMENT_INDEX = 2;
+const BOOT_TIME_SYSTEM_CONTROL_NAME = 'kern.boottime';
 
 function codedError(code: string): Error {
   return Object.assign(new Error(`example ${code}`), { code });
 }
 
 function outputInWorld(world: ProcessWorld, argv: readonly string[]): string | null {
-  if (argv[0] === '/usr/sbin/sysctl') return world.bootSession;
+  if (argv[0] === '/usr/sbin/sysctl') {
+    return argv[SYSTEM_CONTROL_NAME_ARGUMENT_INDEX] === BOOT_TIME_SYSTEM_CONTROL_NAME ? world.bootTime : world.bootSession;
+  }
   if (argv[1] === '-A') return world.processListing;
   return world.startStampsByProcessId[argv[PROCESS_ID_ARGUMENT_INDEX] ?? ''] ?? null;
 }
@@ -88,7 +94,12 @@ const NEWER_MEMBER_STAMP = 'Wed Oct 28 01:52:00 2026';
 const RECORDED_LEADER: ProcessIdentity = { processId: LEADER, startStamp: LEADER_START, bootIdentity: BOOT };
 
 const LIVE_LEADER_WORLD: ProcessWorld = {
-  startStampsByProcessId: { [LEADER]: LEADER_STAMP }, bootSession: BOOT, processListing: '', groupHasMembers: true, signalErrorCode: null,
+  startStampsByProcessId: { [LEADER]: LEADER_STAMP },
+  bootSession:            BOOT,
+  bootTime:               '{ sec = 1793150000, usec = 125000 } Wed Oct 28 01:13:20 2026',
+  processListing:         '',
+  groupHasMembers:        true,
+  signalErrorCode:        null,
 };
 const GONE_LEADER_WORLD: ProcessWorld = { ...LIVE_LEADER_WORLD, startStampsByProcessId: {} };
 
@@ -161,4 +172,12 @@ export const FROZEN_IDENTITY_SCENARIOS: readonly { readonly name: string; readon
   { name: 'process id zero', world: LIVE_LEADER_WORLD, processId: 0 },
   { name: 'a negative process id', world: LIVE_LEADER_WORLD, processId: -1 },
   { name: 'a fractional process id', world: LIVE_LEADER_WORLD, processId: 1.5 },
+];
+
+/** Every answer a read of the boot's start has; added after the extraction, so its frozen answers were written by hand. */
+export const FROZEN_BOOT_START_SCENARIOS: readonly { readonly name: string; readonly world: ProcessWorld }[] = [
+  { name: 'a boot time as sysctl prints it', world: LIVE_LEADER_WORLD },
+  { name: 'a boot time that cannot be read', world: { ...LIVE_LEADER_WORLD, bootTime: null } },
+  { name: 'a boot time in another shape', world: { ...LIVE_LEADER_WORLD, bootTime: 'Wed Oct 28 01:13:20 2026' } },
+  { name: 'a boot time beyond a safe whole number', world: { ...LIVE_LEADER_WORLD, bootTime: '{ sec = 99999999999999999999, usec = 0 }' } },
 ];

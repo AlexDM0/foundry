@@ -22,6 +22,10 @@ export interface LinuxProcessStat {
 
 const PROCESS_TABLE_PATH = '/proc';
 const BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
+const KERNEL_STATISTICS_PATH = '/proc/stat';
+
+// proc(5): the `btime` line of `/proc/stat` holds the epoch second the system booted.
+const BOOT_TIME_LINE_PATTERN = /^btime\s+(\d+)\s*$/m;
 
 const DECIMAL_PATTERN = /^\d+$/;
 const STAT_FIELD_SEPARATOR = /\s+/;
@@ -59,9 +63,20 @@ export function statReadsAsGone(stat: LinuxProcessStat): boolean {
   return DEAD_STATES.includes(stat.state);
 }
 
+/** The `btime` of a `/proc/stat` text; `null` when it holds none. */
+export function bootTimeEpochSecondsOfKernelStatistics(kernelStatisticsText: string): number | null {
+  const seconds = Number(BOOT_TIME_LINE_PATTERN.exec(kernelStatisticsText)?.[1] ?? Number.NaN);
+  return Number.isSafeInteger(seconds) ? seconds : null;
+}
+
 export function createLinuxProcessIdentity(files: LinuxProcessFiles): ProcessIdentityReader {
   function bootIdentity(): string | null {
     return files.fileText(BOOT_IDENTITY_PATH)?.trim() || null;
+  }
+
+  function bootStartedAtEpochSeconds(): number | null {
+    const kernelStatisticsText = files.fileText(KERNEL_STATISTICS_PATH);
+    return kernelStatisticsText === null ? null : bootTimeEpochSecondsOfKernelStatistics(kernelStatisticsText);
   }
 
   function identityOf(processId: number): ProcessIdentity | null {
@@ -110,6 +125,6 @@ export function createLinuxProcessIdentity(files: LinuxProcessFiles): ProcessIde
   }
 
   return Object.freeze({
-    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable, processStateSaysGone
+    identityOf, identitySourcesOf, bootIdentity, bootStartedAtEpochSeconds, groupMembersOf, processTable, processStateSaysGone
   });
 }

@@ -71,6 +71,9 @@ const FAKE_INIT_PROCESS_ID = 1;
 const FAKE_PROCESS_ID_ARGUMENT_INDEX = 4;
 const FAKE_STAT_PATTERN = /^\/proc\/(\d+)\/stat$/;
 const FAKE_BOOT_IDENTITY_PATH = '/proc/sys/kernel/random/boot_id';
+const FAKE_KERNEL_STATISTICS_PATH = '/proc/stat';
+const FAKE_BOOT_START_EPOCH_SECONDS = 1793150000;
+const MILLISECONDS_PER_SECOND = 1000;
 
 function noSuchProcess(): Error {
   return Object.assign(new Error('example ESRCH'), { code: 'ESRCH' });
@@ -81,6 +84,7 @@ const FAKE_DARWIN: FakePlatform = {
   memberStamp: 'Wed Oct 28 01:51:26 2026',
   readerOver:  (table) => createDarwinProcessIdentity({
     outputOfProgram: (argv) => {
+      if (argv.includes('kern.boottime')) return `{ sec = ${FAKE_BOOT_START_EPOCH_SECONDS}, usec = 0 } Wed Oct 28 01:13:20 2026`;
       if (argv[0] === '/usr/sbin/sysctl') return FAKE_BOOT;
       if (argv.includes('ppid=')) {
         return [...table].map(([processId, { parentId, groupId, startStamp }]) => ` ${processId} ${parentId} ${groupId} Ss ${startStamp}`).join('\n');
@@ -101,6 +105,7 @@ const FAKE_LINUX: FakePlatform = {
   readerOver:  (table) => createLinuxProcessIdentity({
     fileText: (path) => {
       if (path === FAKE_BOOT_IDENTITY_PATH) return `${FAKE_BOOT}\n`;
+      if (path === FAKE_KERNEL_STATISTICS_PATH) return `ctxt 67890\nbtime ${FAKE_BOOT_START_EPOCH_SECONDS}\nprocesses 4242\n`;
       const processId = Number(FAKE_STAT_PATTERN.exec(path)?.[1]);
       const fakeProcess = table.get(processId);
       return fakeProcess === undefined ? null : fakeStatTextOf(processId, fakeProcess);
@@ -308,6 +313,15 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
       expect(supervision.stopProcess(tree.leader.processId, 'force')).toEqual({ verdict: 'gone' });
       expect(supervision.stopTree(tree.leader, 'force')).toEqual({ verdict: 'signalled' });
       await untilGone(tree, tree.memberId);
+    },
+  },
+  {
+    claim: 'the boot started at a whole epoch second before now',
+    check: ({ supervision }) => {
+      const bootStart = supervision.bootStartedAtEpochSeconds();
+      expect(Number.isSafeInteger(bootStart)).toBe(true);
+      expect(bootStart ?? Number.POSITIVE_INFINITY).toBeLessThan(Math.floor(Date.now() / MILLISECONDS_PER_SECOND));
+      expect(bootStart ?? 0).toBeGreaterThan(0);
     },
   },
   {
@@ -578,6 +592,7 @@ describe('a platform with no adapter', () => {
     expect(unsupported.treeMembersOf(leader)).toBeNull();
     expect(unsupported.stopTree(leader, 'force')).toEqual(refusal);
     expect(unsupported.stopProcess(leader.processId, 'ask')).toEqual(refusal);
+    expect(unsupported.bootStartedAtEpochSeconds()).toBeNull();
   });
 
   test('the selector answers an unknown platform with that refusal and the native platform with an identity', () => {

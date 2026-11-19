@@ -1,5 +1,5 @@
 /**
- * Reads a process's identity and its group's members through `/bin/ps` and the boot through `sysctl`, over injected primitives. The start
+ * Reads a process's identity and its group's members through `/bin/ps` and the boot and its start through `sysctl`, over injected primitives. The start
  * stamp is the decimal text of the epoch seconds `ps` reports.
  */
 import type { GroupMember, ProcessIdentityReader, ProcessTableEntry } from './PosixProcessGroups.ts';
@@ -13,6 +13,7 @@ export interface ProcessIdentityPrimitives {
 const PROCESS_STATUS_PATH       = '/bin/ps';
 const SYSTEM_CONTROL_PATH       = '/usr/sbin/sysctl';
 const DARWIN_BOOT_IDENTITY_NAME = 'kern.bootsessionuuid';
+const DARWIN_BOOT_TIME_NAME     = 'kern.boottime';
 
 // The start is read in UTC under the C locale, so ps prints the same English stamp whatever the caller's TZ or language.
 const STAMP_ENVIRONMENT = { TZ: 'UTC', LC_ALL: 'C' };
@@ -31,6 +32,15 @@ const PROCESS_LISTING_LINE_PATTERN = /^\s*(\d+)\s+(\d+)\s+(.+)$/;
 const PROCESS_TABLE_LINE_PATTERN = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s*(.*)$/;
 const ZOMBIE_STATE_PREFIX = 'Z';
 
+// `sysctl -n kern.boottime`: `{ sec = 1763370000, usec = 0 } Mon Nov 17 09:00:00 2025`, of which the seconds are read.
+const BOOT_TIME_PATTERN = /^\{\s*sec\s*=\s*(\d+),/;
+
+/** The seconds of a `kern.boottime` text; `null` when it is not one. */
+export function bootTimeEpochSecondsOf(bootTimeText: string): number | null {
+  const seconds = Number(BOOT_TIME_PATTERN.exec(bootTimeText.trim())?.[1] ?? Number.NaN);
+  return Number.isSafeInteger(seconds) ? seconds : null;
+}
+
 /** A `ps -o lstart` stamp printed in UTC, read as epoch seconds; `null` when it is not one. */
 export function startEpochSecondsOf(utcStartStamp: string): number | null {
   const match = START_STAMP_PATTERN.exec(utcStartStamp.trim());
@@ -47,6 +57,11 @@ export function createDarwinProcessIdentity(primitives: ProcessIdentityPrimitive
 
   function bootIdentity(): string | null {
     return trimmedOutputOf([SYSTEM_CONTROL_PATH, '-n', DARWIN_BOOT_IDENTITY_NAME]) || null;
+  }
+
+  function bootStartedAtEpochSeconds(): number | null {
+    const bootTimeText = trimmedOutputOf([SYSTEM_CONTROL_PATH, '-n', DARWIN_BOOT_TIME_NAME]);
+    return bootTimeText === null ? null : bootTimeEpochSecondsOf(bootTimeText);
   }
 
   function identityOf(processId: number): ProcessIdentity | null {
@@ -96,6 +111,6 @@ export function createDarwinProcessIdentity(primitives: ProcessIdentityPrimitive
   }
 
   return Object.freeze({
-    identityOf, identitySourcesOf, bootIdentity, groupMembersOf, processTable
+    identityOf, identitySourcesOf, bootIdentity, bootStartedAtEpochSeconds, groupMembersOf, processTable
   });
 }

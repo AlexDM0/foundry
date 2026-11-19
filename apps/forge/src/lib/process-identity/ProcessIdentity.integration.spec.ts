@@ -12,7 +12,7 @@ import { recordAnswer }                                 from '../../testing/Reco
 import { asRecordedProcessAnswer, PROCESS_CALL_SHAPES } from '../../testing/RecordedProcessTable.ts';
 import { testWhenNotRunningAsRoot, testWhenOnMacOs }    from '../../testing/ToolGuard.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }       from '../../testing/WaitUntil.ts';
-import { startEpochSecondsOf }                          from './DarwinProcessIdentity.ts';
+import { bootTimeEpochSecondsOf, startEpochSecondsOf }  from './DarwinProcessIdentity.ts';
 import {
   processIsGone,
   sameProcess,
@@ -63,6 +63,13 @@ describe('reading an identity', () => {
     expect(startEpochSecondsOf('')).toBeNull();
   });
 
+  test('a kern.boottime text reads as its seconds, and anything else as null', () => {
+    expect(bootTimeEpochSecondsOf('{ sec = 1793150000, usec = 125000 } Wed Oct 28 01:13:20 2026')).toBe(1793150000);
+    expect(bootTimeEpochSecondsOf('Wed Oct 28 01:13:20 2026')).toBeNull();
+    expect(bootTimeEpochSecondsOf('{ sec = 99999999999999999999, usec = 0 }')).toBeNull();
+    expect(bootTimeEpochSecondsOf('')).toBeNull();
+  });
+
   test('this process has an identity: its pid, a whole start second and a boot identity', () => {
     const identity = identityOrThrow(process.pid);
     expect(identity.processId).toBe(process.pid);
@@ -100,6 +107,19 @@ describe('reading an identity', () => {
     expect(processIsGone(0)).toBe(false);
     expect(processIsGone(-1)).toBe(false);
     expect(processIsGone(process.pid)).toBe(false);
+  });
+});
+
+describe('the boot\'s start', () => {
+  test('is a whole epoch second before now, and is recorded for the replayed table', () => {
+    const bootStart = supervision.bootStartedAtEpochSeconds();
+    recordAnswer(PROCESS_CALL_SHAPES.BOOT_START, bootStart);
+    expect(Number.isSafeInteger(bootStart)).toBe(true);
+    expect(bootStart ?? Number.POSITIVE_INFINITY).toBeLessThan(Math.floor(Date.now() / MILLISECONDS_PER_SECOND));
+  });
+
+  testWhenOnMacOs('comes no later than this process\'s own start', () => {
+    expect(supervision.bootStartedAtEpochSeconds() ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(Number(identityOrThrow(process.pid).startStamp));
   });
 });
 

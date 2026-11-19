@@ -29,16 +29,18 @@ export interface ProcessTableEntry extends ProcessTreeMember {
 }
 
 export interface ProcessIdentityReader {
-  readonly identityOf:            (processId: number) => ProcessIdentity | null;
+  readonly identityOf:                (processId: number) => ProcessIdentity | null;
   /** Where the process's start and boot are read from, for a report that they could not be. */
-  readonly identitySourcesOf:     (processId: number) => readonly string[];
-  readonly bootIdentity:          () => string | null;
+  readonly identitySourcesOf:         (processId: number) => readonly string[];
+  readonly bootIdentity:              () => string | null;
+  /** The epoch second the current boot started; `null` when it cannot be read. */
+  readonly bootStartedAtEpochSeconds: () => number | null;
   /** Every process in the group; `null` when the table cannot be read or a member's start is not one. */
-  readonly groupMembersOf:        (processGroupId: number) => readonly GroupMember[] | null;
+  readonly groupMembersOf:            (processGroupId: number) => readonly GroupMember[] | null;
   /** Every process that has not died, zombies left out; `null` when the table cannot be read or a start is not one. */
-  readonly processTable:          () => readonly ProcessTableEntry[] | null;
+  readonly processTable:              () => readonly ProcessTableEntry[] | null;
   /** Whether the table holds the process in a dead state, such as a zombie a signal probe still reaches; `null` when the table cannot tell. */
-  readonly processStateSaysGone?: (processId: number) => boolean | null;
+  readonly processStateSaysGone?:     (processId: number) => boolean | null;
 }
 
 export interface ProcessSignalPrimitive {
@@ -167,17 +169,18 @@ export function createPosixProcessGroups(reader: ProcessIdentityReader, primitiv
   }
 
   return Object.freeze({
-    identityOf:           reader.identityOf,
-    identitySourcesOf:    reader.identitySourcesOf,
+    identityOf:                reader.identityOf,
+    identitySourcesOf:         reader.identitySourcesOf,
     sameProcess,
     startedBefore,
     processIsGone,
     treeMembersOf,
     stopTree,
     stopProcess,
-    spawnOptionsFor:      () => ({ detached: true }),
-    endOf:                childEndOf,
-    fallbackStopIsForced: false,
-    stopSignals:          ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
+    spawnOptionsFor:           () => ({ detached: true }),
+    endOf:                     childEndOf,
+    fallbackStopIsForced:      false,
+    stopSignals:               ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
+    bootStartedAtEpochSeconds: reader.bootStartedAtEpochSeconds,
   });
 }

@@ -1,5 +1,5 @@
 {
-  "retake": "Taken at 473e339d by stubbing Bun.spawnSync and process.kill around the extraction-free src/lib/process-identity/ProcessIdentity.ts through src/testing/ProcessWorldReplay.ts; identity answers then stops, in scenario order. Never retaken from the port itself.",
+  "retake": "Taken at 473e339d by stubbing Bun.spawnSync and process.kill around the extraction-free src/lib/process-identity/ProcessIdentity.ts through src/testing/ProcessWorldReplay.ts; identity answers then stops, in scenario order. Never retaken from the port itself. The bootStarts section was added after it by hand, as a deliberate change: no code read the boot's start before the port had it.",
   "identities": [
     {
       "name": "a live process",
@@ -764,6 +764,80 @@
             "pgid=",
             "-o",
             "lstart="
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    }
+  ],
+  "bootStarts": [
+    {
+      "name": "a boot time as sysctl prints it",
+      "answer": 1793150000,
+      "programs": [
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.boottime"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a boot time that cannot be read",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.boottime"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a boot time in another shape",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.boottime"
+          ],
+          "environment": {
+            "TZ": "UTC",
+            "LC_ALL": "C"
+          }
+        }
+      ],
+      "signalsSent": []
+    },
+    {
+      "name": "a boot time beyond a safe whole number",
+      "answer": null,
+      "programs": [
+        {
+          "argv": [
+            "/usr/sbin/sysctl",
+            "-n",
+            "kern.boottime"
           ],
           "environment": {
             "TZ": "UTC",

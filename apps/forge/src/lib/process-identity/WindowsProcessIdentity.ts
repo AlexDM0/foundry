@@ -45,7 +45,7 @@ export function createWindowsProcessIdentity(
   kernel: WindowsKernelProcessApi,
   primitives: ProcessIdentityPrimitives,
   systemTools: WindowsSystemTools | null,
-): Pick<ProcessSupervision, 'identityOf' | 'identitySourcesOf'> {
+): Pick<ProcessSupervision, 'identityOf' | 'identitySourcesOf' | 'bootStartedAtEpochSeconds'> {
   let bootIdentityOfThisProcess: string | null = null;
 
   function readBootIdentity(): string {
@@ -67,5 +67,6 @@ export function createWindowsProcessIdentity(
     return [`${WINDOWS_PROCESS_IDENTITY_ROUTE} GetProcessTimes ${processId}`, WINDOWS_BOOT_IDENTITY_SOURCE];
   }
 
-  return Object.freeze({ identityOf, identitySourcesOf });
+  // No read of the boot's start exists here yet, so the rule that needs it is off on Windows.
+  return Object.freeze({ identityOf, identitySourcesOf, bootStartedAtEpochSeconds: () => null });
 }

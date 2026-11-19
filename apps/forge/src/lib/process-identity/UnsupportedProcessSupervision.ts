@@ -13,17 +13,18 @@ import type { ProcessSupervision } from './ProcessSupervision.ts';
 export function createUnsupportedProcessSupervision(platform: string): ProcessSupervision {
   const refusal = { verdict: 'refused', reason: `no process supervision exists for the platform ${platform}` } as const;
   return Object.freeze({
-    identityOf:           () => null,
-    identitySourcesOf:    () => [],
+    identityOf:                () => null,
+    identitySourcesOf:         () => [],
     sameProcess,
     startedBefore,
     processIsGone,
-    treeMembersOf:        () => null,
-    stopTree:             () => refusal,
-    stopProcess:          () => refusal,
-    spawnOptionsFor:      () => ({ detached: false }),
-    endOf:                childEndOf,
-    fallbackStopIsForced: true,
-    stopSignals:          ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
+    treeMembersOf:             () => null,
+    stopTree:                  () => refusal,
+    stopProcess:               () => refusal,
+    spawnOptionsFor:           () => ({ detached: false }),
+    endOf:                     childEndOf,
+    fallbackStopIsForced:      true,
+    stopSignals:               ['SIGTERM', 'SIGINT', 'SIGHUP'] as const,
+    bootStartedAtEpochSeconds: () => null,
   });
 }
