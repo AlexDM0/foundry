@@ -163,7 +163,7 @@ function textOf(path: string): string | null {
   }
 }
 
-function talosRecordAt(boardFolder: string, startNumber: number): TalosRecord | null {
+export function talosRecordAt(boardFolder: string, startNumber: number): TalosRecord | null {
   const text = textOf(talosRecordPathOf(boardFolder, startNumber));
   const reading = text === null ? null : talosRecordOf(text);
   return reading?.verdict === 'read' ? reading.record : null;
@@ -182,7 +182,7 @@ function childRecordAt(boardFolder: string, childFolder: string, instance: numbe
 }
 
 /** The process the record names, while it still is that process; a reused process id reads as gone. */
-function runningIdentityOf({ processSupervision }: PlatformPorts, recorded: ProcessIdentity | null): ProcessIdentity | null {
+export function runningIdentityOf({ processSupervision }: PlatformPorts, recorded: ProcessIdentity | null): ProcessIdentity | null {
   if (recorded === null) return null;
   const current = processSupervision.identityOf(recorded.processId);
   return current !== null && processSupervision.sameProcess(current, recorded) ? recorded : null;
