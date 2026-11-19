@@ -78,20 +78,21 @@ testWhenSandboxExecApplies('a sandboxed Airlock agent writes every path its merg
   mkdirSync(worktree, { recursive: true });
   recordedGit.enterFlowStage('worktree made', repository);
   const facts = WorkerProfiles.sandboxFactsOf({
-    repositoryRoot:       repository,
-    dataFolder:           join(repository, '.forge'),
-    monitorFolder:        join(repository, 'monitor'),
-    homeDirectory:        join(repository, 'home'),
+    repositoryRoot:                repository,
+    dataFolder:                    join(repository, '.forge'),
+    monitorFolder:                 join(repository, 'monitor'),
+    homeDirectory:                 join(repository, 'home'),
     worktree,
-    ownBranch:            TICKET_BRANCH,
+    ownBranch:                     TICKET_BRANCH,
     mainLine,
-    branchNames:          branchNamesOf(null),
-    hatchDirectory:       join(repository, 'hatch'),
-    executableSearchPath: [],
-    cacheFolderStyle:     dataFoldersFor('darwin', ''),
-    sandboxDenyShape:     'path-rules',
-    credentialPaths:      [join(repository, 'home', '.ssh')],
-    guardCommand:         null,
+    branchNames:                   branchNamesOf(null),
+    hatchDirectory:                join(repository, 'hatch'),
+    executableSearchPath:          [],
+    cacheFolderStyle:              dataFoldersFor('darwin', ''),
+    sandboxDenyShape:              'path-rules',
+    credentialPaths:               [join(repository, 'home', '.ssh')],
+    agentConfigurationFolderNames: ['.claude'],
+    guardCommand:                  null,
   }, null);
   const adminFolder = plantMergeWaitingLayout(facts.commonGitDirectory, mainLine);
   const profile = WorkerProfiles.profileOf('builder', facts, NO_TOOLCHAIN);

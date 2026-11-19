@@ -23,6 +23,7 @@ import type { Job }                                                   from '../.
 import type { Pipeline }                                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { Board }                                                 from '../../lib/tracker-model/Board.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                                           from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                                     from '../../testing/TalosChildReadings.ts';
@@ -59,7 +60,7 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
     platformPorts: nativePlatformPorts(),
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     workspace:     { rootDirectory, trackerDirectory },
-    agentAdapter:  { sandboxDenyShape },
+    agentAdapter:  { ...fakeAgentAdapter(), sandboxDenyShape },
     log:           () => undefined,
   } as unknown as JobLaunchContext;
   const worktree = JobLaunch.worktreeOf(context.workspace, job);

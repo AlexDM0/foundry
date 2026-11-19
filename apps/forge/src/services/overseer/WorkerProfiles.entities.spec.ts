@@ -25,24 +25,25 @@ import {
 const WORKTREE = '/example/repository/.forge-worktrees/ticket-007';
 
 const FACTS: SandboxFacts = {
-  dataFolder:                '/example/repository/.forge',
-  monitorFolder:             '/home/alex-example/.forge-monitor',
-  homeDirectory:             '/example/home/alex-example',
-  worktree:                  WORKTREE,
-  commonGitDirectory:        '/example/repository/.git',
-  targetBranches:            ['main'],
-  otherTicketBranches:       [],
-  otherWorktreeAdminFolders: [],
-  hatchDirectory:            '/example/repository/.forge-worktrees/hatch/J4',
-  repositoryRoot:            '/example/repository',
-  gitHooksDirectory:         '/example/repository/.githooks',
-  commitSigning:             { kind: 'unsigned' },
-  credentialPaths:           ['/home/alex-example/.ssh'],
-  gpgHomeDirectory:          '/home/alex-example/.gnupg',
-  executableSearchPath:      [],
-  cacheFolderStyle:          dataFoldersFor('linux', ''),
-  sandboxDenyShape:          'path-rules',
-  guardCommand:              null,
+  dataFolder:                    '/example/repository/.forge',
+  monitorFolder:                 '/home/alex-example/.forge-monitor',
+  homeDirectory:                 '/example/home/alex-example',
+  worktree:                      WORKTREE,
+  commonGitDirectory:            '/example/repository/.git',
+  targetBranches:                ['main'],
+  otherTicketBranches:           [],
+  otherWorktreeAdminFolders:     [],
+  hatchDirectory:                '/example/repository/.forge-worktrees/hatch/J4',
+  repositoryRoot:                '/example/repository',
+  gitHooksDirectory:             '/example/repository/.githooks',
+  commitSigning:                 { kind: 'unsigned' },
+  credentialPaths:               ['/home/alex-example/.ssh'],
+  gpgHomeDirectory:              '/home/alex-example/.gnupg',
+  executableSearchPath:          [],
+  cacheFolderStyle:              dataFoldersFor('linux', ''),
+  sandboxDenyShape:              'path-rules',
+  agentConfigurationFolderNames: ['.claude'],
+  guardCommand:                  null,
 };
 
 const NO_PHASES = { build: [], review: [], merge: [] };
@@ -149,7 +150,9 @@ describe('E7: the .claude folder of every entity home', () => {
   });
 
   test('is made before a launch under mount-points, and a home whose folder cannot be made refuses the launch', () => {
-    const facts = { worktree: WORKTREE, sandboxDenyShape: 'mount-points' as const, entityHomes: PIPELINE.entities?.['gaia']?.home ?? [] };
+    const facts = {
+      worktree: WORKTREE, sandboxDenyShape: 'mount-points' as const, agentConfigurationFolderNames: ['.claude'], entityHomes: PIPELINE.entities?.['gaia']?.home ?? []
+    };
     expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(facts)).toEqual([`${WORKTREE}/.claude`, `${WORKTREE}/apps/gaia/.claude`]);
     const unmakable = `${WORKTREE}/apps/gaia/.claude`;
     expect(WorkerProfiles.unmadeDeniedRootRefusalOf(facts, { makeFolder: (path) => path !== unmakable })).toContain(unmakable);

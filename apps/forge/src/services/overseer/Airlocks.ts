@@ -50,6 +50,7 @@ import type { AirlockLimits }                                                fro
 import { RED_HANDOFF_RESUME_CALL_BUDGET }                                    from '../../shared/constants/OverseerLimits.ts';
 import { EntityFoldersUtil }                                                 from '../../shared/utils/EntityFoldersUtil.ts';
 import { entityAssignmentRequestOf }                                         from '../control/EntityAssignmentRequest.ts';
+import type { AgentNaming }                                                  from '../lifecycle/Customs.ts';
 import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
 import {
   MergeRun,
@@ -112,6 +113,8 @@ export interface AirlocksContext {
    * board stops.
    */
   mergedTreeGateOf:       MergedTreeGateAsk;
+  /** The agent's configuration names, which a resolution may not change, and its attribution. */
+  agentNaming:            AgentNaming;
   /** After the hold its outcome settled, the run's kept outcome goes, so the next gate of the same tree runs again. */
   mergedTreeGateSettled:  (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, gate: MergedTreeGate) => void;
   /** Stops every merged-tree gate still running in the worktree and awaits its end: the slot that freed it no longer waits on its outcome. */
@@ -1068,7 +1071,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     // Only a crossing ticket's conflict is split by owner, so only its resolution asks git whether the merge was left open.
     if (landing !== null && MergeRun.mergeIsInProgress(worktree)) return handOnTheOpenMerge(job, agent, landing, resolvedFileList, notes);
     const filesResolvedBefore = filesResolvedBeforeOf(job);
-    if (isResolving && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), [...filesResolvedBefore, ...resolvedFileList])) {
+    if (isResolving && !MergeRun.resolutionIsSound(worktree, MergeRun.sidesOf(job, slotOf(job)), [...filesResolvedBefore, ...resolvedFileList], context.agentNaming)) {
       await refuseMerge(job, MERGE_REFUSED_CAUSES.unresolved, notes);
       return true;
     }
@@ -1134,7 +1137,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const { projectPrefix } = context;
     if (projectPrefix === undefined || projectPrefix === '') return false;
     const reach = await context.hold((hold) => hold.board.pipeline()?.reach ?? []);
-    const verdict = MergeRun.resolutionScopeVerdictOf(worktree, MergeRun.sidesOf(job, slotOf(job)), resolvedFiles, { projectPrefix, reach });
+    const verdict = MergeRun.resolutionScopeVerdictOf(worktree, MergeRun.sidesOf(job, slotOf(job)), resolvedFiles, { projectPrefix, reach }, context.agentNaming);
     if (verdict.verdict === 'in-scope') return false;
     await refuseMerge(job, verdict.reason, `${refusedWork} was refused: ${verdict.reason} ${verdict.facts.join(', ')}`.trim());
     return true;
@@ -1159,7 +1162,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   async function settleConflictReReview(job: Readonly<Job>, agent: Readonly<Job>, report: unknown): Promise<boolean> {
     const worktree = slotWorktreeOf(job);
     const resolutionCommit = await context.hold((hold) => resolutionCommitOf(hold.board, job));
-    const verdict = MergeRun.reReviewVerdictOf(worktree, resolutionCommit, report);
+    const verdict = MergeRun.reReviewVerdictOf(worktree, resolutionCommit, report, context.agentNaming);
     if (verdict.verdict === 'customs-refused') {
       const cause = verdict.reason === 'report-invalid' ? MERGE_REFUSED_CAUSES.noReport : MERGE_REFUSED_CAUSES.reReviewFailed;
       await refuseMerge(job, cause, `The conflict re-review of job ${agent.id} was refused: ${verdict.reason} ${verdict.facts.join(', ')}`.trim());

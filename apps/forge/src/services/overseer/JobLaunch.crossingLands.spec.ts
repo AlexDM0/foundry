@@ -27,6 +27,7 @@ import {
   entityForgePipelineTextOf,
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
+import { fakeAgentAdapter }                                                          from '../../testing/FakeAgentAdapter.ts';
 import { stepIn }                                                                    from '../../testing/RecordedAirlockGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }                    from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                            from '../../testing/ScratchWorkspace.ts';
@@ -96,6 +97,7 @@ function contextOf(repository: string): JobLaunchContext {
     branchNames:       branchNamesOf(null),
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    agentAdapter:      fakeAgentAdapter(),
     decisionWordingOf: () => ({ questions: [], context: '' }),
   } as unknown as JobLaunchContext;
 }

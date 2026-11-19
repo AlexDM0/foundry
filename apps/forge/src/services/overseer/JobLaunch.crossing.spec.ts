@@ -57,6 +57,7 @@ import {
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { fakeAgentAdapter }                                 from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                              from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
@@ -143,6 +144,7 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
     boardChildren:     talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+    agentAdapter:      fakeAgentAdapter(),
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
   return {

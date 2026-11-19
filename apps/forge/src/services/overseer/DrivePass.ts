@@ -915,7 +915,11 @@ async function launchAgentChild(
     const unmadeRoot = AirlockSandboxIncident.unmadeRootOf(
       job.id,
       {
-        worktree: place.checkout, sandboxDenyShape: agentAdapter.sandboxDenyShape, projectPrefix: location.projectPrefix, ...entityHomeFacts
+        worktree:                      place.checkout,
+        sandboxDenyShape:              agentAdapter.sandboxDenyShape,
+        agentConfigurationFolderNames: agentAdapter.configurationNames.folderNames,
+        projectPrefix:                 location.projectPrefix,
+        ...entityHomeFacts,
       },
       request.folderMaker,
     );
@@ -1133,26 +1137,27 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   /**
    * A gate step the Overseer runs itself, under the profile a gate line child gets, its own network and `writes`, in `worktreePath`; `pipeline`
-   * names the entity homes whose `.claude` it denies.
+   * names the entity homes whose configuration folder it denies.
    */
   function overseerGateLineOf(
     worktreePath: string, profilePath: string, pipeline: Readonly<Pipeline> | null, commandArguments: readonly string[], confinement: GateConfinement
   ): ConfinedLine {
     const sandboxFacts = WorkerProfiles.sandboxFactsOf({
-      repositoryRoot:   projectLocation.repositoryRoot,
-      projectPrefix:    projectLocation.projectPrefix,
-      dataFolder:       request.workspace.trackerDirectory,
-      monitorFolder:    request.monitorFolder,
-      homeDirectory:    request.homeDirectory,
-      worktree:         worktreePath,
-      ownBranch:        '',
-      mainLine:         request.mainLine,
-      branchNames:      request.branchNames,
-      hatchDirectory:   '',
-      sandboxDenyShape: request.agentAdapter.sandboxDenyShape,
-      credentialPaths:  request.agentAdapter.credentialPathsOf(request.homeDirectory),
+      repositoryRoot:                projectLocation.repositoryRoot,
+      projectPrefix:                 projectLocation.projectPrefix,
+      dataFolder:                    request.workspace.trackerDirectory,
+      monitorFolder:                 request.monitorFolder,
+      homeDirectory:                 request.homeDirectory,
+      worktree:                      worktreePath,
+      ownBranch:                     '',
+      mainLine:                      request.mainLine,
+      branchNames:                   request.branchNames,
+      hatchDirectory:                '',
+      sandboxDenyShape:              request.agentAdapter.sandboxDenyShape,
+      credentialPaths:               request.agentAdapter.credentialPathsOf(request.homeDirectory),
+      agentConfigurationFolderNames: request.agentAdapter.configurationNames.folderNames,
       // A gate step runs no agent session, so no network guard hook.
-      guardCommand:     null,
+      guardCommand:                  null,
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const facts = { ...sandboxFacts, ...WorkerProfiles.entityFactsOf(pipeline) };
@@ -1268,6 +1273,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     worktreesRoot,
     worktreeOf:     (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
     limits:         AIRLOCK_LIMITS,
+    agentNaming:    request.agentAdapter,
     get refDeniesHold() {
       return LineSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
@@ -1402,6 +1408,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           branchNames:   request.branchNames,
           mainLine:      request.mainLine,
           pathStyle:     platformPorts.dataFolders,
+          agentNaming:   request.agentAdapter,
           ...(sharedRepository === null ? {} : { sharedRepository }),
         }, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);

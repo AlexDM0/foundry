@@ -21,6 +21,7 @@ import { type BranchNames, branchNamesOf }                                    fr
 import { WorktreesFolder }                                                    from '../../shared/WorktreesFolder.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                                        from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                                                   from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                                     from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                     from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                          from '../../testing/ToolGuard.ts';
@@ -92,6 +93,7 @@ function forgeTurnEndContext(): TurnEndContext {
     branchNames:      fixtureBranchNamesOf(FORGE.namespace),
     mainLine:         TWO_TRACKER_MAIN_LINE,
     pathStyle:        { pathModule: path, foldsCase: false },
+    agentNaming:      fakeAgentAdapter(),
     sharedRepository: {
       trackerId: 'forge-tracker-example', files: landingFiles(), now: () => new Date(AT), lockHolderIsGone: () => false
     },
@@ -105,6 +107,7 @@ function rootTurnEndContext(): TurnEndContext {
     branchNames:   branchNamesOf(null),
     mainLine:      TWO_TRACKER_MAIN_LINE,
     pathStyle:     { pathModule: path, foldsCase: false },
+    agentNaming:   fakeAgentAdapter(),
   };
 }
 
@@ -133,6 +136,7 @@ function movedRefsAtTurnEnd(context: TurnEndContext, launchSnapshot: LaunchSnaps
     launchSnapshot,
     refMovesAllowed:  PipelineAgentSessions.turnEndRefMovesAllowedOf(context, board, job),
     pathStyle:        context.pathStyle,
+    agentNaming:      context.agentNaming,
   });
   return verdict.verdict === 'refused' ? verdict.facts : null;
 }

@@ -3,8 +3,9 @@
  * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
  * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
  * one standing reply, and the lines Talos sends, against the ones the probes recorded. The adapter names its own variables and credentials
- * and reads its config folder variable through the reader it is handed, and words the repair of a refused program. It answers what the
- * core counts on: live answers, a resume found by its folder, and the line that runs an instruction bundle.
+ * and reads its config folder variable through the reader it is handed, words the repair of a refused program, and names its configuration
+ * paths and its commit attribution. It answers what the core counts on: live answers, a resume found by its folder, and the line that runs
+ * an instruction bundle.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -639,6 +640,19 @@ describe('what the core may count on', () => {
   test('an instruction bundle runs from a slash command naming it, its arguments after a space, with no space left over', () => {
     expect(CLAUDE_CODE_ADAPTER.instructionBundleLineOf('example-skill', 'Alex Example asks for a basket')).toBe('/example-skill Alex Example asks for a basket');
     expect(CLAUDE_CODE_ADAPTER.instructionBundleLineOf('example-skill', '')).toBe('/example-skill');
+  });
+});
+
+describe('the configuration paths and the attribution', () => {
+  test('the agent\'s configuration is the .claude folder and the .mcp.json file, which no job writes and Customs refuses', () => {
+    expect(CLAUDE_CODE_ADAPTER.configurationNames).toEqual({ folderNames: ['.claude'], fileNames: ['.mcp.json'] });
+  });
+
+  test('the attribution is the Co-Authored-By trailer naming Claude, in any case, and no other trailer', () => {
+    const attributed = (message: string) => CLAUDE_CODE_ADAPTER.attributionPatterns.some((pattern) => pattern.test(message));
+    expect(CLAUDE_CODE_ADAPTER.attributionPatterns.map(String)).toEqual([String(/^Co-Authored-By:\s*Claude/im)]);
+    expect(attributed('Build the example\n\nco-authored-by: claude <noreply@example.com>')).toBe(true);
+    expect(attributed('Build the example\n\nCo-Authored-By: Example Person <person@example.com>')).toBe(false);
   });
 });
 

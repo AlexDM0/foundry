@@ -11,8 +11,10 @@ import { expect, test } from 'bun:test';
 import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
 import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
 import { TicketBodyHashUtil }          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
 import {
   agentConfigPathsAmong,
+  commitMessageIsAttributed,
   CUSTOMS_CHECKS,
   type CustomsSubject,
   definitionFilePatternExpressionOf,
@@ -25,6 +27,10 @@ import {
 const AT = '2026-10-28T10:00:00+01:00';
 const TICKET_BODY = '## Report\nExample report.\n\n## Acceptance\nA1. The example page loads.\n';
 const EXAMPLE_COMMIT = 'example-commit';
+/** The fake agent's naming, which is Claude Code's. */
+const AGENT_NAMING = fakeAgentAdapter();
+const PLANTED_CONFIGURATION_NAMES = { folderNames: ['.planted-agent'], fileNames: ['planted-agent.toml'] };
+const PLANTED_ATTRIBUTION_PATTERNS = [/^Planted-Agent-Commit:/im];
 
 function builderReport(): Record<string, unknown> {
   return {
@@ -52,6 +58,7 @@ function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject
     refMovesAllowed:  {
       ownBranch: 'example-branch', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
+    agentNaming: AGENT_NAMING,
     ...overrides,
   };
 }
@@ -175,5 +182,23 @@ test.each([
   ],
   ['an honest different case outside protected names', ['Src/Example.ts', 'Docs/Claude.md', 'example.mcp.json'], null, []],
 ] as const)('agent configuration among git paths: %s', (_case, gitPaths, hooksFolderGitPath, expected) => {
-  expect(agentConfigPathsAmong(gitPaths, hooksFolderGitPath)).toEqual([...expected]);
+  expect(agentConfigPathsAmong(gitPaths, AGENT_NAMING.configurationNames, hooksFolderGitPath)).toEqual([...expected]);
+});
+
+test('the agent configuration is the names the adapter hands: a planted folder and file, at the root, and at any depth for a project tracker', () => {
+  const changed = ['.planted-agent/settings.toml', 'Planted-Agent.TOML', 'apps/example/.planted-agent/rules.md', 'apps/example/planted-agent.toml'];
+  const lookAlikes = ['xplanted-agent/settings.toml', 'planted-agent.toml.bak', 'planted-agentxtoml', '.planted-agent', '.claude/settings.json', '.mcp.json'];
+
+  expect(agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null)).toEqual(changed.slice(0, 2));
+  expect(agentConfigPathsAmong([...changed, ...lookAlikes], PLANTED_CONFIGURATION_NAMES, null, 'apps/example')).toEqual(changed);
+});
+
+test('V7 refuses the attribution the adapter hands and forge\'s own "Generated with", and nothing the adapter does not name', () => {
+  const plantedNaming = { attributionPatterns: PLANTED_ATTRIBUTION_PATTERNS };
+
+  expect(commitMessageIsAttributed('Build the example\n\nPlanted-Agent-Commit: yes', plantedNaming)).toBe(true);
+  expect(commitMessageIsAttributed('Build the example\n\nGenerated with an example tool', plantedNaming)).toBe(true);
+  expect(commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', plantedNaming)).toBe(false);
+  expect(commitMessageIsAttributed('Build the example\n\nCo-Authored-By: Claude <noreply@example.com>', AGENT_NAMING)).toBe(true);
+  expect(commitMessageIsAttributed('Build the example', AGENT_NAMING)).toBe(false);
 });

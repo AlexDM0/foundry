@@ -37,24 +37,25 @@ import {
 } from './WorkerProfiles.ts';
 
 const FACTS: SandboxFacts = {
-  dataFolder:                '/example/repository/.forge',
-  monitorFolder:             '/home/alex-example/.forge-monitor',
-  homeDirectory:             '/home/alex-example',
-  worktree:                  '/example/repository/.forge-worktrees/ticket-007',
-  commonGitDirectory:        '/example/repository/.git',
-  targetBranches:            ['main', 'group-example'],
-  otherTicketBranches:       ['ticket-003', 'ticket-009'],
-  otherWorktreeAdminFolders: ['/example/repository/.git/worktrees/ticket-003'],
-  hatchDirectory:            '/example/repository/.forge-worktrees/hatch/J4',
-  repositoryRoot:            '/example/repository',
-  gitHooksDirectory:         '/example/repository/.githooks',
-  commitSigning:             { kind: 'unsigned' },
-  credentialPaths:           ['/home/alex-example/.ssh', '/home/alex-example/.aws'],
-  gpgHomeDirectory:          '/home/alex-example/.gnupg',
-  executableSearchPath:      [],
-  cacheFolderStyle:          dataFoldersFor('linux', ''),
-  sandboxDenyShape:          'path-rules',
-  guardCommand:              ['/example/bin/bun', '--no-env-file', '/example/tool/agent-progress.ts'],
+  dataFolder:                    '/example/repository/.forge',
+  monitorFolder:                 '/home/alex-example/.forge-monitor',
+  homeDirectory:                 '/home/alex-example',
+  worktree:                      '/example/repository/.forge-worktrees/ticket-007',
+  commonGitDirectory:            '/example/repository/.git',
+  targetBranches:                ['main', 'group-example'],
+  otherTicketBranches:           ['ticket-003', 'ticket-009'],
+  otherWorktreeAdminFolders:     ['/example/repository/.git/worktrees/ticket-003'],
+  hatchDirectory:                '/example/repository/.forge-worktrees/hatch/J4',
+  repositoryRoot:                '/example/repository',
+  gitHooksDirectory:             '/example/repository/.githooks',
+  commitSigning:                 { kind: 'unsigned' },
+  credentialPaths:               ['/home/alex-example/.ssh', '/home/alex-example/.aws'],
+  gpgHomeDirectory:              '/home/alex-example/.gnupg',
+  executableSearchPath:          [],
+  cacheFolderStyle:              dataFoldersFor('linux', ''),
+  sandboxDenyShape:              'path-rules',
+  agentConfigurationFolderNames: ['.claude'],
+  guardCommand:                  ['/example/bin/bun', '--no-env-file', '/example/tool/agent-progress.ts'],
 };
 
 /** A home no machine has, so resolving a cache folder under it changes nothing. */
@@ -346,13 +347,26 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
     try {
       const worktree = join(scratch, 'ticket-007');
       mkdirSync(worktree);
-      expect(WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree, sandboxDenyShape: 'mount-points' })).toBeNull();
+      const mountPointFacts = { worktree, sandboxDenyShape: 'mount-points', agentConfigurationFolderNames: ['.claude'] } as const;
+      expect(WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts)).toBeNull();
       expect(existsSync(join(worktree, '.claude'))).toBe(true);
-      const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf({ worktree, sandboxDenyShape: 'mount-points' }, { makeFolder: () => false });
+      const refusal = WorkerProfiles.unmadeDeniedRootRefusalOf(mountPointFacts, { makeFolder: () => false });
       expect(refusal).toBe(`the denied folder ${join(worktree, '.claude')} could not be made, so it would get no read-only mount`);
     } finally {
       removeScratchDirectory(scratch);
     }
+  });
+
+  test('denies the configuration folders the adapter names, at the worktree\'s root, the project\'s folder and every entity home', () => {
+    const plantedFacts: SandboxFacts = {
+      ...LINUX_FACTS, projectPrefix: 'apps/example', entityHomes: ['/apps/example-home'], agentConfigurationFolderNames: ['.planted-agent', '.planted-tool'],
+    };
+    const { worktree } = LINUX_FACTS;
+    const plantedFolders = ['.planted-agent', '.planted-tool'].flatMap((name) => ['', '/apps/example', '/apps/example-home'].map((home) => `${worktree}${home}/${name}`));
+
+    expect(WorkerProfiles.deniedRootsMadeBeforeLaunchOf(plantedFacts)).toEqual(plantedFolders);
+    expect(WorkerProfiles.fixedDeniedWritableRootsOf(plantedFacts)).toEqual(expect.arrayContaining(plantedFolders));
+    expect(WorkerProfiles.fixedDeniedWritableRootsOf(plantedFacts).filter((root) => root.includes('.claude'))).toEqual([]);
   });
 
   test('makes nothing under path-rules, where a deny names an absent path by its rule', () => {

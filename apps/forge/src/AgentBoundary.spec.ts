@@ -437,34 +437,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'replayed request opens nothing twice. */'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/services/lifecycle/Customs.ts: vendor-name: const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\\s*Claude/im, /Generated with/i];':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/lifecycle/Customs.ts: vendor-name: const AGENT_CONFIG_PATTERNS_AT_THE_ROOT: readonly RegExp[] = [/^\\.claude\\//, /^\\.mcp\\.json$/];':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/lifecycle/Customs.ts: vendor-name: /** A project tracker\'s sessions start below the root, where Claude Code also reads the project\'s own configuration. */':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/lifecycle/Customs.ts: vendor-name: const AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH: readonly RegExp[] = [/(^|\\/)\\.claude\\//, /(^|\\/)\\.mcp\\.json$/];':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/lifecycle/Customs.ts: vendor-name: * The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the '
-    + 'worktree; any case'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/lifecycle/Customs.ts: vendor-file-layout: * The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it '
-    + 'inside the worktree; any case'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/lifecycle/Customs.ts: vendor-name: /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree '
-    + 'hooks folder. */'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/lifecycle/Customs.ts: vendor-file-layout: /** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an '
-    + 'in-tree hooks folder. */'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/services/overseer/DrivePass.ts: vendor-name: /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/services/overseer/DrivePass.ts: vendor-name: | { kind: \'claude-md-block-committed\'; target: string }':
@@ -478,8 +450,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/services/overseer/DrivePass.ts: vendor-name: ...observation.targetsHoldingManagedBlock.map((target) => ({ kind: \'claude-md-block-committed\', target }) as const),':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/services/overseer/DrivePass.ts: vendor-name: * names the entity homes whose `.claude` it denies.':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   [
   'src/services/overseer/IntakeSessions.ts: vendor-tool-name: * The Overseer\'s side of a product-owner intake (design section 8.4): the session\'s confinement (skills '
     + 'on, the web through WebFetch and'
@@ -491,45 +461,10 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   [
-  'src/services/overseer/JobLaunch.ts: vendor-name: * also name every entity home, whose `.claude` is denied, and the job\'s entity with the homes its stage 1 may write a '
-    + 'proposal in, a package'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/overseer/JobLaunch.ts: vendor-name: * Makes the denied roots a launch in the job\'s worktree needs, every entity home\'s `.claude` among them when '
-    + '`entityHomes` names them; when'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/JobLaunch.ts: vendor-name: /** `pipeline` names the entity homes whose `.claude` the step\'s sandbox denies, as a session\'s does. */':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
   'src/services/overseer/QuestionRouting.ts: vendor-tool-name: * An agent\'s AskUserQuestion request routed by who can answer it, design section 8.2: every question '
     + 'headed `system` opens a'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  [
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: * The `.claude` folders of the worktree no job may write: its root\'s, for a tracker below the repository root '
-    + 'its project\'s, and on a forge'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: function claudeFoldersOf(facts: Pick<SandboxFacts, \'worktree\' | \'projectPrefix\' | \'entityHomes\'>): string[] {':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: const rootFolder = join(facts.worktree, \'.claude\');':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: const trackerFolders = projectPrefix === \'\' ? [rootFolder] : [rootFolder, join(facts.worktree, projectPrefix, '
-    + '\'.claude\')];'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: const entityHomeFolders = (facts.entityHomes ?? []).map((home) => join(facts.worktree, '
-    + 'EntityOwnershipUtil.homeFolderOf(home), \'.claude\'));'
-  ]:
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: return facts.sandboxDenyShape === \'mount-points\' ? claudeFoldersOf(facts) : [];':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/WorkerProfiles.ts: vendor-name: ...claudeFoldersOf(facts),':
-    'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: case \'claude-md-block-committed\':':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: return `launches onto ${factOf(notice, \'target\')} wait: commit the CLAUDE.md change the board\'s update made`;':

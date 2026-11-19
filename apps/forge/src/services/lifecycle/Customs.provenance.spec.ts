@@ -22,6 +22,7 @@ import {
 
 import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
 import { TicketBodyHashUtil }                                  from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { fakeAgentAdapter }                                    from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
@@ -37,6 +38,8 @@ import {
 } from './Customs.ts';
 
 const TICKET_BODY = '## Acceptance\nA1. The example holds.\n';
+/** The fake agent's naming, which is Claude Code's. */
+const AGENT_NAMING = fakeAgentAdapter();
 const AT = '2026-10-28T10:00:00+01:00';
 const JOB_ID = 'J7';
 const MAIN_LINE = 'main';
@@ -98,6 +101,7 @@ function reviewerSubject(findings: readonly Record<string, unknown>[], logRecord
     ticketBody:       TICKET_BODY,
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
     jobId:            JOB_ID,
+    agentNaming:      AGENT_NAMING,
     logRecords,
     launchSnapshot,
     refMovesAllowed:  {
@@ -309,9 +313,10 @@ describeWhenGitIsRecorded('V13: no change to agent configuration', () => {
 
   test('before a launch, the branch\'s own commits past its target are read: a target holding .claude/ passes, the branch adding it refuses', () => {
     enter(GIT_SCENARIOS.TICKET_BRANCH_MADE);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE).verdict).toBe('passed');
+    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames).verdict).toBe('passed');
     enter(GIT_SCENARIOS.TICKET_BRANCH_ADDS_AGENT_CONFIG);
-    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE)).toEqual({ verdict: 'refused', reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
+    expect(agentConfigTouchedBeforeLaunch(repositoryDirectory, MAIN_LINE, AGENT_NAMING.configurationNames))
+      .toEqual({ verdict: 'refused', reason: 'branch-touches-agent-config', facts: ['.claude/settings.json'] });
   });
 });
 

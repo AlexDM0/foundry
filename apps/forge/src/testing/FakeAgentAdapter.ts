@@ -22,6 +22,8 @@ import {
   CLAUDE_STREAM_LINES
 } from '../lib/claude-code/ClaudeStreamLines.ts';
 import { transcriptFolderFor }               from '../lib/claude-code/ClaudeTranscripts.ts';
+import { CLAUDE_CODE_ATTRIBUTION_PATTERNS }  from '../lib/claude-code/constants/ClaudeCodeAttribution.ts';
+import { CLAUDE_CODE_CONFIGURATION_NAMES }   from '../lib/claude-code/constants/ClaudeCodePaths.ts';
 import { recordedLineOf, recordedSessionOf } from './fake-agent/RecordedClaudeLines.ts';
 
 export type FakeAgentStep =
@@ -175,6 +177,8 @@ export function fakeAgentAdapter(
     credentials:            CLAUDE_CODE_CREDENTIALS,
     sandboxDenyShape:       'path-rules',
     inheritedVariableNames: [],
+    configurationNames:     CLAUDE_CODE_CONFIGURATION_NAMES,
+    attributionPatterns:    CLAUDE_CODE_ATTRIBUTION_PATTERNS,
     credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
     programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
     programRepairOf:        claudeProgramRepairOf,

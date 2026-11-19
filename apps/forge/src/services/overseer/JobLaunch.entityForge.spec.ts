@@ -40,6 +40,7 @@ import {
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { fakeAgentAdapter }                                                                from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
@@ -135,6 +136,7 @@ function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview =
     branchNames:       branchNamesOf(null),
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    agentAdapter:      fakeAgentAdapter(),
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
   mkdirSync(JobLaunch.worktreeOf(context.workspace, job), { recursive: true });

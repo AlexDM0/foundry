@@ -30,6 +30,7 @@ import {
   refMovesAllowedOf,
   sharedRepositoryRefsOf,
   watchedRefsOf,
+  type AgentNaming,
   type CustomsVerdict,
   type LaunchSnapshot,
   type RefMovesAllowed
@@ -73,6 +74,8 @@ export interface TurnEndContext {
   mainLine:          string;
   /** How a path compares with git's spelling, from the `DataFolders` port. */
   pathStyle:         GitPathStyle;
+  /** The agent's configuration names, which the snapshot's change may not touch, and its attribution. */
+  agentNaming:       AgentNaming;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
   sharedRepository?: SharedRepositoryLanding;
 }
@@ -256,6 +259,7 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
     launchSnapshot:   start.launchSnapshot,
     refMovesAllowed:  turnEndRefMovesAllowedOf(context, board, job),
     pathStyle:        context.pathStyle,
+    agentNaming:      context.agentNaming,
   });
 }
 

@@ -18,6 +18,7 @@ import {
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
 import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -120,6 +121,7 @@ function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject
       removedAfterLandings: [],
       airlockWorktreeHeads: [],
     },
+    agentNaming: fakeAgentAdapter(),
     ...overrides,
   };
 }
@@ -232,6 +234,15 @@ describeWhenGitIsRecorded('verification by code', () => {
     enter(GIT_SCENARIOS.ATTRIBUTION_TRAILER_COMMITTED);
 
     expect(refusalOf('V7', builderSubject({ report: builderReport() }))).toBe('ai-attribution-in-range');
+  });
+
+  test('V7 refuses the attribution pattern the adapter hands, and passes the trailer of an agent the adapter does not name', () => {
+    const plantedNaming = (attributionPatterns: readonly RegExp[]) => ({ configurationNames: { folderNames: [], fileNames: [] }, attributionPatterns });
+
+    enter(GIT_SCENARIOS.ATTRIBUTION_TRAILER_COMMITTED);
+    expect(refusalOf('V7', builderSubject({ agentNaming: plantedNaming([/^Change feature\.ts$/m]) }))).toBe('ai-attribution-in-range');
+    enter(GIT_SCENARIOS.ATTRIBUTION_TRAILER_COMMITTED);
+    expect(refusalOf('V7', builderSubject({ agentNaming: plantedNaming([]) }))).toBeNull();
   });
 
   test('V9 refuses a fixed finding naming a commit outside the range, and passes one inside it', () => {

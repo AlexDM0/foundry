@@ -1136,7 +1136,7 @@ function conflictReReviewReadingOf(
     jobId:        reReviewer.id,
     calls,
     sessionEnded: liveness.verdict !== 'live',
-    verdict:      resolution === null ? null : MergeRun.reReviewVerdictOf(worktreeOf(context.workspace, job), resolution.resolutionCommit, report),
+    verdict:      resolution === null ? null : MergeRun.reReviewVerdictOf(worktreeOf(context.workspace, job), resolution.resolutionCommit, report, context.agentAdapter),
   };
 }
 
@@ -1256,6 +1256,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     instructionFiles: InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
     target:           job.target ?? hold.context.mainLine,
     pathStyle:        hold.context.platformPorts.dataFolders,
+    agentNaming:      hold.context.agentAdapter,
     ...(projectScope === null ? {} : { projectScope }),
     ...(crossingStage === null ? {} : { crossingStage }),
   };
@@ -1494,7 +1495,8 @@ function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonl
     const worktree = worktreeOf(context.workspace, job);
     if (!existsSync(worktree)) return false;
     const target = job.target ?? context.mainLine;
-    return agentConfigTouchedBeforeLaunch(worktree, target, context.platformPorts.dataFolders, projectPrefix, entityHomes).verdict === 'refused';
+    const { configurationNames } = context.agentAdapter;
+    return agentConfigTouchedBeforeLaunch(worktree, target, configurationNames, context.platformPorts.dataFolders, projectPrefix, entityHomes).verdict === 'refused';
   }).map(ticketIdOf);
 }
 
@@ -2327,7 +2329,7 @@ function attributionTicketIdsOf(records: readonly LogRecord[]): string[] {
 
 /**
  * `worktree` is the ticket's own unless named, as an Airlock agent names the Airlock worktree it works in. On a forge with entities the facts
- * also name every entity home, whose `.claude` is denied, and the job's entity with the homes its stage 1 may write a proposal in, a package
+ * also name every entity home, whose configuration folder is denied, and the job's entity with the homes its stage 1 may write a proposal in, a package
  * of `refusedPackages` left out.
  */
 function sandboxFactsFor(
@@ -2342,17 +2344,18 @@ function sandboxFactsFor(
   const facts = WorkerProfiles.sandboxFactsOf({
     repositoryRoot,
     projectPrefix,
-    dataFolder:       workspace.trackerDirectory,
-    monitorFolder:    context.monitorFolder,
-    homeDirectory:    context.homeDirectory,
+    dataFolder:                    workspace.trackerDirectory,
+    monitorFolder:                 context.monitorFolder,
+    homeDirectory:                 context.homeDirectory,
     worktree,
-    ownBranch:        branchOf(context, job),
-    mainLine:         context.mainLine,
-    branchNames:      context.branchNames,
-    hatchDirectory:   HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
-    sandboxDenyShape: context.agentAdapter.sandboxDenyShape,
-    credentialPaths:  context.agentAdapter.credentialPathsOf(context.homeDirectory),
-    guardCommand:     guardCommandOf(context),
+    ownBranch:                     branchOf(context, job),
+    mainLine:                      context.mainLine,
+    branchNames:                   context.branchNames,
+    hatchDirectory:                HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id),
+    sandboxDenyShape:              context.agentAdapter.sandboxDenyShape,
+    credentialPaths:               context.agentAdapter.credentialPathsOf(context.homeDirectory),
+    agentConfigurationFolderNames: context.agentAdapter.configurationNames.folderNames,
+    guardCommand:                  guardCommandOf(context),
     ...cacheFolderFactsOf(context),
   });
   return { ...facts, ...WorkerProfiles.entityFactsOf(pipeline, job.entity, CrossingStages.proposalHomesOf(pipeline, job, refusedPackages)) };
@@ -2439,13 +2442,17 @@ function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, ref
 }
 
 /**
- * Makes the denied roots a launch in the job's worktree needs, every entity home's `.claude` among them when `entityHomes` names them; when
+ * Makes the denied roots a launch in the job's worktree needs, every entity home's configuration folder among them when `entityHomes` names them; when
  * one cannot be made, records the refusal and answers true, so `step` never starts.
  */
 function deniedRootRefusalRecorded(context: JobLaunchContext, job: Readonly<Job>, step: string, entityFacts: Pick<SandboxFacts, 'entityHomes'> = {}): boolean {
   const { projectPrefix } = projectLocationOfContext(context);
   const reason = WorkerProfiles.unmadeDeniedRootRefusalOf({
-    worktree: worktreeOf(context.workspace, job), sandboxDenyShape: context.agentAdapter.sandboxDenyShape, projectPrefix, ...entityFacts
+    worktree:                      worktreeOf(context.workspace, job),
+    sandboxDenyShape:              context.agentAdapter.sandboxDenyShape,
+    agentConfigurationFolderNames: context.agentAdapter.configurationNames.folderNames,
+    projectPrefix,
+    ...entityFacts,
   });
   if (reason === null) return false;
   recordSandboxRefusal(context, job, { step, reason });
@@ -2460,7 +2467,7 @@ function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): Sandbo
   }
 }
 
-/** `pipeline` names the entity homes whose `.claude` the step's sandbox denies, as a session's does. */
+/** `pipeline` names the entity homes whose configuration folder the step's sandbox denies, as a session's does. */
 async function spawnLineChild(
   context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>, folderName: string, step: LineChildStep
 ): Promise<LineChildSpawn> {

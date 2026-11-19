@@ -15,6 +15,7 @@ import type { Board }                                     from '../../lib/tracke
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_TICKET_BRANCH }                    from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -61,6 +62,7 @@ function retryScene(): RetryScene {
     branchNames:   branchNamesOf(null),
     log:           () => undefined,
     platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
+    agentAdapter:  fakeAgentAdapter(),
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const launchAttempt = (attempt: number): Readonly<Job> => {

@@ -32,38 +32,40 @@ import { overseerFilesIn }                            from './OverseerFiles.ts';
 
 /** Everything a job's confinement names, read once at launch; every path absolute. */
 export interface SandboxFacts {
-  dataFolder:                string;
-  monitorFolder:             string;
-  homeDirectory:             string;
-  worktree:                  string;
+  dataFolder:                    string;
+  monitorFolder:                 string;
+  homeDirectory:                 string;
+  worktree:                      string;
   /** The repository's shared `.git`, which a linked worktree's sandbox may write except where denied. */
-  commonGitDirectory:        string;
+  commonGitDirectory:            string;
   /** The main line and every live `group-<name>` branch: the refs only an Overseer landing moves. */
-  targetBranches:            readonly string[];
+  targetBranches:                readonly string[];
   /** Every ticket branch of the board but the job's own, and on a namespaced board every branch of another namespace. */
-  otherTicketBranches:       readonly string[];
+  otherTicketBranches:           readonly string[];
   /** `<common>/worktrees/<name>/` of every linked worktree but the job's own. */
-  otherWorktreeAdminFolders: readonly string[];
-  hatchDirectory:            string;
-  repositoryRoot:            string;
+  otherWorktreeAdminFolders:     readonly string[];
+  hatchDirectory:                string;
+  repositoryRoot:                string;
   /** The tracker's project folder below the repository root, `/`-separated; absent for a tracker at its repository's root. */
-  projectPrefix?:            string;
-  gitHooksDirectory:         string;
-  commitSigning:             CommitSigning;
+  projectPrefix?:                string;
+  gitHooksDirectory:             string;
+  commitSigning:                 CommitSigning;
   /** The agent vendor's per-OS list of the user's credential files and folders, which every role is denied reading. */
-  credentialPaths:           readonly string[];
+  credentialPaths:               readonly string[];
   /** GnuPG's home as gpgconf reports it, or GnuPG's default when it cannot say. */
-  gpgHomeDirectory:          string;
+  gpgHomeDirectory:              string;
   /** The Overseer's `PATH` folders, none of which a worker's cache folder may be, sit in or hold. */
-  executableSearchPath:      readonly string[];
-  cacheFolderStyle:          CacheFolderStyle;
-  sandboxDenyShape:          SandboxDenyShape;
+  executableSearchPath:          readonly string[];
+  cacheFolderStyle:              CacheFolderStyle;
+  sandboxDenyShape:              SandboxDenyShape;
+  /** The agent adapter's configuration folder names, which no job may write wherever the agent reads its configuration. */
+  agentConfigurationFolderNames: readonly string[];
   /** The Overseer's absolute Bun runtime, its isolating arguments and its entry script, which the network guard runs; `null` when it cannot start. */
-  guardCommand:              readonly string[] | null;
+  guardCommand:                  readonly string[] | null;
   /** Every home folder of the pipeline's entities, repository paths leading with `/`; absent on a forge without entities. */
-  entityHomes?:              readonly string[];
+  entityHomes?:                  readonly string[];
   /** The entity whose stage the job runs, among the pipeline's entities; absent for a job without an entity. */
-  stageEntity?:              StageEntity;
+  stageEntity?:                  StageEntity;
 }
 
 /** The entity whose stage a job runs: its homes and `reach` are what the job's Edit and Write may change. */
@@ -146,6 +148,11 @@ export interface FolderMaker {
   makeFolder(path: string): boolean;
 }
 
+type AgentConfigurationFolderFacts = Pick<SandboxFacts, 'worktree' | 'projectPrefix' | 'entityHomes' | 'agentConfigurationFolderNames'>;
+
+/** What the denied roots a launch makes are read from. */
+export type DeniedRootFacts = AgentConfigurationFolderFacts & Pick<SandboxFacts, 'sandboxDenyShape'>;
+
 const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
   makeFolder: (path: string) => {
     try {
@@ -158,28 +165,31 @@ const REAL_FOLDER_MAKER: FolderMaker = Object.freeze({
 });
 
 /**
- * The `.claude` folders of the worktree no job may write: its root's, for a tracker below the repository root its project's, and on a forge
- * with entities every entity home's.
+ * The agent's configuration folders of the worktree no job may write, each name the adapter gives: at its root, for a tracker below the
+ * repository root at its project's folder, and on a forge with entities at every entity home.
  */
-function claudeFoldersOf(facts: Pick<SandboxFacts, 'worktree' | 'projectPrefix' | 'entityHomes'>): string[] {
-  const rootFolder = join(facts.worktree, '.claude');
+function agentConfigurationFoldersOf(facts: AgentConfigurationFolderFacts): string[] {
   const projectPrefix = facts.projectPrefix ?? '';
-  const trackerFolders = projectPrefix === '' ? [rootFolder] : [rootFolder, join(facts.worktree, projectPrefix, '.claude')];
-  const entityHomeFolders = (facts.entityHomes ?? []).map((home) => join(facts.worktree, EntityOwnershipUtil.homeFolderOf(home), '.claude'));
-  return [...new Set([...trackerFolders, ...entityHomeFolders])];
+  const entityHomeFolders = (facts.entityHomes ?? []).map((home) => EntityOwnershipUtil.homeFolderOf(home));
+  const folders = facts.agentConfigurationFolderNames.flatMap((folderName) => [
+    join(facts.worktree, folderName),
+    ...(projectPrefix === '' ? [] : [join(facts.worktree, projectPrefix, folderName)]),
+    ...entityHomeFolders.map((homeFolder) => join(facts.worktree, homeFolder, folderName)),
+  ]);
+  return [...new Set(folders)];
 }
 
 /**
  * The denied writable roots inside the worktree's writable bind. Under `mount-points` a denied path absent at launch gets no mount, so a
  * child could make it; the Overseer makes each of these before every launch instead, and they are denied whether or not they existed.
  */
-function deniedRootsMadeBeforeLaunchOf(facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix' | 'entityHomes'>): string[] {
-  return facts.sandboxDenyShape === 'mount-points' ? claudeFoldersOf(facts) : [];
+function deniedRootsMadeBeforeLaunchOf(facts: DeniedRootFacts): string[] {
+  return facts.sandboxDenyShape === 'mount-points' ? agentConfigurationFoldersOf(facts) : [];
 }
 
 /** Makes each denied root a launch makes; the reason the launch is refused when one cannot be made, otherwise `null`. */
 function unmadeDeniedRootRefusalOf(
-  facts: Pick<SandboxFacts, 'worktree' | 'sandboxDenyShape' | 'projectPrefix' | 'entityHomes'>, folderMaker: FolderMaker = REAL_FOLDER_MAKER
+  facts: DeniedRootFacts, folderMaker: FolderMaker = REAL_FOLDER_MAKER
 ): string | null {
   const unmadeRoot = deniedRootsMadeBeforeLaunchOf(facts).find((root) => !folderMaker.makeFolder(root));
   return unmadeRoot === undefined ? null : `the denied folder ${unmadeRoot} could not be made, so it would get no read-only mount`;
@@ -191,7 +201,7 @@ function fixedDeniedWritableRootsOf(facts: SandboxFacts): string[] {
   return [
     facts.dataFolder,
     facts.monitorFolder,
-    ...claudeFoldersOf(facts),
+    ...agentConfigurationFoldersOf(facts),
     join(facts.commonGitDirectory, 'packed-refs'),
     ...facts.targetBranches.map((branch) => join(headsFolder, branch)),
   ];
@@ -465,22 +475,23 @@ function adminFolderOf(worktree: string): string | null {
 }
 
 export interface SandboxFactsRequest {
-  repositoryRoot:       string;
+  repositoryRoot:                string;
   /** The tracker's project folder below the repository root; absent or `''` for a tracker at its repository's root. */
-  projectPrefix?:       string;
-  dataFolder:           string;
-  monitorFolder:        string;
-  homeDirectory:        string;
-  worktree:             string;
-  ownBranch:            string;
-  mainLine:             string;
-  branchNames:          BranchNames;
-  hatchDirectory:       string;
-  executableSearchPath: readonly string[];
-  cacheFolderStyle:     CacheFolderStyle;
-  sandboxDenyShape:     SandboxDenyShape;
-  credentialPaths:      readonly string[];
-  guardCommand:         readonly string[] | null;
+  projectPrefix?:                string;
+  dataFolder:                    string;
+  monitorFolder:                 string;
+  homeDirectory:                 string;
+  worktree:                      string;
+  ownBranch:                     string;
+  mainLine:                      string;
+  branchNames:                   BranchNames;
+  hatchDirectory:                string;
+  executableSearchPath:          readonly string[];
+  cacheFolderStyle:              CacheFolderStyle;
+  sandboxDenyShape:              SandboxDenyShape;
+  credentialPaths:               readonly string[];
+  agentConfigurationFolderNames: readonly string[];
+  guardCommand:                  readonly string[] | null;
 }
 
 const WORKTREE_BRANCH_LINE_PREFIX = 'branch refs/heads/';
@@ -526,25 +537,26 @@ function sandboxFactsOf(request: SandboxFactsRequest, gpgDirectories: GpgDirecto
     ownAdminFolder: adminFolderOf(request.worktree),
   });
   return {
-    dataFolder:                request.dataFolder,
-    monitorFolder:             request.monitorFolder,
-    homeDirectory:             request.homeDirectory,
-    worktree:                  request.worktree,
+    dataFolder:                    request.dataFolder,
+    monitorFolder:                 request.monitorFolder,
+    homeDirectory:                 request.homeDirectory,
+    worktree:                      request.worktree,
     commonGitDirectory,
-    targetBranches:            [request.mainLine, ...branches.filter((branch) => branch.startsWith(branchNames.groupTargetPrefix))],
-    otherTicketBranches:       request.sandboxDenyShape === 'path-rules' ? ticketBranches : liveBranchesOf(ticketBranches, worktreeListing),
-    otherWorktreeAdminFolders: adminFolders,
-    hatchDirectory:            request.hatchDirectory,
-    repositoryRoot:            request.repositoryRoot,
+    targetBranches:                [request.mainLine, ...branches.filter((branch) => branch.startsWith(branchNames.groupTargetPrefix))],
+    otherTicketBranches:           request.sandboxDenyShape === 'path-rules' ? ticketBranches : liveBranchesOf(ticketBranches, worktreeListing),
+    otherWorktreeAdminFolders:     adminFolders,
+    hatchDirectory:                request.hatchDirectory,
+    repositoryRoot:                request.repositoryRoot,
     ...(request.projectPrefix === undefined || request.projectPrefix === '' ? {} : { projectPrefix: request.projectPrefix }),
-    gitHooksDirectory:         join(request.repositoryRoot, '.githooks'),
-    commitSigning:             commitSigningOf(gpgDirectories),
-    credentialPaths:           request.credentialPaths,
-    gpgHomeDirectory:          GpgDirectories.homeDirectoryOf(gpgDirectories, request.homeDirectory),
-    executableSearchPath:      request.executableSearchPath,
-    cacheFolderStyle:          request.cacheFolderStyle,
-    sandboxDenyShape:          request.sandboxDenyShape,
-    guardCommand:              request.guardCommand,
+    gitHooksDirectory:             join(request.repositoryRoot, '.githooks'),
+    commitSigning:                 commitSigningOf(gpgDirectories),
+    credentialPaths:               request.credentialPaths,
+    gpgHomeDirectory:              GpgDirectories.homeDirectoryOf(gpgDirectories, request.homeDirectory),
+    executableSearchPath:          request.executableSearchPath,
+    cacheFolderStyle:              request.cacheFolderStyle,
+    sandboxDenyShape:              request.sandboxDenyShape,
+    agentConfigurationFolderNames: request.agentConfigurationFolderNames,
+    guardCommand:                  request.guardCommand,
   };
 }
 

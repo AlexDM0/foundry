@@ -15,6 +15,7 @@ import {
 import { GIT_PATHSPEC_ARGUMENT_CHARACTERS } from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }                 from '../../lib/git/utils/GitArgumentsUtil.ts';
 import { TicketBodyHashUtil }               from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { fakeAgentAdapter }                 from '../../testing/FakeAgentAdapter.ts';
 import {
   GIT_CALL_SHAPES,
   type GitCallShape,
@@ -53,6 +54,7 @@ function airlockAgentSubject(conflictedFiles: readonly string[]): CustomsSubject
     ticketBody:       TICKET_BODY,
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
     merge:            { branchTip: BRANCH_TIP, targetTip: TARGET_TIP, conflictedFiles },
+    agentNaming:      fakeAgentAdapter(),
   };
 }
 

@@ -45,6 +45,12 @@ export interface AgentCredentials {
   readonly authenticationCheckSentence:     string;
 }
 
+/** The folders and files of a checkout that configure the agent, by name: no job may write them, and Customs refuses a change of them. */
+export interface AgentConfigurationNames {
+  readonly folderNames: readonly string[];
+  readonly fileNames:   readonly string[];
+}
+
 /** What a line written to a session said, read back from the line: the inverse of `chatLineOf`, `answerLineOf` and `interruptLineOf`. */
 export type SentLine =
   | { readonly act: 'chat'; readonly text: string; readonly pictures: readonly AgentPicture[] }
@@ -62,6 +68,9 @@ export interface AgentAdapter {
    * folder, so a host logged in by a variable starts a logged-in session. No other secret passes.
    */
   readonly inheritedVariableNames: readonly string[];
+  readonly configurationNames:     AgentConfigurationNames;
+  /** Each commit message trailer that marks a commit as the agent's work; Customs refuses a commit whose message matches one. */
+  readonly attributionPatterns:    readonly RegExp[];
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */

@@ -39,6 +39,7 @@ import {
   ticketWorktreeFolderOf as entityForgeTicketWorktreeFolderOf
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { fakeAgentAdapter }                                                                from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                                                   from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
@@ -81,6 +82,8 @@ const LINUX_STYLE: GitPathStyle = { pathModule: posix, foldsCase: false };
 
 const GAIA_SCOPE: ProjectScope = { projectPrefix: GAIA.folder, reach: [`/${TWO_TRACKER_SHARED_PACKAGE_FOLDER}`, '/bun.lock'] };
 const ROOT_SCOPE: ProjectScope = { projectPrefix: '', reach: [] };
+/** The fake agent's naming, which is Claude Code's. */
+const AGENT_NAMING = fakeAgentAdapter();
 
 describe('a tracker at its repository\'s root reads every path as before', () => {
   const patterns = ['src/**', 'eslint.config.js', '/turbo.json', '.githooks/', 'tsconfig*.json', '**/pyproject.toml', 'ci/checks.sh'];
@@ -107,8 +110,8 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
   test('its data folder and agent configuration are protected at the root only, a nested copy passing as it always has', () => {
     const changed = [`${DATA_FOLDER}/progress.json`, `apps/forge/${DATA_FOLDER}/progress.json`, '.claude/settings.json', 'apps/gaia/.claude/settings.json', 'apps/gaia/.mcp.json'];
     expect(dataFolderPathsAmong(changed, '')).toEqual([`${DATA_FOLDER}/progress.json`]);
-    expect(agentConfigPathsAmong(changed, null)).toEqual(['.claude/settings.json']);
-    expect(agentConfigPathsAmong(changed, null, '')).toEqual(['.claude/settings.json']);
+    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null)).toEqual(['.claude/settings.json']);
+    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '')).toEqual(['.claude/settings.json']);
   });
 
   test('V17 passes it without asking git, with its scope given or absent, since the whole repository is its home', () => {
@@ -120,6 +123,7 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
       ticketBody:       '',
       bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(''),
       target:           TWO_TRACKER_MAIN_LINE,
+      agentNaming:      AGENT_NAMING,
     };
     expect(CUSTOMS_CHECKS.V17(subject)).toEqual({ verdict: 'passed' });
     expect(CUSTOMS_CHECKS.V17({ ...subject, projectScope: ROOT_SCOPE })).toEqual({ verdict: 'passed' });
@@ -170,7 +174,8 @@ describe('a project tracker judges paths from its own folder', () => {
 
     expect(pathsOutsideHomeAndReachOf(changed, GAIA_SCOPE)).toEqual([`${FORGE.folder}/${TWO_TRACKER_PROJECT_SOURCE_FILE}`, `${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
     expect(dataFolderPathsAmong(changed, GAIA.folder)).toEqual([`${FORGE.folder}/${DATA_FOLDER}/progress.json`]);
-    expect(agentConfigPathsAmong(changed, null, GAIA.folder)).toEqual([`${GAIA.folder}/.claude/settings.json`, `${TWO_TRACKER_SHARED_PACKAGE_FOLDER}/.MCP.json`]);
+    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, GAIA.folder))
+      .toEqual([`${GAIA.folder}/.claude/settings.json`, `${TWO_TRACKER_SHARED_PACKAGE_FOLDER}/.MCP.json`]);
   });
 
   test('a reach entry names a file or a folder, its trailing / aside, and never a sibling folder that only starts with its name', () => {
@@ -229,8 +234,8 @@ describe('a top-level forge with entities', () => {
       'apps/forge/src/.claude/settings.json',
       'apps/forge/.mcp.json.example',
     ];
-    expect(agentConfigPathsAmong(changed, null, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
-    expect(agentConfigPathsAmong(changed, null, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
+    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, '', ENTITY_HOMES)).toEqual(changed.slice(0, 3));
+    expect(agentConfigPathsAmong(changed, AGENT_NAMING.configurationNames, null, ''), 'without entity homes only the root\'s, as always').toEqual(changed.slice(0, 1));
   });
 });
 
@@ -315,6 +320,7 @@ function forgeBuilderIn(worktreePath: string, launchSnapshot: LaunchSnapshot, re
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(''),
     launchSnapshot,
     refMovesAllowed,
+    agentNaming:      AGENT_NAMING,
   };
 }
 
@@ -479,6 +485,7 @@ function entityForgeJobIn(scenario: EntityForgeScenario, job: EntityForgeJob): C
     report:           {},
     ticketBody,
     bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketBody),
+    agentNaming:      AGENT_NAMING,
     instructionFiles: constitutions.constitutions.map((constitution) => constitution.gitPath),
     ...(job.judgedAgainst === 'the main line' ? { target: ENTITY_FORGE_MAIN_LINE } : {}),
     projectScope:     {

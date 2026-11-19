@@ -14,6 +14,7 @@ import {
   test
 } from 'bun:test';
 
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }            from '../../testing/RecordedGitScenarioCalls.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
@@ -55,6 +56,7 @@ function pipelineAgentSubject(): CustomsSubject {
     refMovesAllowed:  {
       ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
+    agentNaming: fakeAgentAdapter(),
   };
 }
 

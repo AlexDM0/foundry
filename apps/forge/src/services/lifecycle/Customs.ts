@@ -23,6 +23,7 @@ import {
 } from '../../adapters/reports/ReportSchemas.ts';
 import { reportVerdictOf, type JsonSchema }                                        from '../../adapters/reports/ReportValidation.ts';
 import { TicketAcceptanceUtil }                                                    from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
+import type { AgentAdapter, AgentConfigurationNames }                              from '../../lib/agent-launch/AgentAdapter.ts';
 import { type GitPathStyle, GitPaths }                                             from '../../lib/git/GitPaths.ts';
 import { type GitHookPolicy, type GitRun, GitProcess }                             from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                                            from '../../lib/git/GitWorktrees.ts';
@@ -223,6 +224,9 @@ export interface OverseerRefNaming {
   constitutionCommitWorktreeOf: (jobId: string) => string;
 }
 
+/** What the agent's adapter names for Customs: V13 protects its configuration, V7 refuses its attribution. */
+export type AgentNaming = Pick<AgentAdapter, 'configurationNames' | 'attributionPatterns'>;
+
 /** The job endings that move a target's ref: the landings V14 lets pass. */
 const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
@@ -269,6 +273,8 @@ export interface CustomsSubject {
   projectScope?:     ProjectScope;
   /** A job of a ticket that crosses into whitelisted packages, once its row stores a stage; absent for every other job. */
   crossingStage?:    CrossingStageScope;
+  /** The agent's configuration, which V13 protects, and its attribution, which V7 refuses beside forge's own. */
+  agentNaming:       AgentNaming;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -304,7 +310,13 @@ function protectedHomeFoldersOf(entityHomes: readonly string[]): string[] {
   return entityHomes.map((home) => protectedFormOf(EntityOwnershipUtil.homeFolderOf(home).replace(/^\/+/u, ''))).filter((home) => home !== '');
 }
 
-const AI_ATTRIBUTION_PATTERNS: readonly RegExp[] = [/^Co-Authored-By:\s*Claude/im, /Generated with/i];
+/** Forge's own refusal of a generated commit, whichever agent wrote it. */
+const GENERATED_COMMIT_PATTERN = /Generated with/i;
+
+/** V7's judgement of one commit message: the agent's attribution patterns, and forge's own. */
+export function commitMessageIsAttributed(message: string, agentNaming: Pick<AgentNaming, 'attributionPatterns'>): boolean {
+  return [...agentNaming.attributionPatterns, GENERATED_COMMIT_PATTERN].some((pattern) => pattern.test(message));
+}
 
 const REPORT_SCHEMA_OF_ROLE: Readonly<Record<ReportingRole, JsonSchema>> = {
   'builder':       BUILDER_REPORT_SCHEMA,
@@ -489,7 +501,7 @@ function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
   if (commits === null) return refused('git-failed', [rangeOf(subject)]);
   const attributed = commits.filter((commit) => {
     const message = worktreeGitRun(subject.worktreePath, ['log', '-1', '--format=%B', commit]);
-    return GitProcess.succeeded(message) && AI_ATTRIBUTION_PATTERNS.some((pattern) => pattern.test(message.standardOutput));
+    return GitProcess.succeeded(message) && commitMessageIsAttributed(message.standardOutput, subject.agentNaming);
   });
   return attributed.length === 0 ? PASSED : refused('ai-attribution-in-range', attributed);
 }
@@ -830,11 +842,27 @@ function filedFindingsWereFiledByThisJob(subject: CustomsSubject): CheckVerdict 
   return unproven.length === 0 ? PASSED : refused('finding-not-filed-by-job', unproven);
 }
 
-/** Matched against a protected form, so lower case only. */
-const AGENT_CONFIG_PATTERNS_AT_THE_ROOT: readonly RegExp[] = [/^\.claude\//, /^\.mcp\.json$/];
+interface AgentConfigurationPatterns {
+  atTheRoot:  readonly RegExp[];
+  /** A project tracker's sessions start below the root, where the agent also reads the project's own configuration. */
+  atAnyDepth: readonly RegExp[];
+}
 
-/** A project tracker's sessions start below the root, where Claude Code also reads the project's own configuration. */
-const AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH: readonly RegExp[] = [/(^|\/)\.claude\//, /(^|\/)\.mcp\.json$/];
+/** A name as the literal text of a pattern, in its protected form. */
+function literalPatternTextOf(name: string): string {
+  return protectedFormOf(name).replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+/** Matched against a protected form: each folder name with everything below it, each file name exactly. */
+function agentConfigurationPatternsOf(configurationNames: AgentConfigurationNames): AgentConfigurationPatterns {
+  const folders = configurationNames.folderNames.map(literalPatternTextOf);
+  const files = configurationNames.fileNames.map(literalPatternTextOf);
+  const patternsAfter = (start: string): RegExp[] => [
+    ...folders.map((folder) => new RegExp(`${start}${folder}/`, 'u')),
+    ...files.map((file) => new RegExp(`${start}${file}$`, 'u')),
+  ];
+  return { atTheRoot: patternsAfter('^'), atAnyDepth: patternsAfter('(^|/)') };
+}
 
 const DEFAULT_HOOKS_FOLDER = 'hooks';
 
@@ -888,47 +916,59 @@ function hooksFolderReadingOf(worktreePath: string): HooksFolderReading {
 }
 
 /** The agent configuration directly in an entity home, as the root's patterns name it there; lower case, matched against a protected form. */
-function agentConfigInAnEntityHome(protectedForm: string, protectedHomeFolders: readonly string[]): boolean {
+function agentConfigInAnEntityHome(protectedForm: string, protectedHomeFolders: readonly string[], patternsAtTheRoot: readonly RegExp[]): boolean {
   return protectedHomeFolders.some((home) => {
     const inHome = protectedForm.startsWith(`${home}${GIT_SEPARATOR}`) ? protectedForm.slice(home.length + 1) : null;
-    return inHome !== null && AGENT_CONFIG_PATTERNS_AT_THE_ROOT.some((pattern) => pattern.test(inHome));
+    return inHome !== null && patternsAtTheRoot.some((pattern) => pattern.test(inHome));
   });
 }
 
 /**
- * The git paths among `gitPaths` under `.claude/`, `.mcp.json` or the hooks folder, given as git spells it inside the worktree; any case
- * matches. The first two are protected at the root for a tracker at the root, as always, and also in each of `entityHomes` on a pipeline
- * with entities; at any depth for a project tracker.
+ * The git paths among `gitPaths` in the agent's configuration, which `configurationNames` names, or under the hooks folder, given as git
+ * spells it inside the worktree; any case matches. The agent's configuration is protected at the root for a tracker at the root, as always,
+ * and also in each of `entityHomes` on a pipeline with entities; at any depth for a project tracker.
  */
-export function agentConfigPathsAmong(gitPaths: readonly string[], hooksFolderGitPath: string | null, projectPrefix = '', entityHomes: readonly string[] = []): string[] {
+export function agentConfigPathsAmong(
+  gitPaths: readonly string[], configurationNames: AgentConfigurationNames, hooksFolderGitPath: string | null, projectPrefix = '', entityHomes: readonly string[] = []
+): string[] {
   const hooksFolder = hooksFolderGitPath === null ? null : protectedFormOf(hooksFolderGitPath);
-  const patterns = projectPrefix === '' ? AGENT_CONFIG_PATTERNS_AT_THE_ROOT : AGENT_CONFIG_PATTERNS_AT_ANY_DEPTH;
+  const configurationPatterns = agentConfigurationPatternsOf(configurationNames);
+  const patterns = projectPrefix === '' ? configurationPatterns.atTheRoot : configurationPatterns.atAnyDepth;
   const protectedHomeFolders = projectPrefix === '' ? protectedHomeFoldersOf(entityHomes) : [];
   return gitPaths.filter((gitPath) => {
     const protectedForm = protectedFormOf(gitPath);
-    if (patterns.some((pattern) => pattern.test(protectedForm)) || agentConfigInAnEntityHome(protectedForm, protectedHomeFolders)) return true;
+    if (patterns.some((pattern) => pattern.test(protectedForm))) return true;
+    if (agentConfigInAnEntityHome(protectedForm, protectedHomeFolders, configurationPatterns.atTheRoot)) return true;
     return hooksFolder !== null && (protectedForm === hooksFolder || protectedForm.startsWith(`${hooksFolder}/`));
   });
 }
 
-/** Every path a commit since `sinceCommit` or the worktree itself changes under `.claude/`, `.mcp.json` or an in-tree hooks folder. */
-function agentConfigPathsTouched(
-  style: GitPathStyle,
-  worktreePath: string,
-  since: { commit: string; projectPrefix: string; entityHomes: readonly string[]; merge?: MergeUnderVerification | undefined }
-): string[] | null {
+interface AgentConfigurationScope {
+  commit:             string;
+  configurationNames: AgentConfigurationNames;
+  projectPrefix:      string;
+  entityHomes:        readonly string[];
+  merge?:             MergeUnderVerification | undefined;
+}
+
+/** Every path a commit since `since.commit` or the worktree itself changes in the agent's configuration or an in-tree hooks folder. */
+function agentConfigPathsTouched(style: GitPathStyle, worktreePath: string, since: AgentConfigurationScope): string[] | null {
   const paths = pathsChangedInRange({ worktreePath, startCommit: since.commit, ...(since.merge === undefined ? {} : { merge: since.merge }) });
   const status = gitFields(worktreePath, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames']);
   if (paths === null || status === null) return null;
   const worktreePaths = status.map((entry) => entry.slice('XY '.length));
   const hooksFolder = hooksFolderInsideWorktree(style, worktreePath);
-  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], hooksFolder, since.projectPrefix, since.entityHomes).sort();
+  return agentConfigPathsAmong([...new Set([...paths, ...worktreePaths])], since.configurationNames, hooksFolder, since.projectPrefix, since.entityHomes).sort();
 }
 
 function agentConfigUntouched(subject: CustomsSubject): CheckVerdict {
   const style = subject.pathStyle ?? HOST_PATH_STYLE;
   const touched = agentConfigPathsTouched(style, subject.worktreePath, {
-    commit: subject.startCommit, projectPrefix: projectPrefixOf(subject), entityHomes: entityHomesOf(subject), merge: subject.merge
+    commit:             subject.startCommit,
+    configurationNames: subject.agentNaming.configurationNames,
+    projectPrefix:      projectPrefixOf(subject),
+    entityHomes:        entityHomesOf(subject),
+    merge:              subject.merge,
   });
   if (touched === null) return refused('git-failed', [rangeOf(subject)]);
   const hooksFolderReading = subject.launchSnapshot === undefined || hooksFolderInsideWorktree(style, subject.worktreePath) !== null
@@ -1127,11 +1167,18 @@ export const CHECKS_OF_ROLE: Readonly<Record<VerifiedRole, readonly Verification
  * pipeline with entities, `entityHomes` names every entity home.
  */
 export function agentConfigTouchedBeforeLaunch(
-  worktreePath: string, target: string, style: GitPathStyle = HOST_PATH_STYLE, projectPrefix = '', entityHomes: readonly string[] = []
+  worktreePath: string,
+  target: string,
+  configurationNames: AgentConfigurationNames,
+  style: GitPathStyle = HOST_PATH_STYLE,
+  projectPrefix = '',
+  entityHomes: readonly string[] = []
 ): CheckVerdict {
   const base = worktreeGitRun(worktreePath, ['merge-base', target, 'HEAD']);
   if (!GitProcess.succeeded(base)) return refused('git-failed', [target]);
-  const touched = agentConfigPathsTouched(style, worktreePath, { commit: base.standardOutput.trim(), projectPrefix, entityHomes });
+  const touched = agentConfigPathsTouched(style, worktreePath, {
+    commit: base.standardOutput.trim(), configurationNames, projectPrefix, entityHomes
+  });
   if (touched === null) return refused('git-failed', [target]);
   return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
 }

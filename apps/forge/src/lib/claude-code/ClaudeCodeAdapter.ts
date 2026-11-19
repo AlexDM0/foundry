@@ -25,8 +25,10 @@ import {
   CLAUDE_CODE_STANDING_REPLIES,
   CLAUDE_STREAM_LINES
 } from './ClaudeStreamLines.ts';
-import { QUESTION_TOOL_NAME }   from './ClaudeStreamMapper.ts';
-import { ClaudeSubagentUsages } from './ClaudeSubagentUsages.ts';
+import { QUESTION_TOOL_NAME }               from './ClaudeStreamMapper.ts';
+import { ClaudeSubagentUsages }             from './ClaudeSubagentUsages.ts';
+import { CLAUDE_CODE_ATTRIBUTION_PATTERNS } from './constants/ClaudeCodeAttribution.ts';
+import { CLAUDE_CODE_CONFIGURATION_NAMES }  from './constants/ClaudeCodePaths.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
 const CLAUDE_PROGRAM_NAME = 'claude';
@@ -347,6 +349,8 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
     sandboxDenyShape:       facts.sandboxDenyShape,
     // The config folder passes with the login, so a session writes the transcripts the readers find there.
     inheritedVariableNames: [...CLAUDE_AUTHENTICATION_VARIABLES, CLAUDE_CONFIG_FOLDER_VARIABLE],
+    configurationNames:     CLAUDE_CODE_CONFIGURATION_NAMES,
+    attributionPatterns:    CLAUDE_CODE_ATTRIBUTION_PATTERNS,
     credentialPathsOf:      (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
     programPathOf:          (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
     programRepairOf:        claudeProgramRepairOf,

@@ -19,6 +19,7 @@ import type { Job, Airlock }                          from '../../lib/tracker-mo
 import type { EntityKey }                             from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import type {
+  AgentNaming,
   CustomsSubject,
   ProjectScope,
   VerificationCheck,
@@ -104,7 +105,7 @@ function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): T
   return { verdict: 'failed', reason: `The merge of ${sides.mergedTip} did not commit; HEAD is ${headCommit ?? 'unreadable'}.` };
 }
 
-function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): CustomsSubject {
+function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[], agentNaming: AgentNaming): CustomsSubject {
   return {
     role:             'airlock-agent',
     worktreePath,
@@ -113,12 +114,13 @@ function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, 
     ticketBody:       '',
     bodyHashAtLaunch: '',
     merge:            { branchTip: sides.startTip, targetTip: sides.mergedTip, conflictedFiles },
+    agentNaming,
   };
 }
 
 /** V10: nothing left unmerged, the conflicted files clean of whitespace errors, and a merge commit whose parents are the two recorded tips. */
-function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[]): boolean {
-  return CUSTOMS_CHECKS.V10(resolutionSubjectOf(worktreePath, sides, conflictedFiles)).verdict === 'passed';
+function resolutionIsSound(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[], agentNaming: AgentNaming): boolean {
+  return CUSTOMS_CHECKS.V10(resolutionSubjectOf(worktreePath, sides, conflictedFiles, agentNaming)).verdict === 'passed';
 }
 
 /** What a project tracker's resolution adds to V10 from the Airlock agent's column; V14 cannot run, as no Airlock agent has a launch snapshot. */
@@ -134,10 +136,11 @@ function resolutionScopeVerdictOf(
   worktreePath: string,
   sides: Readonly<MergeSides>,
   conflictedFiles: readonly string[],
-  projectScope: Readonly<ProjectScope>
+  projectScope: Readonly<ProjectScope>,
+  agentNaming: AgentNaming
 ): ResolutionScopeVerdict {
   if (projectScope.projectPrefix === '') return { verdict: 'in-scope' };
-  const subject = { ...resolutionSubjectOf(worktreePath, sides, conflictedFiles), projectScope };
+  const subject = { ...resolutionSubjectOf(worktreePath, sides, conflictedFiles, agentNaming), projectScope };
   for (const check of CHECKS_OF_ROLE['airlock-agent'].filter((columnCheck) => RESOLUTION_SCOPE_CHECKS.includes(columnCheck))) {
     const verdict = CUSTOMS_CHECKS[check](subject);
     if (verdict.verdict === 'refused') return verdict;
@@ -162,9 +165,9 @@ function claimsOf(report: unknown): readonly Readonly<Record<string, unknown>>[]
  * The conflict re-reviewer's report, judged by the reviewer column's checks the Airlock can run: a valid reviewer report naming HEAD (V1)
  * and HEAD descending from the resolution it reviewed (V2); then every claim holds after its fixes.
  */
-function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, report: unknown): ReReviewVerdict {
+function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, report: unknown, agentNaming: AgentNaming): ReReviewVerdict {
   const subject = {
-    role: 'reviewer', worktreePath, startCommit: resolutionCommit, report, ticketBody: '', bodyHashAtLaunch: ''
+    role: 'reviewer', worktreePath, startCommit: resolutionCommit, report, ticketBody: '', bodyHashAtLaunch: '', agentNaming
   } as const;
   for (const check of [CUSTOMS_CHECKS.V1, CUSTOMS_CHECKS.V2]) {
     const verdict = check(subject);

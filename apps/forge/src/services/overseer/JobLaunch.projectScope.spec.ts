@@ -32,6 +32,7 @@ import { TicketBodyHashUtil }                             from '../../lib/tracke
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -87,6 +88,7 @@ function launchedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: stri
     branchNames:       branchNamesOf(place === 'in a folder' ? 'example' : null),
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    agentAdapter:      fakeAgentAdapter(),
     decisionWordingOf: () => ({
       questions: [{
         question: 'Example decision?', header: 'example', multiSelect: false, options: []

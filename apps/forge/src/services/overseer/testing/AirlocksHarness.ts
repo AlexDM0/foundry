@@ -18,6 +18,7 @@ import { branchNamesOf }                                  from '../../../shared/
 import { AIRLOCK_LIMITS, type AirlockLimits }             from '../../../shared/constants/AirlockLimits.ts';
 import { PRODUCT_NAMES }                                  from '../../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                               from '../../../testing/FakeAgentAdapter.ts';
 import { queueOnCurrentGreen }                            from '../../../testing/GreenQueue.ts';
 import { createPlantedRepository }                        from '../../../testing/RecordedAirlockGit.ts';
 import { removeScratchDirectory }                         from '../../../testing/ScratchWorkspace.ts';
@@ -226,6 +227,7 @@ export function createRecordedAirlocksHarness(
     worktreesRoot,
     worktreeOf,
     limits:         { ...AIRLOCK_LIMITS, ...limits },
+    agentNaming:    fakeAgentAdapter(),
     get refDeniesHold() {
       return settings.refDeniesHold;
     },

@@ -29,6 +29,7 @@ import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../
 import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                                         from '../../testing/FakeAgentAdapter.ts';
 import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }   from '../../testing/RecordedGit.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME }                      from '../../testing/RecordedGitScenarioCalls.ts';
@@ -76,6 +77,7 @@ function turnEndContext(branchNamespace: string | null = null) {
     branchNames:   branchNamesOf(branchNamespace),
     mainLine:      'main',
     pathStyle:     { pathModule: path, foldsCase: false },
+    agentNaming:   fakeAgentAdapter(),
   };
 }
 

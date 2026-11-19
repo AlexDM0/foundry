@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, expect } from 'bun:test';
 
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -40,7 +41,7 @@ afterEach(() => {
 
 function scopeVerdictIn(scenario: string, projectScope: ProjectScope): ReturnType<typeof MergeRun.resolutionScopeVerdictOf> {
   enterScenario(scenario, { repositoryDirectory: worktreePath, commits: SCENARIO_COMMITS });
-  return MergeRun.resolutionScopeVerdictOf(worktreePath, SIDES, [RESOLVED_FILE], projectScope);
+  return MergeRun.resolutionScopeVerdictOf(worktreePath, SIDES, [RESOLVED_FILE], projectScope, fakeAgentAdapter());
 }
 
 testWhenGitIsRecorded('a resolution that changed a file outside the project\'s folder is refused by V17, the target\'s own files left out', () => {
@@ -64,5 +65,5 @@ testWhenGitIsRecorded('a resolution that added .claude/ inside the project\'s fo
 });
 
 testWhenGitIsRecorded('a tracker at its repository\'s root is in scope without a git call: none is answered, so any would fail the case', () => {
-  expect(MergeRun.resolutionScopeVerdictOf(worktreePath, SIDES, [RESOLVED_FILE], { projectPrefix: '', reach: [] })).toEqual({ verdict: 'in-scope' });
+  expect(MergeRun.resolutionScopeVerdictOf(worktreePath, SIDES, [RESOLVED_FILE], { projectPrefix: '', reach: [] }, fakeAgentAdapter())).toEqual({ verdict: 'in-scope' });
 });
