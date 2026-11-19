@@ -57,7 +57,7 @@ export interface SpawnedChild {
   readonly standardOutput: ReadableStream<Uint8Array>;
   readonly standardError:  ReadableStream<Uint8Array> | null;
   readonly exited:         Promise<number | null>;
-  /** Read once `exited` settled. */
+  /** Asked once `exited` settled. */
   readonly signalCode:     () => string | null;
 }
 

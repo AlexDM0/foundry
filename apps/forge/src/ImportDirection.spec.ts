@@ -6,7 +6,8 @@
  * exports, never by a file path, and the Flint package only through the entry files its `package.json` exports. Every other declared
  * package sits in one workspace-package layer: forge reaches it by an exported specifier from `src/shared/` up, and a package reaches
  * another only by name, once its own `package.json` declares it. No import leaves the program and the packages it declares by a path, into
- * another app or package of the workspace, and a workspace package is imported by name only once `package.json` declares it.
+ * another app or package of the workspace, and a workspace package is imported by name only once `package.json` declares it. Only the
+ * agent port's seam and its adapters, the fake agent among them, import the vendor's adapter.
  */
 import { readFileSync } from 'node:fs';
 
@@ -76,6 +77,28 @@ const VENDOR_ADAPTER_PATH = 'src/lib/claude-code/ClaudeCodeAdapter.ts';
 const VENDOR_ADAPTER_PACKAGE_FOLDER = 'src/lib/claude-code/';
 /** The one shipping module that chooses the adapter; everything else reaches a session through the launcher port it hands over. */
 const VENDOR_ADAPTER_SEAM = 'cli/CommandContext.ts';
+/** The fake agent, an adapter of the same port that replays the vendor's recorded wire. */
+const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
+const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
+/** Each file that imports the vendor's adapter today, beside the seam and the adapters, with the package that removes the import. */
+const VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED: Readonly<Record<string, string>> = {
+  'cli/adoption/TrackerRefresh.ts':                         'WP2.30',
+  'cli/adoption/constants/ClaudeCodeInstall.ts':            'WP2.30',
+  'cli/adoption/constants/RetiredClaudeInstall.ts':         'WP2.29',
+  'cli/constants/ClaudeManagedBlockMarkers.ts':             'WP2.29',
+  'cli/measurement/usage/UsageAgents.ts':                   'WP2.23',
+  'cli/measurement/usage/UsageCommand.transcripts.spec.ts': 'WP2.23',
+  'cli/measurement/usage/UsageCommand.ts':                  'WP2.23',
+  'cli/measurement/usage/UsageText.ts':                     'WP2.23',
+  'cli/overseer/OverseerWording.ts':                        'WP2.24',
+  'cli/testing/CapturedCommandContext.ts':                  'WP2.23',
+  'cli/testing/CliProcess.ts':                              'WP2.23',
+  'src/services/overseer/ClaudeTranscripts.spec.ts':        'WP2.23',
+  'src/services/overseer/ClaudeTranscripts.ts':             'WP2.23',
+  'src/services/overseer/JobLiveFactsReader.spec.ts':       'WP2.23',
+  'src/services/overseer/JobTranscript.spec.ts':            'WP2.23',
+  'src/shared/Environment.ts':                              'WP2.24',
+};
 const SOURCE_LAYERS = [
   'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',
 ] as const satisfies readonly Layer[];
@@ -147,12 +170,18 @@ const COMMAND_SET_REACHES: readonly ExactReach[] = [
 ];
 
 interface Allowlists {
-  readonly testingFolderImporters: Readonly<Record<string, readonly string[]>>;
-  readonly featureReachesByPath:   readonly ExactReach[];
-  readonly commandSetReaches:      readonly ExactReach[];
+  readonly testingFolderImporters:            Readonly<Record<string, readonly string[]>>;
+  readonly featureReachesByPath:              readonly ExactReach[];
+  readonly commandSetReaches:                 readonly ExactReach[];
+  readonly vendorAdapterImportersUntilClosed: Readonly<Record<string, string>>;
 }
 
-const ALLOWLISTS: Allowlists = { testingFolderImporters: TESTING_FOLDER_IMPORTERS, featureReachesByPath: FEATURE_REACHES_BY_PATH, commandSetReaches: COMMAND_SET_REACHES, };
+const ALLOWLISTS: Allowlists = {
+  testingFolderImporters:            TESTING_FOLDER_IMPORTERS,
+  featureReachesByPath:              FEATURE_REACHES_BY_PATH,
+  commandSetReaches:                 COMMAND_SET_REACHES,
+  vendorAdapterImportersUntilClosed: VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED,
+};
 
 /** Folders inside a `cli/` set that hold what the set's commands share rather than one command. */
 const CLI_SET_SHARED_FOLDERS = ['@types', 'constants', 'utils'];
@@ -417,10 +446,14 @@ function flintEntryFinding(edge: ImportEdge, targetPath: string, flintEntryPaths
   return edgeFinding(edge, 'flint-reached-beside-its-entry-files', `outside ${FLINT_FOLDER}, only its entry files are imported: ${flintEntryPaths.join(', ')}`);
 }
 
-function vendorSeamFinding(edge: ImportEdge, targetPath: string): Finding | null {
-  if (targetPath !== VENDOR_ADAPTER_PATH || isInside(edge.fromPath, VENDOR_ADAPTER_PACKAGE_FOLDER)) return null;
-  if (edge.fromPath === VENDOR_ADAPTER_SEAM) return null;
-  return edgeFinding(edge, 'vendor-adapter-imported-outside-its-seam', `only ${VENDOR_ADAPTER_SEAM} chooses the vendor's adapter`);
+function isVendorAdapterImporter(path: string, allowlists: Allowlists): boolean {
+  return isInside(path, VENDOR_ADAPTER_PACKAGE_FOLDER) || path === VENDOR_ADAPTER_SEAM || isInside(path, FAKE_AGENT_ADAPTER_FOLDER)
+    || FAKE_AGENT_ADAPTER_FILES.includes(path) || Object.hasOwn(allowlists.vendorAdapterImportersUntilClosed, path);
+}
+
+function vendorSeamFinding(edge: ImportEdge, targetPath: string, allowlists: Allowlists): Finding | null {
+  if (!isInside(targetPath, VENDOR_ADAPTER_PACKAGE_FOLDER) || isVendorAdapterImporter(edge.fromPath, allowlists)) return null;
+  return edgeFinding(edge, 'vendor-adapter-imported-outside-its-seam', 'only the agent port\'s seam and its adapters import the vendor\'s adapter');
 }
 
 function edgeFindingsOf(
@@ -454,7 +487,7 @@ function edgeFindingsOf(
     commandSetFinding(edge, targetPath, allowlists),
     bridgeViewFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
-    vendorSeamFinding(edge, targetPath),
+    vendorSeamFinding(edge, targetPath, allowlists),
     workspacePackagePathFinding(edge, targetPath),
     workspacePackageDeclarationFinding(edge, targetPath),
     flintEntryFinding(edge, targetPath, flintEntryPaths),
@@ -561,6 +594,9 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
   const unusedFeatureReaches = allowlists.featureReachesByPath
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `FEATURE_REACHES_BY_PATH lets ${reach.importer} import ${reach.target}, and it does not`);
+  const unusedVendorAdapterImporters = Object.keys(allowlists.vendorAdapterImportersUntilClosed)
+    .filter((importer) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === importer && isInside(targetPath, VENDOR_ADAPTER_PACKAGE_FOLDER)))
+    .map((importer) => `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED lets ${importer} import ${VENDOR_ADAPTER_PACKAGE_FOLDER}, and it does not`);
   const unusedCommandSetReaches = allowlists.commandSetReaches
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `COMMAND_SET_REACHES lets ${reach.importer} import ${reach.target}, and it does not`);
@@ -568,6 +604,7 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
     ...[...testingFoldersInTree].filter((folder) => !listedTestingFolders.includes(folder)).map((folder) => `${folder} has no TESTING_FOLDER_IMPORTERS entry`),
     ...unusedFeatureReaches,
     ...unusedCommandSetReaches,
+    ...unusedVendorAdapterImporters,
     ...listedTestingFolders.filter((folder) => !testingFoldersInTree.has(folder)).map((folder) => `TESTING_FOLDER_IMPORTERS lists ${folder}, which holds no file`),
     ...unusedImporters,
     ...unusedDeclarations,
@@ -875,7 +912,7 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'talos.ts': importing('./src/lib/claude-code/ClaudeCodeAdapter.ts') })).toEqual([
       'talos-binary-imports-beyond-its-package — talos.ts:1 imports src/lib/claude-code/ClaudeCodeAdapter.ts: talos.ts imports only src/lib/talos/',
       'vendor-adapter-imported-outside-its-seam — talos.ts:1 imports src/lib/claude-code/ClaudeCodeAdapter.ts: '
-        + 'only cli/CommandContext.ts chooses the vendor\'s adapter',
+        + 'only the agent port\'s seam and its adapters import the vendor\'s adapter',
     ]);
     expect(plantedSentencesOf({ 'talos.ts': importing('./cli/Main.ts') })).toEqual([
       'talos-binary-imports-beyond-its-package — talos.ts:1 imports cli/Main.ts: talos.ts imports only src/lib/talos/',
@@ -912,8 +949,8 @@ describe('the guard still names each violation, planted in memory', () => {
   });
 
   test('the vendor\'s adapter imported outside its seam, by a service, a test helper or any spec outside its package, and not by the seam', () => {
-    const vendorSentenceOf = (importerPath: string): string => `vendor-adapter-imported-outside-its-seam — ${importerPath}:1 imports `
-      + 'src/lib/claude-code/ClaudeCodeAdapter.ts: only cli/CommandContext.ts chooses the vendor\'s adapter';
+    const vendorSentenceOf = (importerPath: string, targetPath = 'src/lib/claude-code/ClaudeCodeAdapter.ts'): string => 'vendor-adapter-imported-outside-its-seam — '
+      + `${importerPath}:1 imports ${targetPath}: only the agent port's seam and its adapters import the vendor's adapter`;
     expect(plantedSentencesOf({ 'src/services/overseer/PlantedLaunch.ts': importing('../../lib/claude-code/ClaudeCodeAdapter.ts') }))
       .toEqual([vendorSentenceOf('src/services/overseer/PlantedLaunch.ts')]);
     expect(plantedSentencesOf({ 'src/testing/PlantedAdapter.ts': importing('../lib/claude-code/ClaudeCodeAdapter.ts') }))
@@ -923,6 +960,20 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'cli/overseer/PlantedRun.realAgent.spec.ts': importing('../../src/lib/claude-code/ClaudeCodeAdapter.ts') }))
       .toEqual([vendorSentenceOf('cli/overseer/PlantedRun.realAgent.spec.ts')]);
     expect(plantedSentencesOf({ 'src/lib/claude-code/PlantedPlan.ts': importing('./ClaudeCodeAdapter.ts') })).toEqual([]);
+  });
+
+  test('any file of the vendor\'s adapter imported outside the seam and the adapters fails, and not from the seam or the fake agent', () => {
+    const transcriptsPath = 'src/lib/claude-code/ClaudeTranscripts.ts';
+    expect(plantedSentencesOf({ 'src/services/overseer/Planted.ts': importing('../../lib/claude-code/ClaudeTranscripts.ts') })).toEqual([
+      'vendor-adapter-imported-outside-its-seam — src/services/overseer/Planted.ts:1 imports '
+        + `${transcriptsPath}: only the agent port's seam and its adapters import the vendor's adapter`,
+    ]);
+    const seamText = `${GRAPH.sourceTextOf(VENDOR_ADAPTER_SEAM)}${importing('../src/lib/claude-code/ClaudeTranscripts.ts').replaceAll('planted', 'plantedTranscripts')}`;
+    expect(sentencesAbout(plantedFindingsOf({ [VENDOR_ADAPTER_SEAM]: seamText }), 'vendor-adapter-imported-outside-its-seam')).toEqual([]);
+    const fakeAgentPath = 'src/testing/FakeAgentAdapter.ts';
+    const fakeAgentText = `${GRAPH.sourceTextOf(fakeAgentPath)}${importing('../lib/claude-code/ClaudeTranscripts.ts').replaceAll('planted', 'plantedTranscripts')}`;
+    expect(sentencesAbout(plantedFindingsOf({ [fakeAgentPath]: fakeAgentText }), 'vendor-adapter-imported-outside-its-seam')).toEqual([]);
+    expect(plantedSentencesOf({ 'src/testing/fake-agent/PlantedStep.ts': importing('../../lib/claude-code/ClaudeTranscripts.ts') })).toEqual([]);
   });
 
   test('a lib package importing a package its main module\'s header does not name, and not one it names', () => {
@@ -973,9 +1024,10 @@ describe('the guard still names each violation, planted in memory', () => {
 
   test('an allowlist entry or a declared lib dependency nothing uses any more, and a testing folder without an entry', () => {
     const plantedAllowlists: Allowlists = {
-      testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'bridge/', 'src/'], 'src/retired/testing/': ['src/'] },
-      featureReachesByPath:   [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
-      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
+      testingFolderImporters:            { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'bridge/', 'src/'], 'src/retired/testing/': ['src/'] },
+      featureReachesByPath:              [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
+      commandSetReaches:                 [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
+      vendorAdapterImportersUntilClosed: { ...VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED, 'cli/overseer/Retired.ts': 'WP2.23' },
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
@@ -986,6 +1038,7 @@ describe('the guard still names each violation, planted in memory', () => {
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',
+      'VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED lets cli/overseer/Retired.ts import src/lib/claude-code/, and it does not',
       'src/shared/testing/ has no TESTING_FOLDER_IMPORTERS entry',
       'the header of src/lib/claude-code/ names src/lib/gate-confinement, which the package does not import',
     ]);
@@ -1042,7 +1095,7 @@ describe('the imports of the tree', () => {
     expect(sentencesAbout(FINDINGS, 'test-helper-imported-outside-its-allowlist')).toEqual([]);
   });
 
-  test('outside src/lib/claude-code/ only cli/CommandContext.ts imports ClaudeCodeAdapter.ts', () => {
+  test('only the agent port\'s seam and its adapters import the vendor\'s adapter, and the seam imports ClaudeCodeAdapter.ts', () => {
     expect(sentencesAbout(FINDINGS, 'vendor-adapter-imported-outside-its-seam')).toEqual([]);
     expect(GRAPH.edges.some((edge) => edge.fromPath === VENDOR_ADAPTER_SEAM && edge.target.kind === 'repository-file' && edge.target.path === VENDOR_ADAPTER_PATH))
       .toBe(true);

@@ -1,8 +1,8 @@
 /**
- * A launcher-port adapter whose session is the fake child `src/testing/fake-agent/FakeAgentChild.ts`: it plays a scripted list of
- * steps, printing recorded `claude` stream-json lines (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting
- * or crashing, so Overseer, Talos and crash specs drive a session without a vendor. Its lines are read and written as the Claude
- * adapter's.
+ * The fake agent, an adapter of the agent port as the Claude Code adapter is: its session is the fake child
+ * `src/testing/fake-agent/FakeAgentChild.ts`, which plays a scripted list of steps, printing recorded `claude` stream-json lines
+ * (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting or crashing, so Overseer, Talos and crash specs drive
+ * a session without a vendor. It replays that adapter's recorded wire, so it keeps its line mapping, capabilities and plan values.
  */
 import { join } from 'node:path';
 

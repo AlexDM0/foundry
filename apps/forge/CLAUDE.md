@@ -145,6 +145,9 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   itself reaches the record as `PLATFORM_HOST_FACTS` (`src/shared/PlatformHostFacts.ts`).
 - `src/PlatformBoundary.spec.ts` holds that no shipping code outside the adapters reads the platform or names a
   platform primitive.
+- `src/AgentBoundary.spec.ts` holds that no shipping code outside the agent port's adapter (`src/lib/claude-code/` and
+  the fake agent's files), comments included, names the vendor, and that no testing helper names it but on its listed
+  lines; `src/ImportDirection.spec.ts` holds that only `cli/CommandContext.ts` and the fake agent import it.
 - Keep the adapter layer thin. A portable Bun or Node call stays in the core. Make an adapter only for code that is
   truly specific to a platform.
 - `src/lib/platform-ports/PlatformPortsFor.spec.ts` holds that on darwin, linux and win32 each port is an adapter, and

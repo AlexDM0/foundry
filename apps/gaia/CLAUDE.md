@@ -434,6 +434,7 @@ src/
   system fails.
 - **A guard holds which specs may use a real system**, with an allowlist that is exact both ways and
   a planted case for each form it claims to catch.
+- **`src/AgentVendorNames.spec.ts` holds that Gaia names no agent vendor;** Gaia speaks to forge only.
 
 ### Tests and recordings
 
