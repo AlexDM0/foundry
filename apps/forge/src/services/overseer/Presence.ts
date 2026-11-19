@@ -88,10 +88,10 @@ function endingOf(value: unknown): PresenceEnding | null | undefined {
   if (kind === 'stopped' || kind === 'handed-over') return { kind, at };
   if (kind !== 'crashed') return undefined;
   const component = ownFieldOf(value, 'component');
-  const crashLogGeneration = ownFieldOf(value, 'crashLogGeneration');
-  if (!isOneOf(component, CRASHED_COMPONENTS) || !isWholeNumberAtLeast(crashLogGeneration, 1)) return undefined;
+  const crashLogNumber = ownFieldOf(value, 'crashLogNumber');
+  if (!isOneOf(component, CRASHED_COMPONENTS) || !(crashLogNumber === null || isWholeNumberAtLeast(crashLogNumber, 1))) return undefined;
   return {
-    kind, component, crashLogGeneration, at
+    kind, component, crashLogNumber, at
   };
 }
 

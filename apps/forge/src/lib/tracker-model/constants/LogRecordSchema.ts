@@ -308,11 +308,11 @@ export const LOG_RECORD_SCHEMA = {
   'overseer-started': { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
   'overseer-stopped': { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
   // What the forge's start found before it; `previousGeneration` only when there is one, `crashSuspected` only when true,
-  // `crashLogGeneration` only when a crash log exists for this start.
+  // `crashLogNumber` only when a crash log exists for this start.
   'start-classified': {
     subject: 'board',
     fields:  {
-      kind: 'start-kind', startOrigin: 'start-origin', previousGeneration: 'optional-count', crashSuspected: 'optional-flag', crashLogGeneration: 'optional-count'
+      kind: 'start-kind', startOrigin: 'start-origin', previousGeneration: 'optional-count', crashSuspected: 'optional-flag', crashLogNumber: 'optional-count'
     },
   },
   // One run of Flint's brain that ended, with its tokens and model calls in total; the brain is no job, so its record names none.

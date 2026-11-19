@@ -3,10 +3,11 @@
  * writes the crash log of a crash it finds, and answers whether the start may serve. `start`, the foreground entry and `oversee status` read it.
  */
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { UNREADABLE_BOOT_IDENTITY }                          from '../../lib/process-identity/ProcessIdentity.ts';
+import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY }    from '../../lib/process-identity/ProcessIdentity.ts';
 import { requireProgressFile }                               from '../tracker/TrackerReader.ts';
 import type { Workspace }                                    from '../tracker/Workspace.ts';
 import type { CrashLogJob, CrashLogRecord }                  from './@types/CrashLogRecord.ts';
+import type { PresenceRecord }                               from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict, StartGateVerdict } from './@types/StartClassification.ts';
 import { Baton }                                             from './Baton.ts';
 import { CrashLog }                                          from './CrashLog.ts';
@@ -62,19 +63,6 @@ function crashToLogOf(classification: StartClassificationVerdict): boolean {
   return classification.kind === 'crashed' || (classification.kind === 'machine-went-down' && classification.crashSuspected);
 }
 
-/**
- * A crash whose generation nothing names (an unreadable presence record and no Baton) is logged one above the newest crash log, unless that
- * log was itself written for such a crash, so a second start of the same evidence finds it rather than writing another.
- */
-function crashLogGenerationOf(files: OverseerFiles, previousGeneration: number | null): number {
-  if (previousGeneration !== null) return previousGeneration;
-  const newestGeneration = CrashLog.list(files).at(-1);
-  if (newestGeneration === undefined) return 1;
-  const newest = CrashLog.read(files, newestGeneration);
-  const loggedForAnUnnamedGeneration = newest.verdict === 'read' && !newest.record.recordedBy.crashPath && newest.record.classification?.previousGeneration === null;
-  return loggedForAnUnnamedGeneration ? newestGeneration : newestGeneration + 1;
-}
-
 function readingOrNull<Value>(read: () => Value): Value | null {
   try {
     return read();
@@ -92,16 +80,33 @@ function talosChildrenOf(boardFolder: string): unknown[] | null {
   return newestStartNumber === null ? null : readingOrNull(() => persistedChildRecordsOf(boardFolder, newestStartNumber));
 }
 
-/** Written once: the crash path, or an earlier start, may have written it already, and that log stays. */
+/** The holder of the crashed generation's dead Baton, which names the crashed process when no presence record does. */
+function batonHolderOf(evidence: StartEvidence, crashedGeneration: number | null): ProcessIdentity | null {
+  const { newestBaton } = evidence;
+  if (newestBaton.verdict !== 'dead' || newestBaton.generation !== crashedGeneration || newestBaton.record === null) return null;
+  const { processId, processStartStamp, bootIdentity } = newestBaton.record;
+  return { processId, startStamp: processStartStamp, bootIdentity };
+}
+
+/** The crash log a `crashed` ending of the crashed generation names, while that log is still there: the crash path wrote it. */
+function crashLogNamedByTheEnding(files: OverseerFiles, presenceOfTheCrash: PresenceRecord | null): number | null {
+  const ending = presenceOfTheCrash?.ending;
+  if (ending?.kind !== 'crashed' || ending.crashLogNumber === null) return null;
+  return CrashLog.read(files, ending.crashLogNumber).verdict === 'read' ? ending.crashLogNumber : null;
+}
+
+/** Written once: the crash path, or an earlier start, may have logged this crash already, and that log stays. Answers the log's number. */
 function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, classification: StartClassificationVerdict): number {
   const { files, workspace, origin } = request;
-  const crashedGeneration = crashLogGenerationOf(files, classification.previousGeneration);
+  const crashedGeneration = classification.previousGeneration;
   const { presence, heartbeat } = evidence;
   const presenceNamesTheCrash = presence.verdict === 'read' && !classification.evidence.newerBatonThanPresence && presence.record.generation === crashedGeneration;
   const presenceOfTheCrash = presenceNamesTheCrash ? presence.record : null;
+  const loggedByTheCrashPath = crashLogNamedByTheEnding(files, presenceOfTheCrash);
+  if (loggedByTheCrashPath !== null) return loggedByTheCrashPath;
   const heartbeatOfTheCrash = heartbeat.verdict === 'read' && heartbeat.record.generation === crashedGeneration ? heartbeat.record : null;
   const component: CrashLogRecord['component'] = classification.crashedComponent ?? 'unknown';
-  CrashLog.writeOnce(files, CrashLog.assemble({
+  return CrashLog.writeOnce(files, CrashLog.assemble({
     crashedGeneration,
     component,
     suspected:     classification.kind === 'machine-went-down',
@@ -110,23 +115,27 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
     recordedBy:    { generation: null, startOrigin: origin.startOrigin, crashPath: false },
     error:         null,
     presence:      presenceOfTheCrash,
+    batonHolder:   batonHolderOf(evidence, crashedGeneration),
     heartbeat:     heartbeatOfTheCrash,
     activeJobs:    activeJobsOf(workspace),
     talosChildren: talosChildrenOf(workspace.trackerDirectory),
     logTail:       CrashLog.logTailOf(files.logFilePath),
-  }));
-  return crashedGeneration;
+  })).crashLogNumber;
 }
 
 /** Only a start the user made serves after a crash or a suspected one (decisions 14 and 39): a login item and a successor stay off. */
 function admit(request: StartGateRequest): StartGateVerdict {
   const evidence = evidenceOf(request);
   const classification = StartClassification.classify(evidence);
-  if (!crashToLogOf(classification)) return { verdict: 'serve', classification, crashLogGeneration: null };
-  const crashLogGeneration = writeTheCrashLog(request, evidence, classification);
-  if (request.origin.startOrigin === 'user') return { verdict: 'serve', classification, crashLogGeneration };
+  if (!crashToLogOf(classification)) return { verdict: 'serve', classification, crashLogNumber: null };
+  const crashLogNumber = writeTheCrashLog(request, evidence, classification);
+  if (request.origin.startOrigin === 'user') return { verdict: 'serve', classification, crashLogNumber };
   return {
-    verdict: 'stay-off', classification, crashLogGeneration, crashLogPath: CrashLog.pathOf(request.files, crashLogGeneration)
+    verdict:           'stay-off',
+    classification,
+    crashLogNumber,
+    crashedGeneration: classification.previousGeneration,
+    crashLogPath:      CrashLog.pathOf(request.files, crashLogNumber),
   };
 }
 

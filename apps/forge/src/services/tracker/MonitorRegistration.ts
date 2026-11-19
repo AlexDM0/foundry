@@ -50,19 +50,23 @@ export interface OverseerRegistration {
   tokenPath: string;
 }
 
+/** `crashLogPath` is `null` only when the crash path could not write its crash log. */
 export interface RegisteredCrash {
   component:    'overseer' | 'talos';
   suspected:    boolean;
   errorName:    string | null;
   errorMessage: string | null;
-  crashLogPath: string;
+  crashLogPath: string | null;
 }
 
-/** A kill from outside writes nothing: a stored `serving` whose process answers nothing is what a monitor sees until a start classifies it. */
+/**
+ * A kill from outside writes nothing: a stored `serving` whose process answers nothing is what a monitor sees until a start classifies it. A
+ * `crashed` generation is `null` when neither a presence record nor a Baton names it.
+ */
 export type PresenceRegistration =
   | { state: 'serving'; generation: number; at: string; process: { processId: number; startStamp: string; bootIdentity: string } }
   | { state: 'stopped' | 'handed-over'; generation: number; at: string }
-  | { state: 'crashed'; generation: number; at: string; crash: RegisteredCrash };
+  | { state: 'crashed'; generation: number | null; at: string; crash: RegisteredCrash };
 
 export type MonitorRegistrationOutcome =
   | { verdict: 'registered'; registryFilePath: string }

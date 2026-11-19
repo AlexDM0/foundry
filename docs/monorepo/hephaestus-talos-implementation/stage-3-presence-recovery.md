@@ -290,7 +290,7 @@ write, with no change of behaviour yet.
    `start-classified` with subject `board`, `job-resume-instructed` with subject `job`. Add the value kinds the schema
    needs (`start-kind`, `start-origin`) the way `overseer-stop-reason` is added (`LogRecordSchema.ts:50`,
    `@types/LogRecord.ts:82`, `LogRecordMappingUtil.ts:53-115`). The optional fields use the shapes that exist:
-   `optional-count` for `previousGeneration` and `crashLogGeneration`, `optional-flag` for `crashSuspected`.
+   `optional-count` for `previousGeneration` and `crashLogNumber`, `optional-flag` for `crashSuspected`.
 5. Word both records in `LogUtil` in plain sentences, naming the kind of start and the job.
 
 **Specs.**
@@ -551,9 +551,10 @@ it ended by a stop, a handover or a crash it recorded itself.
    them. It overwrites the previous generation's record: the classification has already read it (WP3.8 orders this).
 4. `writeEnding(files, generation, ending, at)` writes the ending only when the stored record's generation is
    `generation`; a newer generation's record is never touched. The endings are `stopped`, `handed-over` and `crashed`
-   (with the crash log's generation; WP3.7 writes it). Call it with `stopped` inside `closeTheStoppedOverseer` before
-   `Baton.release`, and with `handed-over` inside `release` after the drive pass stopped and before `overseer-stopped`
-   is logged. Every write is synchronous, so the crash path can make it in a dying process.
+   (with the crash log's number, `null` when the crash path could not write the log; WP3.7 writes it). Call it with
+   `stopped` inside `closeTheStoppedOverseer` before `Baton.release`, and with `handed-over` inside `release` after the
+   drive pass stopped and before `overseer-stopped` is logged. Every write is synchronous, so the crash path can make it
+   in a dying process.
 5. The heartbeat file is written only through the renewal's `onRenewed` hook, at each renewal Talos confirmed, with a
    sequence that rises by one. Since the renewer renews only on progress (decision 38), a heartbeat stands for
    progress, and an idle healthy forge, with no pass in flight, beats every renewal interval (N5). The heartbeat has a
@@ -567,10 +568,11 @@ it ended by a stop, a handover or a crash it recorded itself.
 
 **Specs.** `Presence.spec.ts` proves: a record round-trips; a missing file is `absent`; a malformed file and another
 version are `unreadable`; `writeEnding` for an older generation leaves a newer record untouched; a `crashed` ending
-keeps its crash log generation; the heartbeat sequence rises; a heartbeat of an older generation never replaces a newer
-one; an abandoned-pass count rises and a completed pass sets it to 0. A spec of the hook in
+keeps its crash log number, or `null`; the heartbeat sequence rises; a heartbeat of an older generation never
+replaces a newer one; an abandoned-pass count rises and a completed pass sets it to 0. A spec of the hook in
 `cli/overseer/OverseerForeground.spec.ts`: a confirmed renewal writes one beat, and a withheld renewal writes none. The
-stop and handover call sites are proven in WP3.8's specs.
+stop and handover call sites are proven in `cli/overseer/OverseerCommand.spec.ts` (`closeTheStoppedOverseer` writes
+`stopped`; `recordTheHandover`, which `release` calls, writes `handed-over` to presence and the registry).
 
 **Done when.** `bun run verify` passes at the root; `bun test src/services/overseer/Presence.spec.ts` passes in
 `apps/forge/`.
@@ -671,18 +673,26 @@ and ends the forge (R4).
    heartbeat, the board's live jobs (id, kind, role, tickets, state, interruption, instance, Airlock phase, event
    cursor), Talos's persisted child records as stage 2 stores them, and the last `CRASH_LOG_TAIL_LINES` lines of
    `overseer.log`. Reading the inputs is the caller's; an input that cannot be read is `null`, never a throw.
-2. `CrashLog.writeOnce(files, record)` creates `crash-logs/crash-<generation>.json` with `createWholeFileAtomically`
-   (`src/lib/atomic-file/AtomicFile.ts:165`), which answers `already-exists` when another writer wrote it first: the
-   file is never rewritten, and two writers write one log.
-3. `CrashLog.list(files)` answers every crash log's generation, ascending, and `CrashLog.read(files, generation)` a
+2. A crash log is named by a number of its own, never by the Baton generation: once a stop released the last Baton,
+   `Baton.acquire` claims generation 1 again, so a generation repeats and a later crash of it would find an older
+   log. `CrashLog.writeOnce(files, record)` answers `{ verdict: 'written' | 'already-written', crashLogNumber }`: when
+   the newest log records the same crash (the same crashed generation and crashed process; with no process named, the
+   same classification), it answers `already-written` with that log's number; otherwise it creates
+   `crash-logs/crash-<number>.json`, the number one above the highest log on disk, with `createWholeFileAtomically`
+   (`src/lib/atomic-file/AtomicFile.ts:165`), and on `already-exists` (another writer took the number) reads again,
+   up to `CRASH_LOG_CREATION_ATTEMPTS`. The file is never rewritten, and two writers of one crash write one log.
+   Removing older logs frees no number; once the folder is emptied, numbering starts again at 1, since nothing can
+   read a removed log. The Baton generation is the record's `crashedGeneration`, `null` when no presence record or
+   Baton names it, and `crashedProcess` is the presence record's process, or else the dead Baton's holder.
+3. `CrashLog.list(files)` answers every crash log's number, ascending, and `CrashLog.read(files, number)` a
    verdict. Read the tail of `overseer.log` without loading a large file whole: read the last bytes up to a bound and
    split.
 4. `CrashPath.record(context, crash)`, where `crash` names the component and the thrown value, runs in this order, the
    first three steps synchronous so that a dying process makes them: write the crash log once; write the presence ending
-   `crashed` with the crash log's generation; stop the lease renewal, so Talos's lease runs out and Talos stops the
-   board's agents at the end of their turn (`lease-ended`, which waits). Then, asynchronously and bounded by
-   `CRASH_PATH_REGISTRY_BOUND_MILLISECONDS`: the registry presence `crashed` with the crash summary (WP3.8 adds that
-   write; until then this step does nothing). It never throws.
+   `crashed` with the crash log's number (`null` when the log could not be written); stop the lease renewal, so Talos's
+   lease runs out and Talos stops the board's agents at the end of their turn (`lease-ended`, which waits). Then,
+   asynchronously and bounded by `CRASH_PATH_REGISTRY_BOUND_MILLISECONDS`: the registry presence `crashed` with the
+   crash summary (WP3.8 adds that write; until then this step does nothing). It never throws.
 5. A crash the pass sees (WP3.11) and a crash of Talos while serving end the foreground loop with the end `crashed`:
    stop the drive pass and the server as a stop does, write no `stopped` ending, release no Baton, remove no registry
    entry, and throw `OperationRefusal('unrepaired', { kind: 'forge-crashed', component, crashLogPath })`, so the process
@@ -696,11 +706,14 @@ and ends the forge (R4).
    code; if it does not, stop and report rather than choose another mechanism.
 
 **Specs.** `CrashLog.spec.ts`: an assembled log holds each input; an input that is `null` is kept `null`; the second
-`writeOnce` for a generation answers `already-exists` and leaves the first file byte for byte; the tail keeps the last
+`writeOnce` of the same crash answers `already-written` and leaves the first file byte for byte; a crash of a
+generation that came round again gets the next number; removing an older log frees no number, and an emptied folder
+starts again at 1; the tail keeps the last
 lines of a log longer than the bound and all of a shorter one; `list` ignores a file of another name.
 `CrashPath.spec.ts`, on a scratch data folder with a fake lease renewal and a fake registry write: the crash log and the
 presence ending `crashed` are written before the registry step; the renewal is stopped; a registry write that never
-settles is cut off at the bound; a crash log already there is kept. No spec registers a process listener: the
+settles is cut off at the bound; a crash log already there is kept; a crash log that cannot be written leaves the
+ending's `crashLogNumber` and the registry's `crashLogPath` `null`. No spec registers a process listener: the
 listeners are proven by WP3.14's integration row.
 
 **Done when.** `bun run verify` passes at the root; both specs pass in `apps/forge/`.
@@ -744,9 +757,11 @@ registry's presence key true at every start, stop, handover and crash (R2, R8).
 2. `StartGate.admit(...)` classifies, and for `crashed`, or for `machine-went-down` with `crashSuspected`, assembles and
    writes the crash log once (WP3.7; `suspected: true` for the second), reading the board's jobs with
    `requireProgressFile` (no lock: the record is a snapshot shown to a person) and Talos's child records through stage
-   2's reader. It answers `{ verdict: 'serve', classification, crashLogGeneration }` or
-   `{ verdict: 'stay-off', classification, crashLogPath }`. It answers `stay-off` exactly when the kind is `crashed`, or
-   `machine-went-down` with `crashSuspected`, and the origin is not `user` (decisions 14 and 39).
+   2's reader. A `crashed` ending of the crashed generation that names a crash log still on disk is the crash path's
+   log, kept as it is; otherwise the gate writes through `CrashLog.writeOnce`. It answers `{ verdict: 'serve',
+   classification, crashLogNumber }` or `{ verdict: 'stay-off', classification, crashLogNumber, crashedGeneration,
+   crashLogPath }`. It answers `stay-off` exactly when the kind is `crashed`, or `machine-went-down` with
+   `crashSuspected`, and the origin is not `user` (decisions 14 and 39).
 3. In `runOverseerInTheForeground`, after `requireNoLiveOverseer` and before `startServing`, call the gate. On
    `stay-off`: write the registry presence `crashed` with the crash summary, log one line to `overseer.log`, take no
    Baton, bind no port, contact no Talos, and throw `OperationRefusal('refused', { kind: 'forge-off-after-crash',
@@ -769,9 +784,11 @@ registry's presence key true at every start, stop, handover and crash (R2, R8).
 
 - `StartGate.spec.ts` on a scratch data folder and fake ports: a login-item start after a crash stays off and writes one
   crash log; a login-item start after a suspected crash stays off and writes a log marked suspected; a user start after
-  a crash serves and finds the crash log already there; a second refused start writes no second log; a login-item start
-  after a reboot with a fresh heartbeat serves with no crash log; a start after a Talos lost in this boot stays off with
-  a log naming Talos; a successor after `predecessor-gone` stays off.
+  a crash serves and finds the crash log already there; a second refused start writes no second log; after an older
+  crash log of the same generation, a crash writes a log of its own under the next number and the verdict names it; a
+  start that took Baton 1 again and died before its presence write is logged with that Baton's holder; a login-item
+  start after a reboot with a fresh heartbeat serves with no crash log; a start after a Talos lost in this boot stays
+  off with a log naming Talos; a successor after `predecessor-gone` stays off.
 - `cli/overseer/OverseerForeground.spec.ts`: the start hold logs `start-classified` after `overseer-started`; a refused
   start leaves no Baton generation and no port bound.
 - `cli/overseer/StartCommand.spec.ts` (create it when none exists) and `cli/overseer/OverseerCommand.spec.ts`:
@@ -956,7 +973,7 @@ supervises its agents, the work that waits by cause, and its crash logs (decisio
 - Create `apps/forge/src/services/overseer/PresenceDocumentAssembly.ts` and its spec: forge's typed mapping from
   presence, the heartbeat, Talos's record, the board and the crash logs into the two documents.
 - Change `apps/forge/src/services/overseer/OverseerServer.ts` (`dataRouteOf`, `:535-552`) and the route record in
-  `cli/overseer/routes/OverseerRoutes.ts`: the routes `GET /api/presence` and `GET /api/crash-log?generation=<n>`
+  `cli/overseer/routes/OverseerRoutes.ts`: the routes `GET /api/presence` and `GET /api/crash-log?number=<n>`
   (the newest without the query) behind the token. The versioned paths need no route of their own:
   `requestAtUnversionedPath` (`OverseerServer.ts:608-619`) maps a served `/api/v<n>/<endpoint>` onto its unversioned
   route, query kept, and answers 404 for a version it does not serve.
@@ -968,25 +985,26 @@ supervises its agents, the work that waits by cause, and its crash logs (decisio
    `apps/gaia/CLAUDE.md` rule 3 asks.
 2. `PresenceDocumentAssembly.presenceDocumentOf(inputs)` is pure. It maps each `InterruptionCause` to the contract's
    `MonitorInterruptionCause` (stage 2's union, the contract's one cause union) through the assembly's
-   `Readonly<Record<InterruptionCause, MonitorInterruptionCause>>`, so a cause added to
-   the model does not compile until it is mapped; `watcher-lost` maps to `child-lost`, since the contract carries no
-   name stage 9 retires. For each interrupted job: its cause, what it waits for (from `RESUME_POLICY_OF_CAUSE` and the
-   holds: an instruction, an answer, a decision, nothing, or never), `crashResumes` and the automatic restarts left. A
-   job with a lost line (WP3.10) is listed as waiting for an instruction. Then the tickets holding an `interrupted:`
-   hold, the crash logs listed by `CrashLog.list`, and the supervision read from Talos's record (N10): `held` is
-   `supervising`, `ended` is `stopped`, `waiting-after-gap` is `checking-after-a-gap`, `unheld` is `not-yet-renewed`,
-   no readable record is `no-talos`.
-3. `PresenceDocumentAssembly.crashLogDocumentOf(record)` maps a stored crash log into the contract's document;
+   `Readonly<Record<InterruptionCause, MonitorInterruptionCause>>`, so a cause added to the model does not compile until
+   it is mapped; `watcher-lost` maps to `child-lost`, since the contract carries no name stage 9 retires. For each
+   interrupted job: its cause, what it waits for (from `RESUME_POLICY_OF_CAUSE` and the holds: an instruction, an
+   answer, a decision, nothing, or never), `crashResumes` and the automatic restarts left. A job with a lost line
+   (WP3.10) is listed as waiting for an instruction. Then the tickets holding an `interrupted:` hold, the crash logs
+   listed by `CrashLog.list`, each with its number and its crashed generation, and the supervision read from Talos's
+   record (N10): `held` is `supervising`, `ended` is `stopped`, `waiting-after-gap` is `checking-after-a-gap`, `unheld`
+   is `not-yet-renewed`, no readable record is `no-talos`.
+3. `PresenceDocumentAssembly.crashLogDocumentOf(crashLogNumber, record)` maps a stored crash log into the contract's
+   document, `number` from the file and `generation` from `crashedGeneration`;
    `component` `overseer` maps to `hephaestus`, the component's name in the contract.
 4. Serve both like `state`: read fresh on each request, behind `readerIsAuthorized`. `crash-log` answers 404 with the
-   refusal `no-crash-log` for a generation that has none.
+   refusal `no-crash-log` for a number that has none.
 
 **Specs.** The assembly spec: a reboot-interrupted job is listed as waiting for an instruction; an agent crashed once is
 listed as resuming by itself with one restart left; a `network-outage` job and a `lease-ended` job are listed with
 their causes, waiting for an instruction; an `interrupted:merge` ticket is listed; the crash logs are listed newest
 last; a Talos record whose lease ended reads `stopped`. An `OverseerServer` spec: each route answers 401 without the
 token and the document with it, at `/api/presence`, `/api/v1/presence`, `/api/crash-log` and
-`/api/v1/crash-log?generation=<n>`; `/api/v2/presence` answers 404. The contract package's specs pass, and the registry
+`/api/v1/crash-log?number=<n>`; `/api/v2/presence` answers 404. The contract package's specs pass, and the registry
 spec holds the new endpoints.
 
 **Done when.** `bun run verify` passes at the root; in `apps/forge/`, `bun test src/services/overseer/PresenceDocument
@@ -1013,10 +1031,10 @@ resumes the work (design section 3.4).
 
 1. `oversee status`: when no Overseer is live, read the evidence (`StartGate.evidenceOf` with origin `user`) and
    classify. Its JSON entity gains `presence` (Interfaces introduced); its text says, for a crash, "forge: off after a
-   crash of Baton <n> (crash log <path>); start it again with `<program> start`, then resume the interrupted work with
-   `<program> resume --all`". When live, it shows the last start's kind, the heartbeat, the supervision and abandoned
-   passes from presence.
-2. `crash-log [<generation>] [--json]`: prints the crash log of that generation, or the newest; refuses `no-crash-log`
+   crash of Baton <generation> (crash log <number>, <path>); start it again with `<program> start`, then resume the
+   interrupted work with `<program> resume --all`". When live, it shows the last start's kind, the heartbeat, the
+   supervision and abandoned passes from presence.
+2. `crash-log [<number>] [--json]`: prints the crash log of that number, or the newest; refuses `no-crash-log`
    when there is none. Text: the component, the classification and its evidence, the error, the jobs and their steps,
    then the log tail. It reads files only, so it works with the forge up or down.
 3. The top-level `status`: when the classification of a down forge is `crashed`, or `machine-went-down` with
@@ -1027,7 +1045,7 @@ resumes the work (design section 3.4).
    fresh agent instead and `job stop <J>` gives the work up; say so in `docs/cli.md`.
 
 **Specs.** `OverseerCommand.spec.ts`: `oversee status` on a scratch data folder with a crashed presence prints the crash
-and its path, and `--json` carries `presence`. `CrashLogCommand.spec.ts`: prints the newest log and a given generation,
+and its path, and `--json` carries `presence`. `CrashLogCommand.spec.ts`: prints the newest log and a given number,
 and refuses `no-crash-log`. `StatusCommand.spec.ts`: the notice is on standard error only, and absent for a stopped
 forge.
 
@@ -1064,6 +1082,9 @@ Add these rows to `CrashMatrix.integration.spec.ts`, each with real processes, t
   presence `crashed`, and Talos's lease stops the agents, which then read `lease-ended`";
 - "then a user start: it serves, classifies the crash, keeps the crash log, and the interrupted tickets wait until
   `resume --all`";
+- "a crash of Baton 1, a user start and a stop, then a start that takes Baton 1 again and is killed: the next
+  login-item start writes a crash log under the next number, keeps the older log of Baton 1 as it was, and the
+  registry's crash summary and the refusal name the new log" (crash logs are numbered, never named by generation);
 - "an unexpected error in a pass: the crash path writes the crash log with the error and the registry presence
   `crashed`, the forge ends, and the next login-item start stays off";
 - "an uncaught exception in the Overseer: the crash log carries the error and the process ends with a non-zero code";
@@ -1169,7 +1190,7 @@ An answer to a question of the job, logged after its newest interruption, counts
 
 | Kind | Subject | Fields |
 | --- | --- | --- |
-| `start-classified` | board | `kind`: `StartKind`; `startOrigin`: `StartOrigin`; `previousGeneration`: count, written only when there is one; `crashSuspected`: flag, written only when true; `crashLogGeneration`: count, written only when a crash log exists for this start |
+| `start-classified` | board | `kind`: `StartKind`; `startOrigin`: `StartOrigin`; `previousGeneration`: count, written only when there is one; `crashSuspected`: flag, written only when true; `crashLogNumber`: count, the crash log's number, written only when a crash log exists for this start |
 | `job-resume-instructed` | job | `childInstance`: the job's instance at the instruction (`Job.childInstance`, stage 2's WP2.16) |
 | `job-resumed` (changed) | job | adds `instructed: true`, written only for an instructed resume |
 | `job-line-lost` | job | `line`: `'gate' \| 'install'`; `cause`: interruption cause |
@@ -1213,7 +1234,7 @@ nothing waiting answer `nothing-to-do`, a success. Never admitted for an agent r
 | `resume --network-outage [--json]` | `interrupted-work-resume` `'network-outage'` | 0 done or nothing to do |
 | `start [--started-by user\|login-item] …` | the start origin; `user` when absent; the start gate before the spawn | unchanged, plus 1 `forge-off-after-crash` |
 | `oversee [--started-by user\|login-item] …` | the internal foreground entry, with the same origin | unchanged, plus 1 `forge-off-after-crash`, and the exit of `forge-crashed` |
-| `crash-log [<generation>] [--json]` | prints a crash log | 0; 1 `no-crash-log` |
+| `crash-log [<number>] [--json]` | prints a crash log | 0; 1 `no-crash-log` |
 | `oversee status [--json]` | adds `presence` | unchanged |
 
 The login item's line: macOS `<bun> <isolating arguments> <checkout>/agent-progress.ts start --started-by login-item`;
@@ -1223,11 +1244,12 @@ given `login-item`.
 
 The refusals, each a detail kind of `OperationRefusal` worded for the command line and served with its sentence:
 
-- `forge-off-after-crash` (`refused`, exit 1): `{ crashedGeneration: number, crashLogPath: string, suspected: boolean
-  }`, "The forge is off after a crash of Baton <n>; read why with `crash-log`, and start it yourself with `start`."
-- `forge-crashed` (`unrepaired`): `{ component: 'overseer' | 'talos', crashLogPath: string }`, "The forge crashed
-  (<component>) and stays off; its crash log is <path>."
-- `no-crash-log` (`refused`, exit 1): `{ generation: number | null }`.
+- `forge-off-after-crash` (`refused`, exit 1): `{ crashedGeneration: number | null, crashLogPath: string, suspected:
+  boolean }`, "The forge is off after a crash of Baton <n>; read why with `crash-log`, and start it yourself with
+  `start`." ("of a Baton nothing names" when the generation is `null`.)
+- `forge-crashed` (`unrepaired`): `{ component: 'overseer' | 'talos', crashLogPath: string | null }`, "The forge
+  crashed (<component>) and stays off; its crash log is <path>." ("could not be written" when the path is `null`.)
+- `no-crash-log` (`refused`, exit 1): `{ number: number | null }`.
 
 The `presence` block of `oversee status --json`:
 
@@ -1235,7 +1257,7 @@ The `presence` block of `oversee status --json`:
 interface StatusPresence {
   state:            'serving' | 'starting' | 'down' | 'off-after-crash';
   lastStart:        StartClassificationVerdict | null;
-  crashLog:         { generation: number; path: string; suspected: boolean } | null;
+  crashLog:         { number: number; generation: number | null; path: string; suspected: boolean } | null;
   heartbeat:        HeartbeatRecord | null;
   supervision:      'supervising' | 'stopped' | 'checking-after-a-gap' | 'not-yet-renewed' | 'no-talos';
   abandonedPasses:  PresenceRecord['abandonedPasses'] | null;
@@ -1250,7 +1272,7 @@ interface StatusPresence {
 export type StartOrigin = 'user' | 'login-item' | 'successor';
 export type PresenceEnding =
   | { kind: 'stopped' | 'handed-over'; at: string }
-  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogGeneration: number; at: string };
+  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogNumber: number | null; at: string }; // null: not written
 
 export interface PresenceRecord {
   presenceVersion:     1;                       // PRESENCE_FORMAT_VERSION
@@ -1280,17 +1302,19 @@ export interface HeartbeatRecord {
 }
 ```
 
-`crash-logs/crash-<generation>.json`, created exclusively, never rewritten:
+`crash-logs/crash-<number>.json`, created exclusively, never rewritten; the number is one above the highest log on
+disk (1 in an empty folder), never the Baton generation:
 
 ```ts
 export interface CrashLogRecord {
   crashLogVersion:     1;
-  crashedGeneration:   number;
+  crashedGeneration:   number | null;     // the Baton generation; null when no presence record or Baton names it
   component:           'overseer' | 'talos' | 'unknown';
   suspected:           boolean;          // true for a crash suspected before a reboot
   classification:      StartClassificationVerdict | null; // null when the crash path wrote it
   recordedAt:          string;
   recordedBy:          { generation: number | null; startOrigin: StartOrigin | null; crashPath: boolean };
+  // presence's process, else the holder of the crashed generation's dead Baton
   crashedProcess:      { processId: number; startStamp: string; bootIdentity: string } | null;
   codeVersion:         string | null;
   startedAt:           string | null;
@@ -1308,9 +1332,9 @@ export interface CrashLogRecord {
 
 Constants in `src/services/overseer/constants/PresenceLimits.ts`: `PRESENCE_FORMAT_VERSION = 1`,
 `HEARTBEAT_FORMAT_VERSION = 1`, `CRASH_LOG_FORMAT_VERSION = 1`, `CRASH_LOG_TAIL_LINES = 200`,
-`ABANDONED_PASSES_BEFORE_NOTICE = 3`, `CRASH_PATH_REGISTRY_BOUND_MILLISECONDS = 5_000`,
-`HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS` = four lease renewal intervals (60 000 with stage 2's 15 seconds), derived
-from stage 2's constant, not written as a number.
+`CRASH_LOG_CREATION_ATTEMPTS = 16`, `ABANDONED_PASSES_BEFORE_NOTICE = 3`, `CRASH_PATH_REGISTRY_BOUND_MILLISECONDS =
+5_000`, `HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS` = four lease renewal intervals (60 000 with stage 2's 15 seconds),
+derived from stage 2's constant, not written as a number.
 
 ### Start classification
 
@@ -1335,8 +1359,9 @@ export interface StartClassificationVerdict {
 }
 
 export type StartGateVerdict =
-  | { verdict: 'serve'; classification: StartClassificationVerdict; crashLogGeneration: number | null }
-  | { verdict: 'stay-off'; classification: StartClassificationVerdict; crashLogPath: string };
+  | { verdict: 'serve'; classification: StartClassificationVerdict; crashLogNumber: number | null }
+  | { verdict: 'stay-off'; classification: StartClassificationVerdict; crashLogNumber: number;
+      crashedGeneration: number | null; crashLogPath: string };
 ```
 
 ### Abandoned pass
@@ -1366,16 +1391,16 @@ presence?:
   | { state: 'serving'; generation: number; at: string;
       process: { processId: number; startStamp: string; bootIdentity: string } }
   | { state: 'stopped' | 'handed-over'; generation: number; at: string }
-  | { state: 'crashed'; generation: number; at: string;
+  | { state: 'crashed'; generation: number | null; at: string;   // null: no presence record or Baton names it
       crash: { component: 'overseer' | 'talos'; suspected: boolean; errorName: string | null;
-               errorMessage: string | null; crashLogPath: string } };
+               errorMessage: string | null; crashLogPath: string | null } }; // null: the crash path could not write it
 ```
 
 It only adds, so the registry's version stays; a reader that knows the version passes it over until it reads it.
 
 ### Read API
 
-`GET /api/v1/presence` and `GET /api/v1/crash-log?generation=<n>`, behind the bearer token, listed in
+`GET /api/v1/presence` and `GET /api/v1/crash-log?number=<n>`, behind the bearer token, listed in
 `FORGE_COMPATIBILITY_REGISTRY` at version 1 and answered by the unversioned routes, as every versioned read is; the
 forge's system version rises by one minor in this stage, over the 1.18 of today plus whatever stage 2 raised. Both types
 import nothing from `apps/forge`.
@@ -1396,7 +1421,7 @@ export interface ForgePresenceDocument {
     readonly kind:               ForgeStartKind;
     readonly previousGeneration: number | null;
     readonly crashSuspected:     boolean;
-    readonly crashLogGeneration: number | null;
+    readonly crashLogNumber:     number | null;
   };
   readonly heartbeat:       { readonly sequence: number; readonly at: string } | null;
   readonly supervision:     ForgeSupervision;
@@ -1414,14 +1439,15 @@ export interface ForgePresenceDocument {
   }[];
   readonly heldMerges:      readonly { readonly ticketId: string; readonly hold: string }[];
   readonly crashLogs:       readonly {
-    readonly generation: number; readonly component: 'hephaestus' | 'talos' | 'unknown';
+    readonly number: number; readonly generation: number | null; readonly component: 'hephaestus' | 'talos' | 'unknown';
     readonly recordedAt: string; readonly suspected: boolean;
   }[];
 }
 
 // packages/forge-contracts/@types/ForgeCrashLogDocument.ts
 export interface ForgeCrashLogDocument {
-  readonly generation:   number;
+  readonly number:       number;          // the crash log's own number, the key of `?number=<n>`
+  readonly generation:   number | null;   // the Baton generation that crashed
   readonly component:    'hephaestus' | 'talos' | 'unknown';
   readonly suspected:    boolean;
   readonly recordedAt:   string;
@@ -1491,6 +1517,9 @@ export interface ForgeCrashLogDocument {
 - **The crash log must survive a racing second writer.** The crash path and a login-item start, or two login-item
   starts, can both write one crash. `createWholeFileAtomically` makes the file exclusive; a plain write would let the
   second overwrite the first with a later, shorter log tail or without the error.
+- **A Baton generation is no crash log's name.** Generations start again at 1 after a stop, so a log named by its
+  generation makes a later crash of that generation find the older log, lose its own, and hand the gate and the
+  registry the older error. A crash log has a number of its own; the generation is a field inside it.
 - **Gaia reads no board file.** The crash summary goes into the registry key and the full log is served once the forge
   serves (R2); do not hand Gaia the crash log's path to read.
 - **Name collisions.** `FailedPassUtil` and `FAILED_PASSES_BEFORE_PARKING` already mean a ticket's failed job outcomes;
@@ -1572,7 +1601,7 @@ home, in a scratch repository, with `FORGE_ROOT` pinned and the forge's fake age
 4. Kill the Overseer's process with `SIGKILL`; run `start --started-by login-item`: it exits 1 `forge-off-after-crash`,
    the registry's presence reads `crashed`, `oversee status` says off after a crash, `crash-log` prints the log with the
    jobs and the log tail, and `status` prints the notice on standard error. After a minute Talos has stopped the agent.
-5. `start`: it serves, `lastStart.kind` is `crashed` with the crash log's generation, the job waits, and
+5. `start`: it serves, `lastStart.kind` is `crashed` with the crash log's number, the job waits, and
    `GET /api/v1/crash-log` serves the log; `resume <T>` resumes it.
 6. `oversee restart`: the successor's start is `handover`, and nothing is interrupted.
 7. Once the fake agent's outage scenario exists (gate G1): a job ending on an outage waits `network-outage`, and

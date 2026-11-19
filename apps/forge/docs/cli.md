@@ -1364,8 +1364,10 @@ takes a Baton, from what the generation before it left: `<data>/overseer/presenc
 `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` (with `crashSuspected` when the last beat was older
 than four lease renewal intervals at the boot) and `crashed` (the Overseer or Talos). After `crashed`, or
 `machine-went-down` with a suspected crash, the start writes the crash log
-`<data>/overseer/crash-logs/crash-<generation>.json` once; a log already there, from the crash itself or an earlier
-start, stays. Only a start by `user` then serves. A start by `login-item`, or a successor whose predecessor died during
+`<data>/overseer/crash-logs/crash-<number>.json` once; a log already there, from the crash itself or an earlier
+start, stays. A crash log's number is its own, one above the highest log on disk (1 again once the folder is
+emptied), never the Baton generation, which starts again at 1 after a stop; the crashed generation is a field inside
+the log. Only a start by `user` then serves. A start by `login-item`, or a successor whose predecessor died during
 the Baton pass, stays off: it writes the registry's `presence` as `crashed`, logs one line to `overseer.log`, takes no
 Baton, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge is off after a
 crash of Baton <n>; read why with `forge crash-log`, and start it yourself with `forge start`."). A start that serves
@@ -2880,7 +2882,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `overseer-set` | none | `state` (`running` or `paused`) |
 | `overseer-started` | none | `codeVersion`, `installVersion` |
 | `overseer-stopped` | none | `reason`: `stopped` or `baton-passed` |
-| `start-classified` | none | `kind`: what the start found before it, `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` or `crashed`; `startOrigin`: `user`, `login-item` or `successor`; `previousGeneration`: the Baton generation before it, only when there is one; `crashSuspected` (`true`) only when a crash is suspected before the machine went down; `crashLogGeneration`: only when a crash log exists for this start |
+| `start-classified` | none | `kind`: what the start found before it, `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` or `crashed`; `startOrigin`: `user`, `login-item` or `successor`; `previousGeneration`: the Baton generation before it, only when there is one; `crashSuspected` (`true`) only when a crash is suspected before the machine went down; `crashLogNumber`: the number of the crash log, only when a crash log exists for this start |
 | `baton-pass-failed` | none | `successorCodeVersion`, `step`, `error` |
 | `dispatcher-set` | none | `state` (`running`, `finished` or `stopped`), `runId` (a run id or `null`); retired: still read, never logged |
 

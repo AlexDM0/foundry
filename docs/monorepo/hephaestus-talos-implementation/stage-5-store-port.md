@@ -33,7 +33,7 @@ number alone.
   store, under the operating system port (stage 2's plan says so for its own files).
 - **Stage 3** (presence and recovery): it adds the command `interrupted-work-resume`, the verb `resume` (decision 41),
   the log records `start-classified`, `job-resume-instructed` and `job-line-lost`, and the files `presence.json`,
-  `heartbeat.json` and `crash-logs/crash-<generation>.json` under `<data>/overseer/`.
+  `heartbeat.json` and `crash-logs/crash-<number>.json` under `<data>/overseer/`.
   Those files stay outside the store port (Decisions this stage carries out). `interrupted-work-resume` is a relayable
   kind: it stays in `RELAYED_VERB_OF_CONTROL_KIND` (`cli/constants/JobVerbs.ts:48`) as `resume`, the command endpoint
   accepts it as stage 3 adds it to `packages/forge-contracts`, the Bouncer refuses it for every agent role, and this

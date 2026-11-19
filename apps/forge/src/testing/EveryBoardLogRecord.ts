@@ -244,7 +244,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   }, [], at);
   board.recordOverseerStarted({ codeVersion: 'a1b2c3d', installVersion: 17 }, at);
   board.recordStartClassified({
-    kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 3, crashSuspected: true, crashLogGeneration: 3
+    kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 3, crashSuspected: true, crashLogNumber: 3
   }, at);
   const { job } = board.launchJob({
     kind:        'build',

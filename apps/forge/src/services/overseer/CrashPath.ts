@@ -2,14 +2,18 @@
  * The one path every crash a live forge process sees runs: it writes the crash log once, ends the generation's presence `crashed` and stops the
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
-import type { ExclusiveCreation }                            from '../../lib/atomic-file/FileReplace.ts';
-import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
-import type { CrashedComponent, CrashLogError, CrashLogJob } from './@types/CrashLogRecord.ts';
-import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
-import { CrashLog }                                          from './CrashLog.ts';
-import type { OverseerFiles }                                from './OverseerFiles.ts';
-import { Presence }                                          from './Presence.ts';
-import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
+import type { PresenceRegistration } from '../tracker/MonitorRegistration.ts';
+import type {
+  CrashedComponent,
+  CrashLogError,
+  CrashLogJob,
+  CrashLogWrite
+} from './@types/CrashLogRecord.ts';
+import type { PresenceUpdate }                    from './@types/PresenceRecord.ts';
+import { CrashLog }                               from './CrashLog.ts';
+import type { OverseerFiles }                     from './OverseerFiles.ts';
+import { Presence }                               from './Presence.ts';
+import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS } from './constants/PresenceLimits.ts';
 
 /** The registry's presence key of a crash, which the crash path's registry step writes. */
 export type RegistryCrashReport = Extract<PresenceRegistration, { state: 'crashed' }>;
@@ -34,9 +38,10 @@ export interface Crash {
   error:     CrashLogError | null;
 }
 
+/** `crashLogPath` is `null` only when the crash log could not be written. */
 export interface CrashPathOutcome {
-  crashLogPath: string;
-  crashLog:     ExclusiveCreation | 'not-written';
+  crashLogPath: string | null;
+  crashLog:     CrashLogWrite['verdict'] | 'not-written';
   presence:     PresenceUpdate['verdict'] | 'not-written';
   registry:     'written' | 'cut-off' | 'failed';
 }
@@ -53,7 +58,7 @@ function readingOrNull<Value>(read: () => Value | null): Value | null {
   }
 }
 
-function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: string): CrashPathOutcome['crashLog'] {
+function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: string): CrashLogWrite | 'not-written' {
   const { files, generation } = context;
   const presenceReading = readingOrNull(() => Presence.readPresence(files));
   const heartbeatReading = readingOrNull(() => Presence.readHeartbeat(files));
@@ -68,6 +73,7 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
     recordedBy:        { generation, startOrigin: presence?.startOrigin ?? null, crashPath: true },
     error:             crash.error,
     presence,
+    batonHolder:       null,
     heartbeat,
     activeJobs:        readingOrNull(context.activeJobs),
     talosChildren:     readingOrNull(context.talosChildren),
@@ -81,9 +87,9 @@ function writeTheCrashLog(context: CrashPathContext, crash: Crash, recordedAt: s
   }
 }
 
-function writeTheCrashedEnding(context: CrashPathContext, crash: Crash, at: string): CrashPathOutcome['presence'] {
+function writeTheCrashedEnding(context: CrashPathContext, crash: Crash, crashLogNumber: number | null, at: string): CrashPathOutcome['presence'] {
   try {
-    const ending = { kind: 'crashed', component: crash.component, crashLogGeneration: context.generation } as const;
+    const ending = { kind: 'crashed', component: crash.component, crashLogNumber } as const;
     return Presence.writeEnding(context.files, context.generation, ending, at).verdict;
   } catch (thrown) {
     context.log(`The crashed ending of Baton ${context.generation} could not be written: ${describedFailureOf(thrown)}`);
@@ -129,9 +135,11 @@ function record(context: CrashPathContext, crash: Crash): Promise<CrashPathOutco
   } catch {
     // An unreadable clock leaves the stamp empty rather than losing the crash.
   }
-  const crashLogPath = CrashLog.pathOf(context.files, context.generation);
-  const crashLog = writeTheCrashLog(context, crash, recordedAt);
-  const presence = writeTheCrashedEnding(context, crash, recordedAt);
+  const crashLogWrite = writeTheCrashLog(context, crash, recordedAt);
+  const crashLogNumber = crashLogWrite === 'not-written' ? null : crashLogWrite.crashLogNumber;
+  const crashLogPath = crashLogNumber === null ? null : CrashLog.pathOf(context.files, crashLogNumber);
+  const crashLog = crashLogWrite === 'not-written' ? crashLogWrite : crashLogWrite.verdict;
+  const presence = writeTheCrashedEnding(context, crash, crashLogNumber, recordedAt);
   stopTheLeaseRenewal(context);
   const report: RegistryCrashReport = {
     state:      'crashed',

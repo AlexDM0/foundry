@@ -50,7 +50,7 @@ export interface StartAdmissionRequest {
 
 /** A crash suspected before a reboot names no component: the beat that went stale is the Overseer's own. */
 function registeredCrashOf(files: OverseerFiles, stayingOff: StayingOff): RegisteredCrash {
-  const crashLog = CrashLog.read(files, stayingOff.crashLogGeneration);
+  const crashLog = CrashLog.read(files, stayingOff.crashLogNumber);
   const error = crashLog.verdict === 'read' ? crashLog.record.error : null;
   return {
     component:    stayingOff.classification.crashedComponent ?? 'overseer',
@@ -72,12 +72,13 @@ export async function admitTheStart({
   const crash = registeredCrashOf(files, verdict);
   await registerTheBoard(context, workspace, {
     presence: {
-      state: 'crashed', generation: verdict.crashLogGeneration, at: stampNow(), crash
+      state: 'crashed', generation: verdict.crashedGeneration, at: stampNow(), crash
     },
   });
-  log(`Staying off after a crash of Baton ${verdict.crashLogGeneration}${crash.suspected ? ' suspected before the machine restarted' : ''}: `
+  const crashedBaton = verdict.crashedGeneration === null ? 'a Baton nothing names' : `Baton ${verdict.crashedGeneration}`;
+  log(`Staying off after a crash of ${crashedBaton}${crash.suspected ? ' suspected before the machine restarted' : ''}: `
     + `started by ${origin.startOrigin}, so only a start by the user serves; the crash log is ${verdict.crashLogPath}.`);
   throw new OperationRefusal('refused', {
-    kind: 'forge-off-after-crash', crashedGeneration: verdict.crashLogGeneration, crashLogPath: verdict.crashLogPath, suspected: crash.suspected
+    kind: 'forge-off-after-crash', crashedGeneration: verdict.crashedGeneration, crashLogPath: verdict.crashLogPath, suspected: crash.suspected
   });
 }

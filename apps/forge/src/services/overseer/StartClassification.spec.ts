@@ -119,7 +119,7 @@ describe('StartClassification.classify', () => {
       presence: {
         verdict: 'read',
         record:  presenceRecordOf({
-          kind: 'crashed', component: 'overseer', crashLogGeneration: 7, at: '2026-11-19T10:00:00+01:00'
+          kind: 'crashed', component: 'overseer', crashLogNumber: 2, at: '2026-11-19T10:00:00+01:00'
         }, EARLIER_BOOT)
       }
     }));
@@ -129,7 +129,7 @@ describe('StartClassification.classify', () => {
       presence: {
         verdict: 'read',
         record:  presenceRecordOf({
-          kind: 'crashed', component: 'talos', crashLogGeneration: 7, at: '2026-11-19T10:00:00+01:00'
+          kind: 'crashed', component: 'talos', crashLogNumber: 2, at: '2026-11-19T10:00:00+01:00'
         })
       }
     }));

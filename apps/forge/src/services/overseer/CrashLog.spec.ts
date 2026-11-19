@@ -1,10 +1,16 @@
 /**
  * The crash logs in a scratch board folder. What matters: an assembled log keeps every input, and an input that could not be read stays `null`
- * rather than reading as empty; a crash log is never rewritten, so a racing second writer leaves the first byte for byte; the log tail keeps only
- * the last lines of a long log; listing ignores every other file; a read is a verdict, never a throw.
+ * rather than reading as empty; a crash log is never rewritten, so a second writer of the same crash leaves the first byte for byte; a crash
+ * of a Baton generation that came round again gets a number of its own, one above the highest on disk; the log tail keeps only the last
+ * lines of a long log; listing ignores every other file; a read is a verdict, never a throw.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                   from 'node:path';
+import {
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -66,6 +72,7 @@ function inputsOf(overrides: Partial<CrashLogInputs> = {}): CrashLogInputs {
     recordedBy:        { generation: 4, startOrigin: 'login-item', crashPath: true },
     error:             CrashLog.errorOf('uncaught-exception', new TypeError('example failure')),
     presence:          PRESENCE,
+    batonHolder:       null,
     heartbeat:         HEARTBEAT,
     activeJobs:        [CrashLog.activeJobOf(JOB)],
     talosChildren:     [{ state: 'running', instance: 2 }],
@@ -144,34 +151,62 @@ describe('assembling a crash log', () => {
 });
 
 describe('writing a crash log once', () => {
-  test('the second write of a generation answers already-exists and leaves the first file byte for byte', () => {
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toBe('created');
-    const firstText = readFileSync(CrashLog.pathOf(files, 4), 'utf8');
-    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ logTail: ['a later, shorter tail'], error: null })))).toBe('already-exists');
-    expect(readFileSync(CrashLog.pathOf(files, 4), 'utf8')).toBe(firstText);
+  test('the first crash log is number 1, and the same crash written again answers already-written and leaves it byte for byte', () => {
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 1 });
+    const firstText = readFileSync(CrashLog.pathOf(files, 1), 'utf8');
+    const again = CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ logTail: ['a later, shorter tail'], error: null })));
+    expect(again).toEqual({ verdict: 'already-written', crashLogNumber: 1 });
+    expect(readFileSync(CrashLog.pathOf(files, 1), 'utf8')).toBe(firstText);
+    expect(CrashLog.list(files)).toEqual([1]);
+  });
+
+  test('a crash of a generation that came round again, by another process, gets a number of its own and keeps the generation inside', () => {
+    CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()));
+    const laterRun = { ...PRESENCE, process: { ...PRESENCE.process, processId: 4343, startStamp: '1700009000' } };
+
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: laterRun })))).toEqual({ verdict: 'written', crashLogNumber: 2 });
+
+    const reading = CrashLog.read(files, 2);
+    expect(reading.verdict === 'read' ? reading.record : null).toMatchObject({ crashedGeneration: 4, crashedProcess: { processId: 4343 } });
+  });
+
+  test('numbers rise from the highest log on disk: removing an older one frees no number, and an emptied folder starts again at 1', () => {
+    for (const processId of [1001, 1002]) {
+      CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ presence: { ...PRESENCE, process: { ...PRESENCE.process, processId } } })));
+    }
+    rmSync(CrashLog.pathOf(files, 1));
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 3 });
+
+    for (const crashLogNumber of CrashLog.list(files)) rmSync(CrashLog.pathOf(files, crashLogNumber));
+    expect(CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()))).toEqual({ verdict: 'written', crashLogNumber: 1 });
+  });
+
+  test('with no presence record, the dead Baton\'s holder names the crashed process', () => {
+    const batonHolder = { processId: 5151, startStamp: '1700000100', bootIdentity: 'example-boot' };
+    expect(CrashLog.assemble(inputsOf({ presence: null, batonHolder })).crashedProcess).toEqual(batonHolder);
   });
 
   test('a written log reads back as itself', () => {
     const record = CrashLog.assemble(inputsOf());
     CrashLog.writeOnce(files, record);
-    expect(CrashLog.read(files, 4)).toEqual({ verdict: 'read', record: JSON.parse(JSON.stringify(record)) });
+    expect(CrashLog.read(files, 1)).toEqual({ verdict: 'read', record: JSON.parse(JSON.stringify(record)) });
   });
 
-  test('a missing log reads as absent, and a malformed or misnamed one as unreadable', () => {
+  test('a missing log reads as absent, and a malformed one, or one naming no generation, as unreadable', () => {
     expect(CrashLog.read(files, 9)).toEqual({ verdict: 'absent' });
     mkdirSync(files.crashLogDirectory, { recursive: true });
     writeFileSync(CrashLog.pathOf(files, 5), 'not json');
     expect(CrashLog.read(files, 5).verdict).toBe('unreadable');
-    CrashLog.writeOnce(files, CrashLog.assemble(inputsOf()));
-    writeFileSync(CrashLog.pathOf(files, 6), readFileSync(CrashLog.pathOf(files, 4), 'utf8'));
-    expect(CrashLog.read(files, 6)).toEqual({ verdict: 'unreadable', reason: 'crashedGeneration is not 6' });
+    writeFileSync(CrashLog.pathOf(files, 6), JSON.stringify({ ...CrashLog.assemble(inputsOf()), crashedGeneration: 'four' }));
+    expect(CrashLog.read(files, 6)).toEqual({ verdict: 'unreadable', reason: 'crashedGeneration is not a generation or null' });
   });
 });
 
 describe('listing the crash logs', () => {
-  test('lists every generation ascending and ignores a file of another name', () => {
+  test('lists every number ascending and ignores a file of another name', () => {
     expect(CrashLog.list(files)).toEqual([]);
-    for (const generation of [12, 3, 7]) CrashLog.writeOnce(files, CrashLog.assemble(inputsOf({ crashedGeneration: generation })));
+    mkdirSync(files.crashLogDirectory, { recursive: true });
+    for (const crashLogNumber of [12, 3, 7]) writeFileSync(CrashLog.pathOf(files, crashLogNumber), '{}');
     for (const name of ['crash-0.json', 'crash-4.json.1234.tmp', 'notes.txt', 'crash-x.json']) writeFileSync(join(files.crashLogDirectory, name), '{}');
     expect(CrashLog.list(files)).toEqual([3, 7, 12]);
   });

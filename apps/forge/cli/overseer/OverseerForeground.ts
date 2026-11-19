@@ -120,7 +120,7 @@ export type StoppedOverseerRequest = Pick<ForegroundRunRequest, 'commandArgument
 
 interface RecordedCrash {
   component:    CrashedComponent;
-  crashLogPath: string;
+  crashLogPath: string | null;
 }
 
 type OverseerEnd =
@@ -201,6 +201,19 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
   createProgressPageStubWriter(workspace.htmlFilePath).write(null);
   Presence.writeEnding(files, generation, { kind: 'stopped' }, stoppedAt);
   Baton.release(files.overseerDirectory, generation);
+}
+
+/**
+ * The ending of a generation that released the board to its successor: presence, then the registry, say `handed-over`, and the board log
+ * `baton-passed`. `endingWritten` runs once presence holds the ending, so no crash is recorded over it.
+ */
+export async function recordTheHandover(request: StoppedOverseerRequest, files: OverseerFiles, generation: number, endingWritten: () => void): Promise<void> {
+  const { commandArguments, context } = request;
+  const handedOverAt = LocalTimeUtil.formatLocalIso(context.now());
+  Presence.writeEnding(files, generation, { kind: 'handed-over' }, handedOverAt);
+  endingWritten();
+  await registerOverseer(request, { presence: { state: 'handed-over', generation, at: handedOverAt } });
+  await openTrackerForWriting(commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
@@ -374,13 +387,13 @@ export function spawnSuccessor(
 }
 
 /** The `start-classified` record of an admitted start: a field it has no value for is left out. */
-function startClassifiedFieldsOf({ classification, crashLogGeneration }: ServingAdmission, startOrigin: StartOrigin): LogRecordFieldsOf<'start-classified'> {
+function startClassifiedFieldsOf({ classification, crashLogNumber }: ServingAdmission, startOrigin: StartOrigin): LogRecordFieldsOf<'start-classified'> {
   return {
     kind: classification.kind,
     startOrigin,
     ...(classification.previousGeneration === null ? {} : { previousGeneration: classification.previousGeneration }),
     ...(classification.crashSuspected ? { crashSuspected: true } : {}),
-    ...(crashLogGeneration === null ? {} : { crashLogGeneration }),
+    ...(crashLogNumber === null ? {} : { crashLogNumber }),
   };
 }
 
@@ -510,7 +523,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   async function recordTheCrash(generation: number, component: CrashedComponent, error: Parameters<typeof CrashPath.record>[1]['error']): Promise<void> {
     const outcome = await CrashPath.record(crashPathContextOf(generation), { component, error });
     recordedCrash = { component, crashLogPath: outcome.crashLogPath };
-    log(`Crashed (${component}) under Baton ${generation}; the crash log is ${outcome.crashLogPath} (${outcome.crashLog}).`);
+    log(`Crashed (${component}) under Baton ${generation}; the crash log is ${outcome.crashLogPath ?? 'not written'} (${outcome.crashLog}).`);
     (lifetimeBeingStarted ?? current?.lifetime)?.crashed(recordedCrash);
   }
 
@@ -875,11 +888,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       serving.lifetime.stopListening();
       throw crashRefusal;
     }
-    const handedOverAt = LocalTimeUtil.formatLocalIso(context.now());
-    Presence.writeEnding(files, serving.generation, { kind: 'handed-over' }, handedOverAt);
-    crashableGeneration = null;
-    await registerOverseer(request, { presence: { state: 'handed-over', generation: serving.generation, at: handedOverAt } });
-    await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
+    await recordTheHandover(request, files, serving.generation, () => {
+      crashableGeneration = null;
+    });
     await serving.server.stop();
     log('Released the board to the successor.');
   }

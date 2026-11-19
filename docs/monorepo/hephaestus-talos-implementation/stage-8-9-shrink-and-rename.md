@@ -44,7 +44,7 @@ that this stage needs is missing, stop and report it; do not build it here.
 | N9. Gaia reaches the three packages by name | Only `apps/gaia/` and `apps/forge/bridge/` import `design-system`, `flint` or `brand`, each by its package name (`design-system/<entry>`, `flint`, `flint/react`, `brand/<entry>`) | `git grep -l -E "from '(design-system\|flint\|brand)(/\|')" -- apps ':!apps/forge/bridge'` names only files under `apps/gaia/` | WP8.2, WP8.13 |
 | N10. The typed target beside the Bridge route | The board document names a subject by a typed target (stage 4's WP4.10, decision 50), and stage 4's attention entries carry it beside the monitor document's `route`, which `MonitorSnapshotAssembly.ts:212-215` still writes through `BridgeFragmentUtil` until the Bridge goes; Gaia maps those fragments into board routes (stage 6, WP6.9) | `git grep -n "BridgeFragmentUtil" -- apps/forge ':!apps/forge/bridge'` names only the util, its spec and `MonitorSnapshotAssembly.ts` | WP8.2 |
 | N11. Refusals carry their sentence | Forge serves each refusal as its reason code, its structured fields and the CLI's sentence (stage 4, decision 45) | `CommandRoute.controlContract.spec.ts` pins a refusal answer with its code, fields and sentence | WP8.9 |
-| N12. Stage 3's lifecycle surface | `oversee` has the subcommands of `apps/forge/cli/HelpText.ts:619-650` and stage 3's `--started-by user\|login-item`; the top-level `resume` restarts interrupted work and the top-level `crash-log [<generation>]` prints a crash log (stage 3, WP3.3, WP3.8, WP3.13); the macOS and Windows login items run `start --started-by login-item`, the Linux one `oversee --started-by login-item` | `git grep -n "started-by" -- apps/forge/cli/overseer/OverseerCommand.ts apps/forge/cli/setup`; `resume` and `crash-log` are in `apps/forge/cli/CommandTable.ts` | WP9.6 |
+| N12. Stage 3's lifecycle surface | `oversee` has the subcommands of `apps/forge/cli/HelpText.ts:619-650` and stage 3's `--started-by user\|login-item`; the top-level `resume` restarts interrupted work and the top-level `crash-log [<number>]` prints a crash log (stage 3, WP3.3, WP3.8, WP3.13); the macOS and Windows login items run `start --started-by login-item`, the Linux one `oversee --started-by login-item` | `git grep -n "started-by" -- apps/forge/cli/overseer/OverseerCommand.ts apps/forge/cli/setup`; `resume` and `crash-log` are in `apps/forge/cli/CommandTable.ts` | WP9.6 |
 
 If N1, N2 or N9 does not hold, stage 6 is not finished; if N4, N10 or N11 does not hold, stage 4 is not: report it and
 stop.
@@ -1065,7 +1065,7 @@ The verb set, decided from `apps/forge/cli/overseer/OverseerCommand.ts`, `StartC
 | `oversee pause [--json]` | `pause [--json]` | |
 | `oversee resume [--json]` (stage 3 leaves it) | `unpause [--json]` | Decision 41; the control kind `overseer-resume` becomes `overseer-unpause` here, and WP9.2 makes it `hephaestus-unpause` |
 | `oversee status [--json]` beside the board's `status [--json] [--full]` | `status [--json] [--full]` | One status: it prints the process facts of `oversee status` (the Baton, the URL, the runtime state, paused or not, the code version on disk against the live one, presence and a crash with its log's path) above the board; `--json` carries them under the key `overseer`, which WP9.2 renames |
-| `crash-log [<generation>] [--json]` (stage 3, `cli/crash-log/`) | unchanged | Already a top-level verb; `forge crash` would read as an order |
+| `crash-log [<number>] [--json]` (stage 3, `cli/crash-log/`) | unchanged | Already a top-level verb; `forge crash` would read as an order |
 | `setup --login-overseer <repository> [--label <label>]` | `setup --login-item <repository> [--label <label>]` | A flag the user types names no component |
 | macOS login item `start --started-by login-item` (stage 3) | unchanged | launchd runs it once at login |
 | Linux login item `oversee [--started-by login-item]` | `start --foreground --started-by login-item` | systemd keeps the process (`Type=simple`) |
@@ -1374,7 +1374,7 @@ Removed: `POST /api/session-codes`, `POST /api/session`, `GET /api/session-token
 `forge start --foreground [--repository <path>] [--port <n>] [--started-by user|login-item]`,
 `forge start --successor-of <generation> [--port <n>]`, `forge stop [--now] [--json]`,
 `forge restart [--now] [--json]`, `forge pause [--json]`, `forge unpause [--json]`, `forge status [--json] [--full]`,
-`forge crash-log [<generation>] [--json]`; stage 3's `forge resume` unchanged. `forge setup --login-item <repository>
+`forge crash-log [<number>] [--json]`; stage 3's `forge resume` unchanged. `forge setup --login-item <repository>
 [--label <label>]`. The login item runs `start --started-by login-item` (macOS), `start --foreground --started-by
 login-item` (Linux) or `start --repository <path> --started-by login-item` (Windows). `oversee` is an unknown command.
 

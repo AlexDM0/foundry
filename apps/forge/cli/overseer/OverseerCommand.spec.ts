@@ -6,7 +6,9 @@
  * and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a drive pass that never ends cannot hold back the stop record
  * past what Windows gives. `oversee restart` over an Overseer found dead keeps its port, also one dead before the hand-over, which it closes, over
  * the recorded process table. `--started-by` takes only a start by hand, never beside `--successor-of`, and the registry's presence key
- * is written in each state and kept by a call without one. An Overseer that runs is held by `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * is written in each state and kept by a call without one. A stop ends presence `stopped` and a release `handed-over`, each also in the
+ * registry, the handover's ending written before the crash path lets go of the generation. An Overseer that runs is held by
+ * `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -23,6 +25,7 @@ import type { PlatformPorts }                                                   
 import type { ProcessStopStage }                                                from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { Baton }                                                                from '../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
+import { Presence }                                                             from '../../src/services/overseer/Presence.ts';
 import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
 import { NO_LOCK_HOLDER_READS_AS_GONE, withLock }                               from '../../src/services/tracker/TrackerLock.ts';
 import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
@@ -45,7 +48,7 @@ import { createCapturedCommandContext }                                         
 import { createInitializedRecordedGitRepository }                               from '../testing/InitializedScratchRepository.ts';
 import { fileReadyTicketThrough }                                               from '../testing/ReadyTicketFiling.ts';
 import { storedProgressOf }                                                     from '../testing/StoredProgress.ts';
-import { closeTheStoppedOverseer, waitOutTheStopWaits }                         from './OverseerForeground.ts';
+import { closeTheStoppedOverseer, recordTheHandover, waitOutTheStopWaits }      from './OverseerForeground.ts';
 import { readBoardState }                                                       from './routes/BoardStateReader.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
@@ -534,6 +537,60 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     expect(laterWaitsStarted).toEqual(['the server stop']);
     expect(storedLogKindsOf(repositoryDirectory)).toContain('overseer-stopped');
     expect(Baton.newestBatonOf(platformPorts, overseerDirectory).verdict).toBe('none');
+  });
+
+  function writeOwnPresence(generation: number): void {
+    Presence.writeStartedPresence(overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory), {
+      generation,
+      process:             processTable.callerProcess(),
+      codeVersion:         'code-example',
+      startOrigin:         'user',
+      startedAt:           '2026-09-18T20:00:00+00:00',
+      startClassification: null,
+    });
+  }
+
+  function storedEnding(): unknown {
+    const presence = Presence.readPresence(overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory));
+    return presence.verdict === 'read' ? presence.record.ending : presence.verdict;
+  }
+
+  function registeredPresenceUnder(request: ReturnType<typeof stopRequestIn>): unknown {
+    const { context } = request;
+    const registryFilePath = join(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory), MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+    const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, { presence?: unknown }>>;
+    return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {})[0]?.presence;
+  }
+
+  test('a stop writes the presence ending stopped and the registry presence stopped, then releases the Baton', async () => {
+    const platformPorts = processTable.ports;
+    const { overseerDirectory, generation } = plantOwnBaton(platformPorts);
+    writeOwnPresence(generation);
+    const request = stopRequestIn(platformPorts);
+
+    await closeTheStoppedOverseer(request, overseerFilesIn(request.workspace.trackerDirectory), generation);
+
+    expect(storedEnding()).toEqual({ kind: 'stopped', at: expect.any(String) as unknown });
+    expect(registeredPresenceUnder(request)).toEqual({ state: 'stopped', generation, at: expect.any(String) as unknown });
+    expect(Baton.newestBatonOf(platformPorts, overseerDirectory).verdict).toBe('none');
+  });
+
+  test('a release writes the presence ending handed-over before the crash path lets go, then the registry presence handed-over', async () => {
+    const platformPorts = processTable.ports;
+    const { generation } = plantOwnBaton(platformPorts);
+    writeOwnPresence(generation);
+    const request = stopRequestIn(platformPorts);
+    const endingsWhenTheCrashPathLetGo: unknown[] = [];
+
+    await recordTheHandover(request, overseerFilesIn(request.workspace.trackerDirectory), generation, () => {
+      endingsWhenTheCrashPathLetGo.push(storedEnding());
+    });
+
+    const handedOver = { kind: 'handed-over', at: expect.any(String) as unknown };
+    expect(endingsWhenTheCrashPathLetGo).toEqual([handedOver]);
+    expect(storedEnding()).toEqual(handedOver);
+    expect(registeredPresenceUnder(request)).toEqual({ state: 'handed-over', generation, at: expect.any(String) as unknown });
+    expect(storedLogKindsOf(repositoryDirectory)).toContain('overseer-stopped');
   });
 
   test('waits that all end in time run in order and log nothing of their own', async () => {

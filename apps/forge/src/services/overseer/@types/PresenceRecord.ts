@@ -5,14 +5,15 @@ import type { StartClassificationVerdict }                        from './StartC
 
 export type AbandonedPassReason = 'tracker-lock-held' | 'lock-taken-over';
 
+/** A `crashed` ending names its crash log's number, `null` when the crash path could not write the log. */
 export type PresenceEnding =
   | { kind: 'stopped' | 'handed-over'; at: string }
-  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogGeneration: number; at: string };
+  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogNumber: number | null; at: string };
 
 /** An ending as its writer names it; the time is handed beside it. */
 export type PresenceEndingToWrite =
   | { kind: 'stopped' | 'handed-over' }
-  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogGeneration: number };
+  | { kind: 'crashed'; component: 'overseer' | 'talos'; crashLogNumber: number | null };
 
 /** `presence.json`, written whole and atomically by the main thread only. */
 export interface PresenceRecord {

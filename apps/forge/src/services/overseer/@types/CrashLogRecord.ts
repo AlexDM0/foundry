@@ -29,10 +29,11 @@ export interface CrashLogJob {
   eventSequence: number;
 }
 
-/** `crash-logs/crash-<generation>.json`, created exclusively and never rewritten. */
+/** `crash-logs/crash-<number>.json`, created exclusively and never rewritten; its number is the file's, never the Baton generation. */
 export interface CrashLogRecord {
   crashLogVersion:   typeof CRASH_LOG_FORMAT_VERSION;
-  crashedGeneration: number;
+  /** The Baton generation that crashed; `null` when neither a presence record nor a Baton names it. */
+  crashedGeneration: number | null;
   component:         CrashedComponent | 'unknown';
   /** True for a crash suspected before a reboot. */
   suspected:         boolean;
@@ -40,6 +41,7 @@ export interface CrashLogRecord {
   classification:    StartClassificationVerdict | null;
   recordedAt:        string;
   recordedBy:        { generation: number | null; startOrigin: StartOrigin | null; crashPath: boolean };
+  /** The process of the crashed generation, from its presence record or else its dead Baton; with the generation, it tells one crash from another. */
   crashedProcess:    ProcessIdentity | null;
   codeVersion:       string | null;
   startedAt:         string | null;
@@ -55,7 +57,7 @@ export interface CrashLogRecord {
 
 /** The plain values a crash log is assembled from; reading them is the caller's, and one that could not be read is `null`. */
 export interface CrashLogInputs {
-  crashedGeneration: number;
+  crashedGeneration: number | null;
   component:         CrashLogRecord['component'];
   suspected:         boolean;
   classification:    StartClassificationVerdict | null;
@@ -63,8 +65,13 @@ export interface CrashLogInputs {
   recordedBy:        CrashLogRecord['recordedBy'];
   error:             CrashLogError | null;
   presence:          PresenceRecord | null;
+  /** The holder named by the crashed generation's dead Baton: the crashed process when no presence record names it. */
+  batonHolder:       ProcessIdentity | null;
   heartbeat:         HeartbeatRecord | null;
   activeJobs:        CrashLogJob[] | null;
   talosChildren:     unknown[] | null;
   logTail:           string[] | null;
 }
+
+/** Where a crash's log stands: written now under a new number, or already written, by the crash path or an earlier start, under that number. */
+export type CrashLogWrite = { verdict: 'written' | 'already-written'; crashLogNumber: number };

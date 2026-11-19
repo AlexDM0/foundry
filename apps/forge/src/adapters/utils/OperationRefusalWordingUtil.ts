@@ -857,9 +857,11 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'talos-unavailable':
       return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so the Overseer did not start and no agent runs.`;
     case 'forge-crashed':
-      return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; its crash log is ${detail.crashLogPath}.`;
+      return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; `
+        + `its crash log ${detail.crashLogPath === null ? 'could not be written' : `is ${detail.crashLogPath}`}.`;
     case 'forge-off-after-crash':
-      return `The ${PRODUCT_NAMES.PROGRAM} is off after a crash of Baton ${detail.crashedGeneration}${detail.suspected ? ', suspected before the machine restarted' : ''}; `
+      return `The ${PRODUCT_NAMES.PROGRAM} is off after a crash ${detail.crashedGeneration === null ? 'of a Baton nothing names' : `of Baton ${detail.crashedGeneration}`}`
+        + `${detail.suspected ? ', suspected before the machine restarted' : ''}; `
         + adviceFor(
           channel,
           `read why with \`${PRODUCT_NAMES.PROGRAM} crash-log\`, and start it yourself with \`${PRODUCT_NAMES.PROGRAM} start\`.`,

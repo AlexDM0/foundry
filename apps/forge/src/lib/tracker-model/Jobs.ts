@@ -348,7 +348,7 @@ export class Jobs {
       startOrigin: start.startOrigin,
       ...(start.previousGeneration === undefined ? {} : { previousGeneration: start.previousGeneration }),
       ...(start.crashSuspected === true ? { crashSuspected: true } : {}),
-      ...(start.crashLogGeneration === undefined ? {} : { crashLogGeneration: start.crashLogGeneration }),
+      ...(start.crashLogNumber === undefined ? {} : { crashLogNumber: start.crashLogNumber }),
     };
     return { logged: [this.records.logger.log({ kind: 'start-classified', fields }, at)] };
   }

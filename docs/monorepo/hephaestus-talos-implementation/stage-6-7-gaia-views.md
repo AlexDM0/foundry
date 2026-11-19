@@ -33,7 +33,7 @@ stop and report it; do not build it here.
 | N4. The board command kinds | The 34 kinds the Bridge sends as `ForgeBoardCommand` in `forge-contracts`, with payload types declared there, pinned in forge by `BOARD_COMMAND_CONTRACT_KINDS`, and forge's typed command ingestion that maps each contract command into its model | stage 4 | WP6.1, WP6.25 |
 | N5. Talos in the identity, and its clean quit | `talosProtocolVersion` in the identity document, replacing `watcherProtocolVersion` (`OverseerServer.ts:637`); Talos's `quit` frame with reason `restart`, after which the Overseer starts Talos again and the paused agents resume by themselves | stage 2 | WP6.22 |
 | N6. The interruption causes | `network-outage` (decision 35) and `lease-ended` (decision 38) on a job, served as the job's interruption in the board document and in the presence document's interrupted work | stage 2 | WP6.11, WP6.21, WP6.26 |
-| N7. Presence | `GET /api/v1/presence` (`ForgePresenceDocument`, with `supervision`, `interruptedWork[].cause`, `.waitsFor` and `.automaticRestartsLeft`, and `crashLogs[]` with `suspected`) and `GET /api/v1/crash-log?generation=<n>` (`ForgeCrashLogDocument`); the registry entry's `presence` key, `serving`, `stopped`, `handed-over` or `crashed` with a crash summary (component, `suspected` for a crash suspected before a reboot, the error's name and message); `interrupted-work-resume` with `ForgeResumeTarget` `{ jobId }`, `{ ticketReference }`, `'all'` or `'network-outage'` (decision 41) | stage 3 | WP6.21, WP6.26 |
+| N7. Presence | `GET /api/v1/presence` (`ForgePresenceDocument`, with `supervision`, `interruptedWork[].cause`, `.waitsFor` and `.automaticRestartsLeft`, and `crashLogs[]` with `suspected`) and `GET /api/v1/crash-log?number=<n>` (`ForgeCrashLogDocument`); the registry entry's `presence` key, `serving`, `stopped`, `handed-over` or `crashed` with a crash summary (component, `suspected` for a crash suspected before a reboot, the error's name and message); `interrupted-work-resume` with `ForgeResumeTarget` `{ jobId }`, `{ ticketReference }`, `'all'` or `'network-outage'` (decision 41) | stage 3 | WP6.21, WP6.26 |
 | N8. Line run times | The pipeline facts' `stepRunTimes`: the newest run of each step line per entity, step kind (`prepare`, the install line's steps, or `gate`), step name and phase, with `runMilliseconds` in the measure the 15-minute bound uses (a sleep not counted, decisions 36 and 37) and its `ending` (`passed`, `failed`, `time-bound`) | stage 2 (WP2.20) records and serves, stage 4 declares | WP6.24, WP6.20 |
 | N9. The forge system version | `FORGE_SYSTEM_VERSIONS.current` as stages 2, 3 and 4 left it (`packages/forge-contracts/constants/ForgeSystemVersions.ts`; stage 5 raises none) | stages 2, 3, 4 | WP6.1, WP6.2 |
 | N10. The Assistant's switch in forge | The command `pipeline-assistant-set` with `on: boolean` in the contract, and the board's switch state served in the board document; while off, an incident takes its default with the reason recorded and served as a worded notice | stage 8 (WP8.9) | WP6.27 |
@@ -1238,12 +1238,12 @@ itself. It also renames Gaia's undo of a pause to "Unpause" (decision 41), since
 
 - Change `apps/gaia/src/adapters/forge-registry/@types/RegisteredForge.ts`, `utils/RegistryMapUtil.ts` and the
   `forge-registry` recording (`bun run record forge-registry` from a scratch forge in each presence state).
-- Change `apps/gaia/src/lib/forge-client/ForgeClient.ts`: `presenceOf(access)` and `crashLogOf(access, generation)` at
+- Change `apps/gaia/src/lib/forge-client/ForgeClient.ts`: `presenceOf(access)` and `crashLogOf(access, number)` at
   stage 3's `presence` and `crash-log` endpoints; create `apps/gaia/src/adapters/forge-api/PresenceIngestion.ts` and
   `CrashLogIngestion.ts` with their specs; the `overseer-fetch-board` recording gains the presence document in its
   situations, and `overseer-fetch-supported-forge` a forge started after a crash, with its crash log read.
 - Create `apps/gaia/src/features/page-server/routes/ForgeCrashLogRoute.ts` and spec (`GET
-  /api/v1/forges/{trackerId}/crash-logs/{generation}`, key `forgeCrashLog`), `page/@types/CrashLogDocument.ts` and its
+  /api/v1/forges/{trackerId}/crash-logs/{number}`, key `forgeCrashLog`), `page/@types/CrashLogDocument.ts` and its
   map in `src/adapters/page-api/FleetDocumentMapUtil.ts` or a `CrashLogDocumentMapUtil.ts` beside it, with
   `gaiaCrashLog: 1` in `PageContractVersions.ts` and the endpoint in `GaiaSystemVersions.ts` and the registry.
 - Change `apps/gaia/src/services/ForgeWatch.ts`, `src/shared/@types/ForgeReading.ts`,
@@ -1268,8 +1268,8 @@ itself. It also renames Gaia's undo of a pause to "Unpause" (decision 41), since
    (Interfaces).
 2. For a live forge, read `supervision`, `interruptedWork` and `crashLogs` from the presence document at each monitor
    snapshot change (a read per change, never on a timer of its own). A crash log the presence lists is read with
-   `crashLogOf` when the user opens it in the bar, once per generation, and shown with its active jobs, its error and
-   the tail of its log.
+   `crashLogOf` by its `number` when the user opens it in the bar, once per log, and shown with its active jobs, its
+   error and the tail of its log.
 3. A forge off after a crash serves no API: its alert shows the registry's summary only, and its crash log becomes
    readable once the user starts the forge and it serves.
 4. An attention item of the kind `forge-crashed` per crashed forge, action label `Start`, which sends `forge-start`
@@ -1644,7 +1644,7 @@ the registry keeps it. `{trackerId}` is percent-decoded once and must name a reg
 | `forgePictureUpload` | 1 | `POST /api/v1/forges/{trackerId}/pictures`, raw bytes | `BOARD_PICTURE_UPLOAD_LIMIT_BYTES` | `PictureUploadAnswerDocument` |
 | `forgePicture` | 1 | `GET /api/v1/forges/{trackerId}/pictures/{pictureId}` | 65,536 | the bytes, with the forge's content type, `nosniff`, `sandbox`, `no-store` |
 | `forgeCommands` | 1 | `POST /api/v1/forges/{trackerId}/commands`, a `BoardCommandDocument` | 65,536 | `BoardCommandAnswerDocument` |
-| `forgeCrashLog` | 1 | `GET /api/v1/forges/{trackerId}/crash-logs/{generation}` (WP6.21) | 65,536 | `CrashLogDocument`, mapped from `ForgeCrashLogDocument` |
+| `forgeCrashLog` | 1 | `GET /api/v1/forges/{trackerId}/crash-logs/{number}` (WP6.21) | 65,536 | `CrashLogDocument`, mapped from `ForgeCrashLogDocument` |
 
 Statuses: 200 answered; 400 a body that is no command Gaia knows; 404 an unregistered forge or an unknown path; 409 a
 forge's refusal; 413 a body over its bound; 423 a forge's install hold; 501 a forge version Gaia cannot talk to; 502 a
@@ -1761,7 +1761,7 @@ uploadPicture:       (access: OverseerAccess, bytes: Uint8Array, mediaType: stri
 pictureOf:           (access: OverseerAccess, pictureId: string) => Promise<ForgePictureAnswer>;
 sendBoardCommand:    (access: OverseerAccess, body: JsonObject) => Promise<ForgeBoardCommandAnswer>;
 presenceOf:          (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;   // WP6.21, stage 3's endpoint
-crashLogOf:          (access: OverseerAccess, generation: number) => Promise<ForgeDocumentAnswer>; // WP6.21, `crash-log`
+crashLogOf:          (access: OverseerAccess, number: number) => Promise<ForgeDocumentAnswer>; // WP6.21, `crash-log?number=<n>`
 
 // apps/gaia/src/features/page-server/ForgeAccess.ts
 export type ForgeAccessVerdict =
@@ -1837,7 +1837,8 @@ export interface FleetDocumentCrashSummary {
   errorMessage:       string | null;
 }
 export interface FleetDocumentCrashLogEntry {
-  generation:         number;
+  number:             number;                 // the crash log's own number, the key of its route
+  generation:         number | null;          // the Baton generation that crashed, shown only
   component:          'hephaestus' | 'talos' | 'unknown';
   suspected:          boolean;
   recordedAt:         string;                 // shown only

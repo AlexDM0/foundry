@@ -12,6 +12,9 @@ export const CRASH_LOG_TAIL_LINES = 200;
 /** At most this much of the end of `overseer.log` is read for a crash log's tail, however large the log grew. */
 export const CRASH_LOG_TAIL_READ_BOUND_BYTES = 256 * 1024;
 
+/** Numbers a crash log tries before it gives up, each taken meanwhile by a writer of another crash. */
+export const CRASH_LOG_CREATION_ATTEMPTS = 16;
+
 /** Abandoned passes in a row, a count, before the board gets a notice of them. */
 export const ABANDONED_PASSES_BEFORE_NOTICE = 3;
 

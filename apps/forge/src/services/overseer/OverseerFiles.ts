@@ -11,7 +11,7 @@ export interface OverseerFiles {
   presenceFilePath:  string;
   /** `<data>/overseer/heartbeat.json`: the newest beat, rewritten at each renewal Talos confirmed. */
   heartbeatFilePath: string;
-  /** `<data>/overseer/crash-logs/`: one `crash-<generation>.json` per crash, never rewritten. */
+  /** `<data>/overseer/crash-logs/`: one `crash-<number>.json` per crash, never rewritten. */
   crashLogDirectory: string;
 }
 

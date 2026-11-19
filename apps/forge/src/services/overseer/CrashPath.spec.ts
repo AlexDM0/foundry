@@ -2,9 +2,15 @@
  * The crash path of a live process on a scratch data folder, with a fake lease renewal and a fake registry write. What matters: the crash log
  * and the presence ending `crashed` are on disk before the registry is told, so a dying process has made them; the renewal stops, so Talos's
  * lease runs out and the agents wait; a registry write that never settles is cut off at the bound; a crash log already there is kept; an
- * input that throws leaves its part null and the path never throws. No spec here registers a process listener.
+ * input that throws leaves its part null and the path never throws; a crash log that cannot be written leaves the ending and the registry
+ * naming no log. No spec here registers a process listener.
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync
+} from 'node:fs';
 import {
   afterEach,
   beforeEach,
@@ -24,6 +30,8 @@ import { Presence }                                                   from './Pr
 const CRASHED_AT = '2026-11-19T09:03:10.000+01:00';
 
 const SHORT_REGISTRY_BOUND_MILLISECONDS = 20;
+
+const FIRST_CRASH_LOG_NUMBER = 1;
 
 let boardFolder = '';
 let files: OverseerFiles = overseerFilesIn('');
@@ -81,7 +89,7 @@ function storedPresence(): PresenceRecord {
 }
 
 function storedCrashLog(): CrashLogRecord {
-  const reading = CrashLog.read(files, 4);
+  const reading = CrashLog.read(files, FIRST_CRASH_LOG_NUMBER);
   if (reading.verdict !== 'read') throw new Error(`the crash log reads ${reading.verdict}`);
   return reading.record;
 }
@@ -93,18 +101,18 @@ describe('the crash path', () => {
     const seenAtTheRegistryStep: { crashLog: boolean; ending: PresenceRecord['ending'] }[] = [];
     const fake = fakeCrashPathOf({
       writeRegistryCrash: async () => {
-        seenAtTheRegistryStep.push({ crashLog: existsSync(CrashLog.pathOf(files, 4)), ending: storedPresence().ending });
+        seenAtTheRegistryStep.push({ crashLog: existsSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER)), ending: storedPresence().ending });
       },
     });
     const outcome = await CrashPath.record(fake.context, OVERSEER_CRASH);
     expect(seenAtTheRegistryStep).toEqual([{
       crashLog: true,
       ending:   {
-        kind: 'crashed', component: 'overseer', crashLogGeneration: 4, at: CRASHED_AT
+        kind: 'crashed', component: 'overseer', crashLogNumber: FIRST_CRASH_LOG_NUMBER, at: CRASHED_AT
       },
     }]);
     expect(outcome).toEqual({
-      crashLogPath: CrashLog.pathOf(files, 4), crashLog: 'created', presence: 'written', registry: 'written'
+      crashLogPath: CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), crashLog: 'written', presence: 'written', registry: 'written'
     });
   });
 
@@ -139,7 +147,7 @@ describe('the crash path', () => {
       generation: 4,
       at:         CRASHED_AT,
       crash:      {
-        component: 'talos', suspected: false, errorName: null, errorMessage: null, crashLogPath: CrashLog.pathOf(files, 4)
+        component: 'talos', suspected: false, errorName: null, errorMessage: null, crashLogPath: CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER)
       },
     }]);
   });
@@ -157,10 +165,10 @@ describe('the crash path', () => {
 
   test('a crash log already there is kept', async () => {
     await CrashPath.record(fakeCrashPathOf().context, OVERSEER_CRASH);
-    const firstText = readFileSync(CrashLog.pathOf(files, 4), 'utf8');
+    const firstText = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
     const outcome = await CrashPath.record(fakeCrashPathOf().context, { component: 'talos', error: null });
-    expect(outcome.crashLog).toBe('already-exists');
-    expect(readFileSync(CrashLog.pathOf(files, 4), 'utf8')).toBe(firstText);
+    expect(outcome.crashLog).toBe('already-written');
+    expect(readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8')).toBe(firstText);
   });
 
   test('an input that throws leaves its part null, and a renewal stop that throws is logged, never thrown', async () => {
@@ -169,7 +177,7 @@ describe('the crash path', () => {
       stopLeaseRenewal: () => { throw new Error('example renewal failure'); },
     });
     const outcome = await CrashPath.record(fake.context, OVERSEER_CRASH);
-    expect(outcome.crashLog).toBe('created');
+    expect(outcome.crashLog).toBe('written');
     expect(storedCrashLog().activeJobs).toBeNull();
     expect(fake.logLines.some((line) => line.includes('example renewal failure'))).toBe(true);
   });
@@ -179,7 +187,18 @@ describe('the crash path', () => {
     const outcome = await CrashPath.record(fake.context, OVERSEER_CRASH);
     expect(outcome.presence).toBe('not-this-generation');
     expect(storedPresence().ending).toBeNull();
-    const reading = CrashLog.read(files, 3);
+    const reading = CrashLog.read(files, FIRST_CRASH_LOG_NUMBER);
     expect(reading.verdict === 'read' ? reading.record.crashedProcess : 'unread').toBeNull();
+  });
+
+  test('a crash log that cannot be written leaves the crashed ending and the registry naming no log', async () => {
+    writeFileSync(files.crashLogDirectory, 'not a folder\n');
+    const fake = fakeCrashPathOf();
+    const outcome = await CrashPath.record(fake.context, OVERSEER_CRASH);
+    expect(outcome).toMatchObject({ crashLog: 'not-written', crashLogPath: null, presence: 'written' });
+    expect(storedPresence().ending).toEqual({
+      kind: 'crashed', component: 'overseer', crashLogNumber: null, at: CRASHED_AT
+    });
+    expect(fake.registryReports[0]?.crash.crashLogPath).toBeNull();
   });
 });

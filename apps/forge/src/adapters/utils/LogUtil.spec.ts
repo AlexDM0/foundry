@@ -220,20 +220,20 @@ describe('the Overseer and its jobs', () => {
       {
         kind:   'start-classified',
         fields: {
-          kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 4, crashSuspected: true, crashLogGeneration: 4
+          kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 4, crashSuspected: true, crashLogNumber: 2
         }
       },
-      'Forge started by the login item after the machine went down (previous Baton 4), a crash suspected before it; crash log 4 recorded',
+      'Forge started by the login item after the machine went down (previous Baton 4), a crash suspected before it; crash log 2 recorded',
       [],
     ],
     [
       {
         kind:   'start-classified',
         fields: {
-          kind: 'crashed', startOrigin: 'user', previousGeneration: 4, crashLogGeneration: 4
+          kind: 'crashed', startOrigin: 'user', previousGeneration: 4, crashLogNumber: 1
         }
       },
-      'Forge started by User after a crash (previous Baton 4); crash log 4 recorded',
+      'Forge started by User after a crash (previous Baton 4); crash log 1 recorded',
       [],
     ],
     [{ kind: 'job-ended', jobId: 'J3', fields: { outcome: 'built', commit: 'b2c3d4e', deniedPermissions: [] } }, 'Job J3 ended built at b2c3d4e', []],

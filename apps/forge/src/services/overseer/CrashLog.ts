@@ -1,6 +1,8 @@
 /**
- * The board's crash logs, `crash-logs/crash-<generation>.json`: one immutable file per crash, assembled from plain values the caller read, created
- * exclusively so a racing second writer leaves the first log whole, and listed and read back as verdicts.
+ * The board's crash logs, `crash-logs/crash-<number>.json`: one immutable file per crash, assembled from plain values the caller read, and
+ * listed and read back as verdicts. Baton generations start again at 1 after a stop, so a log is numbered one above the highest on disk, and
+ * the Baton generation is a field inside it. A crash already logged as the newest log is not logged again, and the file is created
+ * exclusively, so a racing second writer of the same crash finds the first log whole.
  */
 import {
   closeSync,
@@ -13,29 +15,35 @@ import {
 import { join } from 'node:path';
 
 import { createWholeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { ExclusiveCreation }    from '../../lib/atomic-file/FileReplace.ts';
 import { errorCodeOf }               from '../../lib/atomic-file/HeldFileFailure.ts';
 import { JsonRecordUtil }            from '../../lib/json-record/JsonRecordUtil.ts';
+import type { ProcessIdentity }      from '../../lib/process-identity/ProcessIdentity.ts';
 import type { Job }                  from '../../lib/tracker-model/@types/Job.ts';
 import type {
   CrashErrorOrigin,
   CrashLogError,
   CrashLogInputs,
   CrashLogJob,
-  CrashLogRecord
+  CrashLogRecord,
+  CrashLogWrite
 } from './@types/CrashLogRecord.ts';
-import type { PresenceFileReading }                                                        from './@types/PresenceRecord.ts';
-import type { OverseerFiles }                                                              from './OverseerFiles.ts';
-import { CRASH_LOG_FORMAT_VERSION, CRASH_LOG_TAIL_LINES, CRASH_LOG_TAIL_READ_BOUND_BYTES } from './constants/PresenceLimits.ts';
+import type { PresenceFileReading } from './@types/PresenceRecord.ts';
+import type { OverseerFiles }       from './OverseerFiles.ts';
+import {
+  CRASH_LOG_CREATION_ATTEMPTS,
+  CRASH_LOG_FORMAT_VERSION,
+  CRASH_LOG_TAIL_LINES,
+  CRASH_LOG_TAIL_READ_BOUND_BYTES
+} from './constants/PresenceLimits.ts';
 
-const CRASH_LOG_FILE_PATTERN = /^crash-(?<generation>[1-9]\d*)\.json$/;
+const CRASH_LOG_FILE_PATTERN = /^crash-(?<crashLogNumber>[1-9]\d*)\.json$/;
 
 const MISSING_FILE_CODE = 'ENOENT';
 
 const CRASH_LOG_COMPONENTS = ['overseer', 'talos', 'unknown'] as const;
 
-function pathOf(files: OverseerFiles, generation: number): string {
-  return join(files.crashLogDirectory, `crash-${generation}.json`);
+function pathOf(files: OverseerFiles, crashLogNumber: number): string {
+  return join(files.crashLogDirectory, `crash-${crashLogNumber}.json`);
 }
 
 function textOrNull(value: unknown): string | null {
@@ -76,7 +84,7 @@ function assemble(inputs: CrashLogInputs): CrashLogRecord {
     classification:    inputs.classification,
     recordedAt:        inputs.recordedAt,
     recordedBy:        inputs.recordedBy,
-    crashedProcess:    presence?.process ?? null,
+    crashedProcess:    presence?.process ?? inputs.batonHolder,
     codeVersion:       presence?.codeVersion ?? null,
     startedAt:         presence?.startedAt ?? null,
     lastHeartbeat:     heartbeat === null ? null : { sequence: heartbeat.sequence, at: heartbeat.at },
@@ -87,12 +95,7 @@ function assemble(inputs: CrashLogInputs): CrashLogRecord {
   };
 }
 
-/** The file is never rewritten: a second writer of the same generation is answered `already-exists` and the first log stays. */
-function writeOnce(files: OverseerFiles, record: CrashLogRecord): ExclusiveCreation {
-  return createWholeFileAtomically(pathOf(files, record.crashedGeneration), `${JSON.stringify(record, null, 2)}\n`);
-}
-
-/** Every crash log's generation, ascending; a file of another name is not a crash log. */
+/** Every crash log's number, ascending; a file of another name is not a crash log. */
 function list(files: OverseerFiles): number[] {
   let names: string[];
   try {
@@ -102,8 +105,8 @@ function list(files: OverseerFiles): number[] {
   }
   return names
     .flatMap((name) => {
-      const generation = CRASH_LOG_FILE_PATTERN.exec(name)?.groups?.['generation'];
-      return generation === undefined ? [] : [Number(generation)];
+      const crashLogNumber = CRASH_LOG_FILE_PATTERN.exec(name)?.groups?.['crashLogNumber'];
+      return crashLogNumber === undefined ? [] : [Number(crashLogNumber)];
     })
     .sort((a, b) => a - b);
 }
@@ -112,10 +115,14 @@ function isListOrNull(value: unknown): boolean {
   return value === null || Array.isArray(value);
 }
 
-function read(files: OverseerFiles, generation: number): PresenceFileReading<CrashLogRecord> {
+function isWholeNumberOrNull(value: unknown): boolean {
+  return value === null || (typeof value === 'number' && Number.isSafeInteger(value) && value >= 1);
+}
+
+function read(files: OverseerFiles, crashLogNumber: number): PresenceFileReading<CrashLogRecord> {
   let text: string;
   try {
-    text = readFileSync(pathOf(files, generation), 'utf8');
+    text = readFileSync(pathOf(files, crashLogNumber), 'utf8');
   } catch (failure) {
     if (errorCodeOf(failure) === MISSING_FILE_CODE) return { verdict: 'absent' };
     return { verdict: 'unreadable', reason: `not readable: ${String(failure)}` };
@@ -130,7 +137,7 @@ function read(files: OverseerFiles, generation: number): PresenceFileReading<Cra
   const field = (key: keyof CrashLogRecord): unknown => (Object.hasOwn(parsed, key) ? parsed[key] : undefined);
   const unreadable = (reason: string): PresenceFileReading<CrashLogRecord> => ({ verdict: 'unreadable', reason });
   if (field('crashLogVersion') !== CRASH_LOG_FORMAT_VERSION) return unreadable(`crashLogVersion ${String(field('crashLogVersion'))} is not ${CRASH_LOG_FORMAT_VERSION}`);
-  if (field('crashedGeneration') !== generation) return unreadable(`crashedGeneration is not ${generation}`);
+  if (!isWholeNumberOrNull(field('crashedGeneration'))) return unreadable('crashedGeneration is not a generation or null');
   const component = field('component');
   if (typeof component !== 'string' || !(CRASH_LOG_COMPONENTS as readonly string[]).includes(component)) return unreadable('component is not a crashed component');
   if (typeof field('suspected') !== 'boolean') return unreadable('suspected is not a flag');
@@ -140,6 +147,37 @@ function read(files: OverseerFiles, generation: number): PresenceFileReading<Cra
     return unreadable('activeJobs, talosChildren and logTail are each a list or null');
   }
   return { verdict: 'read', record: parsed as unknown as CrashLogRecord };
+}
+
+function sameProcessIdentity(stored: ProcessIdentity | null, candidate: ProcessIdentity | null): boolean {
+  if (stored === null || candidate === null) return stored === candidate;
+  return stored.processId === candidate.processId && stored.startStamp === candidate.startStamp && stored.bootIdentity === candidate.bootIdentity;
+}
+
+/**
+ * The same crash: the same generation of the same process. A crash whose process nothing names is the same only when the start read the same
+ * evidence, as a second start of an unchanged board does.
+ */
+function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord>, candidate: CrashLogRecord): boolean {
+  if (stored.verdict !== 'read') return false;
+  const { record } = stored;
+  if (record.crashedGeneration !== candidate.crashedGeneration || !sameProcessIdentity(record.crashedProcess, candidate.crashedProcess)) return false;
+  return candidate.crashedProcess !== null || JSON.stringify(record.classification) === JSON.stringify(candidate.classification);
+}
+
+/**
+ * Only the newest log can be this crash's: another crash needs a start that served in between. The next number is one above the highest on
+ * disk, so removing older logs frees no number; once the folder is emptied, numbering starts again at 1, as nothing names a removed log.
+ */
+function writeOnce(files: OverseerFiles, record: CrashLogRecord): CrashLogWrite {
+  const text = `${JSON.stringify(record, null, 2)}\n`;
+  for (let attempt = 0; attempt < CRASH_LOG_CREATION_ATTEMPTS; attempt++) {
+    const newestNumber = list(files).at(-1) ?? 0;
+    if (newestNumber > 0 && recordsTheSameCrash(read(files, newestNumber), record)) return { verdict: 'already-written', crashLogNumber: newestNumber };
+    const crashLogNumber = newestNumber + 1;
+    if (createWholeFileAtomically(pathOf(files, crashLogNumber), text) === 'created') return { verdict: 'written', crashLogNumber };
+  }
+  throw new Error(`No crash log number was free after ${CRASH_LOG_CREATION_ATTEMPTS} attempts in ${files.crashLogDirectory}.`);
 }
 
 /** The last bytes of the file up to a bound, never the whole of a large log; a line the bound cut into is left out. */

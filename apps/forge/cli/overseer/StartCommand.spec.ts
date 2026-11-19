@@ -2,7 +2,7 @@
  * `start`'s start origin and its start gate, over recorded git and the recorded process table, with the detached child a recorded spawn
  * that has exited. What matters: `--started-by` takes `user` or `login-item`, `user` when absent, and hands it to the child; and a login
  * item's start after a crash is refused `forge-off-after-crash` before any spawn, telling the registry the forge crashed, since the child
- * would only stay off.
+ * would only stay off; an older crash log of the same Baton generation is left alone, and the refusal and the registry name the new one.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -105,9 +105,28 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start or
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item\'s start after a crash', () => {
-  test('is refused forge-off-after-crash before any spawn, and tells the registry the forge crashed', async () => {
+  test('is refused forge-off-after-crash before any spawn, and tells the registry of its own crash log, not an older one of the same generation', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
     const files = overseerFilesIn(workspace.trackerDirectory);
+    const earlierRun = { processId: 4141, startStamp: '1600000000', bootIdentity: 'example-earlier-boot' };
+    // An earlier run under the same Baton generation crashed too: generations start again at 1 after a stop.
+    CrashLog.writeOnce(files, CrashLog.assemble({
+      crashedGeneration: CRASHED_GENERATION,
+      component:         'overseer',
+      suspected:         false,
+      classification:    null,
+      recordedAt:        '2026-09-17T20:05:00+00:00',
+      recordedBy:        { generation: CRASHED_GENERATION, startOrigin: 'user', crashPath: true },
+      error:             {
+        origin: 'pass', name: 'EarlierError', message: 'an earlier crash of the same generation', stack: null
+      },
+      presence:      null,
+      batonHolder:   earlierRun,
+      heartbeat:     null,
+      activeJobs:    [],
+      talosChildren: null,
+      logTail:       [],
+    }));
     const crashed = processTable.bornProcess();
     Presence.writeStartedPresence(files, {
       generation:          CRASHED_GENERATION,
@@ -117,7 +136,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item
       startedAt:           '2026-09-18T20:00:00+00:00',
       startClassification: null,
     });
-    Presence.writeEnding(files, CRASHED_GENERATION, { kind: 'crashed', component: 'overseer', crashLogGeneration: CRASHED_GENERATION }, '2026-09-18T20:05:00+00:00');
+    Presence.writeEnding(files, CRASHED_GENERATION, { kind: 'crashed', component: 'overseer', crashLogNumber: null }, '2026-09-18T20:05:00+00:00');
     recordedGit.answerFrom([GIT_VERSION, ORIGIN_ASKED_WITH_NONE_SET]);
     const context = startContext();
 
@@ -125,11 +144,14 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item
 
     expect(context.errorText()).toContain(`is off after a crash of Baton ${CRASHED_GENERATION}`);
     expect(spawnedCommands).toEqual([]);
-    expect(CrashLog.list(files)).toEqual([CRASHED_GENERATION]);
+    expect(CrashLog.list(files)).toEqual([1, 2]);
+    const crashLogPath = CrashLog.pathOf(files, 2);
+    expect(context.errorText()).toContain(crashLogPath);
     const registryFilePath = join(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory), MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
     const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, Record<string, unknown>>>;
-    const crashLogPath = CrashLog.pathOf(files, CRASHED_GENERATION);
-    const crash = { component: 'overseer', suspected: false, crashLogPath };
+    const crash = {
+      component: 'overseer', suspected: false, errorName: null, errorMessage: null, crashLogPath
+    };
     expect(Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {})[0]?.['presence']).toMatchObject({ state: 'crashed', generation: CRASHED_GENERATION, crash });
   });
 });

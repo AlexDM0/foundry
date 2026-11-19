@@ -1,7 +1,7 @@
 /**
  * The presence record and the heartbeat in a scratch board folder. What matters: a read is a verdict, never a throw, and another version reads
  * as unreadable since nothing older is read; an ending, an abandoned pass and a completed pass change only their own generation's record, so a
- * predecessor's late write never touches its successor's; a crash keeps its crash log's generation; the heartbeat's sequence rises within a
+ * predecessor's late write never touches its successor's; a crash keeps its crash log's number, or none; the heartbeat's sequence rises within a
  * generation, and an older generation's beat never replaces a newer one whose record is current, as during a Baton pass, when both processes
  * beat, while an ended run's beat never silences a run whose generations started again at 1.
  */
@@ -125,12 +125,21 @@ describe('the presence record', () => {
     expect(Presence.readPresence(files)).toEqual({ verdict: 'absent' });
   });
 
-  test('a crashed ending keeps its component and its crash log\'s generation', () => {
+  test('a crashed ending keeps its component and its crash log\'s number, which is not the generation', () => {
     Presence.writeStartedPresence(files, startOf(3));
-    Presence.writeEnding(files, 3, { kind: 'crashed', component: 'talos', crashLogGeneration: 3 }, ENDED_AT);
+    Presence.writeEnding(files, 3, { kind: 'crashed', component: 'talos', crashLogNumber: 7 }, ENDED_AT);
 
     expect(storedPresence().ending).toEqual({
-      kind: 'crashed', component: 'talos', crashLogGeneration: 3, at: ENDED_AT
+      kind: 'crashed', component: 'talos', crashLogNumber: 7, at: ENDED_AT
+    });
+  });
+
+  test('a crashed ending whose crash log could not be written names no log', () => {
+    Presence.writeStartedPresence(files, startOf(3));
+    Presence.writeEnding(files, 3, { kind: 'crashed', component: 'overseer', crashLogNumber: null }, ENDED_AT);
+
+    expect(storedPresence().ending).toEqual({
+      kind: 'crashed', component: 'overseer', crashLogNumber: null, at: ENDED_AT
     });
   });
 

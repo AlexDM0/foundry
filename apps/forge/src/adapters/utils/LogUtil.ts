@@ -396,7 +396,7 @@ const START_ORIGIN_PHRASES: Readonly<Record<StartOrigin, string>> = {
 function startClassifiedTextOf(start: LogRecordFieldsOf<'start-classified'>): string {
   const previous  = start.previousGeneration === undefined ? '' : ` (previous Baton ${start.previousGeneration})`;
   const suspected = start.crashSuspected === true ? ', a crash suspected before it' : '';
-  const crashLog  = start.crashLogGeneration === undefined ? '' : `; crash log ${start.crashLogGeneration} recorded`;
+  const crashLog  = start.crashLogNumber === undefined ? '' : `; crash log ${start.crashLogNumber} recorded`;
   return `Forge started by ${START_ORIGIN_PHRASES[start.startOrigin]} ${START_KIND_PHRASES[start.kind]}${previous}${suspected}${crashLog}`;
 }
 

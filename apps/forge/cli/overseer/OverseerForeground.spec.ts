@@ -129,7 +129,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
       startedAt:           '2026-09-18T20:00:00+00:00',
       startClassification: null,
     });
-    Presence.writeEnding(files, crashedGeneration, { kind: 'crashed', component: 'overseer', crashLogGeneration: crashedGeneration }, '2026-09-18T20:05:00+00:00');
+    Presence.writeEnding(files, crashedGeneration, { kind: 'crashed', component: 'overseer', crashLogNumber: null }, '2026-09-18T20:05:00+00:00');
     // The version check of the git floor, then the registry's read of the origin; no git call of a serving start.
     recordedGit.answerFrom([GIT_VERSION, ORIGIN_ASKED_WITH_NONE_SET]);
     processTable.callerProcess();
@@ -148,7 +148,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
     expect(overseerLog).not.toContain('Overseer serving');
     const [entry] = registryEntriesIn(platformPorts.dataFolders.monitorFolderOf(homeDirectory));
     expect(Object.keys(entry ?? {})).not.toContain('overseer');
-    expect(entry?.['presence']).toMatchObject({ state: 'crashed', generation: crashedGeneration, crash: { crashLogPath: CrashLog.pathOf(files, crashedGeneration) } });
+    expect(entry?.['presence']).toMatchObject({ state: 'crashed', generation: crashedGeneration, crash: { crashLogPath: CrashLog.pathOf(files, 1) } });
   });
 });
 
