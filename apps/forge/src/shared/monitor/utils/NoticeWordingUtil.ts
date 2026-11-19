@@ -52,8 +52,6 @@ function noticeTextOf(notice: NoticeFacts): string {
       return 'the install version changed, so launches are held until the board is updated';
     case 'new-code':
       return 'new code is on disk: restart the Overseer to run it';
-    case 'claude-md-block-committed':
-      return `launches onto ${factOf(notice, 'target')} wait: commit the CLAUDE.md change the board's update made`;
     case 'attribution-found':
       return `ticket #${factOf(notice, 'ticketId')} carries an AI attribution`;
     case 'rounds-not-converging':

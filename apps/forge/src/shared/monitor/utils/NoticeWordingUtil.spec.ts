@@ -43,11 +43,10 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
   });
 
   test('the notices that ask for an action name it without a command line', () => {
-    const notices = [{ kind: 'install-version-changed' }, { kind: 'new-code' }, { kind: 'claude-md-block-committed', target: 'main' }];
+    const notices = [{ kind: 'install-version-changed' }, { kind: 'new-code' }];
     expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
       'the install version changed, so launches are held until the board is updated',
       'new code is on disk: restart the Overseer to run it',
-      'launches onto main wait: commit the CLAUDE.md change the board\'s update made',
     ]);
     for (const sentence of notices.map(NoticeWordingUtil.noticeSentenceOf)) expect(sentence).not.toMatch(new RegExp(`\`|${PRODUCT_NAMES.PROGRAM} `, 'u'));
   });

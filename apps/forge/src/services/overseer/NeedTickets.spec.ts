@@ -98,7 +98,6 @@ function followThePlaybook(board: Board): readonly PlaybookStep[] {
     mainLine:                     'main',
     groupTargetPrefix:            'group-',
     installVersionChanged:        false,
-    targetsHoldingManagedBlock:   [],
     ticketIdsTouchingAgentConfig: [],
     closedDeliveryTurns:          [],
     budgetSpentDeliveryTurns:     [],

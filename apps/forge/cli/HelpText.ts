@@ -69,19 +69,12 @@ never carries it.
                               Refresh what the tool wrote into a repository it already tracks: the
                               three files beside the tracker, guidance shipped with the tool rather
                               than files a project edits, the SessionStart hook, the two skills and
-                              the worktrees folder's \`.gitignore\` entry, removing what an earlier
-                              version installed in a skill folder this one retired. It removes,
-                              once, what install version 16 wrote: the managed CLAUDE.md block,
-                              reported "removed; commit CLAUDE.md" since the Overseer launches
-                              nothing onto a branch whose committed CLAUDE.md still holds it, the
-                              SubagentStop, PreToolUse and PostToolUse hook entries (unless
-                              --no-hooks), the worker agent definition, the dispatcher script and the
-                              three briefs. The tracker itself is left alone: a tracker an earlier
-                              ${PRODUCT_NAMES.PROGRAM} wrote in a format this one no longer reads is refused at
-                              exit 2 by every command that reads it, saying to run \`update\` with a
-                              release that still reads it. It creates no tracker, so it takes no
-                              --project and no --root, and it is refused with exit 1 where there
-                              is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
+                              the worktrees folder's \`.gitignore\` entry. The tracker itself is left
+                              alone: a tracker an earlier ${PRODUCT_NAMES.PROGRAM} wrote in a format this one no
+                              longer reads is refused at exit 2 by every command that reads it,
+                              saying to run \`update\` with a release that still reads it. It creates
+                              no tracker, so it takes no --project and no --root, and it is refused
+                              with exit 1 where there is none — \`${PRODUCT_NAMES.PROGRAM} init\` makes one.
                               Each line says whether that file changed, so a session that read the
                               instructions at its start learns that its copy is now stale.
                               --json prints {answerVersion, outcome, installVersion, batonPass,

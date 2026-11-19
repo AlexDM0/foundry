@@ -375,22 +375,6 @@
       }
     },
     {
-      "callShape": "flow stage \"agent config changed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"agent config changed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"agent config changed\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -812,22 +796,6 @@
         "exitCode": 0,
         "standardOutput": "<moved main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"branch conflicting with main\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"branch conflicting with main\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -1287,22 +1255,6 @@
       }
     },
     {
-      "callShape": "flow stage \"branch merged\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"branch merged\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"branch merged\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -1719,22 +1671,6 @@
       }
     },
     {
-      "callShape": "flow stage \"builder file committed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"builder file committed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"builder file committed\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 0,
@@ -1959,590 +1895,6 @@
       }
     },
     {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git config --bool commit.gpgsign",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "false\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git remote get-url origin",
-      "answer": {
-        "exitCode": 2,
-        "standardOutput": "",
-        "standardError": "error: No such remote 'origin'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": ".git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse --verify --quiet master",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<!-- example-managed-block -->\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git show master:example-builder.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "?? .gitignore\u0000",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git version",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "git version 2.55.0\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the main checkout: git worktree list --porcelain",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block committed\", in the session folder: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git config --bool commit.gpgsign",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "false\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git remote get-url origin",
-      "answer": {
-        "exitCode": 2,
-        "standardOutput": "",
-        "standardError": "error: No such remote 'origin'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": ".git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse --verify --quiet master",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "# Example conventions\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git show master:example-builder.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "?? .gitignore\u0000",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git version",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "git version 2.55.0\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree add -b ticket-001 <repository>/.forge-worktrees/ticket-001 master",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "HEAD is now at 3b1cd53 Change CLAUDE.md\n",
-        "standardError": "Preparing worktree (new branch 'ticket-001')"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the main checkout: git worktree list --porcelain",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removal committed\", in the session folder: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git config --bool commit.gpgsign",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "false\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git for-each-ref --format=%(refname:short) refs/heads/",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git remote get-url origin",
-      "answer": {
-        "exitCode": 2,
-        "standardOutput": "",
-        "standardError": "error: No such remote 'origin'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --abbrev-ref HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": ".git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --path-format=absolute --git-common-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options main^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/master^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet --end-of-options refs/heads/ticket-001^{commit}",
-      "answer": {
-        "exitCode": 1,
-        "standardOutput": "",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse --verify --quiet master",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<!-- example-managed-block -->\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git show master:example-builder.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'example-builder.md' does not exist in 'master'"
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": " M CLAUDE.md\u0000?? .gitignore\u0000",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git symbolic-ref --quiet --short HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "master\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git version",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "git version 2.55.0\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the main checkout: git worktree list --porcelain",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "worktree <repository>\nHEAD <main tip>\nbranch refs/heads/master\n\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse --absolute-git-dir",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<repository>/.git\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse --verify --quiet --end-of-options HEAD^{commit}",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"claude block removed\", in the session folder: git rev-parse HEAD",
-      "answer": {
-        "exitCode": 0,
-        "standardOutput": "<main tip>\n",
-        "standardError": ""
-      }
-    },
-    {
       "callShape": "flow stage \"conflict resolved\", in the main checkout: git config --bool commit.gpgsign",
       "answer": {
         "exitCode": 0,
@@ -2684,22 +2036,6 @@
         "exitCode": 0,
         "standardOutput": "<moved main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"conflict resolved\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"conflict resolved\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -3183,14 +2519,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder branch conflicting with main\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -3503,14 +2831,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder branch merged\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder branch merged\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
@@ -3620,14 +2940,6 @@
         "exitCode": 0,
         "standardOutput": "<merged tree>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"folder conflict resolved\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -3991,14 +3303,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder fixed branch landed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
@@ -4092,14 +3396,6 @@
         "exitCode": 0,
         "standardOutput": "<ticket tree>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"folder merge conflicted\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -4439,14 +3735,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder merged tree fixed\", in the main checkout: git status --porcelain=v1 -z --untracked-files=all",
       "answer": {
         "exitCode": 0,
@@ -4759,14 +4047,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder resolved branch landed\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
@@ -4852,14 +4132,6 @@
         "exitCode": 1,
         "standardOutput": "",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"folder tracker ready\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -5052,14 +4324,6 @@
         "exitCode": 0,
         "standardOutput": "<ticket tree>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"folder tree changed\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -5359,14 +4623,6 @@
       }
     },
     {
-      "callShape": "flow stage \"folder worktree made\", in the main checkout: git show master:apps/example/CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'apps/example/CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"folder worktree made\", in the main checkout: git worktree list --porcelain",
       "answer": {
         "exitCode": 0,
@@ -5591,22 +4847,6 @@
       }
     },
     {
-      "callShape": "flow stage \"line endings normalised\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"line endings normalised\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"line endings normalised\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -5820,22 +5060,6 @@
         "exitCode": 0,
         "standardOutput": "<moved main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"main merged in\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"main merged in\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -6303,22 +5527,6 @@
       }
     },
     {
-      "callShape": "flow stage \"main moved\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"main moved\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"main moved\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -6772,22 +5980,6 @@
         "exitCode": 0,
         "standardOutput": "<moved main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"merge conflicted\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"merge conflicted\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -7279,22 +6471,6 @@
       }
     },
     {
-      "callShape": "flow stage \"merged branch landed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"merged branch landed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"merged branch landed\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -7759,22 +6935,6 @@
       }
     },
     {
-      "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"pipeline agent worktree made\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -8028,22 +7188,6 @@
         "exitCode": 0,
         "standardOutput": "<merged tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"resolved branch landed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"resolved branch landed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -8551,22 +7695,6 @@
       }
     },
     {
-      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"ticket branch checked out elsewhere\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -8756,22 +7884,6 @@
         "exitCode": 0,
         "standardOutput": "<main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"tracker ready\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"tracker ready\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -8972,22 +8084,6 @@
         "exitCode": 0,
         "standardOutput": "<main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"tree changed with trailer\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"tree changed with trailer\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {
@@ -9431,22 +8527,6 @@
       }
     },
     {
-      "callShape": "flow stage \"tree changed\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"tree changed\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"tree changed\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -9863,22 +8943,6 @@
       }
     },
     {
-      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
-      }
-    },
-    {
       "callShape": "flow stage \"unnormalised worktree made\", in the main checkout: git show master:example-builder.md",
       "answer": {
         "exitCode": 128,
@@ -10220,22 +9284,6 @@
         "exitCode": 0,
         "standardOutput": "<main tip>\n",
         "standardError": ""
-      }
-    },
-    {
-      "callShape": "flow stage \"worktree made\", in the main checkout: git show main:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: invalid object name 'main'."
-      }
-    },
-    {
-      "callShape": "flow stage \"worktree made\", in the main checkout: git show master:CLAUDE.md",
-      "answer": {
-        "exitCode": 128,
-        "standardOutput": "",
-        "standardError": "fatal: path 'CLAUDE.md' does not exist in 'master'"
       }
     },
     {

@@ -422,7 +422,6 @@ describe('a stale green', () => {
       mainLine:                     'main',
       groupTargetPrefix:            'group-',
       installVersionChanged:        false,
-      targetsHoldingManagedBlock:   [],
       ticketIdsTouchingAgentConfig: [],
       closedDeliveryTurns:          [],
       budgetSpentDeliveryTurns:     [],

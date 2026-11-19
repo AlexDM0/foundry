@@ -53,16 +53,15 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { ProjectPathsUtil }                        from '../../shared/utils/ProjectPathsUtil.ts';
-import type { GateConfinement, LineRunner }        from '../lifecycle/GateRun.ts';
-import { Landing }                                 from '../lifecycle/Landing.ts';
-import { MergeRun }                                from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                           from '../lifecycle/ReviewOutcome.ts';
-import { type ProjectLocation, projectLocationOf } from '../tracker/ProjectLocation.ts';
-import { writeTracker, type TrackerChange }        from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                     from '../tracker/TrackerReader.ts';
-import type { Workspace }                          from '../tracker/Workspace.ts';
-import { AgentSlots }                              from './AgentSlots.ts';
+import type { GateConfinement, LineRunner } from '../lifecycle/GateRun.ts';
+import { Landing }                          from '../lifecycle/Landing.ts';
+import { MergeRun }                         from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                    from '../lifecycle/ReviewOutcome.ts';
+import { projectLocationOf }                from '../tracker/ProjectLocation.ts';
+import { writeTracker, type TrackerChange } from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }              from '../tracker/TrackerReader.ts';
+import type { Workspace }                   from '../tracker/Workspace.ts';
+import { AgentSlots }                       from './AgentSlots.ts';
 import {
   AIRLOCK_FACT_NAMES,
   AirlockFactsFile,
@@ -236,8 +235,6 @@ export interface DrivePassRequest {
   mainLine:                      string;
   /** Read from the board when the Overseer starts; the namespace changes only while no Overseer runs. */
   branchNames:                   BranchNames;
-  /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */
-  managedBlockMarker:            string;
   installVersionChanged:         () => boolean;
   /** Resolves once the install versions a pass reads are known, such as after a landing; the event loop runs while it waits. */
   installVersionsKnown?:         () => Promise<void>;
@@ -290,7 +287,6 @@ export interface DrivePassRequest {
 export type OverseerNotice =
   | { kind: 'install-version-changed' }
   | { kind: 'new-code' }
-  | { kind: 'claude-md-block-committed'; target: string }
   | { kind: 'attribution-found'; ticketId: string }
   // The ticket's newest review reworked past the threshold and was refused another round: User decides whether an invariant ticket is wanted.
   | { kind: 'rounds-not-converging'; ticketId: string }
@@ -358,7 +354,6 @@ interface Observation {
   childObservations:            readonly ChildObservation[];
   pendingRequests:              readonly PendingHatchRequest[];
   targetTips:                   Readonly<Record<string, string | null>>;
-  targetsHoldingManagedBlock:   readonly string[];
   buildJobs:                    readonly BuildJobObservation[];
   ticketIdsTouchingAgentConfig: readonly string[];
   answeredWaiverTrees:          ReadonlyMap<string, string | null>;
@@ -442,12 +437,6 @@ function targetTipOf(repositoryRoot: string, target: string): string | null {
   return GitProcess.resolvedCommitOf(repositoryRoot, target);
 }
 
-/** The project's own `CLAUDE.md`, the one the managed block is installed in, as git names it from the repository root. */
-function targetHoldsManagedBlock(location: ProjectLocation, target: string, marker: string): boolean {
-  const shown = GitProcess.run(location.repositoryRoot, ['show', `${target}:${ProjectPathsUtil.toRepositoryPath(location.projectPrefix, 'CLAUDE.md')}`]);
-  return GitProcess.succeeded(shown) && shown.standardOutput.includes(marker);
-}
-
 /** Identity, never time: the stored board and log, the pending requests, the unread events, the target tips and each child's verdict. */
 function fingerprintOf(
   workspace: Workspace,
@@ -513,7 +502,6 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const location        = projectLocationOf(workspace.rootDirectory);
   const targets         = [...new Set([request.mainLine, ...jobs.flatMap((job) => (job.target === null ? [] : [job.target]))])].sort();
   const targetTips      = Object.fromEntries(targets.map((target) => [target, targetTipOf(location.repositoryRoot, target)]));
-  const targetsHoldingManagedBlock = targets.filter((target) => targetHoldsManagedBlock(location, target, request.managedBlockMarker));
   const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
@@ -527,7 +515,6 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     childObservations,
     pendingRequests,
     targetTips,
-    targetsHoldingManagedBlock,
     buildJobs,
     ticketIdsTouchingAgentConfig,
     answeredWaiverTrees,
@@ -1033,7 +1020,6 @@ function jobsNeedingAChild(
 function noticesOf(
   request: DrivePassRequest,
   installVersionChanged: boolean,
-  observation: Observation,
   attributionTicketIds: readonly string[],
   nonConvergingTicketIds: readonly string[],
   heldTargets: readonly HeldTarget[],
@@ -1050,7 +1036,6 @@ function noticesOf(
     ...declinedCleanups.map((declined) => ({ kind: 'cleanup-declined', ...declined }) as const),
     ...(installVersionChanged ? [{ kind: 'install-version-changed' } as const] : []),
     ...(request.newCodeOnDisk?.() === true ? [{ kind: 'new-code' } as const] : []),
-    ...observation.targetsHoldingManagedBlock.map((target) => ({ kind: 'claude-md-block-committed', target }) as const),
     ...attributionTicketIds.map((ticketId) => ({ kind: 'attribution-found', ticketId }) as const),
     ...nonConvergingTicketIds.map((ticketId) => ({ kind: 'rounds-not-converging', ticketId }) as const),
     ...defaultedIncidents.map(({ incidentId, move, cause }) => ({
@@ -1434,7 +1419,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           mainLine:                     request.mainLine,
           groupTargetPrefix:            request.branchNames.groupTargetPrefix,
           installVersionChanged,
-          targetsHoldingManagedBlock:   observation.targetsHoldingManagedBlock,
           ticketIdsTouchingAgentConfig: agentConfigHold.held,
           ...AssistantSession.turnObservationsOf(change.board, assistantReadings),
           assistantBootRetryDue,
@@ -1576,7 +1560,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       notices:      noticesOf(
         request,
         installVersionChanged,
-        observation,
         written.result.attributionTicketIds,
         written.result.nonConvergingTicketIds,
         heldTargets,

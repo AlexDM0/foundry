@@ -72,8 +72,6 @@ export interface PlaybookObservations {
   /** A group ticket's work goes to this prefix followed by its group's name. */
   groupTargetPrefix:            string;
   installVersionChanged:        boolean;
-  /** The targets whose committed CLAUDE.md still holds the managed block. */
-  targetsHoldingManagedBlock:   readonly string[];
   /** The tickets whose branch changed agent configuration. */
   ticketIdsTouchingAgentConfig: readonly string[];
   /** The Assistant turns that closed, an incident delivered in one of them taking its default. */

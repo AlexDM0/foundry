@@ -402,7 +402,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/overseer/OverseerCommand.integration.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
 | `cli/overseer/OverseerCommand.integration.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
 | `cli/overseer/OverseerDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
-| `cli/adoption/RetiredAgentHostRefusal.spec.ts` | 51 | private deadline | Redesigned: the shared deadline. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 69 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 167 | process signalled | Kept: teardown of Watchers that are the subject. |

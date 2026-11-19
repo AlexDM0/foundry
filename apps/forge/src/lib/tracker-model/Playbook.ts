@@ -402,12 +402,10 @@ function ticketIsHeld(ticket: PlaybookTicket, facts: PlaybookFacts): boolean {
   if (facts.decisions.some((decision) => CROSSING_HOLDING_DECISION_KINDS.includes(decision.kind) && decision.ticketIds.includes(ticket.id))) return true;
   // A question whose job ended holds its ticket until answered, whatever else holds it, so no fresh agent races the answer.
   if (facts.decisions.some((decision) => decision.kind === 'agent-question' && decision.jobId === null && decision.ticketIds.includes(ticket.id))) return true;
-  if (facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id))) return true;
-  return facts.observations.targetsHoldingManagedBlock.includes(targetOf(ticket, facts.observations));
+  return facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id));
 }
 
 function jobResumeIsHeld(job: Readonly<Job>, facts: PlaybookFacts): boolean {
-  if (job.target !== null && facts.observations.targetsHoldingManagedBlock.includes(job.target)) return true;
   return job.ticketIds.some((ticketId) => facts.observations.ticketIdsTouchingAgentConfig.includes(ticketId));
 }
 

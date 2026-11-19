@@ -60,13 +60,7 @@ const VENDOR_FORM_PATTERNS: Readonly<Record<VendorForm, readonly FormPattern[]>>
 const VENDOR_FORMS = Object.keys(VENDOR_FORM_PATTERNS) as VendorForm[];
 
 /** `<path>: <form>: <trimmed line>`, each with the forge package that removes it. */
-const ALLOWED_VENDOR_LINES: Readonly<Record<string, string>> = {
-  [
-  'src/adapters/page-api/ForgeSentenceUtil.ts: vendor-name: \'claude-md-block-committed\':        \'Launches wait until the CLAUDE.md change that updating the forge made '
-    + 'is committed.\','
-  ]:
-    'Removed by WP2.29: forge retires the managed block and its notice, so Gaia words it no more.',
-};
+const ALLOWED_VENDOR_LINES: Readonly<Record<string, string>> = {};
 
 const ALLOWED_LINES = Object.keys(ALLOWED_VENDOR_LINES);
 

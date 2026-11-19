@@ -99,9 +99,6 @@ export type RecordedFlowStageName =
   | 'agent config changed'
   | 'branch merged'
   | 'builder file committed'
-  | 'claude block committed'
-  | 'claude block removed'
-  | 'claude block removal committed'
   | 'line endings normalised'
   | 'unnormalised worktree made'
   | 'ticket branch checked out elsewhere'
@@ -138,9 +135,6 @@ export const RECORDED_FLOW_MOVED_MAIN_FILE = { path: 'moved-main.txt', text: 'so
  * made, and the main line it forks off holding the file.
  */
 export const RECORDED_FLOW_BUILDER_FILE = { path: 'example-builder.md', text: 'Build ticket #{{ticketId}}.\n' } as const;
-
-/** The `CLAUDE.md` texts of the main line's stages: the managed block, and the conventions that replace it. */
-export const RECORDED_FLOW_CLAUDE_FILE_TEXTS = { managedBlock: '<!-- example-managed-block -->\n', conventions: '# Example conventions\n' } as const;
 
 /** A file stored with CRLF line endings, which `* text` in `.gitattributes` converts at checkout. */
 export const RECORDED_FLOW_UNNORMALISED_FILE = { path: 'example.txt', text: 'first line\r\nsecond line\r\n', attributes: '* text\n' } as const;
@@ -192,8 +186,6 @@ const MAIN_CHECKOUT_READS = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [
   resolved(`refs/heads/${RECORDED_FLOW_MAIN_LINE}`),
   ['rev-parse', '--verify', '--quiet', RECORDED_FLOW_MAIN_LINE],
   { gitArguments: resolved('main'), exitCode: NEGATIVE },
-  { gitArguments: ['show', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`], exitCode: FATAL },
-  { gitArguments: ['show', 'main:CLAUDE.md'], exitCode: FATAL },
   { gitArguments: ['show', `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FLOW_BUILDER_FILE.path}`], exitCode: FATAL },
   ['for-each-ref', '--format=%(refname:short)', 'refs/heads/'],
   ['worktree', 'list', '--porcelain'],
@@ -361,7 +353,6 @@ function withCallsReplaced(calls: readonly RecordedFlowCall[], replacements: rea
 }
 
 const BUILDER_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['show', `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FLOW_BUILDER_FILE.path}`]]);
-const CLAUDE_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['show', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`]]);
 const MAIN_LINE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING];
 const WORKTREE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS];
 
@@ -434,7 +425,6 @@ export const RECORDED_FOLDER_FLOW_MERGED_TREE_FIX = { path: `${RECORDED_FOLDER_F
 export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\n`;
 
 const { MOVED_MAIN_TIP: FOLDER_MOVED_MAIN_TIP, MERGED_TIP: FOLDER_MERGED_TIP, AUTOMATIC_MERGE_TREE } = RECORDED_FLOW_PLACEHOLDERS;
-const FOLDER_INSTRUCTION_FILE = `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FOLDER_FLOW_PROJECT.prefix}/CLAUDE.md`;
 
 /** `init` in the project folder: the repository it lies in, the branches its namespace must leave room for, and the ignored folders. */
 const FOLDER_INIT_READS = [
@@ -460,7 +450,6 @@ const FOLDER_MAIN_CHECKOUT_READS = [
     ['worktree', 'list', '--porcelain'],
     resolved('HEAD'),
     resolved(RECORDED_FLOW_MAIN_LINE),
-    { gitArguments: ['show', FOLDER_INSTRUCTION_FILE], exitCode: FATAL },
   ]),
   ...callsIn(RECORDED_FLOW_PLACES.PROJECT_SESSION_FOLDER, [resolved('HEAD')]),
 ];
@@ -609,8 +598,6 @@ export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readon
   'agent config changed':         COMMITTED_STAGE_CALLS,
   'branch merged':                [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS, ...TICKET_COMMIT_READS],
   'builder file committed':       withCallsReplaced(WORKTREE_STANDING, BUILDER_FILE_SHOWN),
-  'claude block committed':       withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
-  'claude block removed':         withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),
   'main moved':                   [...COMMITTED_STAGE_CALLS, ...MOVED_MAIN_PREDICTION, ...MOVED_MAIN_MERGE_IN],
   'main merged in':               [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS, ...MERGED_FAST_FORWARD],
   'merged branch landed':         [...COMMITTED_STAGE_CALLS, ...MERGED_IN_READS],
@@ -620,7 +607,6 @@ export const RECORDED_FLOW_STAGES: Readonly<Record<RecordedFlowStageName, readon
   ],
   'conflict resolved':                   [...COMMITTED_STAGE_CALLS, ...SESSION_FOLDER_CONFLICT_ADD, ...MERGED_IN_READS, ...RESOLUTION_READS, ...RESOLVED_FAST_FORWARD],
   'resolved branch landed':              [...COMMITTED_STAGE_CALLS, ...SESSION_FOLDER_CONFLICT_ADD, ...MERGED_IN_READS, ...RESOLUTION_READS],
-  'claude block removal committed':      [...withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN), ...TICKET_WORKTREE_ADD],
   'line endings normalised':             [...MAIN_LINE_STANDING, ...ticketWorktreeAddTo('unnormalised worktree made')],
   'unnormalised worktree made':          WORKTREE_STANDING,
   'ticket branch checked out elsewhere': [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...WORKTREE_ADD_REFUSED],

@@ -11,7 +11,6 @@ import { OperationRefusal }            from '../src/shared/OperationRefusal.ts';
 import type { InstallVersionVerdict }  from './InstallVersionVerdict.ts';
 import { installVersionVerdictOf }     from './InstallVersionVerdict.ts';
 import { installedFilePathsIn }        from './InstalledFiles.ts';
-import { retiredInstalledFilePathsIn } from './adoption/constants/RetiredClaudeInstall.ts';
 import { INSTALL_VERSION }             from './constants/InstallVersion.ts';
 
 /** Fails closed: only ENOENT is absence. */
@@ -26,10 +25,10 @@ function fileIsPresent(filePath: string): boolean {
 
 /**
  * The session instructions have no opt-out, every `init` and `update` writes them and a fresh `init` writes them first, so they stand
- * for the installed set; a board installed before version 17 has `agent-brief.md` instead.
+ * for the installed set.
  */
 function installedFilesArePresentIn(rootDirectory: string): boolean {
-  return fileIsPresent(installedFilePathsIn(rootDirectory).sessionInstructions) || fileIsPresent(retiredInstalledFilePathsIn(rootDirectory).agentBrief);
+  return fileIsPresent(installedFilePathsIn(rootDirectory).sessionInstructions);
 }
 
 function installVersionVerdictIn(rootDirectory: string): InstallVersionVerdict {

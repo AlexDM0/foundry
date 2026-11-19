@@ -82,10 +82,8 @@ const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapt
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 /** Each file that imports the vendor's adapter today, beside the seam and the adapters, with the package that removes the import. */
 const VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED: Readonly<Record<string, string>> = {
-  'cli/adoption/TrackerRefresh.ts':                 'WP2.30',
-  'cli/adoption/constants/ClaudeCodeInstall.ts':    'WP2.30',
-  'cli/adoption/constants/RetiredClaudeInstall.ts': 'WP2.29',
-  'cli/constants/ClaudeManagedBlockMarkers.ts':     'WP2.29',
+  'cli/adoption/TrackerRefresh.ts':              'WP2.30',
+  'cli/adoption/constants/ClaudeCodeInstall.ts': 'WP2.30',
 };
 const SOURCE_LAYERS = [
   'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',

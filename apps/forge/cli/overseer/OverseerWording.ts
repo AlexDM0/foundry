@@ -1051,8 +1051,6 @@ function noticeTextOf(notice: OverseerNotice): string {
       return `the install version changed, so launches are held: run \`${PRODUCT_NAMES.PROGRAM} update\``;
     case 'new-code':
       return `new code: run \`${PRODUCT_NAMES.PROGRAM} update\``;
-    case 'claude-md-block-committed':
-      return `launches onto ${notice.target} wait: commit the CLAUDE.md change \`update\` made`;
     case 'attribution-found':
       return `ticket #${notice.ticketId} carries an AI attribution`;
     case 'rounds-not-converging':

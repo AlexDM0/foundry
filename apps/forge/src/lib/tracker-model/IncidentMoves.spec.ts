@@ -125,7 +125,6 @@ describe('each kind\'s default', () => {
         mainLine:                     'main',
         groupTargetPrefix:            'group-',
         installVersionChanged:        false,
-        targetsHoldingManagedBlock:   [],
         ticketIdsTouchingAgentConfig: [],
         closedDeliveryTurns:          [],
         budgetSpentDeliveryTurns:     [],

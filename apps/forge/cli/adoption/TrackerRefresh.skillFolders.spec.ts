@@ -1,18 +1,10 @@
 /**
  * The skills reach a tracked repository as copies in its `.claude/skills/`, never through a global install, so what matters is that `init`
  * writes each folder byte for byte as this checkout holds it and keeps it out of git, that a later refresh carries a changed source file
- * over, and that a file a user put in the folder survives, since the refresh owns only the files the skill ships. The skill folder retired at
- * install version 10 goes the same way: its shipped files and its `.gitignore` entry are removed, a user's file in it stays.
+ * over, and that a file a user put in the folder survives, since the refresh owns only the files the skill ships.
  */
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                    from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
@@ -33,8 +25,6 @@ import { refreshTrackedRepository }                                             
 import { INSTALLED_SKILL_NAMES, type SkillSourceFolderName }                          from './constants/ClaudeCodeInstall.ts';
 
 const SKILLS = Object.entries(INSTALLED_SKILL_NAMES) as [SkillSourceFolderName, string][];
-
-const RETIRED_SKILL_FOLDER = join('.claude', 'skills', PRODUCT_NAMES.PROGRAM);
 
 const PRODUCT_OWNER_SKILL_FOLDER = join('.claude', 'skills', PRODUCT_NAMES.PRODUCT_OWNER_SKILL);
 
@@ -140,60 +130,5 @@ describeWhenGitIsRecorded('the installed skill folders', () => {
 
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8'))
       .toBe(`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`);
-  });
-});
-
-/** Plants what an install at version 9 left: the retired skill's two files, its `.gitignore` entry and the manifest naming 9. */
-function plantVersionNineSkillFolder(repositoryDirectory: string): void {
-  const retiredFolder = join(repositoryDirectory, RETIRED_SKILL_FOLDER);
-  mkdirSync(retiredFolder, { recursive: true });
-  writeFileSync(join(retiredFolder, 'SKILL.md'), 'Example retired skill\n');
-  writeFileSync(join(retiredFolder, 'Reference.md'), 'Example retired reference\n');
-  appendFileSync(join(repositoryDirectory, '.gitignore'), `.claude/skills/${PRODUCT_NAMES.PROGRAM}/\n`);
-  writeFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json'), '{\n  "installVersion": 9,\n  "agentHost": "claude-code"\n}\n');
-}
-
-async function updateIn(repositoryDirectory: string): Promise<string> {
-  return await recordedGit.playStage(REFRESH_OF_AN_IGNORING_REPOSITORY, async () => {
-    const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    const exitCode = await runCommandLine(['update'], context);
-    if (exitCode !== 0) throw new Error(`update exited ${exitCode}: ${context.errorText()}`);
-    return context.outputText();
-  });
-}
-
-describeWhenGitIsRecorded('the retired agent-progress skill folder', () => {
-  test('update over a version 9 install removes the files it installed there, the folder and its .gitignore entry', async () => {
-    const repositoryDirectory = scratchRepository();
-    await initIn(repositoryDirectory);
-    plantVersionNineSkillFolder(repositoryDirectory);
-
-    const output = await updateIn(repositoryDirectory);
-
-    expect(existsSync(join(repositoryDirectory, RETIRED_SKILL_FOLDER))).toBe(false);
-    expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8')).not.toContain(`.claude/skills/${PRODUCT_NAMES.PROGRAM}/\n`);
-    expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8')).toContain(`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n`);
-    expect(output).toContain(`${RETIRED_SKILL_FOLDER}, .gitignore entry removed)`);
-    expect(output).toContain('retired (');
-  });
-
-  test('a file the user put in the retired folder stays, with the folder, while the installed files go', async () => {
-    const repositoryDirectory = scratchRepository();
-    await initIn(repositoryDirectory);
-    plantVersionNineSkillFolder(repositoryDirectory);
-    const userFilePath = join(repositoryDirectory, RETIRED_SKILL_FOLDER, 'Example user notes.md');
-    writeFileSync(userFilePath, 'Alex Example\'s own notes\n');
-
-    await updateIn(repositoryDirectory);
-
-    expect(readdirSync(join(repositoryDirectory, RETIRED_SKILL_FOLDER))).toEqual(['Example user notes.md']);
-    expect(readFileSync(userFilePath, 'utf8')).toBe('Alex Example\'s own notes\n');
-  });
-
-  test('a repository that never had the retired folder hears nothing about it', async () => {
-    const repositoryDirectory = scratchRepository();
-    await initIn(repositoryDirectory);
-
-    expect(await updateIn(repositoryDirectory)).not.toContain('retired (');
   });
 });

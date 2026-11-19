@@ -86,7 +86,6 @@ import { COMMAND_CONTROL_CONTEXT }                           from '../CommandCon
 import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
 import { OutputUtil }                                        from '../utils/OutputUtil.ts';
 import { type OverseerFlintBrain, createOverseerFlintBrain } from './OverseerFlintBrain.ts';
@@ -648,7 +647,6 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         inheritedEnvironment:  environmentCopy(),
         mainLine,
         branchNames,
-        managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,
         installVersionChanged: installWatch.installVersionChanged,
         installVersionsKnown:  installWatch.versionsSettled,
         apiBillingKeyIsSet:    () => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName),

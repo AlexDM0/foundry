@@ -1,18 +1,16 @@
 /**
  * Machine setup runs in-process here under an injected host, so every platform's run is checked on one machine. Bun is a recorder: it
  * answers `--version` and writes what `build` would, and nothing else runs; git is a recorder of the one `core.hooksPath` key, which is
- * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all four steps
+ * what makes the tracked pre-commit hook gate every worktree. The cases that matter: all three steps
  * run in order on macOS and on Windows; the Windows run puts Bun's bin folder on the User PATH through PowerShell and never names bash;
  * a launcher the rename cannot replace is a reported failure that leaves no partial file and stops no later step; a Bun below
  * `.bun-version` stops setup before anything is installed, and a checkout inside a Bun workspace is held to the workspace root's pin;
- * --instruct-only writes nothing; and the retired skill links are removed only when they resolve into the checkout.
+ * --instruct-only writes nothing.
  */
 import {
-  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  symlinkSync,
   writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
@@ -133,11 +131,7 @@ function hooksPathOfCheckout(): string {
   return storedHooksPath ?? '';
 }
 
-function skillsFolder(): string {
-  return join(homeDirectory, '.claude', 'skills');
-}
-
-describe('the four steps on each platform', () => {
+describe('the three steps on each platform', () => {
   test('on macOS setup checks Bun, installs, links and compiles the launcher, offers the shell startup file, and sets core.hooksPath', () => {
     const setup = recordedSetup({ answer: true });
     expect(runSetup([], setup.host), setup.output()).toBe(0);
@@ -145,7 +139,7 @@ describe('the four steps on each platform', () => {
     expect(readFileSync(join(scratchDirectory, 'bun-install', 'bin', PRODUCT_NAMES.PROGRAM), 'utf8')).toBe('compiled launcher');
     expect(readFileSync(join(homeDirectory, '.zshrc'), 'utf8')).toBe(`${EXAMPLE_RC_CONTENT}\nexport PATH="${join(scratchDirectory, 'bun-install', 'bin')}:$PATH"\n`);
     expect(hooksPathOfCheckout()).toBe('.githooks');
-    const headings = ['1/4 Bun', '2/4 Dependencies', '3/4 Retire', '4/4 The pre-commit hook'].map((heading) => setup.output().indexOf(heading));
+    const headings = ['1/3 Bun', '2/3 Dependencies', '3/3 The pre-commit hook'].map((heading) => setup.output().indexOf(heading));
     expect(headings.every((position, index) => position >= 0 && (index === 0 || position > (headings[index - 1] ?? 0)))).toBe(true);
   });
 
@@ -197,7 +191,7 @@ describe('the Bun floor', () => {
     expect(runSetup(['--instruct-only'], setup.host)).toBe(1);
     expect(setup.bunCalls()).toEqual(['--version']);
     expect(setup.output()).toContain(`bun ${OLD_BUN_VERSION} is below ${PINNED_BUN_VERSION}, the version .bun-version pins`);
-    expect(setup.output()).not.toContain('2/4');
+    expect(setup.output()).not.toContain('2/3');
   });
 
   test('a declined upgrade stops setup, and an upgrade that leaves Bun old stops it too', () => {
@@ -243,39 +237,6 @@ describe('core.hooksPath', () => {
     expect(setup.bunCalls()).toEqual(['--version']);
     expect(readdirSync(homeDirectory)).toEqual(['.zshrc']);
     expect(readFileSync(join(homeDirectory, '.zshrc'), 'utf8')).toBe(EXAMPLE_RC_CONTENT);
-  });
-});
-
-describe('the retired skill links', () => {
-  test('a clean home gains nothing under ~/.claude', () => {
-    const setup = recordedSetup();
-    expect(runSetup([], setup.host)).toBe(0);
-    expect(existsSync(join(homeDirectory, '.claude'))).toBe(false);
-  });
-
-  test('a link that resolves into the checkout is removed and nothing takes its place', () => {
-    for (const skillName of ['agent-progress', 'agent-progress-orchestrate']) mkdirSync(join(checkoutDirectory, 'skills', skillName), { recursive: true });
-    mkdirSync(skillsFolder(), { recursive: true });
-    symlinkSync(join(checkoutDirectory, 'skills', 'agent-progress'), join(skillsFolder(), 'agent-progress'));
-    symlinkSync(join(checkoutDirectory, 'skills', 'agent-progress-orchestrate'), join(skillsFolder(), 'agent-progress-orchestrate'));
-    const setup = recordedSetup();
-    expect(runSetup([], setup.host)).toBe(0);
-    expect(readdirSync(skillsFolder())).toEqual([]);
-    expect(setup.output()).toContain(`Removed the retired skill link ${join(skillsFolder(), 'agent-progress')}`);
-  });
-
-  test('a foreign link and a real folder at the skill paths stay, each with a warning', () => {
-    const foreignSkillFolder = join(scratchDirectory, 'example-foreign-skill');
-    mkdirSync(foreignSkillFolder);
-    mkdirSync(join(skillsFolder(), 'agent-progress-orchestrate'), { recursive: true });
-    writeFileSync(join(skillsFolder(), 'agent-progress-orchestrate', 'SKILL.md'), 'Alex Example\'s own skill\n');
-    symlinkSync(foreignSkillFolder, join(skillsFolder(), 'agent-progress'));
-    const setup = recordedSetup();
-    expect(runSetup([], setup.host)).toBe(0);
-    expect(readdirSync(skillsFolder()).sort()).toEqual(['agent-progress', 'agent-progress-orchestrate']);
-    expect(readFileSync(join(skillsFolder(), 'agent-progress-orchestrate', 'SKILL.md'), 'utf8')).toBe('Alex Example\'s own skill\n');
-    expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress')} is a symlink to ${foreignSkillFolder}, not into this checkout — left untouched.`);
-    expect(setup.output()).toContain(`${join(skillsFolder(), 'agent-progress-orchestrate')} is not a symlink setup made — left untouched.`);
   });
 });
 

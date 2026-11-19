@@ -3,34 +3,24 @@
  * `cli/adoption/constants/ClaudeCodeInstall.ts`, and reports per part whether its bytes changed: that is how an orchestrator that read the
  * brief earlier learns its copy is stale.
  */
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmdirSync,
-  rmSync
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { dirname, join }           from 'node:path';
 
 import { createInstallManifestWriter } from '../../src/adapters/install/InstallManifestWriter.ts';
 import { writeFileAtomically }         from '../../src/lib/atomic-file/AtomicFile.ts';
-import { removeManagedBlock }          from '../../src/lib/claude-code/ClaudeInstructions.ts';
 import {
   claudeLocalSettingsFilePathFor,
   claudeSettingsFilePathFor,
   refreshCommandHook,
-  removeCommandHook,
   writeCommandHook,
   type CommandHook
 }                                                                    from '../../src/lib/claude-code/ClaudeSettings.ts';
-import { ensureIgnored, removeIgnoreEntry }                                                from '../../src/lib/git/GitIgnore.ts';
+import { ensureIgnored }                                                                   from '../../src/lib/git/GitIgnore.ts';
 import type { EnsureIgnoredOutcome }                                                       from '../../src/lib/git/GitIgnore.ts';
 import type { Workspace }                                                                  from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                                from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                   from '../../src/shared/constants/ProductNames.ts';
 import { installedFilePathsIn, installedSkillFolderInRepository, type InstalledFilePaths } from '../InstalledFiles.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                                                    from '../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                                                 from '../constants/InstallVersion.ts';
 import type { InstalledFileTexts, InstalledSkillFileTexts }                                from './InstalledFileGeneration.ts';
 import {
@@ -39,14 +29,10 @@ import {
   type InstalledFile,
   type InstalledFileName,
   type InstalledPart,
-  type InstallOptOutFlag,
-  type RetiredSkillFolder
+  type InstallOptOutFlag
 }                                                                from './constants/ClaudeCodeInstall.ts';
-import { RETIRED_HOOKS, retiredInstalledFilePathsIn } from './constants/RetiredClaudeInstall.ts';
 
 const REFUSED_UNREADABLE_SETTINGS_LINE = 'refused (the settings file could not be read)';
-
-const CLAUDE_INSTRUCTIONS_FILE_NAME = 'CLAUDE.md';
 
 export const IGNORE_OUTCOME_WORDS: Readonly<Record<EnsureIgnoredOutcome, string>> = {
   'already-ignored':      'already ignored, so nothing was added',
@@ -149,11 +135,11 @@ function refreshBriefs(files: readonly InstalledFile[], installedFilePaths: Inst
  * behind too. Each folder is git-ignored, since it is a copy of this checkout's and the next `update` replaces it.
  */
 function refreshSkillFolders(
-  { installedSkillNames, retiredSkillFolders }: Pick<Extract<InstalledPart, { writing: 'skill-folders' }>, 'installedSkillNames' | 'retiredSkillFolders'>,
+  { installedSkillNames }: Pick<Extract<InstalledPart, { writing: 'skill-folders' }>, 'installedSkillNames'>,
   rootDirectory: string,
   installedSkillFileTexts: InstalledSkillFileTexts,
 ): string {
-  const folderLines = Object.values(installedSkillNames).map((skillName) => {
+  return Object.values(installedSkillNames).map((skillName) => {
     const skillFileTexts = installedSkillFileTexts[skillName];
     if (skillFileTexts === undefined) throw new OperationRefusal('unrepaired', `No files were read for the installed skill ${skillName}, so it was not written.`);
     const folderInRepository = installedSkillFolderInRepository(skillName);
@@ -165,22 +151,7 @@ function refreshSkillFolders(
     const ignoreOutcome = ensureIgnored(rootDirectory, folderInRepository);
     const ignoreNote    = ignoreOutcome === 'appended' ? ', .gitignore entry added' : '';
     return `${anyFileChanged ? 'updated' : 'unchanged'} (${folderPath}${ignoreNote})`;
-  });
-  const retiredLines = retiredSkillFolders.flatMap((retiredSkillFolder) => retiredSkillFolderLinesOf(retiredSkillFolder, rootDirectory));
-  return [...folderLines, ...retiredLines].join('; ');
-}
-
-/** Only the files the skill shipped go, so a file a user put in the folder keeps the folder; nothing is said when nothing was there. */
-function retiredSkillFolderLinesOf({ skillName, installedFileNames }: RetiredSkillFolder, rootDirectory: string): string[] {
-  const folderInRepository = installedSkillFolderInRepository(skillName);
-  const folderPath         = join(rootDirectory, folderInRepository);
-  const removedFileNames   = installedFileNames.filter((fileName) => existsSync(join(folderPath, fileName)));
-  for (const fileName of removedFileNames) rmSync(join(folderPath, fileName));
-  if (existsSync(folderPath) && readdirSync(folderPath).length === 0) rmdirSync(folderPath);
-  const ignoreOutcome = removeIgnoreEntry(rootDirectory, folderInRepository);
-  if (removedFileNames.length === 0 && ignoreOutcome === 'absent') return [];
-  const ignoreNote = ignoreOutcome === 'removed' ? ', .gitignore entry removed' : '';
-  return [`retired (${folderPath}${ignoreNote})`];
+  }).join('; ');
 }
 
 /** Written to the per-user settings file unless the shared one already holds the entry, which is then kept current there. */
@@ -222,47 +193,6 @@ function refreshClaudeSettingsHooks(hooks: readonly CommandHook[], rootDirectory
   return hookLines.map(({ event, line }) => `${event} ${line}`).join('; ');
 }
 
-/** Removed once: `init` and `update` no longer own CLAUDE.md, and the Overseer launches nothing onto a target that still commits the block. */
-function removeTheManagedBlock(rootDirectory: string, commandName: string, standardError: (text: string) => void): string {
-  const claudeFilePath = join(rootDirectory, CLAUDE_INSTRUCTIONS_FILE_NAME);
-  const outcome        = removeManagedBlock(claudeFilePath, CLAUDE_MANAGED_BLOCK_MARKERS);
-  if (outcome === 'refused-start-without-end') {
-    standardError(
-      `${claudeFilePath} has an \`${CLAUDE_MANAGED_BLOCK_MARKERS.start}\` marker with no matching end marker, so the block was left alone. `
-      + `Close or remove that marker and run \`${PRODUCT_NAMES.PROGRAM} ${commandName}\` again.`,
-    );
-    return 'refused (start marker without an end marker)';
-  }
-  return outcome === 'removed' ? 'removed; commit CLAUDE.md' : 'no managed block';
-}
-
-/** Each retired hook goes from both settings files, since version 16 wrote it into whichever already held it; nothing is said when none was there. */
-function retiredHookLinesOf(rootDirectory: string, commandName: string, standardError: (text: string) => void): string[] {
-  const settingsFilePaths = [claudeSettingsFilePathFor(rootDirectory), claudeLocalSettingsFilePathFor(rootDirectory)];
-  return settingsFilePaths.flatMap((settingsFilePath) => {
-    const outcomes = RETIRED_HOOKS.map((hook) => ({ event: hook.event, outcome: removeCommandHook(settingsFilePath, hook) }));
-    if (outcomes.some(({ outcome }) => outcome === 'refused-unreadable')) {
-      standardError(
-        `${settingsFilePath} could not be read as a JSON object, so it was left exactly as it was and the retired hooks stayed in it. `
-        + `Fix or remove that file and run \`${PRODUCT_NAMES.PROGRAM} ${commandName}\` again.`,
-      );
-      return [`${REFUSED_UNREADABLE_SETTINGS_LINE} ${settingsFilePath}`];
-    }
-    const removedEvents = outcomes.filter(({ outcome }) => outcome === 'removed').map(({ event }) => event);
-    return removedEvents.length === 0 ? [] : [`removed ${removedEvents.join(', ')} hooks (${settingsFilePath})`];
-  });
-}
-
-/** What install version 16 wrote that 17 does not: its hooks, unless the reader asked for no settings file to be touched, and its files. */
-function removeTheRetiredInstall(rootDirectory: string, removesHooks: boolean, commandName: string, standardError: (text: string) => void): string {
-  const hookLines   = removesHooks ? retiredHookLinesOf(rootDirectory, commandName, standardError) : [];
-  const removedFilePaths = Object.values(retiredInstalledFilePathsIn(rootDirectory)).filter((filePath) => existsSync(filePath));
-  for (const filePath of removedFilePaths) rmSync(filePath);
-  const fileLines = removedFilePaths.map((filePath) => `removed (${filePath})`);
-  const lines = [...hookLines, ...fileLines];
-  return lines.length === 0 ? 'nothing to remove' : lines.join('; ');
-}
-
 function ignoreFolders(rootDirectory: string, folderNames: readonly string[]): string {
   return folderNames.map((folderName) => `${folderName} ${IGNORE_OUTCOME_WORDS[ensureIgnored(rootDirectory, folderName)]}`).join('; ');
 }
@@ -282,10 +212,6 @@ export function refreshTrackedRepository(request: TrackerRefreshRequest): Tracke
     // behalf of a reader who asked for no settings file to be touched at all.
     if (part.optOutFlag !== null && optOutFlags.has(part.optOutFlag)) return `left alone (--${part.optOutFlag})`;
     switch (part.writing) {
-      case 'retired-managed-block':
-        return removeTheManagedBlock(workspace.rootDirectory, commandName, standardError);
-      case 'retired-install':
-        return removeTheRetiredInstall(workspace.rootDirectory, !optOutFlags.has('no-hooks'), commandName, standardError);
       case 'briefs':
         return refreshBriefs(part.files, installedFilePaths, installedFileTexts);
       case 'claude-settings-hooks':
@@ -298,13 +224,11 @@ export function refreshTrackedRepository(request: TrackerRefreshRequest): Tracke
   }
 
   // The briefs go last, so a write that fails before them leaves the brief's `updated` for the rerun to report, unless a fresh init
-  // writes them first to mark the files installed. The retired parts go after them, so a run cut short never leaves neither marker.
-  const isRetired = (part: InstalledPart) => part.writing === 'retired-managed-block' || part.writing === 'retired-install';
+  // writes them first to mark the files installed.
   const writeOrder = [
     ...parts.filter((part) => writesTheBriefFirst && part.writing === 'briefs'),
-    ...parts.filter((part) => part.writing !== 'briefs' && !isRetired(part)),
+    ...parts.filter((part) => part.writing !== 'briefs'),
     ...parts.filter((part) => !writesTheBriefFirst && part.writing === 'briefs'),
-    ...parts.filter(isRetired),
   ];
   const lineByPart = new Map<InstalledPart, string>();
   for (const part of writeOrder) lineByPart.set(part, refreshedLineOf(part));

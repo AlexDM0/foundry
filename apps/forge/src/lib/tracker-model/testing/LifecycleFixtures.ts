@@ -17,7 +17,6 @@ export const FIXTURE_OBSERVATIONS: PlaybookObservations = {
   mainLine:                     'main',
   groupTargetPrefix:            'group-',
   installVersionChanged:        false,
-  targetsHoldingManagedBlock:   [],
   ticketIdsTouchingAgentConfig: [],
   closedDeliveryTurns:          [],
   budgetSpentDeliveryTurns:     [],

@@ -77,7 +77,6 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     codeVersion,
     programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
     inheritedEnvironment:  {},
-    managedBlockMarker:    '<!-- example-managed-block -->',
     installVersionChanged: () => false,
     apiBillingKeyIsSet:    () => false,
     decisionWordingOf:     () => ({ questions: [], context: '' }),

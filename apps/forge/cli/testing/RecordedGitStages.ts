@@ -74,8 +74,8 @@ const IDLE_BRANCH = 'main';
 const IDLE_COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 /**
- * What an idle Overseer asks git about a repository with one checkout, one commit and no CLAUDE.md on its branch. Its polls decide how
- * often, so it answers from a set rather than a stage.
+ * What an idle Overseer asks git about a repository with one checkout and one commit. Its polls decide how often, so it answers from a
+ * set rather than a stage.
  */
 export function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitStage {
   const onTheBranch = { [RECORDED_PLACEHOLDERS.BRANCH]: IDLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: IDLE_COMMIT };
@@ -92,11 +92,6 @@ export function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitS
       gitArguments: ['rev-parse', '--verify', '--quiet', '--end-of-options', `${IDLE_BRANCH}^{commit}`],
       answeredAs:   GIT_CALL_SHAPES.BRANCH_COMMIT_RESOLVED,
       filledIn:     onTheBranch,
-    },
-    {
-      gitArguments: ['show', `${IDLE_BRANCH}:CLAUDE.md`],
-      answeredAs:   GIT_CALL_SHAPES.FILE_NOT_ON_BRANCH,
-      filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.PATH]: 'CLAUDE.md' },
     },
   ];
 }

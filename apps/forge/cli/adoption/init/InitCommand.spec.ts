@@ -22,7 +22,6 @@ import { createScratchDirectory, removeScratchDirectory }                    fro
 import { describeWhenGitIsRecorded }                                         from '../../../src/testing/ToolGuard.ts';
 import { installedFilePathsIn }                                              from '../../InstalledFiles.ts';
 import { runCommandLine }                                                    from '../../Main.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                                      from '../../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                                   from '../../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                                      from '../../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                       from '../../testing/InitializedScratchRepository.ts';
@@ -247,13 +246,13 @@ describeWhenGitIsRecorded('initialising a repository', () => {
 });
 
 describeWhenGitIsRecorded('a second init', () => {
-  test('at the same root removes the CLAUDE.md block, refreshes the briefs, keeps the tracker and exits 0', async () => {
+  test('at the same root refreshes the briefs, leaves a CLAUDE.md alone, keeps the tracker and exits 0', async () => {
     const repositoryDirectory = scratchRepository();
     await runIn(repositoryDirectory, ['init'], INIT_IN_A_NEW_REPOSITORY);
     const trackerIdBefore = storedProgressOf(repositoryDirectory).trackerId;
 
-    const claudeFilePath = join(repositoryDirectory, 'CLAUDE.md');
-    writeFileSync(claudeFilePath, `${CLAUDE_MANAGED_BLOCK_MARKERS.start}\n${CLAUDE_MANAGED_BLOCK_MARKERS.end}\n`);
+    const instructionFilePath = join(repositoryDirectory, 'CLAUDE.md');
+    writeFileSync(instructionFilePath, '# Example instructions\n');
     const briefFilePath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'session-instructions.md');
     writeFileSync(briefFilePath, 'An older brief nobody refreshed.\n');
 
@@ -263,8 +262,8 @@ describeWhenGitIsRecorded('a second init', () => {
     expect(second.outputText()).toContain('already initialised');
     expect(second.outputText(), 'a re-run says so on both paths, or the hook is invisible to a repository that adopted the tool a month ago').toContain('hooks:       ');
     expect(second.outputText(), 'the refresh has its own verb now').toContain(`\`${PRODUCT_NAMES.PROGRAM} update\` is the command for this refresh`);
-    expect(existsSync(claudeFilePath), 'a file the block was all of goes with it').toBe(false);
-    expect(second.outputText()).toContain('  CLAUDE.md:   removed; commit CLAUDE.md');
+    expect(readFileSync(instructionFilePath, 'utf8'), 'init writes no instruction file of the agent').toBe('# Example instructions\n');
+    expect(second.outputText()).not.toContain('  CLAUDE.md:');
     expect(readFileSync(briefFilePath, 'utf8'), 'the brief is shipped guidance, so a re-run restores the current wording').toStartWith('## Progress tracking');
     // The tracker id is the page's localStorage key, so a re-run that reset it would reset every reader's stored range.
     expect(storedProgressOf(repositoryDirectory).trackerId).toBe(trackerIdBefore);

@@ -174,16 +174,6 @@
     {
       "folder": "<repository>",
       "gitArguments": [
-        "show",
-        "master:apps/example/CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
         "status",
         "--porcelain=v1",
         "-z",
@@ -756,16 +746,6 @@
       "hookPolicy": "hooks-off",
       "standardInput": null,
       "ceiling": "<scratch root>"
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
-        "show",
-        "master:apps/example/CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
     },
     {
       "folder": "<repository>",
@@ -1422,16 +1402,6 @@
     {
       "folder": "<repository>",
       "gitArguments": [
-        "show",
-        "master:apps/example/CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
         "worktree",
         "add",
         "-b",
@@ -1956,16 +1926,6 @@
       "hookPolicy": "hooks-off",
       "standardInput": null,
       "ceiling": "<scratch root>"
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
-        "show",
-        "master:apps/example/CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
     },
     {
       "folder": "<repository>",

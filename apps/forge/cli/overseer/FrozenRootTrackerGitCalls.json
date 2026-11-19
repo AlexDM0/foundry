@@ -163,16 +163,6 @@
     {
       "folder": "<repository>",
       "gitArguments": [
-        "show",
-        "master:CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
         "status",
         "--porcelain=v1",
         "-z",
@@ -683,16 +673,6 @@
       "hookPolicy": "hooks-off",
       "standardInput": null,
       "ceiling": "<scratch root>"
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
-        "show",
-        "master:CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
     },
     {
       "folder": "<repository>",
@@ -1229,16 +1209,6 @@
       "hookPolicy": "hooks-off",
       "standardInput": null,
       "ceiling": "<scratch root>"
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
-        "show",
-        "master:CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
     },
     {
       "folder": "<repository>",
@@ -1799,16 +1769,6 @@
     {
       "folder": "<repository>",
       "gitArguments": [
-        "show",
-        "master:CLAUDE.md"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
         "worktree",
         "add",
         "-b",
@@ -2221,16 +2181,6 @@
         "--quiet",
         "--end-of-options",
         "refs/heads/ticket-001^{commit}"
-      ],
-      "hookPolicy": "hooks-off",
-      "standardInput": null,
-      "ceiling": null
-    },
-    {
-      "folder": "<repository>",
-      "gitArguments": [
-        "show",
-        "master:CLAUDE.md"
       ],
       "hookPolicy": "hooks-off",
       "standardInput": null,

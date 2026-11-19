@@ -227,7 +227,7 @@ cd ~/code/example-storefront
 forge init
 ```
 
-`init` creates the tracker and installs everything a session needs to use it, the seven items below. `init` never writes
+`init` creates the tracker and installs everything a session needs to use it, the six items below. `init` never writes
 `CLAUDE.md`: a repository's `CLAUDE.md` holds its own conventions only. Nor does it write a pipeline: no ticket builds
 until [`pipeline setup`](#pipeline-setup) designs one with the pipeline agent and its [Apply](#apply) stores
 `pipeline.json`, committing the constitution to the main line as the tracked `CONSTITUTION.md` first.
@@ -244,8 +244,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 | [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the eight instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The `SessionStart` hook running `forge hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
 | [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
-| [6](#6-what-version-16-installed) | Removed once: the managed `CLAUDE.md` block, the `SubagentStop`, `PreToolUse` and `PostToolUse` hook entries, the worker agent definition, the dispatcher script and the three briefs install version 16 wrote, and the `assistant-brief.md` versions before 19 wrote | `CLAUDE.md`, `.claude/`, `<data>/` | `init`, `update` | `--no-hooks` keeps the hook entries |
-| [7](#7-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
+| [6](#6-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
 
 ### Re-running
 
@@ -284,7 +283,7 @@ run `forge open`, which starts the Overseer and opens the board; ask a Claude se
 pipeline up, as the board opens on Pipeline setup: choose who pays, let the pipeline agent read the repository, and
 Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the board.
 
-### The seven items
+### The six items
 
 #### 1. The tracker
 
@@ -335,43 +334,19 @@ checkout's `skills/` into `.claude/skills/<name>/`, where Claude Code reads a pr
   removed by hand.
 - Each folder gets its own `.gitignore` entry unless git already ignores it, since it is a copy the next `update`
   replaces.
-- A skill folder an earlier version installed and this one retired, `.claude/skills/forge/`, loses the files
-  that version shipped there (`SKILL.md`, `Reference.md`) and its exact `.gitignore` entry. A file somebody else put in
-  it stays, and so does the folder then.
 
-Item 5's report line names each folder, `updated` or `unchanged`, adds `.gitignore entry added` when it added one, and
-says `retired` for a retired folder it cleared.
+Item 5's report line names each folder, `updated` or `unchanged`, and adds `.gitignore entry added` when it added one.
 
-#### 6. What version 16 installed
-
-- The managed block between `<!-- forge:managed:start -->` and `<!-- forge:managed:end -->` goes
-  with the blank lines that separated it, everything else in `CLAUDE.md` byte for byte, and a file the block was all of
-  is removed.
-- The `CLAUDE.md` line says `removed; commit CLAUDE.md`, since the Overseer launches nothing onto a target whose
-  committed `CLAUDE.md` still holds the markers (the `claude-md-block-committed` notice).
-- A start marker with no end marker is refused and the file left alone.
-- The three hook entries go from both settings files, unless `--no-hooks`.
-- `.claude/agents/forge-worker.md`, the dispatcher script and `agent-brief.md`, `builder-brief.md` and
-  `review-brief.md` go from where version 16 wrote them.
-
-The `retired` line names what went, or says `nothing to remove`.
-
-#### 7. The install version
+#### 6. The install version
 
 [Its file](#dataversionjson) holds the one version of everything above that the tool installs, which changes only when
 what the CLI and those files expect of each other changes. `init` and `update` compute every installed file first and
 write this one last, after every other write, so a run that fails part way leaves the version it found and a second run
-completes it. A refused `CLAUDE.md` block or settings file is reported and does not hold it back.
-
-### The retired agent host
-
-Claude Code is the only agent host. A `version.json` naming the `agentHost` an install before version 11 recorded for a
-host forge no longer installs for is refused by `init` and `update` at exit 1, writing nothing and deleting
-nothing, naming the files that install left: remove them and the key by hand, then run the command again.
+completes it. A refused settings file is reported and does not hold it back.
 
 ### Install version
 
-`<data>/version.json` records which [install version](glossary.md#install-version) the installed files are (item 7
+`<data>/version.json` records which [install version](glossary.md#install-version) the installed files are (item 6
 above), written last by `init` and `update`. Every command checks it against the running program before it does
 anything, unless the second table below spares it.
 
@@ -380,7 +355,7 @@ anything, unless the second table below spares it.
 | records this program's version | any | the command runs | none needed |
 | records a different version, older | any | refused | `forge update` |
 | records a different version, newer | any | refused | update the program itself first |
-| missing | `<data>/session-instructions.md`, or a version 16 board's `agent-brief.md`: the files predate versioning or a fresh `init` was cut short | refused | `forge update` |
+| missing | `<data>/session-instructions.md`: the files predate versioning or a fresh `init` was cut short | refused | `forge update` |
 | missing | neither, so nothing is installed that could disagree | the command runs | none needed |
 | unreadable, or not a whole number of at least 1 | any | refused | `forge update` |
 | a directory sits at its path | any | refused | remove that directory, then `forge update`, which could not replace it |
@@ -422,16 +397,15 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 
 | command | what it does |
 |---|---|
-| `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the seven items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
-| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the SessionStart hook, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them, and removing once what earlier install versions wrote (item 6); then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
+| `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
+| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the SessionStart hook, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
 | `help` | The command reference. |
 
 #### `init` and `update` refusals
 
-Both are refused at exit 1, writing nothing, while `version.json` names a retired agent host (`init` names each file and
-deletes none) and over files a later program installed ([Install version](#install-version)). This build also refuses
-`init` `older-program-present` at exit 1, like `update`, while the root holds the released program's `.agent-progress/`
-folder, writing nothing.
+Both are refused at exit 1, writing nothing, over files a later program installed ([Install version](#install-version)).
+This build also refuses `init` `older-program-present` at exit 1, like `update`, while the root holds the released
+program's `.agent-progress/` folder, writing nothing.
 
 `init` is also refused:
 
@@ -2124,7 +2098,7 @@ the owner's macOS and Linux machines only; it is no part of the product.
 | code | meaning | examples |
 |---|---|---|
 | **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
-| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or pending, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed or a `version.json` naming a retired agent host, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
+| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or pending, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
 | **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, an Overseer whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 
 Check the code rather than the wording.
@@ -2958,11 +2932,10 @@ replays it.
 
 The install version of the files `init` and `update` installed, indented two spaces and ending in a newline, written
 atomically by both after every other file they write. It is read as a JSON object whose `installVersion` is a whole
-number of at least 1. An `agentHost` naming the retired host an install before version 11 recorded makes `init` and
-`update` refuse ([Adopting a repository](#adopting-a-repository)); any other key is ignored and not written back.
+number of at least 1. Any other key is ignored and not written back.
 
 A file recording another version, holding anything else or unreadable is a mismatch, and so is an absent file while
-`session-instructions.md`, or a version 16 board's `agent-brief.md`, is there; an absent file with neither is none.
+`session-instructions.md` is there; an absent one while it is not is none.
 [Install version](#install-version) says what a mismatch does.
 
 ### `<monitor>/projects.json`

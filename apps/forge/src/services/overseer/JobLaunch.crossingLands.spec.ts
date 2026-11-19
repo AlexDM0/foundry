@@ -74,7 +74,6 @@ function launchedByThePlaybook(board: Board): Readonly<Job>[] {
     mainLine:                     ENTITY_FORGE_MAIN_LINE,
     groupTargetPrefix:            'group-',
     installVersionChanged:        false,
-    targetsHoldingManagedBlock:   [],
     ticketIdsTouchingAgentConfig: [],
     closedDeliveryTurns:          [],
     budgetSpentDeliveryTurns:     [],

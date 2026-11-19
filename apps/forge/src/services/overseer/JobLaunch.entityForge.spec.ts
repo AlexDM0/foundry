@@ -213,7 +213,6 @@ function followThePlaybook(board: Board): readonly PlaybookStep[] {
     mainLine:                     ENTITY_FORGE_MAIN_LINE,
     groupTargetPrefix:            'group-',
     installVersionChanged:        false,
-    targetsHoldingManagedBlock:   [],
     ticketIdsTouchingAgentConfig: [],
     closedDeliveryTurns:          [],
     budgetSpentDeliveryTurns:     [],

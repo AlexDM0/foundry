@@ -587,7 +587,7 @@ const CLAIMS: PolicyClaim[] = [
       incidents:  [incidentOf({ kind: 'job-lost', ticketIds: ['001'] })],
     }),
     holds:  launchesExactly([]),
-    mutant: policyLine('  if (facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id))) return true;\n', ''),
+    mutant: policyLine('  return facts.incidents.some((incident) => incident.ticketIds.includes(ticket.id));', '  return false;'),
   },
   {
     name:   'with no checks line nothing launches, no pipeline agent either, and one checks-not-set decision opens',
@@ -638,12 +638,6 @@ const CLAIMS: PolicyClaim[] = [
     }),
     holds:  (steps) => steps.length === 0,
     mutant: policyLine('usageLimitHolds(limits) || facts.observations.installVersionChanged', 'usageLimitHolds(limits)'),
-  },
-  {
-    name:   'a target whose CLAUDE.md holds the managed block launches nothing',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending')], observations: { ...FIXTURE_OBSERVATIONS, targetsHoldingManagedBlock: ['main'] } }),
-    holds:  launchesExactly([]),
-    mutant: policyLine('  return facts.observations.targetsHoldingManagedBlock.includes(targetOf(ticket, facts.observations));', '  return false;'),
   },
   {
     name:   'a branch that touched agent configuration launches nothing',

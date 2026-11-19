@@ -1,11 +1,10 @@
 /**
  * A tracker in a project folder below its repository's root reads its own instruction files, never the root's (Part B spec 4). What
- * matters: a tracked instruction file, the constitution and the managed block's `CLAUDE.md` are asked of git at the repository's root by
- * their path through the project's folder; a data-folder file is read from the project's own data folder; the constitution keeps its
- * project path; the tracked instruction files Customs V11 protects are repository paths through the project's folder, so they meet git's
- * paths; tree findings name only the project's files; and a tracker at its repository's root asks git exactly as before. Each
- * repository is a scratch folder with a `.git` folder, laid out as the two-tracker fixture's; git answers from the recorded answers of
- * `src/testing/RecordedGit.ts`.
+ * matters: a tracked instruction file and the constitution are asked of git at the repository's root by their path through the project's
+ * folder; a data-folder file is read from the project's own data folder; the constitution keeps its project path; the tracked instruction
+ * files Customs V11 protects are repository paths through the project's folder, so they meet git's paths; tree findings name only the
+ * project's files; and a tracker at its repository's root asks git exactly as before. Each repository is a scratch folder with a `.git`
+ * folder, laid out as the two-tracker fixture's; git answers from the recorded answers of `src/testing/RecordedGit.ts`.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -73,13 +72,14 @@ function shownAtTheRoot(revision: string, repositoryPath: string, text: string) 
 }
 
 describe('a project file as git names it', () => {
-  test('lies through the project\'s folder from the repository\'s root, the managed block\'s CLAUDE.md included', () => {
-    expect(InstructionFiles.projectFileOf(projectDirectory, 'CLAUDE.md'))
-      .toEqual<ProjectFile>({ repositoryRoot, repositoryPath: `${PROJECT_FOLDER}/CLAUDE.md` });
+  test('lies through the project\'s folder from the repository\'s root', () => {
+    expect(InstructionFiles.projectFileOf(projectDirectory, 'docs/example-brief.md'))
+      .toEqual<ProjectFile>({ repositoryRoot, repositoryPath: `${PROJECT_FOLDER}/docs/example-brief.md` });
   });
 
   test('is the path itself in the tracker\'s own folder, as written, for a tracker at its repository\'s root', () => {
-    expect(InstructionFiles.projectFileOf(repository, 'CLAUDE.md')).toEqual<ProjectFile>({ repositoryRoot: repository, repositoryPath: 'CLAUDE.md' });
+    expect(InstructionFiles.projectFileOf(repository, 'docs/example-brief.md'))
+      .toEqual<ProjectFile>({ repositoryRoot: repository, repositoryPath: 'docs/example-brief.md' });
   });
 });
 

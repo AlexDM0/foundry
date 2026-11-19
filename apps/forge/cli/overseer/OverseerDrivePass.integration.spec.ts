@@ -360,23 +360,6 @@ describe('crediting an ended job\'s tokens', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('waking', () => {
-  test('the notices are derived each pass from git and the runtime state and never stored', async () => {
-    recordedGit.enterFlowStage('claude block committed', repositoryDirectory);
-    const drivePass = await drivePassWith(fakeAgentAdapter());
-    await passOnce(drivePass);
-    expect(drivePass.state().notices).toEqual([{ kind: 'claude-md-block-committed', target: RECORDED_FLOW_MAIN_LINE }]);
-    expect(readFileSync(join(repositoryDirectory, '.forge', 'progress.json'), 'utf8')).not.toContain('claude-md-block-committed');
-
-    recordedGit.enterFlowStage('claude block removed', repositoryDirectory);
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the block is removed but not yet committed: launches still wait').toHaveLength(1);
-    recordedGit.enterFlowStage('claude block removal committed', repositoryDirectory);
-    await passOnce(drivePass, true);
-    expect(drivePass.state().notices, 'the notice clears once the removal is committed').toEqual([]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-});
-
 async function runRefused(commandLineArguments: readonly string[]): Promise<string> {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
   const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);

@@ -2,7 +2,7 @@
  * A build named beside the released program reaches none of the released program's files, and the released program none of the side-by-side
  * build's. The cases that matter: the other program's root variable is ignored by the binary; `init` and `update` refuse a repository the
  * released program tracks while the names differ, and never otherwise; an `update` leaves the other program's installed files byte for byte
- * and installs its own skills under its own names; and the managed-block markers of the two never contain each other. Every expected name
+ * and installs its own skills under its own names; and the skill folders of the two are their own. Every expected name
  * derives from the constant, and each case runs under both sets of names, the refusal through its names parameter and the binary once as
  * built and once preloaded to be the other program, so flipping the constant edits no case here.
  */
@@ -29,7 +29,6 @@ import { removeScratchDirectory }                                      from '../
 import { describeWhenGitIsRecorded }                                   from '../src/testing/ToolGuard.ts';
 import { refuseBesideAnOlderProgram }                                  from './adoption/OlderProgramRefusal.ts';
 import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/ClaudeCodeInstall.ts';
-import { claudeManagedBlockMarkersFor }                                from './constants/ClaudeManagedBlockMarkers.ts';
 import { type AgentProgressResult, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                 from './testing/InitializedScratchRepository.ts';
 import {
@@ -111,14 +110,7 @@ test('no refusal without the released program\'s data folder, under either set o
   expect(() => refuseBesideAnOlderProgram(repositoryDirectory, ORIGINAL_PRODUCT_NAMES)).not.toThrow();
 });
 
-test('each program\'s managed-block markers and skill folders are its own, and neither marker contains the other program\'s', () => {
-  const originalMarkers   = claudeManagedBlockMarkersFor(ORIGINAL_PRODUCT_NAMES);
-  const sideBySideMarkers = claudeManagedBlockMarkersFor(SIDE_BY_SIDE_PRODUCT_NAMES);
-  for (const markerName of ['start', 'end'] as const) {
-    expect(sideBySideMarkers[markerName].includes(originalMarkers[markerName])).toBe(false);
-    expect(originalMarkers[markerName].includes(sideBySideMarkers[markerName])).toBe(false);
-  }
-  expect(claudeManagedBlockMarkersFor(PRODUCT_NAMES).start).toBe(`<!-- ${PRODUCT_NAMES.PROGRAM}:managed:start -->`);
+test('each program\'s skill folders are its own', () => {
   expect(INSTALLED_SKILL_NAMES).toEqual(installedSkillNamesFor(PRODUCT_NAMES));
   expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['forge-po', 'forge-orchestrate']);
 });
@@ -171,13 +163,12 @@ describeWhenGitIsRecorded('two programs side by side, each run as a binary', () 
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('update leaves the other program\'s managed block, hooks, agent definition and skill folders byte for byte, and keeps its own skills', async () => {
+  test('update leaves the other program\'s instruction file, hooks, agent definition and skill folders byte for byte, and keeps its own skills', async () => {
     for (const side of BOTH_PROGRAMS) {
       const repositoryDirectory = scratchRepository();
       const run                 = binaryRunAs(side, repositoryDirectory);
-      const otherMarkers        = claudeManagedBlockMarkersFor(side.otherNames);
       const otherFiles: Readonly<Record<string, string>> = {
-        'CLAUDE.md':                                                        `${otherMarkers.start}\nThe other program's block.\n${otherMarkers.end}\n`,
+        'CLAUDE.md':                                                        `The ${side.otherNames.PROGRAM} program's instructions.\n`,
         '.claude/settings.local.json':                                      hookSettingsOf(side.otherNames),
         [`.claude/agents/${side.otherNames.PROGRAM}-worker.md`]:            '---\nname: the other program\'s worker\n---\n',
         [`.claude/skills/${side.otherNames.PRODUCT_OWNER_SKILL}/SKILL.md`]: '---\nname: the other program\'s skill\n---\n',

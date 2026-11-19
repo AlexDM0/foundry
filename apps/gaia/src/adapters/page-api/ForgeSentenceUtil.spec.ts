@@ -60,8 +60,6 @@ describe('the sentence of a notice and of a warning', () => {
       .toBe('New code is on disk. The Overseer runs the code it started with until it restarts.');
     expect(ForgeSentenceUtil.noticeSentenceOf('install-version-changed', INSTALL_CHANGED_NOTICE))
       .toBe('The install version changed. Nothing launches until this forge is updated.');
-    expect(ForgeSentenceUtil.noticeSentenceOf('claude-md-block-committed', 'launches onto main wait: commit the CLAUDE.md change `update` made'))
-      .toBe('Launches wait until the CLAUDE.md change that updating the forge made is committed.');
   });
 
   test('is Gaia\'s for an Assistant that cannot come up, which the forge sends as a warning and Gaia shows as a notice', () => {

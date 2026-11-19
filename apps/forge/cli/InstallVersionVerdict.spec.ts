@@ -2,7 +2,7 @@
  * The install version decision against its own contract, with arbitrary numbers: with one install version so far, a valid older manifest cannot
  * exist on disk, so only this spec reaches `older`. What matters: equal is current, lower is older and higher is newer with the recorded number,
  * an unreadable manifest fails closed, a directory at its path is a mismatch of its own, and a missing one is a mismatch only while
- * installed files are present, which a board installed before version 17 shows by its `agent-brief.md` alone.
+ * installed files are present.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -69,10 +69,6 @@ describe('the install-presence marker on disk', () => {
       removeScratchDirectory(rootDirectory);
     }
   }
-
-  test('agent-brief.md only, no manifest: a board installed before version 17 is an unversioned mismatch', () => {
-    expect(refusalReasonIn(['agent-brief.md'])).toContain('"reason":"unversioned"');
-  });
 
   test('session-instructions.md only, no manifest, is an unversioned mismatch; neither marker is current', () => {
     expect(refusalReasonIn(['session-instructions.md'])).toContain('"reason":"unversioned"');

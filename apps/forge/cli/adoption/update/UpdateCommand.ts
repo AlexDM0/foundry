@@ -17,7 +17,6 @@ import { OverseerRemote }                                 from '../../overseer/O
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
-import { refuseARetiredAgentHostsInstall }                from '../RetiredAgentHostRefusal.ts';
 import {
   optOutFlagsGiven,
   recordInstallVersion,
@@ -52,7 +51,6 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   const workspace          = requireWorkspace(context.currentDirectory);
   refuseBesideAnOlderProgram(workspace.rootDirectory);
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
-  refuseARetiredAgentHostsInstall('update', workspace.rootDirectory);
   const installedFileTexts = installedFileTextsFor();
   const report             = refreshTrackedRepository({
     workspace,

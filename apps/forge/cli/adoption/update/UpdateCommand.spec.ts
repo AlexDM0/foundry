@@ -1,6 +1,6 @@
 /**
- * What `agent-progress update` refreshes, what it reports about each of those files, what it removes once from an install version 16
- * repository, and that it leaves a current tracker's progress file, tickets and log byte for byte; and that it refuses, writing nothing,
+ * What `agent-progress update` refreshes, what it reports about each of those files, that it leaves what an earlier install version wrote
+ * where it is, and that it leaves a current tracker's progress file, tickets and log byte for byte; and that it refuses, writing nothing,
  * files a newer agent-progress installed and a directory at the manifest's path, which it could not replace. Git plays recorded answers:
  * each case names the calls `update` makes in its state.
  */
@@ -14,18 +14,16 @@ import {
   rmSync,
   writeFileSync
 }               from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 import { afterEach, expect, test }                                from 'bun:test';
 import { OperationRefusalWordingUtil }                            from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { DISPATCH_PROTOCOL }                                      from '../../../src/shared/constants/DispatchProtocol.ts';
 import { PRODUCT_NAMES }                                          from '../../../src/shared/constants/ProductNames.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot }    from '../../../src/testing/ToolGuard.ts';
 import { installedFilePathsIn }                                   from '../../InstalledFiles.ts';
 import { runCommandLine }                                         from '../../Main.ts';
-import { CLAUDE_MANAGED_BLOCK_MARKERS }                           from '../../constants/ClaudeManagedBlockMarkers.ts';
 import { INSTALL_VERSION }                                        from '../../constants/InstallVersion.ts';
 import { createCapturedCommandContext }                           from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                 from '../../testing/InitializedScratchRepository.ts';
@@ -35,9 +33,8 @@ import {
   commonFolderInAWorktreeOf,
   REFRESH_OF_AN_IGNORING_REPOSITORY
 } from '../../testing/RecordedGitStages.ts';
-import { repositoryFileContentsOf }    from '../../testing/RepositoryFileContents.ts';
-import { installedFileTextsFor }       from '../InstalledFileGeneration.ts';
-import { retiredInstalledFilePathsIn } from '../constants/RetiredClaudeInstall.ts';
+import { repositoryFileContentsOf } from '../../testing/RepositoryFileContents.ts';
+import { installedFileTextsFor }    from '../InstalledFileGeneration.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -106,27 +103,6 @@ async function trackedRepositoryWithStaleFiles(): Promise<string> {
   return repositoryDirectory;
 }
 
-/** What install version 16 wrote into a repository, each file holding a line of its own so a test can tell it was there. */
-function plantVersion16Install(repositoryDirectory: string): void {
-  const dataFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
-  for (const fileName of ['agent-brief.md', 'builder-brief.md', 'review-brief.md', 'agent-progress-dispatch.js']) {
-    writeFileSync(join(dataFolder, fileName), `Example version 16 ${fileName}\n`);
-  }
-  mkdirSync(join(repositoryDirectory, '.claude', 'agents'), { recursive: true });
-  writeFileSync(join(repositoryDirectory, '.claude', 'agents', `${DISPATCH_PROTOCOL.WORKER_AGENT_TYPE}.md`), 'Example worker definition\n');
-  const managedBlock = `${CLAUDE_MANAGED_BLOCK_MARKERS.start}\nAn older managed block.\n${CLAUDE_MANAGED_BLOCK_MARKERS.end}`;
-  writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), `# Example Agency\n\n${managedBlock}\n`);
-  const otherGroup = { matcher: '', hooks: [{ type: 'command', command: 'echo hello' }] };
-  writeSettings(repositoryDirectory, LOCAL_SETTINGS, {
-    hooks: {
-      SubagentStop: [{ matcher: '', hooks: [{ type: 'command', command: `${PRODUCT_NAMES.PROGRAM} hook subagent-stop`, timeout: 20 }] }],
-      PreToolUse:   [{ matcher: 'Bash', hooks: [{ type: 'command', command: `${PRODUCT_NAMES.PROGRAM} hook pre-tool-use`, timeout: 10 }] }],
-      PostToolUse:  [{ matcher: '', hooks: [{ type: 'command', command: `${PRODUCT_NAMES.PROGRAM} hook post-tool-use`, timeout: 10 }] }, otherGroup],
-    },
-  });
-  writeFileSync(installedFilePathsIn(repositoryDirectory).installManifest, '{\n  "installVersion": 16\n}\n');
-}
-
 afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
@@ -158,65 +134,19 @@ describeWhenGitIsRecorded('updating a tracked repository', () => {
     expect(existsSync(installedFilePathsIn(repositoryDirectory).assistantDefault)).toBe(true);
   });
 
-  test('a version 16 install is removed once: the block, the three hooks, the agent definition, the dispatcher and the three briefs', async () => {
+  test('a CLAUDE.md and the files an earlier install version wrote stay where they are, and the report names neither', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    plantVersion16Install(repositoryDirectory);
+    const instructionFilePath = join(repositoryDirectory, 'CLAUDE.md');
+    const earlierBriefPath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'agent-brief.md');
+    writeFileSync(instructionFilePath, '# Example Agency\n\nExample instructions an earlier install wrote.\n');
+    writeFileSync(earlierBriefPath, 'Example earlier brief\n');
 
     const { exitCode, context } = await update(repositoryDirectory);
     expect(exitCode, context.errorText()).toBe(0);
 
-    expect(readFileSync(join(repositoryDirectory, 'CLAUDE.md'), 'utf8')).toBe('# Example Agency\n');
-    expect(context.outputText()).toContain('  CLAUDE.md:   removed; commit CLAUDE.md\n');
-    expect(hookGroupsIn(repositoryDirectory, LOCAL_SETTINGS, 'SubagentStop')).toBeUndefined();
-    expect(hookGroupsIn(repositoryDirectory, LOCAL_SETTINGS, 'PreToolUse')).toBeUndefined();
-    expect(hookGroupsIn(repositoryDirectory, LOCAL_SETTINGS, 'PostToolUse'), 'a hook somebody else wrote stays').toEqual([
-      { matcher: '', hooks: [{ type: 'command', command: 'echo hello' }] },
-    ]);
-    expect(hookGroupsIn(repositoryDirectory, LOCAL_SETTINGS, 'SessionStart')).toEqual([SESSION_START_GROUP]);
-    expect(context.outputText()).toContain('removed SubagentStop, PreToolUse, PostToolUse hooks');
-    expect(readdirSync(join(repositoryDirectory, '.claude', 'agents'))).toEqual([]);
-    for (const fileName of ['agent-brief.md', 'builder-brief.md', 'review-brief.md', 'agent-progress-dispatch.js']) {
-      expect(existsSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, fileName)), fileName).toBe(false);
-    }
-    expect(JSON.parse(readFileSync(installedFilePathsIn(repositoryDirectory).installManifest, 'utf8'))).toEqual({ installVersion: INSTALL_VERSION });
-
-    const second = await update(repositoryDirectory);
-    expect(second.exitCode).toBe(0);
-    expect(second.context.outputText()).toContain('  CLAUDE.md:   no managed block\n');
-    expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
-  });
-
-  test('each retired instruction default an earlier install version wrote is removed once, beside the defaults that stay', async () => {
-    const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const defaultsFolder = dirname(installedFilePathsIn(repositoryDirectory).builderDefault);
-    const retiredDefaultPaths = Object.values(retiredInstalledFilePathsIn(repositoryDirectory)).filter((filePath) => dirname(filePath) === defaultsFolder);
-    expect(retiredDefaultPaths.length).toBeGreaterThanOrEqual(2);
-    for (const retiredDefaultPath of retiredDefaultPaths) writeFileSync(retiredDefaultPath, 'Example retired instruction default\n');
-
-    const { exitCode, context } = await update(repositoryDirectory);
-    expect(exitCode, context.errorText()).toBe(0);
-    for (const retiredDefaultPath of retiredDefaultPaths) {
-      expect(existsSync(retiredDefaultPath), retiredDefaultPath).toBe(false);
-      expect(context.outputText()).toContain(`${basename(retiredDefaultPath)})`);
-    }
-    expect(existsSync(installedFilePathsIn(repositoryDirectory).builderDefault)).toBe(true);
-    expect(existsSync(installedFilePathsIn(repositoryDirectory).pipelineAgentDefault)).toBe(true);
-
-    const second = await update(repositoryDirectory);
-    expect(second.context.outputText()).toContain('  retired:     nothing to remove\n');
-  });
-
-  test('a managed block with a start marker and no end is left alone, reported, and the rest of the update still runs', async () => {
-    const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const truncated = `# Example Agency\n\n${CLAUDE_MANAGED_BLOCK_MARKERS.start}\nsomething truncated the end marker\n`;
-    writeFileSync(join(repositoryDirectory, 'CLAUDE.md'), truncated);
-
-    const { exitCode, context } = await update(repositoryDirectory);
-    expect(exitCode).toBe(0);
-
-    expect(readFileSync(join(repositoryDirectory, 'CLAUDE.md'), 'utf8')).toBe(truncated);
-    expect(context.outputText()).toContain('  CLAUDE.md:   refused (start marker without an end marker)');
-    expect(context.errorText()).toContain('with no matching end marker');
+    expect(readFileSync(instructionFilePath, 'utf8')).toBe('# Example Agency\n\nExample instructions an earlier install wrote.\n');
+    expect(readFileSync(earlierBriefPath, 'utf8')).toBe('Example earlier brief\n');
+    expect(context.outputText()).not.toMatch(/^ {2}(?:CLAUDE\.md|retired):/m);
   });
 
   test('the SessionStart hook is installed by default into the local settings file, the shared one is not created, and a rerun is unchanged', async () => {

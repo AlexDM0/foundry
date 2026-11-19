@@ -24,8 +24,6 @@ const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
 const REFRESH_LINE_PATTERNS = [
   new RegExp(`^${RegExp.escape(PRODUCT_NAMES.PROGRAM)} is already initialised in \\S+\\.$`, 'm'),
-  /^ {2}CLAUDE\.md: {3}no managed block$/m,
-  /^ {2}retired: {5}nothing to remove$/m,
   new RegExp(`^ {2}brief: {7}unchanged \\(\\S+/${RegExp.escape(PRODUCT_NAMES.DATA_FOLDER)}/session-instructions\\.md\\)$`, 'm'),
   /^ {2}hooks: {7}\S+\/\.claude\/settings\.local\.json \(unchanged\)$/m,
   new RegExp(`^ {2}worktrees: {3}${RegExp.escape(PRODUCT_NAMES.WORKTREES_FOLDER)} already ignored, so nothing was added$`, 'm'),

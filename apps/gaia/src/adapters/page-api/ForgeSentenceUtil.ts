@@ -31,7 +31,6 @@ const REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
 const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
   'new-code':                         'New code is on disk. The Overseer runs the code it started with until it restarts.',
   'install-version-changed':          'The install version changed. Nothing launches until this forge is updated.',
-  'claude-md-block-committed':        'Launches wait until the CLAUDE.md change that updating the forge made is committed.',
   [FORGE_NOTICE_KINDS.assistantDown]: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
 };
 

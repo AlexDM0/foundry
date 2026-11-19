@@ -23,7 +23,6 @@ import { ProgramAnswerUtil }                              from '../../utils/Prog
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import type { InstalledFileTexts }                        from '../InstalledFileGeneration.ts';
 import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
-import { refuseARetiredAgentHostsInstall }                from '../RetiredAgentHostRefusal.ts';
 import {
   IGNORE_OUTCOME_WORDS,
   optOutFlagsGiven,
@@ -115,7 +114,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   }
   refuseBesideAnOlderProgram(workspace.rootDirectory);
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
-  refuseARetiredAgentHostsInstall('init', workspace.rootDirectory);
 
   // Every installed text is computed before the first write, so a template that will not read leaves no tracker and no file behind.
   const installedFileTexts = installedFileTextsFor();

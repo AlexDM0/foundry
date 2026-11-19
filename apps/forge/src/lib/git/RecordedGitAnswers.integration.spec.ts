@@ -24,7 +24,6 @@ import {
 } from '../../testing/RecordedGit.ts';
 import {
   RECORDED_FLOW_BUILDER_FILE,
-  RECORDED_FLOW_CLAUDE_FILE_TEXTS,
   RECORDED_FLOW_COMMITS,
   RECORDED_FLOW_CONFLICT,
   RECORDED_FLOW_CONFLICT_RESOLUTION,
@@ -634,17 +633,6 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     commitOnTheMainLine(flow, RECORDED_FLOW_BUILDER_FILE.path, RECORDED_FLOW_BUILDER_FILE.text);
     gitOutputIn(flow.directory, fillIn(flow, requireTransitionTo('tracker ready', 'worktree made').gitArguments));
     recordFlowStage('builder file committed', flow);
-  });
-
-  test('a main line whose CLAUDE.md holds the managed block, then a removal left uncommitted, then the removal committed and a worktree added', () => {
-    const flow = flowRepository();
-    commitOnTheMainLine(flow, 'CLAUDE.md', RECORDED_FLOW_CLAUDE_FILE_TEXTS.managedBlock);
-    recordFlowStage('claude block committed', flow);
-    writeFileSync(join(flow.directory, 'CLAUDE.md'), RECORDED_FLOW_CLAUDE_FILE_TEXTS.conventions);
-    recordFlowStage('claude block removed', flow);
-    commitOnTheMainLine(flow, 'CLAUDE.md', RECORDED_FLOW_CLAUDE_FILE_TEXTS.conventions);
-    recordFlowStage('claude block removal committed', flow);
-    recordFlowCall('claude block removal committed', flow, requireTransitionTo('claude block removal committed', 'worktree made'));
   });
 
   test('a main line holding a CRLF file under a text attribute: its reads, the worktree added on it, and that worktree changed straight after checkout', () => {

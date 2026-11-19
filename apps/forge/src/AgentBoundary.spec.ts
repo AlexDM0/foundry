@@ -125,14 +125,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-hook-protocol: than files a project edits, the SessionStart hook, the two skills and':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-name: once, what install version 16 wrote: the managed CLAUDE.md block,':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/HelpText.ts: vendor-name: reported "removed; commit CLAUDE.md" since the Overseer launches':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/HelpText.ts: vendor-name: nothing onto a branch whose committed CLAUDE.md still holds it, the':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/HelpText.ts: vendor-hook-protocol: SubagentStop, PreToolUse and PostToolUse hook entries (unless':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/HelpText.ts: vendor-name: hook session-start          Print \\`session-instructions.md\\` for the session Claude Code is':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-hook-protocol: starting: \\`init\\` and \\`update\\` wire it as the SessionStart hook in':
@@ -141,8 +133,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-file-layout: \\`.claude/settings.local.json\\`, which a job\'s sessions never load. It':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/InstallVersionCheck.ts: vendor-name: import { retiredInstalledFilePathsIn } from \'./adoption/constants/RetiredClaudeInstall.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/InstalledFiles.ts: vendor-hook-protocol: /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/InstalledFiles.ts: vendor-name: /** Claude Code reads a project\'s skills from `.claude/skills/<name>/`, written with `/` as `.gitignore` takes it. */':
@@ -160,41 +150,20 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
   'cli/adoption/InstalledFileGeneration.ts: vendor-name: for (const part of CLAUDE_CODE_INSTALL.parts) { [copy 2]':
     'Removed by WP2.30: The adapter installs into a repository.',
   [
-  'cli/adoption/RetiredAgentHostRefusal.ts: vendor-name: * host, which agent-progress no longer installs for: its worker and extension would keep running beside the '
-    + 'Claude Code ones.'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'cli/adoption/RetiredAgentHostRefusal.ts: vendor-name: `${PRODUCT_NAMES.PROGRAM} ${commandName} installs for Claude Code only, but ${manifestFilePath} names the agent '
-    + 'host ${RETIRED_AGENT_HOST}, `'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
   'cli/adoption/TrackerRefresh.ts: vendor-name: * `cli/adoption/constants/ClaudeCodeInstall.ts`, and reports per part whether its bytes changed: that is how an '
     + 'orchestrator that read the'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: import { removeManagedBlock }          from \'../../src/lib/claude-code/ClaudeInstructions.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: claudeLocalSettingsFilePathFor,':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: claudeSettingsFilePathFor,':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: }                                                                    from \'../../src/lib/claude-code/ClaudeSettings.ts\';':
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/TrackerRefresh.ts: vendor-name: import { CLAUDE_MANAGED_BLOCK_MARKERS }                                                    from '
-    + '\'../constants/ClaudeManagedBlockMarkers.ts\';'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: CLAUDE_CODE_INSTALL,':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: }                                                                from \'./constants/ClaudeCodeInstall.ts\';':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: import { RETIRED_HOOKS, retiredInstalledFilePathsIn } from \'./constants/RetiredClaudeInstall.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const CLAUDE_INSTRUCTIONS_FILE_NAME = \'CLAUDE.md\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: const sharedSettingsFilePath = claudeSettingsFilePathFor(rootDirectory);':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: const localSettingsFilePath = claudeLocalSettingsFilePathFor(rootDirectory);':
@@ -204,24 +173,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'standardError: (text: string) => void): string {'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/TrackerRefresh.ts: vendor-name: /** Removed once: `init` and `update` no longer own CLAUDE.md, and the Overseer launches nothing onto a target that still '
-    + 'commits the block. */'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const claudeFilePath = join(rootDirectory, CLAUDE_INSTRUCTIONS_FILE_NAME);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const outcome        = removeManagedBlock(claudeFilePath, CLAUDE_MANAGED_BLOCK_MARKERS);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'cli/adoption/TrackerRefresh.ts: vendor-name: `${claudeFilePath} has an \\`${CLAUDE_MANAGED_BLOCK_MARKERS.start}\\` marker with no matching end marker, so the block was '
-    + 'left alone. `'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: return outcome === \'removed\' ? \'removed; commit CLAUDE.md\' : \'no managed block\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const settingsFilePaths = [claudeSettingsFilePathFor(rootDirectory), claudeLocalSettingsFilePathFor(rootDirectory)];':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: const { parts }          = CLAUDE_CODE_INSTALL;':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/TrackerRefresh.ts: vendor-name: case \'claude-settings-hooks\':':
@@ -229,15 +180,10 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
   'cli/adoption/TrackerRefresh.ts: vendor-name: return refreshClaudeSettingsHooks(part.hooks, workspace.rootDirectory, commandName, standardError);':
     'Removed by WP2.30: The adapter installs into a repository.',
   [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * What `init` and `update` install for Claude Code: the parts, in report order, each with the files it writes '
-    + 'or removes, the flag that'
+  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * What `init` and `update` install for Claude Code: the parts, in report order, each with the files it writes, '
+    + 'the flag that opts out of it'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * opts out of it and its report label. What install version 16 wrote and 17 removes is in '
-    + '`cli/adoption/constants/RetiredClaudeInstall.ts`.'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: import type { CommandHook }                 from \'../../../src/lib/claude-code/ClaudeSettings.ts\';':
     'Removed by WP2.30: The adapter installs into a repository.',
   [
@@ -245,11 +191,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'the product gives that skill. */'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: /** A skill folder an earlier install version wrote under `.claude/skills/`, with the file names it installed '
-    + 'there. */'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: /** Each skill source folder\'s installed name, which its `SKILL.md` frontmatter is filled with too, so '
     + 'Claude Code knows it by its folder. */'
@@ -261,20 +202,10 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
   [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-file-layout: const RETIRED_SKILL_FOLDERS: readonly RetiredSkillFolder[] = [{ skillName: PRODUCT_NAMES.PROGRAM, '
-    + 'installedFileNames: [\'SKILL.md\', \'Reference.md\'] }];'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * `claude-settings-hooks` writes no file text, only Claude Code settings entries, and takes out the retired '
-    + 'ones; `skill-folders` rewrites'
+  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * `claude-settings-hooks` writes no file text, only Claude Code settings entries; `skill-folders` rewrites every '
+    + 'file of each skill folder,'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * the managed CLAUDE.md block, and `retired-install` the hooks (unless `--no-hooks`) and files '
-    + '`cli/adoption/constants/RetiredClaudeInstall.ts`'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: | { writing: \'claude-settings-hooks\'; reportLabel: string; optOutFlag: InstallOptOutFlag | null; hooks: '
     + 'readonly CommandHook[] }'
@@ -284,41 +215,13 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: export const CLAUDE_CODE_INSTALL: { parts: readonly InstalledPart[] } = {':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: { writing: \'retired-managed-block\', reportLabel: \'CLAUDE.md\', optOutFlag: null },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: writing:     \'claude-settings-hooks\',':
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-name: * merger default 26 retired, and the onboarder default 28 retired. Kept out of '
-    + '`cli/adoption/constants/ClaudeCodeInstall.ts`, which'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-name: import type { CommandHook }            from \'../../../src/lib/claude-code/ClaudeSettings.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-hook-protocol: { event: \'SubagentStop\', command: `${PRODUCT_NAMES.PROGRAM} hook subagent-stop` },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-hook-protocol: { event: \'PreToolUse\', command: `${PRODUCT_NAMES.PROGRAM} hook pre-tool-use` },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-hook-protocol: { event: \'PostToolUse\', command: `${PRODUCT_NAMES.PROGRAM} hook post-tool-use` },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/adoption/constants/RetiredClaudeInstall.ts: vendor-name: agentDefinition:  join(rootDirectory, \'.claude\', \'agents\', `${DISPATCH_PROTOCOL.WORKER_AGENT_TYPE}.md`),':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'cli/adoption/init/InitCommand.ts: vendor-name: `  2. Ask a Claude session in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill, files the '
     + 'ticket as a`,'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'cli/constants/ClaudeManagedBlockMarkers.ts: vendor-name: import type { ManagedBlockMarkers }         from \'../../src/lib/claude-code/ClaudeInstructions.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'cli/constants/ClaudeManagedBlockMarkers.ts: vendor-name: /** Neither marker may contain the other: `src/lib/claude-code/ClaudeInstructions.ts` finds the end by '
-    + 'searching forward from the start. */'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/constants/ClaudeManagedBlockMarkers.ts: vendor-name: export function claudeManagedBlockMarkersFor({ PROGRAM }: Pick<ProductNames, \'PROGRAM\'>): ManagedBlockMarkers {':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/constants/ClaudeManagedBlockMarkers.ts: vendor-name: export const CLAUDE_MANAGED_BLOCK_MARKERS: ManagedBlockMarkers = claudeManagedBlockMarkersFor(PRODUCT_NAMES);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'cli/drafts/DraftContentSubcommands.ts: vendor-name: if (recommended === undefined) throw refusalOf(`${PRODUCT_NAMES.PROGRAM} draft ask needs --recommended <letters>, '
     + 'the option or options Claude recommends.`);'
@@ -334,29 +237,10 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'repository. */'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/overseer/OverseerForeground.ts: vendor-name: import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from \'../constants/ClaudeManagedBlockMarkers.ts\';':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/overseer/OverseerForeground.ts: vendor-name: managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Bash reaches no network.\',':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Do not use the network from Bash.\',':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'cli/overseer/OverseerWording.ts: vendor-name: case \'claude-md-block-committed\':':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/overseer/OverseerWording.ts: vendor-name: return `launches onto ${notice.target} wait: commit the CLAUDE.md change \\`update\\` made`;':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'cli/setup/RetiredSkillStep.ts: vendor-name: * `init` and `update` copy both skills into each tracked repository\'s .claude/skills/, so nothing is linked into '
-    + '~/.claude/skills/ any'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/setup/RetiredSkillStep.ts: vendor-name: const skillPath = join(host.homeDirectory, \'.claude\', \'skills\', skillName);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/setup/Setup.ts: vendor-name: * the removal of the ~/.claude/skills/ links earlier versions made, and the checkout\'s `core.hooksPath`. The bootstrap scripts `setup.sh`':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/setup/Setup.ts: vendor-name: report.heading(`3/4 Retire the global ${ORIGINAL_PRODUCT_NAMES.PROGRAM} Claude skills`);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'resources/prompts/AirlockReReviewMessage.md: vendor-tool-name: - You cannot ask User in the Airlock: AskUserQuestion is not available. Do not propose a waiver.':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   [
@@ -423,8 +307,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'before it asks: AskUserQuestion carries only'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/lib/tracker-model/@types/PlaybookStep.ts: vendor-name: /** The targets whose committed CLAUDE.md still holds the managed block. */':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/lib/tracker-model/@types/Ticket.ts: vendor-name: /** The model aliases a Claude Code agent definition\'s `model` key accepts, as an agent working a ticket runs on. */':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   [
@@ -437,19 +319,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'replayed request opens nothing twice. */'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/services/overseer/DrivePass.ts: vendor-name: /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/services/overseer/DrivePass.ts: vendor-name: | { kind: \'claude-md-block-committed\'; target: string }':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/services/overseer/DrivePass.ts: vendor-name: /** The project\'s own `CLAUDE.md`, the one the managed block is installed in, as git names it from the repository root. */':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'src/services/overseer/DrivePass.ts: vendor-name: const shown = GitProcess.run(location.repositoryRoot, [\'show\', '
-    + '`${target}:${ProjectPathsUtil.toRepositoryPath(location.projectPrefix, \'CLAUDE.md\')}`]);'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/services/overseer/DrivePass.ts: vendor-name: ...observation.targetsHoldingManagedBlock.map((target) => ({ kind: \'claude-md-block-committed\', target }) as const),':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'src/services/overseer/IntakeSessions.ts: vendor-tool-name: * The Overseer\'s side of a product-owner intake (design section 8.4): the session\'s confinement (skills '
     + 'on, the web through WebFetch and'
@@ -465,10 +334,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'headed `system` opens a'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: case \'claude-md-block-committed\':':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: return `launches onto ${factOf(notice, \'target\')} wait: commit the CLAUDE.md change the board\'s update made`;':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
 };
 
 /** `<path>: vendor-name: <trimmed line>` of a testing helper, each with the package that removes it or why it stays. */
@@ -496,15 +361,6 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: this repository\'s own agent folders and evidence, which the scans and the smoke skip.',
   'cli/testing/RecordedGitStages.ts: vendor-name: const INSTALLED_SKILLS_FOLDER = \'.claude/skills\';':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  [
-  'cli/testing/RecordedGitStages.ts: vendor-name: * What an idle Overseer asks git about a repository with one checkout, one commit and no CLAUDE.md on its branch. Its '
-    + 'polls decide how'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/testing/RecordedGitStages.ts: vendor-name: gitArguments: [\'show\', `${IDLE_BRANCH}:CLAUDE.md`],':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/testing/RecordedGitStages.ts: vendor-name: filledIn:     { ...onTheBranch, [RECORDED_PLACEHOLDERS.PATH]: \'CLAUDE.md\' },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'src/testing/BoundaryRecordings.ts: vendor-name: * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. '
     + '`claude`: the Claude'
@@ -552,23 +408,6 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: records, stamps or traps the real program.',
   'src/testing/RecordBoundary.ts: vendor-name: if (system === \'claude\') return recordClaude(boundary);':
     'Permanent: records, stamps or traps the real program.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: | \'claude block committed\'':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: | \'claude block removed\'':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: | \'claude block removal committed\'':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: /** The `CLAUDE.md` texts of the main line\'s stages: the managed block, and the conventions that replace it. */':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'src/testing/RecordedGitFlow.ts: vendor-name: export const RECORDED_FLOW_CLAUDE_FILE_TEXTS = { managedBlock: \'<!-- example-managed-block -->\\n\', conventions: \'# '
-    + 'Example conventions\\n\' } as const;'
-  ]:
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'show\', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`], exitCode: FATAL },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'show\', \'main:CLAUDE.md\'], exitCode: FATAL },':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'src/testing/RecordedGitFlow.ts: vendor-name: \'tree changed with trailer\': { path: \'built.txt\', message: \'Build the example\\n\\nCo-Authored-By: Claude '
     + '<noreply@example.com>\' },'
@@ -576,25 +415,15 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   'src/testing/RecordedGitFlow.ts: vendor-name: \'agent config changed\':      { path: \'.claude/settings.json\', message: \'Build the example\' },':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: const CLAUDE_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [[\'show\', `${RECORDED_FLOW_MAIN_LINE}:CLAUDE.md`]]);':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
   'src/testing/RecordedGitFlow.ts: vendor-name: export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = '
     + '`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\\n`;'
   ]:
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: const FOLDER_INSTRUCTION_FILE = `${RECORDED_FLOW_MAIN_LINE}:${RECORDED_FOLDER_FLOW_PROJECT.prefix}/CLAUDE.md`;':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'check-ignore\', \'-q\', `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/`], exitCode: NEGATIVE },':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'check-ignore\', \'-q\', `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/`], exitCode: NEGATIVE },':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: \'claude block committed\':       withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: \'claude block removed\':         withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN),':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: \'claude block removal committed\':      [...withCallsReplaced(MAIN_LINE_STANDING, CLAUDE_FILE_SHOWN), ...TICKET_WORKTREE_ADD],':
-    'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/testing/RecordedGitScenarios.ts: vendor-name: * A scenario is one named git state of a repository, such as "a commit under .claude/ undone by a later one".':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   [
