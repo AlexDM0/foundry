@@ -71,12 +71,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
-- Three integration specs were already red on `main` at `e9b5d057` and stay red: `GitVersionFloor` (a stale
-  recording: `oversee` now asks git for its common folder before the version), `PlatformProbes` "a whole run exits 0"
-  (probe `claude-p14-signing-and-ref-denies.js` runs `gpgconf`, which the trap catches) and
-  `OverseerCommand.integration.spec.ts:420` "a failed Baton pass exits 1" (exits 0: the planted fault no longer fails
-  the pass; stale spec or a real regression, to diagnose). A stale-spec package runs before WP2.13 so that G4's
-  `verify:integration` can be green.
+- Three integration specs were already red on `main` at `e9b5d057`; the stale-spec package (`ffc996ee`) fixed the
+  specs, none was a product regression and no assertion changed. Dev-only probe tooling gained `--gpgconf-program`
+  (`.platform-probes/`). The commit names no commit for when the Assistant began to be replaced each generation.
 - WP2.11 hand-edited recordings and frozen fixtures to add `"interruption": null`: Gaia's
   `overseer-fetch-{supported-forge,flint-brain,versions}.json` (Gaia's rules say every forge answer is recorded from a
   real forge) and forge's `monitor-v3.json`, `monitor-v3-flint-brain.json` (frozen, never edited). Retaking them is
@@ -130,6 +127,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-F | WP2.10 | landed | 4f6f334d | First round, then a touch-up: the launch records (`recordInstructionsRead`, `recordLaunchSettings`) were moved back before `children.launchAgent`, and the unused `JobLaunchContext.processStarts` removed. Port `BoardChildren.ts`, Watcher adapter `WatcherBoardChildren.ts`; `jobFolderIn` in `OverseerFiles.ts`. For WP2.13: the adapter is composed in six places, not one (`OverseerForeground.ts:290` and `:408`, `OverseerFlintBrain.ts:73`, `cli/jobs/JobCommand.ts:124` which WP2.13 does not name, `DrivePassHarness.ts:55`, `testing/WatcherChildReadings.ts`); drop `DrivePassRequest.reapEndedWatchers` and the adapter's `reapEndedWatchers`; endpoint-fit checks inline in `DrivePass.ts`, `JobLaunch.ts`, `FlintBrainSessionHost.ts` (item 5 removes them). Watcher records are read through `LegacyWatcherReader.watcherRecordIn` (goes in WP2.15). `WatcherFleet.ts` citations past ~:80 are 7 lower than after WP2.5 (`livenessOf` :83, `sendFramesOnce` :235, `claimedInstancesIn` :270): WP2.12's `:95`, `:137-140`, `:235-247` moved |
 | 2-G | WP2.12 | waiting | | |
 | 2-G | WP2.19 | waiting | | |
+| 2-G | Stale integration specs | landed | ffc996ee | Added by the orchestrator so G4's `verify:integration` can be green: three specs red since before the run, all stale specs, no product regression. `GitVersionFloor` stage order (`findWorkspace` asks the common dir first, since `1ea2d4a1`); the probes gain `--gpgconf-program` and `PlatformProbes` passes a stub (the trap since `01b3a424`); `OverseerCommand.integration` plants the bad event line in the job the board lists now (the Assistant is replaced each generation). `verify:integration`: 931 pass, 0 fail |
 | 2-H | WP2.13 | waiting | | |
 | 2-I | WP2.14 | waiting | | |
 | 2-J | WP2.20 | waiting | | |
