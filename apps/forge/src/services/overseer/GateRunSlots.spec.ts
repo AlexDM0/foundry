@@ -1,10 +1,11 @@
 /**
  * A gate slot on Windows, over a fake kernel table. What matters: a gate line launched with no child record yet answers for its slot through
- * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. On Linux an in-process holder
- * whose Overseer is a zombie is not live, over recorded `/proc` stat text. And over injected file moves: a held-file failure on a slot create
- * is a taken slot on win32 and a fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real
- * gate: it takes no slot while a real gate refused this round, or one waiting in this process, still has none. An in-process holder whose
- * Overseer's process id was reused, over the fake kernel table, is not live, since a crashed Overseer's slot must not leak.
+ * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. Every holder is a child
+ * folder: a line's folder is live while its child is and free once it ended or is lost, and a run's folder, whose lines run in step folders
+ * below it, is live while one of them is. And over injected file moves: a held-file failure on a slot create is a taken slot on win32 and a
+ * fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real gate: it takes no slot while a
+ * real gate refused this round, or one waiting in this process, still has none. A wait whose stop signal aborts ends at once, holding no
+ * slot and holding no profile back.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join }                          from 'node:path';
@@ -19,13 +20,12 @@ import {
 import type { FileReplace }                                from '../../lib/atomic-file/FileReplace.ts';
 import { fileReplaceFor }                                  from '../../lib/atomic-file/FileReplaceFor.ts';
 import type { PlatformPorts }                              from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { createLinuxProcessIdentity }                      from '../../lib/process-identity/LinuxProcessIdentity.ts';
-import { createPosixProcessGroups }                        from '../../lib/process-identity/PosixProcessGroups.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                    from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
-import { talosChildReadingsWith }                          from '../../testing/TalosChildReadings.ts';
-import { GateRunSlots }                                    from './GateRunSlots.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }     from '../../testing/TalosChildReadings.ts';
+import { GateRunSlots, GateSlotWaitStoppedError }          from './GateRunSlots.ts';
 import { heldSlotCreateMeansTakenFor }                     from './HeldSlotCreateFor.ts';
 
 
@@ -84,50 +84,47 @@ describe('a gate slot held by a spawned, unclaimed holder on Windows', () => {
   });
 });
 
-describe('a gate slot held in process on Windows', () => {
-  function heldInProcess() {
-    const kernel = createFakeWindowsKernel();
-    kernel.table.set(process.pid, { creationTime: CREATION_TIME });
-    const supervision = fakeWindowsSupervision(kernel);
-    const ports: PlatformPorts = { ...nativePlatformPorts(), processSupervision: supervision };
-    const holding = { holder: GateRunSlots.inProcessHolderOf('merge'), process: supervision.identityOf(process.pid) };
-    return { kernel, ports, holding };
+describe('a gate slot held by a child folder', () => {
+  /** A board whose children are read with every Talos live, so a child's own record alone says whether it is live. */
+  function boardWithChildren() {
+    const boardFolder = createScratchDirectory('child-folder-holders');
+    scratchDirectories.push(boardFolder);
+    const ports = nativePlatformPorts();
+    const children = talosChildReadingsWith(ports, boardFolder, EVERY_TALOS_IS_LIVE);
+    const runFolder = join(boardFolder, 'merge-gates', '0123456789abcdef');
+    const isLive = (holder: string): boolean => GateRunSlots.gateRunHolderIsLive(children, ports, { holder, process: null });
+    const plantLine = (stepFolder: string, changes: Parameters<typeof PlantedChild.plantChildRecord>[1]): void => {
+      PlantedChild.plantChildRecord({ boardFolder, childFolder: `merge-gates/0123456789abcdef/${stepFolder}`, instance: 1 }, { kind: 'line', ...changes });
+    };
+    return { runFolder, isLive, plantLine };
   }
 
-  test('is live while the recorded Overseer runs', () => {
-    const { ports, holding } = heldInProcess();
-    expect(holderIsLive(ports, holding)).toBe(true);
-  });
-
-  test('is not live once its process id was reused by another process', () => {
-    const { kernel, ports, holding } = heldInProcess();
-    kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
-    expect(holderIsLive(ports, holding)).toBe(false);
-  });
-
-  test('with no recorded identity, is judged by its process id alone', () => {
-    const { kernel, ports, holding } = heldInProcess();
-    kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
-    expect(holderIsLive(ports, { ...holding, process: null })).toBe(true);
-  });
-});
-
-describe('a gate slot held in process on Linux', () => {
-  function portsWhereThisProcessIsInState(state: string): PlatformPorts {
-    const statText = `${process.pid} (bun) ${state} 1 ${process.pid} 5 0 -1 4194304 100 0 0 0 1 1 0 0 20 0 1 0 500 1024 10\n`;
-    const reader = createLinuxProcessIdentity({
-      fileText:         (path) => (path === `/proc/${process.pid}/stat` ? statText : null),
-      directoryEntries: () => [String(process.pid)],
+  test('a line\'s folder is live while its child runs, and free once it ended or is lost', () => {
+    const { runFolder, isLive, plantLine } = boardWithChildren();
+    plantLine('gate-1', {});
+    plantLine('gate-2', {
+      state: 'ended',
+      end:   {
+        reason: 'exited', exitCode: 0, signal: null, detail: null, runMilliseconds: 0
+      }
     });
-    return { ...nativePlatformPorts(), processSupervision: createPosixProcessGroups(reader, { sendSignal: () => {} }) };
-  }
+    plantLine('gate-3', { state: 'ended' });
 
-  test('is not live once its Overseer is a zombie, which a signal probe still reaches', () => {
-    expect(holderIsLive(portsWhereThisProcessIsInState('Z'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(false);
+    expect([isLive(join(runFolder, 'gate-1')), isLive(join(runFolder, 'gate-2')), isLive(join(runFolder, 'gate-3'))]).toEqual([true, false, false]);
   });
 
-  test('is live while its Overseer runs', () => {
-    expect(holderIsLive(portsWhereThisProcessIsInState('S'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(true);
+  test('a run\'s folder is live while a line below it runs, and free once none does and no acquirer answers for it', () => {
+    const { runFolder, isLive, plantLine } = boardWithChildren();
+    plantLine('prepare-1', {});
+    const whileItRuns = isLive(runFolder);
+    plantLine('prepare-1', {
+      state: 'ended',
+      end:   {
+        reason: 'exited', exitCode: 0, signal: null, detail: null, runMilliseconds: 0
+      }
+    });
+
+    expect([whileItRuns, isLive(runFolder)]).toEqual([true, false]);
   });
 });
 
@@ -230,6 +227,24 @@ describe('a gate profile after the real gates', () => {
     slots.release('first-profile');
 
     expect(slots.tryAcquireAfterRealGates('third-profile')).toBe(true);
+  });
+
+  test('a stopped wait for a slot ends at once, holding no slot and holding no gate profile back', async () => {
+    const ports = nativePlatformPorts();
+    const scratch = createScratchDirectory('stopped-gate-slot-wait');
+    scratchDirectories.push(scratch);
+    const slowRetryMilliseconds = 60_000;
+    const slots = GateRunSlots.createGateRunSlots({
+      ports, folder: join(scratch, 'slots'), limit: 1, holderIsLive: () => true, retryMilliseconds: slowRetryMilliseconds,
+    });
+    slots.tryAcquire('other-forge-gate');
+    const stopController = new AbortController();
+    const waiting = slots.acquire('merge-gate', stopController.signal);
+    stopController.abort();
+
+    await expect(waiting).rejects.toBeInstanceOf(GateSlotWaitStoppedError);
+    slots.release('other-forge-gate');
+    expect(slots.tryAcquireAfterRealGates('gate-profile')).toBe(true);
   });
 
   test('takes no slot while a real gate of this process waits for one, and one once it got its own', async () => {

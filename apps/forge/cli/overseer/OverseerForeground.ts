@@ -50,6 +50,7 @@ import type { OverseerPortChoice }                                  from '../../
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
 import { createTalosChildren }                                      from '../../src/services/overseer/TalosChildren.ts';
 import { type TalosConnection, connectToTalos }                     from '../../src/services/overseer/TalosConnection.ts';
+import { createLineRunner }                                         from '../../src/services/overseer/TalosLines.ts';
 import {
   type TalosAvailability,
   type TalosStartContext,
@@ -397,6 +398,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   let talosIsLost = false;
   let leaseRenewal: LeaseRenewal | null = null;
   const boardChildren = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts, connection: () => talosConnection });
+  const lineRunner = createLineRunner(boardChildren, () => talosConnection);
   const talosStartContext = (): TalosStartContext => ({
     boardFolder:    workspace.trackerDirectory,
     monitorFolder,
@@ -637,6 +639,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         overseerDirectory:     files.overseerDirectory,
         generation,
         boardChildren,
+        lineRunner,
         ensureTalosIfLost,
         programCommand:        context.programCommand,
         codeVersion,

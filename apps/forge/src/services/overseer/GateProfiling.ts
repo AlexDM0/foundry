@@ -1,9 +1,10 @@
 /**
  * The Overseer's gate profiles: each run User queued is one gate in one phase, run once in a fresh detached worktree of main, under its
- * confinement and with no `writes` granted, holding a gate run slot that no waiting real gate wants. The process runs outside the hold;
- * the hold is taken only to record `running` and the end. An entity's gate runs with its folders from the repository's root, as the press
- * resolved them. Its output is appended to its own file as it arrives, which the profile stream follows. A Stop ends the process tree
- * through the port. At an Overseer's start, a run an earlier Overseer left running reads `stopped` and every profile worktree goes.
+ * confinement and with no `writes` granted, holding a gate run slot that no waiting real gate wants. Its lines run under Talos in the run's
+ * folder `gate-profile-runs/<P>`, outside the hold; the hold is taken only to record `running` and the end. An entity's gate runs with its
+ * folders from the repository's root, as the press resolved them. Its output is appended to its own file as Talos records it, which the
+ * profile stream follows. A Stop sends `stop` to its running line. At an Overseer's start, the lines an earlier Overseer left are stopped,
+ * then a run it left running reads `stopped` and every profile worktree goes.
  */
 import {
   appendFileSync,
@@ -20,7 +21,6 @@ import { join } from 'node:path';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                                                           from '../../lib/process-identity/ProcessIdentity.ts';
 import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../lib/tracker-model/@types/GateProfile.ts';
 import type { GateOutcome }                                                               from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineGate }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -30,15 +30,15 @@ import { BoardRefusal }                                                         
 import { PipelineUtil }                                                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { CachingChecks, type CachingSuggestion, type RecordedGateTime }                   from '../lifecycle/CachingChecks.ts';
 import { type GateLineRun, type GateLineRefusal, type GateLinesRun }                      from '../lifecycle/GateLineRun.ts';
-import type { GateLineConfiner }                                                          from '../lifecycle/GateRun.ts';
+import type { GateLineConfiner, LineRunner }                                              from '../lifecycle/GateRun.ts';
 import { projectLocationOf }                                                              from '../tracker/ProjectLocation.ts';
 import type { Workspace }                                                                 from '../tracker/Workspace.ts';
-import { GateRunSlots }                                                                   from './GateRunSlots.ts';
+import type { GateRunSlots }                                                              from './GateRunSlots.ts';
 
 /** The profile worktrees' folder under the worktrees root, one `<profileRunId>` worktree each; the Overseer owns it. */
 export const GATE_PROFILE_WORKTREES_FOLDER = 'gate-profiles';
 
-/** The profiles' output under the data folder, one `<profileRunId>.ndjson` each, appended outside the hold. */
+/** The profiles' output under the data folder, one `<profileRunId>.ndjson` each appended outside the hold, beside each run's folder of lines. */
 export const GATE_PROFILE_RUNS_FOLDER = 'gate-profile-runs';
 
 /** One appended piece of a run's output, numbered from 1 in the order it was appended: the number is a stream client's cursor. */
@@ -52,7 +52,7 @@ export type GateProfileOutputFollower = () => GateProfileOutputLine[];
 
 const LINE_FEED_BYTE = 0x0a;
 
-const OUTCOME_ENDINGS: Readonly<Record<GateOutcome, GateProfileRunEnding>> = {
+const OUTCOME_ENDINGS: Readonly<Record<GateOutcome, Exclude<GateProfileRunEnding, 'timed-out'>>> = {
   'passed':     'passed',
   'failed':     'red',
   'cannot-run': 'cannot-run',
@@ -67,37 +67,37 @@ export interface GateProfilingContext {
   workspace:          Workspace;
   worktreesRoot:      string;
   mainLine:           string;
-  platformPorts:      Pick<PlatformPorts, 'shellLine' | 'processSupervision'>;
-  gateSlots:          Pick<ReturnType<typeof GateRunSlots.createGateRunSlots>, 'tryAcquireAfterRealGates' | 'release'>;
+  platformPorts:      Pick<PlatformPorts, 'shellLine'>;
+  gateSlots:          Pick<GateRunSlots, 'tryAcquireAfterRealGates' | 'release'>;
   gateEnvironment:    () => Readonly<Record<string, string>>;
   /** Confines each line of the run in the profile's worktree, as a gate of the Overseer's is confined. */
   confinedLineIn:     (worktreePath: string, profileRunId: string) => GateLineConfiner;
   hold:               <Result>(mutate: (hold: GateProfileHold) => Result) => Promise<Result>;
-  /** A clock exception: a profile's duration is only recorded and shown. */
-  millisecondsNow:    () => number;
   /** Asks for a pass, so the next queued run may take the freed slot. */
   wake:               () => void;
   log:                (line: string) => void;
   runGateLines:       typeof GateLineRun.runOnce;
+  runLine:            LineRunner;
+  /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
+  stopLiveLinesUnder: (folder: string) => Promise<void>;
   removalPrimitives?: WorktreeRemovalPrimitives;
 }
 
 export interface GateProfiling {
-  /** After a pass: ends the process tree of each run User asked to stop, and starts the queued runs a free slot allows, in queue order. */
+  /** After a pass: stops the line of each run User asked to stop, and starts the queued runs a free slot allows, in queue order. */
   followRuns:    (board: Board) => void;
-  /** Before the first pass: a run left running reads `stopped`, and every profile worktree is removed. */
+  /** Before the first pass: the lines left running are stopped, a run left running reads `stopped`, and every profile worktree is removed. */
   settleAtStart: () => Promise<void>;
-  /** The Overseer stops: each run's process tree is ended, and each run's end is recorded. */
+  /** The Overseer stops: each run's line is stopped, and each run's end is recorded. */
   stopAll:       () => Promise<void>;
   /** Resolves once no run of this Overseer is going. */
   idle:          () => Promise<void>;
 }
 
 interface RunInThisProcess {
-  promise:  Promise<void>;
-  /** The line now running, `null` between lines. */
-  process:  ProcessIdentity | null;
-  stopping: boolean;
+  promise:        Promise<void>;
+  /** Aborted at a stop: the line running then is stopped, and no further line launches. */
+  stopController: AbortController;
 }
 
 /** One finding of topic `note` per caching suggestion: the kind is its label, and it names values, never words. */
@@ -160,13 +160,17 @@ function recordCachingFindings(board: Board, repositoryRoot: string, run: Readon
   }
 }
 
+/** A gate Talos stopped at its time bound timed out; its time is the line's run time, a sleep not counted. */
 function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
   const cannotRun: GateProfileRunEnd = { ending: 'cannot-run', elapsedMilliseconds: 0, cacheReport: null };
   if ('verdict' in run) return cannotRun;
   const [gate] = run.gates;
   if (gate === undefined) return cannotRun;
-  // The log stores a whole number of milliseconds, and a clock may answer a fraction.
-  return { ending: OUTCOME_ENDINGS[gate.outcome], elapsedMilliseconds: Math.round(gate.milliseconds), cacheReport: gate.cacheReport };
+  return {
+    ending:              gate.stoppedAtTimeBound ? 'timed-out' : OUTCOME_ENDINGS[gate.outcome],
+    elapsedMilliseconds: Math.round(gate.milliseconds),
+    cacheReport:         gate.cacheReport,
+  };
 }
 
 function createGateProfiling(context: GateProfilingContext): GateProfiling {
@@ -187,18 +191,14 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
     appendFileSync(join(outputFolder, `${profileRunId}.ndjson`), `${JSON.stringify({ text })}\n`);
   }
 
-  function stopProcessTree(running: RunInThisProcess): void {
-    running.stopping = true;
-    if (running.process === null) return;
-    const { processSupervision } = platformPorts;
-    const members = processSupervision.treeMembersOf(running.process) ?? undefined;
-    const stop = processSupervision.stopTree(running.process, 'force', members);
-    if (stop.verdict === 'refused') context.log(`The stop of a gate profile was refused: ${stop.reason}`);
+  function runFolderOf(profileRunId: string): string {
+    return join(outputFolder, profileRunId);
   }
 
   /** Never throws: a failure is logged and the run waits for the next start's sweep. */
   async function runProfile(run: Readonly<GateProfileRun>, holder: string, running: RunInThisProcess): Promise<void> {
     const worktreePath = join(worktreesFolder, run.profileRunId);
+    const stopSignal = running.stopController.signal;
     try {
       const marked = await context.hold(({ board }) => board.markGateProfileRunning(run.profileRunId));
       if (marked.changed === false) return;
@@ -207,29 +207,24 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
       const added = GitProcess.run(repositoryRoot, ['worktree', 'add', '--quiet', '--detach', worktreePath, context.mainLine]);
       const lines = GitProcess.succeeded(added)
         ? await context.runGateLines({
-          shellLine:       platformPorts.shellLine,
-          environment:     context.gateEnvironment(),
-          spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-          confinedLineOf:  context.confinedLineIn(worktreePath, run.profileRunId),
-          prepare:         run.prepare,
-          gates:           [{ ...run.gate }],
-          directory:       worktreePath,
+          shellLine:      platformPorts.shellLine,
+          environment:    context.gateEnvironment(),
+          confinedLineOf: context.confinedLineIn(worktreePath, run.profileRunId),
+          runLine:        (lineRequest) => context.runLine({ ...lineRequest, stopSignal }),
+          childFolder:    runFolderOf(run.profileRunId),
+          prepare:        run.prepare,
+          gates:          [{ ...run.gate }],
+          directory:      worktreePath,
           projectPrefix,
-          millisecondsNow: context.millisecondsNow,
-          grantsWrites:    false,
-          onSpawned:       (processId) => {
-            running.process = platformPorts.processSupervision.identityOf(processId);
-            if (running.stopping) stopProcessTree(running);
-          },
-          onOutput: (text) => appendOutput(run.profileRunId, text),
+          grantsWrites:   false,
+          onOutputLine:   (line) => appendOutput(run.profileRunId, `${line}\n`),
         })
         : { verdict: 'sandbox-unavailable', reason: GitProcess.failureReasonOf(added, ['worktree', 'add']) } as const;
-      running.process = null;
       if ('verdict' in lines) appendOutput(run.profileRunId, lines.reason);
       const end = endingOf(lines);
       await context.hold(({ board, at }) => {
         // A run this Overseer ended as it stopped has no result, as one User stopped has none.
-        if (running.stopping) board.stopGateProfile(run.profileRunId, at);
+        if (stopSignal.aborted) board.stopGateProfile(run.profileRunId, at);
         const ended = board.endGateProfile(run.profileRunId, end, at);
         if (ended.run.state !== 'stopped') recordCachingFindings(board, repositoryRoot, ended.run, at);
       });
@@ -247,26 +242,28 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
     const runs = board.gateProfileRuns();
     for (const run of runs) {
       const running = runsInThisProcess.get(run.profileRunId);
-      if (running !== undefined && run.stopRequested && !running.stopping) stopProcessTree(running);
+      if (running !== undefined && run.stopRequested) running.stopController.abort();
     }
     for (const run of runs) {
       if (run.state !== 'queued' || runsInThisProcess.has(run.profileRunId)) continue;
-      const holder = GateRunSlots.inProcessHolderOf(`gate-profile:${run.profileRunId}`);
+      mkdirSync(outputFolder, { recursive: true });
+      const holder = runFolderOf(run.profileRunId);
       if (!context.gateSlots.tryAcquireAfterRealGates(holder)) return;
-      const running: RunInThisProcess = { promise: Promise.resolve(), process: null, stopping: false };
+      const running: RunInThisProcess = { promise: Promise.resolve(), stopController: new AbortController() };
       runsInThisProcess.set(run.profileRunId, running);
       running.promise = runProfile(run, holder, running);
     }
   }
 
   async function settleAtStart(): Promise<void> {
+    await context.stopLiveLinesUnder(outputFolder);
     await context.hold(({ board, at }) => board.stopGateProfilesLeftRunning(at));
     if (!existsSync(worktreesFolder)) return;
     for (const name of readdirSync(worktreesFolder)) removeWorktree(join(worktreesFolder, name));
   }
 
   async function stopAll(): Promise<void> {
-    for (const running of runsInThisProcess.values()) stopProcessTree(running);
+    for (const running of runsInThisProcess.values()) running.stopController.abort();
     await idle();
   }
 

@@ -1,28 +1,29 @@
 /**
- * One run of prepare steps and gates, over recorded gate lines and recorded git. What matters: each line's output reaches the listener as
- * it arrives and its process id is told once it started, so a gate profile can stream it and stop its tree; a gate is recorded with its
- * outcome and measured time; with writes not granted, no prepare step and no gate is confined with a `writes` folder, while a granted run
- * keeps them; and a gate that changed the checkout fails and the checkout is restored (`ProposalTwiceRun.spec.ts` holds the ceiling of that
- * restore). A prepare step that exits 0 but changes a tracked file fails the prepare with its diff, never the first gate, and is restored.
+ * One run of prepare steps and gates, over a line runner of recorded gate lines and recorded git. What matters: each line runs in its own
+ * step folder of the run's child folder and its output lines reach the listener, so a gate profile can stream it; a gate is recorded with
+ * its outcome and its line's run time, the time Talos measured; with writes not granted, no prepare step and no gate is confined with a
+ * `writes` folder, while a granted run keeps them; and a gate that changed the checkout fails and the checkout is restored
+ * (`ProposalTwiceRun.spec.ts` holds the ceiling of that restore). A prepare step that exits 0 but changes a tracked file fails the prepare
+ * with its diff, never the first gate, and is restored.
  */
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
-import { environmentCopy }                                from '../../shared/Environment.ts';
-import { runsAsGiven }                                    from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { RECORDED_GATE_LINES, useRecordedGateSpawns }     from '../../testing/RecordedGateLines.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
-import { GateLineRun, type GateLineRunRequest }           from './GateLineRun.ts';
-import type { GateConfinement }                           from './GateRun.ts';
+import type { PipelineGate }                                                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import { environmentCopy }                                                           from '../../shared/Environment.ts';
+import { runsAsGiven }                                                               from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                                       from '../../testing/NativePlatformPorts.ts';
+import { RECORDED_GATE_LINES, RECORDED_LINE_RUN_MILLISECONDS, useRecordedGateLines } from '../../testing/RecordedGateLines.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                                           from '../../testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                            from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                                                     from '../../testing/ToolGuard.ts';
+import { GateLineRun, type GateLineRunRequest }                                      from './GateLineRun.ts';
+import type { GateConfinement }                                                      from './GateRun.ts';
 
 const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
-const MEASURED_MILLISECONDS = 250;
+const RUN_FOLDER = '/example/board/gate-profile-runs/P1';
 
 const recordedGit = useRecordedGit();
-useRecordedGateSpawns();
+const recordedGateLines = useRecordedGateLines();
 
 let checkoutDirectory = '';
 
@@ -35,39 +36,35 @@ afterEach(() => {
 });
 
 function requestOf(gates: readonly PipelineGate[], overrides: Partial<GateLineRunRequest> = {}): GateLineRunRequest {
-  let clock = 0;
   return {
-    shellLine:       nativePlatformPorts().shellLine,
-    spawnOptions:    nativePlatformPorts().processSupervision.spawnOptionsFor('gate'),
-    environment:     environmentCopy(),
-    confinedLineOf:  runsAsGiven,
-    prepare:         [],
+    shellLine:      nativePlatformPorts().shellLine,
+    environment:    environmentCopy(),
+    confinedLineOf: runsAsGiven,
+    runLine:        recordedGateLines.runLine,
+    childFolder:    RUN_FOLDER,
+    prepare:        [],
     gates,
-    directory:       checkoutDirectory,
-    grantsWrites:    false,
-    millisecondsNow: () => {
-      clock += MEASURED_MILLISECONDS;
-      return clock;
-    },
+    directory:      checkoutDirectory,
+    grantsWrites:   false,
     ...overrides,
   };
 }
 
-testWhenGitIsRecorded('a red gate\'s output reaches the listener, its process id is told, and it is recorded failed with its time', async () => {
-  const pieces: string[] = [];
-  const processIds: number[] = [];
+testWhenGitIsRecorded('a red gate\'s output reaches the listener, its line runs in its step folder, and it is recorded failed with its run time', async () => {
+  const outputLines: string[] = [];
+  recordedGateLines.takeLineRequests();
 
   const run = await recordedGit.playStage([{ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }], () => GateLineRun.runOnce(requestOf(
     [{ name: 'tests', run: RECORDED_GATE_LINES.RED }],
-    { onOutput: (text) => pieces.push(text), onSpawned: (processId) => processIds.push(processId) },
+    { onOutputLine: (line) => outputLines.push(line) },
   )));
 
   if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
   expect(run.gates).toEqual([{
-    outcome: 'failed', milliseconds: MEASURED_MILLISECONDS, cacheReport: null, output: pieces.join('')
+    outcome: 'failed', milliseconds: RECORDED_LINE_RUN_MILLISECONDS, stoppedAtTimeBound: false, cacheReport: null, output: 'example-red\n'
   }]);
-  expect(pieces.join('')).toContain('example-red');
-  expect(processIds).toHaveLength(1);
+  expect(outputLines).toEqual(['example-red']);
+  expect(recordedGateLines.takeLineRequests().map((lineRequest) => lineRequest.childFolder)).toEqual([`${RUN_FOLDER}/gate-1`]);
 });
 
 testWhenGitIsRecorded('with writes not granted, no line is confined with a writes folder; a granted run keeps the gate\'s', async () => {

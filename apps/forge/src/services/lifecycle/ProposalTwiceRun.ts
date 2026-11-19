@@ -1,7 +1,10 @@
 /**
  * The draft's prepare steps and the gates User asked to check, run twice on a checkout of main, each gate on its own so one red gate never
- * hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ.
+ * hides the next: what a gate did both times is its verdict, `disagreeing` when the two runs differ. Run `r` (from 1) runs its lines in
+ * `run-<r>` of the check's child folder.
  */
+import { join } from 'node:path';
+
 import type { GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
 import {
   GateLineRun,
@@ -46,6 +49,8 @@ export interface ProposalRunRefusal {
 
 export const PROPOSAL_RUN_COUNT = 2;
 
+const RUN_FOLDER_PREFIX = 'run-';
+
 function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
   if (outcomes.includes('cannot-run')) return 'cannot-run';
   if (new Set(outcomes).size > 1) return 'disagreeing';
@@ -55,7 +60,7 @@ function verdictOf(outcomes: readonly GateOutcome[]): ProposedGateVerdict {
 async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRunRecord | ProposalRunRefusal> {
   const runs: GateLinesRun[] = [];
   for (let i = 0; i < PROPOSAL_RUN_COUNT; i += 1) {
-    const run = await GateLineRun.runOnce(request);
+    const run = await GateLineRun.runOnce({ ...request, childFolder: join(request.childFolder, `${RUN_FOLDER_PREFIX}${i + 1}`) });
     if ('verdict' in run) return run;
     runs.push(run);
   }
@@ -65,7 +70,7 @@ async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRu
     prepare:        { failedSteps: runs.map((run) => run.failedStep), output: prepareOutput },
     gates:          request.gates.map((gate, index) => {
       const ofGate = runs.map((run): SingleGateRun => run.gates[index] ?? {
-        outcome: 'cannot-run', milliseconds: 0, cacheReport: null, output: ''
+        outcome: 'cannot-run', milliseconds: 0, stoppedAtTimeBound: false, cacheReport: null, output: ''
       });
       return {
         name:                  gate.name,

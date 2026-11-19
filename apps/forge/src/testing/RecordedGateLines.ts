@@ -1,22 +1,22 @@
 /**
- * The gate line of a default spec: `useRecordedGateSpawns` mocks `Bun.spawn` for a spec file with the ends real gate lines gave, which the
+ * The gate line of a default spec: `useRecordedGateLines` answers a spec file's line runner with the ends real gate lines gave, which the
  * `RecordedGateLines.*.integration.spec.ts` specs record under `bun run record` of the shell line, the executable lookup, the gate
- * confinement and the gate run. A spawn is answered only when its argv is the recorded shell argv of a recorded line, alone or after the
- * recorded confinement prefix. Any other spawn fails the case, and so does a write outside the allowed folders that no sandbox confines.
+ * confinement and the gate run. A line is answered only when its argv is the recorded shell argv of a recorded line, alone or after the
+ * recorded confinement prefix. Any other line fails the case, and so does a write outside the allowed folders that no sandbox confines.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir }                   from 'node:os';
 import { join }                     from 'node:path';
 
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  spyOn
-} from 'bun:test';
+import { afterEach } from 'bun:test';
 
-import type { ConfinedLine }                from '../lib/gate-confinement/ConfinedLine.ts';
-import type { GateProcessRun }              from '../services/lifecycle/GateRun.ts';
+import type { ConfinedLine } from '../lib/gate-confinement/ConfinedLine.ts';
+import type {
+  GateProcessRun,
+  LineRunEnd,
+  LineRunner,
+  LineRunRequest
+} from '../services/lifecycle/GateRun.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
 
@@ -158,90 +158,89 @@ function lineKindOf(line: string): LineKindRead | null {
   return outsideFolder === undefined ? null : { kind: 'writes-outside', outsideFolder };
 }
 
-/** The recorded end of the spawn, or the reason it has none. */
-export function recordedEndOf(argv: readonly string[]): GateProcessRun | string {
+/** What a recorded gate run's answer holds of a line's end. */
+type RecordedGateEnd = Pick<GateProcessRun, 'exitCode' | 'signalCode' | 'recordedStatus' | 'output'>;
+
+/** The recorded end of the line, or the reason it has none. */
+export function recordedEndOf(argv: readonly string[]): RecordedGateEnd | string {
   const read = readSpawnOf(argv);
   if (read === null) return `${JSON.stringify(argv)} is no recorded shell argv of a gate line, confined or not`;
   const kindRead = lineKindOf(read.line);
   if (kindRead === null) return `the line ${JSON.stringify(read.line)} is none of the recorded gate lines`;
   const callShape = gateRunCallShapeOf(kindRead.kind, read.confinement);
-  const answer = recordedAnswersOf(GATE_LINE_BOUNDARIES.GATE_RUN).get(callShape) as GateProcessRun | undefined;
+  const answer = recordedAnswersOf(GATE_LINE_BOUNDARIES.GATE_RUN).get(callShape) as RecordedGateEnd | undefined;
   if (answer === undefined) return `the gate run recording holds no answer for "${callShape}"`;
   if (answer.recordedStatus !== null) return `the answer for "${callShape}" records a status file, which this mock cannot place`;
   return { ...answer, output: answer.output.replaceAll(OUTSIDE_FOLDER_PLACEHOLDER, kindRead.outsideFolder ?? OUTSIDE_FOLDER_PLACEHOLDER) };
 }
 
 /** The recorded answer's form of a gate run's end: the outside folder a line wrote to as its placeholder. */
-export function asRecordedGateEnd(run: GateProcessRun, outsideFolder: string | null): GateProcessRun {
-  return outsideFolder === null ? run : { ...run, output: run.output.replaceAll(outsideFolder, OUTSIDE_FOLDER_PLACEHOLDER) };
-}
-
-const SIGNAL_EXIT_CODE = 128;
-
-/** What `GateRun.runGate` reads of a spawned process: its two streams, its exit and its signal. */
-function spawnedProcessOf(end: GateProcessRun): unknown {
+export function asRecordedGateEnd(run: GateProcessRun, outsideFolder: string | null): RecordedGateEnd {
+  const {
+    exitCode, signalCode, recordedStatus, output
+  } = run;
   return {
-    pid:        0,
-    stdout:     new Response(end.output).body,
-    stderr:     new Response('').body,
-    exited:     Promise.resolve(end.exitCode ?? SIGNAL_EXIT_CODE),
-    exitCode:   end.exitCode,
-    signalCode: end.signalCode,
-    kill:       () => undefined,
+    exitCode, signalCode, recordedStatus, output: outsideFolder === null ? output : output.replaceAll(outsideFolder, OUTSIDE_FOLDER_PLACEHOLDER)
   };
 }
 
-export interface RecordedGateSpawns {
-  /** Stands in for `Bun.spawn`: a recorded end, or a throw that is also kept for the case to fail on. */
-  readonly spawn:               (options: { cmd: readonly string[]; cwd?: string }) => unknown;
-  readonly takeUnansweredCalls: () => string[];
-  /** The folder each answered spawn ran in, in spawn order, taken so the next case starts empty. */
-  readonly takeSpawnFolders:    () => (string | null)[];
+/** The run time every recorded line answers with; the recording keeps none, since a line's time is no part of its end. */
+export const RECORDED_LINE_RUN_MILLISECONDS = 250;
+
+/** The recorded end as Talos would hand it on: a line that ended by a signal is `signalled`, any other `exited`. */
+function lineRunEndOf(end: RecordedGateEnd): LineRunEnd {
+  return {
+    exitCode:        end.exitCode,
+    signalCode:      end.signalCode,
+    endReason:       end.signalCode === null ? 'exited' : 'signalled',
+    output:          end.output,
+    runMilliseconds: RECORDED_LINE_RUN_MILLISECONDS,
+  };
 }
 
-export function createRecordedGateSpawns(): RecordedGateSpawns {
+export interface RecordedGateLines {
+  /** Stands in for the line runner: a recorded end, each output line handed on, or a throw that is also kept for the case to fail on. */
+  readonly runLine:             LineRunner;
+  readonly takeUnansweredCalls: () => string[];
+  /** Every line request answered, in run order, taken so the next case starts empty. */
+  readonly takeLineRequests:    () => LineRunRequest[];
+}
+
+export function createRecordedGateLines(): RecordedGateLines {
   let unansweredCalls: string[] = [];
-  let spawnFolders: (string | null)[] = [];
+  let lineRequests: LineRunRequest[] = [];
   return {
-    spawn: (options) => {
-      const end = recordedEndOf(options.cmd);
+    runLine: (request) => {
+      const end = recordedEndOf(request.argv);
       if (typeof end === 'string') {
-        const unanswered = `a gate spawn has no recorded answer: ${end}`;
+        const unanswered = `a gate line has no recorded answer: ${end}`;
         unansweredCalls.push(unanswered);
-        throw new Error(unanswered);
+        return Promise.reject(new Error(unanswered));
       }
-      spawnFolders.push(options.cwd ?? null);
-      return spawnedProcessOf(end);
+      lineRequests.push(request);
+      for (const line of end.output.split('\n').slice(0, -1)) request.onOutputLine?.(line);
+      return Promise.resolve(lineRunEndOf(end));
     },
     takeUnansweredCalls: () => {
       const taken = unansweredCalls;
       unansweredCalls = [];
       return taken;
     },
-    takeSpawnFolders: () => {
-      const taken = spawnFolders;
-      spawnFolders = [];
+    takeLineRequests: () => {
+      const taken = lineRequests;
+      lineRequests = [];
       return taken;
     },
   };
 }
 
-/**
- * Call at a spec file's top level: every spawn of the file is a recorded gate line, and the file's end restores `Bun.spawn`. A case that
- * expects an unanswered spawn takes it before the case ends.
- */
-export function useRecordedGateSpawns(): RecordedGateSpawns {
-  const spawns = createRecordedGateSpawns();
-  beforeAll(() => {
-    spyOn(Bun, 'spawn').mockImplementation(spawns.spawn as unknown as typeof Bun.spawn);
-  });
+/** Call at a spec file's top level: a case that expects an unanswered line takes it before the case ends, or the case fails. */
+export function useRecordedGateLines(): RecordedGateLines {
+  const lines = createRecordedGateLines();
   afterEach(() => {
-    // `GateRun.runGate` catches the throw of an unanswered spawn, so the case fails here too.
-    const unanswered = spawns.takeUnansweredCalls();
+    // `GateRun.runGate` catches the throw of an unanswered line, so the case fails here too.
+    const unanswered = lines.takeUnansweredCalls();
     if (unanswered.length > 0) throw new Error(unanswered.join('\n'));
   });
-  afterAll(() => {
-    spyOn(Bun, 'spawn').mockRestore();
-  });
-  return spawns;
+  return lines;
 }

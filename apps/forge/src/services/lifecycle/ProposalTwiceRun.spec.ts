@@ -1,7 +1,7 @@
 /**
  * The restore after a gate changed the snapshot, against a mocked git and a recorded gate line. What matters is that `checkout -q -- .`
  * runs with the snapshot's parent as its ceiling: a snapshot that lost its `.git` then refuses, and the checkout never discards the main
- * checkout's changes.
+ * checkout's changes. The two runs run their lines in `run-1` and `run-2` of the check's folder, so the second never meets the first's.
  */
 import {
   afterEach,
@@ -15,7 +15,7 @@ import { GitWorktrees }                                   from '../../lib/git/Gi
 import { environmentCopy }                                from '../../shared/Environment.ts';
 import { runsAsGiven }                                    from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { RECORDED_GATE_LINES, useRecordedGateSpawns }     from '../../testing/RecordedGateLines.ts';
+import { RECORDED_GATE_LINES, useRecordedGateLines }      from '../../testing/RecordedGateLines.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PROPOSAL_RUN_COUNT, ProposalTwiceRun }           from './ProposalTwiceRun.ts';
 
@@ -29,7 +29,7 @@ interface RecordedGitCall {
 let snapshotDirectory = '';
 let recordedRuns: RecordedGitCall[] = [];
 
-useRecordedGateSpawns();
+const recordedGateLines = useRecordedGateLines();
 
 beforeEach(() => {
   snapshotDirectory = createScratchDirectory('proposal-restore');
@@ -47,23 +47,23 @@ afterEach(() => {
   removeScratchDirectory(snapshotDirectory);
 });
 
-test('a gate that changed a tracked file is restored with the snapshot\'s parent as the ceiling', async () => {
-  let clock = 0;
+test('a gate that changed a tracked file is restored with the snapshot\'s parent as the ceiling, each run in its own folder', async () => {
+  const checkFolder = '/example/board/pipeline-checks/S1';
   await ProposalTwiceRun.runProposalTwice({
-    shellLine:       nativePlatformPorts().shellLine,
-    spawnOptions:    nativePlatformPorts().processSupervision.spawnOptionsFor('gate'),
-    prepare:         [],
-    gates:           [{ name: 'example', run: RECORDED_GATE_LINES.GREEN }],
-    directory:       snapshotDirectory,
-    snapshotCommit:  'a'.repeat(40),
-    environment:     environmentCopy(),
-    confinedLineOf:  runsAsGiven,
-    grantsWrites:    false,
-    millisecondsNow: () => {
-      clock += 1;
-      return clock;
-    },
+    shellLine:      nativePlatformPorts().shellLine,
+    prepare:        [],
+    gates:          [{ name: 'example', run: RECORDED_GATE_LINES.GREEN }],
+    directory:      snapshotDirectory,
+    snapshotCommit: 'a'.repeat(40),
+    environment:    environmentCopy(),
+    confinedLineOf: runsAsGiven,
+    runLine:        recordedGateLines.runLine,
+    childFolder:    checkFolder,
+    grantsWrites:   false,
   });
+  expect(recordedGateLines.takeLineRequests().map((lineRequest) => lineRequest.childFolder)).toEqual([
+    `${checkFolder}/run-1/gate-1`, `${checkFolder}/run-2/gate-1`,
+  ]);
   const restores = recordedRuns.filter((call) => call.gitArguments[0] === 'checkout');
   expect(restores).toHaveLength(PROPOSAL_RUN_COUNT);
   for (const restore of restores) expect(restore).toEqual({ gitArguments: ['checkout', '-q', '--', '.'], ceilingDirectory: GitWorktrees.ceilingOf(snapshotDirectory) });

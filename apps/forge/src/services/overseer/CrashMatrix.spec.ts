@@ -201,13 +201,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
       hold:            async (mutate) => (await writeTracker({
         workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
       })).result,
-      millisecondsNow: () => 0,
-      wake:            () => undefined,
-      log:             () => undefined,
-      runGateLines:    (request) => {
+      wake:         () => undefined,
+      log:          () => undefined,
+      runGateLines: (request) => {
         lineRequests.push(request);
         return Promise.resolve({ failedStep: null, prepareOutput: '', gates: [] });
       },
+      runLine:            () => Promise.reject(new Error('a crashed run starts no line')),
+      stopLiveLinesUnder: () => Promise.resolve(),
     });
   }
 

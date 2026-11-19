@@ -1,6 +1,7 @@
 /**
- * A gate pipeline over recorded gate lines and recorded git. What matters: the caller is told the process id of every line it starts,
- * prepare steps and gates alike, and hears each line's output, so the Airlock can stop the tree of a merged-tree gate that never ends. A
+ * A gate pipeline over a line runner of recorded gate lines and recorded git. What matters: every line runs in its own step folder of the
+ * run's child folder, prepare steps and gates alike, within the line time bound, and the caller hears each line's output; a gate's slot is
+ * held by the gate's child folder, and a line Talos paused is never judged. A
  * prepare step that exits 0 but changes a tracked file is a setup failure naming that step, never the red first gate it would make. A
  * prepare step with a folder runs in it, as a gate with one does. A gate's environment carries its own report path and never one this
  * process inherited. A step a Watcher runs has one report path per step folder, read in a later pass, which a take removes.
@@ -17,19 +18,20 @@ import {
 } from 'bun:test';
 
 import { environmentCopy, GATE_REPORT_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                           from '../../shared/constants/OverseerLimits.ts';
 import { runsAsGiven }                                            from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
-import { RECORDED_GATE_LINES, useRecordedGateSpawns }             from '../../testing/RecordedGateLines.ts';
+import { RECORDED_GATE_LINES, useRecordedGateLines }              from '../../testing/RecordedGateLines.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                        from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import { GateRun }                                                from './GateRun.ts';
+import { GateRun, LinePausedError }                               from './GateRun.ts';
 
 const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
 const TREE_UNCHANGED = { gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE };
 
 const recordedGit = useRecordedGit();
-const recordedGateSpawns = useRecordedGateSpawns();
+const recordedGateLines = useRecordedGateLines();
 
 let checkoutDirectory = '';
 
@@ -41,30 +43,64 @@ afterEach(() => {
   removeScratchDirectory(checkoutDirectory);
 });
 
-testWhenGitIsRecorded('the process id of the prepare step and of the gate is told, and the red gate\'s output is heard', async () => {
-  const processIds: number[] = [];
-  const pieces: string[] = [];
-  const { shellLine, processSupervision } = nativePlatformPorts();
+const RUN_FOLDER = '/example/board/merge-gates/0123456789abcdef';
 
-  const verdict = await recordedGit.playStage([TREE_UNCHANGED, TREE_UNCHANGED], () => GateRun.runPipeline({
+testWhenGitIsRecorded('each step runs in its own folder of the run within the line bound, a gate\'s slot is held by its folder, and the red output is heard', async () => {
+  const outputLines: string[] = [];
+  const slotHolders: string[] = [];
+  const { shellLine } = nativePlatformPorts();
+
+  const verdict = await recordedGit.playStage([TREE_UNCHANGED, TREE_UNCHANGED, TREE_UNCHANGED], () => GateRun.runPipeline({
     shellLine,
-    prepare:        [{ name: 'install', run: RECORDED_GATE_LINES.GREEN }],
-    gates:          [{ name: 'tests', run: RECORDED_GATE_LINES.RED }],
-    directory:      checkoutDirectory,
-    environment:    environmentCopy(),
-    spawnOptions:   processSupervision.spawnOptionsFor('gate'),
-    confinedLineOf: runsAsGiven,
-    onSpawned:      (processId) => processIds.push(processId),
-    onOutput:       (text) => pieces.push(text),
+    prepare:         [{ name: 'install', run: RECORDED_GATE_LINES.GREEN }],
+    gates:           [{ name: 'lint', run: RECORDED_GATE_LINES.GREEN }, { name: 'tests', run: RECORDED_GATE_LINES.RED }],
+    directory:       checkoutDirectory,
+    environment:     environmentCopy(),
+    confinedLineOf:  runsAsGiven,
+    runLine:         recordedGateLines.runLine,
+    childFolder:     RUN_FOLDER,
+    acquireGateSlot: (holder) => {
+      slotHolders.push(holder);
+      return Promise.resolve(() => undefined);
+    },
+    onOutputLine: (line) => outputLines.push(line),
   }));
 
-  expect(verdict).toMatchObject({ outcome: 'failed', gate: 'tests' });
-  expect(processIds).toHaveLength(2);
-  expect(pieces.join('')).toContain('example-red');
+  const lineRequests = recordedGateLines.takeLineRequests();
+  expect(verdict).toMatchObject({ outcome: 'failed', gate: 'tests', output: 'example-red\n' });
+  expect(lineRequests.map((lineRequest) => lineRequest.childFolder)).toEqual([
+    join(RUN_FOLDER, 'prepare-1'), join(RUN_FOLDER, 'gate-1'), join(RUN_FOLDER, 'gate-2'),
+  ]);
+  expect(lineRequests.map((lineRequest) => lineRequest.timeBoundMilliseconds)).toEqual([
+    LINE_TIME_BOUND_MILLISECONDS, LINE_TIME_BOUND_MILLISECONDS, LINE_TIME_BOUND_MILLISECONDS,
+  ]);
+  expect(slotHolders).toEqual([join(RUN_FOLDER, 'gate-1'), join(RUN_FOLDER, 'gate-2')]);
+  expect(outputLines).toEqual(['example-red']);
+});
+
+test('a gate Talos stopped at its bound cannot run and says so; one no Talos took cannot run either; a paused one is never judged', async () => {
+  const { shellLine } = nativePlatformPorts();
+  const runOf = (endReason: 'time-bound' | 'talos-unavailable' | 'paused') => GateRun.runGate({
+    argv:        ['/example/gate'],
+    directory:   checkoutDirectory,
+    environment: {},
+    childFolder: join(RUN_FOLDER, 'gate-1'),
+    runLine:     () => Promise.resolve({
+      exitCode: null, signalCode: null, endReason, output: 'example output\n', runMilliseconds: 0
+    }),
+  });
+
+  const timedOut = await runOf('time-bound');
+  const unavailable = await runOf('talos-unavailable');
+
+  expect([GateRun.gateOutcomeOf(shellLine, timedOut), GateRun.gateOutcomeOf(shellLine, unavailable)]).toEqual(['cannot-run', 'cannot-run']);
+  expect(timedOut.output).toBe(`example output\n${GateRun.timeBoundLineOf(LINE_TIME_BOUND_MILLISECONDS)}\n`);
+  expect(unavailable.output).toContain('Talos did not run the line');
+  expect(runOf('paused')).rejects.toBeInstanceOf(LinePausedError);
 });
 
 testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is a setup failure naming it, and no gate runs', async () => {
-  const { shellLine, processSupervision } = nativePlatformPorts();
+  const { shellLine } = nativePlatformPorts();
 
   const verdict = await recordedGit.playStage([{ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE }], () => GateRun.runPipeline({
     shellLine,
@@ -72,17 +108,19 @@ testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is
     gates:          [{ name: 'tests', run: RECORDED_GATE_LINES.GREEN }],
     directory:      checkoutDirectory,
     environment:    environmentCopy(),
-    spawnOptions:   processSupervision.spawnOptionsFor('gate'),
     confinedLineOf: runsAsGiven,
+    runLine:        recordedGateLines.runLine,
+    childFolder:    RUN_FOLDER,
   }));
+  recordedGateLines.takeLineRequests();
 
   expect(verdict).toMatchObject({ outcome: 'setup-failed', step: 'install', gatesRun: [] });
   expect('output' in verdict ? verdict.output : '').toContain('source.txt');
 });
 
 testWhenGitIsRecorded('a prepare step and a gate with a folder each run in that folder of the checkout', async () => {
-  const { shellLine, processSupervision } = nativePlatformPorts();
-  recordedGateSpawns.takeSpawnFolders();
+  const { shellLine } = nativePlatformPorts();
+  recordedGateLines.takeLineRequests();
 
   await recordedGit.playStage([TREE_UNCHANGED, TREE_UNCHANGED], () => GateRun.runPipeline({
     shellLine,
@@ -90,11 +128,12 @@ testWhenGitIsRecorded('a prepare step and a gate with a folder each run in that 
     gates:          [{ name: 'tests', run: RECORDED_GATE_LINES.GREEN, in: 'docs' }],
     directory:      checkoutDirectory,
     environment:    environmentCopy(),
-    spawnOptions:   processSupervision.spawnOptionsFor('gate'),
     confinedLineOf: runsAsGiven,
+    runLine:        recordedGateLines.runLine,
+    childFolder:    RUN_FOLDER,
   }));
 
-  expect(recordedGateSpawns.takeSpawnFolders()).toEqual([join(checkoutDirectory, 'packages/example'), join(checkoutDirectory, 'docs')]);
+  expect(recordedGateLines.takeLineRequests().map((lineRequest) => lineRequest.directory)).toEqual([join(checkoutDirectory, 'packages/example'), join(checkoutDirectory, 'docs')]);
 });
 
 test('a gate\'s environment carries its own report path, drops an inherited one and the job variables, and keeps the rest', () => {

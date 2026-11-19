@@ -1,7 +1,7 @@
 /**
- * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder and the
- * process answering for it. A slot whose holder is no longer live is taken over, so a crashed Overseer, an ended gate line or one that
- * died before it claimed frees its slot without a release.
+ * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder, a child
+ * folder, and the process answering for it. A slot whose holder is no longer live is taken over, so a crashed Overseer, an ended gate line
+ * or one that died before it claimed frees its slot without a release.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join }                       from 'node:path';
@@ -14,6 +14,7 @@ import type { PlatformPorts }                                        from '../..
 import { type ProcessIdentity, storedIdentityOf }                    from '../../lib/process-identity/ProcessIdentity.ts';
 import type { BoardChildren }                                        from './BoardChildren.ts';
 import { heldSlotCreateMeansTakenInThisProcess }                     from './HeldSlotCreateFor.ts';
+import { liveLinesUnder }                                            from './TalosLines.ts';
 
 /** A slot's holder and the process answering for it while its gate's line has no child record: the acquirer until the launch is recorded. */
 export interface GateRunHolding {
@@ -46,8 +47,35 @@ export interface GateRunSlots {
   /** The Talos that runs the gate line answers for the slot from here on; `null` for one already gone. */
   recordSpawnedProcess:     (holder: string, spawnedProcess: ProcessIdentity | null) => void;
   release:                  (holder: string) => void;
-  /** Waits until `holder` holds a slot, and answers its release. */
-  acquire:                  (holder: string) => Promise<() => void>;
+  /** Waits until `holder` holds a slot, and answers its release; throws `GateSlotWaitStoppedError` once `stopSignal` aborts first. */
+  acquire:                  (holder: string, stopSignal?: AbortSignal) => Promise<() => void>;
+}
+
+/** The run that waited for a gate slot was stopped before it got one. */
+export class GateSlotWaitStoppedError extends Error {
+  constructor(holder: string) {
+    super(`the wait for a gate slot for ${holder} was stopped`);
+    this.name = 'GateSlotWaitStoppedError';
+  }
+}
+
+/** Sleeps the retry interval, or less when the stop signal aborts meanwhile. */
+async function sleepUnlessStopped(milliseconds: number, stopSignal: AbortSignal | undefined): Promise<void> {
+  if (stopSignal === undefined) {
+    await Bun.sleep(milliseconds);
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    const wakeOnStop = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      stopSignal.removeEventListener('abort', wakeOnStop);
+      resolve();
+    }, milliseconds);
+    stopSignal.addEventListener('abort', wakeOnStop, { once: true });
+  });
 }
 
 const SLOT_FILE_PREFIX = 'slot-';
@@ -83,14 +111,6 @@ function holderIn(slotPath: string): string | null {
   return slotText === null ? null : holdingOf(slotText).holder;
 }
 
-const IN_PROCESS_HOLDER_PREFIX = 'process:';
-const HOLDER_SEPARATOR = ':';
-
-/** A gate an Overseer runs itself, such as a merge gate: live while that Overseer's process is. */
-function inProcessHolderOf(label: string): string {
-  return `${IN_PROCESS_HOLDER_PREFIX}${process.pid}${HOLDER_SEPARATOR}${label}`;
-}
-
 function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: ProcessIdentity | null): boolean {
   if (recorded === null) return false;
   const current = processSupervision.identityOf(recorded.processId);
@@ -98,21 +118,16 @@ function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: 
 }
 
 /**
- * A gate line's holder is its child folder: live while the folder's newest child is, and before any child record exists, while the recorded
- * acquirer still runs. A holder whose job folder is gone is never live. An in-process holder is live while its Overseer is: the recorded
- * process when its identity was readable, so a reused process id frees the slot, and otherwise its process id alone.
+ * Every holder is a child folder: a gate line's own folder is live while its newest child is. A run's folder, whose lines run in step
+ * folders below it, is live while a line below it is, and between its lines while the recorded acquirer still runs; so is a line's folder
+ * before any child record exists. A holder whose parent folder is gone is never live.
  */
 function gateRunHolderIsLive(children: BoardChildren, ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
-  if (holder.startsWith(IN_PROCESS_HOLDER_PREFIX)) {
-    const overseerProcessId = Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]);
-    if (ports.processSupervision.processIsGone(overseerProcessId)) return false;
-    return holding.process === null || processIsStillRunning(ports, holding.process);
-  }
   if (!existsSync(dirname(holder))) return false;
   const newestInstance = children.newestInstanceIn(holder);
-  if (newestInstance === null) return processIsStillRunning(ports, holding.process);
-  return children.livenessOf(holder, newestInstance).verdict === 'live';
+  if (newestInstance !== null) return children.livenessOf(holder, newestInstance).verdict === 'live';
+  return liveLinesUnder(children, holder).length > 0 || processIsStillRunning(ports, holding.process);
 }
 
 function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
@@ -194,10 +209,17 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
     }
   }
 
-  async function acquire(holder: string): Promise<() => void> {
+  async function acquire(holder: string, stopSignal?: AbortSignal): Promise<() => void> {
     realGatesWaitingInThisProcess.add(holder);
     try {
-      while (!tryAcquire(holder)) await Bun.sleep(options.retryMilliseconds);
+      while (!tryAcquire(holder)) {
+        if (stopSignal?.aborted === true) {
+          // A stopped gate waits no longer, so it holds no gate profile back either.
+          realGatesRefusedThisRound.delete(holder);
+          throw new GateSlotWaitStoppedError(holder);
+        }
+        await sleepUnlessStopped(options.retryMilliseconds, stopSignal);
+      }
     } finally {
       realGatesWaitingInThisProcess.delete(holder);
     }
@@ -212,5 +234,4 @@ function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {
 export const GateRunSlots = Object.freeze({
   createGateRunSlots,
   gateRunHolderIsLive,
-  inProcessHolderOf,
 });

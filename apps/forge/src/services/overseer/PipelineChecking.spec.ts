@@ -1,10 +1,11 @@
 /**
- * The Overseer's pipeline checks, on recorded git, a fake process port and a stand-in for the two runs. What matters: User's queued check
+ * The Overseer's pipeline checks, on recorded git, a fake line runner and a stand-in for the two runs. What matters: User's queued check
  * runs the draft's prepare steps and only the gates the draft changes or adds, two times, in a fresh detached worktree of main's tip at
  * `<worktrees>/pipeline-checks/<S>`, with no `writes` granted, holding a slot it takes only after the real gates; the result is stored in
  * the record, its output cut to its end, and the record's agent gets it as a message in the same hold, with no `gate-ran` record; a refused
- * line ends the check `cannot-run` with the reason; an Overseer stop ends the process tree through the port and the check reads `stopped`
- * with no message; and an Overseer start reads a check left running as `stopped` and removes every check worktree. On a draft over
+ * line ends the check `cannot-run` with the reason; its lines run in `<data>/pipeline-checks/<S>`, the folder that holds its slot; an
+ * Overseer stop sends `stop` to its running line and the check reads `stopped` with no message; and an Overseer start stops the lines an
+ * earlier Overseer left, then reads a check left running as `stopped` and removes every check worktree. On a draft over
  * entities, each entity's check runs in its own worktree `<S>-<entity>`, its steps and gates from the entity's first home, and only that
  * entity's session hears the end; that case holds the board in memory, since no stored record holds entities yet.
  */
@@ -18,7 +19,6 @@ import {
   test
 } from 'bun:test';
 
-import type { ProcessIdentity }                                   from '../../lib/process-identity/ProcessIdentity.ts';
 import type { PipelineCheck, PipelineSetup }                      from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                             from '../../lib/tracker-model/Board.ts';
 import { CHECK_OUTPUT_LIMIT_CHARACTERS }                          from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
@@ -33,27 +33,35 @@ import {
   useRecordedGit,
   type RecordedGitStage
 } from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                                                           from '../../testing/ToolGuard.ts';
-import { writeReadableTracker }                                                            from '../../testing/TrackerFileFixtures.ts';
-import { waitUntil }                                                                       from '../../testing/WaitUntil.ts';
-import { ControlService }                                                                  from '../control/ControlService.ts';
-import type { ProposalRunRecord, ProposalRunRequest }                                      from '../lifecycle/ProposalTwiceRun.ts';
-import { type TrackerChange, writeTracker }                                                from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor, type Workspace }                                               from '../tracker/Workspace.ts';
-import { PIPELINE_CHECK_WORKTREES_FOLDER, PipelineChecking, type PipelineCheckingContext } from './PipelineChecking.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
+import { writeReadableTracker }                           from '../../testing/TrackerFileFixtures.ts';
+import { waitUntil }                                      from '../../testing/WaitUntil.ts';
+import { ControlService }                                 from '../control/ControlService.ts';
+import type { LineRunEnd, LineRunRequest }                from '../lifecycle/GateRun.ts';
+import type { ProposalRunRecord, ProposalRunRequest }     from '../lifecycle/ProposalTwiceRun.ts';
+import { type TrackerChange, writeTracker }               from '../tracker/TrackerPipeline.ts';
+import { workspacePathsFor, type Workspace }              from '../tracker/Workspace.ts';
+import {
+  PIPELINE_CHECK_RUNS_FOLDER,
+  PIPELINE_CHECK_WORKTREES_FOLDER,
+  PipelineChecking,
+  type PipelineCheckingContext
+} from './PipelineChecking.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 const MAIN_LINE = 'main';
 const MAIN_TIP = 'c'.repeat(40);
-const CHECK_PROCESS_ID = 4343;
 
 const recordedGit = useRecordedGit();
 
 let repository = '';
 let workspace: Workspace;
 let runRequests: ProposalRunRequest[];
-let stoppedLeaders: ProcessIdentity[];
+/** Each line a run handed the line runner; its stop signal aborted is the runner's `stop`. */
+let runnerRequests: LineRunRequest[];
+/** Each folder the leftover lines were stopped under, and whether the check worktrees still existed then. */
+let leftoverLineStops: { folder: string; worktreesThen: boolean }[];
 let slotsFree: boolean;
 let heldSlots: string[];
 
@@ -64,7 +72,8 @@ beforeEach(() => {
   workspace = workspacePathsFor(repository);
   writeReadableTracker(workspace);
   runRequests = [];
-  stoppedLeaders = [];
+  runnerRequests = [];
+  leftoverLineStops = [];
   slotsFree = true;
   heldSlots = [];
 });
@@ -149,19 +158,8 @@ function checkingWith(
     workspace,
     worktreesRoot: WorktreesFolder.worktreesRootOf(repository),
     mainLine:      MAIN_LINE,
-    platformPorts: {
-      shellLine:          native.shellLine,
-      processSupervision: {
-        ...native.processSupervision,
-        identityOf:    (processId) => ({ processId, startStamp: '1', bootIdentity: 'example-boot' }),
-        treeMembersOf: () => [],
-        stopTree:      (leader) => {
-          stoppedLeaders.push(leader);
-          return { verdict: 'signalled' };
-        },
-      },
-    },
-    gateSlots: {
+    platformPorts: { shellLine: native.shellLine },
+    gateSlots:     {
       tryAcquireAfterRealGates: (holder) => {
         if (slotsFree) heldSlots.push(holder);
         return slotsFree;
@@ -171,7 +169,6 @@ function checkingWith(
     gateEnvironment:       () => ({}),
     confinedLineIn:        () => (argv) => ({ verdict: 'runs', argv }),
     hold,
-    millisecondsNow:       () => 0,
     wake:                  () => undefined,
     log:                   () => undefined,
     setupMessageWordingOf: (message) => JSON.stringify(message),
@@ -179,6 +176,21 @@ function checkingWith(
       runRequests.push(request);
       return runProposalTwice(request);
     },
+    runLine:            heldLineOf,
+    stopLiveLinesUnder: (folder) => {
+      leftoverLineStops.push({ folder, worktreesThen: existsSync(join(WorktreesFolder.worktreesRootOf(repository), PIPELINE_CHECK_WORKTREES_FOLDER)) });
+      return Promise.resolve();
+    },
+  });
+}
+
+/** A line the fake runner holds until the check's stop aborts its signal, which ends it as a stopped line. */
+function heldLineOf(request: LineRunRequest): Promise<LineRunEnd> {
+  runnerRequests.push(request);
+  return new Promise((resolve) => {
+    request.stopSignal?.addEventListener('abort', () => resolve({
+      exitCode: null, signalCode: 'SIGKILL', endReason: 'signalled', output: '', runMilliseconds: 10
+    }), { once: true });
   });
 }
 
@@ -285,21 +297,29 @@ test('a draft that no longer touches a gate when the run starts ends cannot-run,
   expect(await storedCheck()).toMatchObject({ state: 'cannot-run', gateNames: [], reason: 'no-touched-gate' });
 });
 
-testWhenGitIsRecorded('an Overseer stop ends the running check\'s process tree through the port, and the check reads stopped with no message', async () => {
+testWhenGitIsRecorded('an Overseer stop sends stop to the running check\'s line, and the check reads stopped with no message', async () => {
   await checkRequestedOnAnUpdate();
-  let endTheRuns = (): void => undefined;
-  const checking = checkingWith((request) => new Promise((resolve) => {
-    request.onSpawned?.(CHECK_PROCESS_ID);
-    endTheRuns = () => resolve(recordOf(request, ''));
-  }));
+  const checking = checkingWith(async (request) => {
+    await request.runLine({
+      childFolder:           join(request.childFolder, 'run-1', 'gate-1'),
+      argv:                  ['/example/gate'],
+      verbatimArguments:     false,
+      directory:             request.directory,
+      environment:           {},
+      label:                 'run-1/gate-1',
+      timeBoundMilliseconds: null,
+    });
+    return recordOf(request, '');
+  });
   const messagesBefore = messagesTo('J1').length;
 
   await recordedGit.playStage(worktreeOfMainTipAddedAndRemoved('S1'), async () => {
     checking.followChecks(await storedBoard());
-    await waitUntil(() => runRequests.length > 0, 'the check never started');
+    await waitUntil(() => runnerRequests.length > 0, 'the check never started');
+    expect(runRequests[0]?.childFolder).toBe(join(workspace.trackerDirectory, PIPELINE_CHECK_RUNS_FOLDER, 'S1'));
+    expect(heldSlots).toEqual([join(workspace.trackerDirectory, PIPELINE_CHECK_RUNS_FOLDER, 'S1')]);
     const stopped = checking.stopAll();
-    expect(stoppedLeaders.map((leader) => leader.processId)).toEqual([CHECK_PROCESS_ID]);
-    endTheRuns();
+    expect(runnerRequests.map((request) => request.stopSignal?.aborted)).toEqual([true]);
     await stopped;
   });
 
@@ -307,7 +327,7 @@ testWhenGitIsRecorded('an Overseer stop ends the running check\'s process tree t
   expect(messagesTo('J1')).toHaveLength(messagesBefore);
 });
 
-testWhenGitIsRecorded('an Overseer start reads a check left running as stopped and removes every check worktree', async () => {
+testWhenGitIsRecorded('an Overseer start stops the lines left running, then reads a check left running as stopped and removes every check worktree', async () => {
   await checkRequestedOnAnUpdate();
   await writeTracker({
     workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startPipelineCheck('S1')
@@ -323,6 +343,7 @@ testWhenGitIsRecorded('an Overseer start reads a check left running as stopped a
 
   expect(await storedCheck()).toMatchObject({ state: 'stopped', result: null });
   expect(runRequests).toEqual([]);
+  expect(leftoverLineStops).toEqual([{ folder: join(workspace.trackerDirectory, PIPELINE_CHECK_RUNS_FOLDER), worktreesThen: true }]);
   expect(existsSync(worktreeOf('S1'))).toBe(false);
 });
 

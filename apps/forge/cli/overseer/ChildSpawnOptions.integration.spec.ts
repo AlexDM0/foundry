@@ -1,8 +1,9 @@
 /**
- * What each child starts under, through the real spawn sites. The Windows answer per child kind is a table, since a detached gate or Watcher
- * child can report green unrun; POSIX stays equal to the frozen table; with the Windows answer on this machine a child's stderr still reaches
- * the Watcher log, now through a pipe; and a Watcher, an Overseer and a successor run from the root, without Bun's flag that ends a process
- * with its parent, whatever the process that started them had.
+ * What each child starts under, through the real spawn sites; a gate line is a child of Talos, so it starts as a supervised child. The
+ * Windows answer per child kind is a table, since a detached gate or Watcher child can report green unrun; POSIX stays equal to the frozen
+ * table; with the Windows answer on this machine a child's stderr still reaches the Watcher log, now through a pipe; and a Watcher, an
+ * Overseer and a successor run from the root, without Bun's flag that ends a process with its parent, whatever the process that started
+ * them had.
  */
 import {
   mkdirSync,
@@ -26,7 +27,6 @@ import { processSupervisionFor }                          from '../../src/lib/pr
 import { WINDOWS_SUPERVISED_CHILD_SPAWN }                 from '../../src/lib/process-identity/SpawnOptionsFor.ts';
 import { runWatcherOnPorts, type WatcherPorts }           from '../../src/lib/watcher/Watcher.ts';
 import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
-import { GateRun }                                        from '../../src/services/lifecycle/GateRun.ts';
 import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
 import { NO_ORPHANS_VARIABLE, environmentCopy }           from '../../src/shared/Environment.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
@@ -129,13 +129,6 @@ describe('the Windows answer per child kind', () => {
 
 describe('POSIX equals the frozen table', () => {
   const { children } = FROZEN_POSIX_CHILD_SPAWN;
-
-  test('a gate spawns with the frozen stream options', async () => {
-    const { spawnOptions } = await withRecordedSpawns(() => GateRun.runGate({
-      argv: QUICK_PROGRAM, directory: scratchDirectory, environment: environmentCopy(), spawnOptions: NATIVE_PORTS.processSupervision.spawnOptionsFor('gate'),
-    }));
-    expect(spawnOptions.map(childStreamsOf)).toEqual([children.gate]);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test.each([['agent', children['agent-child']], ['process', children['process-child']]] as const)('the child of an %s Watcher', async (kind, expected) => {
     const { spawnOptions } = await withRecordedSpawns(() => supervisedRun(watcherPortsOn(NATIVE_PORTS.processSupervision), kind, 'process.exit(0);'));

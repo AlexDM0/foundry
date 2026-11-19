@@ -19,6 +19,7 @@ import { createDrivePass, type DrivePass, type DrivePassRequest } from '../servi
 import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
 import { createTalosChildren }                                    from '../services/overseer/TalosChildren.ts';
 import { type TalosConnection, connectToTalos }                   from '../services/overseer/TalosConnection.ts';
+import { createLineRunner }                                       from '../services/overseer/TalosLines.ts';
 import {
   createTalosStartHold,
   ensureTalos,
@@ -72,6 +73,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     overseerDirectory,
     generation:            acquisition.generation,
     boardChildren,
+    lineRunner:            createLineRunner(boardChildren, request.talosConnection),
     codeVersion,
     programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
     inheritedEnvironment:  {},

@@ -248,7 +248,6 @@ describe('the scan saw the tree', () => {
       'src/lib/process-identity/ProcessSupervisionFor.ts',
       'src/lib/talos/Talos.ts',
       'src/lib/watcher/Watcher.ts',
-      'src/services/lifecycle/GateRun.ts',
       'src/services/overseer/GpgDirectories.ts',
       'src/services/overseer/InstallChangeWatch.ts',
       'src/services/overseer/TalosStart.ts',

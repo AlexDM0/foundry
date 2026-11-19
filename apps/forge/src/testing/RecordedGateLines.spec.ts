@@ -1,7 +1,7 @@
 /**
- * The recorded gate spawns may give only what real gate lines gave. What matters: each recorded line ends as it really ended, read through
+ * The recorded gate lines may give only what real gate lines gave. What matters: each recorded line ends as it really ended, read through
  * the real `GateRun.runGate`; a write outside the allowed folders under the recorded confinement ends red, as the real sandbox makes it;
- * and a spawn the recording does not hold fails, whether its line, its confinement or its argv is the unknown part, since `runGate`
+ * and a line the recording does not hold fails, whether its line, its confinement or its argv is the unknown part, since `runGate`
  * catches the throw and the case must still fail.
  */
 import { describe, expect, test } from 'bun:test';
@@ -12,19 +12,20 @@ import { nativePlatformPorts }          from './NativePlatformPorts.ts';
 import {
   RECORDED_GATE_LINES,
   recordedGateConfiner,
-  useRecordedGateSpawns,
+  useRecordedGateLines,
   writesOutsideLineOf
 } from './RecordedGateLines.ts';
 
-const { shellLine, processSupervision } = nativePlatformPorts();
-const recordedSpawns = useRecordedGateSpawns();
+const { shellLine } = nativePlatformPorts();
+const recordedLines = useRecordedGateLines();
 const EXAMPLE_DIRECTORY = '/example/worktree';
 const EXAMPLE_OUTSIDE_FOLDER = '/example/outside';
 const STATUS_FILE = '/example/line-status';
+const EXAMPLE_LINE_FOLDER = '/example/board/merge-gates/0123456789abcdef/gate-1';
 
 function runOf(argv: readonly string[]): Promise<GateProcessRun> {
   return GateRun.runGate({
-    argv, directory: EXAMPLE_DIRECTORY, environment: environmentCopy(), spawnOptions: processSupervision.spawnOptionsFor('gate')
+    argv, directory: EXAMPLE_DIRECTORY, environment: environmentCopy(), runLine: recordedLines.runLine, childFolder: EXAMPLE_LINE_FOLDER
   });
 }
 
@@ -63,7 +64,7 @@ describe('a recorded line ends as the real line ended', () => {
   });
 });
 
-describe('a spawn with no recorded answer', () => {
+describe('a line with no recorded answer', () => {
   test.each([
     ['an unconfined write outside the allowed folders, which no sandbox refused', () => shellArgvOf(writesOutsideLineOf(EXAMPLE_OUTSIDE_FOLDER))],
     ['a line nobody recorded', () => shellArgvOf('bun test')],
@@ -75,6 +76,6 @@ describe('a spawn with no recorded answer', () => {
     expect(run).toMatchObject({ exitCode: null, signalCode: null });
     expect(run.output).toContain('has no recorded answer');
     expect(GateRun.gateOutcomeOf(shellLine, run)).toBe('cannot-run');
-    expect(recordedSpawns.takeUnansweredCalls()).toHaveLength(1);
+    expect(recordedLines.takeUnansweredCalls()).toHaveLength(1);
   });
 });

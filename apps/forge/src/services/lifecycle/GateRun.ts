@@ -1,21 +1,22 @@
 /**
  * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate of the
- * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs under the
- * port's spawn options with the job variables removed from its environment. agent-progress keeps no gate result: caching is the
- * repository's own tooling's, and a gate may only report what its tooling did, at the report path each gate line is handed. On a pipeline
- * with entities, each gated entity's part runs in turn, its steps' folders read from its first home folder.
+ * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs as a line
+ * child of Talos through the caller's `LineRunner`, in a child folder of its own and within the line time bound, with the job variables
+ * removed from its environment. agent-progress keeps no gate result: caching is the repository's own tooling's, and a gate may only report
+ * what its tooling did, at the report path each gate line is handed. On a pipeline with entities, each gated entity's part runs in turn,
+ * its steps' folders read from its first home folder and its lines in a part folder of their own.
  */
-import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync, rmSync }   from 'node:fs';
-import { tmpdir }                 from 'node:os';
-import { join }                   from 'node:path';
+import { createHash, randomUUID }  from 'node:crypto';
+import { readFileSync, rmSync }    from 'node:fs';
+import { tmpdir }                  from 'node:os';
+import { basename, dirname, join } from 'node:path';
 
 import { GateReportFile }                                           from '../../adapters/pipeline/GateReportFile.ts';
 import type { ConfinedLine }                                        from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                               from '../../lib/git/GitProcess.ts';
 import { GitWorktrees }                                             from '../../lib/git/GitWorktrees.ts';
-import type { SupervisedSpawnOptions }                              from '../../lib/process-identity/ProcessSupervision.ts';
 import type { ShellExitReport, ShellLine, ShellRunRefusal }         from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEndReason }                                      from '../../lib/talos/ChildRecord.ts';
 import type { GatePhase }                                           from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { GateCacheReport, GateCacheReportOfGate, GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
 import type {
@@ -27,7 +28,41 @@ import type {
 import { EntityOwnershipUtil }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                                    from '../../shared/constants/OverseerLimits.ts';
 import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
+
+export interface LineRunRequest {
+  /** The step's child folder under the board folder, from the run's `childFolder`. */
+  childFolder:           string;
+  argv:                  readonly string[];
+  verbatimArguments:     boolean;
+  directory:             string;
+  environment:           Readonly<Record<string, string>>;
+  label:                 string;
+  timeBoundMilliseconds: number | null;
+  onOutputLine?:         (line: string) => void;
+  /** Aborted when the run's owner stops it: a line not yet launched never is, and a launched one is stopped at once. */
+  stopSignal?:           AbortSignal;
+}
+
+export interface LineRunEnd {
+  exitCode:        number | null;
+  signalCode:      string | null;
+  endReason:       ChildEndReason | 'talos-unavailable';
+  output:          string;
+  /** The child end's `runMilliseconds`; 0 when Talos was unavailable. */
+  runMilliseconds: number;
+}
+
+export type LineRunner = (request: LineRunRequest) => Promise<LineRunEnd>;
+
+/** A clean quit of Talos paused the line: it is never judged, and the run that holds it keeps no verdict, so it runs again. */
+export class LinePausedError extends Error {
+  constructor(childFolder: string) {
+    super(`Talos paused the line in ${childFolder} as it quit cleanly; the run is not judged and runs again`);
+    this.name = 'LinePausedError';
+  }
+}
 
 export interface GateRequest {
   argv:               readonly string[];
@@ -40,23 +75,26 @@ export interface GateRequest {
   directory:          string;
   /** The whole child environment, already narrowed (`launchEnvironmentOf`); the job variables are removed from it. */
   environment:        Readonly<Record<string, string>>;
-  /** The port's answer for a `gate`. */
-  spawnOptions:       SupervisedSpawnOptions;
-  /** Told the process id once the line started, so the caller can stop its tree through the port. */
-  onSpawned?:         (processId: number) => void;
-  /** Told each piece of output as it arrives, standard output and standard error alike. */
-  onOutput?:          (text: string) => void;
+  runLine:            LineRunner;
+  /** The line's own child folder under the board folder. */
+  childFolder:        string;
+  /** Told each line of output as Talos records it, standard output and standard error alike. */
+  onOutputLine?:      (line: string) => void;
 }
 
 export interface GateProcessRun {
   /** `null` when the gate could not be started, or ended by a signal. */
-  exitCode:       number | null;
-  signalCode:     string | null;
+  exitCode:        number | null;
+  signalCode:      string | null;
   /** The status file's text, `null` when the line wrote none. */
-  recordedStatus: string | null;
+  recordedStatus:  string | null;
   /** What the line reported at its report path, `null` when it was handed none or reported nothing readable. */
-  cacheReport:    GateCacheReport | null;
-  output:         string;
+  cacheReport:     GateCacheReport | null;
+  output:          string;
+  /** How Talos ended the line, `talos-unavailable` when none took it or Talos refused it. */
+  endReason:       LineRunEnd['endReason'];
+  /** Awake time from the spawn to the end, the bound's measure; 0 when it never ran. */
+  runMilliseconds: number;
 }
 
 /** A line ready to spawn, or the reason it never starts: its shell cannot run in the folder, or the confinement port refused it. */
@@ -81,14 +119,14 @@ export interface PipelineRunRequest {
   /** The tracker's project folder below the checkout's root, `/`-separated; absent for a tracker at its repository's root. */
   projectPrefix?:   string;
   environment:      Readonly<Record<string, string>>;
-  spawnOptions:     SupervisedSpawnOptions;
   confinedLineOf:   GateLineConfiner;
-  /** Waits for one of the machine's gate run slots and answers its release; prepare steps take none. */
-  acquireGateSlot?: () => Promise<() => void>;
-  /** Told the process id of each step as it starts, prepare steps included, so the caller can stop its tree. */
-  onSpawned?:       (processId: number) => void;
-  /** Told each piece of every step's output as it arrives. */
-  onOutput?:        (text: string) => void;
+  runLine:          LineRunner;
+  /** The run's folder under the board folder; each step's line runs in `prepare-<i>` or `gate-<i>` below it, numbered from 1. */
+  childFolder:      string;
+  /** Waits for one of the machine's gate run slots for the gate's child folder, its holder, and answers its release; prepare steps take none. */
+  acquireGateSlot?: (holder: string) => Promise<() => void>;
+  /** Told each line of every step's output as Talos records it. */
+  onOutputLine?:    (line: string) => void;
 }
 
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
@@ -111,7 +149,7 @@ export interface EntityPipelineRun {
   homePrefix: string;
 }
 
-/** A gate run of entities: what a single run takes but its steps and its folder, which each entity brings. */
+/** A gate run of entities: what a single run takes but its steps and its folder, which each entity brings; each part runs in `part-<p>`. */
 export type EntityPipelinesRunRequest = Omit<PipelineRunRequest, 'prepare' | 'gates' | 'projectPrefix'>;
 
 /** A single run's verdict; `entity` names the entity whose step or gate stopped the run, absent on a pass. */
@@ -177,6 +215,27 @@ function runRefusalReasonOf(refusal: ShellRunRefusal, directory: string): string
 
 const MILLISECONDS_PER_MINUTE = 60_000;
 
+const PREPARE_STEP_FOLDER_PREFIX = 'prepare-';
+const GATE_STEP_FOLDER_PREFIX = 'gate-';
+const ENTITY_PART_FOLDER_PREFIX = 'part-';
+
+/** The child folder of a run's prepare step or gate at `index`, counted from 1. */
+function stepFolderOf(childFolder: string, kind: 'prepare' | 'gate', index: number): string {
+  return join(childFolder, `${kind === 'prepare' ? PREPARE_STEP_FOLDER_PREFIX : GATE_STEP_FOLDER_PREFIX}${index + 1}`);
+}
+
+/** The folder of an entity's part at `index` of a gate run of entities, counted from 1, so two parts never share a step folder. */
+function entityPartFolderOf(childFolder: string, index: number): string {
+  return join(childFolder, `${ENTITY_PART_FOLDER_PREFIX}${index + 1}`);
+}
+
+/** The label Talos logs for a line: its run folder's name and its own. */
+function lineLabelOf(childFolder: string): string {
+  return `${basename(dirname(childFolder))}/${basename(childFolder)}`;
+}
+
+const TALOS_UNAVAILABLE_LINE = 'Talos did not run the line; the gate cannot run until a Talos serves the board and takes it.';
+
 /** The line a step's output gets when Talos stopped it at its time bound, which a sleep never counts towards. */
 function timeBoundLineOf(timeBoundMilliseconds: number): string {
   return `The line ran past its bound of ${timeBoundMilliseconds / MILLISECONDS_PER_MINUTE} minutes of awake time and was stopped.`;
@@ -196,54 +255,52 @@ function runnableLineOf(
   return confined.verdict === 'refused' ? confined : { verdict: 'runs', argv: confined.argv, verbatimArguments: spawnRequest.verbatimArguments };
 }
 
-/** The whole text of a stream; with a listener, read piece by piece, so the listener hears each piece as it arrives. */
-async function streamTextOf(stream: ReadableStream<Uint8Array>, onOutput: ((text: string) => void) | undefined): Promise<string> {
-  if (onOutput === undefined) return new Response(stream).text();
-  const decoder = new TextDecoder();
-  const reader = stream.getReader();
-  let text = '';
-  for (;;) {
-    const { done, value } = await reader.read();
-    const piece = done ? decoder.decode() : decoder.decode(value, { stream: true });
-    if (piece !== '') {
-      text += piece;
-      onOutput(piece);
-    }
-    if (done) return text;
-  }
+/** The line's output, with a closing sentence when Talos stopped it at its bound or no Talos ran it. */
+function gateOutputOf(end: LineRunEnd): string {
+  if (end.endReason === 'time-bound') return `${end.output}${timeBoundLineOf(LINE_TIME_BOUND_MILLISECONDS)}\n`;
+  if (end.endReason === 'talos-unavailable') return `${end.output}${TALOS_UNAVAILABLE_LINE}\n`;
+  return end.output;
 }
 
+/** A line Talos paused is never judged: the throw reaches the run's owner, so the run keeps no verdict. */
 async function runGate({
-  argv, verbatimArguments, statusFile, reportFile, directory, environment, spawnOptions, onSpawned, onOutput
+  argv, verbatimArguments, statusFile, reportFile, directory, environment, runLine, childFolder, onOutputLine
 }: GateRequest): Promise<GateProcessRun> {
+  let end: LineRunEnd;
   try {
-    const gateProcess = Bun.spawn({
-      cmd:                      [...argv],
-      cwd:                      directory,
-      env:                      gateEnvironmentOf(environment, reportFile),
-      stdin:                    'ignore',
-      stdout:                   'pipe',
-      stderr:                   'pipe',
-      windowsVerbatimArguments: verbatimArguments === true,
-      ...spawnOptions,
+    end = await runLine({
+      childFolder,
+      argv,
+      verbatimArguments:     verbatimArguments === true,
+      directory,
+      environment:           gateEnvironmentOf(environment, reportFile),
+      label:                 lineLabelOf(childFolder),
+      timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS,
+      ...(onOutputLine === undefined ? {} : { onOutputLine }),
     });
-    onSpawned?.(gateProcess.pid);
-    const [output, errorOutput, exitCode] = await Promise.all([
-      streamTextOf(gateProcess.stdout, onOutput),
-      streamTextOf(gateProcess.stderr, onOutput),
-      gateProcess.exited,
-    ]);
-    const signalCode = gateProcess.signalCode ?? null;
-    return {
-      exitCode:       signalCode === null ? exitCode : null,
-      signalCode,
-      recordedStatus: statusFile === undefined ? null : recordedStatusOf(statusFile),
-      cacheReport:    reportFile === undefined ? null : GateReportFile.read(reportFile),
-      output:         output + errorOutput,
-    };
   } catch (error) {
+    if (statusFile !== undefined) rmSync(statusFile, { force: true });
+    if (reportFile !== undefined) rmSync(reportFile, { force: true, recursive: true });
     return {
-      exitCode: null, signalCode: null, recordedStatus: null, cacheReport: null, output: error instanceof Error ? error.message : String(error)
+      exitCode:        null,
+      signalCode:      null,
+      recordedStatus:  null,
+      cacheReport:     null,
+      output:          error instanceof Error ? error.message : String(error),
+      endReason:       'talos-unavailable',
+      runMilliseconds: 0,
+    };
+  }
+  try {
+    if (end.endReason === 'paused') throw new LinePausedError(childFolder);
+    return {
+      exitCode:        end.exitCode,
+      signalCode:      end.signalCode,
+      recordedStatus:  statusFile === undefined ? null : recordedStatusOf(statusFile),
+      cacheReport:     reportFile === undefined ? null : GateReportFile.read(reportFile),
+      output:          gateOutputOf(end),
+      endReason:       end.endReason,
+      runMilliseconds: end.runMilliseconds,
     };
   } finally {
     if (statusFile !== undefined) rmSync(statusFile, { force: true });
@@ -267,15 +324,18 @@ function prepareFailureOutputOf(shellLine: ShellLine, run: ShellExitReport & { o
   return trackedChanges === '' ? null : trackedChanges;
 }
 
+/** What a gate's judgement reads of its run. */
+type JudgedRun = ShellExitReport & Pick<GateProcessRun, 'output'>;
+
 /** A gate passes only when it exits 0 and leaves the tree unchanged. */
-function gateOutcomeOf(shellLine: ShellLine, run: GateProcessRun, trackedChanges = ''): GateOutcome {
+function gateOutcomeOf(shellLine: ShellLine, run: JudgedRun, trackedChanges = ''): GateOutcome {
   const exitMeaning = shellLine.exitMeaningOf(run);
   if (exitMeaning === 'cannot-run') return 'cannot-run';
   return exitMeaning === 'passed' && trackedChanges === '' ? 'passed' : 'failed';
 }
 
 /** A gate that passed but changed the tree reports the diff; any other run its own output. */
-function gateErrorOutputOf(shellLine: ShellLine, run: GateProcessRun, trackedChanges: string): string {
+function gateErrorOutputOf(shellLine: ShellLine, run: JudgedRun, trackedChanges: string): string {
   return shellLine.exitMeaningOf(run) === 'passed' && trackedChanges !== '' ? trackedChanges : run.output;
 }
 
@@ -323,10 +383,10 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [], cacheReports: [] };
   const prepareConfinement = prepareConfinementOf(request.gates);
   const {
-    shellLine, environment, spawnOptions, onSpawned, onOutput
+    shellLine, environment, runLine, onOutputLine
   } = request;
-  const listeners = { ...(onSpawned === undefined ? {} : { onSpawned }), ...(onOutput === undefined ? {} : { onOutput }) };
-  for (const step of request.prepare) {
+  const listeners = onOutputLine === undefined ? {} : { onOutputLine };
+  for (const [stepIndex, step] of request.prepare.entries()) {
     const statusFile = lineStatusFileOf();
     const stepDirectory = gateDirectoryOf(request.directory, step, request.projectPrefix);
     const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
@@ -334,7 +394,14 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
       outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: [], cacheReports: []
     };
     const run = await runGate({
-      argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, directory: stepDirectory, environment, spawnOptions, ...listeners
+      argv:              line.argv,
+      verbatimArguments: line.verbatimArguments,
+      statusFile,
+      directory:         stepDirectory,
+      environment,
+      runLine,
+      childFolder:       stepFolderOf(request.childFolder, 'prepare', stepIndex),
+      ...listeners,
     });
     const failureOutput = prepareFailureOutputOf(shellLine, run, request.directory);
     if (failureOutput !== null) return {
@@ -343,19 +410,28 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
   }
   const gatesRun: string[] = [];
   const cacheReports: GateCacheReportOfGate[] = [];
-  for (const gate of request.gates) {
+  for (const [gateIndex, gate] of request.gates.entries()) {
     const statusFile = lineStatusFileOf();
     const directory = gateDirectoryOf(request.directory, gate, request.projectPrefix);
     const line = runnableLineOf(request, gate.run, { directory, statusFile }, gateConfinementOf(gate));
     if (line.verdict === 'refused') return {
       outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun, cacheReports
     };
-    const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot();
+    const gateFolder = stepFolderOf(request.childFolder, 'gate', gateIndex);
+    const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot(gateFolder);
     let run: GateProcessRun;
     try {
       gatesRun.push(gate.name);
       run = await runGate({
-        argv: line.argv, verbatimArguments: line.verbatimArguments, statusFile, reportFile: gateReportFileOf(), directory, environment, spawnOptions, ...listeners
+        argv:              line.argv,
+        verbatimArguments: line.verbatimArguments,
+        statusFile,
+        reportFile:        gateReportFileOf(),
+        directory,
+        environment,
+        runLine,
+        childFolder:       gateFolder,
+        ...listeners,
       });
     } finally {
       releaseGateSlot?.();
@@ -371,8 +447,8 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
 }
 
 /**
- * Each entity's part in turn, as a single run from its first home folder, through `runOnePipeline`; the first part that does not pass
- * ends the run, named by its entity. The gates run and their cache reports are every part's, in run order.
+ * Each entity's part in turn, as a single run from its first home folder and in its own part folder, through `runOnePipeline`; the first
+ * part that does not pass ends the run, named by its entity. The gates run and their cache reports are every part's, in run order.
  */
 async function runEntityPipelines(
   request: EntityPipelinesRunRequest,
@@ -381,11 +457,11 @@ async function runEntityPipelines(
 ): Promise<EntityPipelinesVerdict> {
   const gatesRun: string[] = [];
   const cacheReports: GateCacheReportOfGate[] = [];
-  for (const {
+  for (const [partIndex, {
     entityKey, prepare, gates, homePrefix
-  } of entityPipelines) {
+  }] of entityPipelines.entries()) {
     const verdict = await runOnePipeline({
-      ...request, prepare, gates, projectPrefix: homePrefix
+      ...request, prepare, gates, projectPrefix: homePrefix, childFolder: entityPartFolderOf(request.childFolder, partIndex)
     });
     gatesRun.push(...verdict.gatesRun);
     cacheReports.push(...verdict.cacheReports);
@@ -414,6 +490,8 @@ export const GateRun = Object.freeze({
   recordedStatusOf,
   runRefusalReasonOf,
   timeBoundLineOf,
+  stepFolderOf,
+  entityPartFolderOf,
   runnableLineOf,
   runGate,
   runPipeline,

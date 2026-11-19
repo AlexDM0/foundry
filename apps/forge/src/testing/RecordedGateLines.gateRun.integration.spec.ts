@@ -1,7 +1,8 @@
 /**
  * Records the end of each gate line the mock of `src/testing/RecordedGateLines.ts` answers: a green line, a red line and a line that is
  * stopped, unconfined and under the native confinement, and a line that writes outside the allowed folders, under the confinement only.
- * What matters is the exit code, the signal, the status file text and the output a real `GateRun.runGate` reads, and that the sandbox
+ * What matters is the exit code, the signal, the status file text and the output a real `GateRun.runGate` reads of a line spawned as Talos
+ * spawns it, and that the sandbox
  * really refuses the outside write: the file is never made and the line ends red.
  */
 import { existsSync, mkdirSync } from 'node:fs';
@@ -33,9 +34,10 @@ import {
   writesOutsideLineOf
 } from './RecordedGateLines.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
+import { spawnedLineRunner }                                       from './SpawnedLineRunner.ts';
 import { testWhenSandboxExecApplies }                              from './ToolGuard.ts';
 
-const { shellLine, processSupervision } = nativePlatformPorts();
+const { shellLine } = nativePlatformPorts();
 const RED_EXIT_CODE = 1;
 
 let scratch = '';
@@ -70,7 +72,12 @@ async function gateEndOf(line: string, confinement: GateLineConfinementKind): Pr
   const confined = confinement === 'confined' ? confinedLineOf(gateConfinementFor(process.platform), planOf, argv) : { verdict: 'runs' as const, argv };
   if (confined.verdict === 'refused') throw new Error(confined.reason);
   return GateRun.runGate({
-    argv: confined.argv, statusFile, directory: join(scratch, 'worktree'), environment: environmentCopy(), spawnOptions: processSupervision.spawnOptionsFor('gate'),
+    argv:        confined.argv,
+    statusFile,
+    directory:   join(scratch, 'worktree'),
+    environment: environmentCopy(),
+    runLine:     spawnedLineRunner,
+    childFolder: join(scratch, 'board', 'merge-gates', '0123456789abcdef', 'gate-1'),
   });
 }
 

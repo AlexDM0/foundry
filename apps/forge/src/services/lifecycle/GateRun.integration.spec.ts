@@ -4,8 +4,8 @@
  * tracked file is red with the diff as its output; each step gets its own confinement (a prepare step the network, a gate only its own
  * domains and writes) and a gate runs its own line in its `in` folder, never a joined line; an empty pipeline runs nothing, and a phase
  * with no gates runs no prepare step either; a gate takes a machine slot while it runs; nothing is cached, so the same tree gated twice
- * runs twice; and the gate process runs the argv it is handed, in a process group of its own, without the job variables; and a gate is
- * handed its own report path, never one this process inherited, whose report is read back and removed.
+ * runs twice; and the gate line runs the argv it is handed, through a line runner that spawns it as Talos does, in a process group of its
+ * own, without the job variables; and a gate is handed its own report path, never one this process inherited, whose report is read back and removed.
  */
 import {
   existsSync,
@@ -33,6 +33,7 @@ import { FAKE_MISSING_TOOLS_REASON, runsAsGiven }                 from '../../te
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { spawnedLineRunner }                                      from '../../testing/SpawnedLineRunner.ts';
 import { describeWhenGitIsRecorded }                              from '../../testing/ToolGuard.ts';
 import {
   type GateConfinement,
@@ -50,7 +51,7 @@ beforeEach(() => {
   scratchDirectory = createScratchDirectory('gate-run');
 });
 
-const { shellLine, processSupervision } = nativePlatformPorts();
+const { shellLine } = nativePlatformPorts();
 const NO_HOST_SHELLS = { userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined };
 const repositories: string[] = [];
 
@@ -59,14 +60,23 @@ afterEach(() => {
   for (const repository of repositories.splice(0)) removeScratchDirectory(repository);
 });
 
-const gateSpawnOptions = processSupervision.spawnOptionsFor('gate');
+type RunnerFields = 'environment' | 'runLine' | 'childFolder';
 
-function runPipelineInThisEnvironment(request: Omit<PipelineRunRequest, 'environment' | 'spawnOptions'>): Promise<PipelineVerdict> {
-  return GateRun.runPipeline({ environment: environmentCopy(), spawnOptions: gateSpawnOptions, ...request });
+/** The run's folder of lines: the spawned line runner keeps no record there, so any folder of the scratch does. */
+function lineFolderOf(): string {
+  return join(scratchDirectory, 'board', 'merge-gates', '0123456789abcdef');
 }
 
-function runGateInThisEnvironment(request: Omit<GateRequest, 'environment' | 'spawnOptions'> & Partial<GateRequest>): Promise<GateProcessRun> {
-  return GateRun.runGate({ environment: environmentCopy(), spawnOptions: gateSpawnOptions, ...request });
+function runPipelineInThisEnvironment(request: Omit<PipelineRunRequest, RunnerFields>): Promise<PipelineVerdict> {
+  return GateRun.runPipeline({
+    environment: environmentCopy(), runLine: spawnedLineRunner, childFolder: lineFolderOf(), ...request
+  });
+}
+
+function runGateInThisEnvironment(request: Omit<GateRequest, RunnerFields> & Partial<GateRequest>): Promise<GateProcessRun> {
+  return GateRun.runGate({
+    environment: environmentCopy(), runLine: spawnedLineRunner, childFolder: join(lineFolderOf(), 'gate-1'), ...request
+  });
 }
 
 /** A plain folder: the gates run in it for real, and git's answer about the tree after each gate is a recorded one. */
@@ -86,7 +96,7 @@ function treeUnchangedAfter(stepCount: number): RecordedGitStage {
   return Array.from({ length: stepCount }, () => ({ gitArguments: TRACKED_CHANGES_ARGUMENTS, answeredAs: GIT_CALL_SHAPES.DIFF_OF_AN_UNCHANGED_TREE }));
 }
 
-function playedPipeline(stage: RecordedGitStage, request: Omit<PipelineRunRequest, 'environment' | 'spawnOptions'>): Promise<PipelineVerdict> {
+function playedPipeline(stage: RecordedGitStage, request: Omit<PipelineRunRequest, RunnerFields>): Promise<PipelineVerdict> {
   return recordedGit.playStage(stage, () => runPipelineInThisEnvironment(request));
 }
 
@@ -416,7 +426,7 @@ describeWhenGitIsRecorded('the gate process', () => {
 
   test('gets exactly the environment it is handed, nothing of this process', async () => {
     const run = await GateRun.runGate({
-      argv: ['/usr/bin/env'], directory: scratchDirectory, environment: { EXAMPLE_ONLY: 'kept' }, spawnOptions: gateSpawnOptions
+      argv: ['/usr/bin/env'], directory: scratchDirectory, environment: { EXAMPLE_ONLY: 'kept' }, runLine: spawnedLineRunner, childFolder: join(lineFolderOf(), 'gate-1')
     });
 
     expect(run.output).toBe('EXAMPLE_ONLY=kept\n');

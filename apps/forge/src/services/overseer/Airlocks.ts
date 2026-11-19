@@ -77,6 +77,10 @@ export interface MergeAgentReading {
   report: unknown;
 }
 
+export type MergedTreeGateAsk = (
+  worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, ownerJobId: string | null
+) => MergedTreeGate | 'running';
+
 export interface AirlocksContext {
   /** The main checkout's root, where the main line is fast-forwarded and git runs: never a project folder, as git runs at a toplevel only. */
   repositoryRoot:         string;
@@ -103,11 +107,14 @@ export interface AirlocksContext {
    * The gate of the tree with the gates of `phase`, read afresh as the run starts: `merge` for an Airlock's merged tree, the row's own phase
    * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
    * a stale green; absent, every entity's. The run goes on beside the pass, `running` until a later ask finds its outcome, which carries the
-   * stamp of what it read.
+   * stamp of what it read. `ownerJobId` is the merge job whose slot waits on the run, `null` for a stale green's: a run whose owner left the
+   * board stops.
    */
-  mergedTreeGateOf:       (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities?: readonly EntityKey[]) => MergedTreeGate | 'running';
+  mergedTreeGateOf:       MergedTreeGateAsk;
   /** After the hold its outcome settled, the run's kept outcome goes, so the next gate of the same tree runs again. */
   mergedTreeGateSettled:  (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, gate: MergedTreeGate) => void;
+  /** Stops every merged-tree gate still running in the worktree and awaits its end: the slot that freed it no longer waits on its outcome. */
+  stopMergedTreeGatesIn:  (worktreePath: string) => Promise<void>;
   mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:      (worktreePath: string) => number | null;
@@ -698,7 +705,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       // its next reviewer, without one the next sweep lists it again.
       const worktree = context.worktreeOf(ticketId);
       const treeId   = MergeRun.treeOf(worktree);
-      const gate     = treeId === null || treeId !== branchTreeOf(ticketId) ? null : context.mergedTreeGateOf(worktree, treeId, settled.phase, settled.gatedEntities);
+      const gate     = treeId === null || treeId !== branchTreeOf(ticketId) ? null : context.mergedTreeGateOf(worktree, treeId, settled.phase, settled.gatedEntities, null);
       if (gate === 'running') continue;
       const unqueued = await context.hold((hold) => {
         const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
@@ -742,6 +749,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   /** Frees the slot with the worktree back at its recorded start, a refresh's removed; the ticket stays queued unless the caller took it out. */
   async function freeSlot(job: Readonly<Job>, ending: JobEnding, inHold: (hold: AirlockHold) => void = () => undefined): Promise<void> {
     const worktree = slotWorktreeOf(job);
+    await context.stopMergedTreeGatesIn(worktree);
     MergeRun.restoreBranchTip(worktree, MergeRun.sidesOf(job, slotOf(job)).startTip);
     if (isRefresh(job)) removeRefreshWorktree(job);
     await context.hold((hold) => {
@@ -867,7 +875,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       setPhase(hold, job, 'landing');
       return true;
     })) return true;
-    const gate = context.mergedTreeGateOf(worktree, treeId, 'merge', gatedEntities);
+    const gate = context.mergedTreeGateOf(worktree, treeId, 'merge', gatedEntities, job.id);
     // The job stays in `gating` and the sweep goes on with the next target; the run's end wakes the pass that settles it.
     if (gate === 'running') return false;
     const {

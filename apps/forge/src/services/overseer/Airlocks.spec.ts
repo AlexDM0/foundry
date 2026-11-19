@@ -1,8 +1,9 @@
 /**
  * A group's Airlock in its own worktree (design section 6). What matters: a group's tickets and refreshes land by `merge --ff-only` in the
  * group's own worktree, a refresh is due only as MergeQueueUtil says and never beside a queued release, and the release lands the whole
- * bundle on main. `Airlocks.mainLine.spec.ts` holds the main line's slot and `Airlocks.conflicts.spec.ts` a conflict. The folders are real;
- * git answers from recorded answer sets, one for each state of the repository, each handing on to the next as a call moves it.
+ * bundle on main; a refused slot stops the merged-tree gates in its worktree as it frees. `Airlocks.mainLine.spec.ts` holds the main line's
+ * slot and `Airlocks.conflicts.spec.ts` a conflict. The folders are real; git answers from recorded answer sets, one for each state of the
+ * repository, each handing on to the next as a call moves it.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -189,7 +190,7 @@ describe('a group\'s slot in its own worktree', () => {
     expect(harness.declinedCleanups[0]?.reason).toContain('not fully merged');
   });
 
-  test('a release whose branch lacks the group\'s tip is refused before its merge-in, so main and the bundle stay put', async () => {
+  test('a release whose branch lacks the group\'s tip is refused before its merge-in, so main and the bundle stay put, and its gates stop', async () => {
     harness = createRecordedGroupHarness(releaseBundle);
     recordedGit.answerFrom([
       ancestryAsked(GROUP_TIP, TICKET_TIP, false),
@@ -203,6 +204,7 @@ describe('a group\'s slot in its own worktree', () => {
     expect(recordedGit.flowCalls().filter((call) => call[1] === '--ff-only')).toEqual([]);
     expect(harness.board.decisions().filter((decision) => decision.kind === 'merge-refused').map((decision) => decision.ticketIds)).toEqual([['012']]);
     expect(harness.board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['reviewed', 'in-review']);
+    expect(harness.gateStopsInWorktrees).toEqual([harness.worktreeOf('012')]);
   });
 
   test('a release ticket whose bundle has not all integrated waits, and the group is not refreshed while it is queued', async () => {

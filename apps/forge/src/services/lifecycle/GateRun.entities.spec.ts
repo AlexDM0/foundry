@@ -2,7 +2,8 @@
  * A gate run of entities on a pipeline with entities. What matters: each gated entity runs its own prepare steps and its own gates of the
  * phase, in the phase's order, and a key the pipeline has no entity for runs nothing; a step's folder reads from the entity's first home
  * folder, a step with no `in` runs there and a leading `/` is the checkout's root; the parts run in turn and the first that does not pass
- * ends the run, named by its entity, with every gate run and cache report so far.
+ * ends the run, named by its entity, with every gate run and cache report so far. Each part runs its lines in a part folder of its own, so
+ * two parts, each counting its steps from the first, never share a step folder.
  */
 import { join } from 'node:path';
 
@@ -41,8 +42,14 @@ const ENTITIES_PIPELINE: Pipeline = {
   },
 };
 
+const RUN_FOLDER = '/example/board/merge-gates/0123456789abcdef';
+
 const RUN_REQUEST = {
-  directory: CHECKOUT, environment: {}, spawnOptions: {}, confinedLineOf: () => ({ verdict: 'refused', reason: 'unused' })
+  directory:      CHECKOUT,
+  environment:    {},
+  childFolder:    RUN_FOLDER,
+  runLine:        () => Promise.reject(new Error('unused')),
+  confinedLineOf: () => ({ verdict: 'refused', reason: 'unused' }),
 } as unknown as EntityPipelinesRunRequest;
 
 describe('the part each gated entity runs', () => {
@@ -114,6 +121,9 @@ describe('a run of entities', () => {
       ['packages/design-system', ['install'], ['verify']],
     ]);
     expect(runner.requests.every((request) => request.directory === CHECKOUT)).toBe(true);
+    expect(runner.requests.map((request) => GateRun.stepFolderOf(request.childFolder, 'gate', 0))).toEqual([
+      join(RUN_FOLDER, 'part-1', 'gate-1'), join(RUN_FOLDER, 'part-2', 'gate-1'),
+    ]);
     expect(verdict).toEqual({
       outcome:      'passed',
       gatesRun:     ['test', 'lint', 'verify'],

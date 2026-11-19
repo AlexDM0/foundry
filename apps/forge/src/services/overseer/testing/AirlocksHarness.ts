@@ -58,25 +58,27 @@ export interface HarnessTicket {
 }
 
 export interface AirlocksHarness {
-  repository:       string;
-  board:            Board;
-  slots:            Airlocks;
+  repository:           string;
+  board:                Board;
+  slots:                Airlocks;
   /** The slot phase each hold left on the main line's merge job, in hold order. */
-  phases:           string[];
-  gatedTrees:       string[];
+  phases:               string[];
+  gatedTrees:           string[];
   /** The phase each gated tree was gated in, in the order of `gatedTrees`. */
-  gatedPhases:      GatePhase[];
+  gatedPhases:          GatePhase[];
   /** The entities whose gates each gated tree was to run, in the order of `gatedTrees`; `undefined` where the Airlocks named none. */
-  gatedEntities:    (readonly EntityKey[] | undefined)[];
+  gatedEntities:        (readonly EntityKey[] | undefined)[];
   /** The tree of each gate outcome the Airlocks settled and let go, in settle order. */
-  settledGateTrees: string[];
-  stopped:          string[];
+  settledGateTrees:     string[];
+  /** The worktree of each stop of its merged-tree gates as an Airlock freed its slot, in order. */
+  gateStopsInWorktrees: string[];
+  stopped:              string[];
   /** The landing the tracker shares with its siblings, in the repository's `.git` folder; `null` for a tracker at the root. */
-  sharedRepository: SharedRepositoryLanding | null;
+  sharedRepository:     SharedRepositoryLanding | null;
   /** Every removal git declined after a refresh or a release, as the Overseer was told. */
-  declinedCleanups: DeclinedCleanup[];
+  declinedCleanups:     DeclinedCleanup[];
   /** The facts each merge job's Airlock incident left for the agent it launches, by merge job id. */
-  keptAirlockFacts: Map<string, Readonly<Record<string, string>>>;
+  keptAirlockFacts:     Map<string, Readonly<Record<string, string>>>;
   settings:    {
     gateOutcome:             MergedTreeGate['outcome'];
     /** The red gate or the failed step a gate that does not pass names: `tests` unless set. */
@@ -197,6 +199,7 @@ export function createRecordedAirlocksHarness(
   const gatedPhases: GatePhase[] = [];
   const gatedEntities: (readonly EntityKey[] | undefined)[] = [];
   const settledGateTrees: string[] = [];
+  const gateStopsInWorktrees: string[] = [];
   const stopped: string[] = [];
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
@@ -248,10 +251,14 @@ export function createRecordedAirlocksHarness(
       };
     },
     mergedTreeGateSettled: (_worktreePath, treeId) => settledGateTrees.push(treeId),
-    mergeAgentReadingOf:   () => settings.reading,
-    resolutionLinesOf:     () => settings.resolutionLines,
-    watcherIsLive:         () => settings.watcherIsLive,
-    stopMergeAgent:        (job) => {
+    stopMergedTreeGatesIn: (worktreePath) => {
+      gateStopsInWorktrees.push(worktreePath);
+      return Promise.resolve();
+    },
+    mergeAgentReadingOf: () => settings.reading,
+    resolutionLinesOf:   () => settings.resolutionLines,
+    watcherIsLive:       () => settings.watcherIsLive,
+    stopMergeAgent:      (job) => {
       stopped.push(job.id);
       return Promise.resolve();
     },
@@ -283,6 +290,7 @@ export function createRecordedAirlocksHarness(
     gatedPhases,
     gatedEntities,
     settledGateTrees,
+    gateStopsInWorktrees,
     stopped,
     declinedCleanups,
     keptAirlockFacts,

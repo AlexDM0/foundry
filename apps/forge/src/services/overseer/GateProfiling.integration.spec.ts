@@ -18,6 +18,7 @@ import { runsAsGiven }                                                          
 import { nativePlatformPorts }                                                    from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                 from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                         from '../../testing/ScratchWorkspace.ts';
+import { spawnedLineRunner }                                                      from '../../testing/SpawnedLineRunner.ts';
 import { testWhenGitIsRecorded }                                                  from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                                                   from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                                              from '../../testing/WaitUntil.ts';
@@ -87,10 +88,11 @@ function realProfiling(): ReturnType<typeof GateProfiling.createGateProfiling> {
     hold:            async (mutate) => (await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
     })).result,
-    millisecondsNow: () => performance.now(),
-    wake:            () => undefined,
-    log:             () => undefined,
-    runGateLines:    (request) => GateLineRun.runOnce(request),
+    wake:               () => undefined,
+    log:                () => undefined,
+    runGateLines:       (request) => GateLineRun.runOnce(request),
+    runLine:            spawnedLineRunner,
+    stopLiveLinesUnder: () => Promise.resolve(),
   });
 }
 
@@ -118,7 +120,7 @@ testWhenGitIsRecorded('a profile runs its prepare step and its gate as real proc
   expect(outputOf('P1')).toContain('profiled');
 });
 
-testWhenGitIsRecorded('a Stop ends the real process tree through the port, and the run is recorded stopped with no duration', async () => {
+testWhenGitIsRecorded('a Stop ends the real line and every process it started, and the run is recorded stopped with no duration', async () => {
   await applied({ kind: 'pipeline-gate-add', gate: { name: 'slow', run: 'echo started; sleep 600 & wait' } });
   await applied({
     kind: 'gate-profile-start', setupId: null, gateName: 'slow', phase: 'merge'

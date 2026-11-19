@@ -1,7 +1,8 @@
 /**
  * The merged-tree gate runs beside the drive pass (design section 3.2, "Renewal that only progress earns"): a pass asks for a gate, the run
  * starts and the pass carries on, and a later pass settles the Airlock from the outcome the run kept in its folder under the board folder.
- * The folder is keyed by everything the outcome rests on, so an ask while a run is in flight starts no second run.
+ * The folder is keyed by everything the outcome rests on, so an ask while a run is in flight starts no second run. The run's lines are line
+ * children of Talos in that folder: a stop sends `stop` to them, and the next Overseer stops the ones an earlier Overseer left running.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -17,6 +18,7 @@ import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.t
 import { JsonRecordUtil }               from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
 import type { EntityKey }               from '../../lib/tracker-model/@types/Pipeline.ts';
+import { LinePausedError }              from '../lifecycle/GateRun.ts';
 import type { MergedTreeGate }          from './Airlocks.ts';
 
 export const MERGED_TREE_GATE_RUNS_FOLDER = 'merge-gates';
@@ -35,31 +37,54 @@ export interface MergedTreeGateRunRequest {
   gatedEntities: readonly EntityKey[] | undefined;
   /** The gate-run stamp of the pipeline read for this ask; its hashes key the run folder. `null` when no pipeline is stored. */
   stamp:         GateRunStamp | null;
-  /** Starts the run; called once per run folder. A run that throws keeps no outcome. */
-  run:           () => Promise<MergedTreeGate>;
+  /** The merge job whose slot waits on the run; `null` for a stale green's, which no job holds. Not part of the key: a later ask takes it over. */
+  ownerJobId:    string | null;
+  /**
+   * Starts the run with its lines in `runFolder`; called once per run folder. A run that throws keeps no outcome, and so does one whose
+   * `stopSignal` was aborted.
+   */
+  run:           (runFolder: string, stopSignal: AbortSignal) => Promise<MergedTreeGate>;
 }
 
 export type MergedTreeGateRunKey = Pick<MergedTreeGateRunRequest, 'worktreePath' | 'treeId' | 'phase' | 'gatedEntities' | 'stamp'>;
 
 export interface MergedTreeGateRuns {
-  readonly gateOf:        (request: MergedTreeGateRunRequest) => MergedTreeGate | 'running';
+  readonly gateOf:              (request: MergedTreeGateRunRequest) => MergedTreeGate | 'running';
   /** Removes the run folder once its outcome settled the Airlock. */
-  readonly settled:       (key: MergedTreeGateRunKey) => void;
-  /** Starts no further run and awaits every run in flight; a run the stop ended keeps no outcome, so the next start runs it again. */
-  readonly stopAll:       () => Promise<void>;
-  /** Removes every run folder that holds no outcome: its run died with the Overseer that started it. */
-  readonly settleAtStart: () => void;
+  readonly settled:             (key: MergedTreeGateRunKey) => void;
+  /**
+   * Starts no further run, stops the live lines of every run in flight and awaits their ends; a run the stop ended keeps no outcome, so the
+   * next start runs it again.
+   */
+  readonly stopAll:             () => Promise<void>;
+  /** Stops the runs in flight in the worktree, whose Airlock freed it, and awaits their ends; each keeps no outcome and loses its folder. */
+  readonly stopRunsIn:          (worktreePath: string) => Promise<void>;
+  /**
+   * Stops, without awaiting their ends, the runs whose owner job has left the board; each keeps no outcome and loses its folder once it
+   * ended.
+   */
+  readonly stopRunsOfEndedJobs: (jobIsOnTheBoard: (jobId: string) => boolean) => void;
+  /**
+   * Stops every live line an earlier Overseer's runs left, and waits for their ends, then removes every run folder that holds no outcome:
+   * its run died with the Overseer that started it.
+   */
+  readonly settleAtStart:       () => Promise<void>;
 }
 
 export interface MergedTreeGateRunsRequest {
-  boardFolder: string;
-  wake:        (forced: boolean) => void;
-  log:         (sentence: string) => void;
+  boardFolder:        string;
+  wake:               (forced: boolean) => void;
+  log:                (sentence: string) => void;
+  /** Sends `stop` to every live line under the folder and waits, bounded, for their ends. */
+  stopLiveLinesUnder: (folder: string) => Promise<void>;
 }
 
 interface RunInFlight {
-  worktreePath: string;
-  ended:        Promise<void>;
+  worktreePath:      string;
+  ownerJobId:        string | null;
+  stopController:    AbortController;
+  removeFolderAtEnd: boolean;
+  ended:             Promise<void>;
 }
 
 function runFolderNameOf(key: MergedTreeGateRunKey): string {
@@ -108,20 +133,27 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
     return join(runsFolder, runFolderNameOf(key));
   }
 
-  /** Never throws: a run that fails, or whose outcome cannot be written, keeps none and waits for the next pass that asks. */
-  async function runToItsEnd(runRequest: MergedTreeGateRunRequest, runFolder: string): Promise<void> {
+  /**
+   * Never throws: a run that fails, was stopped, or whose outcome cannot be written, keeps none and waits for the next pass that asks. A run
+   * whose line a clean quit of Talos paused wakes a pass, which asks again once a Talos serves the board.
+   */
+  async function runToItsEnd(runRequest: MergedTreeGateRunRequest, runFolder: string, run: RunInFlight): Promise<void> {
     const description = runDescriptionOf(runRequest);
-    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'not-kept'; reason: string };
+    const stopSignal = run.stopController.signal;
+    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'not-kept'; reason: string; paused: boolean };
     try {
-      const gate = await runRequest.run();
+      const gate = await runRequest.run(runFolder, stopSignal);
+      if (stopSignal.aborted) throw new Error('the run was stopped while it ran');
       writeFileAtomically(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), `${JSON.stringify({ formatVersion: MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION, gate })}\n`);
       ending = { verdict: 'kept', gate };
     } catch (failure) {
-      ending = { verdict: 'not-kept', reason: failureMessageOf(failure) };
+      ending = { verdict: 'not-kept', reason: failureMessageOf(failure), paused: failure instanceof LinePausedError };
     }
     runsInFlight.delete(runFolder);
+    if (run.removeFolderAtEnd) rmSync(runFolder, { recursive: true, force: true });
     if (ending.verdict === 'not-kept') {
       request.log(`The merged-tree gate of ${description} ended with no outcome: ${ending.reason}`);
+      if (ending.paused) request.wake(true);
       return;
     }
     request.log(`The merged-tree gate of ${description} ended: ${ending.gate.outcome}.`);
@@ -132,14 +164,18 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
     const runFolder = runFolderOf(runRequest);
     const kept = keptGateIn(runFolder);
     if (kept !== null) return kept;
-    if (stopping || runsInFlight.has(runFolder)) return 'running';
+    const runOfThisKey = runsInFlight.get(runFolder);
+    if (runOfThisKey !== undefined && !runOfThisKey.stopController.signal.aborted) runOfThisKey.ownerJobId = runRequest.ownerJobId;
+    if (stopping || runOfThisKey !== undefined) return 'running';
     // A run of another key on the same worktree, a pipeline changed under it, finishes before this one starts there.
     if ([...runsInFlight.values()].some((run) => run.worktreePath === runRequest.worktreePath)) return 'running';
     mkdirSync(runFolder, { recursive: true });
     request.log(`The merged-tree gate of ${runDescriptionOf(runRequest)} started.`);
-    const run: RunInFlight = { worktreePath: runRequest.worktreePath, ended: Promise.resolve() };
+    const run: RunInFlight = {
+      worktreePath: runRequest.worktreePath, ownerJobId: runRequest.ownerJobId, stopController: new AbortController(), removeFolderAtEnd: false, ended: Promise.resolve()
+    };
     runsInFlight.set(runFolder, run);
-    run.ended = runToItsEnd(runRequest, runFolder);
+    run.ended = runToItsEnd(runRequest, runFolder, run);
     return 'running';
   }
 
@@ -149,10 +185,30 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
 
   async function stopAll(): Promise<void> {
     stopping = true;
-    await Promise.all([...runsInFlight.values()].map((run) => run.ended));
+    const runs = [...runsInFlight.values()];
+    for (const run of runs) run.stopController.abort();
+    await Promise.all(runs.map((run) => run.ended));
   }
 
-  function settleAtStart(): void {
+  function stopForGood(run: RunInFlight): void {
+    run.removeFolderAtEnd = true;
+    run.stopController.abort();
+  }
+
+  async function stopRunsIn(worktreePath: string): Promise<void> {
+    const runs = [...runsInFlight.values()].filter((run) => run.worktreePath === worktreePath);
+    runs.forEach(stopForGood);
+    await Promise.all(runs.map((run) => run.ended));
+  }
+
+  function stopRunsOfEndedJobs(jobIsOnTheBoard: (jobId: string) => boolean): void {
+    for (const run of runsInFlight.values()) {
+      if (run.ownerJobId !== null && !jobIsOnTheBoard(run.ownerJobId)) stopForGood(run);
+    }
+  }
+
+  async function settleAtStart(): Promise<void> {
+    await request.stopLiveLinesUnder(runsFolder);
     if (!existsSync(runsFolder)) return;
     for (const name of readdirSync(runsFolder)) {
       const runFolder = join(runsFolder, name);
@@ -162,6 +218,6 @@ export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): Me
   }
 
   return {
-    gateOf, settled, stopAll, settleAtStart
+    gateOf, settled, stopAll, stopRunsIn, stopRunsOfEndedJobs, settleAtStart
   };
 }

@@ -2,7 +2,8 @@
  * The Overseer's gate run of a merged tree or a stale green. What matters: on a pipeline with entities each gated entity's part runs with
  * its first home folder as the project folder, every entity's part runs when the Airlocks name none, the stamp holds the phase hash of each
  * entity that ran and of no other, and a red part names its entity; a pipeline without entities keeps the one run from the tracker's
- * project folder and the stamp without entity hashes, and no stored pipeline runs no step and stamps nothing.
+ * project folder and the stamp without entity hashes, and no stored pipeline runs no step and stamps nothing. Each entity's part runs its
+ * lines in its own part folder of the run folder; a pipeline without entities runs them in the run folder itself.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -42,11 +43,18 @@ const SINGLE_PIPELINE: Pipeline = {
   phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },
 };
 
+const RUN_FOLDER = '/example/board/merge-gates/0123456789abcdef';
+
 const RUN_REQUEST = {
-  directory: '/example/repository/.example-worktrees/merge-main', environment: {}, spawnOptions: {}, confinedLineOf: () => ({ verdict: 'refused', reason: 'unused' })
+  directory:      '/example/repository/.example-worktrees/merge-main',
+  environment:    {},
+  childFolder:    RUN_FOLDER,
+  runLine:        () => Promise.reject(new Error('unused')),
+  confinedLineOf: () => ({ verdict: 'refused', reason: 'unused' }),
 } as unknown as EntityPipelinesRunRequest;
 
 interface RecordedRun {
+  childFolder:   string;
   projectPrefix: string | undefined;
   prepare:       string[];
   gates:         string[];
@@ -59,7 +67,9 @@ function recordingRunner(redGate: string | null = null): { runs: RecordedRun[]; 
     runs,
     runOnePipeline: (pipelineRequest) => {
       const gateNames = pipelineRequest.gates.map((gate) => gate.name);
-      runs.push({ projectPrefix: pipelineRequest.projectPrefix, prepare: pipelineRequest.prepare.map((step) => step.name), gates: gateNames });
+      runs.push({
+        childFolder: pipelineRequest.childFolder, projectPrefix: pipelineRequest.projectPrefix, prepare: pipelineRequest.prepare.map((step) => step.name), gates: gateNames
+      });
       if (redGate !== null && gateNames.includes(redGate)) return Promise.resolve({
         outcome: 'failed', gate: redGate, output: 'expected 2, received 3', gatesRun: gateNames, cacheReports: []
       });
@@ -83,8 +93,12 @@ describe('a merged tree\'s gate run on a pipeline with entities', () => {
     const gate = await runMergedTreeGates(requestOf(ENTITIES_PIPELINE, ['shop', 'tokens'], runner.runOnePipeline));
 
     expect(runner.runs).toEqual([
-      { projectPrefix: 'apps/shop', prepare: ['install-verify-shop'], gates: ['verify-shop'] },
-      { projectPrefix: 'packages/tokens', prepare: ['install-verify-tokens'], gates: ['verify-tokens'] },
+      {
+        childFolder: `${RUN_FOLDER}/part-1`, projectPrefix: 'apps/shop', prepare: ['install-verify-shop'], gates: ['verify-shop']
+      },
+      {
+        childFolder: `${RUN_FOLDER}/part-2`, projectPrefix: 'packages/tokens', prepare: ['install-verify-tokens'], gates: ['verify-tokens']
+      },
     ]);
     expect(gate.outcome).toBe('passed');
     expect(gate.stamp).toEqual(PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'merge', ['shop', 'tokens']));
@@ -116,7 +130,9 @@ describe('a merged tree\'s gate run on a pipeline without entities', () => {
 
     const gate = await runMergedTreeGates(requestOf(SINGLE_PIPELINE, ['shop'], runner.runOnePipeline));
 
-    expect(runner.runs).toEqual([{ projectPrefix: PROJECT_PREFIX, prepare: ['install'], gates: ['verify'] }]);
+    expect(runner.runs).toEqual([{
+      childFolder: RUN_FOLDER, projectPrefix: PROJECT_PREFIX, prepare: ['install'], gates: ['verify']
+    }]);
     expect(gate).toEqual({
       outcome: 'passed', step: null, output: '', stamp: PipelineUtil.gateRunStampOf(SINGLE_PIPELINE, 'merge')
     });
@@ -128,7 +144,9 @@ describe('a merged tree\'s gate run on a pipeline without entities', () => {
 
     const gate = await runMergedTreeGates(requestOf(null, undefined, runner.runOnePipeline));
 
-    expect(runner.runs).toEqual([{ projectPrefix: PROJECT_PREFIX, prepare: [], gates: [] }]);
+    expect(runner.runs).toEqual([{
+      childFolder: RUN_FOLDER, projectPrefix: PROJECT_PREFIX, prepare: [], gates: []
+    }]);
     expect(gate.stamp).toBeNull();
   });
 });

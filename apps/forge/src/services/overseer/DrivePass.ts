@@ -5,7 +5,7 @@
  */
 import { createHash }              from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
-import { basename, join }          from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
 import {
@@ -26,7 +26,6 @@ import type { ExecutableRefusalCause }                       from '../../lib/exe
 import { type ConfinedLine, confinedLineOf }                 from '../../lib/gate-confinement/ConfinedLine.ts';
 import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                              from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
 import type { ChildEnd }                                     from '../../lib/talos/ChildRecord.ts';
 import type { RecognisedEnding }                             from '../../lib/talos/EndingPatterns.ts';
@@ -54,16 +53,16 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import { ProjectPathsUtil }                                                    from '../../shared/utils/ProjectPathsUtil.ts';
-import { type GateConfinement, type PipelineRunRequest, type PipelineVerdict } from '../lifecycle/GateRun.ts';
-import { Landing }                                                             from '../lifecycle/Landing.ts';
-import { MergeRun }                                                            from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                                                       from '../lifecycle/ReviewOutcome.ts';
-import { type ProjectLocation, projectLocationOf }                             from '../tracker/ProjectLocation.ts';
-import { writeTracker, type TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                                 from '../tracker/TrackerReader.ts';
-import type { Workspace }                                                      from '../tracker/Workspace.ts';
-import { AgentSlots }                                                          from './AgentSlots.ts';
+import { ProjectPathsUtil }                        from '../../shared/utils/ProjectPathsUtil.ts';
+import type { GateConfinement, LineRunner }        from '../lifecycle/GateRun.ts';
+import { Landing }                                 from '../lifecycle/Landing.ts';
+import { MergeRun }                                from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                           from '../lifecycle/ReviewOutcome.ts';
+import { type ProjectLocation, projectLocationOf } from '../tracker/ProjectLocation.ts';
+import { writeTracker, type TrackerChange }        from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                     from '../tracker/TrackerReader.ts';
+import type { Workspace }                          from '../tracker/Workspace.ts';
+import { AgentSlots }                              from './AgentSlots.ts';
 import {
   AIRLOCK_FACT_NAMES,
   AirlockFactsFile,
@@ -120,6 +119,7 @@ import { RedHandoff, type RedHandoffFacts }                           from './Re
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
+import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
@@ -222,6 +222,8 @@ export interface DrivePassRequest {
   overseerDirectory:                 string;
   generation:                        number;
   boardChildren:                     BoardChildren;
+  /** Runs the Overseer's own gate lines (merged-tree gates, gate profiles, pipeline checks) as line children of the board's Talos. */
+  lineRunner:                        LineRunner;
   /** Called as each pass begins: the Overseer starts or attaches to a Talos there once its connection to the last one closed. */
   ensureTalosIfLost?:                () => Promise<void>;
   /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
@@ -1180,38 +1182,21 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     return reading.verdict === 'readable' ? reading.pipeline : null;
   }
 
-  /** The merged-tree gate lines running now: each leads a process group of its own, so only its stopped tree ends with the Overseer. */
-  const mergedTreeGateProcesses = new Set<ProcessIdentity>();
-
-  function stopMergedTreeGate(gateProcess: ProcessIdentity): void {
-    const { processSupervision } = platformPorts;
-    const stop = processSupervision.stopTree(gateProcess, 'force', processSupervision.treeMembersOf(gateProcess) ?? undefined);
-    if (stop.verdict === 'refused') request.log(`The stop of a merged-tree gate was refused: ${stop.reason}`);
-  }
-
-  async function runMergedTreeGatePipeline(pipelineRequest: PipelineRunRequest): Promise<PipelineVerdict> {
-    let gateProcess: ProcessIdentity | null = null;
-    try {
-      return await (request.processStarts ?? REAL_PROCESS_STARTS).runGatePipeline({
-        ...pipelineRequest,
-        onSpawned: (processId) => {
-          if (gateProcess !== null) mergedTreeGateProcesses.delete(gateProcess);
-          gateProcess = platformPorts.processSupervision.identityOf(processId);
-          if (gateProcess === null) return;
-          mergedTreeGateProcesses.add(gateProcess);
-          if (stopped) stopMergedTreeGate(gateProcess);
-        },
-      });
-    } finally {
-      if (gateProcess !== null) mergedTreeGateProcesses.delete(gateProcess);
-    }
-  }
+  const processStarts = request.processStarts ?? REAL_PROCESS_STARTS;
+  const stopLiveLinesUnder = (folder: string): Promise<void> => stopLiveLinesUnderAt(request.boardChildren, folder);
 
   const mergedTreeGateRuns = createMergedTreeGateRuns({
     boardFolder: request.workspace.trackerDirectory,
     wake,
     log:         request.log,
+    stopLiveLinesUnder,
   });
+
+  /** A gate's slot is held by its child folder, whose parent must exist for it to read live; this Overseer answers for it until its line is recorded. */
+  async function acquireGateSlotFor(holder: string, stopSignal: AbortSignal): Promise<() => void> {
+    mkdirSync(dirname(holder), { recursive: true });
+    return await gateSlots.acquire(holder, stopSignal);
+  }
 
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
     workspace:        request.workspace,
@@ -1239,12 +1224,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
       return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), pipelineOnDisk(), commandArguments, confinement);
     },
-    hold:            holdTracker,
-    // A clock exception: a profile's duration is only recorded and shown.
-    millisecondsNow: () => request.now().getTime(),
-    wake:            () => wake(true),
-    log:             request.log,
-    runGateLines:    (request.processStarts ?? REAL_PROCESS_STARTS).runGateLines,
+    hold:         holdTracker,
+    wake:         () => wake(true),
+    log:          request.log,
+    runGateLines: processStarts.runGateLines,
+    runLine:      request.lineRunner,
+    stopLiveLinesUnder,
   });
 
   const pipelineChecking = PipelineChecking.createPipelineChecking({
@@ -1259,11 +1244,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), pipelineOnDisk(), commandArguments, confinement);
     },
     hold:                  holdTracker,
-    // A clock exception: a check's durations are only recorded and shown.
-    millisecondsNow:       () => request.now().getTime(),
     wake:                  () => wake(true),
     log:                   request.log,
-    runProposalTwice:      (request.processStarts ?? REAL_PROCESS_STARTS).runProposalTwice,
+    runProposalTwice:      processStarts.runProposalTwice,
+    runLine:               request.lineRunner,
+    stopLiveLinesUnder,
     setupMessageWordingOf: request.setupMessageWordingOf,
   });
 
@@ -1295,40 +1280,36 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
     hold:             holdTracker,
-    mergedTreeGateOf: (worktreePath, treeId, phase, gatedEntities) => {
+    mergedTreeGateOf: (worktreePath, treeId, phase, gatedEntities, ownerJobId) => {
       // Read afresh at every ask, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and the stamp
       // keys the run: a changed pipeline is another run, and its outcome names the gates it ran.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const unreadable = unreadablePipelineGateOf(reading);
       if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
-      const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
       return mergedTreeGateRuns.gateOf({
         worktreePath,
         treeId,
         phase,
         gatedEntities,
         stamp: mergedTreeGateStampOf(pipeline, phase, gatedEntities),
-        run:   async () => {
-          const gate = await runMergedTreeGates({
-            pipeline,
-            phase,
-            gatedEntities,
-            runRequest: {
-              shellLine:       platformPorts.shellLine,
-              directory:       worktreePath,
-              environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
-              spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-              confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
-              acquireGateSlot: () => gateSlots.acquire(holder),
-            },
-            projectPrefix:  projectLocation.projectPrefix,
-            runOnePipeline: runMergedTreeGatePipeline,
-          });
-          // A run the stop ended judged a stopped line, not the tree: it keeps no outcome, so the next start runs it again.
-          if (stopped) throw new Error('the Overseer stopped while it ran');
-          return gate;
-        },
+        ownerJobId,
+        run:   async (runFolder, stopSignal) => await runMergedTreeGates({
+          pipeline,
+          phase,
+          gatedEntities,
+          runRequest: {
+            shellLine:       platformPorts.shellLine,
+            directory:       worktreePath,
+            environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
+            confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
+            runLine:         (lineRequest) => request.lineRunner({ ...lineRequest, stopSignal }),
+            childFolder:     runFolder,
+            acquireGateSlot: (holder) => acquireGateSlotFor(holder, stopSignal),
+          },
+          projectPrefix:  projectLocation.projectPrefix,
+          runOnePipeline: processStarts.runGatePipeline,
+        }),
       });
     },
     mergedTreeGateSettled: (worktreePath, treeId, phase, gatedEntities, gate) => {
@@ -1336,9 +1317,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         worktreePath, treeId, phase, gatedEntities, stamp: gate.stamp
       });
     },
-    mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
-    resolutionLinesOf:   MergeRun.resolutionLinesOf,
-    watcherIsLive:       (job) => {
+    stopMergedTreeGatesIn: mergedTreeGateRuns.stopRunsIn,
+    mergeAgentReadingOf:   (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
+    resolutionLinesOf:     MergeRun.resolutionLinesOf,
+    watcherIsLive:         (job) => {
       const jobFolder = request.boardChildren.jobFolderOf(job.id);
       return request.boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict === 'live';
     },
@@ -1543,6 +1525,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       request.boardChildren, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
     );
     unwatchHatchFoldersOfEndedJobs(written.board);
+    // A merge job a `job stop` ended in the Board never freed its slot through the Airlock, so its gate's lines are stopped here.
+    mergedTreeGateRuns.stopRunsOfEndedJobs((jobId) => written.board.jobById(jobId) !== undefined);
     const launchRefusals: LaunchRefusal[] = [];
     const unmadeAirlockAgentRoots: UnmadeAirlockAgentRoot[] = [];
     const launchedAirlockAgentJobIds: string[] = [];
@@ -1647,7 +1631,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   async function regroup(): Promise<RegroupingReport> {
     const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
-    mergedTreeGateRuns.settleAtStart();
+    await mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
@@ -1661,7 +1645,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     stopped = true;
     if (resetTimer !== null) clearTimeout(resetTimer);
     resetTimer = null;
-    for (const gateProcess of mergedTreeGateProcesses) stopMergedTreeGate(gateProcess);
     await (running ?? Promise.resolve());
     await mergedTreeGateRuns.stopAll();
     await gateProfiling.stopAll();

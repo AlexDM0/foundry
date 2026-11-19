@@ -19,6 +19,7 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
+import { spawnedLineRunner }                                                 from '../../testing/SpawnedLineRunner.ts';
 import { testWhenGitIsRecorded }                                             from '../../testing/ToolGuard.ts';
 import { ProposalTwiceRun, type ProposalRunRecord, type ProposalRunRequest } from './ProposalTwiceRun.ts';
 
@@ -46,21 +47,17 @@ async function recordOf(stage: RecordedGitStage, request: ProposalRunRequest): P
 }
 
 function requestOf(gates: readonly PipelineGate[], prepare: ProposalRunRequest['prepare'] = []): ProposalRunRequest {
-  let clock = 0;
   return {
-    shellLine:       nativePlatformPorts().shellLine,
-    spawnOptions:    nativePlatformPorts().processSupervision.spawnOptionsFor('gate'),
+    shellLine:      nativePlatformPorts().shellLine,
     prepare,
     gates,
-    directory:       snapshotDirectory,
-    snapshotCommit:  SNAPSHOT_COMMIT,
-    environment:     environmentCopy(),
-    confinedLineOf:  runsAsGiven,
-    grantsWrites:    true,
-    millisecondsNow: () => {
-      clock += 250;
-      return clock;
-    },
+    directory:      snapshotDirectory,
+    snapshotCommit: SNAPSHOT_COMMIT,
+    environment:    environmentCopy(),
+    confinedLineOf: runsAsGiven,
+    runLine:        spawnedLineRunner,
+    childFolder:    join(markerDirectory, 'board', 'pipeline-checks', 'S1'),
+    grantsWrites:   true,
   };
 }
 
@@ -94,10 +91,11 @@ testWhenGitIsRecorded('cannot-run, red, green and disagreeing gates are each rec
   expect(record.prepare.failedSteps).toEqual([null, null]);
 });
 
-testWhenGitIsRecorded('each run of each gate records its measured time', async () => {
+testWhenGitIsRecorded('each run of each gate records its line\'s run time', async () => {
   const record = await recordOf(treeUnchangedAfterBothRunsOf(1), requestOf([gate('green', 'true')]));
 
-  expect(record.gates[0]?.durationsMilliseconds).toEqual([250, 250]);
+  expect(record.gates[0]?.durationsMilliseconds).toHaveLength(2);
+  for (const milliseconds of record.gates[0]?.durationsMilliseconds ?? []) expect(milliseconds).toBeGreaterThanOrEqual(0);
 });
 
 testWhenGitIsRecorded('a gate that changes a tracked file is red, and the snapshot is restored before the gate after it', async () => {

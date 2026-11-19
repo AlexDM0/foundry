@@ -1,6 +1,6 @@
 /**
- * The calls of a DrivePass that start a process, in one record a spec replaces: a Watcher, the board's Talos, a merged tree's gate
- * pipeline, a gate profile's lines, and a pipeline check's two runs.
+ * The calls of a DrivePass that start a process, in one record a spec replaces: a Watcher, the board's Talos, and the runs whose lines
+ * Talos starts through the line runner: a merged tree's gate pipeline, a gate profile's lines, and a pipeline check's two runs.
  */
 import { GateLineRun }                 from '../lifecycle/GateLineRun.ts';
 import { GateRun }                     from '../lifecycle/GateRun.ts';
