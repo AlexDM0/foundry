@@ -253,6 +253,8 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     + 'hook: every PowerShell'
   ]:
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
+  'src/testing/ToolGuard.ts: vendor-name: import { wireScenarioIsRecorded } from \'./fake-agent/RecordedClaudeLines.ts\';':
+    'Permanent: a row playing a recorded scenario of the fake agent skips until its session is recorded, which only the owner records.',
   'src/testing/TwoTrackerFixture.ts: vendor-name: [`${project.folder}/CLAUDE.md`]:                          `# Example ${project.namespace} instructions\\n`,':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   'src/testing/TwoTrackerFixture.ts: vendor-name: \'CLAUDE.md\':                                           \'# Example workspace instructions\\n\',':

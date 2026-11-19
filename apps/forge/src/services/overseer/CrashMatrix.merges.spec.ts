@@ -7,7 +7,10 @@
  * `committing` is replaced, one cut short after its fast-forward finishes on the board side, a waiting request with no live job gets one,
  * and a main line already holding the text finishes Apply with no commit. After a start, a landing journal line a stop cut off is written
  * so a sibling requeues rather than meeting `target-moved`, a release's cleanup a stop cut off runs again once, and a slot a stop left
- * restored before its hold is held `interrupted:merge`. The other rows are in `CrashMatrix.integration.spec.ts`. The folders are real; git
+ * restored before its hold is held `interrupted:merge`. After a start that leaves work waiting (a reboot, a stop on purpose or a crash), an
+ * orphaned merge, an Airlock agent or conflict re-reviewer the start found interrupted, is aborted and its ticket held `interrupted:merge`
+ * until `resume <T>`, a live one keeps its slot, an orphaned constitution commit holds its Apply until `resume --all`, and a refresh, which
+ * holds no ticket, is freed as before. The other rows are in `CrashMatrix.integration.spec.ts`. The folders are real; git
  * answers from recorded answer sets, one for each state of the repository, and a crash after a git call is the case entering the set of the
  * state that call left.
  */
@@ -29,6 +32,7 @@ import {
   fastForwardLanding,
   hardResetTo,
   linkedWorktreeRead,
+  mergeInAborted,
   revisionMissing,
   stepIn
 } from '../../testing/RecordedAirlockGit.ts';
@@ -107,6 +111,16 @@ function journaledLandings(current: AirlocksHarness): RepositoryLanding[] {
   return reading.verdict === 'readable' ? reading.landings : [];
 }
 
+function holdOf(current: AirlocksHarness, ticketId: string): string | undefined {
+  return current.board.ticketByReference(ticketId)?.frontmatter.hold;
+}
+
+/** User's `resume <T>`, which lifts an `interrupted:` hold with no fresh attempt: no `ticket-unheld`, so no count resets. */
+function resumeTicket(current: AirlocksHarness, ticketId: string): void {
+  current.board.liftInterruptedHold(ticketId, HARNESS_AT);
+  expect(kindsLogged(current, 'ticket-unheld')).toEqual([]);
+}
+
 function mainLineSetOf(current: AirlocksHarness, landing: Partial<MainLineLanding> = {}): RecordedGitStage {
   return AirlockAnswerSets.mainLineAnswersOf({
     ticketId: '001', repository: current.repository, worktree: current.worktreeOf('001'), ...landing
@@ -163,7 +177,7 @@ describe('the main-line merge rows', () => {
     expect(journaledLandings(current).map((landing) => landing.trackerId)).toEqual([HARNESS_TRACKER_ID, SIBLING_TRACKER_ID]);
   });
 
-  test('mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue', async () => {
+  test('while the forge stays up, mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue', async () => {
     harness = createRecordedAirlocksHarness([{ id: '001' }]);
     const current = harness;
     current.board.claimAirlock({
@@ -177,7 +191,29 @@ describe('the main-line merge rows', () => {
     expect(current.mergeJob()?.airlock?.branchTip).toBe(TICKET_TIP);
   });
 
-  test('restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
+  test('after a start that waits, mid-merge with no live holder: aborted, reset and held interrupted:merge, not requeued; resume <T> requeues it', async () => {
+    harness = createRecordedAirlocksHarness([{ id: '001' }]);
+    const current = harness;
+    current.board.claimAirlock({
+      ticketId: '001', target: 'main', targetTip: MAIN_TIP, branchTip: TICKET_TIP, predictedConflictFiles: ['shared.txt']
+    }, () => 'main', current.branchTreeOf, HARNESS_AT);
+    const orphanedJobId = current.mergeJob()?.id;
+    current.settings.startHoldsOrphans = true;
+
+    await recordedGit.playStage(mergeInAborted(MAIN_TIP, TICKET_TIP), () => current.slots.sweep());
+
+    expect(endedCauseOf(current, orphanedJobId)).toBe('orphaned');
+    expect(holdOf(current, '001')).toBe(INTERRUPTED_MERGE_HOLD);
+    expect(current.mergeJob()).toBeUndefined();
+
+    resumeTicket(current, '001');
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+    await current.slots.sweep();
+    expect(current.mergeJob()?.id).not.toBe(orphanedJobId);
+    expect(current.mergeJob()?.ticketIds).toEqual(['001']);
+  });
+
+  test('while the forge stays up, a restart during a live or interrupted Airlock agent: the slot is kept, and the resolution then lands', async () => {
     harness = createRecordedAirlocksHarness([{ id: '001' }]);
     const current = harness;
     recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
@@ -197,6 +233,40 @@ describe('the main-line merge rows', () => {
     });
     await current.slots.sweep();
     expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+  });
+
+  test('after a start that waits, a live Airlock agent keeps its slot; one the start found interrupted waits held interrupted:merge until resume <T>', async () => {
+    /** A start that waits, its Airlock agent resolving and still running, or found interrupted by the start; the first sweep looks once. */
+    async function startedWithAnAirlockAgent(agentIsLive: boolean): Promise<{ current: AirlocksHarness; agentId: string }> {
+      harness?.remove();
+      harness = createRecordedAirlocksHarness([{ id: '001' }]);
+      const started = harness;
+      recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+      await started.slots.sweep();
+      const startedAgentId = started.mergeAgent()?.id ?? '';
+      started.board.moveJob(startedAgentId, 'running', HARNESS_AT);
+      if (!agentIsLive) started.board.interruptJob(startedAgentId, 'forge-crashed', HARNESS_AT);
+      started.settings.childIsLive = agentIsLive;
+      started.settings.startHoldsOrphans = true;
+      return { current: started, agentId: startedAgentId };
+    }
+
+    const live = await startedWithAnAirlockAgent(true);
+    await recordedGit.playStage([], () => live.current.slots.sweep());
+    expect(live.current.mergeJob()?.airlock?.phase).toBe('resolving');
+    expect(live.current.mergeAgent()?.id).toBe(live.agentId);
+
+    const { current, agentId } = await startedWithAnAirlockAgent(false);
+    await recordedGit.playStage(mergeInAborted(MAIN_TIP, TICKET_TIP), () => current.slots.sweep());
+    expect(endedCauseOf(current, agentId)).toBe('orphaned');
+    expect(holdOf(current, '001')).toBe(INTERRUPTED_MERGE_HOLD);
+    expect(kindsLogged(current, 'job-resumed')).toEqual([]);
+
+    resumeTicket(current, '001');
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+    await current.slots.sweep();
+    expect(current.mergeAgent()?.id).not.toBe(agentId);
+    expect(current.mergeJob()?.airlock?.phase).toBe('resolving');
   });
 
   test('a stop between freeSlot\'s restore and its hold, then a start, holds the ticket interrupted:merge and merges nothing again', async () => {
@@ -248,7 +318,7 @@ describe('the conflict re-review rows', () => {
     return current;
   }
 
-  test('restart during a live or interrupted conflict re-reviewer: the slot is kept in re-reviewing and no agent is launched', async () => {
+  test('while the forge stays up, a restart during a live or interrupted conflict re-reviewer: the slot is kept in re-reviewing and no agent is launched', async () => {
     harness = await reReviewing();
     const reReviewerId = harness.mergeAgent()?.id ?? '';
     harness.board.moveJob(reReviewerId, 'running', HARNESS_AT);
@@ -260,6 +330,27 @@ describe('the conflict re-review rows', () => {
     expect(harness.mergeJob()?.airlock?.phase).toBe('re-reviewing');
     expect(harness.mergeAgent()?.id).toBe(reReviewerId);
     expect(kindsLogged(harness, 'job-launched').filter((record) => (record['fields'] as { kind: string }).kind === 'merge-agent')).toHaveLength(2);
+  });
+
+  test('after a start that waits, a conflict re-reviewer the start found interrupted leaves the ticket held interrupted:merge until resume <T>', async () => {
+    harness = await reReviewing();
+    const current = harness;
+    const reReviewerId = current.mergeAgent()?.id ?? '';
+    current.board.moveJob(reReviewerId, 'running', HARNESS_AT);
+    current.board.interruptJob(reReviewerId, 'forge-crashed', HARNESS_AT);
+    current.settings.startHoldsOrphans = true;
+
+    await recordedGit.playStage([revisionMissing('MERGE_HEAD'), ...hardResetTo(TICKET_TIP)], () => current.slots.sweep());
+
+    expect(endedCauseOf(current, reReviewerId)).toBe('orphaned');
+    expect(holdOf(current, '001')).toBe(INTERRUPTED_MERGE_HOLD);
+    expect(current.mergeJob()).toBeUndefined();
+    expect(kindsLogged(current, 'job-resumed')).toEqual([]);
+
+    resumeTicket(current, '001');
+    recordedGit.answerFrom(AirlockAnswerSets.conflictingMergeIn('001'));
+    await current.slots.sweep();
+    expect(current.mergeJob()?.ticketIds).toEqual(['001']);
   });
 
   test('a conflict re-reviewer replaced after a failed resume is relaunched as a conflict re-reviewer of the same attempt', async () => {
@@ -383,18 +474,24 @@ describe('the group merge rows', () => {
     expect(existsSync(groupWorktreeOf(current))).toBe(true);
   });
 
-  test('a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {
+  /** A refresh holds no ticket, so even a start that waits frees its slot and lets it start again (WP3.9). */
+  async function refreshCutShortMidMerge(startHoldsOrphans: boolean): Promise<void> {
     harness = createRecordedGroupHarness([{ id: '010', group: 'example', status: 'reviewed' }]);
     const current = harness;
+    current.settings.startHoldsOrphans = startHoldsOrphans;
     const { job: orphaned } = current.board.claimRefreshSlot({
       group: 'example', target: GROUP, targetTip: GROUP_TIP, mainTip: MAIN_TIP
     }, HARNESS_AT);
     const refreshWorktree = GroupWorktrees.refreshWorktreeOf(`${current.repository}-worktrees`, GROUP);
     mkdirSync(refreshWorktree, { recursive: true });
-    const orphanedMergeIn: RecordedGitStep[] = [
+    // The first sweep after a start that waits frees a slot it found with no live holder straight away, without first reading the merge.
+    const readsBeforeTheAbort: RecordedGitStep[] = startHoldsOrphans ? [] : [
       ...linkedWorktreeRead(refreshWorktree, current.repository),
       stepIn(refreshWorktree, commitResolved('HEAD', GROUP_TIP)),
       stepIn(refreshWorktree, commitResolved('MERGE_HEAD', MAIN_TIP)),
+    ];
+    const orphanedMergeIn: RecordedGitStep[] = [
+      ...readsBeforeTheAbort,
       stepIn(refreshWorktree, commitResolved('MERGE_HEAD', MAIN_TIP)),
       { gitArguments: ['merge', '--abort'], answeredAs: GIT_CALL_SHAPES.MERGE_ABORT_OF_A_CONFLICT },
       commitResolved(GROUP_TIP, GROUP_TIP),
@@ -422,6 +519,15 @@ describe('the group merge rows', () => {
     expect(current.board.jobs().filter((job) => job.kind === 'refresh')).toEqual([]);
     expect(current.board.decisions().map((decision) => [decision.kind, decision.ticketIds])).toEqual([['merge-refused', []]]);
     expect(fastForwardsAsked()).toEqual([]);
+    expect(holdOf(current, '010')).toBeUndefined();
+  }
+
+  test('while the forge stays up, a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {
+    await refreshCutShortMidMerge(false);
+  });
+
+  test('after a start that waits, a refresh mid-merge with no live holder is aborted and freed the same way, holding no ticket', async () => {
+    await refreshCutShortMidMerge(true);
   });
 });
 
@@ -442,7 +548,26 @@ describe('the constitution commit rows', () => {
     });
   }
 
-  test('a job left in committing by a run cut short is an orphan: its worktree goes, and a fresh job commits and lands', async () => {
+  test('after a start that waits, a job left in committing is an orphan whose Apply waits held interrupted until resume --all, then a fresh job commits and lands', async () => {
+    const { current, setupId } = harnessWithAClaimedCommit();
+    current.settings.startHoldsOrphans = true;
+
+    await recordedGit.playStage([], () => current.slots.sweep());
+    await recordedGit.playStage([], () => current.slots.sweep());
+
+    expect(endedCauseOf(current, 'J1')).toBe('orphaned');
+    expect(current.board.jobs()).toEqual([]);
+    expect(current.board.pipelineSetup()?.applyRequest).toMatchObject({ state: 'held', reason: 'interrupted', commitJobId: null });
+
+    current.board.liftInterruptedApply(HARNESS_AT);
+    recordedGit.answerFrom(commitWalkOf(current, 'J2', SECOND_COMMITTED_TIP));
+    await current.slots.sweep();
+
+    expect(fastForwardsAsked()).toEqual([SECOND_COMMITTED_TIP]);
+    expect(kindsLogged(current, 'pipeline-applied').map((record) => record['setupId'])).toEqual([setupId]);
+  });
+
+  test('while the forge stays up, a job left in committing by a run cut short is an orphan: its worktree goes, and a fresh job commits and lands', async () => {
     const { current, setupId } = harnessWithAClaimedCommit();
     mkdirSync(commitWorktreeOf(current.repository, 'J1'), { recursive: true });
     recordedGit.answerFrom([...commitWalkOf(current, 'J1', COMMITTED_TIP), ...commitWalkOf(current, 'J2', SECOND_COMMITTED_TIP)]);

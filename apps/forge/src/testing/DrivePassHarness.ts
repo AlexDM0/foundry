@@ -26,6 +26,7 @@ import {
   spawnTalos,
   TALOS_START_BOUNDS,
   TALOS_START_WAITS,
+  type TalosStartBounds,
   type TalosStartContext,
   talosRecordAt
 } from '../services/overseer/TalosStart.ts';
@@ -35,14 +36,16 @@ import { branchNamesOf }       from '../shared/BranchNames.ts';
 import { firstValueOf }        from './WaitUntil.ts';
 
 interface ScratchDrivePassRequired {
-  platformPorts:   PlatformPorts;
-  workspace:       Workspace;
-  agentAdapter:    AgentAdapter;
-  monitorFolder:   string;
-  mainLine:        string;
+  platformPorts:    PlatformPorts;
+  workspace:        Workspace;
+  agentAdapter:     AgentAdapter;
+  monitorFolder:    string;
+  mainLine:         string;
   /** The connection to the board's Talos, read at each act: the recorded stages' in a default spec, a scratch Talos's in a real-system one. */
-  talosConnection: () => TalosConnection | null;
-  log:             (line: string) => void;
+  talosConnection:  () => TalosConnection | null;
+  log:              (line: string) => void;
+  /** The start stamp the Baton names, one no process had: `1` when absent. Starts a spec crashes at one generation differ by it. */
+  batonStartStamp?: string;
 }
 
 export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePassRequest>;
@@ -55,7 +58,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
   const ownBootIdentity = request.platformPorts.processSupervision.identityOf(process.pid)?.bootIdentity ?? 'example-boot';
   const acquisition = Baton.acquire(request.platformPorts, overseerDirectory, {
     processId:            process.pid,
-    processStartStamp:    '1',
+    processStartStamp:    request.batonStartStamp ?? '1',
     bootIdentity:         ownBootIdentity,
     port:                 1,
     url:                  'http://127.0.0.1:1/',
@@ -118,6 +121,8 @@ export interface ScratchBoardTalosRequest {
   platformPorts: PlatformPorts;
   monitorFolder: string;
   log:           (line: string) => void;
+  /** The lease and tick bounds the Talos is started with; absent, the Overseer's own. A row that waits out a lease shortens it. */
+  bounds?:       TalosStartBounds;
 }
 
 export async function startScratchBoardTalos(request: ScratchBoardTalosRequest): Promise<ScratchBoardTalos> {
@@ -129,7 +134,7 @@ export async function startScratchBoardTalos(request: ScratchBoardTalosRequest):
     codeVersion:    'code-example',
     repositoryRoot: request.workspace.rootDirectory,
     ports:          request.platformPorts,
-    bounds:         TALOS_START_BOUNDS,
+    bounds:         request.bounds ?? TALOS_START_BOUNDS,
     waits:          TALOS_START_WAITS,
     connect:        connectToTalos,
     startTalos:     spawnTalos,

@@ -25,6 +25,11 @@ export const CLAUDE_WIRE_SCENARIOS = [
 
 export type ClaudeWireScenario = typeof CLAUDE_WIRE_SCENARIOS[number];
 
+/** Whether the recording holds `scenario`: one the owner records later, as gate G1's network outage, is not listed until then. */
+export function wireScenarioIsRecorded(scenario: string): boolean {
+  return CLAUDE_WIRE_SCENARIOS.some((recorded) => recorded === scenario);
+}
+
 export interface ClaudeWireEntry {
   readonly from: 'stdin' | 'stdout';
   readonly line: string;

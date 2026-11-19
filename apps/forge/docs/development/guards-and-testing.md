@@ -538,6 +538,7 @@ suite with the requirement in its title, and `src/testing/TestRunReport.ts` prin
 | `process-table-recording` | The process table recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 | `local-endpoint-recording` | The local endpoint recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
 | `folder-watch-recording` | The folder watch recording of this OS exists | `describeWhenRecorded`, `testWhenRecorded` |
+| `fake-agent-outage-recording` | The fake agent's wire scenarios list `network-outage`, which the owner records (gate G1) | `testWhenTheFakeAgentOutageIsRecorded` |
 
 A default spec that plays a recording, and starts no real process for it, takes a recording guard rather than the `git`
 guard: on an OS where the boundary is not finished it skips with the stamp check's own words,

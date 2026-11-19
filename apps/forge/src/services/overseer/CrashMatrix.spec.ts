@@ -7,7 +7,7 @@
  * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent, or a conflict
  * re-reviewer before User's code review, launches never asking User. A first instance that resumes another job's session and exits before
  * it starts is a failed resume. A gate profile left running by a stopped Overseer reads `stopped` after the next start, is never run
- * again, and its worktree goes.
+ * again, and its worktree goes. A product owner past the crash bound waits for its answer when a question is open, else for User's resume.
  *
  * An Apply cut short anywhere in its hold is finished by the next holder's journal replay, so a retried Apply of the same revision finds
  * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; the Overseer's start hold leaves no record
@@ -1362,5 +1362,35 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     expect(intakeFacts?.firstLine).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with Example basket`);
     expect(JobResumption.launchPartsOf(fresh, 'Example first', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example first' });
     expect(records.findLast((record) => record.kind === 'job-launched')).toMatchObject({ jobId: fresh.id, fields: { intakeText: 'Example basket' } });
+  });
+
+  test('a product owner past the bound with no question open waits for User\'s resume instead of a fresh session, and the resume resumes it by id', () => {
+    const { board, records } = boardFixture({ tickets: [] });
+    board.setOverseerState('running', at);
+    // A board with no pipeline holds every resume, an instructed one too.
+    board.addGate({ name: 'checks', run: 'true' }, at);
+    board.launchJob({
+      kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null
+    }, at);
+    const { job } = board.startIntake('Example basket', [], at);
+    board.moveJob(job.id, 'running', at);
+    for (let crash = 0; crash < LIFECYCLE_LIMITS.CRASH_RESUMES_BEFORE_WAITING; crash += 1) {
+      board.interruptJob(job.id, 'agent-crashed', at);
+      board.moveJob(job.id, 'running', at);
+    }
+    board.interruptJob(job.id, 'agent-crashed', at);
+
+    board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt: null }, observations, wordingOf);
+    board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt: null }, observations, wordingOf);
+    expect(board.jobById(job.id)).toMatchObject({ state: 'interrupted', interruption: 'agent-crashed' });
+    expect(board.jobs().filter((candidate) => candidate.kind === 'product-owner').map((candidate) => candidate.id)).toEqual([job.id]);
+
+    const waitingInstance = board.jobById(job.id)?.childInstance ?? 0;
+    board.instructResume(job.id, at);
+    board.followPlaybook({ ...LIFECYCLE_LIMITS, now: at, usageResetsAt: null }, observations, wordingOf);
+
+    expect(board.jobById(job.id)).toMatchObject({ crashResumes: 0, childInstance: waitingInstance + 1 });
+    expect(records.findLast((record) => record.kind === 'job-resumed')).toMatchObject({ jobId: job.id, fields: { cause: 'agent-crashed', instructed: true } });
+    expect(board.jobs().filter((candidate) => candidate.kind === 'product-owner').map((candidate) => candidate.id)).toEqual([job.id]);
   });
 });

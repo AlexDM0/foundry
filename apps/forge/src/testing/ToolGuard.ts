@@ -14,6 +14,7 @@ import {
   gitIsAvailable,
   removeScratchDirectory
 } from './ScratchWorkspace.ts';
+import { wireScenarioIsRecorded } from './fake-agent/RecordedClaudeLines.ts';
 
 export type RequiredTool = 'git' | 'bash';
 
@@ -28,7 +29,8 @@ export type SpecRequirement =
   | 'chrome'
   | 'macos'
   | 'not-root'
-  | 'process-suspension';
+  | 'process-suspension'
+  | 'fake-agent-outage-recording';
 
 /** The boundary of `BOUNDARY_SPECS` whose recording for this OS a spec playing it needs. */
 export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundaryRequirement, string>> = {
@@ -41,6 +43,9 @@ export const BOUNDARY_OF_RECORDING_REQUIREMENT: Readonly<Record<RecordedBoundary
 function recordingIsPresent(requirement: RecordedBoundaryRequirement): () => boolean {
   return () => boundaryIsRecordedFor(BOUNDARY_OF_RECORDING_REQUIREMENT[requirement], process.platform);
 }
+
+/** The fake agent's scenario of a session ending on a network outage. */
+const FAKE_AGENT_OUTAGE_SCENARIO = 'network-outage';
 
 const ROOT_USER_ID = 0;
 
@@ -113,35 +118,37 @@ function sandboxExecApplies(): boolean {
 }
 
 const REQUIREMENT_IS_MET: Readonly<Record<SpecRequirement, () => boolean>> = {
-  'git':                      gitIsAvailable,
-  'bash':                     bashIsAvailable,
-  'git-merge-tree-stdin':     gitMergeTreeStandardInputWorks,
-  'sandbox-exec':             sandboxExecApplies,
-  'scratch-root-outside-tmp': scratchRootLiesOutsideTheFixedTemporaryFolders,
-  'chrome':                   () => chromeExecutablePath() !== null,
-  'macos':                    () => process.platform === 'darwin',
-  'not-root':                 notRunningAsRoot,
-  'process-suspension':       () => process.platform !== 'win32',
-  'git-recording':            recordingIsPresent('git-recording'),
-  'process-table-recording':  recordingIsPresent('process-table-recording'),
-  'local-endpoint-recording': recordingIsPresent('local-endpoint-recording'),
-  'folder-watch-recording':   recordingIsPresent('folder-watch-recording'),
+  'git':                         gitIsAvailable,
+  'bash':                        bashIsAvailable,
+  'git-merge-tree-stdin':        gitMergeTreeStandardInputWorks,
+  'sandbox-exec':                sandboxExecApplies,
+  'scratch-root-outside-tmp':    scratchRootLiesOutsideTheFixedTemporaryFolders,
+  'chrome':                      () => chromeExecutablePath() !== null,
+  'macos':                       () => process.platform === 'darwin',
+  'not-root':                    notRunningAsRoot,
+  'process-suspension':          () => process.platform !== 'win32',
+  'fake-agent-outage-recording': () => wireScenarioIsRecorded(FAKE_AGENT_OUTAGE_SCENARIO),
+  'git-recording':               recordingIsPresent('git-recording'),
+  'process-table-recording':     recordingIsPresent('process-table-recording'),
+  'local-endpoint-recording':    recordingIsPresent('local-endpoint-recording'),
+  'folder-watch-recording':      recordingIsPresent('folder-watch-recording'),
 };
 
 const UNMET_REQUIREMENT_WORDING: Readonly<Record<SpecRequirement, string>> = {
-  'git':                      'git is missing',
-  'bash':                     'bash is missing',
-  'git-merge-tree-stdin':     'git merge-tree --stdin is missing',
-  'sandbox-exec':             'sandbox-exec cannot apply a profile here',
-  'scratch-root-outside-tmp': 'the scratch root lies under /tmp or /var/tmp',
-  'chrome':                   'Chrome is missing',
-  'macos':                    'this machine is not macOS',
-  'not-root':                 'this run is root, which no permission bit refuses',
-  'process-suspension':       'this platform has no SIGSTOP and SIGCONT to suspend a process',
-  'git-recording':            unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['git-recording'], process.platform),
-  'process-table-recording':  unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
-  'local-endpoint-recording': unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
-  'folder-watch-recording':   unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['folder-watch-recording'], process.platform),
+  'git':                         'git is missing',
+  'bash':                        'bash is missing',
+  'git-merge-tree-stdin':        'git merge-tree --stdin is missing',
+  'sandbox-exec':                'sandbox-exec cannot apply a profile here',
+  'scratch-root-outside-tmp':    'the scratch root lies under /tmp or /var/tmp',
+  'chrome':                      'Chrome is missing',
+  'macos':                       'this machine is not macOS',
+  'not-root':                    'this run is root, which no permission bit refuses',
+  'process-suspension':          'this platform has no SIGSTOP and SIGCONT to suspend a process',
+  'fake-agent-outage-recording': 'the fake agent\'s network-outage session is not recorded yet, an act of the owner\'s gate G1',
+  'git-recording':               unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['git-recording'], process.platform),
+  'process-table-recording':     unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['process-table-recording'], process.platform),
+  'local-endpoint-recording':    unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['local-endpoint-recording'], process.platform),
+  'folder-watch-recording':      unfinishedBoundaryWordingOf(BOUNDARY_OF_RECORDING_REQUIREMENT['folder-watch-recording'], process.platform),
 };
 
 type SpecBody = () => void | Promise<unknown>;
@@ -257,6 +264,11 @@ export function testWhenNotRunningAsRoot(claim: string, body: SpecBody, timeoutM
 /** For a spec that suspends a process with SIGSTOP and continues it with SIGCONT, which Windows has no form of. */
 export function testWhenProcessesCanBeSuspended(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
   testWhenRequirementIsMet('process-suspension', claim, body, timeoutMilliseconds);
+}
+
+/** For a row that plays the fake agent's network outage, whose session only the owner records (gate G1). */
+export function testWhenTheFakeAgentOutageIsRecorded(claim: string, body: SpecBody, timeoutMilliseconds?: number): void {
+  testWhenRequirementIsMet('fake-agent-outage-recording', claim, body, timeoutMilliseconds);
 }
 
 export function skippedSpecsSoFar(): readonly SkippedSpec[] {
