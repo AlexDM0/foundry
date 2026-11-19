@@ -235,6 +235,9 @@ export interface GateRunCacheReports {
 /** Which kind of pipeline step a line ran: a prepare step, a job's install included, or a gate. */
 export type PipelineStepKind = 'prepare' | 'gate';
 
+/** The kind of a job's line a crash or a reboot cut short: an install step or a step of a gate run, its prepare steps included. */
+export type LostLineKind = 'gate' | 'install';
+
 /** How a step line that ran ended: `time-bound` when Talos stopped it at its bound, else as its run was judged. */
 export type PipelineStepEnding = 'passed' | 'failed' | 'time-bound';
 

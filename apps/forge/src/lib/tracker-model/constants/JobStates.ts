@@ -7,6 +7,7 @@ import type {
   JobState,
   JobStopMode,
   LandingKind,
+  LostLineKind,
   OverseerStopReason,
   AirlockPhase,
   PipelineStepEnding,
@@ -114,6 +115,8 @@ export const LANDING_KINDS = ['landed', 'integrated'] as const satisfies readonl
 export const GATE_OUTCOMES = ['passed', 'failed', 'cannot-run'] as const satisfies readonly GateOutcome[];
 
 export const PIPELINE_STEP_KINDS = ['prepare', 'gate'] as const satisfies readonly PipelineStepKind[];
+
+export const LOST_LINE_KINDS = ['gate', 'install'] as const satisfies readonly LostLineKind[];
 
 export const PIPELINE_STEP_ENDINGS = ['passed', 'failed', 'time-bound'] as const satisfies readonly PipelineStepEnding[];
 

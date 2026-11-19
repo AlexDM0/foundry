@@ -87,6 +87,7 @@ import type {
   JobLaunch,
   JobOutcome,
   JobStopMode,
+  LostLineKind,
   Airlock,
   OverseerStopReason,
   PictureReference,
@@ -504,16 +505,31 @@ export class Board {
   }
 
   /**
-   * User's resume of an interrupted job, logged at its current child instance; refused `job-not-interrupted` for any other. The move is the
-   * Playbook's next pass, under every hold a resume obeys.
+   * User's resume of an interrupted job, or of one whose lost line waits, logged at its current child instance; refused `job-not-interrupted`
+   * for any other. The move is the Playbook's next pass, under every hold a resume obeys, or the launch's, which runs the lost line again.
    */
   instructResume(jobId: string, at: string): Logged {
     return this.jobRules.recordJobResumeInstructed(jobId, at);
   }
 
-  /** User's resume of every interrupted job whose policy waits for one, a crash past its bound included; none logged when none waits. */
+  /**
+   * User's resume of every interrupted job whose policy waits for one, a crash past its bound included, and of every job whose lost line
+   * waits; none logged when none waits.
+   */
   instructResumeOfEveryWaitingJob(limits: LifecycleThresholds, at: string): Logged {
-    return this.instructResumeOfEach(this.interruptedJobs().filter((job) => Playbook.resumePolicyOf(job, limits) === 'waits-for-instruction'), at);
+    const waiting = this.jobs().filter((job) => (
+      job.state === 'interrupted' ? Playbook.resumePolicyOf(job, limits) === 'waits-for-instruction' : this.lostLineAwaitsResume(job)
+    ));
+    return this.instructResumeOfEach(waiting, at);
+  }
+
+  /** A start found the job's install or gate line lost: the job keeps its state, and the line waits for User's resume. */
+  recordLineLost(jobId: string, line: LostLineKind, cause: InterruptionCause, at: string): Logged {
+    return this.jobRules.recordLineLost(jobId, line, cause, at);
+  }
+
+  lostLineAwaitsResume(job: Readonly<Job>): boolean {
+    return Playbook.lostLineAwaitsResume(job, this.logRecordsSoFar());
   }
 
   /** User's resume of every job that ended on a network outage (decision 35); none logged when none did. */

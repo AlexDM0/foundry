@@ -34,9 +34,11 @@ import type {
   GateCacheReport,
   GateCacheReportOfGate,
   GateOutcome,
+  InterruptionCause,
   Job,
   JobKind,
   JobState,
+  LostLineKind,
   PipelineStepRun
 } from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordFieldsOf } from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -141,6 +143,11 @@ export interface JobLaunchContext {
   resolutionLinesOf:    (worktreePath: string) => number | null;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
   sharedRepository?:    SharedRepositoryLanding;
+  /**
+   * The cause an install or gate line found lost in this pass is logged with, so its job waits for User's resume: the start's, while a
+   * start that leaves work waiting reconciles; `null` or absent otherwise, and a lost line then runs again by itself.
+   */
+  lostLineCause?:       () => InterruptionCause | null;
 }
 
 /** `worktree-unnormalised`: the fresh checkout already differs from its commit, as line-ending normalisation leaves it, so every gate would fail. */
@@ -228,6 +235,8 @@ export interface BuildJobObservation {
   mainMerge:        MainMergeReading | null;
   /** The conflict re-reviewer working under the job; `null` while none is. */
   conflictReReview: ConflictReReviewReading | null;
+  /** The install or gate line the job waits on whose newest instance reads `lost`; absent while none does. */
+  lostLine?:        LostLineKind;
 }
 
 /**
@@ -381,6 +390,9 @@ const REGATE_MARKER_FILE = 'regate-required';
 const FIRST_LINE_INSTANCE = 1;
 const REVIEW_JOB_KIND = 'review';
 const CONFLICT_RE_REVIEWER_ROLE = 'conflict-re-reviewer';
+
+/** The states whose install or gate line a start may find lost, which then waits for User's resume. */
+const STATES_A_LINE_IS_LOST_IN: readonly JobState[] = ['preparing', 'gating'];
 
 /** The jobs whose session works a ticket's worktree: each is prepared, verified and gated the same way, and only its outcome differs. */
 const WORKTREE_JOB_KINDS: readonly JobKind[] = ['build', REVIEW_JOB_KIND];
@@ -571,22 +583,32 @@ function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
 }
 
 /**
- * The newest instance of a step's line: `pending` while it runs or none was launched, `rerun` once a clean quit paused it or its Talos was
- * lost, which the next instance runs again, and otherwise its end, the only one a verdict is read from.
+ * The newest instance of a step's line: `pending` while it runs or none was launched, `rerun` once a clean quit paused it, which the next
+ * instance runs again, `lost` when it is gone with no end of its own, and otherwise its end, the only one a verdict is read from.
  */
-function lineEndOf(children: BoardChildren, lineFolder: string): ChildEnd | 'pending' | 'rerun' {
+function lineEndOf(children: BoardChildren, lineFolder: string): ChildEnd | 'pending' | 'rerun' | 'lost' {
   const newestInstance = children.newestInstanceIn(lineFolder);
   if (newestInstance === null) return 'pending';
   const liveness = children.livenessOf(lineFolder, newestInstance);
-  if (liveness.verdict === 'lost' || (liveness.verdict === 'ended' && liveness.end.reason === 'paused')) return 'rerun';
+  if (liveness.verdict === 'lost') return 'lost';
+  if (liveness.verdict === 'ended' && liveness.end.reason === 'paused') return 'rerun';
   return liveness.verdict === 'ended' ? liveness.end : 'pending';
 }
 
-/** The instance of a step's line due for a launch: the first while none was launched, the next after a `rerun`, and none otherwise. */
+/** A line with no verdict yet: running or unlaunched, paused, or lost. */
+function lineIsUnjudged(end: ReturnType<typeof lineEndOf>): end is 'pending' | 'rerun' | 'lost' {
+  return end === 'pending' || end === 'rerun' || end === 'lost';
+}
+
+/**
+ * The instance of a step's line due for a launch: the first while none was launched, the next after a `rerun` or a `lost` one, and none
+ * otherwise. A caller launches a lost line only once its job no longer waits for User's resume.
+ */
 function lineInstanceDueOf(children: BoardChildren, lineFolder: string): number | null {
   const newestInstance = children.newestInstanceIn(lineFolder);
   if (newestInstance === null) return FIRST_LINE_INSTANCE;
-  return lineEndOf(children, lineFolder) === 'rerun' ? newestInstance + 1 : null;
+  const end = lineEndOf(children, lineFolder);
+  return end === 'rerun' || end === 'lost' ? newestInstance + 1 : null;
 }
 
 function lineStatusFileOf(jobFolder: string, folderName: string): string {
@@ -632,7 +654,7 @@ function setupReadingOf(
   for (const [stepIndex, step] of prepare.entries()) {
     const folderName = stepFolderOf(INSTALL_CHILD_FOLDER, stepIndex);
     const end = lineEndOf(context.boardChildren, join(jobFolder, folderName));
-    if (end === 'pending' || end === 'rerun') return { setup: 'installing', installStepRuns };
+    if (lineIsUnjudged(end)) return { setup: 'installing', installStepRuns };
     const passed = stepPassed(context, end, jobFolder, folderName);
     installStepRuns.push(...stepRunsOfLine({ kind: 'prepare', stepName: step.name, entity }, end, passed));
     if (!passed) return { setup: 'install-failed', installStepRuns };
@@ -890,8 +912,8 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   if (kept !== null && kept.treeId === treeId && kept.phase === stamp.phase && kept.phaseHash === stamp.phaseHash) return kept;
   const lineFolder = join(jobFolder, step.folder);
   const end = lineEndOf(context.boardChildren, lineFolder);
-  // A paused line is never judged: its next instance runs it again.
-  if (end === 'pending' || end === 'rerun') return null;
+  // A paused or lost line is never judged, so a crash never reads as a red gate: its next instance runs it again.
+  if (lineIsUnjudged(end)) return null;
   const { shellLine } = context.platformPorts;
   const reportFile = stepReportFileOf(jobFolder, step);
   const cacheReport = reportFile === null ? null : GateRun.takeCacheReport(reportFile);
@@ -963,6 +985,33 @@ function gateRunProgressOf(
   };
 }
 
+function lineReadsLost(context: JobLaunchContext, job: Readonly<Job>, folderName: string): boolean {
+  return lineEndOf(context.boardChildren, join(jobFolderOf(context.workspace, job), folderName)) === 'lost';
+}
+
+function gateRunStepReadsLost(context: JobLaunchContext, job: Readonly<Job>, place: GateRunPlace, pipeline: Readonly<Pipeline>, stepIndex: number): boolean {
+  const manifest = gateRunManifestOf(context, job, place, pipeline);
+  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, place, job)[stepIndex];
+  return step !== undefined && lineReadsLost(context, job, step.folder);
+}
+
+/** The step a preparing job's install, or its own or its review's catch-up gate run, waits on, when that step's line reads `lost`. */
+function lostLineOf(
+  context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline> | null, reading: Pick<BuildJobObservation, 'setup' | 'gate' | 'targetCatchUp'>
+): LostLineKind | null {
+  if (pipeline === null) return null;
+  if (job.state === 'preparing' && reading.setup === 'installing') {
+    const installStepLost = installStepsOf(pipeline, job).some((_step, stepIndex) => lineReadsLost(context, job, stepFolderOf(INSTALL_CHILD_FOLDER, stepIndex)));
+    return installStepLost ? 'install' : null;
+  }
+  const { targetCatchUp, gate } = reading;
+  if (job.state === 'preparing' && targetCatchUp.verdict === 'gating') {
+    return gateRunStepReadsLost(context, job, TARGET_GATE_RUN, pipeline, targetCatchUp.stepIndex) ? 'gate' : null;
+  }
+  if (job.state === 'gating' && gate.verdict === 'running') return gateRunStepReadsLost(context, job, ownGateRunOf(job), pipeline, gate.stepIndex) ? 'gate' : null;
+  return null;
+}
+
 /** Read outside the lock, for every live build job. */
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
   return jobs.filter(isWorktreeJob).map((job) => {
@@ -970,17 +1019,21 @@ function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job
     const { setup, installStepRuns } = job.state === 'preparing'
       ? setupReadingOf(context, job, installStepsOf(pipeline, job), installEntityOf(pipeline, job))
       : { setup: 'installed' as const, installStepRuns: [] };
+    const gate: GateProgress = job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' };
+    const targetCatchUp: TargetCatchUp = setup === 'installed' ? targetCatchUpOf(context, job, pipeline) : { verdict: 'not-checked' };
+    const lostLine = lostLineOf(context, job, pipeline, { setup, gate, targetCatchUp });
     return {
       jobId:            job.id,
       setup,
       installStepRuns,
       ...sessionReadingOf(context, job),
       agentEnd:         liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
-      gate:             job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
+      gate,
       sandboxRefusal:   sandboxRefusalOf(context, job),
-      targetCatchUp:    setup === 'installed' ? targetCatchUpOf(context, job, pipeline) : { verdict: 'not-checked' },
+      targetCatchUp,
       mainMerge:        mainMergeReadingOf(context, jobs, job, pipeline),
       conflictReReview: conflictReReviewReadingOf(context, jobs, job, pipeline),
+      ...(lostLine === null ? {} : { lostLine }),
     };
   });
 }
@@ -1024,7 +1077,7 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolder, JOB_FILES.targetMergeSettlement));
   if (settlement === null) {
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolder, TARGET_MERGE_CHILD_FOLDER));
-    return mergeEnd === 'pending' || mergeEnd === 'rerun' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
+    return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
   if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
   if (settlement.verdict === 'conflicted') return { verdict: 'conflicted', targetTip: record.mergedTip, conflictedFiles: settlement.conflictedFiles };
@@ -1104,7 +1157,7 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolderOf(context.workspace, job), files.settlementFile));
   if (settlement === null) {
     const mergeEnd = lineEndOf(context.boardChildren, join(jobFolderOf(context.workspace, job), files.childFolder));
-    return mergeEnd === 'pending' || mergeEnd === 'rerun' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
+    return lineIsUnjudged(mergeEnd) ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
   if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
   if (settlement.verdict === 'conflicted') return {
@@ -2220,10 +2273,19 @@ function settleInstall(hold: HoldContext, job: Readonly<Job>, observation: Build
   hold.logged.push(...board.recordPipelineStepsRan(observation.installStepRuns, null, at).logged);
 }
 
+/** Logged once for each line a start found lost; the job keeps its state, and its launch runs the line again only after User's resume. */
+function recordLostLineOnce(hold: HoldContext, job: Readonly<Job>, lostLine: LostLineKind | undefined): void {
+  const cause = hold.context.lostLineCause?.() ?? null;
+  const { board, at } = hold.change;
+  if (lostLine === undefined || cause === null || board.lostLineAwaitsResume(job)) return;
+  hold.logged.push(...board.recordLineLost(job.id, lostLine, cause, at).logged);
+}
+
 function applyObservation(hold: HoldContext, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
   if (job === undefined) return;
+  recordLostLineOnce(hold, job, observation.lostLine);
   if (observation.sandboxRefusal !== null && STATES_A_SANDBOX_REFUSAL_ENDS.has(job.state)) {
     openIncidentFor(hold, job, 'sandbox-unavailable', { step: observation.sandboxRefusal.step, reason: observation.sandboxRefusal.reason });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.sandboxUnavailable });
@@ -2764,17 +2826,18 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, obser
     boardChildren: context.boardChildren, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
   };
   for (const job of board.jobs().filter(isWorktreeJob)) {
+    const linesMaySpawn = pipeline !== null && !(STATES_A_LINE_IS_LOST_IN.includes(job.state) && board.lostLineAwaitsResume(job));
     if (job.state === 'preparing') {
       const jobFolder = jobFolderOf(context.workspace, job);
       startAfreshInTheNewEntity(context, board, job, jobFolder);
       const worktreeIsReady = prepareWorktree(context, job, jobFolder);
       const unnormalised = existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised));
-      if (worktreeIsReady && !unnormalised && pipeline !== null) await spawnNextInstallStep(context, job, pipeline);
-      if (worktreeIsReady && !unnormalised && pipeline !== null) await runTargetCatchUpEffects(context, job, pipeline);
+      if (worktreeIsReady && !unnormalised && linesMaySpawn) await spawnNextInstallStep(context, job, pipeline);
+      if (worktreeIsReady && !unnormalised && linesMaySpawn) await runTargetCatchUpEffects(context, job, pipeline);
     }
     const observation = observations.find((candidate) => candidate.jobId === job.id);
     await deliverBuildJobFrames(frameRequest, job, observation?.calls ?? 0);
-    if (job.state === 'gating' && pipeline !== null) await spawnNextGateStep(context, job, pipeline);
+    if (job.state === 'gating' && linesMaySpawn) await spawnNextGateStep(context, job, pipeline);
     if (job.state === 'merging-main' && pipeline !== null) await runMainMergeEffects(context, board, job, pipeline);
     const reReviewer = conflictReReviewerOf(board.jobs(), job);
     if (reReviewer !== undefined) await deliverBuildJobFrames(frameRequest, reReviewer, observation?.conflictReReview?.calls ?? 0);
@@ -2793,7 +2856,7 @@ async function spawnNextInstallStep(context: JobLaunchContext, job: Readonly<Job
   for (const [stepIndex, step] of stepsPipeline.prepare.entries()) {
     const folderName = stepFolderOf(INSTALL_CHILD_FOLDER, stepIndex);
     const end = lineEndOf(context.boardChildren, join(jobFolder, folderName));
-    if (end === 'pending' || end === 'rerun') {
+    if (lineIsUnjudged(end)) {
       await spawnLineChild(context, job, pipeline, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
       return;
     }

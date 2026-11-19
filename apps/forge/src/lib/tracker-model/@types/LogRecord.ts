@@ -21,6 +21,7 @@ import type {
   JobRole,
   JobStopMode,
   LandingKind,
+  LostLineKind,
   OverseerStopReason,
   PictureReference,
   PipelineStepEnding,
@@ -106,6 +107,7 @@ interface ValueOfFieldShape {
   'optional-refusal-detail':  HatchRefusalDetail;
   'optional-cache-reports':   GateRunCacheReports;
   'pipeline-step-kind':       PipelineStepKind;
+  'lost-line-kind':           LostLineKind;
   'optional-gate-phase':      GatePhase;
   'pipeline-step-ending':     PipelineStepEnding;
   'setup-mode':               PipelineSetupMode;

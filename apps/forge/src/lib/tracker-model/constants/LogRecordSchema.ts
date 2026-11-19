@@ -70,6 +70,7 @@ export type LogFieldShape =
   | 'optional-refusal-detail'
   | 'optional-cache-reports'
   | 'pipeline-step-kind'
+  | 'lost-line-kind'
   | 'optional-gate-phase'
   | 'pipeline-step-ending'
   | 'setup-mode'
@@ -350,6 +351,8 @@ export const LOG_RECORD_SCHEMA = {
   'job-resumed':           { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause', instructed: 'optional-flag' } },
   // User asked to resume the interrupted job; `childInstance` is its instance then.
   'job-resume-instructed': { subject: 'job', fields: { childInstance: 'child-instance' } },
+  // A start found the job's install or gate line gone with no end of its own; the job keeps its state and the line waits for User's resume.
+  'job-line-lost':         { subject: 'job', fields: { line: 'lost-line-kind', cause: 'interruption-cause' } },
   // The vendor refused the job's requests: `window` as the vendor names it, `resetsAt` the ISO stamp no launch or resume precedes.
   'usage-limit-hit':       { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
   // User's stop, wind-down or fresh agent, recorded whether or not its child is up; the Overseer sends the frames from the job record.

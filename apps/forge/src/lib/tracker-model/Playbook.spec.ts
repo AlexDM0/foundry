@@ -294,7 +294,7 @@ const RESUME_POLICY_CLAIMS: PolicyClaim[] = [
     name:   'an instruction logged before the newest interruption does not count: a second interruption waits again',
     facts:  rebootedBuildFacts([resumeInstructedRecord('J1'), interruptedRecord('J1', 'reboot')]),
     holds:  (steps) => steps.length === 0,
-    mutant: policyLine('    if (record.kind === \'job-interrupted\' && record.jobId === job.id) instructed = false;\n', ''),
+    mutant: policyLine('    if ((record.kind === \'job-interrupted\' || record.kind === \'job-line-lost\') && record.jobId === job.id) instructed = false;\n', ''),
   },
   {
     name:  'an answer to the question of a job interrupted by a reboot resumes it',

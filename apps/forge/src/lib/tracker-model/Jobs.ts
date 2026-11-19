@@ -1,7 +1,7 @@
 /**
  * The Overseer's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
- * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, User's resume
- * instruction, a resume, an end, a reopening, a stop request, a message and an intake title are logged.
+ * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, a lost line, User's
+ * resume instruction, a resume, an end, a reopening, a stop request, a message and an intake title are logged.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -15,6 +15,7 @@ import type {
   JobOutcome,
   JobState,
   JobStopMode,
+  LostLineKind,
   Airlock,
   OverseerStopReason,
   PictureReference
@@ -24,6 +25,7 @@ import type { DeclaredNeed }                                        from './@typ
 import type { QuestionOptionNotes }                                 from './@types/OptionConsequences.ts';
 import type { BoardRecords }                                        from './BoardRecords.ts';
 import { BoardRefusal }                                             from './BoardRefusal.ts';
+import { Playbook }                                                 from './Playbook.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE, PROCESSLESS_JOB_STATES } from './constants/JobMoveLegality.ts';
 import {
   CRASH_INTERRUPTION_CAUSES,
@@ -353,11 +355,21 @@ export class Jobs {
     return { logged: [this.records.logger.log({ kind: 'start-classified', fields }, at)] };
   }
 
-  /** Refused `job-not-interrupted` unless the job is interrupted: only interrupted work waits for a resume. */
+  /** Refused `job-not-interrupted` unless the job is interrupted or its lost line waits: only that work waits for a resume. */
   recordJobResumeInstructed(jobId: string, at: string): Logged {
     const job = this.requireLiveJob(jobId);
-    if (job.state !== 'interrupted') throw new BoardRefusal({ reason: 'job-not-interrupted', jobId });
+    if (!this.jobWaitsForResume(job)) throw new BoardRefusal({ reason: 'job-not-interrupted', jobId });
     return { logged: [this.records.logger.log({ kind: 'job-resume-instructed', jobId, fields: { childInstance: job.childInstance } }, at)] };
+  }
+
+  /** The job keeps its state: the line waits for User's resume, and the launch runs it again once one follows. */
+  recordLineLost(jobId: string, line: LostLineKind, cause: InterruptionCause, at: string): Logged {
+    this.requireLiveJob(jobId);
+    return { logged: [this.records.logger.log({ kind: 'job-line-lost', jobId, fields: { line, cause } }, at)] };
+  }
+
+  jobWaitsForResume(job: Readonly<Job>): boolean {
+    return job.state === 'interrupted' || Playbook.lostLineAwaitsResume(job, this.logRecordsSoFar());
   }
 
   recordFlintBrainEnded(run: LogRecordFieldsOf<'flint-brain-ended'>, at: string): Logged {

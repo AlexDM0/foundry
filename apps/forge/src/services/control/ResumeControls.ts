@@ -5,6 +5,7 @@
  * send them to every forge.
  */
 import type { Logged }             from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { Job }                from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }              from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }            from '../../lib/tracker-model/BoardRefusal.ts';
 import { INTERRUPTED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
@@ -25,8 +26,9 @@ function holdIsInterrupted(hold: string | undefined): boolean {
   return hold?.startsWith(INTERRUPTED_HOLD_PREFIX) === true;
 }
 
-function interruptedJobIdsOfTicket(board: Board, ticketId: string): string[] {
-  return board.jobs().filter((job) => job.state === 'interrupted' && job.ticketIds.includes(ticketId)).map((job) => job.id);
+function waitingJobIdsOfTicket(board: Board, ticketId: string): string[] {
+  const waits = (job: Readonly<Job>): boolean => job.state === 'interrupted' || board.lostLineAwaitsResume(job);
+  return board.jobs().filter((job) => waits(job) && job.ticketIds.includes(ticketId)).map((job) => job.id);
 }
 
 function liftEveryInterruptedHold(board: Board, at: string): Logged['logged'] {
@@ -34,11 +36,11 @@ function liftEveryInterruptedHold(board: Board, at: string): Logged['logged'] {
   return heldTicketIds.flatMap((ticketId) => board.liftInterruptedHold(ticketId, at).logged);
 }
 
-/** Refused `ticket-not-interrupted` when the ticket has neither an interrupted job nor an `interrupted:` hold. */
+/** Refused `ticket-not-interrupted` when the ticket has neither a job that waits for a resume nor an `interrupted:` hold. */
 function resumeTicket(ticketReference: string, change: TrackerChange): ResumeRecorded {
   const { board, at } = change;
   const ticketId      = ticketIdOfReference(change, ticketReference);
-  const jobIds        = interruptedJobIdsOfTicket(board, ticketId);
+  const jobIds        = waitingJobIdsOfTicket(board, ticketId);
   const holdLifts     = holdIsInterrupted(board.ticketByReference(ticketId)?.frontmatter.hold);
   if (jobIds.length === 0 && !holdLifts) throw new BoardRefusal({ reason: 'ticket-not-interrupted', ticketId });
   const instructed = jobIds.flatMap((jobId) => board.instructResume(jobId, at).logged);

@@ -205,6 +205,11 @@ describe('the Overseer and its jobs', () => {
       [],
     ],
     [{ kind: 'job-resume-instructed', jobId: 'J3', fields: { childInstance: 1 } }, 'User asked to resume job J3, interrupted in child instance 1', []],
+    [
+      { kind: 'job-line-lost', jobId: 'J3', fields: { line: 'gate', cause: 'reboot' } },
+      'Job J3 lost its gate line (reboot); it runs again once User resumes the job',
+      [],
+    ],
     [{ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } }, 'Forge started by User for the first time', []],
     [
       { kind: 'start-classified', fields: { kind: 'handover', startOrigin: 'successor', previousGeneration: 4 } },

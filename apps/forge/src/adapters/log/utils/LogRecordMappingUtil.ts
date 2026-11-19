@@ -104,6 +104,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'optional-refusal-detail':  (value) => structuredClone(value),
   'optional-cache-reports':   gateCacheReportsCopyOf,
   'pipeline-step-kind':       sameValue,
+  'lost-line-kind':           sameValue,
   'optional-gate-phase':      sameValue,
   'pipeline-step-ending':     sameValue,
   'setup-mode':               sameValue,

@@ -176,6 +176,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'job-interrupted':                 'agent',
   'job-resumed':                     'agent',
   'job-resume-instructed':           'agent',
+  'job-line-lost':                   'agent',
   'usage-limit-hit':                 'agent',
   'job-stop-requested':              'agent',
   'job-messaged':                    null,

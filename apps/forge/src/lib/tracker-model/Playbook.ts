@@ -426,18 +426,31 @@ function resumePolicyOf(job: Readonly<Job>, limits: LifecycleThresholds): Resume
 }
 
 /**
- * User's resume of the job, or an answer to a question it asked, logged after its newest interruption: an instruction never outlives the
- * interruption it answered, so a later interruption waits again. Read from the log alone, in log order.
+ * User's resume of the job, or an answer to a question it asked, logged after its newest interruption or lost line: an instruction never
+ * outlives what it answered, so a later interruption or lost line waits again. Read from the log alone, in log order.
  */
 function resumeIsInstructed(job: Readonly<Job>, logRecords: readonly LogRecord[]): boolean {
   const answeredRequestIds = new Set(job.answeredRequestIds);
   let instructed = false;
   for (const record of logRecords) {
-    if (record.kind === 'job-interrupted' && record.jobId === job.id) instructed = false;
+    if ((record.kind === 'job-interrupted' || record.kind === 'job-line-lost') && record.jobId === job.id) instructed = false;
     if (record.kind === 'job-resume-instructed' && record.jobId === job.id) instructed = true;
     if (record.kind === 'decision-answered' && record.fields.requestId !== undefined && answeredRequestIds.has(record.fields.requestId)) instructed = true;
   }
   return instructed;
+}
+
+/**
+ * The job's install or gate line a start found lost waits for User's resume, which runs the line again: only while the lost line is the
+ * job's newest interruption or lost line, so a lost line already resumed never comes back with a later interruption.
+ */
+function lostLineAwaitsResume(job: Readonly<Job>, logRecords: readonly LogRecord[]): boolean {
+  let lostLineIsNewest = false;
+  for (const record of logRecords) {
+    if (record.kind === 'job-interrupted' && record.jobId === job.id) lostLineIsNewest = false;
+    if (record.kind === 'job-line-lost' && record.jobId === job.id) lostLineIsNewest = true;
+  }
+  return lostLineIsNewest && !resumeIsInstructed(job, logRecords);
 }
 
 /** A resume under the job's policy: one that waits needs an instruction first, and every resume obeys its holds, an instructed one too. */
@@ -846,6 +859,7 @@ export const Playbook = {
   nextStepsOf,
   resumePolicyOf,
   resumeIsInstructed,
+  lostLineAwaitsResume,
   assistantWaitsForInstruction,
   outageIsDue,
   handoffCycleResumesOf,

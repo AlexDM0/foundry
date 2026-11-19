@@ -110,6 +110,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J2","fields":{"kind":"build","role":"builder","ticketIds":["002"],'
     + '"attempt":1,"target":"main","parentJobId":null}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-interrupted","jobId":"J2","fields":{"cause":"agent-crashed","childInstance":1}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-line-lost","jobId":"J2","fields":{"line":"gate","cause":"forge-crashed"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resume-instructed","jobId":"J2","fields":{"childInstance":1}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"usage-limit-hit","jobId":"J2","fields":{"window":"five_hour","resetsAt":"2026-09-26T13:00:34.000Z"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resumed","jobId":"J2","fields":{"childInstance":2,"cause":"agent-crashed","instructed":true}}',

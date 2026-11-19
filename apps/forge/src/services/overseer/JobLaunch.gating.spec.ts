@@ -1,19 +1,20 @@
 /**
- * Which gate step a gating job waits on, read outside the lock. What matters: a review that left the tree it was given (the tree the build's
- * gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any build,
- * waits on the pipeline's first step. A build job runs only the build phase's gates and a review job only the review phase's, and a phase
- * with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line: the
- * install and the gate run wait on each step's own line in turn; a line a clean quit paused is never judged, its next instance runs it
+ * Which gate step a gating job waits on, read outside the lock. What matters: a review that left the tree it was given (the tree the
+ * build's gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any
+ * build, waits on the pipeline's first step. A build job runs only the build phase's gates and a review job only the review phase's, and a
+ * phase with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line:
+ * the install and the gate run wait on each step's own line in turn; a line a clean quit paused is never judged, its next instance runs it
  * again, and a line Talos stopped at its time bound judges `cannot-run`, or `install-failed` for an install step, its output naming the
- * bound. A run's steps and stamp are its manifest's, written at its start: a
- * pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and the settlement
- * stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first gate's red.
- * Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version 1's words,
- * or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase. A job of an entity installs
- * with its entity's prepare steps and runs its entity's gates, each folder read from the entity's first home, under a stamp that names
- * the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates. Each step line that ran is recorded with
- * its run time, once, in the hold that consumes it: an install's when the job leaves `preparing`, a gate run's at its settlement in the
- * manifest's phase; a line stopped at its bound records `time-bound`, a paused instance's run never, and a run that ran no line none.
+ * bound. A line a crash start found gone with no end of its own is never judged either: the hold logs it lost once and its job spawns
+ * nothing until User's resume, while one found lost on a handover runs again by itself. A run's steps and stamp are its manifest's, written
+ * at its start: a pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and
+ * the settlement stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first
+ * gate's red. Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version
+ * 1's words, or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase. A job of an entity
+ * installs with its entity's prepare steps and runs its entity's gates, each folder read from the entity's first home, under a stamp that
+ * names the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates. Each step line that ran is recorded
+ * with its run time, once, in the hold that consumes it: an install's when the job leaves `preparing`, a gate run's at its settlement in
+ * the manifest's phase; a line stopped at its bound records `time-bound`, a paused instance's run never, and a run that ran no line none.
  * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
@@ -22,7 +23,7 @@ import {
   readFileSync,
   writeFileSync
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import {
   afterEach,
@@ -31,17 +32,18 @@ import {
   test
 } from 'bun:test';
 
-import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
-import type { Job }                     from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }               from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }                from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { branchNamesOf }                from '../../shared/BranchNames.ts';
-import { LINE_TIME_BOUND_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }  from '../../testing/BoardFixtures.ts';
-import { nativePlatformPorts }          from '../../testing/NativePlatformPorts.ts';
-import { PlantedChild }                 from '../../testing/PlantedChild.ts';
+import type { ChildEnd }                                from '../../lib/talos/ChildRecord.ts';
+import type { InterruptionCause, Job }                  from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                               from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { branchNamesOf }                                from '../../shared/BranchNames.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                 from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
+import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { nativePlatformPorts }                          from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                 from '../../testing/PlantedChild.ts';
+import { commitResolved }                               from '../../testing/RecordedAirlockGit.ts';
 import {
   GIT_CALL_SHAPES,
   type GitCallShape,
@@ -200,6 +202,19 @@ testWhenGitIsRecorded('an install step a clean quit paused installs again as its
   endStepLine(scene, 'install', { exitCode: 0 }, 2);
   endStepExited(scene, 'install2', 0);
   expect(await setupOf(scene)).toBe('installed');
+});
+
+testWhenGitIsRecorded('an install step gone with no end of its own is never judged: the install waits on it as a lost install line', async () => {
+  const scene = gatingScene();
+  endStepExited(scene, 'install', 0);
+  PlantedChild.plantChildRecord({ boardFolder: scene.context.workspace.trackerDirectory, childFolder: 'jobs/J2/install2', instance: 1 }, {
+    kind: 'line', state: 'ended', timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS, end: null,
+  });
+  const job = { ...scene.jobOf('build'), state: 'preparing' } as Job;
+
+  const [observation] = await recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)));
+
+  expect(observation).toMatchObject({ setup: 'installing', lostLine: 'install' });
 });
 
 testWhenGitIsRecorded('a gate a clean quit paused is never judged: the run waits on that step again until its next instance ends', async () => {
@@ -690,5 +705,143 @@ describe('the step run times', () => {
 
   testWhenGitIsRecorded('a review that left the tree its build\'s gates passed ran no line and has no step run', async () => {
     expect(await gateOf(gatingScene(), 'review', [HEAD_ON_THE_START_TREE, START_TREE])).toMatchObject({ verdict: 'judged', ran: false, stepRuns: [] });
+  });
+});
+
+describe('a gate line a start found lost', () => {
+  const HEAD_COMMIT = '5'.repeat(40);
+  const ONE_GATE: Pipeline = {
+    version: 3, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] },
+  };
+
+  interface LostGateScene {
+    board:         ReturnType<typeof boardFixture>['board'];
+    records:       LogRecord[];
+    jobId:         string;
+    gateFolder:    string;
+    acquiredSlots: string[];
+    /** The cause the start reconciles with, `null` once its forced first pass ran or for a start that leaves no work waiting. */
+    startCause:    { current: InterruptionCause | null };
+    pass:          (stage: RecordedGitStage) => Promise<void>;
+  }
+
+  /** A build job of #001 in `gating` whose gate `tests` is the step its run is on; every gate slot is busy, so a spawn stops at the slot. */
+  function lostGateScene(): LostGateScene {
+    const scene = gatingScene();
+    const { board, records } = boardFixture({ pipeline: ONE_GATE, tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
+    const { job } = board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, SETTLED_AT);
+    for (const next of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(job.id, next, SETTLED_AT);
+    const acquiredSlots: string[] = [];
+    const startCause: LostGateScene['startCause'] = { current: 'forge-crashed' };
+    const context: JobLaunchContext = {
+      ...scene.context,
+      mainLine:  'main',
+      log:       () => undefined,
+      gateSlots: {
+        tryAcquire: (holder: string) => {
+          acquiredSlots.push(holder);
+          return false;
+        },
+      } as unknown as JobLaunchContext['gateSlots'],
+      lostLineCause: () => startCause.current,
+    };
+    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    const pass = (stage: RecordedGitStage): Promise<void> => recordedGit.playStage(stage, async () => {
+      const observations = JobLaunch.observeBuildJobs(context, board.jobs(), ONE_GATE);
+      JobLaunch.applyBuildJobObservations(change, context, observations);
+      await JobLaunch.runBuildJobEffects(context, board, observations);
+    });
+    const gateFolder = join(jobFolderIn(scene.context.workspace.trackerDirectory, job.id), 'gate-1');
+    return {
+      board, records, jobId: job.id, gateFolder, acquiredSlots, startCause, pass
+    };
+  }
+
+  /** The gate's first instance as Talos's sweep leaves a child gone with its Talos: ended, with no end of its own. */
+  function loseTheGate(scene: LostGateScene): void {
+    PlantedChild.plantChildRecord({ boardFolder: dirname(scene.gateFolder), childFolder: basename(scene.gateFolder), instance: 1 }, {
+      kind: 'line', state: 'ended', timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS, end: null,
+    });
+  }
+
+  function kindsOf(records: readonly LogRecord[]): string[] {
+    return records.map((record) => record.kind);
+  }
+
+  testWhenGitIsRecorded('at a crash start logs job-line-lost, opens no red handoff, spawns nothing, and waits on later passes too', async () => {
+    const scene = lostGateScene();
+    loseTheGate(scene);
+
+    await scene.pass([HEAD_ON_THE_START_TREE]);
+    scene.startCause.current = null;
+    await scene.pass([HEAD_ON_THE_START_TREE]);
+
+    expect(scene.records.filter((record) => record.kind === 'job-line-lost')).toMatchObject([
+      { jobId: scene.jobId, fields: { line: 'gate', cause: 'forge-crashed' } },
+    ]);
+    expect(kindsOf(scene.records)).not.toContain('job-interrupted');
+    expect(scene.board.jobById(scene.jobId)?.state).toBe('gating');
+    expect(scene.acquiredSlots).toEqual([]);
+  });
+
+  testWhenGitIsRecorded('after User\'s resume the same step spawns again', async () => {
+    const scene = lostGateScene();
+    loseTheGate(scene);
+    await scene.pass([HEAD_ON_THE_START_TREE]);
+    scene.startCause.current = null;
+
+    scene.board.instructResume(scene.jobId, SETTLED_AT);
+    await scene.pass([HEAD_ON_THE_START_TREE, HEAD_ON_THE_START_TREE]);
+
+    expect(scene.acquiredSlots).toEqual([scene.gateFolder]);
+    expect(kindsOf(scene.records).filter((kind) => kind === 'job-line-lost')).toHaveLength(1);
+  });
+
+  testWhenGitIsRecorded('resumed, then interrupted by a cause that resumes by itself, spawns the next gate once back in gating', async () => {
+    const scene = lostGateScene();
+    loseTheGate(scene);
+    await scene.pass([HEAD_ON_THE_START_TREE]);
+    scene.startCause.current = null;
+    scene.board.instructResume(scene.jobId, SETTLED_AT);
+    scene.board.interruptJob(scene.jobId, 'handoff-red', SETTLED_AT);
+    for (const next of ['running', 'in-customs', 'gating'] as const) scene.board.moveJob(scene.jobId, next, SETTLED_AT);
+
+    await scene.pass([HEAD_ON_THE_START_TREE, HEAD_ON_THE_START_TREE]);
+
+    expect(scene.acquiredSlots).toHaveLength(1);
+    expect(refusalDetailOf(() => scene.board.instructResume(scene.jobId, SETTLED_AT))).toEqual({ reason: 'job-not-interrupted', jobId: scene.jobId });
+  });
+
+  testWhenGitIsRecorded('found lost on a handover, or once the start reconciled, runs again by itself and logs no lost line', async () => {
+    const scene = lostGateScene();
+    scene.startCause.current = null;
+    loseTheGate(scene);
+
+    await scene.pass([HEAD_ON_THE_START_TREE, HEAD_ON_THE_START_TREE]);
+
+    expect(scene.acquiredSlots).toEqual([scene.gateFolder]);
+    expect(kindsOf(scene.records)).not.toContain('job-line-lost');
+  });
+
+  testWhenGitIsRecorded('a gate that exited red still opens the red handoff', async () => {
+    const scene = lostGateScene();
+    PlantedChild.plantEndedChildAt(scene.gateFolder, 1, { exitCode: 1 });
+
+    await scene.pass([HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, commitResolved('HEAD', HEAD_COMMIT)]);
+
+    expect(scene.board.jobById(scene.jobId)).toMatchObject({ state: 'interrupted', interruption: 'handoff-red' });
+    expect(kindsOf(scene.records)).not.toContain('job-line-lost');
+  });
+
+  testWhenGitIsRecorded('a gate ended time-bound reads cannot-run and logs no lost line', async () => {
+    const scene = lostGateScene();
+    PlantedChild.plantEndedChildAt(scene.gateFolder, 1, { reason: 'time-bound', exitCode: null, signal: 'SIGTERM' });
+
+    await scene.pass([HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED]);
+
+    expect(scene.records.find((record) => record.kind === 'gate-ran')).toMatchObject({ fields: { outcome: 'cannot-run' } });
+    expect(kindsOf(scene.records)).not.toContain('job-line-lost');
   });
 });

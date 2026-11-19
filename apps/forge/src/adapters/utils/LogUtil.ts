@@ -317,6 +317,8 @@ function sentenceOf(record: LogRecordContent): string {
     }
     case 'job-resume-instructed':
       return `User asked to resume job ${record.jobId}, interrupted in child instance ${record.fields.childInstance}`;
+    case 'job-line-lost':
+      return `Job ${record.jobId} lost its ${record.fields.line} line (${record.fields.cause}); it runs again once User resumes the job`;
     case 'usage-limit-hit':
       return `Job ${record.jobId} hit the ${record.fields.window} usage limit; nothing launches or resumes before ${record.fields.resetsAt}`;
     case 'job-ended':

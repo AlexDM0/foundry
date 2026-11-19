@@ -1158,6 +1158,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     log:                  request.log,
     resolutionLinesOf:    MergeRun.resolutionLinesOf,
     ...(sharedRepository === null ? {} : { sharedRepository }),
+    lostLineCause:        () => (startIsBeingReconciled ? causeOfAChildGoneAtTheStart : null),
   };
   const endedJobTokensContext = { boardChildren: request.boardChildren, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();

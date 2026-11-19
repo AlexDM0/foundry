@@ -1661,18 +1661,19 @@ resumes its session by id in the same folder with the text as its first line.
 when it is up, else when it starts. Exactly one of a job, a ticket, `--all` and `--network-outage` is named; an
 argument that starts with `J` is a job, any other a ticket. Under a job the Bouncer refuses it for every role.
 
-- A job is resumed only while it is `interrupted`; any other is refused `job-not-interrupted` (exit 1). The instruction
-  is logged `job-resume-instructed`, and the resume that carries it out obeys every hold a resume obeys (usage limit,
-  install change, outage, refused key, a missing pipeline). An instructed resume sets the job's `crashResumes` back
-  to 0.
-- A ticket instructs its interrupted job and lifts a hold that starts with `interrupted:`, logged
+- A job is resumed only while it is `interrupted`, or while an install or gate line a start found lost waits
+  (`job-line-lost`); any other is refused `job-not-interrupted` (exit 1). The instruction is logged
+  `job-resume-instructed`, and the resume that carries it out obeys every hold a resume obeys (usage limit, install
+  change, outage, refused key, a missing pipeline). An instructed resume sets the job's `crashResumes` back to 0; for a
+  lost line, the next pass runs the line again in its next instance.
+- A ticket instructs its waiting job and lifts a hold that starts with `interrupted:`, logged
   `ticket-interrupted-hold-lifted` in place of `ticket-unheld`, so the ticket's failed passes and its builder's returns
   are kept. A ticket with neither is refused `ticket-not-interrupted` (exit 1). `ticket unhold` lifts the same hold as
   a person's unhold, with its resets.
-- `--all` instructs every job whose resume waits for an instruction, lifts every `interrupted:` hold and lets an Apply
-  held `interrupted` commit again (logged `pipeline-apply-requested`); `--network-outage` instructs every job that
-  ended on a network outage. With nothing waiting either prints `Nothing interrupted waits for a resume.` and exits 0.
-  A job that ends on an outage again waits again.
+- `--all` instructs every job whose resume waits for an instruction, a lost line's job included, lifts every
+  `interrupted:` hold and lets an Apply held `interrupted` commit again (logged `pipeline-apply-requested`);
+  `--network-outage` instructs every job that ended on a network outage. With nothing waiting either prints
+  `Nothing interrupted waits for a resume.` and exits 0. A job that ends on an outage again waits again.
 
 `oversee resume` is another command: it undoes a pause.
 
@@ -2928,6 +2929,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `job-interrupted` | `jobId` | `cause`, `childInstance`: the instance that was lost |
 | `job-resumed` | `jobId` | `childInstance`: the instance spawned, `cause`: the interruption it resumes from, and `instructed` (`true`) only when User instructed the resume, directly or by answering the job's question: it sets `crashResumes` back to 0 |
 | `job-resume-instructed` | `jobId` | `childInstance`: the job's instance when User asked to resume it |
+| `job-line-lost` | `jobId` | `line` (`gate` or `install`), `cause`: a start after a crash, a reboot or a stop found the job's line gone with no end of its own; the job keeps its state, is never judged red, and the line runs again once User resumes the job |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |

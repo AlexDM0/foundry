@@ -1,9 +1,10 @@
 /**
  * User's resume of interrupted work through the control service, as a hold carries it. What matters: a job target logs one instruction; a
  * ticket target lifts its `interrupted:` hold with its own record and no `ticket-unheld`, so no count resets, and instructs its interrupted
- * job; `all` covers both, lets an Apply held `interrupted` commit again and leaves a job that resumes by itself alone; `network-outage`
- * instructs only the jobs of that cause; a running job, a ticket with nothing interrupted and an unknown ticket are refused; and with
- * nothing waiting `all` and `network-outage` report `nothing-to-do`, a success, so one control may send them to every forge.
+ * job, or one whose lost line waits; `all` covers both, lets an Apply held `interrupted` commit again and leaves a job that resumes by
+ * itself alone; `network-outage` instructs only the jobs of that cause; a running job, a ticket with nothing interrupted and an unknown
+ * ticket are refused; and with nothing waiting `all` and `network-outage` report `nothing-to-do`, a success, so one control may send them
+ * to every forge.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -88,6 +89,19 @@ describe('a job target', () => {
 });
 
 describe('a ticket target', () => {
+  test('instructs its job whose gate line a start found lost', () => {
+    const { board, records } = boardWithTickets([{ id: '001' }]);
+    const { job } = board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, AT);
+    for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(job.id, state, AT);
+    board.recordLineLost(job.id, 'gate', 'forge-crashed', AT);
+    const countBefore = records.length;
+
+    expect(resume(board, { ticketReference: '001' }).outcome).toBe('done');
+    expect(recordsAfter(records, countBefore)).toEqual([['job-resume-instructed', job.id]]);
+  });
+
   test('lifts an interrupted:merge hold, logging ticket-interrupted-hold-lifted and no ticket-unheld, and instructs its interrupted job', () => {
     const { board, records } = boardWithTickets([{ id: '001', hold: 'interrupted:merge' }]);
     const jobId = buildOf(board, '001', 'forge-crashed');

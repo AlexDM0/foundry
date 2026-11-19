@@ -547,3 +547,81 @@ describe('User\'s resume of interrupted work', () => {
     expect(board.instructResumeOfEveryNetworkOutageJob(AT).logged).toEqual([]);
   });
 });
+
+describe('a line a start found lost', () => {
+  function lostLineWaits(board: Board, jobId: string): boolean {
+    const job = board.jobById(jobId);
+    return job !== undefined && board.lostLineAwaitsResume(job);
+  }
+
+  test('is logged with its kind and cause, and the job keeps its state', () => {
+    const { board } = boardWithTicket();
+    const jobId     = jobInState(board, 'gating');
+
+    expect(board.recordLineLost(jobId, 'gate', 'forge-crashed', AT).logged).toMatchObject([
+      { kind: 'job-line-lost', jobId, fields: { line: 'gate', cause: 'forge-crashed' } },
+    ]);
+    expect(board.jobById(jobId)?.state).toBe('gating');
+  });
+
+  test('an instruction after job-line-lost is accepted, and its line no longer waits', () => {
+    const { board } = boardWithTicket();
+    const jobId     = jobInState(board, 'preparing');
+    board.recordLineLost(jobId, 'install', 'reboot', AT);
+    expect(lostLineWaits(board, jobId)).toBe(true);
+
+    expect(board.instructResume(jobId, AT).logged).toMatchObject([{ kind: 'job-resume-instructed', jobId }]);
+    expect(lostLineWaits(board, jobId)).toBe(false);
+  });
+
+  test('an instruction logged before a later lost line does not count: the second lost line waits again', () => {
+    const { board } = boardWithTicket();
+    const jobId     = jobInState(board, 'gating');
+    board.recordLineLost(jobId, 'gate', 'forge-stopped', AT);
+    board.instructResume(jobId, AT);
+    board.recordLineLost(jobId, 'gate', 'forge-crashed', AT);
+
+    expect(lostLineWaits(board, jobId)).toBe(true);
+  });
+
+  test('a lost line already resumed does not wait again after a later interruption that resumed by itself', () => {
+    const { board, records } = boardWithTicket();
+    const jobId              = jobInState(board, 'preparing');
+    board.recordLineLost(jobId, 'install', 'forge-crashed', AT);
+    board.instructResume(jobId, AT);
+    board.moveJob(jobId, 'running', AT);
+    board.interruptJob(jobId, 'answer-delivery', AT);
+    for (const next of ['running', 'in-customs', 'gating'] as const) board.moveJob(jobId, next, AT);
+    const recordCount = records.length;
+
+    expect(lostLineWaits(board, jobId)).toBe(false);
+    expect(refusalDetailOf(() => board.instructResume(jobId, AT))).toEqual({ reason: 'job-not-interrupted', jobId });
+    expect(board.instructResumeOfEveryWaitingJob(FIXTURE_LIMITS, AT).logged).toEqual([]);
+    expect(records).toHaveLength(recordCount);
+  });
+
+  test('a second instruction once the first one came is refused job-not-interrupted', () => {
+    const { board } = boardWithTicket();
+    const jobId     = jobInState(board, 'gating');
+    board.recordLineLost(jobId, 'gate', 'reboot', AT);
+    board.instructResume(jobId, AT);
+
+    expect(refusalDetailOf(() => board.instructResume(jobId, AT))).toEqual({ reason: 'job-not-interrupted', jobId });
+  });
+
+  test('instructResumeOfEveryWaitingJob includes a job whose lost line waits and leaves out one already instructed', () => {
+    const { board } = boardWithPipelineAndTickets(['001', '002', '003']);
+    const rebooted  = buildInterruptedWith(board, '001', ['reboot']);
+    const lostGate  = jobInState(board, 'gating');
+    board.recordLineLost(lostGate, 'gate', 'forge-crashed', AT);
+    const instructedInstall = jobInState(board, 'preparing');
+    board.recordLineLost(instructedInstall, 'install', 'reboot', AT);
+    board.instructResume(instructedInstall, AT);
+
+    const { logged } = board.instructResumeOfEveryWaitingJob(FIXTURE_LIMITS, AT);
+
+    expect(logged.map((record) => [record.kind, 'jobId' in record ? record.jobId : null])).toEqual([
+      ['job-resume-instructed', rebooted], ['job-resume-instructed', lostGate],
+    ]);
+  });
+});
