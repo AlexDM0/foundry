@@ -61,6 +61,7 @@ import { projectLocationOf }                from '../tracker/ProjectLocation.ts'
 import { writeTracker, type TrackerChange } from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }              from '../tracker/TrackerReader.ts';
 import type { Workspace }                   from '../tracker/Workspace.ts';
+import type { StartClassificationVerdict }  from './@types/StartClassification.ts';
 import { AgentSlots }                       from './AgentSlots.ts';
 import {
   AIRLOCK_FACT_NAMES,
@@ -287,6 +288,8 @@ export interface DrivePassRequest {
   machineAgentCeiling?:          number;
   /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
   sessionStopGraceMilliseconds?: number;
+  /** What kind of start the start gate judged this serving period's; the reconcile at start reads it. */
+  startClassification?:          StartClassificationVerdict;
 }
 
 /** Derived each pass from the board, git and the Overseer's state, never stored. */

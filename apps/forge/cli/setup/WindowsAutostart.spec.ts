@@ -1,7 +1,7 @@
 /**
- * The Run entry: written through reg.exe by absolute path under the system folder, never searched for; its command line detaches and
- * names the repository, since a Run value has no working directory; and one over the documented 260 characters is refused before reg.exe
- * runs. With no absolute `SystemRoot` there is a reason, so setup writes nothing.
+ * The Run entry: written through reg.exe by absolute path under the system folder, never searched for; its command line is a `start` by the
+ * login item, which detaches, and names the repository, since a Run value has no working directory; and one over the documented 260
+ * characters is refused before reg.exe runs. With no absolute `SystemRoot` there is a reason, so setup writes nothing.
  */
 import { expect, test } from 'bun:test';
 
@@ -18,8 +18,8 @@ test('the Run value is added through the absolute reg.exe, quoted so a path with
   expect(autostart.write(item)).toEqual({ verdict: 'written' });
   expect(autostart.locationOf(LABEL)).toBe(`${RUN_KEY}\\${LABEL}`);
   expect(fake.commands[0]?.slice(0, 7)).toEqual(['C:\\Windows\\System32\\reg.exe', 'add', RUN_KEY, '/v', LABEL, '/t', 'REG_SZ']);
-  expect(fake.registry.get(LABEL)).toBe('"C:\\Users\\Alex Example\\.bun\\bin\\bun.exe" --no-env-file "--config=C:\\Users\\Alex Example\\agent-progress\\bunfig.toml" '
-    + '"C:\\Users\\Alex Example\\agent-progress\\agent-progress.ts" oversee --detach --repository "C:\\Users\\Alex Example\\code\\the \\"example\\" storefront\\\\"');
+  expect(fake.registry.get(LABEL)).toBe('"C:\\Users\\Alex Example\\.bun\\bin\\bun.exe" --no-env-file "--config=C:\\Users\\Alex Example\\forge\\bunfig.toml" '
+    + '"C:\\Users\\Alex Example\\forge\\agent-progress.ts" start --started-by login-item --repository "C:\\Users\\Alex Example\\code\\the \\"example\\" storefront\\\\"');
   expect(autostart.registeredRepositoryOf(LABEL)).toBe(item.repository);
 });
 

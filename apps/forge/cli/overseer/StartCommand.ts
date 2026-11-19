@@ -1,6 +1,7 @@
 /**
- * `start [--repository <path>] [--json]`: the board's Overseer, started detached as `open` starts it, with no browser. With one live it
- * starts nothing. It returns only once the Overseer's API answers, so a program that runs it may use the API at once.
+ * `start [--started-by user|login-item] [--repository <path>] [--json]`: the board's Overseer, started detached as `open` starts it, with no
+ * browser, after the start gate. With one live it starts nothing. It returns only once the Overseer's API answers, so a program that runs it
+ * may use the API at once.
  */
 import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                        from '../../src/services/overseer/OverseerFiles.ts';
@@ -13,10 +14,11 @@ import { requireCurrentInstall }                                                
 import { ProgramAnswerUtil }                                                      from '../utils/ProgramAnswerUtil.ts';
 import { requireTheOverseerCanStartIn, startContextOf, startTheOverseerDetached } from './DetachedOverseerStart.ts';
 import { OverseerRemote }                                                         from './OverseerRemote.ts';
+import { startOriginIn }                                                          from './StartGateAdmission.ts';
 
-const USAGE = `${PRODUCT_NAMES.PROGRAM} start [--repository <path>] [--port <n>] [--json]`;
+const USAGE = `${PRODUCT_NAMES.PROGRAM} start [--started-by user|login-item] [--repository <path>] [--port <n>] [--json]`;
 
-const KNOWN_OPTION_NAMES = ['repository', 'port', 'json'];
+const KNOWN_OPTION_NAMES = ['repository', 'port', 'json', 'started-by'];
 
 const WHOLE_NUMBER_PATTERN = /^\d+$/;
 
@@ -35,6 +37,7 @@ export const startCommand: CommandHandler = async (commandArguments, invokingCon
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
   const portArguments = portArgumentsOf(commandArguments.option('port'));
+  const startOrigin = startOriginIn(commandArguments, USAGE);
   const context = startContextOf(commandArguments, invokingContext);
   requireCurrentInstall(context.currentDirectory);
   const workspace = requireWorkspace(context.currentDirectory);
@@ -44,7 +47,7 @@ export const startCommand: CommandHandler = async (commandArguments, invokingCon
   if (started) {
     requireTheOverseerCanStartIn(workspace.rootDirectory, context.platformPorts.gateConfinement);
     await startTheOverseerDetached({
-      context, workspace, files, portArguments
+      context, workspace, files, portArguments, startOrigin
     });
   }
   const live = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);

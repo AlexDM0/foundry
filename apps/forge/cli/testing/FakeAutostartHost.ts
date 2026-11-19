@@ -93,7 +93,7 @@ function posixItem(label: string, repository: string): LoginItem {
 }
 
 function windowsItem(label: string, repository: string): LoginItem {
-  const checkout = 'C:\\Users\\Alex Example\\agent-progress';
+  const checkout = 'C:\\Users\\Alex Example\\forge';
   return {
     label,
     repository,

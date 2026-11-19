@@ -36,6 +36,8 @@ export interface MonitorRegistrationRequest {
   now:                  () => Date;
   /** The live Overseer, written at its start; `removed` at its stop; absent, a stored Overseer key is kept as it was. */
   overseer?:            OverseerRegistration | 'removed';
+  /** Whether the forge serves, stopped, handed over or crashed, written beside `overseer`; absent, a stored presence key is kept as it was. */
+  presence?:            PresenceRegistration;
   /** The platform's process check for the registry lock; absent, only a stale stamp frees it. */
   lockHolderIsGone?:    LockHolderIsGone;
 }
@@ -47,6 +49,20 @@ export interface OverseerRegistration {
   /** The absolute path of the Overseer's token file, which a monitor reads its bearer token from. */
   tokenPath: string;
 }
+
+export interface RegisteredCrash {
+  component:    'overseer' | 'talos';
+  suspected:    boolean;
+  errorName:    string | null;
+  errorMessage: string | null;
+  crashLogPath: string;
+}
+
+/** A kill from outside writes nothing: a stored `serving` whose process answers nothing is what a monitor sees until a start classifies it. */
+export type PresenceRegistration =
+  | { state: 'serving'; generation: number; at: string; process: { processId: number; startStamp: string; bootIdentity: string } }
+  | { state: 'stopped' | 'handed-over'; generation: number; at: string }
+  | { state: 'crashed'; generation: number; at: string; crash: RegisteredCrash };
 
 export type MonitorRegistrationOutcome =
   | { verdict: 'registered'; registryFilePath: string }
@@ -60,6 +76,7 @@ const REGISTRY_SHAPE: RegistryShape = { supportedVersion: MONITOR_REGISTRY_FILES
 
 const REGISTERED_AT_KEY = 'registeredAt';
 const OVERSEER_KEY        = 'overseer';
+const PRESENCE_KEY        = 'presence';
 
 /** A path that does not exist is resolved through its nearest existing ancestor, so `/tmp/missing` still reads as under `/private/tmp`. */
 function canonicalPathOf(path: string): string {
@@ -101,6 +118,7 @@ interface Registration {
   changedAt:        string;
   command:          string;
   overseer?:        OverseerRegistration | 'removed';
+  presence?:        PresenceRegistration;
 }
 
 /** Keeps the stored entry's keys, unknown ones included, in order, and its first `registeredAt`. */
@@ -115,6 +133,7 @@ function updatedEntry(storedEntry: RegistryEntry | undefined, registration: Regi
   };
   if (registration.overseer === 'removed') delete entry[OVERSEER_KEY];
   else if (registration.overseer !== undefined) entry[OVERSEER_KEY] = { ...registration.overseer };
+  if (registration.presence !== undefined) entry[PRESENCE_KEY] = structuredClone(registration.presence);
   return entry;
 }
 
@@ -134,7 +153,7 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    workspace, monitorFolder, temporaryDirectories, command, program, now, overseer, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
+    workspace, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
   } = request;
   if (trackerLiesInATemporaryFolder(workspace.rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
@@ -156,6 +175,7 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
     changedAt: LocalTimeUtil.formatLocalIso(now()),
     command,
     ...(overseer === undefined ? {} : { overseer }),
+    ...(presence === undefined ? {} : { presence }),
   };
   try {
     // Made before the lock, which would otherwise read a home it cannot write as a lock held until its retries ran out.

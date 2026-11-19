@@ -1,6 +1,7 @@
 /**
  * The LaunchAgent stays byte for byte what setup wrote before the Autostart port: the frozen text below was taken from the previous
- * `cli/setup/LoginOverseer.ts` with the same item; retake it only in a change meant to alter the plist, from the adapter's output.
+ * `cli/setup/LoginOverseer.ts` with the same item; retake it only in a change meant to alter the plist, from the adapter's output. Its
+ * command is `start --started-by login-item`, so a login after a crash prints the start gate's refusal instead of starting the forge.
  */
 import { join } from 'node:path';
 import {
@@ -27,8 +28,9 @@ const FROZEN_PROPERTY_LIST = [
   '    <string>--no-env-file</string>',
   '    <string>--config=/Users/alex-example/agent-progress/bunfig.toml</string>',
   '    <string>/Users/alex-example/agent-progress/agent-progress.ts</string>',
-  '    <string>oversee</string>',
-  '    <string>--detach</string>',
+  '    <string>start</string>',
+  '    <string>--started-by</string>',
+  '    <string>login-item</string>',
   '  </array>',
   '  <key>WorkingDirectory</key>',
   '  <string>/Users/alex-example/code/example &amp; storefront</string>',

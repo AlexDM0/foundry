@@ -95,6 +95,7 @@ async function foregroundOutcome(ports: PlatformPorts): Promise<unknown> {
     context:          { platformPorts: ports, homeDirectory: scratchDirectory } as CommandContext,
     workspace:        trackedWorkspace(),
     portChoice:       PORT_CHOICE_ENDING_THE_START,
+    startOrigin:      'user',
   });
   return await startPath.then(() => null, (error: unknown) => error);
 }

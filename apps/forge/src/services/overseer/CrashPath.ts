@@ -3,6 +3,7 @@
  * lease renewal, synchronously so a dying process makes them, then tells the registry within a bound. It never throws.
  */
 import type { ExclusiveCreation }                            from '../../lib/atomic-file/FileReplace.ts';
+import type { PresenceRegistration }                         from '../tracker/MonitorRegistration.ts';
 import type { CrashedComponent, CrashLogError, CrashLogJob } from './@types/CrashLogRecord.ts';
 import type { PresenceUpdate }                               from './@types/PresenceRecord.ts';
 import { CrashLog }                                          from './CrashLog.ts';
@@ -10,18 +11,8 @@ import type { OverseerFiles }                                from './OverseerFil
 import { Presence }                                          from './Presence.ts';
 import { CRASH_PATH_REGISTRY_BOUND_MILLISECONDS }            from './constants/PresenceLimits.ts';
 
-/** What the registry's presence key says of a crash, shaped as that key. */
-export interface RegistryCrashReport {
-  generation: number;
-  at:         string;
-  crash:      {
-    component:    CrashedComponent;
-    suspected:    boolean;
-    errorName:    string | null;
-    errorMessage: string | null;
-    crashLogPath: string;
-  };
-}
+/** The registry's presence key of a crash, which the crash path's registry step writes. */
+export type RegistryCrashReport = Extract<PresenceRegistration, { state: 'crashed' }>;
 
 export interface CrashPathContext {
   files:                      OverseerFiles;
@@ -143,6 +134,7 @@ function record(context: CrashPathContext, crash: Crash): Promise<CrashPathOutco
   const presence = writeTheCrashedEnding(context, crash, recordedAt);
   stopTheLeaseRenewal(context);
   const report: RegistryCrashReport = {
+    state:      'crashed',
     generation: context.generation,
     at:         recordedAt,
     crash:      {

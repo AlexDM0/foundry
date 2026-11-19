@@ -15,7 +15,7 @@ function xmlUnescaped(text: string): string {
 const WORKING_DIRECTORY_PATTERN = /<key>WorkingDirectory<\/key>\s*<string>([^<]*)<\/string>/;
 
 function commandOf(item: LoginItem): readonly string[] {
-  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee', '--detach'];
+  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'start', '--started-by', 'login-item'];
 }
 
 function propertyListOf(item: LoginItem): string {
@@ -45,7 +45,7 @@ function propertyListOf(item: LoginItem): string {
   ].join('\n');
 }
 
-/** macOS: a LaunchAgent that launchd runs once at login, `oversee --detach` in the repository. */
+/** macOS: a LaunchAgent that launchd runs once at login, `start --started-by login-item` in the repository. */
 export function darwinAutostartOver(primitives: AutostartPrimitives): Autostart {
   const locationOf = (label: string): string => join(primitives.homeDirectory, 'Library', 'LaunchAgents', `${label}.plist`);
   return {

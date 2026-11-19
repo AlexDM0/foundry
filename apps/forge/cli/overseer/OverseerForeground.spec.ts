@@ -6,7 +6,8 @@
  * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program. A Talos started from the
  * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
  * served refuses it `talos-unavailable`; `cli/overseer/OverseerCommand.integration.spec.ts` holds that a started Overseer's Talos serves
- * under a lease it renewed.
+ * under a lease it renewed. The start hold logs `start-classified` right after `overseer-started`, and a login item's start after a crash is
+ * refused by the start gate before it takes a Baton or binds a port, telling the registry the forge crashed.
  */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';
@@ -22,10 +23,13 @@ import {
 import type { DoneFrame } from '../../src/lib/talos/@types/TalosFrame.ts';
 
 import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { Baton }                                                 from '../../src/services/overseer/Baton.ts';
+import { CrashLog }                                              from '../../src/services/overseer/CrashLog.ts';
 import { startLeaseRenewal }                                     from '../../src/services/overseer/LeaseRenewal.ts';
 import { overseerFilesIn }                                       from '../../src/services/overseer/OverseerFiles.ts';
 import { Presence }                                              from '../../src/services/overseer/Presence.ts';
 import type { TalosConnection }                                  from '../../src/services/overseer/TalosConnection.ts';
+import { requireWorkspace }                                      from '../../src/services/tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
 import { PRODUCT_NAMES }                                         from '../../src/shared/constants/ProductNames.ts';
 import { fakeGateConfinement }                                   from '../../src/testing/FakeGateConfinement.ts';
@@ -37,7 +41,7 @@ import { describeWhenRecorded }                                  from '../../src
 import { runCommandLine }                                        from '../Main.ts';
 import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
-import { idleOverseerAnswersIn }                                 from '../testing/RecordedGitStages.ts';
+import { GIT_VERSION, idleOverseerAnswersIn }                    from '../testing/RecordedGitStages.ts';
 import { heartbeatOnRenewalOf, talosStartRefusalOf }             from './OverseerForeground.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
@@ -46,6 +50,11 @@ const ORIGIN_ASKED_WITH_NONE_SET: RecordedGitStep = { gitArguments: ['remote', '
 
 const recordedGit = useRecordedGit();
 const processTable = useRecordedProcessTable(nativePlatformPorts());
+
+function storedLogRecordsOf(repository: string): { kind: string; fields?: unknown }[] {
+  const logText = readFileSync(join(repository, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl'), 'utf8');
+  return logText.split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as { kind: string; fields?: unknown });
+}
 
 function registryEntriesIn(monitorFolder: string): Record<string, unknown>[] {
   const registry = JSON.parse(readFileSync(join(monitorFolder, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME), 'utf8')) as Record<string, Record<string, Record<string, unknown>>>;
@@ -85,6 +94,61 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ lastCommand: 'oversee' });
     expect(Object.keys(entries[0] ?? {})).not.toContain('overseer');
+  });
+
+  test('the start hold logs start-classified right after overseer-started, and presence records the classification and origin', async () => {
+    const worktreesFolder = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
+    rmSync(worktreesFolder, { recursive: true, force: true });
+    // The watch start fails after the start hold, so the case reads what the hold logged with no Talos started.
+    writeFileSync(worktreesFolder, 'not a folder\n');
+    recordedGit.answerFrom([...idleOverseerAnswersIn(repositoryDirectory), ORIGIN_ASKED_WITH_NONE_SET]);
+    processTable.callerProcess();
+    const platformPorts = { ...processTable.ports, gateConfinement: fakeGateConfinement('confined') };
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'overseer-home'), temporaryDirectories: [], platformPorts, now: SPEC_CLOCK
+    });
+
+    expect(await runCommandLine(['oversee', '--started-by', 'login-item', '--port', '0'], context), context.errorText()).toBe(2);
+
+    const records = storedLogRecordsOf(repositoryDirectory);
+    const startedIndex = records.findIndex((record) => record.kind === 'overseer-started');
+    expect(startedIndex).toBeGreaterThanOrEqual(0);
+    expect(records[startedIndex + 1]).toMatchObject({ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'login-item' } });
+    const presence = Presence.readPresence(overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory));
+    expect(presence.verdict === 'read' ? presence.record : null).toMatchObject({ startOrigin: 'login-item', startClassification: { kind: 'first-start' } });
+  });
+
+  test('a login-item start after a crash is refused forge-off-after-crash and leaves no Baton generation and no port bound', async () => {
+    const files = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    const crashedGeneration = 2;
+    Presence.writeStartedPresence(files, {
+      generation:          crashedGeneration,
+      process:             { processId: 4242, startStamp: '1700000000', bootIdentity: 'example-boot' },
+      codeVersion:         'code-example',
+      startOrigin:         'user',
+      startedAt:           '2026-09-18T20:00:00+00:00',
+      startClassification: null,
+    });
+    Presence.writeEnding(files, crashedGeneration, { kind: 'crashed', component: 'overseer', crashLogGeneration: crashedGeneration }, '2026-09-18T20:05:00+00:00');
+    // The version check of the git floor, then the registry's read of the origin; no git call of a serving start.
+    recordedGit.answerFrom([GIT_VERSION, ORIGIN_ASKED_WITH_NONE_SET]);
+    processTable.callerProcess();
+    const platformPorts = { ...processTable.ports, gateConfinement: fakeGateConfinement('confined') };
+    const homeDirectory = join(repositoryDirectory, 'overseer-home');
+    const context = createCapturedCommandContext({
+      currentDirectory: repositoryDirectory, homeDirectory, temporaryDirectories: [], platformPorts, now: SPEC_CLOCK
+    });
+
+    expect(await runCommandLine(['oversee', '--started-by', 'login-item', '--port', '0'], context)).toBe(1);
+
+    expect(context.errorText()).toContain(`is off after a crash of Baton ${crashedGeneration}`);
+    expect(Baton.batonGenerationsIn(files.overseerDirectory)).toEqual([]);
+    const overseerLog = readFileSync(files.logFilePath, 'utf8');
+    expect(overseerLog).toContain('Staying off after a crash of Baton 2');
+    expect(overseerLog).not.toContain('Overseer serving');
+    const [entry] = registryEntriesIn(platformPorts.dataFolders.monitorFolderOf(homeDirectory));
+    expect(Object.keys(entry ?? {})).not.toContain('overseer');
+    expect(entry?.['presence']).toMatchObject({ state: 'crashed', generation: crashedGeneration, crash: { crashLogPath: CrashLog.pathOf(files, crashedGeneration) } });
   });
 });
 

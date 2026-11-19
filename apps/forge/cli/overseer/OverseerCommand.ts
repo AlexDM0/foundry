@@ -26,10 +26,11 @@ import { type StoppedOverseerRequest, runOverseerInTheForeground }              
 import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                 from './OverseerRemote.ts';
 import { stopAndCloseTheLiveOverseer, stopTheOverseer }                           from './OverseerStop.ts';
 import { OverseerWording }                                                        from './OverseerWording.ts';
+import { startOriginArgumentsOf, startOriginIn }                                  from './StartGateAdmission.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
-const START_USAGE     = `${PROGRAM} oversee [--port <n>] [--detach] [--repository <path>] [--json]`;
+const START_USAGE     = `${PROGRAM} oversee [--started-by user|login-item] [--port <n>] [--detach] [--repository <path>] [--json]`;
 const SUCCESSOR_USAGE = `${PROGRAM} oversee --successor-of <generation> [--port <n>]`;
 const STOP_USAGE    = `${PROGRAM} oversee stop|restart [--now] [--json]`;
 const PAUSE_USAGE   = `${PROGRAM} oversee pause|resume [--json]`;
@@ -61,10 +62,14 @@ function successorOfIn(commandArguments: ArgumentParser): number | undefined {
 }
 
 async function startOverseer(commandArguments: ArgumentParser, invokingContext: CommandContext): Promise<void> {
-  commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of', 'repository'], START_USAGE);
+  commandArguments.rejectUnknownOptions(['port', 'detach', 'json', 'successor-of', 'repository', 'started-by'], START_USAGE);
   commandArguments.rejectExtraPositionals(0, START_USAGE);
   const context = startContextOf(commandArguments, invokingContext);
   const successorOf = successorOfIn(commandArguments);
+  if (successorOf !== undefined && commandArguments.option('started-by') !== undefined) {
+    throw new OperationRefusal('refused', `A successor is started by the Overseer it takes over from, so --started-by cannot go with --successor-of.\n  Usage: ${SUCCESSOR_USAGE}`);
+  }
+  const startOrigin = startOriginIn(commandArguments, START_USAGE);
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.
   if (successorOf === undefined) requireCurrentInstall(context.currentDirectory);
   requireTheOverseerCanStartIn(context.currentDirectory, context.platformPorts.gateConfinement);
@@ -72,13 +77,13 @@ async function startOverseer(commandArguments: ArgumentParser, invokingContext: 
   const portChoice = portChoiceOf(commandArguments, requireProgressFile(workspace).trackerId);
   if (!commandArguments.flag('detach')) {
     await runOverseerInTheForeground({
-      commandArguments, context, workspace, portChoice, ...(successorOf === undefined ? {} : { successorOf })
+      commandArguments, context, workspace, portChoice, startOrigin, ...(successorOf === undefined ? {} : { successorOf })
     });
     return;
   }
   const portArguments = portChoice.kind === 'given' ? ['--port', String(portChoice.port)] : [];
   const url = await startTheOverseerDetached({
-    context, workspace, files: overseerFilesIn(workspace.trackerDirectory), portArguments
+    context, workspace, files: overseerFilesIn(workspace.trackerDirectory), portArguments, startOrigin
   });
   OutputUtil.printEntity(commandArguments, context, { url }, url);
 }
@@ -115,7 +120,8 @@ async function restartTheOverseer(request: StoppedOverseerRequest, files: Overse
   }
   // A Baton already dead at the hand-over is read again here, so its port is kept and it is closed.
   const stopped = await stopAndCloseTheLiveOverseer(request, files, now);
-  const url    = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, successorPortArgumentsOf(stopped));
+  // The user's restart serves whatever the stop left; the detached child runs the start gate and records its kind.
+  const url    = await OverseerRemote.startDetached(context, workspace.rootDirectory, files, [...successorPortArgumentsOf(stopped), ...startOriginArgumentsOf('user')]);
   OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url }, `Overseer restarted at ${url}`);
 }
 

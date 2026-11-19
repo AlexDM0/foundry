@@ -858,6 +858,13 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so the Overseer did not start and no agent runs.`;
     case 'forge-crashed':
       return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; its crash log is ${detail.crashLogPath}.`;
+    case 'forge-off-after-crash':
+      return `The ${PRODUCT_NAMES.PROGRAM} is off after a crash of Baton ${detail.crashedGeneration}${detail.suspected ? ', suspected before the machine restarted' : ''}; `
+        + adviceFor(
+          channel,
+          `read why with \`${PRODUCT_NAMES.PROGRAM} crash-log\`, and start it yourself with \`${PRODUCT_NAMES.PROGRAM} start\`.`,
+          'read why in its crash log, and start it yourself.',
+        );
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'chart-range-bound-unreadable':

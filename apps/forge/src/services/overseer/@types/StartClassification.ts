@@ -19,3 +19,8 @@ export interface StartClassificationVerdict {
     bootStartedAt:          string | null;
   };
 }
+
+/** Whether a start may serve: it stays off after a crash, or a crash suspected before a reboot, unless the user started it. */
+export type StartGateVerdict =
+  | { verdict: 'serve'; classification: StartClassificationVerdict; crashLogGeneration: number | null }
+  | { verdict: 'stay-off'; classification: StartClassificationVerdict; crashLogGeneration: number; crashLogPath: string };

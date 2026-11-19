@@ -613,7 +613,7 @@ never carries it.
                               \`progress.html\` is only a stub naming that URL, or saying the Overseer
                               is down, written by \`init\`, \`update\` and \`oversee\`.
 
-  oversee [--port <n>] [--detach] [--repository <path>] [--json]
+  oversee [--started-by user|login-item] [--port <n>] [--detach] [--repository <path>] [--json]
                               Start the board's one Overseer on 127.0.0.1, logging to standard error
                               and \`overseer.log\`: it creates the Baton \`overseer/baton-<n>.json\`, writes
                               the API token to the owner-only folder under the monitor folder in the
@@ -625,7 +625,9 @@ never carries it.
                               Baton a newer one overtook stops baton-taken at exit 2.
                               --detach starts it in the background and prints the URL once it answers.
                               --repository starts the Overseer of that repository, not of the
-                              working directory.
+                              working directory. --started-by names who started it, user when
+                              absent: after a crash only a start by the user serves, and any other
+                              is refused forge-off-after-crash at exit 1.
   oversee --successor-of <generation> [--port <n>]
                               The successor's side of \`oversee restart\`'s Baton pass, which only the
                               live Overseer starts.
@@ -651,13 +653,14 @@ never carries it.
                               monitorFolder}, \`contracts\` the Overseer API's contracts this
                               program serves, as \`GET /api/identity\` names them. Read-only.
 
-  start [--repository <path>] [--port <n>] [--json]
+  start [--started-by user|login-item] [--repository <path>] [--port <n>] [--json]
                               Start the board's Overseer detached, as \`open\` does, and open no
                               browser; with one live, start nothing. It returns only once the
                               Overseer's API answers. --json prints {answerVersion, started, url,
                               generation, trackerId, codeVersion, installVersion, contracts}.
                               --repository starts the Overseer of that repository, and --port
-                              binds the port given, 0 any free one, as \`oversee\` does.
+                              binds the port given, 0 any free one, and --started-by names who
+                              started it, as \`oversee\` does.
 
   stop [--now] [--json]       \`oversee stop\` under the short name: {answerVersion, outcome},
                               with \`ending\` when the Overseer ended before it finished its stop.

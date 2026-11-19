@@ -66,6 +66,7 @@ export const OPTION_NAMES_WITH_VALUES = new Set<string>([
   'install',
   'port',
   'successor-of',
+  'started-by',
   'repository',
   'incident',
   'step',

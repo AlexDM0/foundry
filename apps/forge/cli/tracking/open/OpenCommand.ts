@@ -34,7 +34,7 @@ async function liveBatonRecordOf(context: CommandContext, workspace: Workspace, 
   context.standardError('Overseer: not running; starting it in the background.');
   requireTheOverseerCanStartIn(workspace.rootDirectory, context.platformPorts.gateConfinement);
   const url = await startTheOverseerDetached({
-    context, workspace, files, portArguments: []
+    context, workspace, files, portArguments: [], startOrigin: 'user'
   });
   context.standardError(`Overseer: started at ${url}. It keeps running after this command ends; \`${PROGRAM} oversee stop\` stops it.`);
   const started = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);

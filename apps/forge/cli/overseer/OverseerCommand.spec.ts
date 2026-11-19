@@ -5,7 +5,8 @@
  * clean stop after an end that skipped the Overseer's own stop, and repairs only once the process is gone, also when an earlier close was refused
  * and left a dead Baton. The stop waits of a stopping Overseer share one bound, so a drive pass that never ends cannot hold back the stop record
  * past what Windows gives. `oversee restart` over an Overseer found dead keeps its port, also one dead before the hand-over, which it closes, over
- * the recorded process table. An Overseer that runs is held by `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * the recorded process table. `--started-by` takes only a start by hand, never beside `--successor-of`, and the registry's presence key
+ * is written in each state and kept by a call without one. An Overseer that runs is held by `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -73,6 +74,20 @@ beforeEach(async () => {
 
 afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
+});
+
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start origin of oversee', () => {
+  test('--started-by refuses a value other than user or login-item at exit 1', async () => {
+    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
+    expect(await runCommandLine(['oversee', '--started-by', 'cron', '--port', '0'], context)).toBe(1);
+    expect(context.errorText()).toContain('"cron" is not a start origin. Write user or login-item.');
+  });
+
+  test('--started-by beside --successor-of is refused at exit 1: a successor\'s origin is the Overseer it takes over from', async () => {
+    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
+    expect(await runCommandLine(['oversee', '--successor-of', '2', '--started-by', 'user', '--port', '0'], context)).toBe(1);
+    expect(context.errorText()).toContain('--started-by cannot go with --successor-of');
+  });
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the confinement preflight', () => {
@@ -218,6 +233,12 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {}).flatMap((entry) => (entry.overseer === undefined ? [] : [entry.overseer]));
   }
 
+  function registeredPresenceIn(homeDirectory: string): unknown {
+    const registryFilePath = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
+    const registry = JSON.parse(readFileSync(registryFilePath, 'utf8')) as Record<string, Record<string, { presence?: unknown }>>;
+    return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {})[0]?.presence;
+  }
+
   /** The stop waits for the wedged process to go; its waits end at once, and the case proves the wait ran. */
   async function stopWithInstantWaits(commandLine: string[], context: ReturnType<typeof createCapturedCommandContext>): Promise<number> {
     const { value: exitCode, instantSleeps } = await instantSleepsOf(OVERSEER_STOP_INTERVAL_MILLISECONDS, () => runCommandLine(commandLine, context));
@@ -246,6 +267,43 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(await runCommandLine(['oversee', 'stop'], again), again.errorText()).toBe(0);
     expect(again.outputText().trim()).toBe('No Overseer is live; nothing to stop.');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
+  });
+
+  test('the registry writes the presence key in each state, keeps it through a call without one, and a stop writes it stopped', async () => {
+    const wedged = plantWedgedOverseer(true);
+    const registerPresence = (presence: Parameters<typeof registerWithTheMonitor>[0]['presence']) => registerWithTheMonitor({
+      workspace:            wedged.workspace,
+      monitorFolder:        join(wedged.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+      temporaryDirectories: [],
+      command:              'oversee',
+      program:              '/example/bin/forge',
+      now:                  SPEC_CLOCK,
+      ...(presence === undefined ? {} : { presence }),
+    });
+    const at = '2026-09-18T20:11:03+00:00';
+    const crash = {
+      component: 'talos', suspected: false, errorName: 'TalosLost', errorMessage: 'Example message', crashLogPath: '/example/overseer/crash-logs/crash-1.json'
+    } as const;
+    const presences = [
+      { state: 'handed-over', generation: 1, at },
+      {
+        state: 'crashed', generation: 1, at, crash
+      },
+      {
+        state: 'serving', generation: 1, at, process: { processId: WEDGED_PROCESS_ID, startStamp: '2', bootIdentity: 'example-boot' }
+      },
+    ] as const;
+    for (const presence of presences) {
+      await registerPresence(presence);
+      expect(registeredPresenceIn(wedged.homeDirectory)).toEqual(presence);
+    }
+
+    await registerPresence(undefined);
+    expect(registeredPresenceIn(wedged.homeDirectory)).toEqual(presences.at(-1));
+
+    const stopped = wedged.stopContext();
+    expect(await stopWithInstantWaits(['oversee', 'stop'], stopped), stopped.errorText()).toBe(0);
+    expect(registeredPresenceIn(wedged.homeDirectory)).toEqual({ state: 'stopped', generation: 1, at: expect.any(String) as unknown });
   });
 
   test('a forced end overtaken by a newer Overseer still says so and records the stop, and leaves that Overseer its registry entry, page and Baton', async () => {
@@ -384,7 +442,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
     // The successor writes its arguments and ends, so the start is refused as an Overseer that did not start.
     expect(await runCommandLine(['oversee', 'restart', '--json'], restarted), restarted.errorText()).toBe(1);
 
-    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
+    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1 --started-by user');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 
@@ -422,7 +480,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
     // The successor writes its arguments and ends, so the start is refused as an Overseer that did not start.
     expect(await runCommandLine(['oversee', 'restart', '--json'], restarted), restarted.errorText()).toBe(1);
 
-    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1');
+    expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('oversee --port 1 --started-by user');
     expect(overseerStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(Baton.newestBatonOf(platformPorts, overseerDirectory).verdict).toBe('none');
   });

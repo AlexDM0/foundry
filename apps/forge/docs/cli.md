@@ -262,10 +262,12 @@ a label that already starts another repository's Overseer is refused unless `--l
 
 | OS | item | runs |
 |---|---|---|
-| macOS | the LaunchAgent `~/Library/LaunchAgents/<label>.plist`, `RunAtLoad`; setup prints the `launchctl bootstrap` line | `oversee --detach` in the repository |
-| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `oversee` in the foreground, in the repository |
-| Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `oversee --detach --repository <repository>`, as a Run value has no working directory |
+| macOS | the LaunchAgent `~/Library/LaunchAgents/<label>.plist`, `RunAtLoad`; setup prints the `launchctl bootstrap` line | `start --started-by login-item` in the repository |
+| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `oversee --started-by login-item` in the foreground, in the repository |
+| Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `start --started-by login-item --repository <repository>`, as a Run value has no working directory |
 
+The login item starts the forge as `login-item`: after a crash, or a crash suspected before the machine restarted, that
+start stays off and is refused `forge-off-after-crash` (see [The start gate](#the-start-gate)).
 `KillMode=process` lets a board's Talos outlive a stop or restart of the unit. On another OS, on Linux with no
 `systemctl` or no user service manager, and on Windows with no absolute `SystemRoot`, setup exits 1 and writes nothing.
 
@@ -1342,17 +1344,36 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 
 | command | what it does |
 |---|---|
-| `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port; `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
-| `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. |
+| `oversee [--started-by user\|login-item] [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--started-by` names who started it, `user` when absent; it passes [the start gate](#the-start-gate) first. `--port` binds the one given, `0` any free one, and none keeps the board's derived port; `--detach` starts the same command detached, with the same origin, after the start gate; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
+| `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. Its start origin is `successor`, so `--started-by` beside it is refused at exit 1. |
 | `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Overseer no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
 | `oversee restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
 | `open [--no-browser]` | Open the live Overseer's URL in the default browser (`open` on macOS, `%SystemRoot%\System32\rundll32.exe url.dll,FileProtocolHandler` by absolute path on Windows, `xdg-open` on Linux and elsewhere, each detached) and print it, when the newest Baton in `<data>/overseer/` names a live process. With none live, it first starts the Overseer detached, as `oversee --detach` does, with the same checks and refusals, and says so on standard error; the Overseer keeps running after `open` ends. A started Overseer gone again before `open` reads its Baton is refused `overseer-down` at exit 1. The URL carries a one-time session code in its fragment, `#session=<code>`, asked for with the token; the Bridge exchanges it once for the session cookie every data route needs ([Browser sessions](reference/overseer-api.md#browser-sessions)). The opener gets only the path of an owner-only redirect file beside the token, and `open` stays until the code's life ends, or a stop signal comes, to remove it; it prints the plain URL, since the code is the launched browser's. `--no-browser` launches nothing, writes no redirect file and prints the URL with its code, which works once within the code's life (30 seconds), then exits. Each step (the Overseer found or started, the browser launched, the wait and its end) is reported on standard error; standard output holds only the URL. An Overseer that gives no code within 10 seconds is reported on standard error and the plain URL opened. It takes no lock and writes nothing in the board itself; an Overseer it starts writes what `oversee` writes. |
 | `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Overseer API contracts this program serves as `GET /api/identity` names them, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
-| `start [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `open` does, with the same checks and refusals, and open no browser. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
+| `start [--started-by user\|login-item] [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `open` does, with the same checks and refusals, and open no browser. `--started-by` names who started it, `user` when absent, and is passed to the detached Overseer; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
 | `stop [--now] [--json]` | `oversee stop` under the short name, with the same behaviour; `--json` prints `{ answerVersion, outcome }`, with `ending` as `oversee stop` adds it. |
 | `login-item add\|remove\|status [--repository <path>] [--json]` | The item that starts this board's Overseer when the user logs in, as `setup --login-overseer` writes it (a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows), under the label `com.forge.overseer.<trackerId>`, so every board has its own. `add` writes it, `remove` removes it, `status` reads it. `--json` prints `{ answerVersion, outcome, state, label, location, repository }`: `state` `present` or `absent` after the step, `outcome` `done`, `nothing-to-do`, or `null` for `status`. Refused `login-item-unavailable` where no item could run, and `login-item-not-changed` where the system refused the change, at exit 1. It writes no repository file. |
+
+#### The start gate
+
+Every start of the forge (`start`, `oversee`, `open`, the login item and a successor) classifies itself before it
+takes a Baton, from what the generation before it left: `<data>/overseer/presence.json`,
+`<data>/overseer/heartbeat.json`, the newest Baton and Talos's newest record, and the current boot. The kinds are
+`first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` (with `crashSuspected` when the last beat was older
+than four lease renewal intervals at the boot) and `crashed` (the Overseer or Talos). After `crashed`, or
+`machine-went-down` with a suspected crash, the start writes the crash log
+`<data>/overseer/crash-logs/crash-<generation>.json` once; a log already there, from the crash itself or an earlier
+start, stays. Only a start by `user` then serves. A start by `login-item`, or a successor whose predecessor died during
+the Baton pass, stays off: it writes the registry's `presence` as `crashed`, logs one line to `overseer.log`, takes no
+Baton, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge is off after a
+crash of Baton <n>; read why with `forge crash-log`, and start it yourself with `forge start`."). A start that serves
+records its kind in `presence.json` (`startClassification`, `startOrigin`) and in the board log (`start-classified`,
+right after `overseer-started`).
+
+`presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
+written whole by the Overseer; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
 
 #### Where the secrets live
 
@@ -3058,9 +3079,15 @@ and `lastCommand` (the verb that wrote, the command word and its subcommand), an
 `overseer` (`{url, processId, startedAt, tokenPath}`, written at its start and removed by a stop). `tokenPath` is the
 absolute path of that Overseer's owner-only token file, which a monitor reads its bearer token from.
 
-`program` and `overseer.tokenPath` are keys added to version 1: an optional key added to a stored format keeps its
-version, since every reader keeps a key it does not know. An entry an older program wrote has neither until its next
-write.
+`presence` says whether the forge serves: `{state: serving, generation, at, process: {processId, startStamp,
+bootIdentity}}` at a start, `{state: stopped|handed-over, generation, at}` at a stop or a Baton pass, and `{state:
+crashed, generation, at, crash: {component, suspected, errorName, errorMessage, crashLogPath}}` from a crash and from a
+start that stays off. A kill from outside writes nothing, so a `serving` whose process answers nothing stands until the
+next start classifies it; a write that names no presence keeps the stored one.
+
+`program`, `overseer.tokenPath` and `presence` are keys added to version 1: an optional key added to a stored format
+keeps its version, since every reader keeps a key it does not know. An entry an older program wrote has none of them
+until its next write.
 
 No board summary is copied: the monitor reads each project's own files. The CLI never removes an entry and has no
 command for the registry.

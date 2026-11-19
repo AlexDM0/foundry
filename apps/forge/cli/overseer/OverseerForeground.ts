@@ -13,6 +13,7 @@ import {
 import { dirname } from 'node:path';
 
 import { createProgressPageStubWriter }                   from '../../src/adapters/progress-page/ProgressPageStubWriter.ts';
+import { OperationRefusalWordingUtil }                    from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { writeOwnerOnlyFileAtomically }                   from '../../src/lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
@@ -20,6 +21,8 @@ import type { PlatformPorts }                             from '../../src/lib/pl
 import { type ProcessIdentity, sameBoot }                 from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
 import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
+import type { StartOrigin }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                         from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
@@ -66,12 +69,11 @@ import {
   TALOS_START_BOUNDS,
   TALOS_START_WAITS
 } from '../../src/services/overseer/TalosStart.ts';
-import { registerWithTheMonitor, type MonitorRegistrationRequest } from '../../src/services/tracker/MonitorRegistration.ts';
-import { PictureStore }                                            from '../../src/services/tracker/PictureStore.ts';
-import { projectLocationOf }                                       from '../../src/services/tracker/ProjectLocation.ts';
-import { requireProgressFile }                                     from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
-import { branchNamesOf }                                           from '../../src/shared/BranchNames.ts';
+import { PictureStore }        from '../../src/services/tracker/PictureStore.ts';
+import { projectLocationOf }   from '../../src/services/tracker/ProjectLocation.ts';
+import { requireProgressFile } from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }      from '../../src/services/tracker/Workspace.ts';
+import { branchNamesOf }       from '../../src/shared/BranchNames.ts';
 import {
   agentVariableIsSet,
   environmentCopy,
@@ -87,25 +89,29 @@ import {
   BATON_PASS_RELEASE_TRIES,
   OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
-import type { CommandContext }                               from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                           from '../CommandControlContext.ts';
-import { requireCurrentInstall }                             from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                             from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                               from '../arguments/ArgumentParser.ts';
-import { INSTALL_VERSION }                                   from '../constants/InstallVersion.ts';
-import { OutputUtil }                                        from '../utils/OutputUtil.ts';
-import { type OverseerFlintBrain, createOverseerFlintBrain } from './OverseerFlintBrain.ts';
-import { type OverseerPollSchedule, overseerPollScheduleOf } from './OverseerPollSchedule.ts';
-import { OverseerWording }                                   from './OverseerWording.ts';
-import { createMergeForecastCache, readBoardState }          from './routes/BoardStateReader.ts';
-import type { RuntimeOverseerCommand }                       from './routes/CommandRoute.ts';
-import { overseerRoutesOf }                                  from './routes/OverseerRoutes.ts';
+import type { CommandContext }                                          from '../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                      from '../CommandControlContext.ts';
+import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
+import { openTrackerForWriting }                                        from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
+import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
+import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
+import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
+import { type OverseerFlintBrain, createOverseerFlintBrain }            from './OverseerFlintBrain.ts';
+import { type OverseerPollSchedule, overseerPollScheduleOf }            from './OverseerPollSchedule.ts';
+import { OverseerWording }                                              from './OverseerWording.ts';
+import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
+import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
+import type { RuntimeOverseerCommand }                                  from './routes/CommandRoute.ts';
+import { overseerRoutesOf }                                             from './routes/OverseerRoutes.ts';
 
 export interface ForegroundRunRequest {
   commandArguments: ArgumentParser;
   context:          CommandContext;
   workspace:        Workspace;
   portChoice:       OverseerPortChoice;
+  /** Who started this process: a successor's origin is `successor` whatever this says. */
+  startOrigin:      StartOriginByHand;
   /** Set for `oversee --successor-of <generation>`: the generation this process takes the board over from. */
   successorOf?:     number;
 }
@@ -156,7 +162,7 @@ function batonPassSchedule(): BatonPassSchedule {
 }
 
 /** Every line goes to standard error and is appended to `<data>/overseer.log`, which a reader tails, so it is never rewritten whole. */
-function overseerLoggerOf(context: CommandContext, files: OverseerFiles): (line: string) => void {
+export function overseerLoggerOf(context: CommandContext, files: OverseerFiles): (line: string) => void {
   return (line: string) => {
     const stampedLine = `${LocalTimeUtil.formatLocalIso(context.now())} ${line}`;
     context.standardError(stampedLine);
@@ -178,19 +184,8 @@ export function requireNoLiveOverseer(ports: PlatformPorts, files: OverseerFiles
   if (newest.verdict === 'live') throw alreadyRunningRefusal(files, newest.generation, newest.record);
 }
 
-/** A registry that cannot be written never fails the Overseer; the monitor only loses its pointer. */
-async function registerOverseer(request: StoppedOverseerRequest, overseer: MonitorRegistrationRequest['overseer']): Promise<void> {
-  const { context, workspace } = request;
-  await registerWithTheMonitor({
-    workspace,
-    monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
-    temporaryDirectories: context.temporaryDirectories,
-    command:              context.commandVerb,
-    program:              context.programPath,
-    now:                  context.now,
-    lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
-    ...(overseer === undefined ? {} : { overseer }),
-  });
+async function registerOverseer(request: StoppedOverseerRequest, registration: BoardRegistration): Promise<void> {
+  await registerTheBoard(request.context, request.workspace, registration);
 }
 
 /**
@@ -201,9 +196,10 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
   const { commandArguments, context, workspace } = request;
   await openTrackerForWriting(commandArguments, context, (change) => change.board.recordOverseerStopped('stopped', change.at));
   if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
-  await registerOverseer(request, 'removed');
+  const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
+  await registerOverseer(request, { overseer: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
   createProgressPageStubWriter(workspace.htmlFilePath).write(null);
-  Presence.writeEnding(files, generation, { kind: 'stopped' }, LocalTimeUtil.formatLocalIso(context.now()));
+  Presence.writeEnding(files, generation, { kind: 'stopped' }, stoppedAt);
   Baton.release(files.overseerDirectory, generation);
 }
 
@@ -377,6 +373,17 @@ export function spawnSuccessor(
   }
 }
 
+/** The `start-classified` record of an admitted start: a field it has no value for is left out. */
+function startClassifiedFieldsOf({ classification, crashLogGeneration }: ServingAdmission, startOrigin: StartOrigin): LogRecordFieldsOf<'start-classified'> {
+  return {
+    kind: classification.kind,
+    startOrigin,
+    ...(classification.previousGeneration === null ? {} : { previousGeneration: classification.previousGeneration }),
+    ...(classification.crashSuspected ? { crashSuspected: true } : {}),
+    ...(crashLogGeneration === null ? {} : { crashLogGeneration }),
+  };
+}
+
 export async function runOverseerInTheForeground(request: ForegroundRunRequest): Promise<void> {
   const crashPathReach: CrashPathReach = { contextNow: () => null };
   const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow());
@@ -408,6 +415,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
   const log         = overseerLoggerOf(context, files);
+  const startOrigin: StartOrigin = request.successorOf === undefined ? request.startOrigin : 'successor';
+  // Before any Baton, port or Talos, so a start that stays off leaves nothing a later start would read as its own; a successor runs it once
+  // its predecessor released the board or is gone.
+  let startAdmission: ServingAdmission | null = request.successorOf === undefined
+    ? await admitTheStart({
+      context, workspace, files, origin: { startOrigin: request.startOrigin }, log
+    })
+    : null;
+  // A rebind after a failed Baton pass serves again under the same admission; only the process's first serving period logs it.
+  let startClassificationLogged = false;
   // Git runs at the repository's root, never in a tracker's folder below it.
   const { repositoryRoot } = projectLocationOf(workspace.rootDirectory);
   const mainLine    = mainLineOf(repositoryRoot);
@@ -483,8 +500,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     activeJobs:         () => (requireProgressFile(workspace).jobs ?? []).map(CrashLog.activeJobOf),
     talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber)),
     stopLeaseRenewal:   () => leaseRenewal?.stop(),
-    // The registry's presence key arrives with the start gate; until then the crash path tells the registry nothing.
-    writeRegistryCrash: async () => undefined,
+    writeRegistryCrash: (report) => registerOverseer(request, { presence: report }),
     stampNow:           () => LocalTimeUtil.formatLocalIso(context.now()),
     log,
   });
@@ -552,6 +568,8 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     acquireBaton: (record: BatonRecord) => BatonAcquisition,
     enterStep: (step: BatonPassStep) => void,
   ): Promise<Serving> {
+    const admission = startAdmission;
+    if (admission === null) throw new Error('A start serves only once the start gate admitted it.');
     // Set once the Baton is taken; a brain change before then has no stream to reach.
     let publishFlintBrainChange: () => void = () => undefined;
     const overseerFlintBrain = createOverseerFlintBrain({
@@ -711,9 +729,9 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         generation,
         process:             ownIdentity,
         codeVersion,
-        startOrigin:         'user',
+        startOrigin,
         startedAt:           servingStartedAt,
-        startClassification: null,
+        startClassification: admission.classification,
       });
       crashableGeneration = generation;
       token    = writeToken(platformPorts, tokenFilePath);
@@ -726,8 +744,11 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         // In the hold, so no command names a picture between the read of the references and the sweep.
         PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(change.board.logRecordsSoFar(), change.board.jobs()));
         finishHalfAppliedSetup(change, COMMAND_CONTROL_CONTEXT);
-        return change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
+        const overseerStarted = change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
+        if (!startClassificationLogged) change.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), change.at);
+        return overseerStarted;
       });
+      startClassificationLogged = true;
       log(`Overseer serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
 
       const startedLifetime = lifetime;
@@ -768,6 +789,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         watchHatchFolder:      (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
         unwatchHatchFolder:    (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
         afterPass:             publishState,
+        startClassification:   admission.classification,
       });
       const startedPass = drivePass;
       dataFolderWatch = DataFolderWatch.startWatching({
@@ -810,7 +832,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       // watch can block the event loop for many seconds on a loaded macOS, and a client that had the URL earlier waited that long.
       started = true;
       await registerOverseer(request, {
-        url: server.url, processId: process.pid, startedAt: servingStartedAt, tokenPath: tokenFilePath
+        overseer: {
+          url: server.url, processId: process.pid, startedAt: servingStartedAt, tokenPath: tokenFilePath
+        },
+        presence: {
+          state: 'serving', generation, at: servingStartedAt, process: ownIdentity
+        },
       });
       createProgressPageStubWriter(workspace.htmlFilePath).write(server.url);
       if (!printedTheUrl) OutputUtil.printEntity(request.commandArguments, context, { url: server.url, generation }, server.url);
@@ -848,8 +875,10 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       serving.lifetime.stopListening();
       throw crashRefusal;
     }
-    Presence.writeEnding(files, serving.generation, { kind: 'handed-over' }, LocalTimeUtil.formatLocalIso(context.now()));
+    const handedOverAt = LocalTimeUtil.formatLocalIso(context.now());
+    Presence.writeEnding(files, serving.generation, { kind: 'handed-over' }, handedOverAt);
     crashableGeneration = null;
+    await registerOverseer(request, { presence: { state: 'handed-over', generation: serving.generation, at: handedOverAt } });
     await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
     await serving.server.stop();
     log('Released the board to the successor.');
@@ -909,7 +938,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         kind: 'baton-pass-failed', successorCodeVersion: failure.successorCodeVersion, step: failure.step, error: failure.error, url: null
       });
     }
-    log(admission === 'released' ? `Baton ${predecessorGeneration} released the board; taking it over.` : `Baton ${predecessorGeneration} is gone; starting as after a crash.`);
+    log(admission === 'released' ? `Baton ${predecessorGeneration} released the board; taking it over.` : `Baton ${predecessorGeneration} is gone; classifying the start.`);
+    try {
+      startAdmission = await admitTheStart({
+        context, workspace, files, origin: { startOrigin: 'successor', predecessorGeneration }, log
+      });
+    } catch (refusal) {
+      const worded = refusal instanceof OperationRefusal ? new Error(OperationRefusalWordingUtil.messageOf(refusal)) : refusal;
+      BatonPass.reportFailure({ batonPassFilePath, codeVersion }, 'take-baton', worded, admission === 'released');
+      throw refusal;
+    }
     return await startAsSuccessor(predecessorGeneration, admission);
   }
 

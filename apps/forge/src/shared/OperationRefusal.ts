@@ -71,6 +71,8 @@ export type OperationRefusalDetail =
   | { kind: 'talos-unavailable'; reason: 'endpoint-does-not-fit' | 'start-refused' | 'not-serving'; startNumber: number }
   /** The forge crashed while serving (the Overseer, or its Talos lost), wrote its crash log and stays off until a person starts it. */
   | { kind: 'forge-crashed'; component: 'overseer' | 'talos'; crashLogPath: string }
+  /** A start after a crash, or a crash suspected before a reboot, that the user did not make: it took no Baton and stays off. */
+  | { kind: 'forge-off-after-crash'; crashedGeneration: number; crashLogPath: string; suspected: boolean }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
   | { kind: 'chart-range-backwards'; from: string; to: string }

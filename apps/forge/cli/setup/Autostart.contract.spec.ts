@@ -67,12 +67,14 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
     },
   },
   {
-    claim: 'a written item reads back its repository under its label, and its command starts the Overseer',
+    claim: 'a written item reads back its repository under its label, and its command starts the Overseer as the login item',
     check: ({ autostart, itemFor }) => {
       const item = itemFor('com.example-agency.overseer', 'example storefront');
       expect(autostart.write(item)).toEqual({ verdict: 'written' });
       expect(autostart.registeredRepositoryOf(item.label)).toBe(item.repository);
-      expect(autostart.commandOf(item)).toContain('oversee');
+      const command = autostart.commandOf(item);
+      expect(command.indexOf('--started-by')).toBeGreaterThan(0);
+      expect(command[command.indexOf('--started-by') + 1]).toBe('login-item');
       expect(autostart.locationOf(item.label)).toContain(item.label);
     },
   },

@@ -16,9 +16,9 @@ function quotedUnitArgumentOf(text: string): string {
   return `"${escaped}"`;
 }
 
-/** Foreground, so systemd watches the Overseer itself: `--detach` would exit at once and leave a unit with nothing in it. */
+/** Foreground, so systemd watches the Overseer itself: `start` would exit at once and leave a unit with nothing in it. */
 function commandOf(item: LoginItem): readonly string[] {
-  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee'];
+  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee', '--started-by', 'login-item'];
 }
 
 /** `KillMode=process` stops only the Overseer with the unit, so the Talos it started outlives a stop or restart, as they must. */

@@ -1,7 +1,7 @@
 /**
- * The systemd user unit: it runs the Overseer in the foreground under `Type=simple`, since `--detach`'s launcher exits at once, and with
- * `KillMode=process`, since the default kills the whole control group and with it Talos and every child on a stop or restart. A host with no
- * systemctl or no user service manager gets nothing written, and a failed enable is reported, never a success.
+ * The systemd user unit: it runs the Overseer in the foreground, started by the login item, under `Type=simple`, since `--detach`'s launcher
+ * exits at once, and with `KillMode=process`, since the default kills the whole control group and with it Talos and every child on a stop or
+ * restart. A host with no systemctl or no user service manager gets nothing written, and a failed enable is reported, never a success.
  */
 import { join } from 'node:path';
 import {
@@ -27,7 +27,7 @@ afterEach(() => {
 
 const LABEL = 'com.example-agency.overseer';
 
-test('the unit runs oversee in the foreground under Type=simple and KillMode=process, then systemctl --user reloads and enables it', () => {
+test('the unit runs oversee --started-by login-item in the foreground under Type=simple and KillMode=process, then systemctl --user reloads and enables it', () => {
   const fake = FakeAutostartHost.posixPrimitives(scratchDirectory);
   const autostart = linuxAutostartOver(fake.primitives);
   const item = FakeAutostartHost.posixItem(LABEL, '/home/alex-example/code/100% storefront');
@@ -42,7 +42,7 @@ test('the unit runs oversee in the foreground under Type=simple and KillMode=pro
   expect(unitLines).toContain('WorkingDirectory=/home/alex-example/code/100%% storefront');
   expect(unitLines).toContain('Environment="PATH=/Users/alex-example/.bun/bin:/usr/bin:/bin"');
   expect(unitLines).toContain('ExecStart="/Users/alex-example/.bun/bin/bun" "--no-env-file" "--config=/Users/alex-example/agent-progress/bunfig.toml" '
-    + '"/Users/alex-example/agent-progress/agent-progress.ts" "oversee"');
+    + '"/Users/alex-example/agent-progress/agent-progress.ts" "oversee" "--started-by" "login-item"');
   expect(unitText).not.toContain('--detach');
   expect(autostart.registeredRepositoryOf(LABEL)).toBe(item.repository);
   expect(fake.commands).toEqual([

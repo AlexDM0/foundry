@@ -54,9 +54,9 @@ function argumentsOf(commandLine: string): string[] {
   return parsed;
 }
 
-/** `--detach`, since a Run value is started once and never watched, and `--repository`, since a Run value has no working directory. */
+/** `start`, since a Run value is started once and never watched, and `--repository`, since a Run value has no working directory. */
 function commandOf(item: LoginItem): readonly string[] {
-  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee', '--detach', '--repository', item.repository];
+  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'start', '--started-by', 'login-item', '--repository', item.repository];
 }
 
 /** Windows: a value under the per-user Run key, written and read through reg.exe by absolute path. */

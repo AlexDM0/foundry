@@ -131,10 +131,11 @@ describe('the crash path', () => {
     return recording;
   });
 
-  test('the registry is told the crash in the shape of its presence key', async () => {
+  test('the registry is told the crash as its presence key crashed', async () => {
     const fake = fakeCrashPathOf();
     await CrashPath.record(fake.context, { component: 'talos', error: null });
     expect(fake.registryReports).toEqual([{
+      state:      'crashed',
       generation: 4,
       at:         CRASHED_AT,
       crash:      {

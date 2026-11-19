@@ -163,6 +163,12 @@ function textOf(path: string): string | null {
   }
 }
 
+/** The start number of the board's newest Talos record; `null` when no Talos ever claimed the board. */
+export function newestTalosStartNumberIn(boardFolder: string): number | null {
+  const recordedStartNumbers = startNumbersIn(boardFolder, TALOS_RECORD_PATTERN);
+  return recordedStartNumbers.length === 0 ? null : Math.max(...recordedStartNumbers);
+}
+
 export function talosRecordAt(boardFolder: string, startNumber: number): TalosRecord | null {
   const text = textOf(talosRecordPathOf(boardFolder, startNumber));
   const reading = text === null ? null : talosRecordOf(text);
