@@ -15,11 +15,22 @@ import {
   test
 } from 'bun:test';
 
+import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../testing/WaitUntil.ts';
 import { GateRunSlots }                                   from './GateRunSlots.ts';
+import { createWatcherBoardChildren }                     from './WatcherBoardChildren.ts';
+
+
+/** The holder's liveness as the drive pass judges it, a gate Watcher's read through the Watchers' adapter of the board's children. */
+function holderIsLive(ports: PlatformPorts, holding: Parameters<typeof GateRunSlots.gateRunHolderIsLive>[2]): boolean {
+  const children = createWatcherBoardChildren({
+    platformPorts: ports, trackerDirectory: '/example/tracker', launching: null, log: () => undefined
+  });
+  return GateRunSlots.gateRunHolderIsLive(children, ports, holding);
+}
 
 const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
@@ -42,7 +53,7 @@ function slotsIn(folder: string, liveHolders: Pick<Set<string>, 'has'>): GateRun
 
 function watcherJudgedSlotsIn(folder: string): GateRunSlots {
   return GateRunSlots.createGateRunSlots({
-    ports, folder, limit: 2, holderIsLive: (holding) => GateRunSlots.gateRunHolderIsLive(ports, holding), retryMilliseconds: RETRY_MILLISECONDS,
+    ports, folder, limit: 2, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: RETRY_MILLISECONDS,
   });
 }
 

@@ -17,6 +17,11 @@ export function overseerFilesIn(trackerDirectory: string): OverseerFiles {
   };
 }
 
+/** `<data>/jobs/<J>/`: a job's own files, its children's among them. */
+export function jobFolderIn(trackerDirectory: string, jobId: string): string {
+  return join(trackerDirectory, 'jobs', jobId);
+}
+
 /** The API token, in the board's owner-only folder; every reader takes the path from the Baton's `tokenFile`. */
 export function overseerTokenPathOf(monitorFolder: string, trackerId: string): string {
   return join(privateFolderOf(monitorFolder, trackerId), 'token');

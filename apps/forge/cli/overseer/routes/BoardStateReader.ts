@@ -4,16 +4,17 @@
  */
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
-import { storedFileTextOf }  from '../../../src/adapters/StoredFileText.ts';
-import { UsageMarkerFile }   from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { UsageWindowsFile }  from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
-import { LogUtil }           from '../../../src/adapters/utils/LogUtil.ts';
-import { GitProcess }        from '../../../src/lib/git/GitProcess.ts';
-import { predictMerges }     from '../../../src/lib/git/MergeTree.ts';
-import type { LogRecord }    from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { Board }        from '../../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }    from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { mergeTargetRuleOf } from '../../../src/services/lifecycle/MergeTargets.ts';
+import { storedFileTextOf }   from '../../../src/adapters/StoredFileText.ts';
+import { UsageMarkerFile }    from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageWindowsFile }   from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
+import { LogUtil }            from '../../../src/adapters/utils/LogUtil.ts';
+import { GitProcess }         from '../../../src/lib/git/GitProcess.ts';
+import { predictMerges }      from '../../../src/lib/git/MergeTree.ts';
+import type { LogRecord }     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { Board }         from '../../../src/lib/tracker-model/Board.ts';
+import { readingBoardOf }     from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { mergeTargetRuleOf }  from '../../../src/services/lifecycle/MergeTargets.ts';
+import type { BoardChildren } from '../../../src/services/overseer/BoardChildren.ts';
 import {
   BoardStateAssembly,
   type BoardState,
@@ -35,6 +36,7 @@ import { fullDocumentOf }                            from '../../StatusDocuments
 export interface BoardStateSource {
   context:             CommandContext;
   workspace:           Workspace;
+  boardChildren:       BoardChildren;
   notices:             () => readonly unknown[];
   /** Everything but `paused`, which the board's stored drain flag says. */
   overseer:            () => Omit<OverseerFacts, 'paused'>;
@@ -154,7 +156,9 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
-  const liveFactsSource = { trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board };
+  const liveFactsSource = {
+    boardChildren: source.boardChildren, trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board
+  };
   const assembledState = BoardStateAssembly.boardStateOf({
     statusDocument: fullDocumentOf(progress, storedLog.records.map(LogUtil.wordedEntryOf), board, false, confinementInForce, pipeline !== null),
     board,

@@ -3,10 +3,13 @@
  * own `EVENT_LOG_FORMAT_VERSION` until the Watcher ends. A Watcher below `WATCHER_PROTOCOL_OLDEST_SUPPORTED` is a `legacy-watcher`: sent no frame,
  * watched through these files alone, and stopped by signalling its recorded process group, its identity checked first.
  */
+import { readFileSync } from 'node:fs';
+
 import type { PlatformPorts }                                          from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { eventLogEntriesOf, type EventLogReading }                     from '../../lib/talos/EventLog.ts';
 import { EVENT_LOG_FORMAT_VERSION }                                    from '../../lib/talos/constants/TalosProtocol.ts';
-import type { WatcherRecord }                                          from '../../lib/watcher/WatcherRecord.ts';
+import { watcherFilesOf }                                              from '../../lib/watcher/WatcherFiles.ts';
+import { type WatcherRecord, watcherRecordOfStored }                   from '../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 
 export type WatcherAttachment = 'attached' | 'legacy-watcher';
@@ -17,6 +20,15 @@ export type VersionedEventLogReading = EventLogReading | { readonly verdict: 'un
 const EVENT_LOG_READERS: ReadonlyMap<number, (eventLogText: string) => EventLogReading> = new Map([
   [EVENT_LOG_FORMAT_VERSION, eventLogEntriesOf],
 ]);
+
+/** The Watcher's own record in its folder, `null` when it is missing or unreadable. */
+function watcherRecordIn(watcherFolder: string, instance: number): WatcherRecord | null {
+  try {
+    return watcherRecordOfStored(JSON.parse(readFileSync(watcherFilesOf(watcherFolder, instance).watcherRecordPath, 'utf8')));
+  } catch {
+    return null;
+  }
+}
 
 /** An unreadable record is attached as before: only a protocol the record names below the window makes a Watcher legacy. */
 function attachmentOf(record: WatcherRecord | null): WatcherAttachment {
@@ -46,6 +58,7 @@ function stopLegacyWatcher({ processSupervision }: PlatformPorts, record: Watche
 }
 
 export const LegacyWatcherReader = Object.freeze({
+  watcherRecordIn,
   helloProtocolVersionOf,
   attachmentOf,
   eventLogReadingOf,

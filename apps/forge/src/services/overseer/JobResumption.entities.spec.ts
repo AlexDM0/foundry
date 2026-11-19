@@ -22,10 +22,13 @@ import type { Job, JobKind, JobRole }                     from '../../lib/tracke
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import type { BoardChildren }                             from './BoardChildren.ts';
 import { JobResumption }                                  from './JobResumption.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RED_HANDOFF_FILES, RedHandoff }                  from './RedHandoff.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
 
 const AT = '2026-11-17T10:00:00+01:00';
 
@@ -72,6 +75,11 @@ function jobOf(id: string, kind: JobKind, role: JobRole, scope: EntityAndStage, 
     crashResumes:       0,
     ...scope,
   };
+}
+
+/** The tracker's children as the Overseer reads them, by the job folders of the tracker the case made. */
+function childrenOfTheTracker(trackerDirectory: string): BoardChildren {
+  return watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory);
 }
 
 describe('a build after a built builder of the same attempt', () => {
@@ -142,7 +150,7 @@ describe('a stale green that turned red', () => {
 
   /** J1 reviewed, left a stale-green handoff and started its session; J2 is the next review. */
   function staleGreenSessionOwnerOf(earlierScope: EntityAndStage, laterScope: EntityAndStage): string | null {
-    const folder = join(WatcherFleet.jobFolderOf(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder);
+    const folder = join(jobFolderIn(trackerDirectory, 'J1'), RED_HANDOFF_FILES.staleGreenFolder);
     mkdirSync(folder, { recursive: true });
     RedHandoff.writeRedHandoff(folder, {
       kind:                'gate',
@@ -158,13 +166,15 @@ describe('a stale green that turned red', () => {
       callBudget:          30,
       interruptedInstance: 0,
     }, 'expected 2, received 3');
-    const { eventLogPath } = watcherFilesOf(WatcherFleet.jobFolderOf(trackerDirectory, 'J1'), 1);
+    const { eventLogPath } = watcherFilesOf(jobFolderIn(trackerDirectory, 'J1'), 1);
     mkdirSync(join(eventLogPath, '..'), { recursive: true });
     const writer = createEventLogWriter(eventLogPath, () => AT);
     writer.append('agent', fakeStartedLine('fake-session'));
     writer.syncAndClose();
     const records = [launched('J1', 'review', 'reviewer', earlierScope), ended('J1', 'reviewed'), launched('J2', 'review', 'reviewer', laterScope)];
-    return JobResumption.staleGreenSessionOwnerOf(trackerDirectory, records, jobOf('J2', 'review', 'reviewer', laterScope), fakeAgentAdapter());
+    return JobResumption.staleGreenSessionOwnerOf(
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, records, jobOf('J2', 'review', 'reviewer', laterScope), fakeAgentAdapter()
+    );
   }
 
   test('resumes the session of its own entity and stage', () => {

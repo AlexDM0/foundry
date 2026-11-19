@@ -12,7 +12,7 @@ import type { Board }                     from '../../lib/tracker-model/Board.ts
 import { filledTemplateOf }               from '../../shared/FilledTemplate.ts';
 import { resourceFilePathOf }             from '../../shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                  from '../../shared/constants/ProductNames.ts';
-import type { WatcherLiveness }           from './WatcherFleet.ts';
+import type { ChildLiveness }             from './BoardChildren.ts';
 
 export const PRODUCT_OWNER_KIND = 'product-owner';
 
@@ -86,7 +86,7 @@ function productOwnerInstructionsOf(board: Board, job: Readonly<Job>, instructio
  * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no Watcher of it is live, a Watcher that never
  * started included.
  */
-function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => WatcherLiveness, at: string): void {
+function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => ChildLiveness, at: string): void {
   for (const job of board.jobs().filter((candidate) => isIntakeJob(candidate) && candidate.state === 'stopping')) {
     if (livenessOf(job).verdict === 'live') continue;
     board.endIntakeJob(job.id, at);

@@ -80,6 +80,7 @@ import { type ApiBilling, ApiBillingStops, type StoppedSession }                
 import { AssistantBoot, type AssistantFacts }                                    from './AssistantBoot.ts';
 import { type AssistantChatFacts, type AssistantReading, AssistantSession }      from './AssistantSession.ts';
 import { Baton }                                                                 from './Baton.ts';
+import type { BoardChildren, ChildLiveness }                                     from './BoardChildren.ts';
 import { CrossingStages, type CrossingStageFacts }                               from './CrossingStages.ts';
 import type { DependentFixFacts, DependentFixWording }                           from './DependentFixTickets.ts';
 import { EndedJobTokens }                                                        from './EndedJobTokens.ts';
@@ -106,7 +107,7 @@ import { LegacyWatcherReader }                                        from './Le
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
 import { runMergedTreeGates }                                         from './MergedTreeGateRun.ts';
 import { NeedTickets, type NeedsSettledFacts }                        from './NeedTickets.ts';
-import { overseerFilesIn }                                            from './OverseerFiles.ts';
+import { jobFolderIn, overseerFilesIn }                               from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { PipelineChecking }                                           from './PipelineChecking.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
@@ -118,7 +119,6 @@ import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Re
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
-import { WatcherFleet, type WatcherLiveness }                         from './WatcherFleet.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
@@ -213,7 +213,9 @@ export interface DrivePassRequest {
   formatStamp:                       (moment: Date) => string;
   overseerDirectory:                 string;
   generation:                        number;
-  watcherBundlePath:                 string;
+  boardChildren:                     BoardChildren;
+  /** Acknowledges every ended Watcher of the board's jobs so it exits; called at the end of each pass. */
+  reapEndedWatchers:                 () => Promise<unknown>;
   /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
   programCommand:                    readonly string[];
   codeVersion:                       string;
@@ -336,7 +338,7 @@ export interface DrivePass {
 interface WatcherObservation {
   jobId:              string;
   instance:           number;
-  liveness:           WatcherLiveness;
+  liveness:           ChildLiveness;
   events:             readonly EventLogEntry[];
   /** Settled for a lost Watcher only, after its surviving child group was killed; `null` while the forced stop is refused. */
   lostCause:          InterruptionCause | null;
@@ -464,14 +466,16 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const progress      = requireProgressFile(workspace);
   const jobs          = progress.jobs ?? [];
   // Events before Hatch folders: a request a session wrote before its turn's `result` is seen in the same pass as that result.
+  const children      = request.boardChildren;
+  children.beginPass();
   const watchers = jobs.map((job): WatcherObservation => {
-    const jobFolder     = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
+    const jobFolder     = children.jobFolderOf(job.id);
     const afterSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
-    const liveness      = WatcherFleet.livenessOf(request.platformPorts, jobFolder, job.watcherInstance);
-    const events        = WatcherFleet.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
+    const liveness      = children.livenessOf(jobFolder, job.watcherInstance);
+    const events        = children.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
     if (events === 'malformed') request.log(`The event log of job ${job.id}, Watcher instance ${job.watcherInstance}, is malformed; its events wait.`);
     const lostCause = liveness.verdict === 'lost' && job.role !== null
-      ? Regrouping.settleLostWatcher(request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
+      ? Regrouping.settleLostWatcher(children, request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
       : null;
     return {
       jobId:              job.id,
@@ -480,11 +484,11 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
       events:             events === 'malformed' ? [] : events,
       lostCause,
       forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.watcherInstance),
-      sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(jobFolder, job.watcherInstance, request.agentAdapter),
+      sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(children, jobFolder, job.watcherInstance, request.agentAdapter),
     };
   });
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
-  const assistantReadings = AssistantSession.readingsOf(workspace.trackerDirectory, request.agentAdapter, { jobs: () => jobs });
+  const assistantReadings = AssistantSession.readingsOf(children, request.agentAdapter, { jobs: () => jobs });
   const pendingRequests = HatchInbox.pendingRequestsOf(workspace.rootDirectory, jobs);
   const location        = projectLocationOf(workspace.rootDirectory);
   const targets         = [...new Set([request.mainLine, ...jobs.flatMap((job) => (job.target === null ? [] : [job.target]))])].sort();
@@ -544,6 +548,7 @@ function applyWatcherEvents(
   change: TrackerChange,
   adapter: AgentAdapter,
   watchers: readonly WatcherObservation[],
+  children: BoardChildren,
   trackerDirectory: string,
   facts: WatcherEventFacts,
 ): AppliedWatcherEvents {
@@ -599,7 +604,7 @@ function applyWatcherEvents(
     const sessionEndedCleanly   = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited' && watcher.liveness.end.exitCode === 0;
     if (job !== undefined && state === 'running' && JobResumption.resumeFailed(
       job,
-      JobResumption.launchSessionOwnerJobIdOf(trackerDirectory, board.logRecordsSoFar(), job, adapter),
+      JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter),
       sessionExitedByItself,
       watcher.sessionStarted,
     )) {
@@ -607,7 +612,7 @@ function applyWatcherEvents(
     } else if (watcherIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       // An Assistant or pipeline agent ends `closed`, so User's next message opens a pipeline agent again with its conversation.
       board.endJob(watcher.jobId, { outcome: 'closed' }, at);
-    } else if (watcherIsGone && !closedWithResult && state === 'running' && job !== undefined && AnswerDelivery.stoppedForAnswerDelivery(trackerDirectory, job)) {
+    } else if (watcherIsGone && !closedWithResult && state === 'running' && job !== undefined && AnswerDelivery.stoppedForAnswerDelivery(children, job)) {
       board.interruptJob(watcher.jobId, 'answer-delivery', at);
     } else if (sessionEndedCleanly && !closedWithResult && state === 'running' && job !== undefined && REPORTING_JOB_KINDS.includes(job.kind)) {
       board.endJob(watcher.jobId, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport }, at);
@@ -659,7 +664,7 @@ function actOnWaiverAnswers(
   for (const step of waiverAnswerSteps) {
     if (!answeredWaiverTrees.has(step.jobId)) continue;
     const headTree = answeredWaiverTrees.get(step.jobId) ?? null;
-    ReviewOutcome.actOnWaiverAnswer(change.board, step.jobId, step.answers, WatcherFleet.jobFolderOf(trackerDirectory, step.jobId), headTree, change.at);
+    ReviewOutcome.actOnWaiverAnswer(change.board, step.jobId, step.answers, jobFolderIn(trackerDirectory, step.jobId), headTree, change.at);
   }
   return waiverAnswerSteps.length > 0;
 }
@@ -748,7 +753,7 @@ function airlockFactsOf(board: Board, trackerDirectory: string, job: Readonly<Jo
       resumesSession,
     };
   }
-  const mergeJobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.parentJobId);
+  const mergeJobFolder = jobFolderIn(trackerDirectory, job.parentJobId);
   const phase          = airlockAgentPhaseOf(board, job);
   const conflicts      = AirlockFactsFile.conflictedFilesOf(mergeJobFolder, phase, checkout);
   if (conflicts.verdict === 'unknown') return 'conflicts-unknown';
@@ -840,13 +845,13 @@ export function launchFactsOf(
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
  * marks its instance spawned, so the next pass tries it again.
  */
-function launchWatcher(
+async function launchWatcher(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null {
+): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
@@ -858,11 +863,13 @@ function launchWatcher(
   if (program.verdict === 'refused') return {
     kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
   };
-  const unfitEndpoint = WatcherFleet.unfitEndpointOf(request.platformPorts, {
+  const { localEndpoint } = request.platformPorts;
+  const endpoint = localEndpoint.endpointOf({
     monitorFolder: request.monitorFolder, trackerId, name: job.id, instance: job.watcherInstance
   });
-  if (unfitEndpoint !== null) return { kind: 'watcher-endpoint-does-not-fit', jobId: job.id, endpoint: unfitEndpoint };
-  const jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
+  if (!localEndpoint.endpointFits(endpoint)) return { kind: 'watcher-endpoint-does-not-fit', jobId: job.id, endpoint };
+  const children         = request.boardChildren;
+  const jobFolder        = children.jobFolderOf(job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
   mkdirSync(join(hatchDirectory, 'requests'), { recursive: true });
   request.watchHatchFolder?.(hatchDirectory);
@@ -897,7 +904,7 @@ function launchWatcher(
   // A resumed instance reads the owner its first instance recorded, though the handoff it took over may read otherwise by now.
   const staleGreenSessionOwner = redHandoffTakenOver === null && !JobResumption.isResumedInstance(job)
     ? null
-    : JobResumption.staleGreenSessionOwnerOf(workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
+    : JobResumption.staleGreenSessionOwnerOf(children, workspace.trackerDirectory, board.logRecordsSoFar(), job, agentAdapter);
   JobResumption.recordStaleGreenSessionOwner(workspace.trackerDirectory, job, staleGreenSessionOwner);
   // A resumed stale-green session is told its red handoff as a resume of its own ladder, never its task again.
   const firstMessage     = staleGreenSessionOwner === null || redHandoffTakenOver === null ? text.firstMessage : request.redHandoffMessageOf(redHandoffTakenOver);
@@ -909,7 +916,7 @@ function launchWatcher(
   const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
   const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
   const { workingDirectory } = resumesASession
-    ? SessionPlaces.resumedSessionPlaceOf(place, WatcherFleet.jobFolderOf(workspace.trackerDirectory, sessionOwnerJobId))
+    ? SessionPlaces.resumedSessionPlaceOf(place, children.jobFolderOf(sessionOwnerJobId))
     : place;
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
@@ -938,21 +945,15 @@ function launchWatcher(
   }
   if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
   if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
-  WatcherFleet.writeLaunchFiles(request.platformPorts, {
-    jobFolder,
-    instance:           job.watcherInstance,
-    jobId:              job.id,
-    trackerId,
-    monitorFolder:      request.monitorFolder,
-    watcherCodeVersion: request.codeVersion,
-    workingDirectory,
-    plan:               agentAdapter.planOf(launchRequest),
-    ...JobLaunch.treeStopAtEndOf(job),
-  });
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
-  (request.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(request.platformPorts, {
-    bundlePath: request.watcherBundlePath, jobFolder, instance: job.watcherInstance, rootDirectory: workspace.rootDirectory
+  await children.launchAgent({
+    childFolder:                    jobFolder,
+    instance:                       job.watcherInstance,
+    label:                          job.id,
+    workingDirectory,
+    plan:                           agentAdapter.planOf(launchRequest),
+    treeStopAtEndGraceMilliseconds: JobLaunch.treeStopAtEndOf(job).treeStopAtEndGraceMilliseconds ?? null,
   });
   request.log(`Spawned Watcher instance ${job.watcherInstance} of job ${job.id} (${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}).`);
   return null;
@@ -963,7 +964,7 @@ function launchWatcher(
  * launch, else the one recorded by the job whose session it resumes, else resolved now.
  */
 function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Readonly<Job>, sessionOwnerJobId: string): SessionLaunchSettings {
-  const recordedOf = (jobId: string): SessionLaunchSettings | null => JobLaunch.recordedLaunchSettingsOf(WatcherFleet.jobFolderOf(trackerDirectory, jobId));
+  const recordedOf = (jobId: string): SessionLaunchSettings | null => JobLaunch.recordedLaunchSettingsOf(jobFolderIn(trackerDirectory, jobId));
   const recorded = recordedOf(job.id) ?? (sessionOwnerJobId === job.id ? null : recordedOf(sessionOwnerJobId));
   if (recorded !== null) return recorded;
   const lastWorkerJobId = JobResumption.lastWorkerJobIdOf(board.logRecordsSoFar(), job);
@@ -975,9 +976,8 @@ function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Re
  * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`.
  */
 function jobsNeedingAWatcher(
-  ports: PlatformPorts,
+  children: BoardChildren,
   board: Board,
-  trackerDirectory: string,
   spawnedInstances: ReadonlySet<string>,
   heldTicketIds: readonly string[],
 ): readonly Readonly<Job>[] {
@@ -985,12 +985,12 @@ function jobsNeedingAWatcher(
     && job.role !== null
     && !job.ticketIds.some((ticketId) => heldTicketIds.includes(ticketId))
     && !spawnedInstances.has(`${job.id}:${job.watcherInstance}`)
-    && WatcherFleet.livenessOf(ports, WatcherFleet.jobFolderOf(trackerDirectory, job.id), job.watcherInstance).verdict === 'unclaimed');
+    && children.livenessOf(children.jobFolderOf(job.id), job.watcherInstance).verdict === 'unlaunched');
 }
 
-function legacyWatcherJobIdsOf(board: Board, trackerDirectory: string): string[] {
+function legacyWatcherJobIdsOf(board: Board, children: BoardChildren): string[] {
   return board.jobs()
-    .filter((job) => LegacyWatcherReader.attachmentOf(WatcherFleet.watcherRecordOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id), job.watcherInstance)) === 'legacy-watcher')
+    .filter((job) => LegacyWatcherReader.attachmentOf(LegacyWatcherReader.watcherRecordIn(children.jobFolderOf(job.id), job.watcherInstance)) === 'legacy-watcher')
     .map((job) => job.id);
 }
 
@@ -1058,7 +1058,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     ports:             platformPorts,
     folder:            join(request.monitorFolder, GATE_SLOTS_FOLDER),
     limit:             GATE_RUNS_AT_ONCE,
-    holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(platformPorts, holding),
+    holderIsLive:      (holding) => GateRunSlots.gateRunHolderIsLive(request.boardChildren, platformPorts, holding),
     retryMilliseconds: request.gateSlotRetryMilliseconds ?? GATE_SLOT_RETRY_MILLISECONDS,
   });
 
@@ -1081,7 +1081,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     inheritedEnvironment: request.inheritedEnvironment,
     mainLine:             request.mainLine,
     branchNames:          request.branchNames,
-    watcherBundlePath:    request.watcherBundlePath,
+    boardChildren:        request.boardChildren,
     programCommand:       request.programCommand,
     codeVersion:          request.codeVersion,
     gateSlots,
@@ -1089,10 +1089,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     decisionWordingOf:    request.decisionWordingOf,
     log:                  request.log,
     resolutionLinesOf:    MergeRun.resolutionLinesOf,
-    ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
     ...(sharedRepository === null ? {} : { sharedRepository }),
   };
-  const endedJobTokensContext = { trackerDirectory: request.workspace.trackerDirectory, agentAdapter: request.agentAdapter };
+  const endedJobTokensContext = { boardChildren: request.boardChildren, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
   let endedSessionsAwaitingClose: EndedJobSession[] = [];
   const triedPipelineAgentSnapshots = new Set<string>();
@@ -1225,9 +1224,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
   async function stopSession(jobId: string, watcherInstance: number): Promise<void> {
-    await WatcherFleet.sendFrames(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId), watcherInstance, [
-      { kind: 'stop', graceMilliseconds: sessionStopGraceMilliseconds },
-    ]);
+    await request.boardChildren.stop(request.boardChildren.jobFolderOf(jobId), watcherInstance, sessionStopGraceMilliseconds);
   }
 
   function unwatchHatchFoldersOfEndedJobs(board: Board): void {
@@ -1278,15 +1275,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
     resolutionLinesOf:   MergeRun.resolutionLinesOf,
     watcherIsLive:       (job) => {
-      const jobFolder = WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id);
-      return WatcherFleet.livenessOf(platformPorts, jobFolder, job.watcherInstance).verdict === 'live';
+      const jobFolder = request.boardChildren.jobFolderOf(job.id);
+      return request.boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict === 'live';
     },
     stopMergeAgent:        async (job) => { await stopSession(job.id, job.watcherInstance); },
     decisionWordingOf:     request.decisionWordingOf,
-    keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), facts),
-    keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, mergeJob.id), name),
-    jobFolderOf:           (job) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id),
-    jobFolderOfId:         (jobId) => WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, jobId),
+    keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
+    keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(request.boardChildren.jobFolderOf(mergeJob.id), name),
+    jobFolderOf:           (job) => request.boardChildren.jobFolderOf(job.id),
+    jobFolderOfId:         (jobId) => request.boardChildren.jobFolderOf(jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
     dispatchIsStopped:     () => requireProgressFile(request.workspace).overseerState === 'paused',
     reportDeclinedCleanup: (declined) => {
@@ -1350,13 +1347,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           change,
           request.agentAdapter,
           observation.watchers,
+          request.boardChildren,
           request.workspace.trackerDirectory,
           watcherEventFacts,
         );
         RefusedForcedStops.settle(change.board, observation.watchers, request.decisionWordingOf, change.at);
-        const livenessOf = (job: Readonly<Job>): WatcherLiveness => observation.watchers
+        const livenessOf = (job: Readonly<Job>): ChildLiveness => observation.watchers
           .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
-          ?? WatcherFleet.livenessOf(platformPorts, WatcherFleet.jobFolderOf(request.workspace.trackerDirectory, job.id), job.watcherInstance);
+          ?? request.boardChildren.livenessOf(request.boardChildren.jobFolderOf(job.id), job.watcherInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
         PipelineAgentSessions.verifyTurnEnds(change, {
           workspace:     request.workspace,
@@ -1456,9 +1454,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
-    await JobResumption.deliverFirstMessages(platformPorts, request.workspace.trackerDirectory, written.board, request.agentAdapter);
+    await JobResumption.deliverFirstMessages(request.boardChildren, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({
-      platformPorts,
+      boardChildren:    request.boardChildren,
       trackerDirectory: request.workspace.trackerDirectory,
       board:            written.board,
       adapter:          request.agentAdapter,
@@ -1466,13 +1464,17 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       chatTextOf:       request.assistantChatTextOf,
     });
     await JobControlDelivery.deliverJobControls({
-      platformPorts, trackerDirectory: request.workspace.trackerDirectory, board: written.board, adapter: request.agentAdapter, windDownMessage: request.windDownMessage,
+      boardChildren:    request.boardChildren,
+      trackerDirectory: request.workspace.trackerDirectory,
+      board:            written.board,
+      adapter:          request.agentAdapter,
+      windDownMessage:  request.windDownMessage,
     });
     const sessionsEndedThisPass = observation.watchers
       .filter((watcher) => watcher.liveness.verdict === 'live' && written.board.jobById(watcher.jobId) === undefined)
       .map((watcher) => ({ jobId: watcher.jobId, watcherInstance: watcher.instance }));
     endedSessionsAwaitingClose = await JobControlDelivery.closeInputOfEndedJobs(
-      platformPorts, request.workspace.trackerDirectory, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
+      request.boardChildren, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
     );
     unwatchHatchFoldersOfEndedJobs(written.board);
     const launchRefusals: LaunchRefusal[] = [];
@@ -1481,10 +1483,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
       ? []
-      : jobsNeedingAWatcher(platformPorts, written.board, request.workspace.trackerDirectory, spawnedInstances, written.result.agentConfigHeldTicketIds);
+      : jobsNeedingAWatcher(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
     for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
-      const refusal = launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
+      const refusal = await launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal) continue;
@@ -1503,11 +1505,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       if (apiKeyDecisionIsStale) withdrawApiKeyDecisions(hold.board, hold.at);
     });
     const { trackerDirectory } = request.workspace;
-    const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(trackerDirectory, job);
-    await JobResumption.deliverResumeMessages(platformPorts, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);
+    const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job);
+    await JobResumption.deliverResumeMessages(request.boardChildren, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);
     await AnswerDelivery.deliverAnswers({
-      platformPorts,
-      trackerDirectory,
+      boardChildren:             request.boardChildren,
       board:                     written.board,
       adapter:                   request.agentAdapter,
       deliversByControlResponse: request.deliversAnswersByControlResponse ?? CONTROL_RESPONSE_DELIVERS_ANSWERS,
@@ -1517,7 +1518,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     targetsHeldAtTheLastPass = heldTargets.length;
     gateProfiling.followRuns(written.board);
     pipelineChecking.followChecks(written.board);
-    await WatcherFleet.reapEndedWatchers(platformPorts, trackerDirectory);
+    await request.reapEndedWatchers();
     jobsAtTheLastPass = written.board.jobs();
     assistantsMidTurnAtTheLastPass = AssistantSession.midTurnJobIdsOf(request.workspace.trackerDirectory, written.board, observation.assistantReadings);
     state = {
@@ -1535,7 +1536,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
         launchRefusals,
       ),
-      legacyWatcherJobIds:          legacyWatcherJobIdsOf(written.board, request.workspace.trackerDirectory),
+      legacyWatcherJobIds:          legacyWatcherJobIdsOf(written.board, request.boardChildren),
       ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
     const settled = observe(request, jobLaunchContext);
@@ -1576,7 +1577,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function regroup(): Promise<RegroupingReport> {
-    const report = await Regrouping.regroup(platformPorts, request.workspace);
+    const report = await Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);

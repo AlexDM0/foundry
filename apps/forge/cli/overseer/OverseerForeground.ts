@@ -47,8 +47,8 @@ import { MonitorStream }                                            from '../../
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
+import { type WatcherBoardChildren, createWatcherBoardChildren }    from '../../src/services/overseer/WatcherBoardChildren.ts';
 import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
-import { WatcherFleet }                                             from '../../src/services/overseer/WatcherFleet.ts';
 import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
 import { PictureStore }                                             from '../../src/services/tracker/PictureStore.ts';
 import { projectLocationOf }                                        from '../../src/services/tracker/ProjectLocation.ts';
@@ -100,13 +100,14 @@ type OverseerEnd = { kind: 'stopped'; how: string; now: boolean } | { kind: 'res
 
 /** One serving period under one Baton generation; a Baton pass that failed after the release starts another in the same process. */
 interface Serving {
-  generation: number;
-  server:     StartedServer;
-  drivePass:  DrivePass;
-  watcher:    { stop: () => void };
-  lifetime:   ReturnType<typeof overseerLifetime>;
+  generation:    number;
+  server:        StartedServer;
+  drivePass:     DrivePass;
+  watcher:       { stop: () => void };
+  lifetime:      ReturnType<typeof overseerLifetime>;
   /** Lives and ends with the serving period: a Baton pass or a stop ends a running brain. */
-  flintBrain: OverseerFlintBrain;
+  flintBrain:    OverseerFlintBrain;
+  boardChildren: WatcherBoardChildren;
 }
 
 const TOKEN_BYTES            = 32;
@@ -286,15 +287,18 @@ function preparationSteps(request: ForegroundRunRequest, pinWatcherBundle: () =>
     {
       step: 'read-watcher-files',
       run:  () => {
+        const children = createWatcherBoardChildren({
+          platformPorts: request.context.platformPorts, trackerDirectory: workspace.trackerDirectory, launching: null, log: () => undefined
+        });
         for (const job of jobsOf()) {
-          const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
-          if (WatcherFleet.livenessOf(request.context.platformPorts, jobFolder, job.watcherInstance).verdict === 'unclaimed') continue;
-          const record = WatcherFleet.watcherRecordOf(jobFolder, job.watcherInstance);
+          const jobFolder = children.jobFolderOf(job.id);
+          if (children.livenessOf(jobFolder, job.watcherInstance).verdict === 'unlaunched') continue;
+          const record = LegacyWatcherReader.watcherRecordIn(jobFolder, job.watcherInstance);
           if (record === null) throw new Error(`watcher ${job.watcherInstance} of job ${job.id} has no readable Watcher file`);
           if (!LegacyWatcherReader.readableEventLogFormats().includes(record.eventLogFormatVersion)) {
             throw new Error(`watcher ${job.watcherInstance} of job ${job.id} writes event-log format ${record.eventLogFormatVersion}, which this code does not read`);
           }
-          if (WatcherFleet.eventsAfter(jobFolder, job.watcherInstance, 0) === 'malformed') {
+          if (children.eventsAfter(jobFolder, job.watcherInstance, 0) === 'malformed') {
             throw new Error(`the event log of Watcher ${job.watcherInstance} of job ${job.id} is malformed`);
           }
         }
@@ -401,6 +405,18 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     enterStep: (step: BatonPassStep) => void,
   ): Promise<Serving> {
     const bundlePath = await pinWatcherBundle();
+    const boardChildren = createWatcherBoardChildren({
+      platformPorts,
+      trackerDirectory: workspace.trackerDirectory,
+      launching:        {
+        trackerId:         progress.trackerId,
+        monitorFolder:     platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
+        watcherBundlePath: bundlePath,
+        codeVersion,
+        watcherDirectory:  workspace.rootDirectory,
+      },
+      log,
+    });
     // Set once the Baton is taken; a brain change before then has no stream to reach.
     let publishFlintBrainChange: () => void = () => undefined;
     const overseerFlintBrain = createOverseerFlintBrain({
@@ -467,6 +483,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         commandArguments: request.commandArguments,
         context,
         workspace,
+        boardChildren,
         token:            () => token,
         started:          () => started,
         broker:           () => broker,
@@ -531,6 +548,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         const read = readBoardState({
           context,
           workspace,
+          boardChildren,
           notices:        () => overseerState()?.notices ?? [],
           overseer:       overseerFactsNow,
           silentSweepsOf: (jobId) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
@@ -576,7 +594,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         formatStamp:           (moment) => LocalTimeUtil.formatLocalIso(moment),
         overseerDirectory:     files.overseerDirectory,
         generation,
-        watcherBundlePath:     bundlePath,
+        boardChildren,
+        reapEndedWatchers:     boardChildren.reapEndedWatchers,
         programCommand:        context.programCommand,
         codeVersion,
         agentAdapter:          context.agentAdapter,
@@ -619,7 +638,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         },
       });
       const serving: Serving = {
-        generation, server, drivePass, watcher, lifetime, flintBrain: overseerFlintBrain
+        generation, server, drivePass, watcher, lifetime, flintBrain: overseerFlintBrain, boardChildren
       };
       current = serving;
       publishState();
@@ -781,13 +800,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
       ...(end.kind === 'stopped' && end.now ? [{
         name: 'the stop of the live process Watchers',
-        run:  async () => {
-          const stoppedWatchers = await WatcherFleet.stopLiveProcessWatchers(platformPorts, workspace.trackerDirectory);
-          log(`Stopped ${stoppedWatchers} live process Watcher${stoppedWatchers === 1 ? '' : 's'}.`);
-        },
+        run:  async () => { await stoppingServing.boardChildren.stopLiveLines(); },
       }] : []),
       // A Watcher ending after the last pass would otherwise wait for an acknowledgement until the next Overseer.
-      { name: 'the reap of ended Watchers', run: () => WatcherFleet.reapEndedWatchers(platformPorts, workspace.trackerDirectory) },
+      { name: 'the reap of ended Watchers', run: () => stoppingServing.boardChildren.reapEndedWatchers() },
       { name: 'the server stop', run: () => stoppingServing.server.stop() },
     ];
     try {

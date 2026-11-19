@@ -8,13 +8,13 @@ import { join }                     from 'node:path';
 
 import type { AgentAdapter }                                                 from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { Incident, IncidentDeliveryTurn }                               from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                                          from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
 import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                                from './AssistantBoot.ts';
-import { WatcherFleet }                                                      from './WatcherFleet.ts';
+import type { BoardChildren }                                                from './BoardChildren.ts';
+import { jobFolderIn }                                                       from './OverseerFiles.ts';
 
 /** What the Assistant's current session printed so far, read from its event log. */
 export interface AssistantReading {
@@ -47,7 +47,7 @@ export interface AssistantTurnObservations {
 }
 
 export interface AssistantChatDelivery {
-  platformPorts:    PlatformPorts;
+  boardChildren:    BoardChildren;
   trackerDirectory: string;
   board:            Board;
   adapter:          Pick<AgentAdapter, 'chatLineOf' | 'interruptLineOf'>;
@@ -68,8 +68,8 @@ function liveAssistantsOf(board: Pick<Board, 'jobs'>): readonly Readonly<Job>[] 
   return board.jobs().filter((job) => AssistantBoot.isAssistantJob(job));
 }
 
-function readingOf(trackerDirectory: string, adapter: Pick<AgentAdapter, 'eventsOf'>, job: Readonly<Job>): AssistantReading {
-  const entries = WatcherFleet.eventsAfter(WatcherFleet.jobFolderOf(trackerDirectory, job.id), job.watcherInstance, 0);
+function readingOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'eventsOf'>, job: Readonly<Job>): AssistantReading {
+  const entries = children.eventsAfter(children.jobFolderOf(job.id), job.watcherInstance, 0);
   let results = 0;
   let lastContextTokens: number | null = null;
   let callsSinceLastResult = new Set<string>();
@@ -87,13 +87,13 @@ function readingOf(trackerDirectory: string, adapter: Pick<AgentAdapter, 'events
   };
 }
 
-function readingsOf(trackerDirectory: string, adapter: Pick<AgentAdapter, 'eventsOf'>, board: Pick<Board, 'jobs'>): AssistantReading[] {
-  return liveAssistantsOf(board).map((job) => readingOf(trackerDirectory, adapter, job));
+function readingsOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'eventsOf'>, board: Pick<Board, 'jobs'>): AssistantReading[] {
+  return liveAssistantsOf(board).map((job) => readingOf(children, adapter, job));
 }
 
 function chatsOf(trackerDirectory: string, jobId: string): AssistantChat[] {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), CHATS_FILE), 'utf8'));
+    const parsed: unknown = JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), CHATS_FILE), 'utf8'));
     return Array.isArray(parsed) ? parsed as AssistantChat[] : [];
   } catch {
     return [];
@@ -199,7 +199,7 @@ function chatsToWriteOf(board: Board, job: Readonly<Job>, reading: AssistantRead
 /** User's messages to the Assistant not yet sent: no chat carries one yet, or its chat's line was not taken, by the markers `deliverChats` writes. */
 function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
   const sequenceByMessageNumber = new Map(chatsOf(trackerDirectory, job.id).flatMap((chat) => (chat.messageNumber === null ? [] : [[chat.messageNumber, chat.sequence] as const])));
-  const markersFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), MARKERS_FOLDER);
+  const markersFolder = join(jobFolderIn(trackerDirectory, job.id), MARKERS_FOLDER);
   return userMessagesOf(board, job.id).filter((message) => {
     const sequence = sequenceByMessageNumber.get(message.number);
     return sequence === undefined || !existsSync(join(markersFolder, `chat-${sequence}`));
@@ -213,7 +213,7 @@ function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDire
 async function deliverChats(request: AssistantChatDelivery): Promise<void> {
   const { board, adapter } = request;
   for (const job of liveAssistantsOf(board).filter((live) => live.state === 'running')) {
-    const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
+    const jobFolder = request.boardChildren.jobFolderOf(job.id);
     const reading   = request.readings.find((candidate) => candidate.jobId === job.id);
     const earlier   = chatsOf(request.trackerDirectory, job.id);
     const chats     = chatsToWriteOf(board, job, reading, earlier);
@@ -224,11 +224,11 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
         ? request.chatTextOf({ sequence: chat.sequence, incidents: board.incidents().filter((incident) => chat.incidentIds.includes(incident.id)) })
         : messages.find((message) => message.number === chat.messageNumber)?.text ?? '';
       const marker = join(jobFolder, MARKERS_FOLDER, `chat-${chat.sequence}`);
-      await WatcherFleet.sendFramesOnce(request.platformPorts, marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.chatLineOf(text) }]);
+      await request.boardChildren.sendInputOnce(marker, jobFolder, job.watcherInstance, [{ act: 'write-line', line: adapter.chatLineOf(text) }]);
     }
     if (reading !== undefined && reading.results < newestChatOf(board, chats, job.id) && reading.callsSinceLastResult >= ASSISTANT_TURN_CALL_BUDGET) {
       const marker = join(jobFolder, MARKERS_FOLDER, `interrupt-${reading.results + 1}`);
-      await WatcherFleet.sendFramesOnce(request.platformPorts, marker, jobFolder, job.watcherInstance, [{ kind: 'write', line: adapter.interruptLineOf() }]);
+      await request.boardChildren.sendInputOnce(marker, jobFolder, job.watcherInstance, [{ act: 'write-line', line: adapter.interruptLineOf() }]);
     }
   }
 }

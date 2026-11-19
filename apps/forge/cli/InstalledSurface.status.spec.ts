@@ -12,9 +12,11 @@ import {
 }                                                                             from 'bun:test';
 
 import { requireWorkspace }                       from '../src/services/tracker/Workspace.ts';
+import { nativePlatformPorts }                    from '../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
+import { watcherChildReadingsWith }               from '../src/testing/WatcherChildReadings.ts';
 import { helpText }                               from './HelpText.ts';
 import { INSTALL_VERSION }                        from './constants/InstallVersion.ts';
 import { readBoardState }                         from './overseer/routes/BoardStateReader.ts';
@@ -68,10 +70,11 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
   await run(['log', 'Example milestone']);
   const documents = [await run(['status', '--json']), await run(['status', '--json', '--full'])].map((text) => JSON.parse(text) as unknown);
   const overseerState = readBoardState({
-    context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
-    workspace: requireWorkspace(repositoryDirectory),
-    notices:   () => [],
-    overseer:  () => ({
+    context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+    workspace:     requireWorkspace(repositoryDirectory),
+    boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+    notices:       () => [],
+    overseer:      () => ({
       state: 'down', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, batonPassWarning: null
     }),
   }).state;

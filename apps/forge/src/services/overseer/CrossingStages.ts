@@ -16,7 +16,7 @@ import { ENTITY_DECISION_ANSWERS }                    from '../../lib/tracker-mo
 import { EntityOwnershipUtil, type PipelineEntities } from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketStageUtil }                            from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import type { CrossingStageScope, SealedChange }      from '../lifecycle/Customs.ts';
-import { WatcherFleet }                               from './WatcherFleet.ts';
+import { jobFolderIn }                                from './OverseerFiles.ts';
 
 /** What the package stages ended with for one crossed package, as the adapt stage reads it. */
 export interface CrossedPackageResult {
@@ -188,11 +188,11 @@ function packageRunStartJobIdOf(logRecords: readonly LogRecord[], job: Readonly<
 }
 
 function stageStatementPathOf(trackerDirectory: string, jobId: string): string {
-  return join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), STAGE_STATEMENT_FILE);
+  return join(jobFolderIn(trackerDirectory, jobId), STAGE_STATEMENT_FILE);
 }
 
 function writeStageStatement(trackerDirectory: string, jobId: string, statement: StageStatement): void {
-  mkdirSync(WatcherFleet.jobFolderOf(trackerDirectory, jobId), { recursive: true });
+  mkdirSync(jobFolderIn(trackerDirectory, jobId), { recursive: true });
   writeFileAtomically(stageStatementPathOf(trackerDirectory, jobId), `${JSON.stringify(statement)}\n`);
 }
 

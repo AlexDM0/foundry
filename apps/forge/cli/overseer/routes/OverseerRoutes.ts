@@ -28,7 +28,6 @@ import type {
   ServerRefusal,
   TranscriptFollower
 } from '../../../src/services/overseer/OverseerServer.ts';
-import { WatcherFleet }                                                        from '../../../src/services/overseer/WatcherFleet.ts';
 import { FlintBrainDigestUtil }                                                from '../../../src/services/overseer/utils/FlintBrainDigestUtil.ts';
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
 import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
@@ -78,12 +77,6 @@ function boardHoldsProfileRun(gateProfilesFilePath: string, profileRunId: string
   return reading.verdict === 'readable' && reading.profiles.runs.some((run) => run.profileRunId === profileRunId);
 }
 
-function newestInstanceIn(jobFolder: string): number {
-  let instance = 0;
-  while (existsSync(join(jobFolder, `events-${instance + 1}.ndjson`))) instance += 1;
-  return instance;
-}
-
 /** An unreadable log names no sender, so every client line of the job reads as the Overseer's. */
 function logRecordsIn(logFilePath: string): readonly LogRecord[] {
   const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(logFilePath).read());
@@ -115,7 +108,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
   const { context, workspace } = request;
   const jobFolderOf = (jobId: string): string | null => {
     if (!JOB_ID_PATTERN.test(jobId)) return null;
-    const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, jobId);
+    const jobFolder = request.boardChildren.jobFolderOf(jobId);
     return existsSync(jobFolder) ? jobFolder : null;
   };
   return {
@@ -147,7 +140,8 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       if (jobFolder === null || startCursor === null) return null;
       let cursor = startCursor;
       return () => {
-        const read = JobTranscript.entriesAfter(jobFolder, newestInstanceIn(jobFolder), cursor, {
+        const read = JobTranscript.entriesAfter(jobFolder, request.boardChildren.newestInstanceIn(jobFolder) ?? 0, cursor, {
+          eventsAfter:   request.boardChildren.eventsAfter,
           eventsOf:      (line) => context.agentAdapter.eventsOf(line),
           sentLineOf:    (line) => context.agentAdapter.sentLineOf(line),
           senderFactsOf: () => JobTranscript.senderFactsOf(logRecordsIn(workspace.logFilePath), workspace.trackerDirectory, jobId),

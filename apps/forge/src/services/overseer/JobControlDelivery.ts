@@ -5,21 +5,21 @@
  * Watcher is live, and a marker written once it was taken keeps a restart from sending it again, unless the Overseer died before the marker:
  * delivery is at least once.
  */
-import { existsSync } from 'node:fs';
-import { join }       from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join }                        from 'node:path';
 
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
-import type { PlatformPorts }              from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ChildInput }                 from '../../lib/talos/@types/TalosFrame.ts';
 import type { Job, JobKind }               from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                      from '../../lib/tracker-model/Board.ts';
-import type { ActingFrame }                from '../../lib/watcher/@types/WatcherFrame.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { PictureStore }                    from '../tracker/PictureStore.ts';
 import { AssistantSession }                from './AssistantSession.ts';
-import { WatcherFleet }                    from './WatcherFleet.ts';
+import type { BoardChildren }              from './BoardChildren.ts';
+import { jobFolderIn }                     from './OverseerFiles.ts';
 
 export interface JobControlDeliveryRequest {
-  platformPorts:    PlatformPorts;
+  boardChildren:    BoardChildren;
   trackerDirectory: string;
   board:            Pick<Board, 'jobs' | 'logRecordsSoFar'>;
   adapter:          Pick<AgentAdapter, 'chatLineOf'>;
@@ -30,14 +30,23 @@ const MARKERS_FOLDER = 'control-frames';
 
 const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner', 'pipeline-agent'];
 
+/** What one control asks of the job's session: its input, or a stop after the grace. */
+type ControlAct = { kind: 'input'; inputs: readonly ChildInput[] } | { kind: 'stop'; graceMilliseconds: number };
+
 /**
- * Whether the frames were taken, on this pass or an earlier one: a later frame of the job waits on an earlier one, so none overtakes it. The
- * frames are built only for a send, so a taken message's pictures are not read again.
+ * Whether the act was taken, on this pass or an earlier one: a later act of the job waits on an earlier one, so none overtakes it. The
+ * act is built only for a send, so a taken message's pictures are not read again. A stop's marker, like an input's, is written only once taken.
  */
-async function sendOnce(ports: PlatformPorts, jobFolder: string, job: Readonly<Job>, marker: string, framesOf: () => readonly ActingFrame[]): Promise<boolean> {
+async function sendOnce(children: BoardChildren, jobFolder: string, job: Readonly<Job>, marker: string, actOf: () => ControlAct): Promise<boolean> {
   const markerPath = join(jobFolder, MARKERS_FOLDER, marker);
   if (existsSync(markerPath)) return true;
-  await WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder, job.watcherInstance, framesOf());
+  const act = actOf();
+  if (act.kind === 'input') {
+    await children.sendInputOnce(markerPath, jobFolder, job.watcherInstance, act.inputs);
+  } else if (children.livenessOf(jobFolder, job.watcherInstance).verdict === 'live' && await children.stop(jobFolder, job.watcherInstance, act.graceMilliseconds)) {
+    mkdirSync(dirname(markerPath), { recursive: true });
+    writeFileSync(markerPath, '');
+  }
   return existsSync(markerPath);
 }
 
@@ -53,13 +62,17 @@ async function deliverInOrder(sends: readonly (() => Promise<boolean>)[]): Promi
  */
 function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
   if (job.kind === 'assistant') return AssistantSession.unsentMessageCountOf(board, trackerDirectory, job);
-  const markersFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), MARKERS_FOLDER);
+  const markersFolder = join(jobFolderIn(trackerDirectory, job.id), MARKERS_FOLDER);
   const messageCount  = board.logRecordsSoFar().filter((record) => record.kind === 'job-messaged' && record.jobId === job.id).length;
   let unsent = 0;
   for (let number = 1; number <= messageCount; number += 1) {
     if (!existsSync(join(markersFolder, `message-${number}`))) unsent += 1;
   }
   return unsent;
+}
+
+function inputOf(line: string): ControlAct {
+  return { kind: 'input', inputs: [{ act: 'write-line', line }] };
 }
 
 async function deliverJobControls(request: JobControlDeliveryRequest): Promise<void> {
@@ -74,21 +87,22 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
     }];
   });
   for (const job of board.jobs()) {
-    const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
+    const children  = request.boardChildren;
+    const jobFolder = children.jobFolderOf(job.id);
     // The Assistant takes User's messages only when idle, numbered among its chats by `src/services/overseer/AssistantSession.ts`.
     const messagesOfJob = job.kind === 'assistant' ? [] : messages.filter((candidate) => candidate.jobId === job.id);
     const sends = messagesOfJob.map((message) => async () => await sendOnce(
-      request.platformPorts, jobFolder, job, `message-${message.number}`,
-      () => [{ kind: 'write', line: adapter.chatLineOf(message.text, PictureStore.attachmentsOf(request.trackerDirectory, message.pictures)) }]
+      children, jobFolder, job, `message-${message.number}`,
+      () => inputOf(adapter.chatLineOf(message.text, PictureStore.attachmentsOf(request.trackerDirectory, message.pictures)))
     ));
     if (job.stopRequest === 'wind-down' && job.state === 'running') {
-      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, 'wind-down', () => [{ kind: 'write', line: adapter.chatLineOf(request.windDownMessage) }]));
+      sends.push(async () => await sendOnce(children, jobFolder, job, 'wind-down', () => inputOf(adapter.chatLineOf(request.windDownMessage))));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
-      sends.push(async () => await sendOnce(request.platformPorts, jobFolder, job, `input-closed-${job.watcherInstance}`, () => [{ kind: 'close-input' }]));
+      sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.watcherInstance}`, () => ({ kind: 'input', inputs: [{ act: 'close' }] })));
       if (job.stopRequest === 'stop') {
         sends.push(async () => await sendOnce(
-          request.platformPorts, jobFolder, job, `stop-${job.watcherInstance}`, () => [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]
+          children, jobFolder, job, `stop-${job.watcherInstance}`, () => ({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })
         ));
       }
     }
@@ -107,13 +121,13 @@ export interface EndedJobSession {
  * moved it on, such as a build that Customs ended, has no state that asks for the close. Answers the sessions whose close is still due: the
  * Watcher is live and did not take the frame yet.
  */
-async function closeInputOfEndedJobs(ports: PlatformPorts, trackerDirectory: string, endedSessions: readonly EndedJobSession[]): Promise<EndedJobSession[]> {
+async function closeInputOfEndedJobs(children: BoardChildren, endedSessions: readonly EndedJobSession[]): Promise<EndedJobSession[]> {
   const stillDue: EndedJobSession[] = [];
   for (const ended of endedSessions) {
-    const jobFolder  = WatcherFleet.jobFolderOf(trackerDirectory, ended.jobId);
+    const jobFolder  = children.jobFolderOf(ended.jobId);
     const markerPath = join(jobFolder, MARKERS_FOLDER, `input-closed-${ended.watcherInstance}`);
-    await WatcherFleet.sendFramesOnce(ports, markerPath, jobFolder, ended.watcherInstance, [{ kind: 'close-input' }]);
-    const taken = existsSync(markerPath) || WatcherFleet.livenessOf(ports, jobFolder, ended.watcherInstance).verdict !== 'live';
+    await children.sendInputOnce(markerPath, jobFolder, ended.watcherInstance, [{ act: 'close' }]);
+    const taken = existsSync(markerPath) || children.livenessOf(jobFolder, ended.watcherInstance).verdict !== 'live';
     if (!taken) stillDue.push(ended);
   }
   return stillDue;

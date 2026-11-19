@@ -68,6 +68,7 @@ import { createScratchDirectory, removeScratchDirectory }       from '../../test
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../testing/ToolGuard.ts';
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                            from '../../testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                             from '../../testing/WatcherChildReadings.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
 import { finishHalfAppliedSetup }                               from '../control/PipelineSetupControls.ts';
 import { holdJournalFilePathOf, readHoldJournal }               from '../tracker/HoldJournal.ts';
@@ -76,14 +77,16 @@ import { writeTracker, type TrackerChange }                     from '../tracker
 import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
 import { AirlockFactsFile }                                     from './AirlockFactsFile.ts';
+import type { BoardChildren }                                   from './BoardChildren.ts';
 import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
 import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }         from './GateProfiling.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
 import { IntakeSessions }                                       from './IntakeSessions.ts';
 import { JobResumption }                                        from './JobResumption.ts';
+import { LegacyWatcherReader }                                  from './LegacyWatcherReader.ts';
+import { jobFolderIn }                                          from './OverseerFiles.ts';
 import { RedHandoff }                                           from './RedHandoff.ts';
 import { Regrouping }                                           from './Regrouping.ts';
-import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -96,6 +99,11 @@ const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
 
 let workspace: Workspace;
+
+/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return watcherChildReadingsWith(ports);
+}
 
 function ticketFilePath(): string {
   return join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME);
@@ -574,16 +582,16 @@ function storedRecords(): { kind: string; jobId?: string; fields: Record<string,
 }
 
 function sessionJobFolder(jobId: string): string {
-  return WatcherFleet.jobFolderOf(sessionWorkspace.trackerDirectory, jobId);
+  return jobFolderIn(sessionWorkspace.trackerDirectory, jobId);
 }
 
 function watcherRecordOf(jobId: string, instance: number): WatcherRecord | null {
-  return WatcherFleet.watcherRecordOf(sessionJobFolder(jobId), instance);
+  return LegacyWatcherReader.watcherRecordIn(sessionJobFolder(jobId), instance);
 }
 
 
 function eventLogTextOf(jobId: string, instance: number): string {
-  const entries = WatcherFleet.eventsAfter(sessionJobFolder(jobId), instance, 0);
+  const entries = childReadings().eventsAfter(sessionJobFolder(jobId), instance, 0);
   return entries === 'malformed' ? '' : entries.map((entry) => entry.line).join('\n');
 }
 
@@ -601,7 +609,7 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
   const record = watcherRecordOf(job.id, job.watcherInstance);
-  return WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
+  return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
 /** Passes until the build session's current instance runs a child; answers the job as stored then. */
@@ -695,10 +703,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const job     = await runningBuildSession(await startedOverseer(adapter));
     await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
     // The Overseer is down from here: the session goes on and logs a turn nobody applies.
-    await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line while the Overseer is down') }]);
+    await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') });
     await until(() => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the session never answered the line');
     const storedCursor = requireBuildJob().eventCursor;
-    const unapplied    = WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
+    const unapplied    = childReadings().eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
 
     const report = await (await startedOverseer(adapter)).regroup();
 
@@ -718,7 +726,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     await passUntil(drivePass, () => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the fresh session never took its first message');
     await passOnce(drivePass);
 
-    const clientLines = (WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
+    const clientLines = (childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
     expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ kind: 'write', line: firstLine })]);
     expect(existsSync(join(sessionJobFolder(job.id), 'first-message-1.sent'))).toBe(true);
   });
@@ -727,7 +735,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const statesAfterWatcherEvents: (string | undefined)[] = [];
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }], resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
-    await passUntil(first, () => WatcherFleet.livenessOf(ports, sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unclaimed', 'the build session was never spawned');
+    await passUntil(first, () => childReadings().livenessOf(sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unlaunched', 'the build session was never spawned');
     const job = requireBuildJob();
     await until(() => eventLogTextOf(job.id, 1).includes('"result"'), 'the session never closed its turn');
 
@@ -815,7 +823,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const report = await (await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }))).regroup();
 
     expect(report.respawnJobIds).toContain(assistantJobId);
-    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
+    await until(() => childReadings().livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
     expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
   });
 
@@ -931,7 +939,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     });
     await passOnce(drivePass);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
-    expect(WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict).toBe('live');
+    expect(childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict).toBe('live');
   });
 
   test('an Airlock agent launches bound to the Airlock agent report schema, with the question tool disallowed', async () => {
@@ -1081,7 +1089,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
 
     expect(requireProgressFile(sessionWorkspace).incidents ?? []).toEqual([]);
     expect(storedRecords().filter((record) => record.kind === 'incident-handled')).toMatchObject([{ incidentId, fields: { move: 'gate-retry' } }]);
-    expect(WatcherFleet.livenessOf(ports, sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unclaimed');
+    expect(childReadings().livenessOf(sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unlaunched');
   });
 
   /**

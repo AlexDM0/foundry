@@ -10,20 +10,18 @@ import { join }                      from 'node:path';
 
 import type { AgentAdapter }               from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentQuestion }              from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { PlatformPorts }              from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { DecisionAnswer }             from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                        from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                  from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                      from '../../lib/tracker-model/Board.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
+import type { BoardChildren }              from './BoardChildren.ts';
 import { JobResumption }                   from './JobResumption.ts';
-import { WatcherFleet }                    from './WatcherFleet.ts';
 
 const MARKER_DIGEST_LENGTH_CHARACTERS = 16;
 
 export interface AnswerDeliveryRequest {
-  platformPorts:             PlatformPorts;
-  trackerDirectory:          string;
+  boardChildren:             BoardChildren;
   board:                     Board;
   adapter:                   AgentAdapter;
   /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the Watcher and resumes the session with it. */
@@ -50,14 +48,16 @@ function answerOf(logRecords: readonly LogRecord[], requestId: string): Decision
   return answered?.kind === 'decision-answered' ? answered.fields.answer : null;
 }
 
-function undeliveredRequestIdsOf(trackerDirectory: string, job: Readonly<Job>): string[] {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+function undeliveredRequestIdsOf(children: BoardChildren, job: Readonly<Job>): string[] {
+  const jobFolder = children.jobFolderOf(job.id);
   return job.answeredRequestIds.filter((requestId) => !existsSync(deliveredMarkerOf(jobFolder, requestId)));
 }
 
 /** The question as this instance's session asked it, or `null` when another instance asked it and this one never held the request. */
-function questionsAskedInInstance(jobFolder: string, instance: number, adapter: AgentAdapter, requestId: string): readonly AgentQuestion[] | null {
-  const entries = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+function questionsAskedInInstance(
+  children: BoardChildren, jobFolder: string, instance: number, adapter: AgentAdapter, requestId: string
+): readonly AgentQuestion[] | null {
+  const entries = children.eventsAfter(jobFolder, instance, 0);
   if (entries === 'malformed') return null;
   for (const entry of entries) {
     if (entry.origin !== 'agent') continue;
@@ -68,19 +68,20 @@ function questionsAskedInInstance(jobFolder: string, instance: number, adapter: 
 }
 
 async function deliverOne(request: AnswerDeliveryRequest, job: Readonly<Job>, requestId: string, answer: DecisionAnswer): Promise<void> {
-  const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
-  const asked     = questionsAskedInInstance(jobFolder, job.watcherInstance, request.adapter, requestId);
+  const children  = request.boardChildren;
+  const jobFolder = children.jobFolderOf(job.id);
+  const asked     = questionsAskedInInstance(children, jobFolder, job.watcherInstance, request.adapter, requestId);
   if (asked !== null && !request.deliversByControlResponse) {
     const stopMarker = answerStopMarkerOf(jobFolder, job.watcherInstance);
     if (existsSync(stopMarker)) return;
     writeFileSync(stopMarker, '');
-    await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]);
+    await children.stop(jobFolder, job.watcherInstance, SESSION_STOP_GRACE_MILLISECONDS);
     return;
   }
   const line = asked === null
     ? request.adapter.chatLineOf(request.answerMessageOf(answer))
     : request.adapter.answerLineOf(requestId, asked, answer);
-  if (!await WatcherFleet.sendFrames(request.platformPorts, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) return;
+  if (!await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) return;
   if (asked === null) JobResumption.recordAnswerAsResumeLine(jobFolder, job.watcherInstance);
   writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
 }
@@ -90,9 +91,9 @@ async function deliverAnswers(request: AnswerDeliveryRequest): Promise<void> {
   const logRecords = request.board.logRecordsSoFar();
   for (const job of request.board.jobs()) {
     if (job.state !== 'running') continue;
-    const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
-    if (WatcherFleet.livenessOf(request.platformPorts, jobFolder, job.watcherInstance).verdict !== 'live') continue;
-    for (const requestId of undeliveredRequestIdsOf(request.trackerDirectory, job)) {
+    const jobFolder = request.boardChildren.jobFolderOf(job.id);
+    if (request.boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    for (const requestId of undeliveredRequestIdsOf(request.boardChildren, job)) {
       const answer = answerOf(logRecords, requestId);
       if (answer !== null) await deliverOne(request, job, requestId, answer);
     }
@@ -100,13 +101,13 @@ async function deliverAnswers(request: AnswerDeliveryRequest): Promise<void> {
 }
 
 /** A resumed session with an answer to deliver takes the answer as its first line, never the resume message. */
-function answerAwaitsDelivery(trackerDirectory: string, job: Readonly<Job>): boolean {
-  return undeliveredRequestIdsOf(trackerDirectory, job).length > 0;
+function answerAwaitsDelivery(children: BoardChildren, job: Readonly<Job>): boolean {
+  return undeliveredRequestIdsOf(children, job).length > 0;
 }
 
 /** The Overseer stopped this instance itself to deliver an answer: its end is an `answer-delivery` interruption, never counted. */
-function stoppedForAnswerDelivery(trackerDirectory: string, job: Readonly<Job>): boolean {
-  return existsSync(answerStopMarkerOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id), job.watcherInstance));
+function stoppedForAnswerDelivery(children: BoardChildren, job: Readonly<Job>): boolean {
+  return existsSync(answerStopMarkerOf(children.jobFolderOf(job.id), job.watcherInstance));
 }
 
 export const AnswerDelivery = Object.freeze({

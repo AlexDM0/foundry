@@ -57,16 +57,18 @@ import {
   sourceFileOf
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
+import { nativePlatformPorts }                              from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
+import { watcherChildReadingsWith }                         from '../../testing/WatcherChildReadings.ts';
 import { sealOf }                                           from '../lifecycle/Customs.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
 import { DependentFixTickets }                              from './DependentFixTickets.ts';
 import { EntityDecisionAnswers }                            from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                 from './JobLaunch.ts';
+import { jobFolderIn }                                      from './OverseerFiles.ts';
 import { RedHandoff }                                       from './RedHandoff.ts';
-import { WatcherFleet }                                     from './WatcherFleet.ts';
 import {
   CrossingStageRun,
   type CrossingStagePlace,
@@ -140,6 +142,7 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
     branchNames:       branchNamesOf(null),
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
+    boardChildren:     watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
   return {
@@ -152,7 +155,7 @@ function shopTicketOf(board: Board) {
 }
 
 function batonPassOf(ticket: CrossingTicket, job: Readonly<Job>): string {
-  return readFileSync(RedHandoff.batonPassPathOf(WatcherFleet.jobFolderOf(ticket.context.workspace.trackerDirectory, job.id)), 'utf8');
+  return readFileSync(RedHandoff.batonPassPathOf(jobFolderIn(ticket.context.workspace.trackerDirectory, job.id)), 'utf8');
 }
 
 function ticketWorktreeOf(ticket: CrossingTicket): string {
@@ -373,7 +376,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     }, AT);
     enterScenario(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT, { repositoryDirectory: ticket.repository, commits: commitsOf(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_UI_KIT) });
     mkdirSync(JobLaunch.worktreeOf(ticket.context.workspace, job), { recursive: true });
-    const jobFolder = WatcherFleet.jobFolderOf(ticket.context.workspace.trackerDirectory, job.id);
+    const jobFolder = jobFolderIn(ticket.context.workspace.trackerDirectory, job.id);
 
     JobLaunch.recordJobStart(ticket.context, ticket.board, job);
     expect(JSON.parse(readFileSync(join(jobFolder, 'start.json'), 'utf8'))).toMatchObject({ homeEntity: SHOP.key, dependentsFixedInGroup: [ADMIN.key] });

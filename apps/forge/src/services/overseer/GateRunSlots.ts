@@ -12,8 +12,8 @@ import { fileReplaceOfThisProcess }                                  from '../..
 import { failureMeansTheFileIsHeld }                                 from '../../lib/atomic-file/HeldFileFailure.ts';
 import type { PlatformPorts }                                        from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, storedIdentityOf }                    from '../../lib/process-identity/ProcessIdentity.ts';
+import type { BoardChildren }                                        from './BoardChildren.ts';
 import { heldSlotCreateMeansTakenInThisProcess }                     from './HeldSlotCreateFor.ts';
-import { WatcherFleet }                                              from './WatcherFleet.ts';
 
 const GATE_WATCHER_INSTANCE = 1;
 
@@ -104,7 +104,7 @@ function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: 
  * whose job folder is gone is never live. An in-process holder is live while its Overseer is: the recorded process when its identity was
  * readable, so a reused process id frees the slot, and otherwise its process id alone.
  */
-function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boolean {
+function gateRunHolderIsLive(children: BoardChildren, ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
   if (holder.startsWith(IN_PROCESS_HOLDER_PREFIX)) {
     const overseerProcessId = Number(holder.slice(IN_PROCESS_HOLDER_PREFIX.length).split(HOLDER_SEPARATOR)[0]);
@@ -112,9 +112,9 @@ function gateRunHolderIsLive(ports: PlatformPorts, holding: GateRunHolding): boo
     return holding.process === null || processIsStillRunning(ports, holding.process);
   }
   if (!existsSync(dirname(holder))) return false;
-  const { verdict } = WatcherFleet.livenessOf(ports, holder, GATE_WATCHER_INSTANCE);
+  const { verdict } = children.livenessOf(holder, GATE_WATCHER_INSTANCE);
   if (verdict === 'live') return true;
-  return verdict === 'unclaimed' && processIsStillRunning(ports, holding.process);
+  return verdict === 'unlaunched' && processIsStillRunning(ports, holding.process);
 }
 
 function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {

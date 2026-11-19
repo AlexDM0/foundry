@@ -8,6 +8,7 @@ import type { FlintBrainEndedRun }                                              
 import { type FlintBrain, REAL_FLINT_BRAIN_TIMERS, createFlintBrain }                             from '../../src/services/overseer/FlintBrain.ts';
 import { type FlintBrainSessionHost, FlintBrainSessionHosts, createWatcherFlintBrainSessionHost } from '../../src/services/overseer/FlintBrainSessionHost.ts';
 import { UsageLimits }                                                                            from '../../src/services/overseer/UsageLimits.ts';
+import { createWatcherBoardChildren }                                                             from '../../src/services/overseer/WatcherBoardChildren.ts';
 import { requireProgressFile }                                                                    from '../../src/services/tracker/TrackerReader.ts';
 import type { Workspace }                                                                         from '../../src/services/tracker/Workspace.ts';
 import { environmentCopy, flintBrainIsWithheld, flintBrainMaximumOverride }                       from '../../src/shared/Environment.ts';
@@ -68,6 +69,19 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
   } = request;
   const { platformPorts } = context;
   const monitorFolder = platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
+  // The brain's Watchers run in its own folder, so none holds the repository as its working directory.
+  const brainChildren = createWatcherBoardChildren({
+    platformPorts,
+    trackerDirectory: workspace.trackerDirectory,
+    launching:        {
+      trackerId:         request.trackerId,
+      monitorFolder,
+      watcherBundlePath: request.watcherBundlePath,
+      codeVersion:       request.codeVersion,
+      watcherDirectory:  FlintBrainSessionHosts.brainFolderOf(workspace.trackerDirectory),
+    },
+    log,
+  });
   const pendingLogWrites = new Set<Promise<void>>();
 
   const logEndedRun = (run: FlintBrainEndedRun): void => {
@@ -94,12 +108,11 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
       maximumRunMilliseconds: flintBrainMaximumOverride() ?? FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS,
     },
     sessionHost: sessionHostLoggingLaunches(createWatcherFlintBrainSessionHost({
+      boardChildren:    brainChildren,
       platformPorts,
-      trackerDirectory:  workspace.trackerDirectory,
-      trackerId:         request.trackerId,
+      trackerDirectory: workspace.trackerDirectory,
+      trackerId:        request.trackerId,
       monitorFolder,
-      watcherBundlePath: request.watcherBundlePath,
-      codeVersion:       request.codeVersion,
     }), log),
     timers:           REAL_FLINT_BRAIN_TIMERS,
     now:              context.now,
@@ -114,7 +127,7 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
     close: async () => {
       await brain.close();
       await Promise.all([...pendingLogWrites]);
-      await FlintBrainSessionHosts.reapRunsAtStop(platformPorts, workspace.trackerDirectory, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS);
+      await FlintBrainSessionHosts.reapRunsAtStop(brainChildren, workspace.trackerDirectory, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS);
     },
   };
 }

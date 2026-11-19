@@ -38,10 +38,11 @@ import type { PlatformWatch }                               from '../../src/lib/
 import type { Board }                                       from '../../src/lib/tracker-model/Board.ts';
 import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
 import { AGENT_SLOTS_FOLDER }                               from '../../src/services/overseer/AgentSlots.ts';
+import type { BoardChildren }                               from '../../src/services/overseer/BoardChildren.ts';
 import { DataFolderWatch }                                  from '../../src/services/overseer/DataFolderWatch.ts';
 import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
-import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { requireWorkspace, workspacePathsFor }              from '../../src/services/tracker/Workspace.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
@@ -60,6 +61,7 @@ import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/
 import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                             from '../../src/testing/WatcherChildReadings.ts';
 import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                      from '../testing/OverseerTicketMoves.ts';
@@ -86,6 +88,11 @@ async function run(commandLineArguments: readonly string[]) {
 }
 
 const SPEC_STAMP = '2026-09-18T22:11:03+02:00';
+
+/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return watcherChildReadingsWith(ports);
+}
 
 function drivePassWith(
   adapter: AgentAdapter,
@@ -118,11 +125,11 @@ async function passOnce(drivePass: DrivePass, forced = true): Promise<void> {
 }
 
 function jobFolder(jobId: string): string {
-  return WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
+  return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
 async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(ports, jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
+  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -143,8 +150,8 @@ function everyJobHasReadItsWholeStart(): boolean {
   const jobs = storedProgressOf(repositoryDirectory).jobs ?? [];
   return jobs.length > 0 && jobs.every((job) => {
     const folder = jobFolder(job.id);
-    const entries = WatcherFleet.eventsAfter(folder, job.watcherInstance, 0);
-    if (entries === 'malformed' || job.state !== 'running' || WatcherFleet.livenessOf(ports, folder, job.watcherInstance).verdict !== 'live') return false;
+    const entries = childReadings().eventsAfter(folder, job.watcherInstance, 0);
+    if (entries === 'malformed' || job.state !== 'running' || childReadings().livenessOf(folder, job.watcherInstance).verdict !== 'live') return false;
     const origins = new Set(entries.map((entry) => entry.origin));
     const cursorIsAtTheEnd = job.eventCursor.instance === job.watcherInstance && job.eventCursor.sequence === entries.at(-1)?.sequence;
     return origins.has('client') && origins.has('agent') && cursorIsAtTheEnd;
@@ -196,7 +203,7 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
   await waitUntil(async () => {
     await passOnce(drivePass);
     const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-    return buildJob !== undefined && WatcherFleet.livenessOf(ports, jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
+    return buildJob !== undefined && childReadings().livenessOf(jobFolder(buildJob.id), 1).verdict !== 'unlaunched';
   }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
@@ -225,7 +232,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target' }));
     const noticeText = OperationRefusalWordingUtil.agentProgramRefusalTextOf(buildJobId(), 'batch-target', `${shimPath} is a batch file`);
     expect(noticeText).toContain('irm https://claude.ai/install.ps1 | iex');
-    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+    expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
   });
 
   test('an endpoint this platform cannot bind launches no session and is noticed, before any launch file exists', async () => {
@@ -235,7 +242,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
 
     expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'watcher-endpoint-does-not-fit', jobId: buildJobId() }));
     expect(existsSync(watcherFilesOf(jobFolder(buildJobId()), 1).launchPath)).toBe(false);
-    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+    expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
   });
 
   test('a Hatch request and the result of the turn that wrote it, read in one pass, are applied request first', async () => {

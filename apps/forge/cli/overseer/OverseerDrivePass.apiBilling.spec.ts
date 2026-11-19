@@ -26,7 +26,7 @@ import type { PipelineBilling }                             from '../../src/lib/
 import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
 import type { WatcherLaunch }                               from '../../src/lib/watcher/WatcherLaunch.ts';
 import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
-import { WatcherFleet }                                     from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
 import { API_RATE_LIMIT_BACKOFF_SECONDS }                   from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
@@ -148,7 +148,7 @@ function buildJobId(): string | undefined {
 }
 
 function buildLaunchPath(): string {
-  return watcherFilesOf(WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, String(buildJobId())), 1).launchPath;
+  return watcherFilesOf(jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, String(buildJobId())), 1).launchPath;
 }
 
 async function buildLaunchOf(drivePass: DrivePass): Promise<WatcherLaunch> {

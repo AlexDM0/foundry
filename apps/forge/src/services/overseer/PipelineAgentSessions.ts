@@ -41,7 +41,7 @@ import type { Workspace }               from '../tracker/Workspace.ts';
 import { ConstitutionCommits }          from './ConstitutionCommits.ts';
 import { GroupWorktrees }               from './GroupWorktrees.ts';
 import { CONSTITUTION_DEFAULT_PATH }    from './InstructionFiles.ts';
-import { WatcherFleet }                 from './WatcherFleet.ts';
+import { jobFolderIn }                  from './OverseerFiles.ts';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
 
@@ -153,7 +153,7 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
   }
   const startCommit = GitProcess.resolvedCommitOf(snapshot, 'HEAD', GitWorktrees.ceilingOf(snapshot));
   const launchSnapshot = launchSnapshotOf(snapshot);
-  const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
+  const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   if (startCommit !== null && launchSnapshot !== null) writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit, launchSnapshot })}\n`);
   return snapshot;
@@ -161,7 +161,7 @@ function prepareSnapshot(context: SnapshotContext, board: Board, job: Readonly<J
 
 function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart | null {
   try {
-    return JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as SnapshotStart;
+    return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as SnapshotStart;
   } catch {
     return null;
   }

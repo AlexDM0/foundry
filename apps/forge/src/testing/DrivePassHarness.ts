@@ -13,7 +13,9 @@ import type { PlatformPorts }                                     from '../lib/p
 import { Baton }                                                  from '../services/overseer/Baton.ts';
 import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/overseer/DrivePass.ts';
 import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
+import { createWatcherBoardChildren }                             from '../services/overseer/WatcherBoardChildren.ts';
 import { WATCHER_ENTRY_PATH, WatcherBundle }                      from '../services/overseer/WatcherBundle.ts';
+import { requireProgressFile }                                    from '../services/tracker/TrackerReader.ts';
 import type { Workspace }                                         from '../services/tracker/Workspace.ts';
 import { branchNamesOf }                                          from '../shared/BranchNames.ts';
 
@@ -49,12 +51,28 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     watcherProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
+  const codeVersion = request.codeVersion ?? 'code-example';
+  const boardChildren = createWatcherBoardChildren({
+    platformPorts:    request.platformPorts,
+    trackerDirectory: request.workspace.trackerDirectory,
+    launching:        {
+      trackerId:         requireProgressFile(request.workspace).trackerId,
+      monitorFolder:     request.monitorFolder,
+      watcherBundlePath: request.watcherBundlePath,
+      codeVersion,
+      watcherDirectory:  request.workspace.rootDirectory,
+      ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
+    },
+    log: request.log,
+  });
   const defaults: Omit<DrivePassRequest, keyof ScratchDrivePassRequired> = {
     now:                   () => new Date('2026-09-18T20:11:03Z'),
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
     overseerDirectory,
     generation:            acquisition.generation,
-    codeVersion:           'code-example',
+    boardChildren,
+    reapEndedWatchers:     boardChildren.reapEndedWatchers,
+    codeVersion,
     programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
     inheritedEnvironment:  {},
     managedBlockMarker:    '<!-- example-managed-block -->',

@@ -14,7 +14,6 @@ import { dirname, join } from 'node:path';
 
 import type { AgentAdapter }   from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }  from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { EventLogEntry }  from '../../lib/talos/EventLog.ts';
 import type {
   InterruptionCause,
@@ -27,9 +26,10 @@ import type { LogRecord, LogRecordFieldsOf }                   from '../../lib/t
 import type { Board }                                          from '../../lib/tracker-model/Board.ts';
 import { HANDOFF_RED_INTERRUPTION }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import { PictureStore }                                        from '../tracker/PictureStore.ts';
+import type { BoardChildren }                                  from './BoardChildren.ts';
 import { IntakeSessions }                                      from './IntakeSessions.ts';
+import { jobFolderIn }                                         from './OverseerFiles.ts';
 import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
-import { WatcherFleet }                                        from './WatcherFleet.ts';
 
 const FIRST_WATCHER_INSTANCE = 1;
 
@@ -92,8 +92,8 @@ function launchPartsOf(job: Readonly<Job>, firstMessage: string, resumeMessage: 
 }
 
 /** Whether the instance's whole event log holds its session's start; read only for an instance whose Watcher is gone. */
-function instanceSessionStarted(jobFolder: string, instance: number, adapter: AgentAdapter): boolean {
-  const entries: readonly EventLogEntry[] | 'malformed' = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+function instanceSessionStarted(children: BoardChildren, jobFolder: string, instance: number, adapter: AgentAdapter): boolean {
+  const entries: readonly EventLogEntry[] | 'malformed' = children.eventsAfter(jobFolder, instance, 0);
   if (entries === 'malformed') return true;
   return entries.some((entry) => entry.origin === 'agent' && adapter.eventsOf(entry.line).some((event) => event.kind === 'started'));
 }
@@ -160,7 +160,7 @@ function lastEndedPredecessorOf(logRecords: readonly LogRecord[], job: Readonly<
 /** The stale-green handoff an ended session left for the next one; `null` when it ended otherwise or left none. */
 function staleGreenHandoffOf(trackerDirectory: string, predecessor: Readonly<EndedPredecessor>): RedHandoffFacts | null {
   if (!STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return null;
-  return RedHandoff.redHandoffFactsOf(join(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), RED_HANDOFF_FILES.staleGreenFolder));
+  return RedHandoff.redHandoffFactsOf(join(jobFolderIn(trackerDirectory, predecessor.jobId), RED_HANDOFF_FILES.staleGreenFolder));
 }
 
 /**
@@ -322,12 +322,12 @@ function redHandoffTakenOverOf(trackerDirectory: string, logRecords: readonly Lo
   if (STALE_GREEN_TAKING_OUTCOMES.includes(predecessor.outcome)) return staleGreenHandoffOf(trackerDirectory, predecessor);
   const takesTheFolderOver = predecessor.outcome === 'replaced' && predecessor.interruption === HANDOFF_RED_INTERRUPTION;
   if (!takesTheFolderOver && !failedStaleGreenResume(trackerDirectory, predecessor)) return null;
-  const facts = RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId));
+  const facts = RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, predecessor.jobId));
   return facts === null ? null : { ...facts, interruptedInstance: 0 };
 }
 
 function staleGreenSessionOwnerPathOf(trackerDirectory: string, jobId: string): string {
-  return join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), STALE_GREEN_SESSION_OWNER_FILE);
+  return join(jobFolderIn(trackerDirectory, jobId), STALE_GREEN_SESSION_OWNER_FILE);
 }
 
 /** The answer the launch of the job's first instance recorded; `undefined` before that launch, or when the record cannot be read. */
@@ -359,6 +359,7 @@ function recordStaleGreenSessionOwner(trackerDirectory: string, job: Readonly<Jo
  * stale-green resume resumes that session again, never one of its own, though another same-work job ended in between.
  */
 function staleGreenSessionOwnerOf(
+  children: BoardChildren,
   trackerDirectory: string,
   logRecords: readonly LogRecord[],
   job: Readonly<Job>,
@@ -369,25 +370,26 @@ function staleGreenSessionOwnerOf(
   if (recorded !== undefined) return recorded;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
-  if (!instanceSessionStarted(WatcherFleet.jobFolderOf(trackerDirectory, predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
+  if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
 }
 
 /** The job whose session the launch of the job's current instance runs: the stale-green session it resumes, or the session it carries on. */
 function launchSessionOwnerJobIdOf(
+  children: BoardChildren,
   trackerDirectory: string,
   logRecords: readonly LogRecord[],
   job: Readonly<Job>,
   adapter: AgentAdapter,
 ): string {
-  return staleGreenSessionOwnerOf(trackerDirectory, logRecords, job, adapter) ?? sessionOwnerJobIdOf(logRecords, job);
+  return staleGreenSessionOwnerOf(children, trackerDirectory, logRecords, job, adapter) ?? sessionOwnerJobIdOf(logRecords, job);
 }
 
 /** The message a resumed instance opens with: User's reopening text, the red handoff it resumes to fix, or the plain resume message. */
 function resumeLineOf(trackerDirectory: string, board: Pick<Board, 'logRecordsSoFar'>, job: Readonly<Job>, messages: ResumeMessages): string {
   const reopenText = reopenTextOf(board.logRecordsSoFar(), job);
   if (reopenText !== null) return reopenText;
-  const redHandoff = job.interruption === HANDOFF_RED_INTERRUPTION ? RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id)) : null;
+  const redHandoff = job.interruption === HANDOFF_RED_INTERRUPTION ? RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, job.id)) : null;
   return redHandoff === null ? messages.resumeMessage : messages.redHandoffMessageOf(redHandoff);
 }
 
@@ -418,16 +420,18 @@ function storeFirstMessage(jobFolder: string, instance: number, message: string)
  * request. The marker is written only after the Watcher took the line, so one not yet listening is tried again on the next pass; an
  * Overseer that dies before the marker sends the line again, so the session can get its task text twice.
  */
-async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>): Promise<void> {
+async function deliverFirstMessages(
+  children: BoardChildren, trackerDirectory: string, board: Pick<Board, 'jobs'>, adapter: Pick<AgentAdapter, 'chatLineOf'>
+): Promise<void> {
   for (const job of board.jobs()) {
     if (isResumedInstance(job)) continue;
-    const jobFolder   = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+    const jobFolder   = children.jobFolderOf(job.id);
     const messagePath = firstMessagePathOf(jobFolder, job.watcherInstance);
     const marker      = firstMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (!existsSync(messagePath) || existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (!existsSync(messagePath) || existsSync(marker) || children.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
     const pictures = PictureStore.attachmentsOf(trackerDirectory, IntakeSessions.firstMessagePicturesOf(job));
     const line = adapter.chatLineOf(readFileSync(messagePath, 'utf8'), pictures);
-    if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
+    if (await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) writeFileSync(marker, '');
   }
 }
 
@@ -437,7 +441,7 @@ async function deliverFirstMessages(ports: PlatformPorts, trackerDirectory: stri
  * tried again on the next pass.
  */
 async function deliverResumeMessages(
-  ports: PlatformPorts,
+  children: BoardChildren,
   trackerDirectory: string,
   board: Board,
   adapter: AgentAdapter,
@@ -446,12 +450,12 @@ async function deliverResumeMessages(
 ): Promise<void> {
   for (const job of board.jobs()) {
     if (job.state !== 'running' || !isResumedInstance(job) || job.interruption === 'answer-delivery' || answerAwaitsDelivery(job)) continue;
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+    const jobFolder = children.jobFolderOf(job.id);
     const marker    = resumeMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (existsSync(marker) || WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (existsSync(marker) || children.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
     const pictures = PictureStore.attachmentsOf(trackerDirectory, reopenPicturesOf(board.logRecordsSoFar(), job));
     const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages), pictures);
-    if (await WatcherFleet.sendFrames(ports, jobFolder, job.watcherInstance, [{ kind: 'write', line }])) writeFileSync(marker, '');
+    if (await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) writeFileSync(marker, '');
   }
 }
 

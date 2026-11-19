@@ -16,8 +16,8 @@ import type { RecordedGit }                                                     
 import { launchSnapshotOf }                                                                from '../../lifecycle/Customs.ts';
 import type { TrackerChange }                                                              from '../../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }                                                from '../JobLaunch.ts';
+import { jobFolderIn }                                                                     from '../OverseerFiles.ts';
 import { RedHandoff }                                                                      from '../RedHandoff.ts';
-import { WatcherFleet }                                                                    from '../WatcherFleet.ts';
 
 const OBJECT_ID_LENGTH = 40;
 
@@ -166,7 +166,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   const commits = commitsOf(run.scenario);
   place.enterScenario(run.scenario, { repositoryDirectory: place.repository, commits });
   mkdirSync(JobLaunch.worktreeOf(context.workspace, job), { recursive: true });
-  const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
+  const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   writeEarlierRedHandoffs(jobFolder, run);
   writeJobStart(place, job, jobFolder, commits[run.startCommit] ?? '');

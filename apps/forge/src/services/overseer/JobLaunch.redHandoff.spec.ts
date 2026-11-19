@@ -16,8 +16,8 @@ import { boardFixture, ticketFixture }                                from '../.
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
+import { jobFolderIn }                                                from './OverseerFiles.ts';
 import { RedHandoff }                                                 from './RedHandoff.ts';
-import { WatcherFleet }                                               from './WatcherFleet.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 
@@ -45,7 +45,7 @@ function resumedScene(): ResumedScene {
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   board.interruptJob(job.id, 'handoff-red', AT);
   board.moveJob(job.id, 'running', AT);
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+  const jobFolder = jobFolderIn(trackerDirectory, job.id);
   RedHandoff.writeRedHandoff(jobFolder, {
     kind:                'gate',
     name:                'tests',
@@ -98,7 +98,7 @@ describe('a session resumed after a red handoff', () => {
     scene.observe({ agentEnd: { reason: 'exited', exitCode: 0, signal: null } as unknown as BuildJobObservation['agentEnd'] });
 
     expect(scene.board.jobs().find((job) => job.kind === 'build')).toMatchObject({ state: 'interrupted', interruption: 'handoff-red' });
-    const jobFolder = WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, scene.board.jobs().find((job) => job.kind === 'build')?.id ?? '');
+    const jobFolder = jobFolderIn(scene.context.workspace.trackerDirectory, scene.board.jobs().find((job) => job.kind === 'build')?.id ?? '');
     expect(RedHandoff.redHandoffFactsOf(jobFolder)).toMatchObject({ name: 'tests', resume: 2, interruptedInstance: 2 });
   });
 });

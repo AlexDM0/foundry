@@ -63,17 +63,20 @@ import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../test
 import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
 import { writeReadableTracker }                                 from '../../testing/TrackerFileFixtures.ts';
 import { blockUntil, waitUntil }                                from '../../testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                             from '../../testing/WatcherChildReadings.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
 import { writeTracker }                                         from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
 import { BatonPass }                                            from './BatonPass.ts';
+import type { BoardChildren }                                   from './BoardChildren.ts';
 import { type DrivePass, type JobLaunchFacts }                  from './DrivePass.ts';
 import { HatchInbox }                                           from './HatchInbox.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
+import { LegacyWatcherReader }                                  from './LegacyWatcherReader.ts';
 import { overseerFilesIn }                                      from './OverseerFiles.ts';
+import { jobFolderIn }                                          from './OverseerFiles.ts';
 import { Regrouping }                                           from './Regrouping.ts';
-import { WatcherFleet }                                         from './WatcherFleet.ts';
 
 const recordedGit = useRecordedGit();
 const ports = nativePlatformPorts();
@@ -118,6 +121,11 @@ const LINE_THEN_WAITING_STEPS: readonly FakeAgentStep[] = [
 const EXAMPLE_QUESTION: AgentQuestion = {
   question: 'Ship the example export?', header: 'Export', multiSelect: false, options: [{ label: 'Yes', description: 'Ship it' }, { label: 'No', description: 'Hold it' }],
 };
+
+/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return watcherChildReadingsWith(ports);
+}
 
 function askingSteps(question: AgentQuestion): readonly FakeAgentStep[] {
   return [
@@ -228,11 +236,11 @@ function storedRecords(): { kind: string; jobId?: string; fields: Record<string,
 }
 
 function sessionJobFolder(jobId: string): string {
-  return WatcherFleet.jobFolderOf(sessionWorkspace.trackerDirectory, jobId);
+  return jobFolderIn(sessionWorkspace.trackerDirectory, jobId);
 }
 
 function watcherRecordOf(jobId: string, instance: number): WatcherRecord | null {
-  return WatcherFleet.watcherRecordOf(sessionJobFolder(jobId), instance);
+  return LegacyWatcherReader.watcherRecordIn(sessionJobFolder(jobId), instance);
 }
 
 function processIsAlive(identity: ProcessIdentity): boolean {
@@ -241,7 +249,7 @@ function processIsAlive(identity: ProcessIdentity): boolean {
 }
 
 function eventLogTextOf(jobId: string, instance: number): string {
-  const entries = WatcherFleet.eventsAfter(sessionJobFolder(jobId), instance, 0);
+  const entries = childReadings().eventsAfter(sessionJobFolder(jobId), instance, 0);
   return entries === 'malformed' ? '' : entries.map((entry) => entry.line).join('\n');
 }
 
@@ -259,7 +267,7 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
   const record = watcherRecordOf(job.id, job.watcherInstance);
-  return WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
+  return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
 /** Passes until the build session's current instance runs a child; answers the job as stored then. */
@@ -421,10 +429,10 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const job     = await runningBuildSession(await startedOverseer(adapter));
     await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
     // The Overseer is down from here: the session goes on and logs a turn nobody applies.
-    await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line while the Overseer is down') }]);
+    await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') });
     await until(() => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the session never answered the line');
     const storedCursor = requireBuildJob().eventCursor;
-    const unapplied    = WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
+    const unapplied    = childReadings().eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
 
     const report = await (await startedOverseer(adapter)).regroup();
 
@@ -444,7 +452,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     await passUntil(drivePass, () => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the fresh session never took its first message');
     await passOnce(drivePass);
 
-    const clientLines = (WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
+    const clientLines = (childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
     expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ kind: 'write', line: firstLine })]);
     expect(existsSync(join(sessionJobFolder(job.id), 'first-message-1.sent'))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -473,7 +481,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const job      = await runningBuildSession(await startedOverseer(adapter));
     const child    = requireRecord(job.id, 1).childProcess;
     killWatcher(job.id, 1);
-    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
+    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
     expect(child !== null && child !== undefined && processIsAlive(child), 'the orphaned agent outlives its watcher').toBe(true);
 
     const restarted = await startedOverseer(adapter);
@@ -498,7 +506,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const job     = await runningBuildSession(await startedOverseer(adapter));
     killWatcher(job.id, 1);
     killChildGroup(job.id, 1);
-    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
+    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
 
     const report = await (await startedOverseer(adapter)).regroup();
 
@@ -514,7 +522,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const statesAfterWatcherEvents: (string | undefined)[] = [];
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }], resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
-    await passUntil(first, () => WatcherFleet.livenessOf(ports, sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unclaimed', 'the build session was never spawned');
+    await passUntil(first, () => childReadings().livenessOf(sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unlaunched', 'the build session was never spawned');
     const job = requireBuildJob();
     await until(() => eventLogTextOf(job.id, 1).includes('"result"'), 'the session never closed its turn');
 
@@ -695,7 +703,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const report = await (await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }))).regroup();
 
     expect(report.respawnJobIds).toContain(assistantJobId);
-    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
+    await until(() => childReadings().livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
     expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -715,7 +723,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     });
     killWatcher(jobId, 1);
     killChildGroup(jobId, 1);
-    await until(() => WatcherFleet.livenessOf(ports, sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant Watcher never read as lost');
+    await until(() => childReadings().livenessOf(sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant Watcher never read as lost');
     await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-ended' && record.jobId === jobId), 'the stopped Assistant never ended');
 
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === jobId)?.fields).toMatchObject({ outcome: 'closed' });
@@ -913,8 +921,8 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
       childProcess:          reused,
       childProcessGroupId:   process.pid,
     })}\n`);
-    expect(WatcherFleet.livenessOf(ports, jobFolder, 1).verdict).toBe('lost');
-    expect(Regrouping.settleLostWatcher(ports, jobFolder, 1)).toBe('agent-crashed');
+    expect(childReadings().livenessOf(jobFolder, 1).verdict).toBe('lost');
+    expect(Regrouping.settleLostWatcher(childReadings(), ports, jobFolder, 1)).toBe('agent-crashed');
     expect(processIsAlive(self)).toBe(true);
   });
 
@@ -1004,11 +1012,11 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     expect(report.attached.map((watcher) => watcher.jobId)).not.toContain(job.id);
     expect(report.legacyWatchers).toEqual([{ jobId: job.id, instance: 1, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1 }]);
     expect(updatedOverseer.state().legacyWatcherJobIds).toEqual([job.id]);
-    expect(WatcherFleet.eventsAfter(sessionJobFolder(job.id), 1, 0)).not.toBe('malformed');
+    expect(childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0)).not.toBe('malformed');
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
 
-    expect(await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'write', line: adapter.chatLineOf('Example line') }])).toBe(false);
-    expect(await WatcherFleet.sendFrames(ports, sessionJobFolder(job.id), 1, [{ kind: 'stop', graceMilliseconds: 1 }])).toBe(true);
+    expect(await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line') })).toBe(false);
+    expect(await childReadings().stop(sessionJobFolder(job.id), 1, 1)).toBe(true);
     const child = record.childProcess;
     await until(() => child === null || child === undefined || !processIsAlive(child), 'the legacy watcher\'s agent group was never stopped');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

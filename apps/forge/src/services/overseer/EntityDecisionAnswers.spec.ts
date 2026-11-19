@@ -54,7 +54,7 @@ import { CrossingStages }                                                       
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
 import { type NeedsSettledFacts, NeedTickets }                                            from './NeedTickets.ts';
-import { WatcherFleet }                                                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                                                    from './OverseerFiles.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
 const { SHOP, ADMIN, UI_KIT } = ENTITY_FORGE_ENTITIES;
@@ -279,7 +279,7 @@ describe('work-in-other-entity, answered', () => {
     } as unknown as JobLaunchContext;
     const worktree = JobLaunch.worktreeOf(workspace, job);
     mkdirSync(worktree, { recursive: true });
-    const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
+    const jobFolder = jobFolderIn(workspace.trackerDirectory, job.id);
 
     JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
     JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolder);
@@ -294,7 +294,7 @@ describe('work-in-other-entity, answered', () => {
     const job = shopJobOf(forge.board);
     const context = { workspace: forge.change.workspace, branchNames: BRANCH_NAMES } as unknown as JobLaunchContext;
 
-    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, WatcherFleet.jobFolderOf(forge.change.workspace.trackerDirectory, job.id));
+    JobLaunch.startAfreshInTheNewEntity(context, forge.board, job, jobFolderIn(forge.change.workspace.trackerDirectory, job.id));
 
     expect(gitCalls).toEqual([]);
   });

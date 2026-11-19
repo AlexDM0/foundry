@@ -24,13 +24,13 @@ import { watcherFilesOf }                                                       
 import { Baton, type BatonRecord }                                                 from '../../src/services/overseer/Baton.ts';
 import type { OverseerPortChoice }                                                 from '../../src/services/overseer/OverseerPort.ts';
 import { Regrouping }                                                              from '../../src/services/overseer/Regrouping.ts';
-import { WatcherFleet }                                                            from '../../src/services/overseer/WatcherFleet.ts';
 import { type Workspace, workspacePathsFor }                                       from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                        from '../../src/shared/OperationRefusal.ts';
 import { createFakeWindowsKernel, fakeWindowsSupervision, type FakeWindowsKernel } from '../../src/testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                                                     from '../../src/testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }                          from '../../src/testing/ScratchWorkspace.ts';
 import { writeReadableTracker }                                                    from '../../src/testing/TrackerFileFixtures.ts';
+import { watcherChildReadingsWith }                                                from '../../src/testing/WatcherChildReadings.ts';
 import type { CommandContext }                                                     from '../CommandContext.ts';
 import type { ArgumentParser }                                                     from '../arguments/ArgumentParser.ts';
 import { runOverseerInTheForeground }                                              from './OverseerForeground.ts';
@@ -165,33 +165,33 @@ describe('a claimed Watcher read by an Overseer on Windows', () => {
   test('reads live while the kernel answers its recorded start, and lost once the id is reused', () => {
     const ports = windowsPorts();
     const jobFolder = jobFolderClaimedBy(identityOf(ports, OTHER_PROCESS_ID), null);
-    expect(WatcherFleet.livenessOf(ports, jobFolder, 1).verdict).toBe('live');
+    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1).verdict).toBe('live');
     kernel.table.set(OTHER_PROCESS_ID, { creationTime: REUSED_CREATION_TIME });
-    expect(WatcherFleet.livenessOf(ports, jobFolder, 1).verdict).toBe('lost');
+    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1).verdict).toBe('lost');
   });
 
   test('reads live with a failed boot read, whichever side failed', () => {
     const readableIdentity = identityOf(windowsPorts(), OTHER_PROCESS_ID);
     const unreadableIdentity = identityOf(portsWithoutBoot(), OTHER_PROCESS_ID);
     expect(unreadableIdentity.bootIdentity).toBe(UNREADABLE_BOOT_IDENTITY);
-    expect(WatcherFleet.livenessOf(portsWithoutBoot(), jobFolderClaimedBy(readableIdentity, null), 1).verdict).toBe('live');
-    expect(WatcherFleet.livenessOf(windowsPorts(), jobFolderClaimedBy(unreadableIdentity, null), 1).verdict).toBe('live');
+    expect(watcherChildReadingsWith(portsWithoutBoot()).livenessOf(jobFolderClaimedBy(readableIdentity, null), 1).verdict).toBe('live');
+    expect(watcherChildReadingsWith(windowsPorts()).livenessOf(jobFolderClaimedBy(unreadableIdentity, null), 1).verdict).toBe('live');
   });
 
   describe('a lost Watcher\'s cause', () => {
     test('with the boot unreadable now, it is no reboot', () => {
       const recorded = { ...identityOf(windowsPorts(), OTHER_PROCESS_ID), startStamp: '1' };
-      expect(Regrouping.settleLostWatcher(portsWithoutBoot(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
+      expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(portsWithoutBoot()), portsWithoutBoot(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
     });
 
     test('with the boot unreadable when it was recorded, it is no reboot', () => {
       const recorded = { ...identityOf(portsWithoutBoot(), OTHER_PROCESS_ID), startStamp: '1' };
-      expect(Regrouping.settleLostWatcher(windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
+      expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(windowsPorts()), windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('agent-crashed');
     });
 
     test('with two readable boots that differ, it still is a reboot', () => {
       const recorded = { ...identityOf(windowsPorts(), OTHER_PROCESS_ID), bootIdentity: '0x2b' };
-      expect(Regrouping.settleLostWatcher(windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('reboot');
+      expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(windowsPorts()), windowsPorts(), jobFolderClaimedBy(recorded, recorded), 1)).toBe('reboot');
     });
   });
 });

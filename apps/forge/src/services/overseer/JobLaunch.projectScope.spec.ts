@@ -39,8 +39,8 @@ import { testWhenGitIsRecorded }                          from '../../testing/To
 import { definitionFileMatcherOf, launchSnapshotOf }      from '../lifecycle/Customs.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
 
 const AT = '2026-11-16T10:00:00+01:00';
 const MAIN_LINE = 'main';
@@ -117,7 +117,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   } = launched;
   prepare(launched);
   enterScenario(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+  const jobFolder = jobFolderIn(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   const jobStart = { startCommit: SCENARIO_COMMITS['<start>'], bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot: launchSnapshotOf(worktree) };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
@@ -287,7 +287,7 @@ testWhenGitIsRecorded('a job of an entity whose needs-declared report kept no ne
 /** The red handoff an earlier refusal left: after a V17 scope refusal the session verified now is the one sent back to take its change out. */
 function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string, scopeResumed: boolean): (build: LaunchedBuild) => void {
   return ({ context, job }) => {
-    const jobFolder = WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id);
+    const jobFolder = jobFolderIn(context.workspace.trackerDirectory, job.id);
     mkdirSync(jobFolder, { recursive: true });
     RedHandoff.writeRedHandoff(jobFolder, {
       kind,

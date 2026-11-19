@@ -34,7 +34,8 @@ import { watcherFilesOf }                                                       
 import type { WatcherLaunch }                                                    from '../../src/lib/watcher/WatcherLaunch.ts';
 import type { DrivePass }                                                        from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                                            from '../../src/services/overseer/HatchInbox.ts';
-import { WatcherFleet }                                                          from '../../src/services/overseer/WatcherFleet.ts';
+import { LegacyWatcherReader }                                                   from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { jobFolderIn }                                                           from '../../src/services/overseer/OverseerFiles.ts';
 import { requireWorkspace }                                                      from '../../src/services/tracker/Workspace.ts';
 import { JOB_ID_VARIABLE }                                                       from '../../src/shared/Environment.ts';
 import { DISPATCH_PROTOCOL }                                                     from '../../src/shared/constants/DispatchProtocol.ts';
@@ -66,6 +67,7 @@ import { type RecordedWatcherStages, useRecordedWatcherStages }           from '
 import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                                       from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                                 from '../Main.ts';
 import { createCapturedCommandContext }                                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                         from '../testing/InitializedScratchRepository.ts';
@@ -202,7 +204,7 @@ async function passUntil(drivePass: DrivePass, holds: () => boolean, what: strin
 }
 
 function jobFolderOf(jobId: string): string {
-  return WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
+  return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
 interface LoggedEntry {
@@ -424,9 +426,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
       expect(launch.argv[0]).toBe(SANDBOX_EXEC_PATH);
       expect(readFileSync(join(jobFolder, folder, 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(networkDenied);
     }
-    expect(WatcherFleet.livenessOf(ports, jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     const endedWatcherProcessIds = [jobFolder, ...['install', 'gate-prepare', 'gate-1'].map((folder) => join(jobFolder, folder))]
-      .map((watcherFolder) => WatcherFleet.watcherRecordOf(watcherFolder, 1)?.watcher?.processId ?? null);
+      .map((watcherFolder) => LegacyWatcherReader.watcherRecordIn(watcherFolder, 1)?.watcher?.processId ?? null);
     expect(endedWatcherProcessIds).not.toContain(null);
     const everyWatcherIsGone = (): boolean => endedWatcherProcessIds.every((processId) => processId === null || ports.processSupervision.processIsGone(processId));
     await passUntil(drivePass, everyWatcherIsGone, 'the ended Watchers reaped');
@@ -446,7 +448,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
     const jobFolder = jobFolderOf(firstBuildJobId());
     for (const folder of ['install', 'install2', 'gate-prepare', 'gate-prepare2']) {
-      expect(WatcherFleet.livenessOf(ports, join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+      expect(watcherChildReadingsWith(ports).livenessOf(join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     }
     expect(world.linesRun().filter((line) => line.endsWith('-step'))).toEqual(['echo first-step', 'echo second-step', 'echo first-step', 'echo second-step']);
   });
@@ -730,8 +732,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
     expect(buildStates.slice(-2)).toEqual(['in-customs', 'ended']);
     const sessionFolder = jobFolderOf(firstBuildJobId());
-    await waitUntil(() => WatcherFleet.livenessOf(ports, sessionFolder, 1).verdict === 'ended', () => `the ended job's Watcher ending:\n${overseerLog.join('\n')}`);
-    const clientLines = (WatcherFleet.eventsAfter(sessionFolder, 1, 0) as readonly { origin: string; line: string }[]).filter((entry) => entry.origin === 'client');
+    await waitUntil(() => watcherChildReadingsWith(ports).livenessOf(sessionFolder, 1).verdict === 'ended', () => `the ended job's Watcher ending:\n${overseerLog.join('\n')}`);
+    const entries = watcherChildReadingsWith(ports).eventsAfter(sessionFolder, 1, 0) as readonly { origin: string; line: string }[];
+    const clientLines = entries.filter((entry) => entry.origin === 'client');
     expect(clientLines.map((entry) => entry.line)).toContain(JSON.stringify({ kind: 'close-input' }));
   });
 

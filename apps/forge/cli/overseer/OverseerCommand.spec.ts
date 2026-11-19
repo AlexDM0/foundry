@@ -36,6 +36,7 @@ import { useRecordedGit }                                                       
 import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded }                                                 from '../../src/testing/ToolGuard.ts';
+import { watcherChildReadingsWith }                                             from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
@@ -99,10 +100,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     expect(await runCommandLine(['status', '--json'], statusContext)).toBe(0);
 
     const { state } = readBoardState({
-      context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
-      workspace: requireWorkspace(repositoryDirectory),
-      notices:   () => [],
-      overseer:  () => ({
+      context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
+      workspace:     requireWorkspace(repositoryDirectory),
+      boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+      notices:       () => [],
+      overseer:      () => ({
         state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
       }),
     });
@@ -123,10 +125,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     await fileReadyTicketThrough(run, (output) => output, ['ticket', 'add', '--type', 'ticket', 'Example account pages']);
 
     const { state } = readBoardState({
-      context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
-      workspace: requireWorkspace(repositoryDirectory),
-      notices:   () => [],
-      overseer:  () => ({
+      context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+      workspace:     requireWorkspace(repositoryDirectory),
+      boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+      notices:       () => [],
+      overseer:      () => ({
         state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
       }),
     });
@@ -510,10 +513,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause an
       const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
       expect(await runCommandLine(['oversee', 'status', '--json'], statusContext), statusContext.errorText()).toBe(0);
       const boardState = readBoardState({
-        context:   createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
-        workspace: requireWorkspace(repositoryDirectory),
-        notices:   () => [],
-        overseer:  () => ({
+        context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
+        workspace:     requireWorkspace(repositoryDirectory),
+        boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+        notices:       () => [],
+        overseer:      () => ({
           state: 'serving', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, batonPassWarning: null
         }),
       }).state;

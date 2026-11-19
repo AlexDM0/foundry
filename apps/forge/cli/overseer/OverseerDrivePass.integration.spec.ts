@@ -31,10 +31,12 @@ import type { Board }                                         from '../../src/li
 import { watcherFilesOf }                                     from '../../src/lib/watcher/WatcherFiles.ts';
 import type { WatcherRecord }                                 from '../../src/lib/watcher/WatcherRecord.ts';
 import { Baton }                                              from '../../src/services/overseer/Baton.ts';
+import type { BoardChildren }                                 from '../../src/services/overseer/BoardChildren.ts';
 import { type DrivePass }                                     from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                         from '../../src/services/overseer/HatchInbox.ts';
+import { LegacyWatcherReader }                                from '../../src/services/overseer/LegacyWatcherReader.ts';
 import { overseerFilesIn }                                    from '../../src/services/overseer/OverseerFiles.ts';
-import { WatcherFleet }                                       from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                                        from '../../src/services/overseer/OverseerFiles.ts';
 import { writeTracker }                                       from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                   from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                      from '../../src/shared/constants/ProductNames.ts';
@@ -68,6 +70,7 @@ import {
 } from '../../src/testing/RecordedGitProgram.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                       from '../../src/testing/WatcherChildReadings.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
@@ -80,6 +83,11 @@ const nativePorts = nativePlatformPorts();
 let ports = nativePorts;
 let recordedFlow: SharedRecordedGitFlow | null = null;
 const { identityOf } = nativePorts.processSupervision;
+
+/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return watcherChildReadingsWith(ports);
+}
 
 function requireRecordedFlow(): SharedRecordedGitFlow {
   if (recordedFlow === null) throw new Error('the case shares no recorded git flow');
@@ -150,11 +158,11 @@ async function passOnce(drivePass: DrivePass, forced = true): Promise<void> {
 }
 
 function jobFolder(jobId: string): string {
-  return WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
+  return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
 async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  await waitUntil(() => WatcherFleet.livenessOf(ports, jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
+  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -176,7 +184,7 @@ function watcherFoldersUnder(folder: string): string[] {
 /** A Watcher spawned in the last pass may not have claimed its instance yet, so its record is waited for rather than read once. */
 async function claimedRecordOf(watcherFolder: string, instance: number): Promise<WatcherRecord | null> {
   for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {
-    const record = WatcherFleet.watcherRecordOf(watcherFolder, instance);
+    const record = LegacyWatcherReader.watcherRecordIn(watcherFolder, instance);
     if (record !== null) return record;
     await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);
   }
@@ -205,7 +213,7 @@ async function endEveryWatcher(repositoryOfThisTest: string): Promise<void> {
       const watcher = claimed?.watcher ?? null;
       const current = watcher === null ? null : identityOf(watcher.processId);
       if (watcher !== null && current !== null && sameProcess(current, watcher)) killQuietly(watcher.processId);
-      const childProcessGroupId = WatcherFleet.watcherRecordOf(watcherFolder, instance)?.childProcessGroupId;
+      const childProcessGroupId = LegacyWatcherReader.watcherRecordIn(watcherFolder, instance)?.childProcessGroupId;
       if (childProcessGroupId !== undefined) killQuietly(-childProcessGroupId);
     }
   }
@@ -252,7 +260,7 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
   await waitUntil(async () => {
     await passOnce(drivePass);
     const buildJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
-    return buildJob !== undefined && WatcherFleet.livenessOf(ports, jobFolder(buildJob.id), 1).verdict !== 'unclaimed';
+    return buildJob !== undefined && childReadings().livenessOf(jobFolder(buildJob.id), 1).verdict !== 'unlaunched';
   }, () => `the build session being spawned: ${overseerLog.join('\n')}\n${JSON.stringify(storedProgressOf(repositoryDirectory).jobs)}`);
 }
 
@@ -279,7 +287,7 @@ describe('one pass', () => {
     await passOnce(drivePass);
 
     expect(drivePass.state().notices).toContainEqual({ kind: 'instructions-missing', jobId: buildJobId(), path: RECORDED_FLOW_BUILDER_FILE.path });
-    expect(WatcherFleet.livenessOf(ports, jobFolder(buildJobId()), 1).verdict).toBe('unclaimed');
+    expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
     expect(existsSync(join(jobFolder(buildJobId()), 'instructions-1.json'))).toBe(false);
 
     recordedGit.enterFlowStage('builder file committed', repositoryDirectory);

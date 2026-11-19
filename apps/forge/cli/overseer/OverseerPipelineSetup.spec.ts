@@ -23,7 +23,7 @@ import type { PipelineSetup }                                        from '../..
 import { ControlService }                                            from '../../src/services/control/ControlService.ts';
 import type { DrivePass }                                            from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                                from '../../src/services/overseer/HatchInbox.ts';
-import { WatcherFleet }                                              from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                                               from '../../src/services/overseer/OverseerFiles.ts';
 import { type TrackerChange, writeTracker }                          from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                          from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
@@ -39,6 +39,7 @@ import { useRecordedWatcherStages }                                  from '../..
 import { createScratchDirectory, removeScratchDirectory }            from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }         from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                 from '../../src/testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                                  from '../../src/testing/WatcherChildReadings.ts';
 import type { CommandContext }                                       from '../CommandContext.ts';
 import { runCommandLine }                                            from '../Main.ts';
 import { type CapturedCommandContext, createCapturedCommandContext } from '../testing/CapturedCommandContext.ts';
@@ -113,11 +114,11 @@ function setupRecord(): PipelineSetup {
 }
 
 async function untilTheAgentSessionIsLive(jobId: string): Promise<void> {
-  const jobFolder = WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
   await waitUntil(async () => {
     drivePass?.wake(true);
     await drivePass?.idle();
-    return WatcherFleet.livenessOf(world.ports, jobFolder, 1).verdict === 'live';
+    return watcherChildReadingsWith(world.ports).livenessOf(jobFolder, 1).verdict === 'live';
   }, () => `the pipeline agent's session being spawned: ${overseerLog.join('\n')}`);
 }
 

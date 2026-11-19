@@ -15,8 +15,9 @@ import type { Job }                                       from '../../lib/tracke
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const EXAMPLE_STAMP = '2026-11-10T09:30:00+01:00';
 
@@ -45,7 +46,7 @@ describe('a pass over messages already taken', () => {
   test('builds no chat line, so the pictures of a taken message are not read again', async () => {
     const trackerDirectory = createScratchDirectory('job-control-delivery');
     scratchDirectories.push(trackerDirectory);
-    const markersFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, RUNNING_PRODUCT_OWNER.id), 'control-frames');
+    const markersFolder = join(jobFolderIn(trackerDirectory, RUNNING_PRODUCT_OWNER.id), 'control-frames');
     mkdirSync(markersFolder, { recursive: true });
     writeFileSync(join(markersFolder, 'message-1'), '');
     const messaged: LogRecord = {
@@ -56,7 +57,7 @@ describe('a pass over messages already taken', () => {
     };
     let chatLinesBuilt = 0;
     await JobControlDelivery.deliverJobControls({
-      platformPorts:   nativePlatformPorts(),
+      boardChildren:   watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
       trackerDirectory,
       board:           { jobs: () => [RUNNING_PRODUCT_OWNER], logRecordsSoFar: () => [messaged] },
       adapter:         { chatLineOf: (message) => { chatLinesBuilt += 1; return message; } },

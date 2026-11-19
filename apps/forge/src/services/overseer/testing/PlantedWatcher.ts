@@ -10,6 +10,7 @@ import { readWatcherLaunch }                       from '../../../lib/watcher/Wa
 import { type WatcherRecord, watcherRecordTextOf } from '../../../lib/watcher/WatcherRecord.ts';
 import { WATCHER_PROTOCOL_VERSION }                from '../../../lib/watcher/constants/WatcherProtocol.ts';
 import { nativePlatformPorts }                     from '../../../testing/NativePlatformPorts.ts';
+import { jobFolderIn }                             from '../OverseerFiles.ts';
 import { WatcherFleet }                            from '../WatcherFleet.ts';
 
 export interface PlantedWatcherRequest {
@@ -22,7 +23,7 @@ export interface PlantedWatcherRequest {
 /** Writes the instance's launch file and a Watcher record naming this process, answering the socket path the launch file names. */
 function plantLiveWatcher(request: PlantedWatcherRequest): string {
   const ports     = nativePlatformPorts();
-  const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, request.jobId);
+  const jobFolder = jobFolderIn(request.trackerDirectory, request.jobId);
   WatcherFleet.writeLaunchFiles(ports, {
     jobFolder,
     instance:           request.instance,

@@ -46,8 +46,8 @@ import { describeWhenGitIsRecorded }                                            
 import { launchSnapshotOf }                                                                from '../lifecycle/Customs.ts';
 import type { TrackerChange }                                                              from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
+import { jobFolderIn }                                                                     from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }                                                from './RedHandoff.ts';
-import { WatcherFleet }                                                                    from './WatcherFleet.ts';
 
 const AT = '2026-11-17T15:00:00+01:00';
 const OBJECT_ID_LENGTH = 40;
@@ -138,7 +138,7 @@ function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview =
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
   mkdirSync(JobLaunch.worktreeOf(context.workspace, job), { recursive: true });
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+  const jobFolder = jobFolderIn(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
   return {
     board, job, context, jobFolder, repository

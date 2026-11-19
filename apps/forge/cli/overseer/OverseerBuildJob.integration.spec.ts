@@ -34,7 +34,8 @@ import { watcherFilesOf }                                     from '../../src/li
 import type { WatcherLaunch }                                 from '../../src/lib/watcher/WatcherLaunch.ts';
 import type { WatcherRecord }                                 from '../../src/lib/watcher/WatcherRecord.ts';
 import type { DrivePass }                                     from '../../src/services/overseer/DrivePass.ts';
-import { WatcherFleet }                                       from '../../src/services/overseer/WatcherFleet.ts';
+import { LegacyWatcherReader }                                from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { jobFolderIn }                                        from '../../src/services/overseer/OverseerFiles.ts';
 import { requireWorkspace }                                   from '../../src/services/tracker/Workspace.ts';
 import { JOB_ID_VARIABLE }                                    from '../../src/shared/Environment.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../src/testing/ChildProcessCaseTimeout.ts';
@@ -65,6 +66,7 @@ import {
 } from '../../src/testing/RecordedGitProgram.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { watcherChildReadingsWith }                       from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
@@ -191,7 +193,7 @@ async function passUntil(drivePass: DrivePass, holds: () => boolean, what: strin
 }
 
 function jobFolderOf(jobId: string): string {
-  return WatcherFleet.jobFolderOf(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
+  return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
 interface LoggedEntry {
@@ -346,9 +348,9 @@ describe('a build job end to end, on the real Watcher', () => {
       expect(launch.argv[0] === SANDBOX_EXEC_PATH).toBe(sandboxApplies);
       expect(readFileSync(join(jobFolder, folder, 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(networkDenied);
     }
-    expect(WatcherFleet.livenessOf(ports, jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     const endedWatcherProcessIds = [jobFolder, ...['install', 'gate-prepare', 'gate-1'].map((folder) => join(jobFolder, folder))]
-      .map((watcherFolder) => WatcherFleet.watcherRecordOf(watcherFolder, 1)?.watcher?.processId ?? null);
+      .map((watcherFolder) => LegacyWatcherReader.watcherRecordIn(watcherFolder, 1)?.watcher?.processId ?? null);
     expect(endedWatcherProcessIds).not.toContain(null);
     await passUntil(drivePass, () => endedWatcherProcessIds.every((processId) => processId === null || processIsGone(processId)), 'the ended Watchers reaped');
     expect(loggedEntries('gate-ran').map((entry) => entry.fields)).toEqual([expect.objectContaining({ outcome: 'passed', cached: false })]);

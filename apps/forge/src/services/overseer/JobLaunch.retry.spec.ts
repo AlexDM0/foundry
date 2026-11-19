@@ -21,8 +21,8 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff }                                     from './RedHandoff.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 
@@ -107,7 +107,7 @@ function jobById(board: Board, jobId: string): Readonly<Job> | undefined {
 
 /** A refused V3 sends the session back with a red handoff naming the check, its reason in the Baton pass; `null` when nothing went red. */
 function customsRefusalOf(scene: RetryScene, job: Readonly<Job>): string | null {
-  const facts = RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, job.id));
+  const facts = RedHandoff.redHandoffFactsOf(jobFolderIn(scene.context.workspace.trackerDirectory, job.id));
   if (facts === null) return null;
   const batonPass = readFileSync(facts.batonPassPath, 'utf8');
   return `${facts.name}: ${batonPass.includes('no-commit-since-start') ? 'no-commit-since-start' : 'another reason'}`;

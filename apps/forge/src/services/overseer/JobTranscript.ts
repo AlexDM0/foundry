@@ -14,7 +14,7 @@ import { clientFrameOf }                                                from '..
 import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';
 import { AssistantSession, type AssistantChat }                         from './AssistantSession.ts';
-import { WatcherFleet }                                                 from './WatcherFleet.ts';
+import type { BoardChildren }                                           from './BoardChildren.ts';
 
 export interface TranscriptCursor {
   instance: number;
@@ -34,6 +34,7 @@ export interface TranscriptSenderFacts {
 }
 
 export interface TranscriptReading {
+  eventsAfter:        BoardChildren['eventsAfter'];
   eventsOf:           (line: string) => readonly AgentSessionEvent[];
   sentLineOf:         (line: string) => SentLine | null;
   /** Called only when a client line is among the entries read. */
@@ -160,14 +161,14 @@ function isAfter(instance: number, sequence: number, cursor: TranscriptCursor): 
 }
 
 /** The client lines at or before the cursor, so the count of chats goes on from where the cursor left it. */
-function clientLinesUpTo(jobFolder: string, cursor: TranscriptCursor, sentLineOf: TranscriptReading['sentLineOf']): ClientLine[] {
+function clientLinesUpTo(jobFolder: string, cursor: TranscriptCursor, reading: Pick<TranscriptReading, 'eventsAfter' | 'sentLineOf'>): ClientLine[] {
   const clientLines: ClientLine[] = [];
   for (let instance = 1; instance <= cursor.instance; instance += 1) {
-    const read = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+    const read = reading.eventsAfter(jobFolder, instance, 0);
     if (read === 'malformed') continue;
     for (const entry of read) {
       if (isAfter(instance, entry.sequence, cursor) || entry.origin !== 'client') continue;
-      const clientLine = clientLineOf(entry.line, sentLineOf);
+      const clientLine = clientLineOf(entry.line, reading.sentLineOf);
       if (clientLine !== null) clientLines.push(clientLine);
     }
   }
@@ -190,14 +191,14 @@ function entriesAfter(
   const senderOf = (): ((clientLine: ClientLine) => ClientLineSender) => {
     if (sender !== null) return sender;
     const created = createSenderOf(factsOf());
-    for (const clientLine of clientLinesUpTo(jobFolder, after, reading.sentLineOf)) created(clientLine);
+    for (const clientLine of clientLinesUpTo(jobFolder, after, reading)) created(clientLine);
     sender = created;
     return created;
   };
   const entries: TranscriptEntry[] = [];
   let cursor = after;
   for (let { instance } = after; instance <= newestInstance; instance += 1) {
-    const read = WatcherFleet.eventsAfter(jobFolder, instance, instance === after.instance ? after.sequence : 0);
+    const read = reading.eventsAfter(jobFolder, instance, instance === after.instance ? after.sequence : 0);
     if (read === 'malformed') continue;
     for (const logEntry of read) {
       const base = { cursor: `${instance}.${logEntry.sequence}`, at: logEntry.at ?? null };

@@ -29,7 +29,7 @@ import {
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
-import { WatcherFleet }                                   from '../../src/services/overseer/WatcherFleet.ts';
+import { createWatcherBoardChildren }                     from '../../src/services/overseer/WatcherBoardChildren.ts';
 import { PlantedWatcher }                                 from '../../src/services/overseer/testing/PlantedWatcher.ts';
 import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
@@ -429,23 +429,27 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
     try {
       const watcherFolder = join(trackerDirectory, 'jobs', 'J-example', 'install-1');
-      WatcherFleet.writeProcessLaunchFile(ports, {
-        watcherFolder,
-        instance:           1,
-        jobId:              'J-example',
-        socketName:         'J-example/install-1',
-        trackerId:          'tracker-example',
-        monitorFolder,
-        watcherCodeVersion: 'code-example',
-        workingDirectory:   watcherFolder,
-        argv:               [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
-        environment:        {},
+      const children = createWatcherBoardChildren({
+        platformPorts: ports,
+        trackerDirectory,
+        launching:     {
+          trackerId: 'tracker-example', monitorFolder, watcherBundlePath: WATCHER_BINARY_PATH, codeVersion: 'code-example', watcherDirectory: repositoryDirectory
+        },
+        log: () => undefined,
       });
-      const watcherProcessId = WatcherFleet.spawnWatcher(ports, {
-        bundlePath: WATCHER_BINARY_PATH, jobFolder: watcherFolder, instance: 1, rootDirectory: repositoryDirectory
+      await children.launchLine({
+        childFolder:           watcherFolder,
+        instance:              1,
+        label:                 'J-example/install-1',
+        workingDirectory:      watcherFolder,
+        argv:                  [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
+        verbatimArguments:     false,
+        environment:           {},
+        timeBoundMilliseconds: null,
       });
+      const watcherProcessId = children.recordOf(watcherFolder, 1)?.talos?.processId;
       if (watcherProcessId === undefined) throw new Error('the install Watcher did not spawn');
-      await waitUntil(() => WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
+      await waitUntil(() => children.livenessOf(watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
 
       const startOverseerDetached = async (): Promise<void> => {
         const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
@@ -453,17 +457,20 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
       };
       await startOverseerDetached();
       await stopOverseer();
-      expect(WatcherFleet.livenessOf(ports, watcherFolder, 1).verdict).toBe('live');
+      expect(children.livenessOf(watcherFolder, 1).verdict).toBe('live');
 
       await startOverseerDetached();
       const stoppedNow = await runAgentProgress(['oversee', 'stop', '--now'], { currentDirectory: repositoryDirectory, homeDirectory });
       expect(stoppedNow.exitCode, stoppedNow.standardError).toBe(0);
-      expect(WatcherFleet.livenessOf(ports, watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
+      expect(children.livenessOf(watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
       await waitUntil(() => processIsGone(watcherProcessId), () => `the install Watcher going:\n${overseerLogText()}`);
     } finally {
       // A failed assertion would otherwise leave the Watcher and its child running past the scratch repository.
-      await WatcherFleet.stopLiveProcessWatchers(ports, trackerDirectory);
-      await WatcherFleet.reapEndedWatchers(ports, trackerDirectory);
+      const children = createWatcherBoardChildren({
+        platformPorts: ports, trackerDirectory, launching: null, log: () => undefined
+      });
+      await children.stopLiveLines();
+      await children.reapEndedWatchers();
       removeScratchDirectory(monitorFolder);
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

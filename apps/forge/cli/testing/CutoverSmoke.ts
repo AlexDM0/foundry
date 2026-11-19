@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 
-import { WatcherFleet }       from '../../src/services/overseer/WatcherFleet.ts';
+import { LegacyWatcherReader } from '../../src/services/overseer/LegacyWatcherReader.ts';
 import {
   environmentCopy,
   FAKE_AGENT_VARIABLE,
@@ -398,7 +398,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       const leftoverWatcherLines = Bun.spawnSync(['pgrep', '-lf', watcherPattern]).stdout.toString().trim().split('\n').filter((line) => line !== '');
       const endedWatcherLines = leftoverWatcherLines.filter((line) => {
         const [watcherFolder = '', instance = ''] = line.trim().split(/\s+/).slice(-2);
-        return WatcherFleet.watcherRecordOf(watcherFolder, Number(instance))?.end !== undefined;
+        return LegacyWatcherReader.watcherRecordIn(watcherFolder, Number(instance))?.end !== undefined;
       });
       log(`${endedWatcherLines.length} Watchers of ended jobs were still running after the stop${endedWatcherLines.length === 0 ? '' : `: ${endedWatcherLines.join('; ')}`}`);
       log(`${leftoverWatcherLines.length - endedWatcherLines.length} Watchers of jobs still live outlived the Overseer, as they do by design`);

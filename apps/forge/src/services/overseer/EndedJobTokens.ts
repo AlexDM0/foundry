@@ -9,11 +9,11 @@ import type { AgentUsage, LogRecord }        from '../../lib/tracker-model/@type
 import type { Board }                        from '../../lib/tracker-model/Board.ts';
 import { FIRST_WATCHER_INSTANCE }            from '../../lib/tracker-model/constants/JobStates.ts';
 import { type CreditedTurn, TokenCrediting } from '../lifecycle/TokenCrediting.ts';
-import { WatcherFleet }                      from './WatcherFleet.ts';
+import type { BoardChildren }                from './BoardChildren.ts';
 
 export interface EndedJobTokensContext {
-  trackerDirectory: string;
-  agentAdapter:     AgentAdapter;
+  boardChildren: BoardChildren;
+  agentAdapter:  AgentAdapter;
 }
 
 /** What crediting reads of a job, so a job the log ended can be rebuilt from its records. */
@@ -31,11 +31,11 @@ interface SessionReading {
 }
 
 function sessionReadingOf(context: EndedJobTokensContext, job: EndedJob): SessionReading {
-  const jobFolder = WatcherFleet.jobFolderOf(context.trackerDirectory, job.id);
+  const jobFolder = context.boardChildren.jobFolderOf(job.id);
   const turns: CreditedTurn[] = [];
   let costUsd: number | null = null;
   for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
-    const entries = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+    const entries = context.boardChildren.eventsAfter(jobFolder, instance, 0);
     if (entries === 'malformed') continue;
     let instanceCostUsd: number | null = null;
     for (const entry of entries.filter((logged) => logged.origin === 'agent')) {

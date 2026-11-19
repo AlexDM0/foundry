@@ -25,9 +25,10 @@ import type { Board }                                                 from '../.
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                                   from '../../testing/WatcherChildReadings.ts';
 import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { WatcherFleet }                                               from './WatcherFleet.ts';
+import { jobFolderIn }                                                from './OverseerFiles.ts';
 
 const AT = '2026-11-03T10:00:00+01:00';
 
@@ -56,6 +57,7 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
   for (const state of ['preparing', 'running'] as const) board.moveJob(job.id, state, AT);
   const context = {
     platformPorts: nativePlatformPorts(),
+    boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     workspace:     { rootDirectory, trackerDirectory },
     agentAdapter:  { sandboxDenyShape },
     log:           () => undefined,
@@ -68,7 +70,7 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
 }
 
 function observationOf(context: JobLaunchContext, job: Readonly<Job>): BuildJobObservation {
-  const refusalPath = join(WatcherFleet.jobFolderOf(context.workspace.trackerDirectory, job.id), 'sandbox-refusal.json');
+  const refusalPath = join(jobFolderIn(context.workspace.trackerDirectory, job.id), 'sandbox-refusal.json');
   const sandboxRefusal = existsSync(refusalPath) ? JSON.parse(readFileSync(refusalPath, 'utf8')) as BuildJobObservation['sandboxRefusal'] : null;
   return {
     jobId:            job.id,
@@ -127,12 +129,12 @@ const PIPELINE_WITH_ENTITIES: Pipeline = {
 };
 
 describe('the denied roots a prepare step makes on a forge with entities', () => {
-  test('include the .claude folder of every entity home, and one that cannot be made refuses the step before it starts', () => {
+  test('include the .claude folder of every entity home, and one that cannot be made refuses the step before it starts', async () => {
     const scene = runningScene('mount-points');
     const entityClaudeFolder = join(scene.worktree, 'apps', 'gaia', '.claude');
     mkdirSync(join(scene.worktree, 'apps', 'gaia'), { recursive: true });
     symlinkSync(join(scene.worktree, 'example-missing', 'target'), entityClaudeFolder);
-    JobLaunch.spawnNextInstallStep(scene.context, 'example-tracker', scene.job, PIPELINE_WITH_ENTITIES);
+    await JobLaunch.spawnNextInstallStep(scene.context, 'example-tracker', scene.job, PIPELINE_WITH_ENTITIES);
     expect(existsSync(join(scene.worktree, '.claude'))).toBe(true);
     const reason = `the denied folder ${entityClaudeFolder} could not be made, so it would get no read-only mount`;
     expect(observationOf(scene.context, scene.job).sandboxRefusal).toEqual({ step: 'install', reason });

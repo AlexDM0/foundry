@@ -28,9 +28,11 @@ import type { ActingFrame }                                            from '../
 import { watcherFilesOf }                                              from '../../lib/watcher/WatcherFiles.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { DISPATCH_PROTOCOL }                                           from '../../shared/constants/DispatchProtocol.ts';
+import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                                    from '../../testing/WatcherChildReadings.ts';
 import { JobLiveFactsReader, type JobLiveFactsSource }                 from './JobLiveFactsReader.ts';
-import { WatcherFleet }                                                from './WatcherFleet.ts';
+import { jobFolderIn }                                                 from './OverseerFiles.ts';
 import { liveJobFixture }                                              from './testing/LiveJobFixture.ts';
 
 const scratchDirectories: string[] = [];
@@ -121,7 +123,7 @@ function writeSubagentTranscript(claudeConfigFolder: string, workingDirectory: s
 
 /** Each instance's lines into its own event log in the job's folder, stamped in order across instances; an event is one agent line. */
 function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance: readonly (readonly LoggedLine[])[]): string {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   let second = 0;
   linesByInstance.forEach((lines, index) => {
@@ -137,9 +139,10 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
 
 function liveFactsSourceOf(trackerDirectory: string, readingBoard: ReadingBoard = {}): JobLiveFactsSource {
   return {
+    boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     trackerDirectory,
-    adapter: { eventsOf: EVENTS_OF_ONE_EVENT_PER_LINE, sentLineOf: CLAUDE_STREAM_LINES.sentLineOf },
-    board:   { logRecordsSoFar: () => readingBoard.logRecords ?? [], incidents: () => readingBoard.incidents ?? [] },
+    adapter:       { eventsOf: EVENTS_OF_ONE_EVENT_PER_LINE, sentLineOf: CLAUDE_STREAM_LINES.sentLineOf },
+    board:         { logRecordsSoFar: () => readingBoard.logRecords ?? [], incidents: () => readingBoard.incidents ?? [] },
   };
 }
 

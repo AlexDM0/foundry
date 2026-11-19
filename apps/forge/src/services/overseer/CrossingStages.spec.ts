@@ -27,7 +27,7 @@ import { boardFixture, taskFixture, ticketFixture }       from '../../testing/Bo
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { CrossingStages, type PackageStageStatements }    from './CrossingStages.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const AT = '2026-11-17T18:30:00+01:00';
 const { SHOP, ADMIN, UI_KIT } = ENTITY_FORGE_ENTITIES;
@@ -251,7 +251,7 @@ describe('a stage statement', () => {
   test('that cannot be read, or is not one, counts as none', () => {
     const trackerDirectory = createScratchDirectory('crossing-statements');
     folders.push(trackerDirectory);
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, 'J7');
+    const jobFolder = jobFolderIn(trackerDirectory, 'J7');
     mkdirSync(jobFolder, { recursive: true });
 
     expect(CrossingStages.stageStatementOf(trackerDirectory, 'J7')).toBeNull();
@@ -264,7 +264,7 @@ describe('a stage statement', () => {
   test('of a package review that names no `reach` path seals none', () => {
     const trackerDirectory = createScratchDirectory('crossing-statements');
     folders.push(trackerDirectory);
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, 'J8');
+    const jobFolder = jobFolderIn(trackerDirectory, 'J8');
     mkdirSync(jobFolder, { recursive: true });
     writeFileSync(join(jobFolder, 'stage-statement.json'), '{"stage":"package-review","exposedSurfaceConfirmed":true,"reviewText":""}\n');
 

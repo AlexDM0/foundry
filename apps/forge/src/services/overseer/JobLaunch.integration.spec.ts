@@ -24,9 +24,10 @@ import { DISPATCH_PROTOCOL }                                               from 
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
 import { nativePlatformPorts }                                             from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }                  from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                                        from '../../testing/WatcherChildReadings.ts';
 import { type BuildJobFrameRequest, JobLaunch }                            from './JobLaunch.ts';
+import { jobFolderIn }                                                     from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }                                from './RedHandoff.ts';
-import { WatcherFleet }                                                    from './WatcherFleet.ts';
 import { PlantedWatcher }                                                  from './testing/PlantedWatcher.ts';
 
 function buildJob(overrides: Partial<Job> = {}): Job {
@@ -77,7 +78,10 @@ describe('a build job\'s frames to its Watcher', () => {
     trackerDirectory = createScratchDirectory('build-frames');
     monitorFolder    = createScratchDirectory('h');
     request = {
-      platformPorts: nativePlatformPorts(), trackerDirectory, agentAdapter: { chatLineOf: (message) => `chat:${message}` }, windDownMessage: 'Example wind-down'
+      boardChildren:   watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+      trackerDirectory,
+      agentAdapter:    { chatLineOf: (message) => `chat:${message}` },
+      windDownMessage: 'Example wind-down',
     };
   });
 
@@ -91,7 +95,7 @@ describe('a build job\'s frames to its Watcher', () => {
     const socketPath = PlantedWatcher.plantLiveWatcher({
       trackerDirectory, monitorFolder, jobId: job.id, instance: 1
     });
-    const markerPath = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), marker);
+    const markerPath = join(jobFolderIn(trackerDirectory, job.id), marker);
     await JobLaunch.deliverBuildJobFrames(request, job, 0);
     const markedWhileRefusing = existsSync(markerPath);
     const frames = await PlantedWatcher.framesReceivedWhile(socketPath, async () => {
@@ -126,7 +130,7 @@ describe('a build job\'s frames to its Watcher', () => {
 
   test('a session resumed after a red handoff is sent its own wind-down at the resume budget, counted from the resume', async () => {
     const job = buildJob({ watcherInstance: 2 });
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+    const jobFolder = jobFolderIn(trackerDirectory, job.id);
     RedHandoff.writeRedHandoff(jobFolder, redHandoffFactsIn(jobFolder), 'expected 2, received 3');
     writeFileSync(join(jobFolder, 'wind-down-sent'), '');
     const socketPath = PlantedWatcher.plantLiveWatcher({
@@ -163,10 +167,10 @@ describe('a build job\'s frames to its Watcher', () => {
     const lostRecord: WatcherRecord = {
       protocolVersion: WATCHER_PROTOCOL_VERSION, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'running', watcher: null,
     };
-    writeFileSync(watcherFilesOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id), 1).watcherRecordPath, watcherRecordTextOf(lostRecord));
+    writeFileSync(watcherFilesOf(jobFolderIn(trackerDirectory, job.id), 1).watcherRecordPath, watcherRecordTextOf(lostRecord));
     const frames = await PlantedWatcher.framesReceivedWhile(socketPath, async () => {
       await JobLaunch.deliverBuildJobFrames(request, job, 0);
     });
-    expect([frames, existsSync(join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), 'stop-sent'))]).toEqual([[], false]);
+    expect([frames, existsSync(join(jobFolderIn(trackerDirectory, job.id), 'stop-sent'))]).toEqual([[], false]);
   });
 });

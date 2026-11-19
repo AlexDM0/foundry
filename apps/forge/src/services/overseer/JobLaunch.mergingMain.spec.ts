@@ -51,9 +51,10 @@ import {
   type BuildJobObservation,
   type JobLaunchContext
 } from './JobLaunch.ts';
-import type { ProcessStarts } from './ProcessStarts.ts';
-import { RedHandoff }         from './RedHandoff.ts';
-import { WatcherFleet }       from './WatcherFleet.ts';
+import { jobFolderIn }                from './OverseerFiles.ts';
+import type { ProcessStarts }         from './ProcessStarts.ts';
+import { RedHandoff }                 from './RedHandoff.ts';
+import { createWatcherBoardChildren } from './WatcherBoardChildren.ts';
 
 const AT = '2026-11-12T10:00:00+01:00';
 const TARGET = 'master';
@@ -154,12 +155,18 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     inheritedEnvironment: {},
     mainLine:             TARGET,
     branchNames:          branchNamesOf(null),
-    watcherBundlePath:    join(monitorFolder, 'watcher.js'),
-    codeVersion:          'example-version',
+    boardChildren:        createWatcherBoardChildren({
+      platformPorts: nativePlatformPorts(),
+      trackerDirectory,
+      launching:     {
+        trackerId: TRACKER_ID, monitorFolder, watcherBundlePath: join(monitorFolder, 'watcher.js'), codeVersion: 'example-version', watcherDirectory: repository, processStarts
+      },
+      log: () => undefined,
+    }),
+    codeVersion:       'example-version',
     gateSlots,
-    log:                  () => undefined,
-    resolutionLinesOf:    () => resolution.lines,
-    processStarts,
+    log:               () => undefined,
+    resolutionLinesOf: () => resolution.lines,
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const pass = async (): Promise<BuildJobObservation[]> => {
@@ -178,7 +185,7 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     resolution,
     pass,
     job:        () => board.jobById(jobId),
-    jobFolder:  () => WatcherFleet.jobFolderOf(trackerDirectory, jobId),
+    jobFolder:  () => jobFolderIn(trackerDirectory, jobId),
     reReviewer: () => board.jobs().find((candidate) => candidate.kind === 'merge-agent' && candidate.parentJobId === jobId),
   };
 }

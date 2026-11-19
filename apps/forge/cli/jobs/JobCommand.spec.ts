@@ -21,7 +21,7 @@ import {
 } from 'bun:test';
 
 import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
-import { WatcherFleet }                           from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                            from '../../src/services/overseer/OverseerFiles.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -85,7 +85,7 @@ describeWhenGitIsRecorded('job attach following a job to its end', () => {
     const workspace = requireWorkspace(repositoryDirectory);
     ({ logFilePath } = workspace);
     progressFilePath = join(workspace.trackerDirectory, 'progress.json');
-    jobFolder        = WatcherFleet.jobFolderOf(workspace.trackerDirectory, JOB_ID);
+    jobFolder        = jobFolderIn(workspace.trackerDirectory, JOB_ID);
     mkdirSync(jobFolder, { recursive: true });
     eventLogPath = join(jobFolder, 'events-1.ndjson');
     writeFileSync(eventLogPath, eventLineOf(1, 'Example first message'));

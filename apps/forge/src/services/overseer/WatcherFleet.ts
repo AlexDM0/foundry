@@ -16,22 +16,23 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import type { AgentLaunchPlan }                                       from '../../lib/agent-launch/AgentLaunchPlan.ts';
-import { writeFileAtomically, writeOwnerOnlyFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
-import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessTreeMember }                                     from '../../lib/process-identity/ProcessSupervision.ts';
-import type { EventLogEntry }                                         from '../../lib/talos/EventLog.ts';
-import type { EndpointInstanceFacts }                                 from '../../lib/talos/LocalEndpoint.ts';
-import { EVENT_LOG_FORMAT_VERSION }                                   from '../../lib/talos/constants/TalosProtocol.ts';
-import type { ActingFrame }                                           from '../../lib/watcher/@types/WatcherFrame.ts';
-import { watcherFilesOf, watcherSecretPathOf }                        from '../../lib/watcher/WatcherFiles.ts';
-import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret }   from '../../lib/watcher/WatcherLaunch.ts';
-import { type WatcherEnd, type WatcherRecord, watcherRecordOfStored } from '../../lib/watcher/WatcherRecord.ts';
-import { WATCHER_PROTOCOL_VERSION }                                   from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { outlivingProgramEnvironment }                                from '../../shared/Environment.ts';
-import { OperationRefusal }                                           from '../../shared/OperationRefusal.ts';
-import { ToolRuntimeUtil }                                            from '../../shared/ToolRuntimeUtil.ts';
-import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
+import type { AgentLaunchPlan }                                     from '../../lib/agent-launch/AgentLaunchPlan.ts';
+import { writeFileAtomically, writeOwnerOnlyFileAtomically }        from '../../lib/atomic-file/AtomicFile.ts';
+import type { PlatformPorts }                                       from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessTreeMember }                                   from '../../lib/process-identity/ProcessSupervision.ts';
+import type { EventLogEntry }                                       from '../../lib/talos/EventLog.ts';
+import type { EndpointInstanceFacts }                               from '../../lib/talos/LocalEndpoint.ts';
+import { EVENT_LOG_FORMAT_VERSION }                                 from '../../lib/talos/constants/TalosProtocol.ts';
+import type { ActingFrame }                                         from '../../lib/watcher/@types/WatcherFrame.ts';
+import { watcherFilesOf, watcherSecretPathOf }                      from '../../lib/watcher/WatcherFiles.ts';
+import { type WatcherLaunch, readWatcherLaunch, readWatcherSecret } from '../../lib/watcher/WatcherLaunch.ts';
+import type { WatcherEnd, WatcherRecord }                           from '../../lib/watcher/WatcherRecord.ts';
+import { WATCHER_PROTOCOL_VERSION }                                 from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { outlivingProgramEnvironment }                              from '../../shared/Environment.ts';
+import { OperationRefusal }                                         from '../../shared/OperationRefusal.ts';
+import { ToolRuntimeUtil }                                          from '../../shared/ToolRuntimeUtil.ts';
+import { LegacyWatcherReader }                                      from './LegacyWatcherReader.ts';
+import { jobFolderIn }                                              from './OverseerFiles.ts';
 
 export type WatcherLiveness =
   | { verdict: 'unclaimed' }
@@ -74,17 +75,9 @@ export interface StoppedWatcherWait {
 
 const STOPPED_WATCHER_WAIT: StoppedWatcherWait = { tries: 100, intervalMilliseconds: 20 };
 
-function jobFolderOf(trackerDirectory: string, jobId: string): string {
-  return join(trackerDirectory, 'jobs', jobId);
-}
+const jobFolderOf = jobFolderIn;
 
-function watcherRecordOf(jobFolder: string, instance: number): WatcherRecord | null {
-  try {
-    return watcherRecordOfStored(JSON.parse(readFileSync(watcherFilesOf(jobFolder, instance).watcherRecordPath, 'utf8')));
-  } catch {
-    return null;
-  }
-}
+const watcherRecordOf = LegacyWatcherReader.watcherRecordIn;
 
 /** The Watcher's own identity decides, never a clock: a reused process id or a reboot reads as lost. */
 function livenessOf({ processSupervision }: PlatformPorts, jobFolder: string, instance: number): WatcherLiveness {
@@ -399,4 +392,5 @@ export const WatcherFleet = Object.freeze({
   reapEndedHostsIn,
   reapEndedWatchers,
   stopLiveProcessWatchers,
+  claimedInstancesIn,
 });

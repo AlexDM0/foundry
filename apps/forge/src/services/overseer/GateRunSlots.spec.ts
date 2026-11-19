@@ -26,6 +26,16 @@ import { nativePlatformPorts }                             from '../../testing/N
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
 import { GateRunSlots }                                    from './GateRunSlots.ts';
 import { heldSlotCreateMeansTakenFor }                     from './HeldSlotCreateFor.ts';
+import { createWatcherBoardChildren }                      from './WatcherBoardChildren.ts';
+
+
+/** The holder's liveness as the drive pass judges it, a gate Watcher's read through the Watchers' adapter of the board's children. */
+function holderIsLive(ports: PlatformPorts, holding: Parameters<typeof GateRunSlots.gateRunHolderIsLive>[2]): boolean {
+  const children = createWatcherBoardChildren({
+    platformPorts: ports, trackerDirectory: '/example/tracker', launching: null, log: () => undefined
+  });
+  return GateRunSlots.gateRunHolderIsLive(children, ports, holding);
+}
 
 const HOLDER_PROCESS_ID = 5001;
 const CREATION_TIME = 134_000_000_000_000_001n;
@@ -38,7 +48,7 @@ afterEach(() => {
 
 function slotsOver(ports: PlatformPorts, folder: string): ReturnType<typeof GateRunSlots.createGateRunSlots> {
   return GateRunSlots.createGateRunSlots({
-    ports, folder, limit: 1, holderIsLive: (holding) => GateRunSlots.gateRunHolderIsLive(ports, holding), retryMilliseconds: 1,
+    ports, folder, limit: 1, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: 1,
   });
 }
 
@@ -89,19 +99,19 @@ describe('a gate slot held in process on Windows', () => {
 
   test('is live while the recorded Overseer runs', () => {
     const { ports, holding } = heldInProcess();
-    expect(GateRunSlots.gateRunHolderIsLive(ports, holding)).toBe(true);
+    expect(holderIsLive(ports, holding)).toBe(true);
   });
 
   test('is not live once its process id was reused by another process', () => {
     const { kernel, ports, holding } = heldInProcess();
     kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
-    expect(GateRunSlots.gateRunHolderIsLive(ports, holding)).toBe(false);
+    expect(holderIsLive(ports, holding)).toBe(false);
   });
 
   test('with no recorded identity, is judged by its process id alone', () => {
     const { kernel, ports, holding } = heldInProcess();
     kernel.table.set(process.pid, { creationTime: CREATION_TIME + 1n });
-    expect(GateRunSlots.gateRunHolderIsLive(ports, { ...holding, process: null })).toBe(true);
+    expect(holderIsLive(ports, { ...holding, process: null })).toBe(true);
   });
 });
 
@@ -116,11 +126,11 @@ describe('a gate slot held in process on Linux', () => {
   }
 
   test('is not live once its Overseer is a zombie, which a signal probe still reaches', () => {
-    expect(GateRunSlots.gateRunHolderIsLive(portsWhereThisProcessIsInState('Z'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(false);
+    expect(holderIsLive(portsWhereThisProcessIsInState('Z'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(false);
   });
 
   test('is live while its Overseer runs', () => {
-    expect(GateRunSlots.gateRunHolderIsLive(portsWhereThisProcessIsInState('S'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(true);
+    expect(holderIsLive(portsWhereThisProcessIsInState('S'), { holder: GateRunSlots.inProcessHolderOf('merge'), process: null })).toBe(true);
   });
 });
 

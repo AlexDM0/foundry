@@ -24,6 +24,7 @@ import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/W
 import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }               from '../../shared/constants/OverseerLimits.ts';
 import { requireProgressFile }                              from '../tracker/TrackerReader.ts';
 import type { Workspace }                                   from '../tracker/Workspace.ts';
+import type { BoardChildren }                               from './BoardChildren.ts';
 import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits } from './ConstitutionCommits.ts';
 import { GATE_PROFILE_WORKTREES_FOLDER }                    from './GateProfiling.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
@@ -31,7 +32,6 @@ import { JobLaunch }                                        from './JobLaunch.ts
 import { LegacyWatcherReader }                              from './LegacyWatcherReader.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER }                   from './PipelineAgentSessions.ts';
 import { PIPELINE_CHECK_WORKTREES_FOLDER }                  from './PipelineChecking.ts';
-import { WatcherFleet }                                     from './WatcherFleet.ts';
 
 export interface WatcherRegrouped {
   jobId:           string;
@@ -99,17 +99,19 @@ function refusedForcedStopsOf(jobFolder: string, instance: number): ForcedStopRe
  * still lives of it, never by its pid alone, and the Watcher is the one lost; otherwise the agent crashed with it. A refused forced stop
  * stores no cause and answers `null`: the tree may still run. It is counted, and tried again only when `retryRefusedStop` says so.
  */
-function settleLostWatcher({ processSupervision }: PlatformPorts, jobFolder: string, instance: number, retryRefusedStop = true): InterruptionCause | null {
+function settleLostWatcher(
+  children: BoardChildren, { processSupervision }: PlatformPorts, jobFolder: string, instance: number, retryRefusedStop = true
+): InterruptionCause | null {
   const stored = storedLostCauseOf(jobFolder, instance);
   if (stored !== null) return stored;
   const refusedStops = refusedForcedStopsOf(jobFolder, instance);
   if (refusedStops.refusals > 0 && !retryRefusedStop) return null;
-  const record      = WatcherFleet.watcherRecordOf(jobFolder, instance);
+  const record      = children.recordOf(jobFolder, instance);
   const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
-  const recordedBoot = record?.watcher?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
+  const recordedBoot = record?.talos?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
   let cause: InterruptionCause = 'agent-crashed';
   if (recordedBoot !== null && (currentBoot === null || !sameBoot(recordedBoot, currentBoot))) cause = 'reboot';
-  else if (record?.childProcess !== undefined && record.childProcess !== null) {
+  else if (record !== null && record.childProcess !== null) {
     const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
     const { verdict } = processSupervision.stopTree(record.childProcess, 'force', treeMembers);
     if (verdict === 'refused') {
@@ -140,7 +142,7 @@ async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: strin
   const { socketPath, secretFilePath } = reading.launch;
   const watcherSecret = readWatcherSecret(secretFilePath);
   if (watcherSecret === null) return null;
-  const protocolVersion = LegacyWatcherReader.helloProtocolVersionOf(WatcherFleet.watcherRecordOf(jobFolder, instance));
+  const protocolVersion = LegacyWatcherReader.helloProtocolVersionOf(LegacyWatcherReader.watcherRecordIn(jobFolder, instance));
   return await new Promise((resolve) => {
     const socket = localEndpoint.connectionTo(socketPath);
     let buffered = '';
@@ -220,23 +222,23 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 }
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. */
-async function regroup(ports: PlatformPorts, workspace: Workspace): Promise<RegroupingReport> {
+async function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace): Promise<RegroupingReport> {
   const jobs   = requireProgressFile(workspace).jobs ?? [];
   const report: RegroupingReport = {
     attached: [], legacyWatchers: [], lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs)
   };
   for (const job of jobs.filter((candidate) => candidate.role !== null)) {
-    const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
-    const liveness  = WatcherFleet.livenessOf(ports, jobFolder, job.watcherInstance);
-    const record    = WatcherFleet.watcherRecordOf(jobFolder, job.watcherInstance);
+    const jobFolder = children.jobFolderOf(job.id);
+    const liveness  = children.livenessOf(jobFolder, job.watcherInstance);
+    const record    = LegacyWatcherReader.watcherRecordIn(jobFolder, job.watcherInstance);
     if (liveness.verdict === 'live' && record !== null && LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') {
       report.legacyWatchers.push({ jobId: job.id, instance: job.watcherInstance, protocolVersion: record.protocolVersion });
     } else if (liveness.verdict === 'live') {
       const sinceSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
       report.attached.push({ jobId: job.id, instance: job.watcherInstance, replayedEntries: await helloHistoryOf(ports, jobFolder, job.watcherInstance, sinceSequence) });
     } else if (liveness.verdict === 'lost') {
-      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostWatcher(ports, jobFolder, job.watcherInstance) });
-    } else if (liveness.verdict === 'unclaimed' && awaitsItsSpawn(job)) {
+      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostWatcher(children, ports, jobFolder, job.watcherInstance) });
+    } else if (liveness.verdict === 'unlaunched' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);
     }
   }

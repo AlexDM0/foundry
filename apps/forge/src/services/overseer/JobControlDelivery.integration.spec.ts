@@ -19,9 +19,10 @@ import type { LogRecord }                                 from '../../lib/tracke
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { PlantedWatcher }                                 from './testing/PlantedWatcher.ts';
 
 function productOwnerJob(overrides: Partial<Job> = {}): Job {
@@ -61,7 +62,7 @@ describe('a session job\'s control frames', () => {
 
   async function deliverPass(job: Job, logRecords: readonly LogRecord[] = []): Promise<void> {
     await JobControlDelivery.deliverJobControls({
-      platformPorts:   nativePlatformPorts(),
+      boardChildren:   watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
       trackerDirectory,
       board:           { jobs: () => [job], logRecordsSoFar: () => [...logRecords] },
       adapter:         { chatLineOf: (message, pictures = []) => JSON.stringify({ message, pictures }) },
@@ -70,7 +71,7 @@ describe('a session job\'s control frames', () => {
   }
 
   function markerExists(job: Job, marker: string): boolean {
-    return existsSync(join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), 'control-frames', marker));
+    return existsSync(join(jobFolderIn(trackerDirectory, job.id), 'control-frames', marker));
   }
 
   async function actingFramesWhile(socketPath: string, during: () => Promise<void>): Promise<readonly string[]> {

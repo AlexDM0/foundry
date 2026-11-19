@@ -39,8 +39,8 @@ import { launchSnapshotOf }                                         from '../lif
 import type { TrackerChange }                                       from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                           from '../tracker/Workspace.ts';
 import { CONSTITUTION_DEFAULT_PATH }                                from './InstructionFiles.ts';
+import { jobFolderIn }                                              from './OverseerFiles.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER, PipelineAgentSessions }    from './PipelineAgentSessions.ts';
-import { WatcherFleet }                                             from './WatcherFleet.ts';
 
 const AT = '2026-10-31T12:00:00+01:00';
 const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
@@ -103,7 +103,7 @@ function enter(scenario: string): void {
 function writeSnapshotStart(jobId: string): void {
   enter(GIT_SCENARIOS.PIPELINE_AGENT_SNAPSHOT_UNTOUCHED);
   const launchSnapshot = launchSnapshotOf(join(repositoryDirectory, PIPELINE_AGENT_SNAPSHOT_FOLDER_NAME));
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(join(jobFolder, SNAPSHOT_START_FILE), `${JSON.stringify({ startCommit: START_COMMIT, launchSnapshot })}\n`);
 }
@@ -161,7 +161,7 @@ function headResolvedAs(commit: string): RecordedGitStep {
 }
 
 function snapshotStartWritten(jobId: string): unknown {
-  return JSON.parse(readFileSync(join(WatcherFleet.jobFolderOf(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as unknown;
+  return JSON.parse(readFileSync(join(jobFolderIn(trackerDirectory, jobId), SNAPSHOT_START_FILE), 'utf8')) as unknown;
 }
 
 testWhenGitIsRecorded('a launch adds the record\'s snapshot, detached at its snapshot commit, and takes the snapshot start', async () => {

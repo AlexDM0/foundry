@@ -18,9 +18,11 @@ import { createEventLogWriter }                           from '../../lib/talos/
 import type { Job, JobLaunch }                            from '../../lib/tracker-model/@types/Job.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { boardFixture, taskFixture, ticketFixture }       from '../../testing/BoardFixtures.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { EndedJobTokens }                                 from './EndedJobTokens.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { EndedJobTokens, type EndedJobTokensContext }     from './EndedJobTokens.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const ENDED_AT = '2026-10-30T14:00:00+01:00';
 
@@ -55,7 +57,7 @@ function jobOf(id: string, kind: string, ticketIds: string[]): Readonly<Job> {
 function trackerWithLoggedEvents(jobId: string, ...eventsPerInstance: (readonly AgentSessionEvent[])[]): string {
   const trackerDirectory = createScratchDirectory('ended-job-tokens');
   scratchDirectories.push(trackerDirectory);
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   eventsPerInstance.forEach((events, i) => {
     const writer = createEventLogWriter(watcherFilesOf(jobFolder, i + 1).eventLogPath, () => '2026-10-30T13:00:00Z');
@@ -93,6 +95,10 @@ const BUILD_EVENTS = [
   assistantTurn('message-2', 'call-1', 50, 0),
 ];
 
+function contextOver(trackerDirectory: string): EndedJobTokensContext {
+  return { boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory), agentAdapter: LINE_AS_EVENT_ADAPTER };
+}
+
 describe('EndedJobTokens', () => {
   test('a build job ending credits its input and cache tokens to its ticket\'s row, added to what the row held, and logs its usage', () => {
     const { board, progress } = boardFixture({
@@ -101,7 +107,7 @@ describe('EndedJobTokens', () => {
     });
     const trackerDirectory = trackerWithLoggedEvents('J1', BUILD_EVENTS);
 
-    EndedJobTokens.creditJobsEndedInTheHold(board, { trackerDirectory, agentAdapter: LINE_AS_EVENT_ADAPTER }, [jobOf('J1', 'build', ['002'])], ENDED_AT);
+    EndedJobTokens.creditJobsEndedInTheHold(board, contextOver(trackerDirectory), [jobOf('J1', 'build', ['002'])], ENDED_AT);
 
     expect(progress.tasks[0]?.tokens).toBe(1_550);
     const stopped = board.logRecordsSoFar().filter((record) => record.kind === 'agent-stopped');
@@ -115,7 +121,7 @@ describe('EndedJobTokens', () => {
       tasks:   [taskFixture({ id: 7, ticket: '002', tokens: 500 })],
       tickets: [ticketFixture({ id: '002', task: 7 })],
     });
-    const context = { trackerDirectory: trackerWithLoggedEvents('J1', BUILD_EVENTS), agentAdapter: LINE_AS_EVENT_ADAPTER };
+    const context = contextOver(trackerWithLoggedEvents('J1', BUILD_EVENTS));
 
     EndedJobTokens.creditJobsEndedInTheHold(board, context, [jobOf('J1', 'build', ['002'])], ENDED_AT);
     EndedJobTokens.creditJobsEndedInTheHold(board, context, [jobOf('J1', 'build', ['002'])], ENDED_AT);
@@ -133,7 +139,7 @@ describe('EndedJobTokens', () => {
     });
     const trackerDirectory = trackerWithLoggedEvents('J2', [assistantTurn('message-1', null, 40, 60)]);
 
-    EndedJobTokens.creditJobsEndedInTheHold(board, { trackerDirectory, agentAdapter: LINE_AS_EVENT_ADAPTER }, [jobOf('J2', 'review', ['002'])], ENDED_AT);
+    EndedJobTokens.creditJobsEndedInTheHold(board, contextOver(trackerDirectory), [jobOf('J2', 'review', ['002'])], ENDED_AT);
 
     expect(progress.tasks.map((task) => task.tokens)).toEqual([500, 110]);
   });
@@ -147,14 +153,14 @@ describe('EndedJobTokens', () => {
     const stillRunning = jobOf('J1', 'build', ['002']);
     const boardWithTheJob = Object.assign(Object.create(board) as typeof board, { jobs: () => [stillRunning] });
 
-    EndedJobTokens.creditJobsEndedInTheHold(boardWithTheJob, { trackerDirectory, agentAdapter: LINE_AS_EVENT_ADAPTER }, [stillRunning], ENDED_AT);
+    EndedJobTokens.creditJobsEndedInTheHold(boardWithTheJob, contextOver(trackerDirectory), [stillRunning], ENDED_AT);
 
     expect(progress.tasks[0]?.tokens).toBe(500);
   });
 
   test('a job `job stop` ended while interrupted is credited every Watcher instance\'s tokens on the next pass, rebuilt from the log', () => {
     const { board, progress } = boardWithAJobStoppedWhileInterrupted();
-    const context = { trackerDirectory: trackerWithLoggedEvents('J1', BUILD_EVENTS, SECOND_INSTANCE_EVENTS), agentAdapter: LINE_AS_EVENT_ADAPTER };
+    const context = contextOver(trackerWithLoggedEvents('J1', BUILD_EVENTS, SECOND_INSTANCE_EVENTS));
 
     const examined = EndedJobTokens.creditJobsTheLogEndedUncredited(board, context, new Set(), ENDED_AT);
 
@@ -164,7 +170,7 @@ describe('EndedJobTokens', () => {
 
   test('a job the log ended uncredited is credited once, however many passes see it', () => {
     const { board, progress } = boardWithAJobStoppedWhileInterrupted();
-    const context = { trackerDirectory: trackerWithLoggedEvents('J1', BUILD_EVENTS, SECOND_INSTANCE_EVENTS), agentAdapter: LINE_AS_EVENT_ADAPTER };
+    const context = contextOver(trackerWithLoggedEvents('J1', BUILD_EVENTS, SECOND_INSTANCE_EVENTS));
 
     EndedJobTokens.creditJobsTheLogEndedUncredited(board, context, new Set(), ENDED_AT);
     const examinedAgain = EndedJobTokens.creditJobsTheLogEndedUncredited(board, context, new Set(), ENDED_AT);
@@ -179,7 +185,7 @@ describe('EndedJobTokens', () => {
       tasks:   [taskFixture({ id: 7, ticket: '002', tokens: 500 })],
       tickets: [ticketFixture({ id: '002', task: 7, status: 'in-progress' })],
     });
-    const context = { trackerDirectory: trackerWithLoggedEvents('J1', BUILD_EVENTS), agentAdapter: LINE_AS_EVENT_ADAPTER };
+    const context = contextOver(trackerWithLoggedEvents('J1', BUILD_EVENTS));
     const { job } = board.launchJob(BUILD_LAUNCH, ENDED_AT);
     const jobsAtTheHoldStart = [...board.jobs()];
     board.endJob(job.id, { outcome: 'failed' }, ENDED_AT);
@@ -193,7 +199,7 @@ describe('EndedJobTokens', () => {
 
   test('a job an earlier pass examined is skipped, so one with no turns is not read again every pass', () => {
     const { board } = boardWithAJobStoppedWhileInterrupted();
-    const context = { trackerDirectory: trackerWithLoggedEvents('J1'), agentAdapter: LINE_AS_EVENT_ADAPTER };
+    const context = contextOver(trackerWithLoggedEvents('J1'));
 
     const firstExamined = EndedJobTokens.creditJobsTheLogEndedUncredited(board, context, new Set(), ENDED_AT);
     const laterExamined = EndedJobTokens.creditJobsTheLogEndedUncredited(board, context, new Set(firstExamined), ENDED_AT);

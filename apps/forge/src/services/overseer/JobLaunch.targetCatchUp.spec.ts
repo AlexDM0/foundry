@@ -48,9 +48,10 @@ import { testWhenGitIsRecorded }                                 from '../../tes
 import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
+import { jobFolderIn }                                           from './OverseerFiles.ts';
 import type { ProcessStarts }                                    from './ProcessStarts.ts';
 import { RedHandoff }                                            from './RedHandoff.ts';
-import { WatcherFleet }                                          from './WatcherFleet.ts';
+import { createWatcherBoardChildren }                            from './WatcherBoardChildren.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = {
@@ -160,12 +161,18 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
     inheritedEnvironment: {},
     mainLine:             TARGET,
     branchNames:          branchNamesOf(null),
-    watcherBundlePath:    join(monitorFolder, 'watcher.js'),
-    codeVersion:          'example-version',
+    boardChildren:        createWatcherBoardChildren({
+      platformPorts: nativePlatformPorts(),
+      trackerDirectory,
+      launching:     {
+        trackerId: TRACKER_ID, monitorFolder, watcherBundlePath: join(monitorFolder, 'watcher.js'), codeVersion: 'example-version', watcherDirectory: repository, processStarts
+      },
+      log: () => undefined,
+    }),
+    codeVersion:       'example-version',
     gateSlots,
-    log:                  () => undefined,
-    processStarts,
-    decisionWordingOf:    () => ({
+    log:               () => undefined,
+    decisionWordingOf: () => ({
       questions: [{
         question: 'Example?', header: 'Example', multiSelect: false, options: []
       }],
@@ -187,7 +194,7 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
     spawnedFolders,
     pass,
     reviewJob:   () => board.jobs().find((job) => job.id === review.job.id),
-    jobFolder:   () => WatcherFleet.jobFolderOf(trackerDirectory, review.job.id),
+    jobFolder:   () => jobFolderIn(trackerDirectory, review.job.id),
   };
 }
 

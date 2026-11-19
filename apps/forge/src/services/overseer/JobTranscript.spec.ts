@@ -27,9 +27,11 @@ import type { LogRecord }                                 from '../../lib/tracke
 import type { ActingFrame }                               from '../../lib/watcher/@types/WatcherFrame.ts';
 import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import type { TranscriptEntry }                           from '../../shared/@types/TranscriptEntry.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
 import { JobTranscript, type TranscriptSenderFacts }      from './JobTranscript.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -72,7 +74,7 @@ function scratchTrackerDirectory(): string {
 
 /** Each instance's lines into its own event log of the job's folder, stamped as a Watcher stamps them. */
 function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance: readonly (readonly LoggedLine[])[]): string {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   linesByInstance.forEach((lines, index) => {
     const writer = createEventLogWriter(watcherFilesOf(jobFolder, index + 1).eventLogPath, () => EXAMPLE_STAMP);
@@ -94,6 +96,7 @@ function transcriptOf(
 ): { entries: TranscriptEntry[]; senderFactReads: number } {
   let senderFactReads = 0;
   const { entries } = JobTranscript.entriesAfter(jobFolder, newestInstance, JobTranscript.cursorOf(after) ?? { instance: 1, sequence: 0 }, {
+    eventsAfter:   watcherChildReadingsWith(nativePlatformPorts()).eventsAfter,
     eventsOf:      (line) => JSON.parse(line) as AgentSessionEvent[],
     sentLineOf:    CLAUDE_STREAM_LINES.sentLineOf,
     senderFactsOf: () => {
@@ -394,7 +397,7 @@ describe('JobTranscript.senderFactsOf', () => {
   test('reads the Assistant\'s chats file for an Assistant job', () => {
     const trackerDirectory = scratchTrackerDirectory();
     const chats = [{ sequence: 2, incidentIds: ['I3'], messageNumber: null }];
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, 'J1');
+    const jobFolder = jobFolderIn(trackerDirectory, 'J1');
     mkdirSync(jobFolder, { recursive: true });
     writeFileSync(join(jobFolder, 'assistant-chats.json'), `${JSON.stringify(chats)}\n`);
     expect(JobTranscript.senderFactsOf([launched('J1', 'assistant')], trackerDirectory, 'J1').assistantChats).toEqual(chats);

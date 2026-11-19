@@ -8,7 +8,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  rmSync
+  rmSync,
+  writeFileSync
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -22,7 +23,10 @@ import { changedTrackedPathsOf }        from '../../lib/git/Worktrees.ts';
 import { PORTABLE_GIT_SETTINGS }        from '../../lib/git/constants/GitConventions.ts';
 import { GitArgumentsUtil }             from '../../lib/git/utils/GitArgumentsUtil.ts';
 import type { PlatformPorts }           from '../../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }         from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellExitReport }         from '../../lib/shell-line/ShellLine.ts';
+import type { ChildInput }              from '../../lib/talos/@types/TalosFrame.ts';
+import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
 import type { ReviewBarRequest }        from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { Decision }                from '../../lib/tracker-model/@types/Decision.ts';
 import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -53,7 +57,6 @@ import { PipelineUtil }                                                         
 import { TicketBodyHashUtil }                                                                     from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { TicketStageUtil }                                                                        from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                                                         from '../../lib/tracker-model/utils/VocabularyUtil.ts';
-import type { WatcherEnd }                                                                        from '../../lib/watcher/WatcherRecord.ts';
 import type { BranchNames }                                                                       from '../../shared/BranchNames.ts';
 import { WorktreesFolder }                                                                        from '../../shared/WorktreesFolder.ts';
 import { DISPATCH_PROTOCOL }                                                                      from '../../shared/constants/DispatchProtocol.ts';
@@ -95,6 +98,7 @@ import { type PackageReviewSettlement, ReviewOutcome }                 from '../
 import { type ProjectLocation, projectLocationOf }                     from '../tracker/ProjectLocation.ts';
 import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
+import type { BoardChildren }                                          from './BoardChildren.ts';
 import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
 import { CrossingStages }                                              from './CrossingStages.ts';
 import { DependentFixTickets }                                         from './DependentFixTickets.ts';
@@ -105,10 +109,9 @@ import { HatchInbox }                                                  from './H
 import { InstructionFiles, type InstructionFileRead }                  from './InstructionFiles.ts';
 import type { SessionLaunchSettings }                                  from './LaunchSettings.ts';
 import { NeedTickets }                                                 from './NeedTickets.ts';
-import { type ProcessStarts, REAL_PROCESS_STARTS }                     from './ProcessStarts.ts';
+import { jobFolderIn }                                                 from './OverseerFiles.ts';
 import { ProcessWatcherSandbox, type ProcessSandboxRequest }           from './ProcessWatcherSandbox.ts';
 import { RedHandoff, type RedHandoffFacts }                            from './RedHandoff.ts';
-import { WatcherFleet }                                                from './WatcherFleet.ts';
 import { WorkerProfiles, type SandboxFacts, type SandboxFactsRequest } from './WorkerProfiles.ts';
 
 export interface JobLaunchContext {
@@ -120,7 +123,7 @@ export interface JobLaunchContext {
   inheritedEnvironment: Readonly<Record<string, string | undefined>>;
   mainLine:             string;
   branchNames:          BranchNames;
-  watcherBundlePath:    string;
+  boardChildren:        BoardChildren;
   /** The Overseer's own runtime, isolating arguments and entry script, which a job's network guard hook runs. */
   programCommand:       readonly string[];
   codeVersion:          string;
@@ -130,7 +133,6 @@ export interface JobLaunchContext {
   log:                  (line: string) => void;
   /** The lines the merge commit at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:    (worktreePath: string) => number | null;
-  processStarts?:       ProcessStarts;
   /** Absent for a tracker at its repository's root, which shares no landing journal with siblings. */
   sharedRepository?:    SharedRepositoryLanding;
 }
@@ -197,7 +199,7 @@ export interface BuildJobObservation {
   calls:            number;
   /** The structured report of the newest `result`, `undefined` before one. */
   report:           unknown;
-  agentEnd:         WatcherEnd | 'lost' | null;
+  agentEnd:         ChildEnd | 'lost' | null;
   gate:             GateProgress;
   /** The gate, prepare or install line or the worker launch that confinement refused, `null` while none was. */
   sandboxRefusal:   SandboxRefusal | null;
@@ -546,11 +548,11 @@ function branchOf(context: Pick<JobLaunchContext, 'branchNames'>, job: Readonly<
 }
 
 function jobFolderOf(workspace: Workspace, job: Readonly<Job>): string {
-  return WatcherFleet.jobFolderOf(workspace.trackerDirectory, job.id);
+  return jobFolderIn(workspace.trackerDirectory, job.id);
 }
 
-function processWatcherEnd(ports: PlatformPorts, watcherFolder: string): WatcherEnd | 'lost' | 'pending' {
-  const liveness = WatcherFleet.livenessOf(ports, watcherFolder, PROCESS_WATCHER_INSTANCE);
+function processWatcherEnd(children: BoardChildren, watcherFolder: string): ChildEnd | 'lost' | 'pending' {
+  const liveness = children.livenessOf(watcherFolder, PROCESS_WATCHER_INSTANCE);
   if (liveness.verdict === 'ended') return liveness.end;
   return liveness.verdict === 'lost' ? 'lost' : 'pending';
 }
@@ -560,7 +562,7 @@ function lineStatusFileOf(jobFolder: string, folderName: string): string {
 }
 
 /** A Watcher lost, or one whose child never exited by itself, reports no exit code, so its line reads as never run. */
-function stepExitReportOf(end: WatcherEnd | 'lost', jobFolder: string, folderName: string): ShellExitReport {
+function stepExitReportOf(end: ChildEnd | 'lost', jobFolder: string, folderName: string): ShellExitReport {
   return {
     exitCode:       end !== 'lost' && end.reason === 'exited' ? end.exitCode : null,
     signalCode:     end === 'lost' ? null : end.signal,
@@ -568,7 +570,7 @@ function stepExitReportOf(end: WatcherEnd | 'lost', jobFolder: string, folderNam
   };
 }
 
-function stepPassed(context: JobLaunchContext, end: WatcherEnd | 'lost', jobFolder: string, folderName: string): boolean {
+function stepPassed(context: JobLaunchContext, end: ChildEnd | 'lost', jobFolder: string, folderName: string): boolean {
   return context.platformPorts.shellLine.exitMeaningOf(stepExitReportOf(end, jobFolder, folderName)) === 'passed';
 }
 
@@ -580,7 +582,7 @@ function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, prepare:
   if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
   for (const stepIndex of prepare.keys()) {
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
-    const end = processWatcherEnd(context.platformPorts, join(jobFolder, folderName));
+    const end = processWatcherEnd(context.boardChildren, join(jobFolder, folderName));
     if (end === 'pending') return 'installing';
     if (!stepPassed(context, end, jobFolder, folderName)) return 'install-failed';
   }
@@ -594,7 +596,7 @@ function sessionReadingOf(context: JobLaunchContext, job: Readonly<Job>): { call
   const topLevelMessageIds = new Set<string>();
   let report: unknown = undefined;
   for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
-    const entries = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+    const entries = context.boardChildren.eventsAfter(jobFolder, instance, 0);
     if (entries === 'malformed') continue;
     for (const entry of entries.filter((logged) => logged.origin === 'agent')) {
       for (const event of context.agentAdapter.eventsOf(entry.line)) {
@@ -772,11 +774,11 @@ function attemptStartInstanceOf(jobFolder: string): number {
 
 /** A session working off a red handoff has the short resume budget; the first attempt its role's. */
 function attemptCallBudgetOf(trackerDirectory: string, job: Readonly<Job>): number {
-  return RedHandoff.redHandoffFactsOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id)) === null ? callBudgetOf(job) : RED_HANDOFF_RESUME_CALL_BUDGET;
+  return RedHandoff.redHandoffFactsOf(jobFolderIn(trackerDirectory, job.id)) === null ? callBudgetOf(job) : RED_HANDOFF_RESUME_CALL_BUDGET;
 }
 
-function watcherOutputOf(watcherFolder: string): string {
-  const entries = WatcherFleet.eventsAfter(watcherFolder, PROCESS_WATCHER_INSTANCE, 0);
+function watcherOutputOf(children: BoardChildren, watcherFolder: string): string {
+  const entries = children.eventsAfter(watcherFolder, PROCESS_WATCHER_INSTANCE, 0);
   return entries === 'malformed' ? '' : entries.filter((entry) => entry.origin === 'agent').map((entry) => `${entry.line}\n`).join('');
 }
 
@@ -809,12 +811,12 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const kept        = readStepVerdict(verdictPath);
   if (kept !== null && kept.treeId === treeId && kept.phase === stamp.phase && kept.phaseHash === stamp.phaseHash) return kept;
   const watcherFolder = join(jobFolder, step.folder);
-  const end = processWatcherEnd(context.platformPorts, watcherFolder);
+  const end = processWatcherEnd(context.boardChildren, watcherFolder);
   if (end === 'pending') return null;
   const { shellLine } = context.platformPorts;
   const reportFile = stepReportFileOf(jobFolder, step);
   const cacheReport = reportFile === null ? null : GateRun.takeCacheReport(reportFile);
-  const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport, output: watcherOutputOf(watcherFolder) };
+  const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport, output: watcherOutputOf(context.boardChildren, watcherFolder) };
   let verdict: StepVerdict;
   if (step.kind === 'prepare') {
     const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));
@@ -881,7 +883,7 @@ function gateRunProgressOf(
 /** Read outside the lock, for every live build job. */
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
   return jobs.filter(isWorktreeJob).map((job) => {
-    const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, job), job.watcherInstance);
+    const liveness = context.boardChildren.livenessOf(jobFolderOf(context.workspace, job), job.watcherInstance);
     const setup = job.state === 'preparing' ? setupProgressOf(context, job, installStepsOf(pipeline, job)) : 'installed';
     return {
       jobId:            job.id,
@@ -935,7 +937,7 @@ function targetCatchUpOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   if (record === null) return firstTargetCheckOf(context, job);
   const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolder, JOB_FILES.targetMergeSettlement));
   if (settlement === null) {
-    return processWatcherEnd(context.platformPorts, join(jobFolder, TARGET_MERGE_WATCHER_FOLDER)) === 'pending' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
+    return processWatcherEnd(context.boardChildren, join(jobFolder, TARGET_MERGE_WATCHER_FOLDER)) === 'pending' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
   if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
   if (settlement.verdict === 'conflicted') return { verdict: 'conflicted', targetTip: record.mergedTip, conflictedFiles: settlement.conflictedFiles };
@@ -1014,7 +1016,7 @@ function mainMergeStepOf(context: JobLaunchContext, job: Readonly<Job>, pipeline
   const files = mainMergeIntoTreeFilesOf(round);
   const settlement = readJsonFile<TargetMergeSettlement>(join(jobFolderOf(context.workspace, job), files.settlementFile));
   if (settlement === null) {
-    const mergeEnd = processWatcherEnd(context.platformPorts, join(jobFolderOf(context.workspace, job), files.watcherFolder));
+    const mergeEnd = processWatcherEnd(context.boardChildren, join(jobFolderOf(context.workspace, job), files.watcherFolder));
     return mergeEnd === 'pending' ? { verdict: 'merging' } : { verdict: 'merge-ended' };
   }
   if (settlement.verdict === 'failed') return { verdict: 'merge-failed', reason: settlement.reason };
@@ -1040,7 +1042,7 @@ function conflictReReviewReadingOf(
 ): ConflictReReviewReading | null {
   const reReviewer = conflictReReviewerOf(jobs, job);
   if (reReviewer === undefined) return null;
-  const liveness = WatcherFleet.livenessOf(context.platformPorts, jobFolderOf(context.workspace, reReviewer), reReviewer.watcherInstance);
+  const liveness = context.boardChildren.livenessOf(jobFolderOf(context.workspace, reReviewer), reReviewer.watcherInstance);
   const { calls, report } = sessionReadingOf(context, reReviewer);
   const resolution = reReviewer.state === 'in-customs' && pipeline?.airlock?.reReview !== undefined ? mainMergeResolutionOf(context, job) : null;
   return {
@@ -1132,7 +1134,7 @@ function crossingStageScopeOfJob(hold: HoldContext, job: Readonly<Job>): Crossin
   const crossingStage = CrossingStages.crossingStageScopeOf(board, trackerDirectory, job);
   if (crossingStage === null) return null;
   const runStartJobId = CrossingStages.stageRunStartJobIdOf(board.logRecordsSoFar(), job);
-  const runStart = runStartJobId === job.id ? null : readJobStart(WatcherFleet.jobFolderOf(trackerDirectory, runStartJobId));
+  const runStart = runStartJobId === job.id ? null : readJobStart(jobFolderIn(trackerDirectory, runStartJobId));
   return runStart === null ? crossingStage : { ...crossingStage, stageStartCommit: runStart.startCommit };
 }
 
@@ -1145,7 +1147,7 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
     return;
   }
   const retriedJobId = retriedFailedBuildJobIdOf(board.logRecordsSoFar(), job.id);
-  const retriedStart = retriedJobId === null ? null : readJobStart(WatcherFleet.jobFolderOf(hold.context.workspace.trackerDirectory, retriedJobId));
+  const retriedStart = retriedJobId === null ? null : readJobStart(jobFolderIn(hold.context.workspace.trackerDirectory, retriedJobId));
   const { projectPrefix } = projectLocationOfContext(hold.context);
   const pipeline = board.pipeline();
   const refusedPackages = pipeline?.entities === undefined ? [] : CrossingStages.refusedPackagesOf(board.logRecordsSoFar(), ticketIdOf(job));
@@ -1665,7 +1667,7 @@ function moveOnFromThePackageStages(hold: HoldContext, job: Readonly<Job>, homeE
 function sealedReachPathsOf(hold: HoldContext, job: Readonly<Job>, packageKey: EntityKey, target: string): string[] | null {
   const { board } = hold.change;
   const { trackerDirectory } = hold.context.workspace;
-  const runStart = readJobStart(WatcherFleet.jobFolderOf(trackerDirectory, CrossingStages.packageRunStartJobIdOf(board.logRecordsSoFar(), job)));
+  const runStart = readJobStart(jobFolderIn(trackerDirectory, CrossingStages.packageRunStartJobIdOf(board.logRecordsSoFar(), job)));
   if (runStart === null) return null;
   const changed = reachPathsChangedSinceOf(worktreeOf(hold.context.workspace, job), runStart.startCommit, target, CrossingStages.reachOf(board.pipeline(), packageKey));
   if (changed === null) return null;
@@ -1778,7 +1780,7 @@ function settleGate(hold: HoldContext, job: Readonly<Job>, observation: BuildJob
 }
 
 function mainMergeFileOf(trackerDirectory: string, job: Readonly<Job>, name: string, round: number): string {
-  return join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), `${name}${instanceSuffixOf(round)}${JSON_EXTENSION}`);
+  return join(jobFolderIn(trackerDirectory, job.id), `${name}${instanceSuffixOf(round)}${JSON_EXTENSION}`);
 }
 
 /** A round's merge, in a process Watcher folder of its own beside its settlement. */
@@ -2073,7 +2075,7 @@ function targetCatchUpHandoverOf(trackerDirectory: string, logRecords: readonly 
     if (record.kind === 'job-ended' && reviewJobIds.has(record.jobId)) newestEnded = { jobId: record.jobId, cause: record.fields.cause ?? '' };
   }
   if (newestEnded === null || !TARGET_CATCH_UP_CAUSES.includes(newestEnded.cause)) return null;
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, newestEnded.jobId);
+  const jobFolder = jobFolderIn(trackerDirectory, newestEnded.jobId);
   if (newestEnded.cause === BUILD_JOB_CAUSES.targetGateRed) {
     const redHandoff = RedHandoff.redHandoffFactsOf(jobFolder);
     return redHandoff === null ? null : { kind: 'gate-red', redHandoff };
@@ -2316,7 +2318,7 @@ interface ProcessWatcherStep {
 }
 
 /** A Watcher already claimed is left alone; a spawn the system refused has no process id. */
-type ProcessWatcherSpawn = { verdict: 'already-claimed' } | { verdict: 'refused' } | { verdict: 'spawned'; processId: number | undefined };
+type ProcessWatcherSpawn = { verdict: 'already-claimed' } | { verdict: 'refused' } | { verdict: 'spawned'; supervisor: ProcessIdentity | null };
 
 /** Kept in the job folder for the next pass's hold, which opens the incident; the refused line never started. */
 function recordSandboxRefusal(context: JobLaunchContext, job: Readonly<Job>, refusal: SandboxRefusal): void {
@@ -2349,13 +2351,13 @@ function sandboxRefusalOf(context: JobLaunchContext, job: Readonly<Job>): Sandbo
 }
 
 /** `pipeline` names the entity homes whose `.claude` the step's sandbox denies, as a session's does. */
-function spawnProcessWatcher(
+async function spawnProcessWatcher(
   context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>, folderName: string, step: ProcessWatcherStep
-): ProcessWatcherSpawn {
+): Promise<ProcessWatcherSpawn> {
   const { confinement, subfolder } = step;
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, folderName);
-  if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return { verdict: 'already-claimed' };
+  if (context.boardChildren.livenessOf(watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unlaunched') return { verdict: 'already-claimed' };
   const worktree = worktreeOf(context.workspace, job);
   const workingDirectory = GateRun.gateDirectoryOf(worktree, subfolder === null ? {} : { in: subfolder }, projectLocationOfContext(context).projectPrefix);
   const { gateConfinement, shellLine } = context.platformPorts;
@@ -2375,7 +2377,7 @@ function spawnProcessWatcher(
   }
   // A report left at the path before the line ran is never this run's.
   if (step.reportFile !== undefined) rmSync(step.reportFile, { force: true, recursive: true });
-  const launched = launchProcessWatcher(context, trackerId, job, folderName, {
+  const launched = await launchProcessWatcher(context, trackerId, job, folderName, {
     workingDirectory, argv: line.argv, verbatimArguments: spawnRequest.verbatimArguments, environment: gateEnvironmentOf(context, step.reportFile),
   });
   if (launched.verdict === 'unfit-endpoint') {
@@ -2385,7 +2387,7 @@ function spawnProcessWatcher(
   const availability = gateConfinement.availability();
   const confinementWords = availability.verdict === 'confined' ? ` under ${availability.mechanism}` : ', unconfined by design';
   context.log(`Spawned the ${folderName} Watcher of job ${job.id} (#${ticketIdOf(job)})${confinementWords}.`);
-  return { verdict: 'spawned', processId: launched.processId };
+  return { verdict: 'spawned', supervisor: launched.supervisor };
 }
 
 interface ProcessWatcherLaunch {
@@ -2395,33 +2397,30 @@ interface ProcessWatcherLaunch {
   environment:        Record<string, string>;
 }
 
-type ProcessWatcherLaunchOutcome = { verdict: 'unfit-endpoint'; reason: string } | { verdict: 'spawned'; processId: number | undefined };
+type ProcessWatcherLaunchOutcome = { verdict: 'unfit-endpoint'; reason: string } | { verdict: 'spawned'; supervisor: ProcessIdentity | null };
 
 /** Writes the launch file of the step's process Watcher and starts it; the caller has already judged what the line may reach. */
-function launchProcessWatcher(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, folderName: string, launch: ProcessWatcherLaunch): ProcessWatcherLaunchOutcome {
+async function launchProcessWatcher(
+  context: JobLaunchContext, trackerId: string, job: Readonly<Job>, folderName: string, launch: ProcessWatcherLaunch
+): Promise<ProcessWatcherLaunchOutcome> {
   const watcherFolder = join(jobFolderOf(context.workspace, job), folderName);
-  const socketName = `${job.id}/${folderName}`;
-  const unfitEndpoint = WatcherFleet.unfitEndpointOf(context.platformPorts, {
-    monitorFolder: context.monitorFolder, trackerId, name: socketName, instance: PROCESS_WATCHER_INSTANCE
+  const label = `${job.id}/${folderName}`;
+  const { localEndpoint } = context.platformPorts;
+  const endpoint = localEndpoint.endpointOf({
+    monitorFolder: context.monitorFolder, trackerId, name: label, instance: PROCESS_WATCHER_INSTANCE
   });
-  if (unfitEndpoint !== null) return { verdict: 'unfit-endpoint', reason: `this platform cannot bind the Watcher endpoint ${unfitEndpoint}` };
-  WatcherFleet.writeProcessLaunchFile(context.platformPorts, {
-    watcherFolder,
-    instance:           PROCESS_WATCHER_INSTANCE,
-    jobId:              job.id,
-    socketName,
-    trackerId,
-    monitorFolder:      context.monitorFolder,
-    watcherCodeVersion: context.codeVersion,
-    workingDirectory:   launch.workingDirectory,
-    argv:               launch.argv,
-    ...(launch.verbatimArguments === undefined ? {} : { verbatimArguments: launch.verbatimArguments }),
-    environment:        launch.environment,
+  if (!localEndpoint.endpointFits(endpoint)) return { verdict: 'unfit-endpoint', reason: `this platform cannot bind the Watcher endpoint ${endpoint}` };
+  await context.boardChildren.launchLine({
+    childFolder:           watcherFolder,
+    instance:              PROCESS_WATCHER_INSTANCE,
+    label,
+    workingDirectory:      launch.workingDirectory,
+    argv:                  launch.argv,
+    verbatimArguments:     launch.verbatimArguments ?? false,
+    environment:           launch.environment,
+    timeBoundMilliseconds: null,
   });
-  const processId = (context.processStarts ?? REAL_PROCESS_STARTS).spawnWatcher(context.platformPorts, {
-    bundlePath: context.watcherBundlePath, jobFolder: watcherFolder, instance: PROCESS_WATCHER_INSTANCE, rootDirectory: context.workspace.rootDirectory
-  });
-  return { verdict: 'spawned', processId };
+  return { verdict: 'spawned', supervisor: context.boardChildren.recordOf(watcherFolder, PROCESS_WATCHER_INSTANCE)?.talos ?? null };
 }
 
 /** The review's catch-up merge before its reviewer, in the `target-merge` Watcher folder. */
@@ -2435,9 +2434,11 @@ function writeMergeSettlement(context: JobLaunchContext, job: Readonly<Job>, fil
  * The merge is the Overseer's own git, so it runs outside the gate sandbox, which would refuse git's writes to the repository's shared
  * object store; every hook is off, so no worker-written code runs. A merge that cannot start is settled `failed` at once.
  */
-function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, files: MergeIntoTreeFiles, record: Readonly<TargetMergeRecord>): void {
+async function launchMergeIntoTree(
+  context: JobLaunchContext, trackerId: string, job: Readonly<Job>, files: MergeIntoTreeFiles, record: Readonly<TargetMergeRecord>
+): Promise<void> {
   const watcherFolder = join(jobFolderOf(context.workspace, job), files.watcherFolder);
-  if (WatcherFleet.livenessOf(context.platformPorts, watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unclaimed') return;
+  if (context.boardChildren.livenessOf(watcherFolder, PROCESS_WATCHER_INSTANCE).verdict !== 'unlaunched') return;
   const worktree = worktreeOf(context.workspace, job);
   const git = context.platformPorts.executableResolver.absolutePathOf('git', [projectLocationOfContext(context).repositoryRoot]);
   if (git.verdict === 'refused') {
@@ -2445,7 +2446,7 @@ function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: 
     return;
   }
   const gitVariables = { ...GitArgumentsUtil.environmentOf(PORTABLE_GIT_SETTINGS), GIT_CEILING_DIRECTORIES: GitWorktrees.ceilingOf(worktree) };
-  const launched = launchProcessWatcher(context, trackerId, job, files.watcherFolder, {
+  const launched = await launchProcessWatcher(context, trackerId, job, files.watcherFolder, {
     workingDirectory: worktree,
     argv:             MergeRun.targetMergeCommandOf(git.path, record.mergedTip),
     environment:      context.platformPorts.launchEnvironment.launchEnvironmentOf(context.inheritedEnvironment, gitVariables),
@@ -2458,7 +2459,7 @@ function launchMergeIntoTree(context: JobLaunchContext, trackerId: string, job: 
 }
 
 /** After the hold: what a prepared review job's catch-up asks of git and the Watchers, read afresh like a gate step. */
-function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+async function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
   if (job.kind !== REVIEW_JOB_KIND || setupProgressOf(context, job, installStepsOf(pipeline, job)) !== 'installed') return;
   const catchUp = targetCatchUpOf(context, job, pipeline);
   const jobFolder = jobFolderOf(context.workspace, job);
@@ -2467,21 +2468,21 @@ function runTargetCatchUpEffects(context: JobLaunchContext, trackerId: string, j
     const record: TargetMergeRecord = { startTip: catchUp.branchTip, mergedTip: catchUp.targetTip };
     mkdirSync(jobFolder, { recursive: true });
     writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
-    launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
+    await launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
     return;
   }
   const record = readJsonFile<TargetMergeRecord>(recordPath);
   if (record === null) return;
-  if (catchUp.verdict === 'merging') launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
+  if (catchUp.verdict === 'merging') await launchMergeIntoTree(context, trackerId, job, TARGET_CATCH_UP_MERGE, record);
   if (catchUp.verdict === 'merge-ended') writeMergeSettlement(context, job, TARGET_CATCH_UP_MERGE, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
-  if (catchUp.verdict === 'gating') spawnGateRunStep(context, trackerId, job, { place: TARGET_GATE_RUN, pipeline, stepIndex: catchUp.stepIndex });
+  if (catchUp.verdict === 'gating') await spawnGateRunStep(context, trackerId, job, { place: TARGET_GATE_RUN, pipeline, stepIndex: catchUp.stepIndex });
 }
 
 /**
  * After the hold: what a round of `merging-main` asks of git and the Watchers, read afresh. Nothing merges while a conflict re-reviewer
  * works in the worktree: a target that moved meanwhile is merged once it ended.
  */
-function runMainMergeEffects(context: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+async function runMainMergeEffects(context: JobLaunchContext, board: Board, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
   if (conflictReReviewerOf(board.jobs(), job) !== undefined) return;
   const round = job.watcherInstance;
   const step = mainMergeStepOf(context, job, pipeline);
@@ -2491,13 +2492,13 @@ function runMainMergeEffects(context: JobLaunchContext, board: Board, trackerId:
     const record: TargetMergeRecord = { startTip: step.branchTip, mergedTip: step.targetTip };
     mkdirSync(dirname(recordPath), { recursive: true });
     writeFileAtomically(recordPath, `${JSON.stringify(record)}\n`);
-    launchMergeIntoTree(context, trackerId, job, files, record);
+    await launchMergeIntoTree(context, trackerId, job, files, record);
     return;
   }
   const record = readJsonFile<TargetMergeRecord>(recordPath);
-  if (step.verdict === 'merging' && record !== null) launchMergeIntoTree(context, trackerId, job, files, record);
+  if (step.verdict === 'merging' && record !== null) await launchMergeIntoTree(context, trackerId, job, files, record);
   if (step.verdict === 'merge-ended' && record !== null) writeMergeSettlement(context, job, files, MergeRun.settleTargetMerge(worktreeOf(context.workspace, job), record));
-  if (step.verdict === 'gating') spawnGateRunStep(context, trackerId, job, { place: mainMergeGateRunOf(job, round), pipeline, stepIndex: step.stepIndex });
+  if (step.verdict === 'gating') await spawnGateRunStep(context, trackerId, job, { place: mainMergeGateRunOf(job, round), pipeline, stepIndex: step.stepIndex });
 }
 
 /** A checkout dirty before anyone touched it is a repository whose stored files `.gitattributes` would convert; its paths stop the install. */
@@ -2604,32 +2605,43 @@ function prepareWorktree(context: JobLaunchContext, job: Readonly<Job>, jobFolde
 
 /** What a build job's frames are worded and filed with. */
 export interface BuildJobFrameRequest {
-  platformPorts:    PlatformPorts;
+  boardChildren:    BoardChildren;
   trackerDirectory: string;
   agentAdapter:     Pick<AgentAdapter, 'chatLineOf'>;
   windDownMessage:  string;
 }
 
-async function sendOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marker: string, frames: Parameters<typeof WatcherFleet.sendFrames>[3]): Promise<void> {
-  const jobFolder = WatcherFleet.jobFolderOf(request.trackerDirectory, job.id);
-  await WatcherFleet.sendFramesOnce(request.platformPorts, join(jobFolder, marker), jobFolder, job.watcherInstance, frames);
+async function sendOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marker: string, inputs: readonly ChildInput[]): Promise<void> {
+  const jobFolder = request.boardChildren.jobFolderOf(job.id);
+  await request.boardChildren.sendInputOnce(join(jobFolder, marker), jobFolder, job.watcherInstance, inputs);
+}
+
+/** The stop goes to a live session once: its marker is written only after the stop was taken, so a refused stop is tried again. */
+async function stopOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marker: string): Promise<void> {
+  const { boardChildren } = request;
+  const jobFolder = boardChildren.jobFolderOf(job.id);
+  const markerPath = join(jobFolder, marker);
+  if (existsSync(markerPath) || boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') return;
+  if (!await boardChildren.stop(jobFolder, job.watcherInstance, SESSION_STOP_GRACE_MILLISECONDS)) return;
+  mkdirSync(dirname(markerPath), { recursive: true });
+  writeFileSync(markerPath, '');
 }
 
 /** What a build job's state asks of its live Watcher, each frame once: the wind-down turn over its call budget, closed input, a stop. */
 async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonly<Job>, calls: number): Promise<void> {
   const markerOf = (marker: string): string => instanceMarkerOf(marker, job.watcherInstance);
   if (job.state === 'running' && calls >= attemptCallBudgetOf(request.trackerDirectory, job)) {
-    await sendOnce(request, job, markerOf(JOB_FILES.windDownSent), [{ kind: 'write', line: request.agentAdapter.chatLineOf(request.windDownMessage) }]);
+    await sendOnce(request, job, markerOf(JOB_FILES.windDownSent), [{ act: 'write-line', line: request.agentAdapter.chatLineOf(request.windDownMessage) }]);
   }
-  if (job.state === 'in-customs' || job.state === 'gating') await sendOnce(request, job, markerOf(JOB_FILES.inputClosed), [{ kind: 'close-input' }]);
-  if (job.state === 'stopping') await sendOnce(request, job, markerOf(JOB_FILES.stopSent), [{ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS }]);
+  if (job.state === 'in-customs' || job.state === 'gating') await sendOnce(request, job, markerOf(JOB_FILES.inputClosed), [{ act: 'close' }]);
+  if (job.state === 'stopping') await stopOnce(request, job, markerOf(JOB_FILES.stopSent));
 }
 
 /** After the hold and the Baton check: what each build job's new state asks of git and the Watchers. */
 async function runBuildJobEffects(context: JobLaunchContext, board: Board, trackerId: string, observations: readonly BuildJobObservation[]): Promise<void> {
   const pipeline = board.pipeline();
   const frameRequest: BuildJobFrameRequest = {
-    platformPorts: context.platformPorts, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
+    boardChildren: context.boardChildren, trackerDirectory: context.workspace.trackerDirectory, agentAdapter: context.agentAdapter, windDownMessage: context.windDownMessage,
   };
   for (const job of board.jobs().filter(isWorktreeJob)) {
     if (job.state === 'preparing') {
@@ -2637,13 +2649,13 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
       startAfreshInTheNewEntity(context, board, job, jobFolder);
       const worktreeIsReady = prepareWorktree(context, job, jobFolder);
       const unnormalised = existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised));
-      if (worktreeIsReady && !unnormalised && pipeline !== null) spawnNextInstallStep(context, trackerId, job, pipeline);
-      if (worktreeIsReady && !unnormalised && pipeline !== null) runTargetCatchUpEffects(context, trackerId, job, pipeline);
+      if (worktreeIsReady && !unnormalised && pipeline !== null) await spawnNextInstallStep(context, trackerId, job, pipeline);
+      if (worktreeIsReady && !unnormalised && pipeline !== null) await runTargetCatchUpEffects(context, trackerId, job, pipeline);
     }
     const observation = observations.find((candidate) => candidate.jobId === job.id);
     await deliverBuildJobFrames(frameRequest, job, observation?.calls ?? 0);
-    if (job.state === 'gating' && pipeline !== null) spawnNextGateStep(context, trackerId, job, pipeline);
-    if (job.state === 'merging-main' && pipeline !== null) runMainMergeEffects(context, board, trackerId, job, pipeline);
+    if (job.state === 'gating' && pipeline !== null) await spawnNextGateStep(context, trackerId, job, pipeline);
+    if (job.state === 'merging-main' && pipeline !== null) await runMainMergeEffects(context, board, trackerId, job, pipeline);
     const reReviewer = conflictReReviewerOf(board.jobs(), job);
     if (reReviewer !== undefined) await deliverBuildJobFrames(frameRequest, reReviewer, observation?.conflictReReview?.calls ?? 0);
   }
@@ -2653,16 +2665,16 @@ async function runBuildJobEffects(context: JobLaunchContext, board: Board, track
  * Spawns the first prepare step whose Watcher was never claimed, once every step before it exited 0; a running or failed step spawns none.
  * A job of an entity installs with its entity's prepare steps.
  */
-function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+async function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
   const jobFolder = jobFolderOf(context.workspace, job);
   const stepsPipeline = stepsPipelineOf(pipeline, job);
   if (stepsPipeline === null) return;
   const confinement = GateRun.prepareConfinementOf(stepsPipeline.gates);
   for (const [stepIndex, step] of stepsPipeline.prepare.entries()) {
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
-    const liveness = WatcherFleet.livenessOf(context.platformPorts, join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
-    if (liveness.verdict === 'unclaimed') {
-      spawnProcessWatcher(context, trackerId, job, pipeline, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
+    const liveness = context.boardChildren.livenessOf(join(jobFolder, folderName), PROCESS_WATCHER_INSTANCE);
+    if (liveness.verdict === 'unlaunched') {
+      await spawnProcessWatcher(context, trackerId, job, pipeline, folderName, { line: step.run, confinement, subfolder: step.in ?? null });
       return;
     }
     if (liveness.verdict !== 'ended' || !stepPassed(context, liveness.end, jobFolder, folderName)) return;
@@ -2670,19 +2682,21 @@ function spawnNextInstallStep(context: JobLaunchContext, trackerId: string, job:
 }
 
 /** Read afresh, since the hold may have moved the job into gating this pass; a gate waits for a free slot of the machine, a prepare step never. */
-function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): void {
+async function spawnNextGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
   const progress = gateProgressOf(context, job, pipeline);
-  if (progress.verdict === 'running') spawnGateRunStep(context, trackerId, job, { place: ownGateRunOf(job), pipeline, stepIndex: progress.stepIndex });
+  if (progress.verdict === 'running') await spawnGateRunStep(context, trackerId, job, { place: ownGateRunOf(job), pipeline, stepIndex: progress.stepIndex });
 }
 
 /** The step at `stepIndex` of the run's manifest, never of the pipeline now, so a reorder since the run started spawns no other gate. */
-function spawnGateRunStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }): void {
+async function spawnGateRunStep(
+  context: JobLaunchContext, trackerId: string, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }
+): Promise<void> {
   const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
   const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place)[run.stepIndex];
-  if (step !== undefined) spawnGateStep(context, trackerId, job, run.pipeline, step);
+  if (step !== undefined) await spawnGateStep(context, trackerId, job, run.pipeline, step);
 }
 
-function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>, step: GateStep): void {
+async function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readonly<Job>, pipeline: Readonly<Pipeline>, step: GateStep): Promise<void> {
   const jobFolder = jobFolderOf(context.workspace, job);
   const watcherFolder = join(jobFolder, step.folder);
   const reportFile = stepReportFileOf(jobFolder, step);
@@ -2690,20 +2704,20 @@ function spawnGateStep(context: JobLaunchContext, trackerId: string, job: Readon
     line: step.line, confinement: step.confinement, subfolder: step.in, ...(reportFile === null ? {} : { reportFile })
   };
   if (step.kind !== 'gate') {
-    spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
+    await spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
     return;
   }
   if (!context.gateSlots.tryAcquire(watcherFolder)) return;
   let spawn: ProcessWatcherSpawn;
   try {
-    spawn = spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
+    spawn = await spawnProcessWatcher(context, trackerId, job, pipeline, step.folder, processWatcherStep);
   } catch (error) {
     context.gateSlots.release(watcherFolder);
     throw error;
   }
   if (spawn.verdict === 'refused') context.gateSlots.release(watcherFolder);
   if (spawn.verdict === 'spawned') {
-    context.gateSlots.recordSpawnedProcess(watcherFolder, spawn.processId === undefined ? null : context.platformPorts.processSupervision.identityOf(spawn.processId));
+    context.gateSlots.recordSpawnedProcess(watcherFolder, spawn.supervisor);
   }
 }
 

@@ -7,7 +7,8 @@ import type { AgentSessionEvent }              from '../../src/lib/agent-launch/
 import type { EventLogEntry }                  from '../../src/lib/talos/EventLog.ts';
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { FIRST_WATCHER_INSTANCE }              from '../../src/lib/tracker-model/constants/JobStates.ts';
-import { WatcherFleet }                        from '../../src/services/overseer/WatcherFleet.ts';
+import { jobFolderIn }                         from '../../src/services/overseer/OverseerFiles.ts';
+import { createWatcherBoardChildren }          from '../../src/services/overseer/WatcherBoardChildren.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace, type Workspace }    from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                 from '../../src/shared/@types/ControlCommand.ts';
@@ -83,7 +84,7 @@ async function showJob(commandArguments: ArgumentParser, context: CommandContext
   const workspace = requireWorkspace(context.currentDirectory);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
   const { record } = jobRecordOf(workspace, jobId);
-  const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, jobId);
+  const jobFolder = jobFolderIn(workspace.trackerDirectory, jobId);
   const lines = [...Object.entries(record).map(([field, value]) => `${field}: ${typeof value === 'string' ? value : JSON.stringify(value)}`), `files: ${jobFolder}`];
   OutputUtil.printEntity(commandArguments, context, { job: record, jobFolder }, lines.join('\n'));
   return Promise.resolve();
@@ -120,12 +121,15 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   commandArguments.rejectExtraPositionals(2, SHOW_USAGE);
   const workspace = requireWorkspace(context.currentDirectory);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
-  const jobFolder = WatcherFleet.jobFolderOf(workspace.trackerDirectory, jobId);
+  const children  = createWatcherBoardChildren({
+    platformPorts: context.platformPorts, trackerDirectory: workspace.trackerDirectory, launching: null, log: () => undefined
+  });
+  const jobFolder = children.jobFolderOf(jobId);
   let { newestInstance } = jobRecordOf(workspace, jobId);
   if (commandArguments.flag('json')) {
     // A script reads one document, so --json replays without following.
     const lines = Array.from({ length: newestInstance }, (_unused, i) => i + 1).flatMap((instance) => {
-      const entries = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+      const entries = children.eventsAfter(jobFolder, instance, 0);
       return entries === 'malformed' ? [] : entryLinesOf(context.agentAdapter, instance, entries);
     });
     OutputUtil.printEntity(commandArguments, context, { jobId, lines }, lines.join('\n'));
@@ -133,7 +137,7 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   }
   let cursor = 0;
   const printNewEntries = (instance: number): void => {
-    const entries = WatcherFleet.eventsAfter(jobFolder, instance, instance === newestInstance ? cursor : 0);
+    const entries = children.eventsAfter(jobFolder, instance, instance === newestInstance ? cursor : 0);
     if (entries === 'malformed') return;
     for (const line of entryLinesOf(context.agentAdapter, instance, entries)) context.standardOutput(line);
     if (instance === newestInstance) cursor = entries.at(-1)?.sequence ?? cursor;

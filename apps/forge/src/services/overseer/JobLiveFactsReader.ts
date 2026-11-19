@@ -14,12 +14,12 @@ import { clientFrameOf }                        from '../../lib/watcher/WatcherF
 import type { TranscriptEntry, TranscriptRole } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot }                        from './AssistantBoot.ts';
 import { AssistantSession }                     from './AssistantSession.ts';
+import type { BoardChildren }                   from './BoardChildren.ts';
 import { ClaudeTranscripts }                    from './ClaudeTranscripts.ts';
 import { JobControlDelivery }                   from './JobControlDelivery.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { JobTranscript }                        from './JobTranscript.ts';
 import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
-import { WatcherFleet }                         from './WatcherFleet.ts';
 
 export interface LastToolCall {
   toolName:  string;
@@ -98,6 +98,7 @@ export interface JobLiveFacts {
 
 /** What every job's live facts are read through: its Watcher logs, the adapter that reads their lines, and the board's log and incidents. */
 export interface JobLiveFactsSource {
+  boardChildren:    BoardChildren;
   trackerDirectory: string;
   adapter:          Pick<AgentAdapter, 'eventsOf' | 'sentLineOf'>;
   board:            Pick<Board, 'logRecordsSoFar' | 'incidents'>;
@@ -223,11 +224,11 @@ function liveCountsOf(stampedEvents: readonly StampedEvents[]): JobLiveCounts {
 }
 
 /** Every line of every instance, one list per instance from the first; a malformed log contributes nothing rather than failing the state. */
-function entriesByInstanceOf(trackerDirectory: string, job: Readonly<Job>): (readonly EventLogEntry[])[] {
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+function entriesByInstanceOf(children: BoardChildren, job: Readonly<Job>): (readonly EventLogEntry[])[] {
+  const jobFolder = children.jobFolderOf(job.id);
   const entriesByInstance: (readonly EventLogEntry[])[] = [];
   for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
-    const read = WatcherFleet.eventsAfter(jobFolder, instance, 0);
+    const read = children.eventsAfter(jobFolder, instance, 0);
     entriesByInstance.push(read === 'malformed' ? [] : read);
   }
   return entriesByInstance;
@@ -251,7 +252,7 @@ function turnOf(source: JobLiveFactsSource, job: Readonly<Job>, newestInstanceEn
   if (job.role === null) return null;
   if (!AssistantBoot.isAssistantJob(job)) return turnOfEntries(newestInstanceEntries, source.adapter);
   if (newestInstanceEntries.length === 0) return null;
-  const reading = AssistantSession.readingOf(source.trackerDirectory, source.adapter, job);
+  const reading = AssistantSession.readingOf(source.boardChildren, source.adapter, job);
   return AssistantSession.assistantIsIdle(source.trackerDirectory, source.board, job, reading) ? 'between-turns' : 'mid-turn';
 }
 
@@ -263,7 +264,8 @@ function isLastLineEntry(entry: TranscriptEntry): boolean {
 /** Read as the transcript stream reads the session, so the line and its sender are the ones the session's chat shows. */
 function lastLineOf(source: JobLiveFactsSource, job: Readonly<Job>): SessionLastLine | null {
   if (!SESSION_JOB_KINDS.includes(job.kind)) return null;
-  const { entries } = JobTranscript.entriesAfter(WatcherFleet.jobFolderOf(source.trackerDirectory, job.id), job.watcherInstance, TRANSCRIPT_START, {
+  const { entries } = JobTranscript.entriesAfter(source.boardChildren.jobFolderOf(job.id), job.watcherInstance, TRANSCRIPT_START, {
+    eventsAfter:       source.boardChildren.eventsAfter,
     eventsOf:          (line) => source.adapter.eventsOf(line),
     sentLineOf:        (line) => source.adapter.sentLineOf(line),
     senderFactsOf:     () => JobTranscript.senderFactsOf(source.board.logRecordsSoFar(), source.trackerDirectory, job.id),
@@ -273,8 +275,8 @@ function lastLineOf(source: JobLiveFactsSource, job: Readonly<Job>): SessionLast
   return newest === undefined ? null : { role: newest.role === 'user' ? 'user' : 'assistant', text: newest.text, at: newest.at };
 }
 
-function watcherFactsOf(trackerDirectory: string, job: Readonly<Job>): WatcherFacts {
-  const record = WatcherFleet.watcherRecordOf(WatcherFleet.jobFolderOf(trackerDirectory, job.id), job.watcherInstance);
+function watcherFactsOf(children: BoardChildren, job: Readonly<Job>): WatcherFacts {
+  const record = LegacyWatcherReader.watcherRecordIn(children.jobFolderOf(job.id), job.watcherInstance);
   return { watcherProtocol: record?.protocolVersion ?? null, watchOnly: LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher' };
 }
 
@@ -297,7 +299,7 @@ function lostSubagentsOf(session: JobSession, tally: EventLogTally): SubagentLiv
 }
 
 function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: JobSession): JobLiveFacts {
-  const entriesByInstance = entriesByInstanceOf(source.trackerDirectory, job);
+  const entriesByInstance = entriesByInstanceOf(source.boardChildren, job);
   const stampedEvents = entriesByInstance.flat()
     .filter((entry) => entry.origin === 'agent')
     .map((entry) => ({ at: entry.at ?? null, events: source.adapter.eventsOf(entry.line) }));
@@ -306,7 +308,7 @@ function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: Jo
     jobId:           job.id,
     callBudget:      BUDGETED_JOB_KINDS.includes(job.kind) ? JobLaunch.callBudgetOf(job) : null,
     ...withTranscriptSubagents(tally.counts, lostSubagentsOf(session, tally)),
-    ...watcherFactsOf(source.trackerDirectory, job),
+    ...watcherFactsOf(source.boardChildren, job),
     turn:            turnOf(source, job, entriesByInstance.at(-1) ?? []),
     messagesWaiting: JobControlDelivery.unsentMessageCountOf(source.board, source.trackerDirectory, job),
     lastLine:        lastLineOf(source, job),

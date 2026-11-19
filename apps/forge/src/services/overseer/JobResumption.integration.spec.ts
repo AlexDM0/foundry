@@ -20,9 +20,11 @@ import type { Job }                                       from '../../lib/tracke
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import type { BoardChildren }                             from './BoardChildren.ts';
 import { JobResumption }                                  from './JobResumption.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
 import { PlantedWatcher }                                 from './testing/PlantedWatcher.ts';
 
 const AT = '2026-09-18T22:11:03+02:00';
@@ -60,6 +62,11 @@ function ended(jobId: string, outcome: 'replaced' | 'failed' | 'built' | 'does-n
   return {
     at: AT, kind: 'job-ended', jobId, fields: { outcome, deniedPermissions: [] }
   };
+}
+
+/** The tracker's children as the Overseer reads them, by the job folders of the tracker the case made. */
+function childrenOfTheTracker(trackerDirectory: string): BoardChildren {
+  return watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory);
 }
 
 describe('the launch of a job\'s current instance', () => {
@@ -104,15 +111,15 @@ describe('the first message of a fresh instance', () => {
     const jobs       = { jobs: (): readonly Readonly<Job>[] => [job] };
     const adapter    = { chatLineOf: (message: string): string => `chat:${message}` };
     const socketPath = plantedLiveWatcher(job);
-    const jobFolder  = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+    const jobFolder  = jobFolderIn(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 1, 'Example task');
 
-    await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
+    await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
     expect(existsSync(join(jobFolder, 'first-message-1.sent'))).toBe(false);
 
     const received = await PlantedWatcher.framesReceivedWhile(socketPath, async () => {
-      await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
-      await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, jobs, adapter);
+      await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
+      await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
     });
     const writes = received.filter((line) => line.includes('"write"'));
     expect(writes).toEqual([JSON.stringify({ kind: 'write', line: 'chat:Example task' })]);
@@ -122,9 +129,9 @@ describe('the first message of a fresh instance', () => {
   test('a resumed instance is never sent a stored first message', async () => {
     const job = buildJob({ watcherInstance: 2 });
     plantedLiveWatcher(job);
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, job.id);
+    const jobFolder = jobFolderIn(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 2, 'Example task');
-    await JobResumption.deliverFirstMessages(nativePlatformPorts(), trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
+    await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
     expect(existsSync(join(jobFolder, 'first-message-2.sent'))).toBe(false);
   });
 });
@@ -251,7 +258,7 @@ describe('a red handoff\'s resume', () => {
   });
 
   function writeRedFacts(jobId: string): void {
-    const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, jobId);
+    const jobFolder = jobFolderIn(trackerDirectory, jobId);
     mkdirSync(jobFolder, { recursive: true });
     RedHandoff.writeRedHandoff(jobFolder, {
       kind:                'gate',

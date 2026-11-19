@@ -13,6 +13,7 @@ import {
 } from 'bun:test';
 
 
+import { jobFolderIn }                                                       from '../services/overseer/OverseerFiles.ts';
 import { WatcherFleet }                                                      from '../services/overseer/WatcherFleet.ts';
 import { FAKE_WATCHER_BUNDLE_PATH }                                          from './DrivePassHarness.ts';
 import { nativePlatformPorts }                                               from './NativePlatformPorts.ts';
@@ -54,7 +55,7 @@ function stagesWith(answers?: ReadonlyMap<string, unknown>): ControlledRecordedW
 
 function spawnProcessWatcher({ stages }: ControlledRecordedWatcherStages, line: string): string {
   lastGateNumber += 1;
-  const watcherFolder = join(WatcherFleet.jobFolderOf(trackerDirectory, 'J-1'), `gate-${lastGateNumber}`);
+  const watcherFolder = join(jobFolderIn(trackerDirectory, 'J-1'), `gate-${lastGateNumber}`);
   WatcherFleet.writeProcessLaunchFile(stages.ports, {
     watcherFolder,
     instance:           1,

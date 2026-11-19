@@ -16,7 +16,7 @@ import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/Re
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
-import { WatcherFleet }                                   from './WatcherFleet.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const AT = '2026-10-30T10:00:00+01:00';
 const MAIN_LINE = 'main';
@@ -76,7 +76,7 @@ async function launchInto(target: string, stageOf: (rootDirectory: string) => Re
 
   await recordedGit.playStage(stageOf(rootDirectory), () => JobLaunch.runBuildJobEffects(context, board, 'example-tracker', []));
 
-  const failureFile = join(WatcherFleet.jobFolderOf(trackerDirectory, job.id), 'worktree-failure.txt');
+  const failureFile = join(jobFolderIn(trackerDirectory, job.id), 'worktree-failure.txt');
   return existsSync(failureFile) ? readFileSync(failureFile, 'utf8') : null;
 }
 

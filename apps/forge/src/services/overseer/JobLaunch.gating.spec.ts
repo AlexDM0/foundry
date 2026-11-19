@@ -45,10 +45,11 @@ import {
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
+import { watcherChildReadingsWith }                               from '../../testing/WatcherChildReadings.ts';
 import { GateRun }                                                from '../lifecycle/GateRun.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
 import { type GateRunManifest, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { WatcherFleet }                                           from './WatcherFleet.ts';
+import { jobFolderIn }                                            from './OverseerFiles.ts';
 
 const PIPELINE: Pipeline = {
   version: 3,
@@ -86,12 +87,16 @@ function gatingScene(): GatingScene {
   folders.push(rootDirectory);
   mkdirSync(join(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, 'ticket-001'), { recursive: true });
   const trackerDirectory = join(rootDirectory, '.example-tracker');
-  const jobFolder = WatcherFleet.jobFolderOf(trackerDirectory, 'J2');
+  const jobFolder = jobFolderIn(trackerDirectory, 'J2');
   mkdirSync(jobFolder, { recursive: true });
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify({ startCommit: START_COMMIT }));
   const platformPorts = nativePlatformPorts();
   const context = {
-    platformPorts, workspace: { rootDirectory, trackerDirectory }, agentAdapter: { eventsOf: () => [] }, branchNames: branchNamesOf(null)
+    platformPorts,
+    boardChildren: watcherChildReadingsWith(platformPorts, trackerDirectory),
+    workspace:     { rootDirectory, trackerDirectory },
+    agentAdapter:  { eventsOf: () => [] },
+    branchNames:   branchNamesOf(null),
   } as unknown as JobLaunchContext;
   const jobOf = (kind: 'build' | 'review'): Job => ({
     id: 'J2', kind, state: 'gating', ticketIds: ['001'], watcherInstance: 1
@@ -111,7 +116,7 @@ testWhenGitIsRecorded('a review that left the tree it was given runs no gate and
 
 testWhenGitIsRecorded('a review that left the tree it was given waits on the first gate once its hold marked the green not current', async () => {
   const scene = gatingScene();
-  writeFileSync(join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), 'regate-required'), 'example-tree\n');
+  writeFileSync(join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), 'regate-required'), 'example-tree\n');
 
   expect(await gateOf(scene, 'review', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 });
@@ -130,7 +135,7 @@ const TWO_PREPARE_STEPS: Pipeline = { ...PIPELINE, prepare: [{ name: 'install', 
 
 /** The process Watcher of one step folder, ended with the given exit code, as the Watcher records it. */
 function endStepWatcher(scene: GatingScene, folderName: string, exitCode: number): void {
-  const watcherFolder = join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), folderName);
+  const watcherFolder = join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), folderName);
   mkdirSync(watcherFolder, { recursive: true });
   writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
     protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
@@ -225,7 +230,7 @@ testWhenGitIsRecorded('a phase with no gates passes at once and runs no prepare 
 });
 
 function jobFileOf(scene: GatingScene, fileName: string): string {
-  return join(WatcherFleet.jobFolderOf(scene.context.workspace.trackerDirectory, 'J2'), fileName);
+  return join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), fileName);
 }
 
 function gateNamesOf(progress: unknown): string[] | undefined {
