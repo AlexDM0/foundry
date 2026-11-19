@@ -5,6 +5,7 @@
  */
 import type { BoardSummaryDocument } from 'forge-contracts/BoardSummaryDocument';
 
+import type { FullStatusDocument }                                                            from '../../adapters/@types/StatusDocument.ts';
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
 import type { Decision }                                                                      from '../../lib/tracker-model/@types/Decision.ts';
@@ -136,7 +137,7 @@ export type JobWithLiveFacts = Readonly<Job> & {
 
 export interface BoardStateReading {
   /** The `status --json --full` document, built by the command surface from the same Board. */
-  statusDocument:     object;
+  statusDocument:     FullStatusDocument;
   board:              Board;
   progress:           TrackerProgress;
   tickets:            readonly Ticket[];
@@ -167,26 +168,25 @@ export interface PipelineSources {
   mainLineTexts:        MainLineTexts;
 }
 
-export interface BoardState extends PipelineFacts {
-  [statusField: string]: unknown;
-  page:                  AssembledPagePayload;
-  jobs:                  JobWithLiveFacts[];
-  decisions:             Decision[];
-  incidents:             Incident[];
-  notices:               unknown[];
-  mergeQueue:            MergeQueueFacts;
-  overseer:              OverseerFacts;
-  usage:                 UsageFacts;
+export interface BoardState extends Omit<FullStatusDocument, 'jobs' | 'decisions' | 'incidents'>, PipelineFacts {
+  page:            AssembledPagePayload;
+  jobs:            JobWithLiveFacts[];
+  decisions:       Decision[];
+  incidents:       Incident[];
+  notices:         unknown[];
+  mergeQueue:      MergeQueueFacts;
+  overseer:        OverseerFacts;
+  usage:           UsageFacts;
   /** What an open decision or incident leaves behind once it is settled, and the sessions the Bridge shows after they end: see `questionHistoryOf`. */
-  questionHistory:       LogRecord[];
+  questionHistory: LogRecord[];
   /** The newest jobs that left the board, oldest first, so a job launched and ended between two states still reaches the stream as `ended`. */
-  endedJobs:             EndedJob[];
+  endedJobs:       EndedJob[];
   /** Each open ticket's steps to its landing and the tickets waiting on it; never in `status --json`. */
-  ticketForecasts:       TicketForecast[];
+  ticketForecasts: TicketForecast[];
   /** The jobs `concurrency.agentsInFlight` counts, and the in-progress tickets no job works on; never in `status --json`. */
-  launchSlots:           LaunchSlots;
+  launchSlots:     LaunchSlots;
   /** `null` when the agent adapter cannot send a session pictures. */
-  pictureLimits:         PictureLimits | null;
+  pictureLimits:   PictureLimits | null;
 }
 
 export interface EndedJob {
@@ -389,7 +389,7 @@ function summaryOf(state: BoardState, project: string, readyTicketIds: readonly 
     summaryVersion:      SERVED_CONTRACT_VERSIONS.summary,
     project,
     overseer:            { state: state.overseer.state, paused: state.overseer.paused, url: state.overseer.url },
-    ticketCountByStatus: state['ticketCountByStatus'],
+    ticketCountByStatus: state.ticketCountByStatus,
     readyTicketIds:      [...readyTicketIds],
     jobs:                state.jobs.map((job) => ({
       id: job.id, kind: job.kind, ticketIds: [...job.ticketIds], state: job.state, role: job.role, tokens: job.live.tokens

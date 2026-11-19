@@ -3,8 +3,8 @@
  * left out; `--full` is the whole progress file plus the tickets. Both documents are the agent's contract, and both carry the concurrency block.
  * A forge off after a crash adds one notice on standard error and leaves standard output as it was; a stopped forge adds none.
  */
-import { writeFileSync } from 'node:fs';
-import { join }          from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join }                        from 'node:path';
 
 import {
   afterEach,
@@ -12,6 +12,7 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
+import type { FullStatusDocument }                         from '../../../src/adapters/@types/StatusDocument.ts';
 import type { ConfinementVerdict }                         from '../../../src/lib/gate-confinement/GateConfinement.ts';
 import type { TicketFrontmatter }                          from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import type { PresenceEndingToWrite }                      from '../../../src/services/overseer/@types/PresenceRecord.ts';
@@ -173,6 +174,79 @@ describeWhenGitIsRecorded('the --json --full document', () => {
 
     expect(document.tasks).toHaveLength(2);
     expect(document.log.length).toBeGreaterThan(12);
+  });
+});
+
+describeWhenGitIsRecorded('the keys of the --json --full document', () => {
+  /**
+   * The keys `status --json --full` printed on this file's scratch board with every optional progress key planted; the record's type makes
+   * the compiler hold it equal to the keys `FullStatusDocument` names. Retake it from `Object.keys` of the document the test below reads.
+   */
+  const FULL_STATUS_DOCUMENT_KEYS: Record<keyof FullStatusDocument, true> = {
+    version:                true,
+    trackerId:              true,
+    project:                true,
+    startedAt:              true,
+    view:                   true,
+    nextTaskId:             true,
+    concurrencyLimit:       true,
+    tasks:                  true,
+    log:                    true,
+    overseerState:          true,
+    nextDraftId:            true,
+    nextSetupId:            true,
+    nextJobId:              true,
+    jobs:                   true,
+    nextDecisionId:         true,
+    decisions:              true,
+    nextIncidentId:         true,
+    incidents:              true,
+    overseerFirstStartedAt: true,
+    branchNamespace:        true,
+    needs:                  true,
+    tickets:                true,
+    epics:                  true,
+    drafts:                 true,
+    concurrency:            true,
+    readyTickets:           true,
+    reviewWaitingTickets:   true,
+    pausedBuilds:           true,
+    ticketRows:             true,
+    tokensByOwner:          true,
+    ticketCountByStatus:    true,
+    confinement:            true,
+    confinementSource:      true,
+    pipelineIsSet:          true,
+  };
+
+  /** The keys `progress.json` holds only once set, each planted with a value a board could hold. */
+  const OPTIONAL_PROGRESS_KEYS = {
+    overseerState:          'paused',
+    nextDraftId:            1,
+    nextSetupId:            1,
+    nextJobId:              1,
+    jobs:                   [],
+    nextDecisionId:         1,
+    decisions:              [],
+    nextIncidentId:         1,
+    incidents:              [],
+    overseerFirstStartedAt: FROZEN_NOW.toISOString(),
+    branchNamespace:        'example',
+    needs:                  [],
+  };
+
+  function plantEveryOptionalProgressKey(): void {
+    const progressPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+    const stored       = JSON.parse(readFileSync(progressPath, 'utf8')) as Record<string, unknown>;
+    writeFileSync(progressPath, `${JSON.stringify({ ...stored, ...OPTIONAL_PROGRESS_KEYS }, null, 2)}\n`);
+  }
+
+  test('are the keys FullStatusDocument names, both ways', async () => {
+    plantEveryOptionalProgressKey();
+
+    const document = JSON.parse((await run(['status', '--json', '--full'])).outputText()) as Record<string, unknown>;
+
+    expect(Object.keys(document).sort()).toEqual(Object.keys(FULL_STATUS_DOCUMENT_KEYS).sort());
   });
 });
 

@@ -1,28 +1,28 @@
 /** The two `status --json` documents: the working view an agent opens a session with, and the full one `--full` prints. */
-import { ProgressFileMappingUtil } from '../src/adapters/progress/utils/ProgressFileMappingUtil.ts';
-import { StatusDocumentUtil }      from '../src/adapters/utils/StatusDocumentUtil.ts';
-import { TicketJsonUtil }          from '../src/adapters/utils/TicketJsonUtil.ts';
-import type { ConfinementVerdict } from '../src/lib/gate-confinement/GateConfinement.ts';
-import type { Task }               from '../src/lib/tracker-model/@types/Task.ts';
-import type { ReadyTicket }        from '../src/lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }    from '../src/lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }              from '../src/lib/tracker-model/Board.ts';
-import type { WordedLogEntry }     from '../src/shared/@types/WordedLogEntry.ts';
-import { ownerTokenTotalsOf }      from './OwnerTokenTotals.ts';
+import type { ConfinementSource, FullStatusDocument } from '../src/adapters/@types/StatusDocument.ts';
+import { ProgressFileMappingUtil }                    from '../src/adapters/progress/utils/ProgressFileMappingUtil.ts';
+import { StatusDocumentUtil }                         from '../src/adapters/utils/StatusDocumentUtil.ts';
+import { TicketJsonUtil }                             from '../src/adapters/utils/TicketJsonUtil.ts';
+import type { ConfinementVerdict }                    from '../src/lib/gate-confinement/GateConfinement.ts';
+import type { Task }                                  from '../src/lib/tracker-model/@types/Task.ts';
+import type { TrackerProgress }                       from '../src/lib/tracker-model/@types/TrackerProgress.ts';
+import type { Board }                                 from '../src/lib/tracker-model/Board.ts';
+import type { WordedLogEntry }                        from '../src/shared/@types/WordedLogEntry.ts';
+import { ownerTokenTotalsOf }                         from './OwnerTokenTotals.ts';
 
 const WORKING_VIEW_LOG_ENTRY_COUNT = 10;
 
 /** The confinement word and whose probe gave it: the live Overseer's, or this process's own when none answers. */
 export interface ConfinementInForce {
   confinement:       ConfinementVerdict;
-  confinementSource: 'overseer' | 'this-process';
+  confinementSource: ConfinementSource;
 }
 
 /**
  * The stored run id rides in `concurrency` beside the state it belongs to, so the orchestrator finds the run to resume where it reads the
  * state, and the ids in flight end the block; `readyTickets` is read from the Board's ready tickets, as `readyTicketIds` is.
  */
-function derivedDocumentOf(board: Board): { concurrency: object; readyTickets: ReadyTicket[] } {
+function derivedDocumentOf(board: Board): Pick<FullStatusDocument, 'concurrency' | 'readyTickets'> {
   return {
     concurrency:  { ...board.dispatchCapacity(), ...StatusDocumentUtil.inProgressIdsOf(board) },
     readyTickets: board.readyTicketEntries(),
@@ -45,7 +45,7 @@ export function fullDocumentOf(
   showsTicketsOnly: boolean,
   confinementInForce: ConfinementInForce,
   pipelineIsSet: boolean,
-): object {
+): FullStatusDocument {
   const progressDocument = ProgressFileMappingUtil.wordedDocumentOf(progress, wordedLog);
   return {
     ...(showsTicketsOnly ? { ...progressDocument, tasks: selectedTasksOf(board, true) } : progressDocument),

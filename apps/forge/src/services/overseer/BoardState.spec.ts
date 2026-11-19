@@ -17,6 +17,7 @@ import {
   test
 } from 'bun:test';
 
+import type { FullStatusDocument }                                from '../../adapters/@types/StatusDocument.ts';
 import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { MergeTargetOf }                                     from '../../lib/tracker-model/AirlockClaims.ts';
@@ -38,6 +39,9 @@ import { MainLineReads }  from './MainLineReads.ts';
 import { liveJobFixture } from './testing/LiveJobFixture.ts';
 
 const recordedGit = useRecordedGit();
+
+/** The assembly spreads the status document untouched, and no case here reads a field of it. */
+const UNREAD_STATUS_DOCUMENT = {} as FullStatusDocument;
 
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v1.json');
 
@@ -190,7 +194,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
       pipeline: EXAMPLE_PIPELINE,
     });
     return {
-      statusDocument: {},
+      statusDocument: UNREAD_STATUS_DOCUMENT,
       board,
       progress,
       tickets,
@@ -307,7 +311,7 @@ describeWhenGitIsRecorded('the main line texts of a state read', () => {
   function stateReadOf(reads: MainLineReads): BoardState {
     const { board, progress, tickets } = boardFixture({ pipeline: BRIEFED_PIPELINE });
     return BoardStateAssembly.boardStateOf({
-      statusDocument:     {},
+      statusDocument:     UNREAD_STATUS_DOCUMENT,
       board,
       progress,
       tickets,

@@ -1,4 +1,5 @@
 /** What `status` prints for a person: the counts, the rows table and the recent log. */
+import type { OwnerTokenTotals }                                 from '../../../src/adapters/@types/StatusDocument.ts';
 import { TokenCountUtil }                                        from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { Task, TaskStatus }                                 from '../../../src/lib/tracker-model/@types/Task.ts';
 import type { TicketStatus }                                     from '../../../src/lib/tracker-model/@types/Ticket.ts';
@@ -7,7 +8,6 @@ import type { Board }                                            from '../../../
 import { SETTLED_TASK_STATUSES, TASK_STATUSES, TICKET_STATUSES } from '../../../src/lib/tracker-model/constants/Statuses.ts';
 import type { WordedLogEntry }                                   from '../../../src/shared/@types/WordedLogEntry.ts';
 import { TIMESTAMP_SLICES }                                      from '../../../src/shared/constants/TimestampSlices.ts';
-import type { OwnerTokenTotals }                                 from '../../OwnerTokenTotals.ts';
 import { ownerTokenTotalsOf }                                    from '../../OwnerTokenTotals.ts';
 import { OutputUtil }                                            from '../../utils/OutputUtil.ts';
 
