@@ -32,8 +32,14 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 - WP2.8: with a real session, check that an agent mid-turn ends at its turn end after `close-input` within
   `cleanQuitWaitMilliseconds` (stage 2's verification, the clean quit row).
 
+- WP2.13, with a real session: a recognised outage interrupts the job `network-outage` and stops it; a clean quit
+  ends a running agent at its turn end and the next pass resumes it as `talos-paused`.
+- Gaia's recordings still show the old identity key `watcherProtocolVersion`; retake them with the WP2.11 retake above.
+
 ### Assumptions to confirm
 
+- WP2.13: a home path too long for Talos's socket now refuses the Overseer's start (`talosStartRefusalOf`,
+  `OverseerForeground.ts`); before, the Overseer started and launched no Watchers. Confirm this is the behaviour wanted.
 - WP2.12: an `already-done` answer counts as taken (`frameWasTaken`, `TalosChildren.ts:73-75`), resting on Talos
   answering it only to a repeated launch or a stop of a child already stopping or ended; a record that cannot be read,
   or reads `ended` with no `end`, is `lost`; before the first `beginPass` liveness is read fresh on every call.
@@ -78,6 +84,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- WP2.13: a launch that Talos answers `refused` is retried every pass like `talos-unavailable`, with a log line and no
+  notice, so a malformed launch would loop silently (`DrivePass` `launchAgentChild`, `JobLaunch`
+  `launchProcessWatcher`). No spec runs a refused start or proves the renewal starts before regrouping.
 - WP2.19 runs the merged-tree gate beside the pass. Changes a user may notice: in a stale-green re-gate the ticket
   stays merge-queued until the outcome settles (before, the mark was cleared first); the log lines name the worktree
   folder (`ticket-<id>`), not the ticket. It added one call by hand to the frozen fixture
@@ -109,7 +118,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | G1 | passed | 2026-11-18: recordings A and B. Still the owner's: the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
 | G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
-| G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's |
+| G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | waiting | Before and after stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
@@ -143,7 +152,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-G | WP2.12 | landed | 871396b3 | First round. `TalosChildren.ts`, test helper `src/testing/PlantedChild.ts` (`PlantedWatcher.ts` stays until WP2.15); `TalosStart.ts` exports `talosRecordAt` and `runningIdentityOf`. `talosLiveness` is optional (defaults to `recordedTalosLiveness`). Callers pass absolute child folders; the adapter makes them board-relative. With no connection a launch answers `talos-unavailable` and writes nothing. The plan's `environmentFromWatcher` maps to `environmentFromTalos` until WP2.16's rename |
 | 2-G | WP2.19 | landed | 3a3953b7 | First round. `MergedTreeGateRuns.ts`; `AirlocksContext.mergedTreeGateOf` (sync, answers a gate or `running`) plus `mergedTreeGateSettled`; `MergedTreeGateRunRequest.stamp` is `GateRunStamp \| null`; new `MERGED_TREE_GATE_RUNS_FOLDER`, `MERGED_TREE_GATE_OUTCOME_FILE`, `..._FORMAT_VERSION`, `mergedTreeGateStampOf`. For WP2.14: `stopAll` only marks stopping and awaits; the line processes are still stopped by `DrivePass.stop`'s `mergedTreeGateProcesses` loop, and WP2.14 item 6 builds on `stopAll` stopping them; nothing stops a gate's lines on a job stop or abort. One run per worktree at a time. Stage-file drift: `DrivePass.ts` gate context :1251-1274, pipeline read :1254-1257, regroup :1579-1588, stop :1590-1598 |
 | 2-G | Stale integration specs | landed | ffc996ee | Added by the orchestrator so G4's `verify:integration` can be green: three specs red since before the run, all stale specs, no product regression. `GitVersionFloor` stage order (`findWorkspace` asks the common dir first, since `1ea2d4a1`); the probes gain `--gpgconf-program` and `PlatformProbes` passes a stub (the trap since `01b3a424`); `OverseerCommand.integration` plants the bad event line in the job the board lists now (the Assistant is replaced each generation). `verify:integration`: 931 pass, 0 fail |
-| 2-H | WP2.13 | waiting | | |
+| 2-H | WP2.13 | landed | fdf751b4 | First check, after a network outage (03:41) cut the first builder; a second builder finished from its uncommitted work. Gate G4: `verify:integration` 913 pass, 0 fail (931 before: three specs became default frame-recording specs, `Talos.stages.integration` added 11). New refusal `talos-unavailable` (worded in `OperationRefusalWordingUtil.ts`); `ensureTalos` runs after the start record and the DrivePass exist, before the URL is given out and regrouping. A Talos lost while serving is found only when its connection closes. `AssistantSession.endDownAssistants` skips the held causes (WP2.11's gap closed). `talosProtocolVersion` hand-edited into the OverseerServer recording. Leaks met, left: `OverseerForeground.ts` uses `CLAUDE_MANAGED_BLOCK_MARKERS`; `JobLiveFactsReader.spec` imports `transcriptFolderFor` |
 | 2-I | WP2.14 | waiting | | |
 | 2-J | WP2.20 | waiting | | |
 | 2-K | WP2.15 | waiting | | |
