@@ -59,6 +59,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP2.30: a real `init`, then a Claude Code session prints the session instructions and loads `/forge-po`.
 
+- WP3.4: on a real Linux host, the process-supervision contract spec's boot-start check.
+
 ### Assumptions to confirm
 
 - WP2.32: the wording choices are assumptions 4, 5 and 9 of `stage-2-talos.md`'s 'Needs the owner' ("the option the
@@ -240,8 +242,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-L12 | WP2.32 | landed | aeca87d8 | Third round (night rule), built with WP2.17 on the owner's speed-up. The guard's `ALLOWED_AGENT_LINES` holds only the two `Permanent:` seam lines of `cli/CommandContext.ts`; Gaia's allowlist is empty: the owner's port rule is closed for shipping code. `INSTALL_VERSION` 38 (`productOwnerBashNetwork` renamed; a customised brief holding the old placeholder launches it unfilled); frozen install table and `InstallChangeWatch` retaken. Setup messages take fills through `COMMAND_CONTROL_CONTEXT`, from `agentAdapterOfThisProcess()`. Left: the core still calls a bundle a skill (`PRODUCT_OWNER_SKILL` and kin) |
 | 2-M | WP2.17 | landed | a91a9252 | Third round, with WP2.32. Rules and docs describe Talos; `RETIRED_NAMES` gained WP2.15's and WP2.16's names; `ALLOWED_RETIRED_NAMES` has one dated research entry; the terminal setup and init figures and `architecture.png` redrawn. Left: unused `typecheck:root`; `data-and-improvements.md:467`; the Watcher wording in `.readme-graphics/`; four `docs/figures/claude-probe/` PNGs drawn with the Watcher (the document says so) |
 | 2-N | WP2.18 | landed | 5ee91945 | First round. Recorded the missing boundaries (`PosixSocketEndpoint`, `UnsupportedLocalEndpoint`, `WindowsPipeEndpoint`, `GuardCommand`, `OverseerForeground`, `OverseerRemote`); retook every boundary earlier packages could not, all unchanged but start stamps (so those 'For tomorrow' retakes are closed). `ClaudeStreamFixtures.spec.ts` imports `createEndingRecognition` from Talos; `ImportDirection` now counts spec imports for unused lib dependencies, and claude-code declares talos. 18 boundaries have no darwin recording, the same 18 as on `main`. **Stage 2's verification:** its checker ran the end-to-end check on a scratch forge with the fake agent: steps 1-5 and 8-11 observed as the stage expects (step 1 has no renewal log line, none exists; step 2 had no install step and no review job), step 6 skipped (the classifier refused the throwaway protocol edit), step 7 waits on G1; `verify:integration` 852 pass, 0 fail |
-| 3-A | WP3.1 | waiting | | |
-| 3-A | WP3.4 | waiting | | |
+| 3-A | WP3.1 | landed | 82eec80e | First round. Causes `forge-stopped`, `forge-crashed` (not crash causes; also in the contract's `MONITOR_INTERRUPTION_CAUSES`); `ResumePolicy.ts` (`RESUME_POLICY_OF_CAUSE`, `WAITING_POLICIES`); records `start-classified`, `job-resume-instructed`. `StartKind`, `StartOrigin`, `START_KINDS`, `START_ORIGINS` live in the tracker model (`@types/Job.ts`, `JobStates.ts`): WP3.5 and WP3.6 import them. `Board.recordJobResumeInstructed` checks no interrupted state (WP3.2's `instructResume` builds on it). No system version raise (the stage's one raise comes later) |
+| 3-A | WP3.4 | landed | 2b4ed501 | First round. `ProcessSupervision.bootStartedAtEpochSeconds` (macOS `sysctl -n kern.boottime`, Linux `/proc/stat` `btime`, Windows and unsupported answer null: a crash suspected before a reboot is never judged on Windows). Frozen table gained a hand-written `bootStarts` section (its retake note says so). Linux never ran on a real `/proc/stat` |
 | 3-A | WP3.5 | waiting | | |
 | 3-B | WP3.2 | waiting | | |
 | 3-B | WP3.6 | waiting | | |
