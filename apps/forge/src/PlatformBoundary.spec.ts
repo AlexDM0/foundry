@@ -251,6 +251,7 @@ describe('the scan saw the tree', () => {
       'src/services/lifecycle/GateRun.ts',
       'src/services/overseer/GpgDirectories.ts',
       'src/services/overseer/InstallChangeWatch.ts',
+      'src/services/overseer/TalosStart.ts',
       'src/services/overseer/WatcherFleet.ts',
     ]);
   });

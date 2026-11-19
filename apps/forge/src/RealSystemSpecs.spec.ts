@@ -38,7 +38,7 @@ const BUN_MODULE = 'bun';
  */
 const NAMED_REAL_HELPER_EXPORTS = [
   'connectIsRefused',
-  'connectToTalos',
+  'connectProtocolClientToTalos',
   'connectToWatcher',
   'describeWhenGitMergeTreeStdinIsPresent',
   'installedVersionOf',

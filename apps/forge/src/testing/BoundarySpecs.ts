@@ -146,6 +146,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
     ],
   },
+  { boundary: 'src/services/overseer/TalosStart.ts', specs: ['src/services/overseer/TalosStart.integration.spec.ts'] },
+  { boundary: 'src/services/overseer/LeaseRenewal.ts', specs: ['src/services/overseer/LeaseRenewal.integration.spec.ts'] },
   { boundary: 'src/services/overseer/WatcherBundle.ts', specs: [WATCHER_BUNDLE_SPEC, 'src/testing/RecordedBunBuild.integration.spec.ts'] },
   { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.versionCheck.integration.spec.ts'] },
   { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },

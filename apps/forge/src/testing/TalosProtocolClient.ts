@@ -30,7 +30,7 @@ function connectOnce(endpoint: string): Promise<Socket | undefined> {
   });
 }
 
-export async function connectToTalos(endpoint: string): Promise<TalosProtocolClient> {
+export async function connectProtocolClientToTalos(endpoint: string): Promise<TalosProtocolClient> {
   const connected = await firstValueOf(() => connectOnce(endpoint), `a Talos listening on ${endpoint}`);
   const frames: TalosFrame[] = [];
   const consumed = new Set<TalosFrame>();

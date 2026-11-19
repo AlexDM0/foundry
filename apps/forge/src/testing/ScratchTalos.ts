@@ -28,10 +28,11 @@ import { inheritedEnvironment }                                    from './Inher
 import { nativePlatformPorts }                                     from './NativePlatformPorts.ts';
 import { stopProcessesReachingInto }                               from './ProcessesInFolder.ts';
 import { createScratchDirectory, removeScratchDirectory }          from './ScratchWorkspace.ts';
-import { type TalosProtocolClient, connectToTalos }                from './TalosProtocolClient.ts';
+import { type TalosProtocolClient, connectProtocolClientToTalos }  from './TalosProtocolClient.ts';
 import { firstValueOf }                                            from './WaitUntil.ts';
 
 const TALOS_BINARY_PATH = new URL('../../talos.ts', import.meta.url).pathname;
+const NEXT_PROTOCOL_PRELOAD_PATH = new URL('./TalosOfTheNextProtocolPreload.ts', import.meta.url).pathname;
 
 export const SCRATCH_TALOS_SECRET = 'example-secret';
 export const SCRATCH_TALOS_CODE_VERSION = 'code-example';
@@ -60,28 +61,32 @@ export interface ServingTalos {
 }
 
 export interface ScratchTalos {
-  readonly boardFolder:    string;
-  readonly endpointOf:     (startNumber: number) => string;
-  readonly writeStartFile: (startNumber: number, bounds?: Partial<TalosStartFile>) => void;
-  readonly spawnTalos:     (startNumber: number) => SpawnedTalos;
+  readonly boardFolder:                 string;
+  /** The monitor folder its endpoints are drawn under, short enough for every platform's limit. */
+  readonly monitorFolder:               string;
+  readonly endpointOf:                  (startNumber: number) => string;
+  readonly writeStartFile:              (startNumber: number, bounds?: Partial<TalosStartFile>) => void;
+  readonly spawnTalos:                  (startNumber: number) => SpawnedTalos;
+  /** A Talos serving the protocol version after this checkout's, as one started from another program on disk. */
+  readonly spawnTalosOfTheNextProtocol: (startNumber: number) => SpawnedTalos;
   /** Connected, with nothing sent. */
-  readonly connect:        (startNumber: number) => Promise<TalosProtocolClient>;
+  readonly connect:                     (startNumber: number) => Promise<TalosProtocolClient>;
   /** Connected, with a `hello` of the given protocol and the secret sent and its `welcome` received. */
-  readonly attach:         (startNumber: number) => Promise<TalosProtocolClient>;
+  readonly attach:                      (startNumber: number) => Promise<TalosProtocolClient>;
   /** Its start file written with the bounds given, Talos spawned and a client attached. */
-  readonly serve:          (startNumber: number, bounds?: Partial<TalosStartFile>) => Promise<ServingTalos>;
+  readonly serve:                       (startNumber: number, bounds?: Partial<TalosStartFile>) => Promise<ServingTalos>;
   /** A line launch of `bun -e <childScript>`, run in the board folder with the spec run's environment. */
-  readonly lineLaunch:     (childFolder: string, instance: number, childScript: string, changes?: Partial<ChildLaunch>) => ChildLaunch;
-  readonly talosRecordOf:  (startNumber: number) => TalosRecord | null;
-  readonly childRecordOf:  (childFolder: string, instance: number) => ChildRecord | null;
+  readonly lineLaunch:                  (childFolder: string, instance: number, childScript: string, changes?: Partial<ChildLaunch>) => ChildLaunch;
+  readonly talosRecordOf:               (startNumber: number) => TalosRecord | null;
+  readonly childRecordOf:               (childFolder: string, instance: number) => ChildRecord | null;
   /** The child's record once it reads `ended`, within the wait budget. */
-  readonly endedRecordOf:  (childFolder: string, instance: number) => Promise<ChildRecord>;
-  readonly eventsOf:       (childFolder: string, instance: number) => readonly EventLogEntry[];
-  readonly talosLogOf:     (startNumber: number) => string;
+  readonly endedRecordOf:               (childFolder: string, instance: number) => Promise<ChildRecord>;
+  readonly eventsOf:                    (childFolder: string, instance: number) => readonly EventLogEntry[];
+  readonly talosLogOf:                  (startNumber: number) => string;
   /** Talos's exit code within the wait budget; a Talos that does not exit fails the case with its log and record. */
-  readonly exitCodeOf:     (talos: SpawnedTalos, startNumber: number) => Promise<number>;
+  readonly exitCodeOf:                  (talos: SpawnedTalos, startNumber: number) => Promise<number>;
   /** Stops Talos and every child left in the board folder, then removes both folders. */
-  readonly remove:         () => Promise<void>;
+  readonly remove:                      () => Promise<void>;
 }
 
 function textOrAbsence(filePath: string): string {
@@ -100,7 +105,7 @@ export function createScratchTalos(): ScratchTalos {
     endpoints.set(startNumber, endpoint);
     return endpoint;
   };
-  const connect = (startNumber: number): Promise<TalosProtocolClient> => connectToTalos(endpointOf(startNumber));
+  const connect = (startNumber: number): Promise<TalosProtocolClient> => connectProtocolClientToTalos(endpointOf(startNumber));
   const childRecordAt = (childFolder: string, instance: number): ChildRecord | null => {
     const { recordPath } = childFilesOf(boardFolder, childFolder, instance);
     if (!existsSync(recordPath)) return null;
@@ -125,9 +130,13 @@ export function createScratchTalos(): ScratchTalos {
     mkdirSync(dirname(startFilePath), { recursive: true });
     writeFileSync(startFilePath, talosStartFileTextOf(startFile));
   };
-  const spawnTalos = (startNumber: number): SpawnedTalos => Bun.spawn([process.execPath, TALOS_BINARY_PATH, boardFolder, String(startNumber)], {
-    stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', env: inheritedEnvironment()
-  });
+  const spawnTalosWith = (preloadArguments: readonly string[], startNumber: number): SpawnedTalos => Bun.spawn(
+    [process.execPath, ...preloadArguments, TALOS_BINARY_PATH, boardFolder, String(startNumber)],
+    {
+      stdin: 'ignore', stdout: 'pipe', stderr: 'pipe', env: inheritedEnvironment()
+    },
+  );
+  const spawnTalos = (startNumber: number): SpawnedTalos => spawnTalosWith([], startNumber);
   const attach = async (startNumber: number): Promise<TalosProtocolClient> => {
     const client = await connect(startNumber);
     client.send({ kind: 'hello', requiredProtocolVersion: TALOS_PROTOCOL_VERSION, secret: SCRATCH_TALOS_SECRET });
@@ -144,12 +153,14 @@ export function createScratchTalos(): ScratchTalos {
   };
   return {
     boardFolder,
+    monitorFolder,
     endpointOf,
     writeStartFile,
     spawnTalos,
+    spawnTalosOfTheNextProtocol: (startNumber) => spawnTalosWith([`--preload=${NEXT_PROTOCOL_PRELOAD_PATH}`], startNumber),
     connect,
     attach,
-    serve: async (startNumber, bounds = {}) => {
+    serve:                       async (startNumber, bounds = {}) => {
       writeStartFile(startNumber, bounds);
       const talos = spawnTalos(startNumber);
       const client = await attach(startNumber);

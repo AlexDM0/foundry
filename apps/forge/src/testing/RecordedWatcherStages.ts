@@ -472,6 +472,11 @@ export function createRecordedWatcherStages(nativePorts: PlatformPorts, answers?
     },
     processStarts: {
       spawnWatcher,
+      startTalos: () => {
+        const unanswered = 'startTalos has no recorded answer: the Watcher stages start no Talos';
+        unansweredCalls.push(unanswered);
+        throw new Error(unanswered);
+      },
       runGatePipeline: (request) => {
         const lineFails = (line: string): boolean => (lineEnds.get(line)?.exitCode ?? 0) !== 0;
         const failingPrepareLines = request.prepare.map((step) => step.run).filter(lineFails);

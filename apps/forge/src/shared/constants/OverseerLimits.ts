@@ -50,6 +50,40 @@ export const ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH = 200_000;
 /** How long a stopped session's Watcher lets it end before killing its process tree. */
 export const SESSION_STOP_GRACE_MILLISECONDS = 5000;
 
+/** How long Talos lets its agents go unsupervised: the Overseer writes it into each start file, and specs pass short ones. */
+export const SUPERVISION_LEASE_MILLISECONDS = 60_000;
+
+/** Renewed from the main loop, and only while the Overseer's passes make progress (`LeaseRenewal.ts`). */
+export const LEASE_RENEWAL_INTERVAL_MILLISECONDS = 15_000;
+
+/** How long a clean quit lets each agent reach the end of its turn before Talos stops what still runs. */
+export const CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS = 10_000;
+
+/** Every install, prepare and gate line, a sleep not counted; a merge carries no bound. */
+export const LINE_TIME_BOUND_MILLISECONDS = 900_000;
+
+export const TALOS_TICK_MILLISECONDS = 1000;
+
+/**
+ * Two ticks further apart than one tick plus this are a gap: a sleep, a suspension, or a clock that moved. The lease
+ * renewal reads its own timer's gaps by the same allowance.
+ */
+export const TALOS_TICK_GAP_MILLISECONDS = 5000;
+
+/** How long the Overseer waits on Talos's answer to one frame, its first line included. */
+export const TALOS_FRAME_TIMEOUT_MILLISECONDS = 2000;
+
+/** How many times the Overseer looks for a Talos it started to serve; a schedule only, never a decision. */
+export const TALOS_START_TRIES = 40;
+
+export const TALOS_START_INTERVAL_MILLISECONDS = 250;
+
+/** Covers the clean quit's 10 seconds and its stop sweep at TALOS_START_INTERVAL_MILLISECONDS. */
+export const TALOS_QUIT_TRIES = 60;
+
+/** How often a line's run looks at its child's record for its end; a schedule only, never a decision. */
+export const TALOS_LINE_LOOK_MILLISECONDS = 1000;
+
 /** How long regrouping waits on a live Watcher's `welcome` and `history` before it reads the Watcher's event log alone. */
 export const REGROUP_HELLO_TIMEOUT_MILLISECONDS = 2000;
 
