@@ -5,9 +5,11 @@
  * a conflict re-reviewer cut short keeps the slot while it lives, is relaunched as the same attempt once replaced, and frees the slot as
  * orphaned once it ended otherwise; a target moved by hand requeues and never lands on the moved tip; and a constitution commit job left in
  * `committing` is replaced, one cut short after its fast-forward finishes on the board side, a waiting request with no live job gets one,
- * and a main line already holding the text finishes Apply with no commit. The other rows are in
- * `CrashMatrix.integration.spec.ts`. The folders are real; git answers from recorded answer sets, one for each state of the repository, and
- * a crash after a git call is the case entering the set of the state that call left.
+ * and a main line already holding the text finishes Apply with no commit. After a start, a landing journal line a stop cut off is written
+ * so a sibling requeues rather than meeting `target-moved`, a release's cleanup a stop cut off runs again once, and a slot a stop left
+ * restored before its hold is held `interrupted:merge`. The other rows are in `CrashMatrix.integration.spec.ts`. The folders are real; git
+ * answers from recorded answer sets, one for each state of the repository, and a crash after a git call is the case entering the set of the
+ * state that call left.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 
@@ -18,9 +20,13 @@ import {
   test
 } from 'bun:test';
 
+import { RepositoryLandings, type RepositoryLanding } from '../../lib/git/RepositoryLandings.ts';
+import { INTERRUPTED_MERGE_HOLD }                     from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import {
   ancestryAsked,
   commitResolved,
+  currentBranchRead,
+  fastForwardLanding,
   hardResetTo,
   linkedWorktreeRead,
   revisionMissing,
@@ -32,12 +38,14 @@ import {
   type RecordedGitStage,
   type RecordedGitStep
 } from '../../testing/RecordedGit.ts';
+import { Landing, type LandingRequest, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
 import { GroupWorktrees }                                             from './GroupWorktrees.ts';
 import { AirlockAnswerSets, MOVED_AIRLOCK_IDS, type MainLineLanding } from './testing/AirlockAnswerSets.ts';
 import {
   createRecordedAirlocksHarness,
   finishMergeAgent,
   HARNESS_AT,
+  HARNESS_TRACKER_ID,
   RECORDED_AIRLOCK_IDS,
   type AirlocksHarness,
   type HarnessTicket
@@ -67,6 +75,9 @@ const {
 
 const CHECKOUT_TICKET: HarnessTicket = { id: '001' };
 
+const SIBLING_TRACKER_ID = 'tracker-example-gaia';
+const SIBLING_COMMIT = MOVED_AIRLOCK_IDS.SECOND_TICKET_TIP;
+
 let harness: AirlocksHarness | null = null;
 
 afterEach(() => {
@@ -86,6 +97,16 @@ function fastForwardsAsked(): string[] {
   return recordedGit.flowCalls().filter((asked) => asked[0] === 'merge' && asked[1] === '--ff-only').map((asked) => asked.at(-1) ?? '');
 }
 
+function sharedRepositoryOf(current: AirlocksHarness): SharedRepositoryLanding {
+  if (current.sharedRepository === null) throw new Error('The harness lands alone.');
+  return current.sharedRepository;
+}
+
+function journaledLandings(current: AirlocksHarness): RepositoryLanding[] {
+  const reading = RepositoryLandings.readLandingJournal(sharedRepositoryOf(current).files);
+  return reading.verdict === 'readable' ? reading.landings : [];
+}
+
 function mainLineSetOf(current: AirlocksHarness, landing: Partial<MainLineLanding> = {}): RecordedGitStage {
   return AirlockAnswerSets.mainLineAnswersOf({
     ticketId: '001', repository: current.repository, worktree: current.worktreeOf('001'), ...landing
@@ -103,6 +124,43 @@ describe('the main-line merge rows', () => {
 
     expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
     expect(fastForwardsAsked()).toEqual([]);
+  });
+
+  test('a stop between the fast-forward and the landing journal line, then a start: the line is written, and a sibling lands with no target-moved', async () => {
+    harness = createRecordedAirlocksHarness([CHECKOUT_TICKET], {}, true, null, true);
+    const current = harness;
+    const { files } = sharedRepositoryOf(current);
+    recordedGit.answerFrom(mainLineSetOf(current));
+    current.settings.beforeGate = () => recordedGit.answerFrom(mainLineSetOf(current, { mainTip: TICKET_TIP }));
+
+    await current.slots.sweep();
+
+    expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+    expect(journaledLandings(current)).toEqual([{
+      trackerId: HARNESS_TRACKER_ID, target: 'main', previousTip: MAIN_TIP, commit: TICKET_TIP
+    }]);
+
+    const sibling: SharedRepositoryLanding = { ...sharedRepositoryOf(current), trackerId: SIBLING_TRACKER_ID };
+    const siblingLanding = (expectedTargetTip: string): LandingRequest => ({
+      target:           { branch: 'main', directory: current.repository },
+      mergedCommit:     SIBLING_COMMIT,
+      expectedTargetTip,
+      recordedLandings: [],
+      hookPolicy:       'hooks-off',
+      sharedRepository: sibling,
+    });
+    const requeued = await recordedGit.playStage([
+      currentBranchRead('main'), commitResolved('refs/heads/main', TICKET_TIP), ancestryAsked(SIBLING_COMMIT, TICKET_TIP, false),
+    ], () => Promise.resolve(Landing.landOnTarget(siblingLanding(MAIN_TIP))));
+    const landed = await recordedGit.playStage(
+      fastForwardLanding('main', TICKET_TIP, SIBLING_COMMIT, 'cart.ts'),
+      () => Promise.resolve(Landing.landOnTarget(siblingLanding(TICKET_TIP)))
+    );
+
+    expect(requeued).toMatchObject({ verdict: 'refused', reason: 'target-moved-by-a-recorded-landing' });
+    expect(landed).toEqual({ verdict: 'landed', commit: SIBLING_COMMIT, previousTip: TICKET_TIP });
+    expect(RepositoryLandings.readLandingJournal(files)).toMatchObject({ verdict: 'readable', skippedLines: [] });
+    expect(journaledLandings(current).map((landing) => landing.trackerId)).toEqual([HARNESS_TRACKER_ID, SIBLING_TRACKER_ID]);
   });
 
   test('mid-merge with no live holder: merge --abort, a reset to branchTip and a requeue', async () => {
@@ -139,6 +197,22 @@ describe('the main-line merge rows', () => {
     });
     await current.slots.sweep();
     expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');
+  });
+
+  test('a stop between freeSlot\'s restore and its hold, then a start, holds the ticket interrupted:merge and merges nothing again', async () => {
+    harness = createRecordedAirlocksHarness([CHECKOUT_TICKET]);
+    const current = harness;
+    current.board.claimAirlock({
+      ticketId: '001', target: 'main', targetTip: MAIN_TIP, branchTip: TICKET_TIP, predictedConflictFiles: []
+    }, () => 'main', current.branchTreeOf, HARNESS_AT);
+    const orphanedJobId = current.mergeJob()?.id;
+    current.settings.startHoldsOrphans = true;
+
+    await recordedGit.playStage([revisionMissing('MERGE_HEAD'), ...hardResetTo(TICKET_TIP)], () => current.slots.sweep());
+
+    expect(endedCauseOf(current, orphanedJobId)).toBe('orphaned');
+    expect(current.board.tickets()[0]?.frontmatter.hold).toBe(INTERRUPTED_MERGE_HOLD);
+    expect(current.mergeJob()).toBeUndefined();
   });
 
   test('target moved by hand: the compare-and-swap requeues from branchTip and never lands on the moved tip', async () => {
@@ -255,6 +329,58 @@ describe('the group merge rows', () => {
 
     expect(current.board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['delivered', 'delivered']);
     expect(fastForwardsAsked()).toEqual([]);
+  });
+
+  test('a stop after the release\'s landing hold, before its cleanup, then a start: the group\'s worktree and branch are removed once', async () => {
+    harness = createRecordedGroupHarness([
+      { id: '010', group: 'example', status: 'reviewed' },
+      {
+        id: '012', group: 'example', releasesGroup: true, dependsOn: ['010']
+      },
+    ]);
+    const current = harness;
+    const groupWorktree = groupWorktreeOf(current);
+    current.board.releaseTickets(['012', '010'], { branch: 'ticket-012', commit: TICKET_TIP }, HARNESS_AT);
+
+    await recordedGit.playStage([
+      commitResolved(`refs/heads/${GROUP}`, GROUP_TIP),
+      { gitArguments: ['worktree', 'remove', groupWorktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: groupWorktree },
+      { gitArguments: ['branch', '-d', GROUP], answeredAs: GIT_CALL_SHAPES.BRANCH_DELETE_OF_A_MERGED_BRANCH },
+    ], () => current.slots.sweep());
+    await recordedGit.playStage([], () => current.slots.sweep());
+
+    expect(existsSync(groupWorktree)).toBe(false);
+    expect(current.declinedCleanups).toEqual([]);
+  });
+
+  test('a release cleanup git declines at the start is reported as after a landing', async () => {
+    harness = createRecordedGroupHarness([{ id: '012', group: 'example', releasesGroup: true }]);
+    const current = harness;
+    const groupWorktree = groupWorktreeOf(current);
+    current.board.releaseTickets(['012'], { branch: 'ticket-012', commit: TICKET_TIP }, HARNESS_AT);
+
+    await recordedGit.playStage([
+      commitResolved(`refs/heads/${GROUP}`, GROUP_TIP),
+      { gitArguments: ['worktree', 'remove', groupWorktree], answeredAs: GIT_CALL_SHAPES.WORKTREE_REMOVE_OF_A_CLEAN_WORKTREE, removesFolder: groupWorktree },
+      { gitArguments: ['branch', '-d', GROUP], answeredAs: GIT_CALL_SHAPES.BRANCH_DELETE_OF_AN_UNMERGED_BRANCH },
+    ], () => current.slots.sweep());
+
+    expect(current.declinedCleanups.map((declined) => [declined.cleanup, declined.groupBranch])).toEqual([['release', GROUP]]);
+  });
+
+  test('a released group that a later ticket of the group uses again is left standing at the start', async () => {
+    harness = createRecordedGroupHarness([
+      { id: '012', group: 'example', releasesGroup: true },
+      { id: '014', group: 'example', status: 'pending' },
+    ]);
+    const current = harness;
+    current.board.releaseTickets(['012'], { branch: 'ticket-012', commit: TICKET_TIP }, HARNESS_AT);
+    recordedGit.answerFrom(groupReads(GROUP_TIP, 'none'));
+
+    await current.slots.sweep();
+
+    expect(recordedGit.flowCalls().filter((asked) => asked[0] === 'branch' || asked[0] === 'worktree')).toEqual([]);
+    expect(existsSync(groupWorktreeOf(current))).toBe(true);
   });
 
   test('a refresh mid-merge with no live holder: aborted, its temporary worktree removed, and never two refreshes on the group at once', async () => {

@@ -156,16 +156,21 @@ function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: ()
   return null;
 }
 
-/** Under the lock, so a sibling's landing is either journaled before the tip is read or has not moved the tip yet. */
+/**
+ * Under the lock, so a sibling's landing is either journaled before the tip is read or has not moved the tip yet. A rerun that finds its
+ * commit already landed but unjournaled, a stop having come between the fast-forward and the line, writes the line it owes.
+ */
 function landBesideSiblings(request: LandingRequest, sharedRepository: SharedRepositoryLanding): LandingVerdict {
-  const { target, recordedLandings } = request;
+  const { target, recordedLandings, expectedTargetTip } = request;
   const journal       = RepositoryLandings.readLandingJournal(sharedRepository.files);
   const journaledTips = journal.verdict === 'readable' ? RepositoryLandings.tipsLandedOn(journal.landings, target.branch) : [];
   const verdict       = landAlone({ ...request, recordedLandings: [...recordedLandings, ...journaledTips] });
-  if (verdict.verdict !== 'landed') return verdict;
+  if (verdict.verdict === 'refused') return verdict;
+  if (verdict.verdict === 'already-landed' && journaledTips.includes(verdict.commit)) return verdict;
+  const previousTip = verdict.verdict === 'landed' ? verdict.previousTip : expectedTargetTip;
   // A line that cannot be written leaves this landing an unrecorded move to a sibling, which then asks before it lands again.
   RepositoryLandings.appendLanding(sharedRepository.files, {
-    trackerId: sharedRepository.trackerId, target: target.branch, previousTip: verdict.previousTip, commit: verdict.commit
+    trackerId: sharedRepository.trackerId, target: target.branch, previousTip, commit: verdict.commit
   });
   return verdict;
 }

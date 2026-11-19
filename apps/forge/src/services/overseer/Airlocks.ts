@@ -593,6 +593,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   const commitsAHeldMainLineWaitsToLand = new Map<string, string>();
   const sharedLanding = context.sharedRepository === undefined ? {} : { sharedRepository: context.sharedRepository };
   let startOrphansWereLookedAt = false;
+  let releaseCleanupsWereRedone = false;
 
   function holdTarget(heldTarget: HeldTarget, commitItWaitsToLand: string): void {
     heldTargets.set(heldTarget.target, heldTarget);
@@ -1259,13 +1260,41 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     hold.board.endJob(job.id, { outcome: 'landed', commit }, hold.at);
   }
 
-  /** After the landing hold: a refresh's temporary worktree goes, and a release removes the group's worktree and deletes its branch. */
-  function cleanUpAfterLanding(job: Readonly<Job>, releasedGroup: string | undefined): void {
-    if (isRefresh(job)) removeRefreshWorktree(job);
-    if (releasedGroup === undefined) return;
+  function removeReleasedGroup(releasedGroup: string): void {
     const groupBranch = `${groupTargetPrefix}${releasedGroup}`;
     const reason      = GroupWorktrees.removeGroup(context.repositoryRoot, context.worktreesRoot, groupBranch);
     if (reason !== null) context.reportDeclinedCleanup({ cleanup: 'release', groupBranch, reason });
+  }
+
+  /** After the landing hold: a refresh's temporary worktree goes, and a release removes the group's worktree and deletes its branch. */
+  function cleanUpAfterLanding(job: Readonly<Job>, releasedGroup: string | undefined): void {
+    if (isRefresh(job)) removeRefreshWorktree(job);
+    if (releasedGroup !== undefined) removeReleasedGroup(releasedGroup);
+  }
+
+  /** The groups a delivered ticket released, but a group that an open ticket or a job still targets: its branch is in use again. */
+  function releasedGroupsOf(board: Board): string[] {
+    const groupsInUse = new Set<string>();
+    const releasedGroups = new Set<string>();
+    for (const { frontmatter } of board.tickets()) {
+      if (frontmatter.group === undefined) continue;
+      if (frontmatter.status !== 'delivered' && frontmatter.status !== 'abandoned') groupsInUse.add(frontmatter.group);
+      if (frontmatter.status === 'delivered' && frontmatter.releasesGroup === true) releasedGroups.add(frontmatter.group);
+    }
+    for (const job of board.jobs()) if (job.target?.startsWith(groupTargetPrefix) === true) groupsInUse.add(groupOf(job.target));
+    return [...releasedGroups].filter((group) => !groupsInUse.has(group));
+  }
+
+  /**
+   * A stop after a release's landing hold and before its cleanup leaves the group's worktree and branch, which no job runs again: the first
+   * sweep after any start removes them once more. A group already gone is passed over.
+   */
+  async function redoReleaseCleanupsOnce(): Promise<void> {
+    if (releaseCleanupsWereRedone) return;
+    releaseCleanupsWereRedone = true;
+    for (const releasedGroup of await context.hold((hold) => releasedGroupsOf(hold.board))) {
+      if (GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${groupTargetPrefix}${releasedGroup}`) !== null) removeReleasedGroup(releasedGroup);
+    }
   }
 
   async function runLanding(job: Readonly<Job>): Promise<boolean> {
@@ -1758,6 +1787,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   async function sweep(): Promise<readonly HeldTarget[]> {
     recheckHeldTargets();
+    await redoReleaseCleanupsOnce();
     const slotJobIdsHeldAtTheStart = await slotJobIdsHeldAtTheStartOf();
     for (let round = 0; round < ROUNDS_PER_SWEEP; round += 1) {
       let moved = false;

@@ -3,8 +3,9 @@
  * matters: the target's tip is compared with the one the merge was made against before anything moves, so a moved target never lands; main
  * lands by a fast-forward in the main checkout and a group branch by `merge --ff-only` in its worktree; a crash's half-landed commit reads
  * as already landed; and every refusal maps to a typed outcome. A tracker in a project folder shares its landings through the git common
- * directory, and one at its repository's root asks git nothing for them. Each stage names every call in order, so a call it does not name
- * fails. The journal and the lock themselves are held by `Airlocks.siblingTrackers.spec.ts`.
+ * directory, and one at its repository's root asks git nothing for them; an already-landed rerun writes the journal line a stop cut off,
+ * once. Each stage names every call in order, so a call it does not name fails. The journal and the lock themselves are held by
+ * `Airlocks.siblingTrackers.spec.ts`.
  */
 import {
   existsSync,
@@ -255,5 +256,31 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
 
   test('a landing refused because a sibling holds the lock waits in its slot', () => {
     expect(LANDING_OUTCOME_OF_REFUSAL['landing-lock-held']).toBe('wait-for-the-landing-lock');
+  });
+
+  test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {
+    mkdirSync(join(repositoryDirectory, '.git'));
+    const files = RepositoryLandings.landingFilesOf(join(repositoryDirectory, '.git'), PRODUCT_NAMES.PROGRAM);
+    const sharedRepository = {
+      trackerId: 'tracker-example', files, now, lockHolderIsGone: () => false
+    };
+    const alreadyLandedRerun: RecordedGitStage = [
+      ...onBranch('main'),
+      resolved('refs/heads/main', MERGED_COMMIT),
+      { gitArguments: ['merge-base', '--is-ancestor', MERGED_COMMIT, MERGED_COMMIT], answeredAs: GIT_CALL_SHAPES.ANCESTOR_OF_THE_TIP },
+    ];
+    const journaledLandings = (): unknown => {
+      const reading = RepositoryLandings.readLandingJournal(files);
+      return reading.verdict === 'readable' ? reading.landings : reading;
+    };
+    const oneLanding = [{
+      trackerId: 'tracker-example', target: 'main', previousTip: MAIN_TIP, commit: MERGED_COMMIT
+    }];
+
+    expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
+    expect(journaledLandings()).toEqual(oneLanding);
+
+    expect(await landedIn(alreadyLandedRerun, mainLanding({ sharedRepository }))).toMatchObject({ verdict: 'already-landed' });
+    expect(journaledLandings()).toEqual(oneLanding);
   });
 });

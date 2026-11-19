@@ -125,7 +125,7 @@ The trackers of a repository meet in `<git common dir>/forge/`, which every work
 | file | holds |
 |---|---|
 | `trackers.json` | `{ version: 1, trackers: { <trackerId>: { prefix, branchNamespace } } }`: each tracker in a folder or with a namespace, which `init` and `namespace` write and check. A bare tracker at the root is not listed. |
-| `landings.jsonl` | One line per landing, `{ version: 1, trackerId, target, previousTip, commit }`, appended by each tracker in a folder. A sibling's journaled move of the target requeues a merge silently, as the tracker's own recorded landing does, and never counts toward parking; a move that no line names is `target-moved` as before. |
+| `landings.jsonl` | One line per landing, `{ version: 1, trackerId, target, previousTip, commit }`, appended by each tracker in a folder. A sibling's journaled move of the target requeues a merge silently, as the tracker's own recorded landing does, and never counts toward parking; a move that no line names is `target-moved` as before. A landing a stop cut off between its fast-forward and its line gets the line when its rerun finds the commit already landed. |
 | `landings.lock` | The lock folder a landing holds only around its tip check, fast-forward and journal line, and `init` around a change of the list. A landing that finds it held is refused `landing-lock-held`, keeps its slot and tries again on a later sweep. |
 
 ### Locking
