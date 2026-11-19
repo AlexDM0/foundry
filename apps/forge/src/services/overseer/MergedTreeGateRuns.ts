@@ -1,0 +1,167 @@
+/**
+ * The merged-tree gate runs beside the drive pass (design section 3.2, "Renewal that only progress earns"): a pass asks for a gate, the run
+ * starts and the pass carries on, and a later pass settles the Airlock from the outcome the run kept in its folder under the board folder.
+ * The folder is keyed by everything the outcome rests on, so an ask while a run is in flight starts no second run.
+ */
+import { createHash } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync
+} from 'node:fs';
+import { basename, join } from 'node:path';
+
+import { writeFileAtomically }          from '../../lib/atomic-file/AtomicFile.ts';
+import { JsonRecordUtil }               from '../../lib/json-record/JsonRecordUtil.ts';
+import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { EntityKey }               from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { MergedTreeGate }          from './Airlocks.ts';
+
+export const MERGED_TREE_GATE_RUNS_FOLDER = 'merge-gates';
+export const MERGED_TREE_GATE_OUTCOME_FILE = 'outcome.json';
+export const MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION = 1;
+
+const RUN_FOLDER_NAME_CHARACTERS = 16;
+const SHORT_TREE_CHARACTERS = 12;
+
+const KEPT_GATE_OUTCOMES: ReadonlySet<unknown> = new Set<MergedTreeGate['outcome']>(['passed', 'failed', 'cannot-run', 'setup-failed', 'sandbox-unavailable']);
+
+export interface MergedTreeGateRunRequest {
+  worktreePath:  string;
+  treeId:        string;
+  phase:         GatePhase;
+  gatedEntities: readonly EntityKey[] | undefined;
+  /** The gate-run stamp of the pipeline read for this ask; its hashes key the run folder. `null` when no pipeline is stored. */
+  stamp:         GateRunStamp | null;
+  /** Starts the run; called once per run folder. A run that throws keeps no outcome. */
+  run:           () => Promise<MergedTreeGate>;
+}
+
+export type MergedTreeGateRunKey = Pick<MergedTreeGateRunRequest, 'worktreePath' | 'treeId' | 'phase' | 'gatedEntities' | 'stamp'>;
+
+export interface MergedTreeGateRuns {
+  readonly gateOf:        (request: MergedTreeGateRunRequest) => MergedTreeGate | 'running';
+  /** Removes the run folder once its outcome settled the Airlock. */
+  readonly settled:       (key: MergedTreeGateRunKey) => void;
+  /** Starts no further run and awaits every run in flight; a run the stop ended keeps no outcome, so the next start runs it again. */
+  readonly stopAll:       () => Promise<void>;
+  /** Removes every run folder that holds no outcome: its run died with the Overseer that started it. */
+  readonly settleAtStart: () => void;
+}
+
+export interface MergedTreeGateRunsRequest {
+  boardFolder: string;
+  wake:        (forced: boolean) => void;
+  log:         (sentence: string) => void;
+}
+
+interface RunInFlight {
+  worktreePath: string;
+  ended:        Promise<void>;
+}
+
+function runFolderNameOf(key: MergedTreeGateRunKey): string {
+  const gatedEntityKeys = [...key.gatedEntities ?? []].toSorted().join(',');
+  const entityPhaseHashes = Object.entries(key.stamp?.entityPhaseHashes ?? {})
+    .map(([entityKey, phaseHash]) => `${entityKey}=${phaseHash}`)
+    .toSorted()
+    .join(',');
+  const keyText = [key.worktreePath, key.treeId, key.phase, gatedEntityKeys, key.stamp?.phaseHash ?? '', entityPhaseHashes].join('\n');
+  return createHash('sha256').update(keyText).digest('hex').slice(0, RUN_FOLDER_NAME_CHARACTERS);
+}
+
+function gateIsReadable(gate: Record<string, unknown>): boolean {
+  return KEPT_GATE_OUTCOMES.has(gate['outcome'])
+    && (gate['step'] === null || typeof gate['step'] === 'string')
+    && typeof gate['output'] === 'string'
+    && (gate['stamp'] === null || JsonRecordUtil.valueIsAPlainObject(gate['stamp']));
+}
+
+/** The outcome a run kept; `null` when there is none, it cannot be read, or it is of another format version. */
+function keptGateIn(runFolder: string): MergedTreeGate | null {
+  try {
+    const kept = JsonRecordUtil.recordOf(JSON.parse(readFileSync(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), 'utf8')));
+    if (kept?.['formatVersion'] !== MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION) return null;
+    const gate = JsonRecordUtil.recordOf(kept['gate']);
+    return gate !== undefined && gateIsReadable(gate) ? gate as unknown as MergedTreeGate : null;
+  } catch {
+    return null;
+  }
+}
+
+function runDescriptionOf(key: MergedTreeGateRunKey): string {
+  return `${basename(key.worktreePath)} at tree ${key.treeId.slice(0, SHORT_TREE_CHARACTERS)} in phase ${key.phase}`;
+}
+
+function failureMessageOf(failure: unknown): string {
+  return failure instanceof Error ? failure.message : String(failure);
+}
+
+export function createMergedTreeGateRuns(request: MergedTreeGateRunsRequest): MergedTreeGateRuns {
+  const runsFolder = join(request.boardFolder, MERGED_TREE_GATE_RUNS_FOLDER);
+  const runsInFlight = new Map<string, RunInFlight>();
+  let stopping = false;
+
+  function runFolderOf(key: MergedTreeGateRunKey): string {
+    return join(runsFolder, runFolderNameOf(key));
+  }
+
+  /** Never throws: a run that fails, or whose outcome cannot be written, keeps none and waits for the next pass that asks. */
+  async function runToItsEnd(runRequest: MergedTreeGateRunRequest, runFolder: string): Promise<void> {
+    const description = runDescriptionOf(runRequest);
+    let ending: { verdict: 'kept'; gate: MergedTreeGate } | { verdict: 'not-kept'; reason: string };
+    try {
+      const gate = await runRequest.run();
+      writeFileAtomically(join(runFolder, MERGED_TREE_GATE_OUTCOME_FILE), `${JSON.stringify({ formatVersion: MERGED_TREE_GATE_OUTCOME_FORMAT_VERSION, gate })}\n`);
+      ending = { verdict: 'kept', gate };
+    } catch (failure) {
+      ending = { verdict: 'not-kept', reason: failureMessageOf(failure) };
+    }
+    runsInFlight.delete(runFolder);
+    if (ending.verdict === 'not-kept') {
+      request.log(`The merged-tree gate of ${description} ended with no outcome: ${ending.reason}`);
+      return;
+    }
+    request.log(`The merged-tree gate of ${description} ended: ${ending.gate.outcome}.`);
+    request.wake(true);
+  }
+
+  function gateOf(runRequest: MergedTreeGateRunRequest): MergedTreeGate | 'running' {
+    const runFolder = runFolderOf(runRequest);
+    const kept = keptGateIn(runFolder);
+    if (kept !== null) return kept;
+    if (stopping || runsInFlight.has(runFolder)) return 'running';
+    // A run of another key on the same worktree, a pipeline changed under it, finishes before this one starts there.
+    if ([...runsInFlight.values()].some((run) => run.worktreePath === runRequest.worktreePath)) return 'running';
+    mkdirSync(runFolder, { recursive: true });
+    request.log(`The merged-tree gate of ${runDescriptionOf(runRequest)} started.`);
+    const run: RunInFlight = { worktreePath: runRequest.worktreePath, ended: Promise.resolve() };
+    runsInFlight.set(runFolder, run);
+    run.ended = runToItsEnd(runRequest, runFolder);
+    return 'running';
+  }
+
+  function settled(key: MergedTreeGateRunKey): void {
+    rmSync(runFolderOf(key), { recursive: true, force: true });
+  }
+
+  async function stopAll(): Promise<void> {
+    stopping = true;
+    await Promise.all([...runsInFlight.values()].map((run) => run.ended));
+  }
+
+  function settleAtStart(): void {
+    if (!existsSync(runsFolder)) return;
+    for (const name of readdirSync(runsFolder)) {
+      const runFolder = join(runsFolder, name);
+      if (runsInFlight.has(runFolder) || keptGateIn(runFolder) !== null) continue;
+      rmSync(runFolder, { recursive: true, force: true });
+    }
+  }
+
+  return {
+    gateOf, settled, stopAll, settleAtStart
+  };
+}

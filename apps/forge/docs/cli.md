@@ -1845,6 +1845,12 @@ The merged tree is gated with the merge phase's gates, unless it is the branch's
 row's green is current in the merge phase; a pass on the branch's own tree records the row's green in the merge phase.
 It is then landed by a compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of
 kind `integrated` and moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
+The gate runs beside the Overseer's pass, so no pass waits for its lines: the job stays in phase `gating`, and the first
+sweep after the run ended settles the job from the outcome the run kept in `<data>/merge-gates/<hash>/outcome.json`
+(`{formatVersion: 1, gate}`), written once at its end. The folder's hash covers the worktree, the tree, the phase, the
+gated entities and the phase hashes of the pipeline the run read, so a changed pipeline is another run, and an ask while
+a run is in flight starts none. The folder goes once its outcome settled the job. A run that the Overseer's stop ended
+keeps no outcome, and the next start removes its folder and runs it again.
 
 The ticket's last worker is its newest ended build or review job, read from the log whatever the pipeline says now, with
 that job's role: a review step removed since still gives the reviewer. With none ended, it is the reviewer, or the
@@ -2010,13 +2016,15 @@ hashes](#the-pipeline-hashes)); with no review phase the same rule applies to th
 the tree as it was skips its gate run only while that green is current for the review phase's gates; under changed gates
 its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its branch HEAD's tree and its
 `pipelineHash` the current hash of its `greenPhase`, and lands a merged tree ungated only when it is that green tree and
-that green is current in the merge phase. Before each allocation the Airlocks take a stale green (the tree or the
-pipeline changed) out of the queue, clearing `mergeQueued`, and gate the ticket's worktree with no slot held, in the
-phase of its green: green records the tree and queues the ticket again; red leaves it unqueued with no `greenTree`,
-writes the red handoff in the `stale-green` folder of the job folder of the last session that passed (its reviewer, or
-with no review phase its builder, whose ticket goes `in-progress`), and the next session of that kind takes it over; a
-gate that cannot run opens its incident on the ticket. With no review phase, a ticket in review that is not queued is
-queued there once its green is current.
+that green is current in the merge phase. Before each allocation the Airlocks gate a stale green (the tree or the
+pipeline changed) in the ticket's worktree with no slot held, in the phase of its green. The gate runs beside the
+Overseer's pass, as the merged tree's does; a stale green is no candidate, so the ticket keeps `mergeQueued` until a
+later sweep reads the outcome, and then loses it: green records the tree and queues the ticket again; red leaves it
+unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder of the last session
+that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`), and the next session
+of that kind takes it over; a gate that cannot run opens its incident on the ticket. A worktree that cannot be gated
+clears `mergeQueued` at once. With no review phase, a ticket in review that is not queued is queued there once its green
+is current.
 
 ### The Assistant
 

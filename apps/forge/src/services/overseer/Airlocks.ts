@@ -100,11 +100,14 @@ export interface AirlocksContext {
   refDeniesHold:          boolean;
   hold:                   AirlockHoldRunner;
   /**
-   * Gates the tree with the gates of `phase`, read afresh once as the run starts: `merge` for an Airlock's merged tree, the row's own phase
+   * The gate of the tree with the gates of `phase`, read afresh as the run starts: `merge` for an Airlock's merged tree, the row's own phase
    * for a stale green. On a pipeline with entities `gatedEntities` names whose gates run: the landing's gate set, or the ticket's entity for
-   * a stale green; absent, every entity's. The result carries the stamp of what it read.
+   * a stale green; absent, every entity's. The run goes on beside the pass, `running` until a later ask finds its outcome, which carries the
+   * stamp of what it read.
    */
-  gateMergedTree:         (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities?: readonly EntityKey[]) => Promise<MergedTreeGate>;
+  mergedTreeGateOf:       (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities?: readonly EntityKey[]) => MergedTreeGate | 'running';
+  /** After the hold its outcome settled, the run's kept outcome goes, so the next gate of the same tree runs again. */
+  mergedTreeGateSettled:  (worktreePath: string, treeId: string, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined, gate: MergedTreeGate) => void;
   mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:      (worktreePath: string) => number | null;
@@ -665,7 +668,8 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * Outside any slot: a queued ticket whose green went stale loses its mark and its worktree is gated again; a ticket whose green is current
-   * but which is not queued (no review phase) is queued.
+   * but which is not queued (no review phase) is queued. While the re-gate runs beside the pass the ticket keeps its mark: a stale green
+   * is no merge candidate, and the mark keeps the policy from launching a reviewer and the next sweep listing the ticket for its outcome.
    */
   async function settleTicketsAwaitingGreen(target: string): Promise<boolean> {
     if (context.dispatchIsStopped()) return false;
@@ -677,13 +681,9 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         const branchTree    = branchTreeOf(ticketId);
         const phase         = regatePhaseOf(hold.board, ticketId);
         const gatedEntities = staleGreenGatedEntitiesOf(hold.board, ticketId);
-        if (!hold.board.greenIsCurrent(ticketId, branchTree, hold.board.greenPhaseOf(ticketId))) {
-          const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
-          if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
-          return {
-            greenIsCurrent: false, changed: wasQueued, phase, gatedEntities
-          };
-        }
+        if (!hold.board.greenIsCurrent(ticketId, branchTree, hold.board.greenPhaseOf(ticketId))) return {
+          greenIsCurrent: false, changed: false, phase, gatedEntities
+        };
         if (hold.board.ticketIsMergeQueued(ticketId)) return {
           greenIsCurrent: true, changed: false, phase, gatedEntities
         };
@@ -698,10 +698,16 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       // its next reviewer, without one the next sweep lists it again.
       const worktree = context.worktreeOf(ticketId);
       const treeId   = MergeRun.treeOf(worktree);
-      if (treeId === null || treeId !== branchTreeOf(ticketId)) continue;
-      moved = true;
-      const gate = await context.gateMergedTree(worktree, treeId, settled.phase, settled.gatedEntities);
-      await context.hold((hold) => settleRegate(hold, ticketId, target, treeId, gate));
+      const gate     = treeId === null || treeId !== branchTreeOf(ticketId) ? null : context.mergedTreeGateOf(worktree, treeId, settled.phase, settled.gatedEntities);
+      if (gate === 'running') continue;
+      const unqueued = await context.hold((hold) => {
+        const wasQueued = hold.board.ticketIsMergeQueued(ticketId);
+        if (wasQueued) hold.board.setTicketMergeQueued(ticketId, false, hold.at);
+        if (gate !== null && treeId !== null) settleRegate(hold, ticketId, target, treeId, gate);
+        return wasQueued;
+      });
+      moved = moved || unqueued || gate !== null;
+      if (gate !== null && treeId !== null) context.mergedTreeGateSettled(worktree, treeId, settled.phase, settled.gatedEntities, gate);
     }
     return moved;
   }
@@ -861,9 +867,12 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       setPhase(hold, job, 'landing');
       return true;
     })) return true;
+    const gate = context.mergedTreeGateOf(worktree, treeId, 'merge', gatedEntities);
+    // The job stays in `gating` and the sweep goes on with the next target; the run's end wakes the pass that settles it.
+    if (gate === 'running') return false;
     const {
       outcome, step, entity, output, stamp, cacheReports
-    } = await context.gateMergedTree(worktree, treeId, 'merge', gatedEntities);
+    } = gate;
     const settled = await context.hold((hold): RedMergedTreeSettlement => {
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
       const agent = mergeAgentOf(hold.board, job);
@@ -892,6 +901,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       }, hold.at);
       return { verdict: 'settled' };
     });
+    context.mergedTreeGateSettled(worktree, treeId, 'merge', gatedEntities, gate);
     if (settled.verdict === 'park') await abortAndPark(job, tailOf(output, context.limits.CHECK_OUTPUT_TAIL_LINES));
     if (settled.verdict === 'return-to-owner') {
       await returnRedMergedTreeToItsOwner(job, settled, {

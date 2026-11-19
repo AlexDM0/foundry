@@ -2082,6 +2082,19 @@
       "ceiling": null
     },
     {
+      "folder": "<repository>/apps/example/.forge-worktrees/sessions/J9",
+      "gitArguments": [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        "HEAD^{commit}"
+      ],
+      "hookPolicy": "hooks-off",
+      "standardInput": null,
+      "ceiling": null
+    },
+    {
       "folder": "<repository>/apps/example/.forge-worktrees/ticket-001",
       "gitArguments": [
         "-c",

@@ -105,7 +105,8 @@ import { JobResumption }                                              from './Jo
 import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
 import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
-import { runMergedTreeGates }                                         from './MergedTreeGateRun.ts';
+import { mergedTreeGateStampOf, runMergedTreeGates }                  from './MergedTreeGateRun.ts';
+import { createMergedTreeGateRuns }                                   from './MergedTreeGateRuns.ts';
 import { NeedTickets, type NeedsSettledFacts }                        from './NeedTickets.ts';
 import { jobFolderIn, overseerFilesIn }                               from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
@@ -1166,6 +1167,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     }
   }
 
+  const mergedTreeGateRuns = createMergedTreeGateRuns({
+    boardFolder: request.workspace.trackerDirectory,
+    wake,
+    log:         request.log,
+  });
+
   const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
     workspace:        request.workspace,
     at:               request.formatStamp(request.now()),
@@ -1247,29 +1254,46 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     get refDeniesHold() {
       return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
-    hold:           holdTracker,
-    gateMergedTree: async (worktreePath, treeId, phase, gatedEntities) => {
-      // Read afresh once at every gate run, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and
-      // the stamp names the gates this run ran, whatever changes while it runs.
+    hold:             holdTracker,
+    mergedTreeGateOf: (worktreePath, treeId, phase, gatedEntities) => {
+      // Read afresh at every ask, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and the stamp
+      // keys the run: a changed pipeline is another run, and its outcome names the gates it ran.
       const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
       const unreadable = unreadablePipelineGateOf(reading);
       if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
       const holder   = GateRunSlots.inProcessHolderOf(`${worktreePath}@${treeId}`);
-      return runMergedTreeGates({
-        pipeline,
+      return mergedTreeGateRuns.gateOf({
+        worktreePath,
+        treeId,
         phase,
         gatedEntities,
-        runRequest: {
-          shellLine:       platformPorts.shellLine,
-          directory:       worktreePath,
-          environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
-          spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
-          confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
-          acquireGateSlot: () => gateSlots.acquire(holder),
+        stamp: mergedTreeGateStampOf(pipeline, phase, gatedEntities),
+        run:   async () => {
+          const gate = await runMergedTreeGates({
+            pipeline,
+            phase,
+            gatedEntities,
+            runRequest: {
+              shellLine:       platformPorts.shellLine,
+              directory:       worktreePath,
+              environment:     JobLaunch.gateEnvironmentOf(jobLaunchContext),
+              spawnOptions:    platformPorts.processSupervision.spawnOptionsFor('gate'),
+              confinedLineOf:  (commandArguments, confinement) => mergeGateLineOf(worktreePath, pipeline, commandArguments, confinement),
+              acquireGateSlot: () => gateSlots.acquire(holder),
+            },
+            projectPrefix:  projectLocation.projectPrefix,
+            runOnePipeline: runMergedTreeGatePipeline,
+          });
+          // A run the stop ended judged a stopped line, not the tree: it keeps no outcome, so the next start runs it again.
+          if (stopped) throw new Error('the Overseer stopped while it ran');
+          return gate;
         },
-        projectPrefix:  projectLocation.projectPrefix,
-        runOnePipeline: runMergedTreeGatePipeline,
+      });
+    },
+    mergedTreeGateSettled: (worktreePath, treeId, phase, gatedEntities, gate) => {
+      mergedTreeGateRuns.settled({
+        worktreePath, treeId, phase, gatedEntities, stamp: gate.stamp
       });
     },
     mergeAgentReadingOf: (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
@@ -1578,6 +1602,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   async function regroup(): Promise<RegroupingReport> {
     const report = await Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
+    mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
@@ -1593,6 +1618,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     resetTimer = null;
     for (const gateProcess of mergedTreeGateProcesses) stopMergedTreeGate(gateProcess);
     await (running ?? Promise.resolve());
+    await mergedTreeGateRuns.stopAll();
     await gateProfiling.stopAll();
     await pipelineChecking.stopAll();
   }

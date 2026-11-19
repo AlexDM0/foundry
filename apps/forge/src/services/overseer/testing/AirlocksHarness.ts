@@ -68,6 +68,8 @@ export interface AirlocksHarness {
   gatedPhases:      GatePhase[];
   /** The entities whose gates each gated tree was to run, in the order of `gatedTrees`; `undefined` where the Airlocks named none. */
   gatedEntities:    (readonly EntityKey[] | undefined)[];
+  /** The tree of each gate outcome the Airlocks settled and let go, in settle order. */
+  settledGateTrees: string[];
   stopped:          string[];
   /** The landing the tracker shares with its siblings, in the repository's `.git` folder; `null` for a tracker at the root. */
   sharedRepository: SharedRepositoryLanding | null;
@@ -90,6 +92,8 @@ export interface AirlocksHarness {
     refDeniesHold:           boolean;
     /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
     beforeGate:              () => void;
+    /** The gate's run in this worktree is still in flight beside the pass, so its ask answers `running`; in none unless set. */
+    gateIsRunningIn:         (worktreePath: string) => boolean;
     /** Main's `CONSTITUTION.md` as git would answer for the main line's tip; absent unless set. */
     mainConstitution:        MainConstitutionReading;
     /** Main's file at another constitution path, an entity's; read from `mainConstitution` unless set. */
@@ -192,6 +196,7 @@ export function createRecordedAirlocksHarness(
   const gatedTrees: string[] = [];
   const gatedPhases: GatePhase[] = [];
   const gatedEntities: (readonly EntityKey[] | undefined)[] = [];
+  const settledGateTrees: string[] = [];
   const stopped: string[] = [];
   const declinedCleanups: DeclinedCleanup[] = [];
   const keptAirlockFacts = new Map<string, Readonly<Record<string, string>>>();
@@ -203,6 +208,7 @@ export function createRecordedAirlocksHarness(
     watcherIsLive:     false,
     refDeniesHold:     true,
     beforeGate:        () => undefined,
+    gateIsRunningIn:   () => false,
     mainConstitution:  { verdict: 'absent' },
     signsCommits:      false,
     dispatchIsStopped: false,
@@ -224,26 +230,28 @@ export function createRecordedAirlocksHarness(
       if (phase !== undefined && phases.at(-1) !== phase) phases.push(phase);
       return Promise.resolve(result);
     },
-    gateMergedTree: (_worktreePath, treeId, phase, entityKeys) => {
+    mergedTreeGateOf: (worktreePath, treeId, phase, entityKeys) => {
       gatedTrees.push(treeId);
       gatedPhases.push(phase);
       gatedEntities.push(entityKeys);
+      if (settings.gateIsRunningIn(worktreePath)) return 'running';
       const pipeline = board.pipeline();
       const stamp = pipeline?.entities === undefined ? board.gateRunStampOf(phase) : PipelineUtil.entitiesGateRunStampOf(pipeline, phase, entityKeys ?? []);
       settings.beforeGate();
-      return Promise.resolve({
+      return {
         outcome: settings.gateOutcome,
         step:    settings.gateOutcome === 'passed' ? null : settings.gateStep,
         ...(settings.gateOutcome === 'passed' || settings.gateEntity === undefined ? {} : { entity: settings.gateEntity }),
         output:  'Example gate output\nexpected 2, received 3',
         stamp,
         ...(settings.gateCacheReports === undefined ? {} : { cacheReports: settings.gateCacheReports }),
-      });
+      };
     },
-    mergeAgentReadingOf: () => settings.reading,
-    resolutionLinesOf:   () => settings.resolutionLines,
-    watcherIsLive:       () => settings.watcherIsLive,
-    stopMergeAgent:      (job) => {
+    mergedTreeGateSettled: (_worktreePath, treeId) => settledGateTrees.push(treeId),
+    mergeAgentReadingOf:   () => settings.reading,
+    resolutionLinesOf:     () => settings.resolutionLines,
+    watcherIsLive:         () => settings.watcherIsLive,
+    stopMergeAgent:        (job) => {
       stopped.push(job.id);
       return Promise.resolve();
     },
@@ -274,6 +282,7 @@ export function createRecordedAirlocksHarness(
     gatedTrees,
     gatedPhases,
     gatedEntities,
+    settledGateTrees,
     stopped,
     declinedCleanups,
     keptAirlockFacts,

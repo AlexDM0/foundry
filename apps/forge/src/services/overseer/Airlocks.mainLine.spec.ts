@@ -316,13 +316,13 @@ describe('a stale green', () => {
     rmSync(current.worktreeOf('001'), { recursive: true, force: true });
   }
 
-  test('a branch moved after its green loses mergeQueued, is gated in its own worktree with no slot held, and green queues and lands it', async () => {
+  test('a branch moved after its green is gated in its own worktree with no slot held, its mark kept while the gate is asked, and green queues and lands it', async () => {
     harness = harnessAnswering(MOVED_BRANCH);
     const current = harness;
     const seenAtTheGate: unknown[] = [];
     current.settings.beforeGate = () => seenAtTheGate.push([current.board.airlockHolderOf('main'), current.board.ticketIsMergeQueued('001')]);
     await current.slots.sweep();
-    expect(seenAtTheGate[0]).toEqual([undefined, false]);
+    expect(seenAtTheGate[0]).toEqual([undefined, true]);
     expect(current.gatedTrees[0]).toBe(MOVED_BRANCH_TREE);
     expect(kindsLogged(current, 'merge-queued')).toHaveLength(2);
     expect(current.board.tickets()[0]?.frontmatter.status).toBe('delivered');

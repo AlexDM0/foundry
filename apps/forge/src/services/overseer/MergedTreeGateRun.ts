@@ -42,7 +42,14 @@ function mergedTreeGateOf(verdict: EntityPipelinesVerdict, phase: GatePhase, sta
   };
 }
 
-/** The stamp names the forge's phase hash and, on a pipeline with entities, the phase hash of each entity that ran and of no other. */
+/** The forge's phase hash and, on a pipeline with entities, the phase hash of each gated entity and of no other; `null` with no pipeline. */
+export function mergedTreeGateStampOf(pipeline: Readonly<Pipeline> | null, phase: GatePhase, gatedEntities: readonly EntityKey[] | undefined): GateRunStamp | null {
+  if (pipeline === null) return null;
+  const { entities } = pipeline;
+  if (entities === undefined) return PipelineUtil.gateRunStampOf(pipeline, phase);
+  return PipelineUtil.entitiesGateRunStampOf(pipeline, phase, gatedEntities ?? Object.keys(entities));
+}
+
 export async function runMergedTreeGates(request: MergedTreeGateRunRequest): Promise<MergedTreeGate> {
   const {
     pipeline, phase, gatedEntities, runRequest, projectPrefix, runOnePipeline
@@ -51,7 +58,7 @@ export async function runMergedTreeGates(request: MergedTreeGateRunRequest): Pro
   if (pipeline !== null && entities !== undefined) {
     const entityKeys = gatedEntities ?? Object.keys(entities);
     const verdict    = await GateRun.runEntityPipelines(runRequest, GateRun.entityPipelinesOf(pipeline, entityKeys, phase), runOnePipeline);
-    return mergedTreeGateOf(verdict, phase, PipelineUtil.entitiesGateRunStampOf(pipeline, phase, entityKeys));
+    return mergedTreeGateOf(verdict, phase, mergedTreeGateStampOf(pipeline, phase, gatedEntities));
   }
   const verdict = await runOnePipeline({
     ...runRequest,
@@ -59,5 +66,5 @@ export async function runMergedTreeGates(request: MergedTreeGateRunRequest): Pro
     gates:   pipeline === null ? [] : PipelineUtil.gatesOfPhase(pipeline, phase),
     projectPrefix,
   });
-  return mergedTreeGateOf(verdict, phase, pipeline === null ? null : PipelineUtil.gateRunStampOf(pipeline, phase));
+  return mergedTreeGateOf(verdict, phase, mergedTreeGateStampOf(pipeline, phase, gatedEntities));
 }
