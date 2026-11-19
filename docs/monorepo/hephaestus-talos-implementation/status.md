@@ -63,6 +63,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### Assumptions to confirm
 
+- WP3.5: two processes write the heartbeat by read, check, write with no lock; in a Baton pass the predecessor can
+  overwrite the successor's first beat for one beat (15 s). Confirm with a real Baton pass.
 - WP2.32: the wording choices are assumptions 4, 5 and 9 of `stage-2-talos.md`'s 'Needs the owner' ("the option the
   agent recommends", `init` says "Ask an agent session (Claude Code)", the shell-network sentence, the `usage` help).
 - WP2.31 (only matters once an adapter declares `none`): Claude Code's own session writes are its config folder and
@@ -244,7 +246,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-N | WP2.18 | landed | 5ee91945 | First round. Recorded the missing boundaries (`PosixSocketEndpoint`, `UnsupportedLocalEndpoint`, `WindowsPipeEndpoint`, `GuardCommand`, `OverseerForeground`, `OverseerRemote`); retook every boundary earlier packages could not, all unchanged but start stamps (so those 'For tomorrow' retakes are closed). `ClaudeStreamFixtures.spec.ts` imports `createEndingRecognition` from Talos; `ImportDirection` now counts spec imports for unused lib dependencies, and claude-code declares talos. 18 boundaries have no darwin recording, the same 18 as on `main`. **Stage 2's verification:** its checker ran the end-to-end check on a scratch forge with the fake agent: steps 1-5 and 8-11 observed as the stage expects (step 1 has no renewal log line, none exists; step 2 had no install step and no review job), step 6 skipped (the classifier refused the throwaway protocol edit), step 7 waits on G1; `verify:integration` 852 pass, 0 fail |
 | 3-A | WP3.1 | landed | 82eec80e | First round. Causes `forge-stopped`, `forge-crashed` (not crash causes; also in the contract's `MONITOR_INTERRUPTION_CAUSES`); `ResumePolicy.ts` (`RESUME_POLICY_OF_CAUSE`, `WAITING_POLICIES`); records `start-classified`, `job-resume-instructed`. `StartKind`, `StartOrigin`, `START_KINDS`, `START_ORIGINS` live in the tracker model (`@types/Job.ts`, `JobStates.ts`): WP3.5 and WP3.6 import them. `Board.recordJobResumeInstructed` checks no interrupted state (WP3.2's `instructResume` builds on it). No system version raise (the stage's one raise comes later) |
 | 3-A | WP3.4 | landed | 2b4ed501 | First round. `ProcessSupervision.bootStartedAtEpochSeconds` (macOS `sysctl -n kern.boottime`, Linux `/proc/stat` `btime`, Windows and unsupported answer null: a crash suspected before a reboot is never judged on Windows). Frozen table gained a hand-written `bootStarts` section (its retake note says so). Linux never ran on a real `/proc/stat` |
-| 3-A | WP3.5 | waiting | | |
+| 3-A | WP3.5 | landed | de305d2b | First round, then rebased onto WP3.1 with the start types taken from the tracker model. `Presence.ts` (`readPresence`, `writeStartedPresence`, `writeEnding`, `readHeartbeat`, `writeHeartbeat`, `recordAbandonedPass`, `recordCompletedPass`), `PresenceLimits.ts`; `OverseerFiles` gains `presenceFilePath`, `heartbeatFilePath`, `crashLogDirectory`. `StartClassificationVerdict` lives in `@types/StartClassification.ts`, `AbandonedPassReason` in `@types/PresenceRecord.ts` (WP3.6 imports them). `startClassification` stays null until WP3.8. For WP3.6/WP3.8: a start that fails after the presence write (e.g. `talos-unavailable`) releases the Baton but leaves this generation's presence with ending null, which rule 7 might read as a crash |
 | 3-B | WP3.2 | waiting | | |
 | 3-B | WP3.6 | waiting | | |
 | 3-C | WP3.3 | waiting | | |
