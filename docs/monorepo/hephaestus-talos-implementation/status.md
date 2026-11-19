@@ -46,8 +46,23 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 - WP2.24: a real Windows session with an npm `claude.cmd` shim prints the repair sentence. `bun run record
   src/shared/Environment.ts` to restamp its recording (the agent was refused the record command).
 
+- WP2.25: with a real Claude Code session, a running build ended by Customs or `job stop` gets `quit-at-turn-end`, Talos
+  logs `close`, and the session ends at its turn end. Retake `bun run record src/lib/talos/Talos.ts` and
+  `bun run record src/lib/talos/LocalEndpointFor.ts` (agents were refused the record command).
+- WP2.26: answer a live question whose recommended option was echoed with its mark; a live multi-select answer; check a
+  live subscription's `rate_limit_event` windows (does `seven_day_opus` appear?).
+- WP2.27: in `apps/forge`, `bun run record src/services/overseer/GuardCommand.ts`; in a real guarded session, the
+  network guard and the stage edit guard still deny a call.
+
 ### Assumptions to confirm
 
+- WP2.25: a launch with no quit act gets a stop with `SESSION_STOP_GRACE_MILLISECONDS` (`TalosChildren.inputSentAndTaken`);
+  no shipping adapter has none today. Claude Code's `resumeFindsSessionByFolder: true` rests on the old `SessionPlace`
+  comment; confirm with a real resume.
+- WP2.26: window lengths `five_hour` 5 and `seven_day` 168, any other null (`USAGE_WINDOW_LENGTH_HOURS`); the mark is
+  echoed back as ` (Recommended)` (`RECOMMENDED_LABEL_MARK`), not as the asked label; a multi-select answer joins with
+  `, ` (`CHOSEN_LABELS_SEPARATOR`).
+- WP2.27: the guard's words are assumption 6 of 'Needs the owner' (`UNSTARTABLE_GUARD_WORDS`, the hook usage lines).
 - WP2.20: an install's steps are recorded once, in the hold that moves the job out of `preparing` (`settleInstall`),
   resting on a review's target catch-up holding the job in `preparing` across passes. Confirm on a live board.
 - WP2.14: a line that ends `paused` (a Talos clean quit) is never judged (`LinePausedError`): a merged-tree gate wakes
@@ -194,10 +209,10 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-L2 | WP2.22 | landed | 11a4867d | First round. `src/AgentBoundary.spec.ts` and Gaia's `src/AgentVendorNames.spec.ts`, built on today's tree: `ALLOWED_AGENT_LINES` 255 entries (two `Permanent:` at `cli/CommandContext.ts:11` and `:79`; WP2.23 39, WP2.24 21, WP2.25 6, WP2.26 8, WP2.27 40, WP2.28 19, WP2.29 48, WP2.30 43, WP2.32 29), `ALLOWED_TESTING_LINES` 79, `AGENT_EVIDENCE_FILES` 35, `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED` 16. A repeated line in one file is keyed ` [copy n]`. Each later package removes its own entries. Deviation from its Done-when ("no product code changed"): one comment in `src/lib/talos/ChildSupervisor.ts:60` reworded ("Read once" to "Asked once") because the plain-word form found it and no key may name Talos's folder |
 | 2-L3 | WP2.23 | landed | bc5390b9 | First round. Port operations `sessionSubagentsOf` and `subagentUsagesOf`; the latter answers `SubagentUsageAnswer { transcriptFolder, usages }` (not a bare list) so `usage` keeps naming the folder it read. Its WP2.23 guard entries (39 agent, 9 testing, 10 importers) are gone. The Done-when grep for `claudeConfigFolder` cannot print nothing yet: `claudeConfigFolderVariable` is WP2.24's, and the fake agent's `FakeAgentAdapter.ts:14` imports `claudeConfigFolderOf` (an adapter of the port). On a platform with no host facts (freebsd), the state read's live facts and `usage` now throw |
 | 2-L4 | WP2.24 | landed | efb1ecfe | Second round (first: the monitor's notice wording dropped the new `repair` fact). Port gains `AgentCredentials`, `credentials`, `programRepairOf`; Claude Code's values in `ClaudeCredentials.ts` and `ClaudeProgramRepair.ts`; seam `claudeCodeAdapterFor(platform, agentVariableOf)`; `Environment.ts` reads variables generically (`agentVariableOf`, `agentVariableIsSet`). The refused-program notice carries `repair`, worded on the CLI, the Bridge header, the questions view and the monitor snapshot. Billing step worded as assumption 1 of 'Needs the owner'. `docs/cli.md:2455` still names the Claude login and `ANTHROPIC_API_KEY` (WP2.17/WP2.32) |
-| 2-L5 | WP2.25 | waiting | | |
-| 2-L6 | WP2.26 | waiting | | |
-| 2-L7 | WP2.27 | waiting | | |
-| 2-L8 | WP2.28 | waiting | | |
+| 2-L5 | WP2.25 | landed | dbc96f8d | First round; built side by side with WP2.26-WP2.28 on the owner's speed-up. `AgentCapabilities.takesLiveAnswers` and `resumeFindsSessionByFolder`; `ChildInput` gains `quit-at-turn-end` and Talos protocol is 2; `instructionBundleLineOf` on the port. A launch with no quit act answers `no-quit-act`, and the Overseer then sends a stop (`TalosChildren.inputSentAndTaken`). Renames: `closeInputOfEndedJobs` is `quitSessionsOfEndedJobs`; test helper `ClientEntryLines.ts` is `SentActLines.ts`. `DrivePassRequest.deliversAnswersByControlResponse` is gone. Protocol 2 hand-set in the `OverseerServer.ts` recording. Leak left for WP2.30/WP2.32: the core still names the bundle a skill (`PRODUCT_OWNER_SKILL`) |
+| 2-L6 | WP2.26 | landed | 26593d75 | Second round. Neutral `isRecommended` on a question option (and an optional `askedLabel`, not in Interfaces, so notes keyed by the marked label still land); `asksUser`; a usage window's `lengthHours`. Stored decisions and `usage-windows.json` without the new fields read as malformed (no migration). `decisions` prints "(recommended)". Docs drift for WP2.17: `docs/reference/overseer-api.md:541`, `docs/cli.md:3030-3038` lack `lengthHours` |
+| 2-L7 | WP2.27 | landed | c9b85cab | First round. `ClaudeHookInput.toolCallOf` maps the vendor's tools to `AgentToolCall` (`shell`, `web-fetch`, `file-change`, `no-reach`, `unknown`); `toolCallDenialLineOf` on the port; the guard's `WorkerProfile.ts` carve-out is gone (no key under the port's folders). A text domain `.` is now denied. Leaks left: `BashDomainsHook.ts` names "auto mode's classifier"; `WorkerProfiles.ts` comments name Edit and Write; `apps/forge/CLAUDE.md` names Bash, WebFetch, Edit, Write (WP2.17) |
+| 2-L8 | WP2.28 | landed | 2299dc12 | First round. The port names `configurationNames` (`AgentConfigurationNames`) and `attributionPatterns`; Customs V13 and V7 and the denied roots take them from the adapter; `claudeFoldersOf` is `agentConfigurationFoldersOf`. Same behaviour as before. The three packages were stacked on WP2.25 by one agent (conflicts in `AgentBoundary.spec.ts` and the adapter files), checked with `git range-diff` against their passed commits |
 | 2-L9 | WP2.29 | waiting | | |
 | 2-L10 | WP2.30 | waiting | | |
 | 2-L11 | WP2.31 | waiting | | |
