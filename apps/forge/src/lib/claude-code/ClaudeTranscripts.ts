@@ -1,8 +1,9 @@
 /**
  * Where Claude Code keeps one repository's transcripts, and which of them belong to subagents. As the claude-code building block's
  * main module it also stands for its siblings, which merge and remove command hooks in a settings file, write and remove a marker-delimited
- * block in a `CLAUDE.md`, adapt Claude Code to the launcher port, and map its stream-json lines to the port's events.
- * The package depends on `src/lib/agent-launch`, `src/lib/atomic-file`, `src/lib/git`, `src/lib/json-record` and `src/lib/local-time`.
+ * block in a `CLAUDE.md`, adapt Claude Code to the launcher port, tally its transcripts into the port's subagent facts and usages, and map
+ * its stream-json lines to the port's events. The package depends on `src/lib/agent-launch`, `src/lib/atomic-file`, `src/lib/git` and
+ * `src/lib/json-record`.
  */
 import type { Dirent }               from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';

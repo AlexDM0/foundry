@@ -520,9 +520,8 @@ Every `target` is `null` when the reading carries no merge forecasting.
 ## Job live facts
 
 `jobs[].live` says what a running job has done so far, read fresh on every state read. Its
-[event logs](../glossary.md#event-log) are read through the agent adapter's mapper; the one exception is
-`src/services/overseer/ClaudeTranscripts.ts`, which parses Claude Code's transcript format directly to rebuild a lost
-subagent. A malformed log adds nothing and does not fail the state.
+[event logs](../glossary.md#event-log) are read through the agent adapter's mapper, and a lost subagent through the
+adapter's `sessionSubagentsOf`. A malformed log adds nothing and does not fail the state.
 
 | Field | Meaning | Read from |
 | --- | --- | --- |
@@ -551,7 +550,7 @@ restarts after a [red handoff](../glossary.md#red-handoff), when the session has
 during a red-handoff resume neither `live.calls` nor `live.callBudget` is the pair compared.
 
 Subagents are grouped by `parentToolUseId`. An event log can lose one after a crash or reboot, so
-`ClaudeTranscripts.ts` rebuilds it from Claude Code's own transcripts, see
+the adapter rebuilds it from the agent's own transcripts (`src/lib/claude-code/ClaudeSessionSubagents.ts`), see
 [The Claude probe](../development/overseer-claude-probe.md). A subagent whose `.meta.json` names a parent call the log
 already tallied is skipped unread.
 
@@ -910,7 +909,7 @@ and `session-lost`, and follows `navigate`.
 | Publishing | `cli/overseer/OverseerForeground.ts` | `publishState` inside `startServing` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Live facts | `src/services/overseer/JobLiveFactsReader.ts` | `JobLiveFactsReader` | `src/services/overseer/JobLiveFactsReader.spec.ts` |
 | The count against a budget | `src/services/overseer/JobLaunch.ts` | `sessionReadingOf` | |
-| Lost subagents | `src/services/overseer/ClaudeTranscripts.ts` | `ClaudeTranscripts.subagentFactsOf` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
+| Lost subagents | `src/lib/claude-code/ClaudeSessionSubagents.ts` | `ClaudeSessionSubagents.subagentFactsOf` | `src/lib/claude-code/ClaudeSessionSubagents.spec.ts` |
 | Transcript | `src/services/overseer/JobTranscript.ts` | `JobTranscript` | `src/services/overseer/OverseerServer.integration.spec.ts` |
 | Gate profile stream | `src/services/overseer/OverseerServer.ts`, `src/services/overseer/GateProfiling.ts` | `profileOutputResponse`, `GateProfiling.outputFollowerOf` | `src/services/overseer/OverseerServer.spec.ts`, `src/services/overseer/GateProfiling.outputFollower.spec.ts` |
 | Transcript entry | `src/shared/@types/TranscriptEntry.ts` | `TranscriptEntry`, `TranscriptRole`, `TranscriptPicture` | |

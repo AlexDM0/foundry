@@ -1,11 +1,11 @@
 /** What `usage` prints for a person: one row per agent, then one line per cohort. */
-import type { CohortSummary } from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
 import { LocalTimeUtil }      from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { TokenCountUtil }     from '../../../src/lib/token-count/TokenCountUtil.ts';
 import { LIMITS }             from '../../../src/shared/constants/Limits.ts';
 import { TIMESTAMP_SLICES }   from '../../../src/shared/constants/TimestampSlices.ts';
 import { OutputUtil }         from '../../utils/OutputUtil.ts';
 import type { AgentUsage }    from './UsageAgents.ts';
+import type { CohortSummary } from './utils/UsageCohortUtil.ts';
 
 const MEAN_CALL_COUNT_DECIMALS = 1;
 

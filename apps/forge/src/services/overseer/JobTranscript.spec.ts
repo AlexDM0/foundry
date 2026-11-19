@@ -21,11 +21,11 @@ import {
 } from 'bun:test';
 
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { CLAUDE_STREAM_LINES }                            from '../../lib/claude-code/ClaudeStreamLines.ts';
 import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { TranscriptEntry }                           from '../../shared/@types/TranscriptEntry.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
@@ -33,6 +33,9 @@ import { JobTranscript, type TranscriptSenderFacts }      from './JobTranscript.
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 
 const scratchDirectories: string[] = [];
+
+/** The fake agent, an adapter of the port: it writes and reads the session's lines as the shipped adapter does. */
+const AGENT_LINES = fakeAgentAdapter();
 
 afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
@@ -54,11 +57,11 @@ const EXAMPLE_PICTURE_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0
 const EXAMPLE_PICTURE_ID = createHash('sha256').update(EXAMPLE_PICTURE_BYTES).digest('hex');
 
 function chat(text: string): LoggedLine {
-  return { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf(text) } };
+  return { origin: 'client', frame: { act: 'write-line', line: AGENT_LINES.chatLineOf(text) } };
 }
 
 function answer(requestId: string, answers: Readonly<Record<string, string>>): LoggedLine {
-  return { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.answerLineOf(requestId, [QUESTION], answers) } };
+  return { origin: 'client', frame: { act: 'write-line', line: AGENT_LINES.answerLineOf(requestId, [QUESTION], answers) } };
 }
 
 function agent(...events: AgentSessionEvent[]): LoggedLine {
@@ -97,7 +100,7 @@ function transcriptOf(
   const { entries } = JobTranscript.entriesAfter(jobFolder, newestInstance, JobTranscript.cursorOf(after) ?? { instance: 1, sequence: 0 }, {
     eventsAfter:   talosChildReadingsWith(nativePlatformPorts()).eventsAfter,
     eventsOf:      (line) => JSON.parse(line) as AgentSessionEvent[],
-    sentLineOf:    CLAUDE_STREAM_LINES.sentLineOf,
+    sentLineOf:    AGENT_LINES.sentLineOf,
     senderFactsOf: () => {
       senderFactReads += 1;
       return senderFacts;
@@ -168,7 +171,7 @@ describe('a build job\'s client lines', () => {
 
   test('read an interrupt, a closed input and a stop as the Overseer\'s acts, with no text', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[
-      { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.interruptLineOf() } },
+      { origin: 'client', frame: { act: 'write-line', line: AGENT_LINES.interruptLineOf() } },
       { origin: 'client', frame: { act: 'close' } },
       { origin: 'client', frame: { act: 'stop', graceMilliseconds: 5000 } },
     ]]);
@@ -199,7 +202,7 @@ describe('a build job\'s client lines', () => {
 describe('a product owner\'s pictures', () => {
   test('a chat with a picture carries its id, name, type and size, and no base64; a chat without one carries no pictures key', () => {
     const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
-    const withPicture = CLAUDE_STREAM_LINES.chatLineOf('Make the header like this.', [picture]);
+    const withPicture = AGENT_LINES.chatLineOf('Make the header like this.', [picture]);
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
       chat('File the basket ticket.'), { origin: 'client', frame: { act: 'write-line', line: withPicture } },
     ]]);
@@ -219,7 +222,7 @@ describe('a product owner\'s pictures', () => {
   test('a picture no record of the job names reads with a null name', () => {
     const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
-      { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf('', [picture]) } },
+      { origin: 'client', frame: { act: 'write-line', line: AGENT_LINES.chatLineOf('', [picture]) } },
     ]]);
     expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries[0]?.pictures).toEqual([{
       pictureId: EXAMPLE_PICTURE_ID, name: null, mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES.length

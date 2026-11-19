@@ -1,12 +1,13 @@
 /**
  * A job's live facts from its Talos event log. What matters: `toolCalls` counts only top-level `tool-call` events, each subagent (by
  * `parentToolUseId`) keeps its own count and last call, `toolCallsWithSubagents` adds them up, `lastToolCall` is the newest call stamped
- * with its log entry's `at` and `running` until its result arrives, and `calls` stays the top-level API turns the budget is held against.
- * A subagent runs until its parent call's result and carries that call's description. After a crash a subagent the log lost is rebuilt
- * from the session's transcripts, in every project folder that holds the session, under a scratch config folder, never the real
- * `~/.claude`. The turn reads the newest instance's chats against its results (the Assistant's, its idle rule), the waiting messages read
- * the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never the Overseer's, read
- * without decoding a picture. The usage window is the newest the session reported, so the monitor shows the window it is in.
+ * with its log entry's `at` and `running` until its result arrives, and `calls` stays the top-level API turns the budget is held against. A
+ * subagent runs until its parent call's result and carries that call's description. After a crash a subagent the log lost is the one the
+ * adapter rebuilt from the session's transcripts, asked for past the parent calls the log tallied; the fake agent answers what the spec
+ * plants and reads no transcript. The turn reads the newest instance's chats against its results (the Assistant's, its idle rule), the
+ * waiting messages read the markers their sender writes, and a session's last line is its newest own words or User's newest chat, never the
+ * Overseer's, read without decoding a picture. The usage window is the newest the session reported, so the monitor shows the window it is
+ * in.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -18,14 +19,14 @@ import {
 } from 'bun:test';
 
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { CLAUDE_STREAM_LINES }                            from '../../lib/claude-code/ClaudeStreamLines.ts';
-import { transcriptFolderFor }                            from '../../lib/claude-code/ClaudeTranscripts.ts';
+import type { SubagentFacts }                             from '../../lib/agent-launch/AgentTranscripts.ts';
 import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Incident }                                  from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';
+import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
@@ -40,6 +41,9 @@ afterEach(() => {
 });
 
 const EXAMPLE_JOB = { id: 'J1', kind: 'build', childInstance: 1 } as unknown as Readonly<Job>;
+
+/** The fake agent, an adapter of the port: it writes and reads the session's lines as the shipped adapter does. */
+const AGENT_LINES = fakeAgentAdapter();
 
 function toolCall(toolUseId: string, toolName: string, parentToolUseId: string | null, description: string | null = null): AgentSessionEvent {
   return {
@@ -74,7 +78,7 @@ const RESULT: AgentSessionEvent = {
 type LoggedLine = AgentSessionEvent | ClientEntry;
 
 function chat(text: string): ClientEntry {
-  return { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf(text) };
+  return { act: 'write-line', line: AGENT_LINES.chatLineOf(text) };
 }
 
 function messaged(jobId: string, text: string): LogRecord {
@@ -103,20 +107,15 @@ function scratchDirectoryFor(prefix: string): string {
   return directory;
 }
 
-/** A Claude Code subagent transcript under a scratch config folder: a tool call answered, a second left open, and one API turn of 100 tokens. */
-function writeSubagentTranscript(claudeConfigFolder: string, workingDirectory: string, agentId: string, parentToolUseId: string, description: string | null = null): void {
-  const subagentsFolder = join(transcriptFolderFor(workingDirectory, claudeConfigFolder), EXAMPLE_SESSION_ID, 'subagents');
-  mkdirSync(subagentsFolder, { recursive: true });
-  const usage = {
-    input_tokens: 40, output_tokens: 10, cache_creation_input_tokens: 20, cache_read_input_tokens: 30
+/** A subagent the adapter rebuilt from its transcript: a tool call answered, a second left open, and one API turn of 100 tokens. */
+function rebuiltSubagent(parentToolUseId: string, description: string | null = null): SubagentFacts {
+  return {
+    parentToolUseId,
+    toolCalls:    2,
+    lastToolCall: { toolName: 'Grep', startedAt: '2026-10-29T13:00:03Z', running: true },
+    tokens:       100,
+    description,
   };
-  const lines = [
-    { type: 'assistant', timestamp: '2026-10-29T13:00:01Z', message: { id: `${agentId}-message`, usage, content: [{ type: 'tool_use', id: `${agentId}-call-1`, name: 'Read' }] } },
-    { type: 'user', timestamp: '2026-10-29T13:00:02Z', message: { content: [{ type: 'tool_result', tool_use_id: `${agentId}-call-1` }] } },
-    { type: 'assistant', timestamp: '2026-10-29T13:00:03Z', message: { id: `${agentId}-message`, usage, content: [{ type: 'tool_use', id: `${agentId}-call-2`, name: 'Grep' }] } },
-  ];
-  writeFileSync(join(subagentsFolder, `agent-${agentId}.jsonl`), lines.map((line) => JSON.stringify(line)).join('\n'));
-  writeFileSync(join(subagentsFolder, `agent-${agentId}.meta.json`), JSON.stringify({ toolUseId: parentToolUseId, ...description === null ? {} : { description } }));
 }
 
 /** Each instance's lines into its own event log in the job's folder, stamped in order across instances; an event is one agent line. */
@@ -135,34 +134,34 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
   return jobFolder;
 }
 
-function liveFactsSourceOf(trackerDirectory: string, readingBoard: ReadingBoard = {}): JobLiveFactsSource {
+/** The adapter's transcript read answers the planted subagents its session lost, as the fake agent answers what a spec plants. */
+function liveFactsSourceOf(trackerDirectory: string, readingBoard: ReadingBoard = {}, lostSubagents: readonly SubagentFacts[] = []): JobLiveFactsSource {
   return {
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     trackerDirectory,
-    adapter:       { eventsOf: EVENTS_OF_ONE_EVENT_PER_LINE, sentLineOf: CLAUDE_STREAM_LINES.sentLineOf },
-    board:         { logRecordsSoFar: () => readingBoard.logRecords ?? [], incidents: () => readingBoard.incidents ?? [] },
+    adapter:       {
+      eventsOf:           EVENTS_OF_ONE_EVENT_PER_LINE,
+      sentLineOf:         AGENT_LINES.sentLineOf,
+      sessionSubagentsOf: fakeAgentAdapter(undefined, undefined, { sessionSubagents: lostSubagents }).sessionSubagentsOf,
+    },
+    board: { logRecordsSoFar: () => readingBoard.logRecords ?? [], incidents: () => readingBoard.incidents ?? [] },
   };
 }
 
-function scratchSessionOf(claudeConfigFolder: string | null = null): { claudeConfigFolder: string; sessionId: string } {
-  return { claudeConfigFolder: claudeConfigFolder ?? scratchDirectoryFor('live-facts-claude-config'), sessionId: EXAMPLE_SESSION_ID };
-}
+const EXAMPLE_SESSION = { homeDirectory: '/example/home', sessionId: EXAMPLE_SESSION_ID };
 
 /** The live facts of `job` (J1, a build, by default) in a scratch tracker whose Talos logged one list of lines per instance. */
 function liveFactsOfLoggedLines(linesByInstance: readonly (readonly LoggedLine[])[], job: Readonly<Job> = EXAMPLE_JOB, readingBoard: ReadingBoard = {}) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   writeEventLogs(trackerDirectory, job.id, linesByInstance);
-  return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, readingBoard), job, scratchSessionOf());
+  return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, readingBoard), job, EXAMPLE_SESSION);
 }
 
 /** A scratch tracker whose job J1 logged each event as one agent line, stamped in order; the mapper reads a line as the event itself. */
-function liveFactsOfLoggedEvents(
-  events: readonly AgentSessionEvent[],
-  claudeConfigFolder: string | null = null,
-) {
+function liveFactsOfLoggedEvents(events: readonly AgentSessionEvent[], lostSubagents: readonly SubagentFacts[] = []) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [events]);
-  return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory), EXAMPLE_JOB, scratchSessionOf(claudeConfigFolder));
+  return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, {}, lostSubagents), EXAMPLE_JOB, EXAMPLE_SESSION);
 }
 
 describe('JobLiveFactsReader', () => {
@@ -224,50 +223,59 @@ describe('JobLiveFactsReader', () => {
       .toMatchObject([{ state: 'ended', description: 'Example basket badge audit' }]);
   });
 
-  test('after a crash the event log lost its subagents, the session\'s two subagent transcripts list both with their tallies, added to the totals', () => {
-    const claudeConfigFolder = scratchDirectoryFor('live-facts-claude-config');
-    const workingDirectory   = '/example/worktrees/ticket-1';
-    writeSubagentTranscript(claudeConfigFolder, workingDirectory, 'alpha', 'call-2');
-    writeSubagentTranscript(claudeConfigFolder, workingDirectory, 'beta', 'call-3');
+  test('after a crash the event log lost its subagents, the two the adapter rebuilt from the session\'s transcripts are listed, added to the totals', () => {
     const facts = liveFactsOfLoggedEvents([
       assistantTurn('message-1', null),
       toolCall('call-2', 'Agent', null),
       toolCall('call-3', 'Agent', null),
-    ], claudeConfigFolder);
-    const rebuiltSubagent = {
+    ], [rebuiltSubagent('call-2'), rebuiltSubagent('call-3')]);
+    const rebuiltFacts = {
       toolCalls: 2, lastToolCall: { toolName: 'Grep', startedAt: '2026-10-29T13:00:03Z', running: true }, tokens: 100, state: 'running' as const, description: null
     };
-    expect(facts.subagents).toEqual([{ parentToolUseId: 'call-2', ...rebuiltSubagent }, { parentToolUseId: 'call-3', ...rebuiltSubagent }]);
+    expect(facts.subagents).toEqual([{ parentToolUseId: 'call-2', ...rebuiltFacts }, { parentToolUseId: 'call-3', ...rebuiltFacts }]);
     expect(facts.toolCalls).toBe(2);
     expect(facts.toolCallsWithSubagents).toBe(6);
     expect(facts.tokens).toBe(215);
     expect(facts.calls).toBe(1);
   });
 
-  test('a subagent the event log holds is read from the log alone, and only the one it lost comes from its transcript', () => {
-    const claudeConfigFolder = scratchDirectoryFor('live-facts-claude-config');
-    writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'alpha', 'call-2');
-    writeSubagentTranscript(claudeConfigFolder, '/example/sessions/J1', 'beta', 'call-3');
+  test('a subagent the event log holds is read from the log alone, and only the one it lost comes from the adapter', () => {
     const facts = liveFactsOfLoggedEvents([
       toolCall('call-2', 'Agent', null),
       assistantTurn('message-2', 'call-2'),
       toolCall('sub-1', 'Bash', 'call-2'),
-    ], claudeConfigFolder);
+    ], [rebuiltSubagent('call-2'), rebuiltSubagent('call-3')]);
     expect(facts.subagents.map((subagent) => [subagent.parentToolUseId, subagent.toolCalls, subagent.tokens])).toEqual([['call-2', 1, 15], ['call-3', 2, 100]]);
     expect(facts.toolCallsWithSubagents).toBe(4);
   });
 
-  test('a rebuilt subagent takes its description from its .meta.json, and reads ended once its parent call is answered or the log lost that call', () => {
-    const claudeConfigFolder = scratchDirectoryFor('live-facts-claude-config');
-    writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'alpha', 'call-2', 'Example checkout audit');
-    writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'beta', 'call-3');
-    writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'gamma', 'call-4');
-    const facts = liveFactsOfLoggedEvents([toolCall('call-2', 'Agent', null), toolCall('call-3', 'Agent', null), toolResult('call-3', null)], claudeConfigFolder);
+  test('a rebuilt subagent keeps the description the adapter read, and reads ended once its parent call is answered or the log lost that call', () => {
+    const lostSubagents = [rebuiltSubagent('call-2', 'Example checkout audit'), rebuiltSubagent('call-3'), rebuiltSubagent('call-4')];
+    const facts = liveFactsOfLoggedEvents([toolCall('call-2', 'Agent', null), toolCall('call-3', 'Agent', null), toolResult('call-3', null)], lostSubagents);
     expect(facts.subagents.map(({ parentToolUseId, state, description }) => ({ parentToolUseId, state, description }))).toEqual([
       { parentToolUseId: 'call-2', state: 'running', description: 'Example checkout audit' },
       { parentToolUseId: 'call-3', state: 'ended', description: null },
       { parentToolUseId: 'call-4', state: 'ended', description: null },
     ]);
+  });
+
+  test('the adapter is asked for the job session\'s subagents on its home, past the parent calls the log already tallied', () => {
+    const trackerDirectory = scratchDirectoryFor('live-facts');
+    writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [[toolCall('call-2', 'Agent', null), assistantTurn('message-2', 'call-2')]]);
+    const asked: [string, string, string[]][] = [];
+    const source = liveFactsSourceOf(trackerDirectory);
+    const askingSource: JobLiveFactsSource = {
+      ...source,
+      adapter: {
+        ...source.adapter,
+        sessionSubagentsOf: (homeDirectory, sessionId, talliedParentToolUseIds) => {
+          asked.push([homeDirectory, sessionId, [...talliedParentToolUseIds]]);
+          return [];
+        },
+      },
+    };
+    JobLiveFactsReader.liveFactsOf(askingSource, EXAMPLE_JOB, EXAMPLE_SESSION);
+    expect(asked).toEqual([['/example/home', EXAMPLE_SESSION_ID, ['call-2']]]);
   });
 });
 
@@ -299,7 +307,7 @@ describe('the turn', () => {
   });
 
   test('an answer to a question starts no turn', () => {
-    const answerLine = CLAUDE_STREAM_LINES.answerLineOf('request-1', [], { 'Which colour?': 'Blue' });
+    const answerLine = AGENT_LINES.answerLineOf('request-1', [], { 'Which colour?': 'Blue' });
     expect(liveFactsOfLoggedLines([[chat('Example first message'), RESULT, { act: 'write-line', line: answerLine }]]).turn).toBe('between-turns');
   });
 
@@ -335,7 +343,7 @@ describe('the messages waiting', () => {
     mkdirSync(join(jobFolder, 'control-frames'), { recursive: true });
     writeFileSync(join(jobFolder, 'control-frames', 'message-1'), '');
     const logRecords = [messaged('J1', 'Use the tokens file.'), messaged('J2', 'Another job\'s message.'), messaged('J1', 'And the dark theme.')];
-    expect(JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, { logRecords }), EXAMPLE_JOB, scratchSessionOf()).messagesWaiting).toBe(1);
+    expect(JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, { logRecords }), EXAMPLE_JOB, EXAMPLE_SESSION).messagesWaiting).toBe(1);
   });
 
   test('the Assistant\'s messages count until the chat that carries each was taken', () => {
@@ -351,7 +359,7 @@ describe('the messages waiting', () => {
     mkdirSync(join(jobFolder, 'assistant-frames'), { recursive: true });
     writeFileSync(join(jobFolder, 'assistant-frames', 'chat-2'), '');
     const logRecords = ['First example message.', 'Second example message.', 'Third example message.'].map((text) => messaged(assistant.id, text));
-    expect(JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, { logRecords }), assistant, scratchSessionOf()).messagesWaiting).toBe(2);
+    expect(JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory, { logRecords }), assistant, EXAMPLE_SESSION).messagesWaiting).toBe(2);
   });
 });
 
@@ -381,7 +389,7 @@ describe('the last line', () => {
 
   test('the last line reads no picture: a chat\'s pictures are neither decoded nor hashed on a facts read', () => {
     const trackerDirectory = scratchDirectoryFor('live-facts');
-    const pictureChat: ClientEntry = { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf('Like this.', [{ mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' }]) };
+    const pictureChat: ClientEntry = { act: 'write-line', line: AGENT_LINES.chatLineOf('Like this.', [{ mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' }]) };
     writeEventLogs(trackerDirectory, productOwner.id, [[...intake, pictureChat]]);
     let pictureReads = 0;
     const source = liveFactsSourceOf(trackerDirectory, { logRecords: [messaged('J7', 'The checkout pages.'), messaged('J7', 'Like this.')] });
@@ -390,7 +398,7 @@ describe('the last line', () => {
       adapter: {
         ...source.adapter,
         sentLineOf: (line) => {
-          const sent = CLAUDE_STREAM_LINES.sentLineOf(line);
+          const sent = AGENT_LINES.sentLineOf(line);
           if (sent?.act !== 'chat') return sent;
           return {
             ...sent,
@@ -405,7 +413,7 @@ describe('the last line', () => {
         },
       },
     };
-    expect(JobLiveFactsReader.liveFactsOf(countingSource, productOwner, scratchSessionOf()).lastLine).toMatchObject({ role: 'user', text: 'Like this.' });
+    expect(JobLiveFactsReader.liveFactsOf(countingSource, productOwner, EXAMPLE_SESSION).lastLine).toMatchObject({ role: 'user', text: 'Like this.' });
     expect(pictureReads).toBe(0);
   });
 

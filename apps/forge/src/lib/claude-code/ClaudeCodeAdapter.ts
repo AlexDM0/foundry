@@ -15,12 +15,14 @@ import type { AgentHostFacts }                 from './AgentHostFacts.ts';
 import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
 import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
+import { ClaudeSessionSubagents }              from './ClaudeSessionSubagents.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
   CLAUDE_CODE_SESSION_ENDINGS,
   CLAUDE_CODE_STANDING_REPLIES,
   CLAUDE_STREAM_LINES
 } from './ClaudeStreamLines.ts';
+import { ClaudeSubagentUsages } from './ClaudeSubagentUsages.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
 const CLAUDE_PROGRAM_NAME = 'claude';
@@ -346,6 +348,12 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
     planOf:                 (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
     sessionIdOf:            claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
+    sessionSubagentsOf:     (homeDirectory, sessionId, talliedParentToolUseIds) => ClaudeSessionSubagents.subagentFactsOf(
+      configFolderOf(homeDirectory),
+      sessionId,
+      talliedParentToolUseIds,
+    ),
+    subagentUsagesOf: (request) => ClaudeSubagentUsages.subagentUsagesOf(configFolderOf(request.homeDirectory), request),
   });
 }
 

@@ -12,7 +12,6 @@ import { claudeCodeAdapterFor }                 from '../src/lib/claude-code/Cla
 import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState, type RenderState }  from '../src/services/render/RenderState.ts';
 import {
-  claudeConfigFolder,
   claudeConfigFolderVariable,
   executableSearchPath,
   fakeAgentEndsOnNetworkOutage,
@@ -50,10 +49,8 @@ export interface CommandContext {
   platform:                string;
   /** Every OS-dependent capability, chosen once from the platform; a spec passes any record. */
   platformPorts:           PlatformPorts;
-  /** `node:os`'s `homedir()`, carried here so a spec can point the Claude Code transcripts at a scratch tree. */
+  /** `node:os`'s `homedir()`, carried here so a spec can point the agent's transcripts at a scratch tree. */
   homeDirectory:           string;
-  /** Claude Code's user folder for this process, `CLAUDE_CONFIG_DIR` or `<home>/.claude`, which its transcripts are read from. */
-  claudeConfigFolder:      string;
   /** The folders of this process's `PATH`, which a gate's `--writes` folder never makes writable. */
   executableSearchPath:    readonly string[];
   /** `DataFolders.temporaryRoots()`: a tracker under any of them is a scratch one the monitor registry leaves out. */
@@ -139,7 +136,6 @@ export function createProcessContext(): CommandContext {
     platform:                process.platform,
     platformPorts,
     homeDirectory:           homedir(),
-    claudeConfigFolder:      claudeConfigFolder(homedir()),
     executableSearchPath:    executableSearchPath(),
     temporaryDirectories:    platformPorts.dataFolders.temporaryRoots(),
     commandVerb:             '',

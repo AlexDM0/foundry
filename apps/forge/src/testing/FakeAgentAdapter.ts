@@ -6,16 +6,19 @@
  */
 import { join } from 'node:path';
 
-import type { AgentAdapter }       from '../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }    from '../lib/agent-launch/AgentLaunchPlan.ts';
-import type { AgentLaunchRequest } from '../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }      from '../lib/agent-launch/AgentSessionEvent.ts';
+import type { AgentAdapter }                 from '../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }              from '../lib/agent-launch/AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }           from '../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                from '../lib/agent-launch/AgentSessionEvent.ts';
+import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
+import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
   CLAUDE_CODE_SESSION_ENDINGS,
   CLAUDE_CODE_STANDING_REPLIES,
   CLAUDE_STREAM_LINES
 } from '../lib/claude-code/ClaudeStreamLines.ts';
+import { transcriptFolderFor }               from '../lib/claude-code/ClaudeTranscripts.ts';
 import { recordedLineOf, recordedSessionOf } from './fake-agent/RecordedClaudeLines.ts';
 
 export type FakeAgentStep =
@@ -149,7 +152,20 @@ export type FakeSessionPlanner = (request: AgentLaunchRequest) => readonly FakeA
 
 const PLANS_NO_SESSION: FakeSessionPlanner = () => null;
 
-export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS, sessionPlanner: FakeSessionPlanner = PLANS_NO_SESSION): AgentAdapter {
+/**
+ * What a spec plants for the two transcript reads. The fake writes no transcript, so unplanted it answers none, as Claude Code answers on
+ * the scratch home a fake runs in, and it never reads the vendor's folder whatever the environment names.
+ */
+export interface FakeAgentTranscripts {
+  readonly sessionSubagents?: readonly SubagentFacts[];
+  readonly subagentUsages?:   readonly SubagentUsage[];
+}
+
+export function fakeAgentAdapter(
+  steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGENT_STEPS,
+  sessionPlanner: FakeSessionPlanner = PLANS_NO_SESSION,
+  plantedTranscripts: FakeAgentTranscripts = {},
+): AgentAdapter {
   return {
     vendor:                 FAKE_AGENT_VENDOR,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
@@ -171,7 +187,14 @@ export function fakeAgentAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_
         ...CLAUDE_CODE_SESSION_ENDINGS,
       };
     },
-    sessionIdOf: (scope, jobId) => `fake-${scope}-${jobId}`,
+    sessionIdOf:        (scope, jobId) => `fake-${scope}-${jobId}`,
     ...CLAUDE_STREAM_LINES,
+    sessionSubagentsOf: (_homeDirectory, _sessionId, talliedParentToolUseIds) => (plantedTranscripts.sessionSubagents ?? [])
+      .filter((subagent) => !talliedParentToolUseIds.has(subagent.parentToolUseId)),
+    // The folder Claude Code names for the project on a home with no folder variable; the fake only names it and reads nothing there.
+    subagentUsagesOf: (request) => ({
+      transcriptFolder: request.transcriptFolder ?? transcriptFolderFor(request.projectRoot, claudeConfigFolderOf(request.homeDirectory, undefined)),
+      usages:           plantedTranscripts.subagentUsages ?? [],
+    }),
   };
 }

@@ -178,8 +178,8 @@ never carries it.
 
   usage [--since <when>]      What this project's subagents cost, read out of the transcripts the
       [--transcripts <folder>]
-      [--json]                harness wrote for them, a workflow's agents under
-                              \`subagents/workflows/<run>/\` included: one row per agent, oldest
+      [--json]                agent wrote for them, a workflow's agents included: one row per
+                              agent, oldest
                               first, with its start, its API calls, its end context, its input and
                               output, its browser calls, the characters the harness injected into
                               it and the first line of its brief; then the cohort summary — median

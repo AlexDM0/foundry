@@ -1,7 +1,7 @@
 /**
  * A job's live facts as the Overseer's API shows them, read from its Talos event logs through the adapter's mapper: API turns against
- * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt from
- * the session's transcripts; whether a turn is under way, User's messages not yet sent, a session's last line, and the newest usage window
+ * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt by the
+ * adapter from the session's transcripts; whether a turn is under way, User's messages not yet sent, a session's last line, and the newest usage window
  * the session reported. The stamps are only recorded and shown: no Overseer decision reads them.
  */
 
@@ -15,7 +15,6 @@ import type { TranscriptEntry, TranscriptRole } from '../../shared/@types/Transc
 import { AssistantBoot }                        from './AssistantBoot.ts';
 import { AssistantSession }                     from './AssistantSession.ts';
 import type { BoardChildren }                   from './BoardChildren.ts';
-import { ClaudeTranscripts }                    from './ClaudeTranscripts.ts';
 import { JobControlDelivery }                   from './JobControlDelivery.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { JobTranscript }                        from './JobTranscript.ts';
@@ -35,7 +34,7 @@ export interface SubagentLiveFacts {
   tokens:          number;
   /** `running` while the parent call that spawned it has no result; a subagent whose parent call the log does not hold reads `ended`. */
   state:           SubagentState;
-  /** The parent call's `description` input, or the one its `.meta.json` names; `null` without one. */
+  /** The parent call's `description` input, or the one its agent recorded beside its transcript; `null` without one. */
   description:     string | null;
 }
 
@@ -90,7 +89,7 @@ export interface JobLiveFacts {
 export interface JobLiveFactsSource {
   boardChildren:    BoardChildren;
   trackerDirectory: string;
-  adapter:          Pick<AgentAdapter, 'eventsOf' | 'sentLineOf'>;
+  adapter:          Pick<AgentAdapter, 'eventsOf' | 'sentLineOf' | 'sessionSubagentsOf'>;
   board:            Pick<Board, 'logRecordsSoFar' | 'incidents'>;
 }
 
@@ -99,10 +98,10 @@ export interface StampedEvents {
   events: readonly AgentSessionEvent[];
 }
 
-/** Where the job's session keeps its transcripts: the Claude Code config folder from the command context, and the session id its adapter derived. */
+/** Whose transcripts the adapter reads for the job's session: the home folder from the command context, and the session id its adapter derived. */
 export interface JobSession {
-  claudeConfigFolder: string;
-  sessionId:          string;
+  homeDirectory: string;
+  sessionId:     string;
 }
 
 type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messagesWaiting' | 'lastLine' | 'usageWindow'>;
@@ -277,10 +276,11 @@ function withTranscriptSubagents(counts: JobLiveCounts, transcriptSubagents: rea
 }
 
 /** Found by the session id, so every folder a resumed session worked in is covered, whatever spelling its working directory had. */
-function lostSubagentsOf(session: JobSession, tally: EventLogTally): SubagentLiveFacts[] {
+function lostSubagentsOf(source: JobLiveFactsSource, session: JobSession, tally: EventLogTally): SubagentLiveFacts[] {
   const tallied = new Set(tally.counts.subagents.map((subagent) => subagent.parentToolUseId));
   const stateOf = (parentToolUseId: string): SubagentState => subagentStateOf(parentToolUseId, tally.calledToolUseIds, tally.answeredToolUseIds);
-  return ClaudeTranscripts.subagentFactsOf(session, tallied).map((subagent) => ({ ...subagent, state: stateOf(subagent.parentToolUseId) }));
+  return source.adapter.sessionSubagentsOf(session.homeDirectory, session.sessionId, tallied)
+    .map((subagent) => ({ ...subagent, state: stateOf(subagent.parentToolUseId) }));
 }
 
 function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: JobSession): JobLiveFacts {
@@ -292,7 +292,7 @@ function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: Jo
   return {
     jobId:           job.id,
     callBudget:      BUDGETED_JOB_KINDS.includes(job.kind) ? JobLaunch.callBudgetOf(job) : null,
-    ...withTranscriptSubagents(tally.counts, lostSubagentsOf(session, tally)),
+    ...withTranscriptSubagents(tally.counts, lostSubagentsOf(source, session, tally)),
     turn:            turnOf(source, job, entriesByInstance.at(-1) ?? []),
     messagesWaiting: JobControlDelivery.unsentMessageCountOf(source.board, source.trackerDirectory, job),
     lastLine:        lastLineOf(source, job),

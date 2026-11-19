@@ -327,7 +327,7 @@ version](#install-version), which a person bumps.
 ### cohort
 
 One group of agents summarised on a line of `usage`: `All`, plus the groups before and after the instant `--since` names
-(`TranscriptCohortUtil.cohortSplitAt`).
+(`UsageCohortUtil.cohortSplitAt`).
 
 ### commit point
 

@@ -171,8 +171,8 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
     renderMarkdown: context.renderState.markdownRenderer.renderMarkdown,
     liveFactsOf:    (job) => ({
       ...JobLiveFactsReader.liveFactsOf(liveFactsSource, job, {
-        claudeConfigFolder: context.claudeConfigFolder,
-        sessionId:          context.agentAdapter.sessionIdOf(progress.trackerId, job.id),
+        homeDirectory: context.homeDirectory,
+        sessionId:     context.agentAdapter.sessionIdOf(progress.trackerId, job.id),
       }),
       silentSweeps: source.silentSweepsOf?.(job.id) ?? 0,
     }),

@@ -1,25 +1,29 @@
 /**
- * What every subagent of this project cost, read from the harness's transcripts; `cli/measurement/hook/HookCommand.ts` records one agent as it
- * stops, this compares them all. The transcripts are those of sessions started in the project's folder, where the orchestrator starts, which
- * is the repository root only for a tracker there. Read-only, and finding no transcripts is one sentence at exit 0, not a refusal.
+ * What every subagent of this project cost, as the agent port reads it from the agent's transcripts; `cli/measurement/hook/HookCommand.ts`
+ * records one agent as it stops, this compares them all. The transcripts are those of sessions started in the project's folder, where the
+ * orchestrator starts, which is the repository root only for a tracker there. Read-only, and finding no transcripts is one sentence at exit
+ * 0, not a refusal.
  */
-import { listSubagentTranscripts, transcriptFolderFor } from '../../../src/lib/claude-code/ClaudeTranscripts.ts';
-import type { CohortSummary }                           from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
-import { TranscriptCohortUtil }                         from '../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts';
-import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { requireWorkspace }                             from '../../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                          from '../../CommandContext.ts';
-import type { CommandHandler }                          from '../../CommandHandler.ts';
-import type { ArgumentParser }                          from '../../arguments/ArgumentParser.ts';
-import { OptionValueUtil }                              from '../../utils/OptionValueUtil.ts';
-import { OutputUtil }                                   from '../../utils/OutputUtil.ts';
-import { readAgents }                                   from './UsageAgents.ts';
-import { agentRowLinesOf, cohortLineOf }                from './UsageText.ts';
+import { LocalTimeUtil }                 from '../../../src/lib/local-time/LocalTimeUtil.ts';
+import { requireWorkspace }              from '../../../src/services/tracker/Workspace.ts';
+import { LIMITS }                        from '../../../src/shared/constants/Limits.ts';
+import { PRODUCT_NAMES }                 from '../../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }           from '../../CommandContext.ts';
+import type { CommandHandler }           from '../../CommandHandler.ts';
+import type { ArgumentParser }           from '../../arguments/ArgumentParser.ts';
+import { OptionValueUtil }               from '../../utils/OptionValueUtil.ts';
+import { OutputUtil }                    from '../../utils/OutputUtil.ts';
+import { agentUsagesOf, oldestFirst }    from './UsageAgents.ts';
+import { agentRowLinesOf, cohortLineOf } from './UsageText.ts';
+import type { CohortSummary }            from './utils/UsageCohortUtil.ts';
+import { UsageCohortUtil }               from './utils/UsageCohortUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} usage [--since <when>] [--transcripts <folder>] [--json]`;
 
 const KNOWN_OPTION_NAMES = ['since', 'transcripts', 'json'];
+
+/** Long enough to tell two briefs apart on one terminal row and short enough that the row still fits beside the figures. */
+const BRIEF_EXCERPT_CHARACTERS = 80;
 
 /** `before` and `after` are absent rather than empty without `--since`, so a reader of the document can tell "not asked for" from "nothing fell there". */
 interface UsageCohorts {
@@ -38,16 +42,26 @@ export const usageCommand: CommandHandler = (commandArguments, context) => {
 
   const workspace        = requireWorkspace(context.currentDirectory);
   const since            = sinceDateFrom(commandArguments, context);
-  const transcriptFolder = commandArguments.option('transcripts') ?? transcriptFolderFor(workspace.rootDirectory, context.claudeConfigFolder);
-  const agents           = readAgents(listSubagentTranscripts(transcriptFolder), context);
+  const { transcriptFolder, usages } = context.agentAdapter.subagentUsagesOf({
+    projectRoot:                     workspace.rootDirectory,
+    homeDirectory:                   context.homeDirectory,
+    transcriptFolder:                commandArguments.option('transcripts') ?? null,
+    oversizedContextThresholdTokens: LIMITS.OVERSIZED_CONTEXT_THRESHOLD_TOKENS,
+    briefExcerptCharacters:          BRIEF_EXCERPT_CHARACTERS,
+    onUnreadableTranscript:          (transcriptPath) => {
+      context.standardError(`The transcript at ${transcriptPath} could not be read, so that agent is not in these figures.`);
+    },
+  });
+  const rows   = oldestFirst(usages);
+  const agents = agentUsagesOf(rows);
 
-  const split = since === undefined ? undefined : TranscriptCohortUtil.cohortSplitAt(agents, since);
+  const split = since === undefined ? undefined : UsageCohortUtil.cohortSplitAt(rows, since);
   const cohorts: UsageCohorts = split === undefined
-    ? { all: TranscriptCohortUtil.cohortSummaryOf(agents) }
+    ? { all: UsageCohortUtil.cohortSummaryOf(rows) }
     : {
-      all:    TranscriptCohortUtil.cohortSummaryOf(agents),
-      before: TranscriptCohortUtil.cohortSummaryOf(split.before),
-      after:  TranscriptCohortUtil.cohortSummaryOf(split.after),
+      all:    UsageCohortUtil.cohortSummaryOf(rows),
+      before: UsageCohortUtil.cohortSummaryOf(split.before),
+      after:  UsageCohortUtil.cohortSummaryOf(split.after),
     };
   const document = { transcriptFolder, agents, cohorts };
 

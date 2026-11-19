@@ -145,24 +145,14 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'cli/CommandContext.ts: vendor-name: import { claudeCodeAdapterFor }                 from \'../src/lib/claude-code/ClaudeCodeAdapter.ts\';':
     'Permanent: The seam imports the vendor\'s adapter; the one composition root that chooses it.',
-  'cli/CommandContext.ts: vendor-name: claudeConfigFolder,':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/CommandContext.ts: vendor-name: claudeConfigFolderVariable,':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'cli/CommandContext.ts: vendor-name: /** `node:os`\'s `homedir()`, carried here so a spec can point the Claude Code transcripts at a scratch tree. */':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/CommandContext.ts: vendor-name: /** Claude Code\'s user folder for this process, `CLAUDE_CONFIG_DIR` or `<home>/.claude`, which its transcripts are read from. */':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/CommandContext.ts: vendor-name: claudeConfigFolder:      string;':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/CommandContext.ts: vendor-name: /** What the Overseer launches its sessions through: Claude Code, or the scripted fake agent under the fake-agent switch. */':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'cli/CommandContext.ts: vendor-name: /** The one place outside `src/lib/claude-code/` the vendor\'s adapter is chosen; a spec-spawned binary always gets the fake. */':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());':
     'Permanent: The seam chooses the vendor\'s adapter; WP2.24 rewrites this key when the variable leaves the call.',
-  'cli/CommandContext.ts: vendor-name: claudeConfigFolder:      claudeConfigFolder(homedir()),':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/HelpText.ts: vendor-hook-protocol: its Assistant; the SessionStart hook \\`hook session-start\\` goes into':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-name: \\`.claude/settings.local.json\\`, and two skills into \\`.claude/skills/\\`:':
@@ -197,8 +187,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   'cli/HelpText.ts: vendor-hook-protocol: --allow <folder>        stage\'s folders: the PreToolUse guard an Overseer renders into the':
     'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/HelpText.ts: vendor-file-layout: \\`subagents/workflows/<run>/\\` included: one row per agent, oldest':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/InstallVersionCheck.ts: vendor-name: import { retiredInstalledFilePathsIn } from \'./adoption/constants/RetiredClaudeInstall.ts\';':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/InstalledFiles.ts: vendor-hook-protocol: /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */':
@@ -466,33 +454,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: permissionDecisionReason: `Denied by the folders of this job\'s stage: ${reason}.`,':
     'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/measurement/usage/UsageAgents.ts: vendor-name: import type { SubagentTranscript } from \'../../../src/lib/claude-code/ClaudeTranscripts.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/measurement/usage/UsageAgents.ts: vendor-name: import { transcriptTextAt }        from \'../../../src/lib/claude-code/ClaudeTranscripts.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/measurement/usage/UsageAgents.ts: vendor-name: import type { TranscriptProfile }  from \'../../../src/lib/claude-code/utils/TranscriptUsageUtil.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/measurement/usage/UsageAgents.ts: vendor-name: import { TranscriptUsageUtil }     from \'../../../src/lib/claude-code/utils/TranscriptUsageUtil.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/measurement/usage/UsageCommand.ts: vendor-name: import { listSubagentTranscripts, transcriptFolderFor } from \'../../../src/lib/claude-code/ClaudeTranscripts.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'cli/measurement/usage/UsageCommand.ts: vendor-name: import type { CohortSummary }                           from '
-    + '\'../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts\';'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'cli/measurement/usage/UsageCommand.ts: vendor-name: import { TranscriptCohortUtil }                         from '
-    + '\'../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts\';'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'cli/measurement/usage/UsageCommand.ts: vendor-name: const transcriptFolder = commandArguments.option(\'transcripts\') ?? transcriptFolderFor(workspace.rootDirectory, '
-    + 'context.claudeConfigFolder);'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/measurement/usage/UsageText.ts: vendor-name: import type { CohortSummary } from \'../../../src/lib/claude-code/utils/TranscriptCohortUtil.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/overseer/OverseerForeground.ts: vendor-name: import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from \'../constants/ClaudeManagedBlockMarkers.ts\';':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerForeground.ts: vendor-name: managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,':
@@ -524,8 +485,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerWording.ts: vendor-name: return `launches onto ${notice.target} wait: commit the CLAUDE.md change \\`update\\` made`;':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/overseer/routes/BoardStateReader.ts: vendor-name: claudeConfigFolder: context.claudeConfigFolder,':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   [
   'cli/setup/RetiredSkillStep.ts: vendor-name: * `init` and `update` copy both skills into each tracked repository\'s .claude/skills/, so nothing is linked into '
     + '~/.claude/skills/ any'
@@ -714,70 +673,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
   'src/services/overseer/BoardState.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour` or `seven_day`. */':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: * A job session\'s subagents as Claude Code wrote them under `<config>/projects/<any '
-    + 'project>/<sessionId>/subagents/`, found by the session'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: * A job session\'s subagents as Claude Code wrote them under `<config>/projects/<any '
-    + 'project>/<sessionId>/subagents/`, found by the session'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: * subagent is keyed by the `toolUseId` its `.meta.json` names, the parent call the event log groups it under.':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: import { agentDescriptionBeside, findSessionSubagentTranscripts, transcriptTextAt } from '
-    + '\'../../lib/claude-code/ClaudeTranscripts.ts\';'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: import { TranscriptUsageUtil }                                                      from '
-    + '\'../../lib/claude-code/utils/TranscriptUsageUtil.ts\';'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: /** The Claude Code config folder the session wrote to, as `claudeConfigFolderOf` answers it. */':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: claudeConfigFolder: string;':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: /** What the subagent was asked to do, from its `.meta.json`; `null` when the file, its JSON or the '
-    + 'field is missing. */'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: const AGENT_METADATA_FILE_SUFFIX = \'.meta.json\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: /** The parent call from the `.meta.json` beside the transcript; `null` when the file, its JSON or the '
-    + 'field is missing. */'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-wire-key: /** Pure over the transcript text and its description: a call is counted once by its `tool_use` id, and '
-    + 'runs until a `tool_result` names that id. */'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-wire-key: type: blockType, id: toolUseId, name: toolName, tool_use_id: answeredToolUseId':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-wire-key: if (blockType === \'tool_result\' && typeof answeredToolUseId === \'string\') '
-    + 'answeredToolUseIds.add(answeredToolUseId);'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-wire-key: if (entry[\'type\'] !== \'assistant\' || blockType !== \'tool_use\' || typeof toolUseId !== \'string\' || '
-    + 'calledToolUseIds.has(toolUseId)) continue;'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-file-layout: * reads no transcript its event log already tallied. A subagent with no `.meta.json` is keyed by its '
-    + 'agent id; an absent folder is none.'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: for (const transcript of findSessionSubagentTranscripts(source.claudeConfigFolder, source.sessionId)) {':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/ClaudeTranscripts.ts: vendor-name: export const ClaudeTranscripts = Object.freeze({ subagentFactsOf, subagentFactsOfTranscript });':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'src/services/overseer/DrivePass.ts: vendor-name: /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/services/overseer/DrivePass.ts: vendor-name: | { kind: \'claude-md-block-committed\'; target: string }':
@@ -822,24 +717,8 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/services/overseer/JobLaunch.ts: vendor-name: /** `pipeline` names the entity homes whose `.claude` the step\'s sandbox denies, as a session\'s does. */':
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-name: import { ClaudeTranscripts }                    from \'./ClaudeTranscripts.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-file-layout: /** The parent call\'s `description` input, or the one its `.meta.json` names; `null` without one. */':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'src/services/overseer/JobLiveFactsReader.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour`. */':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  [
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-name: /** Where the job\'s session keeps its transcripts: the Claude Code config folder from the command context, '
-    + 'and the session id its adapter derived. */'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-name: claudeConfigFolder: string;':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-name: return ClaudeTranscripts.subagentFactsOf(session, tallied).map((subagent) => ({ ...subagent, state: '
-    + 'stateOf(subagent.parentToolUseId) }));'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   [
   'src/services/overseer/QuestionRouting.ts: vendor-tool-name: * An agent\'s AskUserQuestion request routed by who can answer it, design section 8.2: every question '
     + 'headed `system` opens a'
@@ -873,9 +752,9 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/services/overseer/WorkerProfiles.ts: vendor-name: ...claudeFoldersOf(facts),':
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/shared/Environment.ts: vendor-name: import { CLAUDE_API_KEY_VARIABLE }                             from \'../lib/claude-code/ClaudeApiKeyVariable.ts\';':
+  'src/shared/Environment.ts: vendor-name: import { CLAUDE_API_KEY_VARIABLE }          from \'../lib/claude-code/ClaudeApiKeyVariable.ts\';':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from \'../lib/claude-code/ClaudeConfigFolder.ts\';':
+  'src/shared/Environment.ts: vendor-name: import { CLAUDE_CONFIG_FOLDER_VARIABLE }    from \'../lib/claude-code/ClaudeConfigFolder.ts\';':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'src/shared/Environment.ts: vendor-name: /** `CLAUDE_CONFIG_DIR`, which moves Claude Code\'s user folder; empty or whitespace-only reads as unset. */':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
@@ -890,15 +769,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'src/shared/Environment.ts: vendor-name: return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;':
     'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'src/shared/Environment.ts: vendor-name: /** The one answer to where Claude Code keeps its transcripts and user files for this process: `CLAUDE_CONFIG_DIR`, else '
-    + '`<home>/.claude`. */'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/shared/Environment.ts: vendor-name: export function claudeConfigFolder(homeDirectory: string): string {':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'src/shared/Environment.ts: vendor-name: return claudeConfigFolderOf(homeDirectory, claudeConfigFolderVariable());':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: case \'claude-md-block-committed\':':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: return `launches onto ${factOf(notice, \'target\')} wait: commit the CLAUDE.md change the board\'s update made`;':
@@ -907,27 +777,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
 
 /** `<path>: vendor-name: <trimmed line>` of a testing helper, each with the package that removes it or why it stays. */
 const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
-  'cli/testing/CapturedCommandContext.ts: vendor-name: import { claudeConfigFolderOf }                         from \'../../src/lib/claude-code/ClaudeConfigFolder.ts\';':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CapturedCommandContext.ts: vendor-name: /** Checked to be a scratch directory; by default `.claude` in the home folder, as with `CLAUDE_CONFIG_DIR` unset. */':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CapturedCommandContext.ts: vendor-name: claudeConfigFolder?:      string;':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CapturedCommandContext.ts: vendor-name: if (options.claudeConfigFolder !== undefined) requireTrackerIsolation(options.claudeConfigFolder);':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CapturedCommandContext.ts: vendor-name: // By default the spec home\'s own folder, never the process\'s CLAUDE_CONFIG_DIR, so no spec reads a real transcript.':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CapturedCommandContext.ts: vendor-name: claudeConfigFolder:   options.claudeConfigFolder ?? claudeConfigFolderOf(homeDirectory, undefined),':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  [
-  'cli/testing/CliProcess.ts: vendor-name: import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                        from '
-    + '\'../../src/lib/claude-code/ClaudeConfigFolder.ts\';'
-  ]:
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CliProcess.ts: vendor-name: // The developer\'s Claude config folder stays behind with their home, so a spawned binary reads only the scratch home\'s transcripts.':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
-  'cli/testing/CliProcess.ts: vendor-name: ? Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== CLAUDE_CONFIG_FOLDER_VARIABLE))':
-    'Removed by WP2.23: The adapter reads its own transcripts; the command context and the job session drop the config folder.',
   'cli/testing/CutoverSmoke.ts: vendor-name: * drives two planted tickets to delivered with real `claude` sessions in a scratch repository, and the log under the main checkout\'s':
     'Permanent: the cutover smoke runs real sessions on purpose, refused without its flag.',
   'cli/testing/CutoverSmoke.ts: vendor-name: withRealClaude: boolean;':

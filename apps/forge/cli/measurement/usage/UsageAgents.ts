@@ -1,55 +1,66 @@
-/** Every subagent transcript read into the figures `usage` reports, oldest first; one that cannot be read is named on standard error and left out. */
-import type { SubagentTranscript } from '../../../src/lib/claude-code/ClaudeTranscripts.ts';
-import { transcriptTextAt }        from '../../../src/lib/claude-code/ClaudeTranscripts.ts';
-import type { TranscriptProfile }  from '../../../src/lib/claude-code/utils/TranscriptUsageUtil.ts';
-import { TranscriptUsageUtil }     from '../../../src/lib/claude-code/utils/TranscriptUsageUtil.ts';
-import { LocalTimeUtil }           from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { LIMITS }                  from '../../../src/shared/constants/Limits.ts';
-import type { CommandContext }     from '../../CommandContext.ts';
+/** The subagents the agent port answered, as the rows `usage` prints and `--json` carries, oldest first. */
+import type { SubagentUsage } from '../../../src/lib/agent-launch/AgentTranscripts.ts';
+import { LocalTimeUtil }      from '../../../src/lib/local-time/LocalTimeUtil.ts';
 
-/** Long enough to tell two briefs apart on one terminal row and short enough that the row still fits beside the figures. */
-const BRIEF_EXCERPT_CHARACTERS = 80;
-
-/** One agent as the report prints it and as `--json` carries it: the profile, flattened, with the figures a reader adds up by hand made explicit. */
-export interface AgentUsage extends TranscriptProfile {
-  sessionIdentifier: string;
-  agentIdentifier:   string;
-  transcriptPath:    string;
-  totalInputTokens:  number;
+/** One agent as the report prints it and as `--json` carries it, with the figures a reader adds up by hand made explicit. */
+export interface AgentUsage {
+  apiCallCount:                number;
+  inputTokens:                 number;
+  cacheReadInputTokens:        number;
+  cacheCreationInputTokens:    number;
+  outputTokens:                number;
+  endContextTokens:            number;
+  oversizedContextTokens:      number;
+  startedAt:                   string | null;
+  model:                       string | null;
+  browserCallCount:            number;
+  bashEditScriptCount:         number;
+  verificationRunCount:        number;
+  nestedInstructionCharacters: number;
+  briefExcerpt:                string;
+  sessionIdentifier:           string;
+  agentIdentifier:             string;
+  transcriptPath:              string;
+  totalInputTokens:            number;
 }
 
-function agentUsageFor(transcript: SubagentTranscript, transcriptText: string): AgentUsage {
-  const profile = TranscriptUsageUtil.transcriptProfileOf(transcriptText, LIMITS.OVERSIZED_CONTEXT_THRESHOLD_TOKENS, BRIEF_EXCERPT_CHARACTERS);
+/** In the order `--json` has always carried the keys, so its document reads as before. */
+function agentUsageOf(usage: SubagentUsage): AgentUsage {
   return {
-    ...profile,
-    sessionIdentifier: transcript.sessionIdentifier,
-    agentIdentifier:   transcript.agentIdentifier,
-    transcriptPath:    transcript.path,
-    totalInputTokens:  TranscriptUsageUtil.totalInputTokensOf(profile),
+    apiCallCount:                usage.apiCallCount,
+    inputTokens:                 usage.inputTokens,
+    cacheReadInputTokens:        usage.cacheReadInputTokens,
+    cacheCreationInputTokens:    usage.cacheCreationInputTokens,
+    outputTokens:                usage.outputTokens,
+    endContextTokens:            usage.endContextTokens,
+    oversizedContextTokens:      usage.oversizedContextTokens,
+    startedAt:                   usage.startedAt,
+    model:                       usage.model,
+    browserCallCount:            usage.browserCallCount,
+    bashEditScriptCount:         usage.shellEditScriptCount,
+    verificationRunCount:        usage.verificationRunCount,
+    nestedInstructionCharacters: usage.nestedInstructionCharacters,
+    briefExcerpt:                usage.briefExcerpt,
+    sessionIdentifier:           usage.sessionIdentifier,
+    agentIdentifier:             usage.agentIdentifier,
+    transcriptPath:              usage.transcriptPath,
+    totalInputTokens:            usage.totalInputTokens,
   };
+}
+
+function startInstantOf(usage: SubagentUsage): number {
+  if (usage.startedAt === null) return Number.NEGATIVE_INFINITY;
+  return LocalTimeUtil.parseIso(usage.startedAt)?.getTime() ?? Number.NEGATIVE_INFINITY;
 }
 
 /**
  * Oldest first, which is the order the report is read in: a cohort is a story about what changed over
  * time. An agent with no stamp sorts to the front, beside the split's own closed answer for it.
  */
-function oldestFirst(agents: readonly AgentUsage[]): AgentUsage[] {
-  return [...agents].sort((a, b) => {
-    const aStart = a.startedAt === null ? Number.NEGATIVE_INFINITY : LocalTimeUtil.parseIso(a.startedAt)?.getTime() ?? Number.NEGATIVE_INFINITY;
-    const bStart = b.startedAt === null ? Number.NEGATIVE_INFINITY : LocalTimeUtil.parseIso(b.startedAt)?.getTime() ?? Number.NEGATIVE_INFINITY;
-    return aStart - bStart || a.transcriptPath.localeCompare(b.transcriptPath);
-  });
+export function oldestFirst(usages: readonly SubagentUsage[]): SubagentUsage[] {
+  return [...usages].sort((a, b) => startInstantOf(a) - startInstantOf(b) || a.transcriptPath.localeCompare(b.transcriptPath));
 }
 
-export function readAgents(transcripts: readonly SubagentTranscript[], context: CommandContext): AgentUsage[] {
-  const agents: AgentUsage[] = [];
-  for (const transcript of transcripts) {
-    const transcriptText = transcriptTextAt(transcript.path);
-    if (transcriptText === undefined) {
-      context.standardError(`The transcript at ${transcript.path} could not be read, so that agent is not in these figures.`);
-      continue;
-    }
-    agents.push(agentUsageFor(transcript, transcriptText));
-  }
-  return oldestFirst(agents);
+export function agentUsagesOf(usages: readonly SubagentUsage[]): AgentUsage[] {
+  return usages.map(agentUsageOf);
 }

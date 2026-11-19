@@ -237,8 +237,8 @@ The transcript root is `$CLAUDE_CONFIG_DIR/projects/`, else `~/.claude/projects/
 
 - `transcriptFolderFor`, which `usage` reads, makes the slug by replacing every character outside `[a-zA-Z0-9]` in the
   resolved path with `-`.
-- `src/lib/claude-code/ClaudeTranscripts.ts` lists and reads. `src/services/overseer/ClaudeTranscripts.ts` tallies one
-  job session's subagents: `findSessionSubagentTranscripts` finds the session by its id in every folder under
+- `src/lib/claude-code/ClaudeTranscripts.ts` lists and reads. `src/lib/claude-code/ClaudeSessionSubagents.ts` tallies one
+  job session's subagents, which the adapter answers as `sessionSubagentsOf`: `findSessionSubagentTranscripts` finds the session by its id in every folder under
   `<config folder>/projects/`, so a second spelling of the working directory still finds it. It reads the transcripts
   directly because a crash or reboot can lose subagents from a session's [event log](../glossary.md#event-log); the
   transcripts still list them.
@@ -355,7 +355,7 @@ as behaviour.
 | Standing reply | `src/lib/talos/StandingReplies.ts` | `standingReplyFor` | `src/lib/talos/StandingReplies.spec.ts` |
 | Network guard | `cli/hooks/BashDomainsHook.ts` | `guardTheNetworkDomains` | `cli/hooks/BashDomainsHook.spec.ts` |
 | Transcript folders | `src/lib/claude-code/ClaudeTranscripts.ts` | `transcriptFolderFor`, `listSessionSubagentTranscripts` | `src/lib/claude-code/ClaudeTranscripts.spec.ts` |
-| A job's subagents | `src/services/overseer/ClaudeTranscripts.ts` | `ClaudeTranscripts.subagentFactsOf` | `src/services/overseer/ClaudeTranscripts.spec.ts` |
+| A job's subagents | `src/lib/claude-code/ClaudeSessionSubagents.ts` | `ClaudeSessionSubagents.subagentFactsOf` | `src/lib/claude-code/ClaudeSessionSubagents.spec.ts` |
 | Usage per call | `src/lib/claude-code/utils/TranscriptUsageUtil.ts` | `TranscriptUsageUtil.usageTotalsOf` | `src/lib/claude-code/utils/TranscriptUsageUtil.spec.ts` |
 | Choosing the adapter | `cli/CommandContext.ts` | `agentAdapterOfThisProcess` | |
 | Fake adapter | `src/testing/FakeAgentAdapter.ts` | `FakeAgentAdapter` | |

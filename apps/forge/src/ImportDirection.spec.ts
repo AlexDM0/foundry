@@ -82,22 +82,12 @@ const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapt
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 /** Each file that imports the vendor's adapter today, beside the seam and the adapters, with the package that removes the import. */
 const VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED: Readonly<Record<string, string>> = {
-  'cli/adoption/TrackerRefresh.ts':                         'WP2.30',
-  'cli/adoption/constants/ClaudeCodeInstall.ts':            'WP2.30',
-  'cli/adoption/constants/RetiredClaudeInstall.ts':         'WP2.29',
-  'cli/constants/ClaudeManagedBlockMarkers.ts':             'WP2.29',
-  'cli/measurement/usage/UsageAgents.ts':                   'WP2.23',
-  'cli/measurement/usage/UsageCommand.transcripts.spec.ts': 'WP2.23',
-  'cli/measurement/usage/UsageCommand.ts':                  'WP2.23',
-  'cli/measurement/usage/UsageText.ts':                     'WP2.23',
-  'cli/overseer/OverseerWording.ts':                        'WP2.24',
-  'cli/testing/CapturedCommandContext.ts':                  'WP2.23',
-  'cli/testing/CliProcess.ts':                              'WP2.23',
-  'src/services/overseer/ClaudeTranscripts.spec.ts':        'WP2.23',
-  'src/services/overseer/ClaudeTranscripts.ts':             'WP2.23',
-  'src/services/overseer/JobLiveFactsReader.spec.ts':       'WP2.23',
-  'src/services/overseer/JobTranscript.spec.ts':            'WP2.23',
-  'src/shared/Environment.ts':                              'WP2.24',
+  'cli/adoption/TrackerRefresh.ts':                 'WP2.30',
+  'cli/adoption/constants/ClaudeCodeInstall.ts':    'WP2.30',
+  'cli/adoption/constants/RetiredClaudeInstall.ts': 'WP2.29',
+  'cli/constants/ClaudeManagedBlockMarkers.ts':     'WP2.29',
+  'cli/overseer/OverseerWording.ts':                'WP2.24',
+  'src/shared/Environment.ts':                      'WP2.24',
 };
 const SOURCE_LAYERS = [
   'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',
@@ -681,7 +671,7 @@ describe('the scan itself', () => {
     expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
-    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'local-time']);
+    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record']);
     expect(declaredLibDependenciesOf(GRAPH).get('talos')).toEqual(['atomic-file', 'json-record', 'owner-only-files', 'process-identity']);
   });
 

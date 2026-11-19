@@ -7,7 +7,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { delimiter, dirname, join }                from 'node:path';
 
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }                                        from '../../src/lib/claude-code/ClaudeConfigFolder.ts';
 import { environmentCopy, fakeAgentVariableOf, overseerPollIntervalVariableOf } from '../../src/shared/Environment.ts';
 import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                   from '../../src/shared/constants/ProductNames.ts';
 import { rootOverrideVariableOf }                                               from '../../src/shared/constants/RootOverrideVariable.ts';
@@ -128,12 +127,10 @@ function bunAndGitSearchPath(): string {
 /**
  * Built rather than inherited, because only `src/shared/Environment.ts` reads this process's environment. The program traps lead the
  * child's `PATH` whatever the spec's environment says, so a binary that reached the vendor's adapter or gpgconf all the same would still be caught.
+ * Every spawned binary runs the fake agent, which reads no transcript, so no variable of the inherited environment reaches one.
  */
 export function childEnvironmentOf(environment: Record<string, string> | undefined, homeDirectory: string): Record<string, string> {
-  // The developer's Claude config folder stays behind with their home, so a spawned binary reads only the scratch home's transcripts.
-  const inheritedOrBuilt = environment === undefined
-    ? Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== CLAUDE_CONFIG_FOLDER_VARIABLE))
-    : { PATH: bunAndGitSearchPath(), ...environment };
+  const inheritedOrBuilt = environment === undefined ? environmentCopy() : { PATH: bunAndGitSearchPath(), ...environment };
   return {
     ...SHORT_OVERSEER_POLL_INTERVALS,
     ...inheritedOrBuilt,

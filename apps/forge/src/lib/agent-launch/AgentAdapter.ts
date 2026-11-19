@@ -3,11 +3,12 @@
  * maps each stdout line the session prints to events, and writes the lines Talos sends the session. The package depends on
  * `src/lib/executable-resolver`, whose port an adapter finds its program through.
  */
-import type { ExecutableResolution, ExecutableResolver } from '../executable-resolver/ExecutableResolver.ts';
-import type { AgentLaunchPlan }                          from './AgentLaunchPlan.ts';
-import type { AgentLaunchRequest }                       from './AgentLaunchRequest.ts';
-import type { AgentQuestion, AgentSessionEvent }         from './AgentSessionEvent.ts';
-import type { SandboxDenyShape }                         from './WorkerProfile.ts';
+import type { ExecutableResolution, ExecutableResolver }                 from '../executable-resolver/ExecutableResolver.ts';
+import type { AgentLaunchPlan }                                          from './AgentLaunchPlan.ts';
+import type { AgentLaunchRequest }                                       from './AgentLaunchRequest.ts';
+import type { AgentQuestion, AgentSessionEvent }                         from './AgentSessionEvent.ts';
+import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest } from './AgentTranscripts.ts';
+import type { SandboxDenyShape }                                         from './WorkerProfile.ts';
 
 /** The names an adapter may give an ending in its plan's `endingPatterns`, each of which the Overseer maps to a cause. */
 export const AGENT_ENDING_NAMES = ['network-outage'] as const;
@@ -62,4 +63,11 @@ export interface AgentAdapter {
   interruptLineOf(): string;
   /** `null` for a line none of the three writers gives. */
   sentLineOf(line: string): SentLine | null;
+  /**
+   * The subagents the session `sessionId` kept transcripts of on the home `homeDirectory`, found in every folder the session worked in,
+   * except those whose parent call `talliedParentToolUseIds` holds; none when the agent kept no transcript.
+   */
+  sessionSubagentsOf(homeDirectory: string, sessionId: string, talliedParentToolUseIds: ReadonlySet<string>): readonly SubagentFacts[];
+  /** One row per subagent transcript of the project, in no particular order; none when the agent kept no transcript. */
+  subagentUsagesOf(request: SubagentUsageRequest): SubagentUsageAnswer;
 }

@@ -4,24 +4,10 @@
  * subagent is keyed by the `toolUseId` its `.meta.json` names, the parent call the event log groups it under.
  */
 
-import { agentDescriptionBeside, findSessionSubagentTranscripts, transcriptTextAt } from '../../lib/claude-code/ClaudeTranscripts.ts';
-import { TranscriptUsageUtil }                                                      from '../../lib/claude-code/utils/TranscriptUsageUtil.ts';
-import { JsonRecordUtil }                                                           from '../../lib/json-record/JsonRecordUtil.ts';
-
-export interface SessionTranscriptSource {
-  /** The Claude Code config folder the session wrote to, as `claudeConfigFolderOf` answers it. */
-  claudeConfigFolder: string;
-  sessionId:          string;
-}
-
-export interface TranscriptSubagentFacts {
-  parentToolUseId: string;
-  toolCalls:       number;
-  lastToolCall:    { toolName: string; startedAt: string | null; running: boolean } | null;
-  tokens:          number;
-  /** What the subagent was asked to do, from its `.meta.json`; `null` when the file, its JSON or the field is missing. */
-  description:     string | null;
-}
+import type { SubagentFacts }                                                       from '../agent-launch/AgentTranscripts.ts';
+import { JsonRecordUtil }                                                           from '../json-record/JsonRecordUtil.ts';
+import { agentDescriptionBeside, findSessionSubagentTranscripts, transcriptTextAt } from './ClaudeTranscripts.ts';
+import { TranscriptUsageUtil }                                                      from './utils/TranscriptUsageUtil.ts';
 
 const AGENT_METADATA_FILE_SUFFIX = '.meta.json';
 
@@ -55,7 +41,7 @@ function summedTokensOf(transcriptText: string): number {
 }
 
 /** Pure over the transcript text and its description: a call is counted once by its `tool_use` id, and runs until a `tool_result` names that id. */
-function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: string, description: string | null): TranscriptSubagentFacts {
+function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: string, description: string | null): SubagentFacts {
   const calledToolUseIds   = new Set<string>();
   const answeredToolUseIds = new Set<string>();
   let last: { toolUseId: string; toolName: string; startedAt: string | null } | null = null;
@@ -87,10 +73,10 @@ function subagentFactsOfTranscript(parentToolUseId: string, transcriptText: stri
  * reads no transcript its event log already tallied. A subagent with no `.meta.json` is keyed by its agent id; an absent folder is none.
  * A subagent that two project folders of the session hold is read once.
  */
-function subagentFactsOf(source: SessionTranscriptSource, skippedParentToolUseIds: ReadonlySet<string>): TranscriptSubagentFacts[] {
-  const facts: TranscriptSubagentFacts[] = [];
+function subagentFactsOf(configFolder: string, sessionId: string, skippedParentToolUseIds: ReadonlySet<string>): SubagentFacts[] {
+  const facts: SubagentFacts[] = [];
   const readParentToolUseIds = new Set<string>();
-  for (const transcript of findSessionSubagentTranscripts(source.claudeConfigFolder, source.sessionId)) {
+  for (const transcript of findSessionSubagentTranscripts(configFolder, sessionId)) {
     const parentToolUseId = parentToolUseIdBeside(transcript.path) ?? transcript.agentIdentifier;
     if (skippedParentToolUseIds.has(parentToolUseId) || readParentToolUseIds.has(parentToolUseId)) continue;
     const transcriptText = transcriptTextAt(transcript.path);
@@ -101,4 +87,4 @@ function subagentFactsOf(source: SessionTranscriptSource, skippedParentToolUseId
   return facts;
 }
 
-export const ClaudeTranscripts = Object.freeze({ subagentFactsOf, subagentFactsOfTranscript });
+export const ClaudeSessionSubagents = Object.freeze({ subagentFactsOf, subagentFactsOfTranscript });

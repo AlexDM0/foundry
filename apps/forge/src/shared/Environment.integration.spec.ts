@@ -62,19 +62,19 @@ test('the API billing key is set only by a non-blank ANTHROPIC_API_KEY, and an a
   for (const clearedValue of ['', '  ']) expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_API_KEY: clearedValue }), JSON.stringify(clearedValue)).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-function claudeConfigFolderSeenByAChildProcess(childEnvironment: Record<string, string>): string | null {
+function claudeConfigFolderVariableSeenByAChildProcess(childEnvironment: Record<string, string>): string | null {
   const source = [
     `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
-    'console.log(JSON.stringify(loaded.claudeConfigFolder("/Users/alex-example")));',
+    'console.log(JSON.stringify(loaded.claudeConfigFolderVariable() ?? null));',
   ].join('\n');
   return jsonPrintedByAChildProcess(childEnvironment, source) as string | null;
 }
 
-test('the Claude config folder is CLAUDE_CONFIG_DIR verbatim, and the home folder\'s .claude when it is unset, empty or whitespace-only', () => {
-  expect(claudeConfigFolderSeenByAChildProcess({ CLAUDE_CONFIG_DIR: '/srv/claude config' })).toBe('/srv/claude config');
-  expect(claudeConfigFolderSeenByAChildProcess({})).toBe('/Users/alex-example/.claude');
+test('the Claude config folder variable is CLAUDE_CONFIG_DIR verbatim, and none when it is unset, empty or whitespace-only', () => {
+  expect(claudeConfigFolderVariableSeenByAChildProcess({ CLAUDE_CONFIG_DIR: '/srv/claude config' })).toBe('/srv/claude config');
+  expect(claudeConfigFolderVariableSeenByAChildProcess({})).toBeNull();
   for (const clearedValue of ['', '  ']) {
-    expect(claudeConfigFolderSeenByAChildProcess({ CLAUDE_CONFIG_DIR: clearedValue }), JSON.stringify(clearedValue)).toBe('/Users/alex-example/.claude');
+    expect(claudeConfigFolderVariableSeenByAChildProcess({ CLAUDE_CONFIG_DIR: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

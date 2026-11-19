@@ -9,11 +9,11 @@ import { delimiter } from 'node:path';
 import { SystemVersionUtil }     from 'system-versions/SystemVersionUtil';
 import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
-import { CLAUDE_API_KEY_VARIABLE }                             from '../lib/claude-code/ClaudeApiKeyVariable.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE, claudeConfigFolderOf } from '../lib/claude-code/ClaudeConfigFolder.ts';
-import { OperationRefusal }                                    from './OperationRefusal.ts';
-import { PRODUCT_NAMES, type ProductNames }                    from './constants/ProductNames.ts';
-import { ROOT_OVERRIDE_VARIABLE }                              from './constants/RootOverrideVariable.ts';
+import { CLAUDE_API_KEY_VARIABLE }          from '../lib/claude-code/ClaudeApiKeyVariable.ts';
+import { CLAUDE_CONFIG_FOLDER_VARIABLE }    from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { OperationRefusal }                 from './OperationRefusal.ts';
+import { PRODUCT_NAMES, type ProductNames } from './constants/ProductNames.ts';
+import { ROOT_OVERRIDE_VARIABLE }           from './constants/RootOverrideVariable.ts';
 
 export function everyToolRequiredVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}REQUIRE_EVERY_TOOL`;
@@ -226,11 +226,6 @@ export function claudeConfigFolderVariable(): string | undefined {
  */
 export function apiBillingKeyIsSet(): boolean {
   return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;
-}
-
-/** The one answer to where Claude Code keeps its transcripts and user files for this process: `CLAUDE_CONFIG_DIR`, else `<home>/.claude`. */
-export function claudeConfigFolder(homeDirectory: string): string {
-  return claudeConfigFolderOf(homeDirectory, claudeConfigFolderVariable());
 }
 
 function nonBlankValueOf(variable: string): string | undefined {
