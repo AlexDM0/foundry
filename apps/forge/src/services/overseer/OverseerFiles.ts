@@ -7,13 +7,22 @@ export interface OverseerFiles {
   overseerDirectory: string;
   /** `<data>/overseer.log`, appended in place. */
   logFilePath:       string;
+  /** `<data>/overseer/presence.json`: the newest generation's start, abandoned passes and ending. */
+  presenceFilePath:  string;
+  /** `<data>/overseer/heartbeat.json`: the newest beat, rewritten at each renewal Talos confirmed. */
+  heartbeatFilePath: string;
+  /** `<data>/overseer/crash-logs/`: one `crash-<generation>.json` per crash, never rewritten. */
+  crashLogDirectory: string;
 }
 
 export function overseerFilesIn(trackerDirectory: string): OverseerFiles {
   const overseerDirectory = join(trackerDirectory, 'overseer');
   return {
     overseerDirectory,
-    logFilePath: join(trackerDirectory, 'overseer.log'),
+    logFilePath:       join(trackerDirectory, 'overseer.log'),
+    presenceFilePath:  join(overseerDirectory, 'presence.json'),
+    heartbeatFilePath: join(overseerDirectory, 'heartbeat.json'),
+    crashLogDirectory: join(overseerDirectory, 'crash-logs'),
   };
 }
 

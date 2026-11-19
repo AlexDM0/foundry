@@ -15,23 +15,30 @@ import {
   beforeEach,
   describe,
   expect,
+  jest,
   test
 } from 'bun:test';
 
+import type { DoneFrame } from '../../src/lib/talos/@types/TalosFrame.ts';
+
 import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
+import { startLeaseRenewal }                                     from '../../src/services/overseer/LeaseRenewal.ts';
+import { overseerFilesIn }                                       from '../../src/services/overseer/OverseerFiles.ts';
+import { Presence }                                              from '../../src/services/overseer/Presence.ts';
+import type { TalosConnection }                                  from '../../src/services/overseer/TalosConnection.ts';
 import { MONITOR_REGISTRY_FILES }                                from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
 import { PRODUCT_NAMES }                                         from '../../src/shared/constants/ProductNames.ts';
 import { fakeGateConfinement }                                   from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                   from '../../src/testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                               from '../../src/testing/RecordedProcessTable.ts';
-import { removeScratchDirectory }                                from '../../src/testing/ScratchWorkspace.ts';
+import { createScratchDirectory, removeScratchDirectory }        from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded }                                  from '../../src/testing/ToolGuard.ts';
 import { runCommandLine }                                        from '../Main.ts';
 import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
 import { idleOverseerAnswersIn }                                 from '../testing/RecordedGitStages.ts';
-import { talosStartRefusalOf }                                   from './OverseerForeground.ts';
+import { heartbeatOnRenewalOf, talosStartRefusalOf }             from './OverseerForeground.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -45,17 +52,17 @@ function registryEntriesIn(monitorFolder: string): Record<string, unknown>[] {
   return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {});
 }
 
-let repositoryDirectory = '';
-
-beforeEach(async () => {
-  repositoryDirectory = await createInitializedRecordedGitRepository('overseer-foreground', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
-});
-
-afterEach(() => {
-  removeScratchDirectory(repositoryDirectory);
-});
-
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of an Overseer', () => {
+  let repositoryDirectory = '';
+
+  beforeEach(async () => {
+    repositoryDirectory = await createInitializedRecordedGitRepository('overseer-foreground', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
+  });
+
+  afterEach(() => {
+    removeScratchDirectory(repositoryDirectory);
+  });
+
   test('an Overseer whose data folder watch fails to start registers no URL with the monitor', async () => {
     const worktreesFolder = join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
     rmSync(worktreesFolder, { recursive: true, force: true });
@@ -94,5 +101,82 @@ describe('a start whose Talos cannot serve', () => {
     const detail = { kind: 'talos-unavailable', reason: 'endpoint-does-not-fit', startNumber: 2 } as const;
     expect(refusal.status).toBe('unrepaired');
     expect(refusal.detail).toEqual(detail);
+  });
+});
+
+describe('the heartbeat written at a lease renewal', () => {
+  const RENEWAL_INTERVAL_MILLISECONDS = 150;
+  const GENERATION = 3;
+  const DONE: DoneFrame = { kind: 'done', frameId: 1, verdict: 'done' };
+  const connection: TalosConnection = {
+    send:    () => Promise.resolve(DONE),
+    onState: () => undefined,
+    onClose: () => undefined,
+    close:   () => undefined,
+  };
+  let boardFolder = '';
+  let stopRenewal = (): void => undefined;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    boardFolder = createScratchDirectory('overseer-heartbeat');
+  });
+
+  afterEach(() => {
+    stopRenewal();
+    jest.useRealTimers();
+    removeScratchDirectory(boardFolder);
+  });
+
+  /** Every promise the renewal chained on the fake connection's answer has settled. */
+  async function renewalsSettled(): Promise<void> {
+    for (const _turn of [1, 2, 3, 4, 5]) await Promise.resolve();
+  }
+
+  function renewingWhile(passInFlight: () => number | null) {
+    const files = overseerFilesIn(boardFolder);
+    let wallNowMilliseconds = SPEC_CLOCK().getTime();
+    const renewal = startLeaseRenewal({
+      connection: () => connection,
+      renewer:    {
+        processId: 4242, startStamp: '1', bootIdentity: 'example-boot', generation: GENERATION
+      },
+      intervalMilliseconds: RENEWAL_INTERVAL_MILLISECONDS,
+      tickGapMilliseconds:  RENEWAL_INTERVAL_MILLISECONDS,
+      passProgress:         { passInFlight },
+      wallNowMilliseconds:  () => wallNowMilliseconds,
+      log:                  () => undefined,
+      onRenewed:            heartbeatOnRenewalOf(files, GENERATION),
+    });
+    stopRenewal = renewal.stop;
+    const sequenceNow = () => {
+      const reading = Presence.readHeartbeat(files);
+      return reading.verdict === 'read' ? reading.record.sequence : null;
+    };
+    const tick = async () => {
+      wallNowMilliseconds += RENEWAL_INTERVAL_MILLISECONDS;
+      jest.advanceTimersByTime(RENEWAL_INTERVAL_MILLISECONDS);
+      await renewalsSettled();
+    };
+    return { sequenceNow, tick };
+  }
+
+  test('a renewal Talos confirmed writes one beat of the generation', async () => {
+    const renewing = renewingWhile(() => null);
+    await renewalsSettled();
+    expect(renewing.sequenceNow()).toBe(1);
+
+    await renewing.tick();
+    expect(renewing.sequenceNow()).toBe(2);
+  });
+
+  test('a withheld renewal writes no beat', async () => {
+    const renewing = renewingWhile(() => 1);
+    await renewalsSettled();
+    await renewing.tick();
+    expect(renewing.sequenceNow()).toBe(1);
+
+    await renewing.tick();
+    expect(renewing.sequenceNow()).toBe(1);
   });
 });

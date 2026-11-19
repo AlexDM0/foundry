@@ -17,6 +17,7 @@ import {
 
 import type { PlatformPorts }                                                     from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { Baton, type BatonRecord }                                                from '../../src/services/overseer/Baton.ts';
+import { overseerFilesIn }                                                        from '../../src/services/overseer/OverseerFiles.ts';
 import { nativePlatformPorts }                                                    from '../../src/testing/NativePlatformPorts.ts';
 import { recordedOverseerAnswerOf, useRecordedOverseerFetch }                     from '../../src/testing/RecordedOverseerAnswers.ts';
 import { OVERSEER_CALL_SHAPES, type RecordedHttpResponse, type RecordedOverseer } from '../../src/testing/RecordedOverseerFetch.ts';
@@ -104,7 +105,7 @@ describe('OverseerRemote over the recorded API', () => {
     expect(acquisition.verdict).toBe('acquired');
     const spawn = spyOn(Bun, 'spawn').mockImplementation((() => CHILD_THAT_LOST_THE_BATON) as unknown as typeof Bun.spawn);
     try {
-      const files = { overseerDirectory, logFilePath: join(scratchDirectory, 'overseer.log') };
+      const files = overseerFilesIn(scratchDirectory);
       expect(await OverseerRemote.startDetached({ programCommand: ['example-program'], platformPorts }, scratchDirectory, files, [])).toBe(overseer.url);
     } finally {
       spawn.mockRestore();

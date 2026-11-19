@@ -48,6 +48,7 @@ import { MonitorStream }                                            from '../../
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
+import { Presence }                                                 from '../../src/services/overseer/Presence.ts';
 import { createTalosChildren }                                      from '../../src/services/overseer/TalosChildren.ts';
 import { type TalosConnection, connectToTalos }                     from '../../src/services/overseer/TalosConnection.ts';
 import { createLineRunner }                                         from '../../src/services/overseer/TalosLines.ts';
@@ -183,7 +184,15 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
   if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
   await registerOverseer(request, 'removed');
   createProgressPageStubWriter(workspace.htmlFilePath).write(null);
+  Presence.writeEnding(files, generation, { kind: 'stopped' }, LocalTimeUtil.formatLocalIso(context.now()));
   Baton.release(files.overseerDirectory, generation);
+}
+
+/** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
+export function heartbeatOnRenewalOf(files: OverseerFiles, generation: number): (renewedAtWallMilliseconds: number) => void {
+  return (renewedAtWallMilliseconds) => {
+    Presence.writeHeartbeat(files, generation, LocalTimeUtil.formatLocalIso(new Date(renewedAtWallMilliseconds)));
+  };
 }
 
 export interface StopWait {
@@ -616,6 +625,14 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     const servingStartedAt = startedAt;
     let dataFolderWatch: DataFolderWatch | null = null;
     try {
+      Presence.writeStartedPresence(files, {
+        generation,
+        process:             ownIdentity,
+        codeVersion,
+        startOrigin:         'user',
+        startedAt:           servingStartedAt,
+        startClassification: null,
+      });
       token    = writeToken(platformPorts, tokenFilePath);
       lifetime = overseerLifetime(request, files, generation, log);
       enterStep('regroup');
@@ -697,6 +714,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         passProgress:         { passInFlight: () => drivePass?.passInFlight() ?? null },
         wallNowMilliseconds:  () => context.now().getTime(),
         log,
+        onRenewed:            heartbeatOnRenewalOf(files, generation),
       });
       const serving: Serving = {
         generation, server, drivePass, dataFolderWatch, lifetime, flintBrain: overseerFlintBrain, boardChildren
@@ -737,6 +755,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     serving.dataFolderWatch.stop();
     await serving.flintBrain.close();
     await serving.drivePass.stop();
+    Presence.writeEnding(files, serving.generation, { kind: 'handed-over' }, LocalTimeUtil.formatLocalIso(context.now()));
     await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
     await serving.server.stop();
     log('Released the board to the successor.');

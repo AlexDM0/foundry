@@ -1,0 +1,21 @@
+import { LEASE_RENEWAL_INTERVAL_MILLISECONDS } from '../../../shared/constants/OverseerLimits.ts';
+
+export const PRESENCE_FORMAT_VERSION = 1;
+
+export const HEARTBEAT_FORMAT_VERSION = 1;
+
+export const CRASH_LOG_FORMAT_VERSION = 1;
+
+/** The lines of `overseer.log` a crash log keeps from its end. */
+export const CRASH_LOG_TAIL_LINES = 200;
+
+/** Abandoned passes in a row, a count, before the board gets a notice of them. */
+export const ABANDONED_PASSES_BEFORE_NOTICE = 3;
+
+/** How long the crash path lets its registry write run before the dying process goes on without it. */
+export const CRASH_PATH_REGISTRY_BOUND_MILLISECONDS = 5_000;
+
+const LEASE_RENEWAL_INTERVALS_BEFORE_A_HEARTBEAT_IS_STALE = 4;
+
+/** A heartbeat older than this when the machine booted reads as a forge that had stopped beating before the reboot. */
+export const HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS = LEASE_RENEWAL_INTERVALS_BEFORE_A_HEARTBEAT_IS_STALE * LEASE_RENEWAL_INTERVAL_MILLISECONDS;
