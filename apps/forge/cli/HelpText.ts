@@ -159,22 +159,23 @@ never carries it.
                               version check, and exits 0 whatever happens, printing nothing on failure.
 
   hook bash-domains           Keep a job's network inside its ticket's \`network\` line: the
-      --allow <domains>       PreToolUse guard an Overseer renders into a job's settings. It denies,
-                              through the hook's JSON on standard output, a Bash call whose
-                              \`allowed_domains\`, or a WebFetch whose URL host, names a domain
-                              outside the comma-separated list (\`*.example.com\` admits its
-                              subdomains). Any other call passes silently and is granted nothing.
+      --allow <domains>       network guard an Overseer renders into a job's launch, run before each
+                              shell command and web fetch. It denies, through the line it prints on
+                              standard output, a shell command that asks for a domain, or a web
+                              fetch whose URL host names a domain, outside the comma-separated list
+                              (\`*.example.com\` admits its subdomains). Any other call passes
+                              silently and is granted nothing; a tool it does not know is denied.
                               It skips the install-version check, runs under a job, and exits 0
                               whatever happens, answering deny on any failure.
 
-  hook stage-edits            Keep the Edit and Write calls of a job of an entity inside its
-      --allow <folder>        stage's folders: the PreToolUse guard an Overseer renders into the
-                              settings of such a job. It denies, through the hook's JSON on standard
-                              output, an Edit or Write whose \`file_path\` lies outside every
-                              \`--allow\` folder (one per flag), a path made after the job started
-                              included. Any other tool is denied; a path inside passes silently and
-                              is granted nothing. It skips the install-version check, runs under a
-                              job, and exits 0 whatever happens, answering deny on any failure.
+  hook stage-edits            Keep the file edits of a job of an entity inside its stage's
+      --allow <folder>        folders: the edit guard an Overseer renders into the launch of such a
+                              job. It denies, through the line it prints on standard output, a
+                              file edit whose path lies outside every \`--allow\` folder (one per
+                              flag), a path made after the job started included. Any other call is
+                              denied; a path inside passes silently and is granted nothing. It skips
+                              the install-version check, runs under a job, and exits 0 whatever
+                              happens, answering deny on any failure.
 
   usage [--since <when>]      What this project's subagents cost, read out of the transcripts the
       [--transcripts <folder>]

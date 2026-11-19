@@ -723,7 +723,7 @@ function profileOf(context: JobLaunchContext, job: Readonly<Job>, place: Session
     writableRoots:          [place.checkout],
     deniedWritableRoots:    [workspace.trackerDirectory],
     deniedReadableRoots:    WorkerProfiles.sessionDeniedReadableRootsOf(sessionDenyFacts),
-    bashNetworkDomains:     [],
+    shellNetworkDomains:    [],
     webNetworkDomains:      'none',
     extraWritableDirectory: hatchDirectory,
     allowedCommandPrefixes: [],

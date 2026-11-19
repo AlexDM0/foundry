@@ -1,8 +1,9 @@
 /**
- * `hook bash-domains --allow <domains>`, the `PreToolUse` guard design section 4.4 renders for a role with a `network` line: auto mode's
- * classifier may grant a Bash or PowerShell call's `allowed_domains`, or a WebFetch, outside the ticket's domains, and this denies it. It exits 0 whatever
- * happens and answers deny on any failure, since a hook that errors would let the call through.
+ * `hook bash-domains --allow <domains>`, the network guard design section 4.4 renders for a role with a `network` line: auto mode's
+ * classifier may grant a shell command's domains, or a web fetch, outside the ticket's domains, and this denies it. It exits 0 whatever
+ * happens and answers deny on any failure, since a guard that errors would let the call through.
  */
+import type { AgentToolCall }        from '../../src/lib/agent-launch/AgentToolCall.ts';
 import { refusalIsOperationRefusal } from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }             from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }       from '../CommandContext.ts';
@@ -10,12 +11,8 @@ import type { ArgumentParser }       from '../arguments/ArgumentParser.ts';
 
 const ALLOW_OPTION_NAME = 'allow';
 
-const USAGE = `${PRODUCT_NAMES.PROGRAM} hook bash-domains --allow <domain>,<domain>…  (the PreToolUse hook JSON arrives on standard input)`;
+const USAGE = `${PRODUCT_NAMES.PROGRAM} hook bash-domains --allow <domain>,<domain>…  (the hook input arrives on standard input)`;
 const WILDCARD_PREFIX = '*.';
-/** The shell tools whose `allowed_domains` the guard checks; on a host with no sandbox the field is absent and the call passes. */
-const SHELL_TOOL_NAMES: readonly string[] = ['Bash', 'PowerShell'];
-/** The tools that reach no network and run no command; any tool named in neither list is denied, as it may be a new shell. */
-const NON_SHELL_TOOL_NAMES: readonly string[] = ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'NotebookEdit', 'TodoWrite', 'AskUserQuestion'];
 
 type Verdict = { kind: 'pass' } | { kind: 'deny'; reason: string };
 
@@ -33,17 +30,8 @@ function domainIsAllowed(domain: string, allowedDomains: readonly string[]): boo
     || (allowed.startsWith(WILDCARD_PREFIX) && !domain.startsWith(WILDCARD_PREFIX) && domain.endsWith(allowed.slice(1))));
 }
 
-function requestedBashDomainsOf(toolInput: Record<string, unknown>): string[] | null {
-  const requested = toolInput['allowed_domains'];
-  if (requested === undefined || requested === null) return [];
-  if (typeof requested === 'string') return domainsOfList(requested);
-  if (Array.isArray(requested) && requested.every((domain) => typeof domain === 'string')) return requested.map(normalisedDomainOf);
-  return null;
-}
-
-function webFetchHostOf(toolInput: Record<string, unknown>): string | null {
-  const { url } = toolInput;
-  if (typeof url !== 'string') return null;
+function hostOf(url: string | null): string | null {
+  if (url === null) return null;
   try {
     const host = normalisedDomainOf(new URL(url).hostname);
     return host.length === 0 ? null : host;
@@ -52,39 +40,31 @@ function webFetchHostOf(toolInput: Record<string, unknown>): string | null {
   }
 }
 
-function recordOf(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
-}
-
-function verdictOf(hookInputText: string, allowedDomains: readonly string[]): Verdict {
-  const hookInput = recordOf(JSON.parse(hookInputText));
-  if (hookInput === null) return { kind: 'deny', reason: 'the hook input is not a JSON object' };
-  const toolName = hookInput['tool_name'];
-  const toolInput = recordOf(hookInput['tool_input']) ?? {};
+/** A shell command is checked by the domains it asks for and a web fetch by its host; a call that reaches no network passes. */
+function verdictOf(toolCall: AgentToolCall | null, allowedDomains: readonly string[]): Verdict {
+  if (toolCall === null) return { kind: 'deny', reason: 'the guard cannot read the call' };
   const allowedText = allowedDomains.length === 0 ? 'no domain' : allowedDomains.join(', ');
-  if (typeof toolName === 'string' && SHELL_TOOL_NAMES.includes(toolName)) {
-    const requested = requestedBashDomainsOf(toolInput);
-    if (requested === null) return { kind: 'deny', reason: 'its allowed_domains is not a list of domains' };
-    const outside = requested.filter((domain) => !domainIsAllowed(domain, allowedDomains));
-    return outside.length === 0 ? { kind: 'pass' } : { kind: 'deny', reason: `it asks for ${outside.join(', ')}, and this ticket's network allows ${allowedText}` };
+  switch (toolCall.kind) {
+    case 'shell': {
+      if (toolCall.requestedDomains === null) return { kind: 'deny', reason: 'the domains it asks for are not a list of domains' };
+      const outside = toolCall.requestedDomains.map(normalisedDomainOf).filter((domain) => !domainIsAllowed(domain, allowedDomains));
+      return outside.length === 0 ? { kind: 'pass' } : { kind: 'deny', reason: `it asks for ${outside.join(', ')}, and this ticket's network allows ${allowedText}` };
+    }
+    case 'web-fetch': {
+      const host = hostOf(toolCall.url);
+      if (host === null) return { kind: 'deny', reason: 'its url names no host' };
+      return domainIsAllowed(host, allowedDomains) ? { kind: 'pass' } : { kind: 'deny', reason: `it fetches ${host}, and this ticket's network allows ${allowedText}` };
+    }
+    case 'no-reach':
+    case 'file-change':
+      return { kind: 'pass' };
+    case 'unknown':
+      return { kind: 'deny', reason: `the guard does not know the tool ${toolCall.toolName}, which may be a shell` };
   }
-  if (toolName === 'WebFetch') {
-    const host = webFetchHostOf(toolInput);
-    if (host === null) return { kind: 'deny', reason: 'its url names no host' };
-    return domainIsAllowed(host, allowedDomains) ? { kind: 'pass' } : { kind: 'deny', reason: `it fetches ${host}, and this ticket's network allows ${allowedText}` };
-  }
-  if (typeof toolName === 'string' && NON_SHELL_TOOL_NAMES.includes(toolName)) return { kind: 'pass' };
-  return { kind: 'deny', reason: `the guard does not know the tool ${typeof toolName === 'string' ? toolName : 'it names'}, which may be a shell` };
 }
 
-function denialDocumentOf(reason: string): string {
-  return JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName:            'PreToolUse',
-      permissionDecision:       'deny',
-      permissionDecisionReason: `Denied by the ticket's network line: ${reason}.`,
-    },
-  });
+function denialLineOf(context: CommandContext, reason: string): string {
+  return context.agentAdapter.toolCallDenialLineOf(`Denied by the ticket's network line: ${reason}.`);
 }
 
 /** A pass prints nothing, so the call goes on to the session's own permission rules; it never grants anything. */
@@ -93,15 +73,16 @@ export async function guardTheNetworkDomains(commandArguments: ArgumentParser, c
     commandArguments.rejectUnknownOptions([ALLOW_OPTION_NAME], USAGE);
   } catch (refusal) {
     if (!refusalIsOperationRefusal(refusal)) throw refusal;
-    context.standardOutput(denialDocumentOf('the guard was given an option it does not know'));
+    context.standardOutput(denialLineOf(context, 'the guard was given an option it does not know'));
     return;
   }
   let verdict: Verdict;
   try {
     const allowList = commandArguments.option(ALLOW_OPTION_NAME);
-    verdict = verdictOf(await context.readStandardInput(), typeof allowList === 'string' ? domainsOfList(allowList) : []);
+    const toolCall = context.agentAdapter.toolCallOf(await context.readStandardInput());
+    verdict = verdictOf(toolCall, typeof allowList === 'string' ? domainsOfList(allowList) : []);
   } catch (failure) {
     verdict = { kind: 'deny', reason: `the guard could not read its call (${failure instanceof Error ? failure.message : String(failure)})` };
   }
-  if (verdict.kind === 'deny') context.standardOutput(denialDocumentOf(verdict.reason));
+  if (verdict.kind === 'deny') context.standardOutput(denialLineOf(context, verdict.reason));
 }

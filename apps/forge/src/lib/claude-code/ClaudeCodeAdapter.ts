@@ -16,6 +16,7 @@ import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
 import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CREDENTIALS }             from './ClaudeCredentials.ts';
+import { ClaudeHookInput }                     from './ClaudeHookInput.ts';
 import { claudeProgramRepairOf }               from './ClaudeProgramRepair.ts';
 import { ClaudeSessionSubagents }              from './ClaudeSessionSubagents.ts';
 import {
@@ -164,7 +165,7 @@ function sandboxOf(facts: AgentHostFacts, profile: WorkerProfile): Record<string
     failIfUnavailable:        true,
     allowUnsandboxedCommands: false,
     autoAllowBashIfSandboxed: true,
-    network:                  { allowedDomains: profile.bashNetworkDomains, strictAllowlist: true, ...signingSockets },
+    network:                  { allowedDomains: profile.shellNetworkDomains, strictAllowlist: true, ...signingSockets },
     filesystem:               {
       allowWrite: [profile.extraWritableDirectory, ...profile.writableRoots].map(rootAnchored),
       denyWrite:  profile.deniedWritableRoots.map(rootAnchored),
@@ -357,7 +358,9 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
       sessionId,
       talliedParentToolUseIds,
     ),
-    subagentUsagesOf: (request) => ClaudeSubagentUsages.subagentUsagesOf(configFolderOf(request.homeDirectory), request),
+    subagentUsagesOf:     (request) => ClaudeSubagentUsages.subagentUsagesOf(configFolderOf(request.homeDirectory), request),
+    toolCallOf:           ClaudeHookInput.toolCallOf,
+    toolCallDenialLineOf: ClaudeHookInput.toolCallDenialLineOf,
   });
 }
 

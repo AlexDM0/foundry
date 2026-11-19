@@ -1,6 +1,6 @@
 /**
  * The `hook` verb. `session-start` prints the session instructions `init` and `update` wire it to; `bash-domains` is the network guard and
- * `stage-edits` the stage's edit guard an Overseer renders into a job's settings.
+ * `stage-edits` the stage's edit guard an Overseer renders into a job's launch.
  */
 import { OperationRefusal }            from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../src/shared/constants/ProductNames.ts';
@@ -15,7 +15,7 @@ const SESSION_START_EVENT = 'session-start';
 
 const STAGE_EDITS_EVENT = 'stage-edits';
 
-const USAGE = `${PRODUCT_NAMES.PROGRAM} hook session-start|bash-domains --allow <domains>|stage-edits --allow <folder>…  (the hook JSON arrives on standard input)`;
+const USAGE = `${PRODUCT_NAMES.PROGRAM} hook session-start|bash-domains --allow <domains>|stage-edits --allow <folder>…  (the hook input arrives on standard input)`;
 
 /** The three events refuse nothing and exit 0 whatever they are given; any other event is a person typing the command by hand, refused at exit 1. */
 export const hookCommand: CommandHandler = async (commandArguments, context) => {

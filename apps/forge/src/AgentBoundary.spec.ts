@@ -47,8 +47,6 @@ const ADAPTER_FOLDER = 'src/lib/claude-code/';
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 const PORT_FOLDERS: readonly string[] = ['src/lib/agent-launch/', 'src/lib/talos/'];
-/** The one file under the port's folders an allowlist key may name, until WP2.27 renames `bashNetworkDomains` and rewords its comments. */
-const PORT_CARVE_OUT_FILE = 'src/lib/agent-launch/WorkerProfile.ts';
 /** Where the vendor's tool names and transcript folders are a reach; a view's button says "Edit", and the Bridge quotes reported rows. */
 const VENDOR_LOGIC_FOLDERS: readonly string[] = ['src/services/', 'src/lib/', 'cli/'];
 /** This repository's own development folders, taken out of a line before it is matched. */
@@ -143,14 +141,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-file-layout: \\`.claude/settings.local.json\\`, which a job\'s sessions never load. It':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-hook-protocol: --allow <domains>       PreToolUse guard an Overseer renders into a job\'s settings. It denies,':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/HelpText.ts: vendor-tool-name: through the hook\'s JSON on standard output, a Bash call whose':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/HelpText.ts: vendor-hook-protocol: \\`allowed_domains\\`, or a WebFetch whose URL host, names a domain':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/HelpText.ts: vendor-hook-protocol: --allow <folder>        stage\'s folders: the PreToolUse guard an Overseer renders into the':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   'cli/InstallVersionCheck.ts: vendor-name: import { retiredInstalledFilePathsIn } from \'./adoption/constants/RetiredClaudeInstall.ts\';':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/InstalledFiles.ts: vendor-hook-protocol: /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */':
@@ -335,56 +325,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   [
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: * `hook bash-domains --allow <domains>`, the `PreToolUse` guard design section 4.4 renders for a role with a '
-    + '`network` line: auto mode\'s'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: * classifier may grant a Bash or PowerShell call\'s `allowed_domains`, or a WebFetch, outside the ticket\'s '
-    + 'domains, and this denies it. It exits 0 whatever'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/BashDomainsHook.ts: vendor-tool-name: * classifier may grant a Bash or PowerShell call\'s `allowed_domains`, or a WebFetch, outside the ticket\'s domains, '
-    + 'and this denies it. It exits 0 whatever'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: const USAGE = `${PRODUCT_NAMES.PROGRAM} hook bash-domains --allow <domain>,<domain>…  (the PreToolUse hook JSON '
-    + 'arrives on standard input)`;'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: /** The shell tools whose `allowed_domains` the guard checks; on a host with no sandbox the field is absent and the '
-    + 'call passes. */'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-tool-name: const SHELL_TOOL_NAMES: readonly string[] = [\'Bash\', \'PowerShell\'];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/BashDomainsHook.ts: vendor-tool-name: const NON_SHELL_TOOL_NAMES: readonly string[] = [\'Read\', \'Edit\', \'Write\', \'Glob\', \'Grep\', \'NotebookEdit\', '
-    + '\'TodoWrite\', \'AskUserQuestion\'];'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: const requested = toolInput[\'allowed_domains\'];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: const toolName = hookInput[\'tool_name\'];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: const toolInput = recordOf(hookInput[\'tool_input\']) ?? {};':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: if (requested === null) return { kind: \'deny\', reason: \'its allowed_domains is not a list of domains\' };':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-tool-name: if (toolName === \'WebFetch\') {':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: hookSpecificOutput: {':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: hookEventName:            \'PreToolUse\',':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: permissionDecision:       \'deny\',':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/BashDomainsHook.ts: vendor-hook-protocol: permissionDecisionReason: `Denied by the ticket\'s network line: ${reason}.`,':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
   'cli/hooks/SessionStartHook.ts: vendor-name: * `hook session-start`: prints the installed session instructions, which Claude Code adds to the session it starts. A '
     + 'session the Overseer'
   ]:
@@ -394,30 +334,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'repository. */'
   ]:
     'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: * `hook stage-edits --allow <folder>…`, the `PreToolUse` guard an Overseer renders into the settings of a job of an '
-    + 'entity (E18). The deny'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: const USAGE = `${PRODUCT_NAMES.PROGRAM} hook stage-edits --allow <folder> [--allow <folder>]…  (the PreToolUse hook '
-    + 'JSON arrives on standard input)`;'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-tool-name: const FILE_CHANGING_TOOL_NAMES: readonly string[] = [\'Edit\', \'Write\'];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: const toolName = hookInput[\'tool_name\'];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: const targetPath = targetPathOf(hookInput, recordOf(hookInput[\'tool_input\']) ?? {});':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: hookSpecificOutput: {':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: hookEventName:            \'PreToolUse\',':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: permissionDecision:       \'deny\',':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'cli/hooks/StageEditsHook.ts: vendor-hook-protocol: permissionDecisionReason: `Denied by the folders of this job\'s stage: ${reason}.`,':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   'cli/overseer/OverseerForeground.ts: vendor-name: import { CLAUDE_MANAGED_BLOCK_MARKERS }                      from \'../constants/ClaudeManagedBlockMarkers.ts\';':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerForeground.ts: vendor-name: managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,':
@@ -482,47 +398,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: return `A setup question needs the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: readonly bashNetworkDomains:       readonly string[];':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: * The checkout a session started in a project folder below its root works on: Edit and Write reach all of it, as '
-    + 'its sandbox does.'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: /** The folders and files a stage of a job of an entity may change; present, Edit and Write reach these alone, '
-    + 'not the write root. */'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: vendor-tool-name: /** The checkout\'s paths outside `stageFolders` at launch, which Edit and Write are denied; Bash still writes '
-    + 'them, and Customs judges what it left. */'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: /** The checkout\'s paths outside `stageFolders` at launch, which Edit and Write are denied; Bash still writes '
-    + 'them, and Customs judges what it left. */'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: /** The guard run before every Edit and Write of a stage, which denies a path outside `stageFolders` made after '
-    + 'launch too; present with them. */'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'src/lib/agent-launch/WorkerProfile.ts: vendor-tool-name: /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: * A program that denies an Edit or Write whose path lies outside `stageFolders`, spawned as a '
-    + '`NetworkDomainGuard` is: its arguments'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
-  [
-  'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: * already carry the folders, and `programPath` is `null` when the guard cannot start, so the adapter then denies '
-    + 'every Edit and Write.'
-  ]:
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   [
   'src/lib/data-folders/PosixDataFolders.ts: vendor-name: /** Beside `tmpdir()`, which on macOS is a per-user folder under `/var/folders`; Claude Code keeps its '
     + 'scratchpads under `/tmp`. */'
@@ -620,8 +495,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'proposal in, a package'
   ]:
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/JobLaunch.ts: vendor-tool-name: \'network\':     { guard: \'network guard\', calls: \'Bash, PowerShell and WebFetch\' },':
-    'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   [
   'src/services/overseer/JobLaunch.ts: vendor-name: * Makes the denied roots a launch in the job\'s worktree needs, every entity home\'s `.claude` among them when '
     + '`entityHomes` names them; when'
@@ -1026,9 +899,8 @@ function evidenceReportOf(sources: readonly RepositorySource[], allowedFiles: re
   return exactReportOf(namingFiles, allowedFiles);
 }
 
-/** The keys under the port's folders that are not the one carve-out. */
-function portKeysBeyondTheCarveOut(allowedLines: readonly string[]): readonly string[] {
-  return allowedLines.filter((key) => isInsideAny(key, PORT_FOLDERS) && !key.startsWith(`${PORT_CARVE_OUT_FILE}: `));
+function portKeysOf(allowedLines: readonly string[]): readonly string[] {
+  return allowedLines.filter((key) => isInsideAny(key, PORT_FOLDERS));
 }
 
 function violationsOfPlanted(path: string, plantedLine: string): readonly string[] {
@@ -1113,17 +985,18 @@ describe('the allowlist is exact both ways', () => {
   });
 });
 
-describe('no entry names the port or Talos but the worker profile', () => {
-  test('every key under the port\'s folders is the worker profile\'s, and WP2.27 removes it', () => {
-    expect(portKeysBeyondTheCarveOut(ALLOWED_LINES)).toEqual([]);
-    const carveOutEntries = Object.entries(ALLOWED_AGENT_LINES).filter(([key]) => isInsideAny(key, PORT_FOLDERS));
-    expect(carveOutEntries.length).toBeGreaterThan(0);
-    expect(carveOutEntries.filter(([, reason]) => !reason.startsWith('Removed by WP2.27:'))).toEqual([]);
+describe('no entry names the port or Talos', () => {
+  test('no key lies under the port\'s folders', () => {
+    expect(portKeysOf(ALLOWED_LINES)).toEqual([]);
   });
 
-  test('a planted key of another file under those folders fails', () => {
-    const plantedKeys = ['src/lib/agent-launch/AgentAdapter.ts: vendor-name: // Claude.', 'src/lib/talos/Talos.ts: vendor-name: // Claude.'];
-    expect(portKeysBeyondTheCarveOut([...ALLOWED_LINES, ...plantedKeys])).toEqual(plantedKeys);
+  test('a planted key of any file under those folders fails, the worker profile\'s included', () => {
+    const plantedKeys = [
+      'src/lib/agent-launch/AgentAdapter.ts: vendor-name: // Claude.',
+      'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: // Edit.',
+      'src/lib/talos/Talos.ts: vendor-name: // Claude.',
+    ];
+    expect(portKeysOf([...ALLOWED_LINES, ...plantedKeys])).toEqual(plantedKeys);
   });
 });
 

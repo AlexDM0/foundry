@@ -828,7 +828,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     });
     expect(freshLaunch?.workingDirectory).toBe(join(repository, PRODUCT_NAMES.WORKTREES_FOLDER, 'sessions', fresh.id));
     // No question tool and no network: the adapter disallows AskUserQuestion, WebFetch and WebSearch from these.
-    expect(freshLaunch?.profile).toMatchObject({ askUser: false, webNetworkDomains: 'none', bashNetworkDomains: [] });
+    expect(freshLaunch?.profile).toMatchObject({ askUser: false, webNetworkDomains: 'none', shellNetworkDomains: [] });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('no Assistant can come up: two boots failing before a result default every incident, and the next boot waits for a sweep', async () => {

@@ -19,7 +19,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
-    "bashNetworkDomains": [
+    "shellNetworkDomains": [
       "registry.example.org"
     ],
     "webNetworkDomains": [
@@ -143,7 +143,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
-    "bashNetworkDomains": [
+    "shellNetworkDomains": [
       "registry.example.org"
     ],
     "webNetworkDomains": [
@@ -267,7 +267,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
-    "bashNetworkDomains": [],
+    "shellNetworkDomains": [],
     "webNetworkDomains": "any",
     "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
@@ -303,7 +303,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg"
     ],
-    "bashNetworkDomains": [],
+    "shellNetworkDomains": [],
     "webNetworkDomains": "none",
     "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
@@ -339,7 +339,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
-    "bashNetworkDomains": [
+    "shellNetworkDomains": [
       "registry.example.org"
     ],
     "webNetworkDomains": [
@@ -466,7 +466,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
-    "bashNetworkDomains": [
+    "shellNetworkDomains": [
       "registry.example.org"
     ],
     "webNetworkDomains": [
@@ -593,7 +593,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
-    "bashNetworkDomains": [],
+    "shellNetworkDomains": [],
     "webNetworkDomains": "any",
     "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],
@@ -632,7 +632,7 @@
       "/Users/alex-example/.aws",
       "/Users/alex-example/.gnupg/private-keys-v1.d"
     ],
-    "bashNetworkDomains": [],
+    "shellNetworkDomains": [],
     "webNetworkDomains": "none",
     "extraWritableDirectory": "/example/repository/.forge-worktrees/hatch/J4",
     "allowedCommandPrefixes": [],

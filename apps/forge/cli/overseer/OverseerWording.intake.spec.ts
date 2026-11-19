@@ -51,7 +51,7 @@ const SESSION_PROFILE: WorkerProfile = {
   writableRoots:          [SESSION_FOLDER],
   deniedWritableRoots:    [],
   deniedReadableRoots:    [],
-  bashNetworkDomains:     ['registry.example.com'],
+  shellNetworkDomains:    ['registry.example.com'],
   webNetworkDomains:      'none',
   extraWritableDirectory: '/Users/example/development/example-repository/.example-worktrees/hatch/J3',
   allowedCommandPrefixes: [],
@@ -90,7 +90,7 @@ describe('the product owner launch', () => {
     const profile = IntakeSessions.productOwnerProfileOf(SESSION_PROFILE);
 
     expect(profile).toMatchObject({
-      skills: true, askUser: true, webNetworkDomains: 'any', bashNetworkDomains: [], writableRoots: [SESSION_FOLDER], networkDomainGuard: null
+      skills: true, askUser: true, webNetworkDomains: 'any', shellNetworkDomains: [], writableRoots: [SESSION_FOLDER], networkDomainGuard: null
     });
   });
 });

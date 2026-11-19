@@ -17,7 +17,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [
+      "shellNetworkDomains": [
         "registry.example.com"
       ],
       "webNetworkDomains": [
@@ -138,7 +138,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [
+      "shellNetworkDomains": [
         "registry.example.com"
       ],
       "webNetworkDomains": [
@@ -259,7 +259,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [],
+      "shellNetworkDomains": [],
       "webNetworkDomains": "none",
       "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [
@@ -362,7 +362,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [],
+      "shellNetworkDomains": [],
       "webNetworkDomains": "any",
       "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],
@@ -395,7 +395,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [],
+      "shellNetworkDomains": [],
       "webNetworkDomains": "none",
       "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],
@@ -430,7 +430,7 @@
         "/example/home/alex-example/.ssh",
         "/example/home/alex-example/.gnupg"
       ],
-      "bashNetworkDomains": [],
+      "shellNetworkDomains": [],
       "webNetworkDomains": "none",
       "extraWritableDirectory": "/example/repository/.example-worktrees/hatch/J4",
       "allowedCommandPrefixes": [],

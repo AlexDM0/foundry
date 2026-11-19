@@ -214,7 +214,7 @@ function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: She
 /** It reads the snapshot and writes only its Hatch folder; no network, no question, no skill. */
 function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: string): WorkerProfile {
   return {
-    ...sessionProfile, writableRoots: [hatchDirectory], bashNetworkDomains: [], webNetworkDomains: 'none', askUser: false, skills: false, networkDomainGuard: null
+    ...sessionProfile, writableRoots: [hatchDirectory], shellNetworkDomains: [], webNetworkDomains: 'none', askUser: false, skills: false, networkDomainGuard: null
   };
 }
 

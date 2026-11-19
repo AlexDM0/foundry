@@ -38,7 +38,7 @@ function profileWithGuard(repository: string): WorkerProfile {
     writableRoots:          [],
     deniedWritableRoots:    [],
     deniedReadableRoots:    [],
-    bashNetworkDomains:     [ALLOWED_DOMAIN],
+    shellNetworkDomains:    [ALLOWED_DOMAIN],
     webNetworkDomains:      [ALLOWED_DOMAIN],
     extraWritableDirectory: join(repository, 'hatch'),
     allowedCommandPrefixes: [],

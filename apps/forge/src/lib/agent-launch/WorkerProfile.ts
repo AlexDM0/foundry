@@ -3,7 +3,7 @@ export interface WorkerProfile {
   readonly writableRoots:            readonly string[];
   readonly deniedWritableRoots:      readonly string[];
   readonly deniedReadableRoots:      readonly string[];
-  readonly bashNetworkDomains:       readonly string[];
+  readonly shellNetworkDomains:      readonly string[];
   readonly webNetworkDomains:        readonly string[] | 'any' | 'none';
   /** The one folder outside the working directory the session may write. */
   readonly extraWritableDirectory:   string;
@@ -17,15 +17,15 @@ export interface WorkerProfile {
   /** The repository folder: instruction files in the folders above it never reach the session. */
   readonly instructionsRoot:         string;
   /**
-   * The checkout a session started in a project folder below its root works on: Edit and Write reach all of it, as its sandbox does.
+   * The checkout a session started in a project folder below its root works on: file changes reach all of it, as its sandbox does.
    * Absent, they reach the working directory.
    */
   readonly writeRoot?:               string;
-  /** The folders and files a stage of a job of an entity may change; present, Edit and Write reach these alone, not the write root. */
+  /** The folders and files a stage of a job of an entity may change; present, file changes reach these alone, not the write root. */
   readonly stageFolders?:            readonly string[];
-  /** The checkout's paths outside `stageFolders` at launch, which Edit and Write are denied; Bash still writes them, and Customs judges what it left. */
+  /** The checkout's paths outside `stageFolders` at launch, denied to file changes; a shell command still writes them, and Customs judges it. */
   readonly deniedEditRoots?:         readonly string[];
-  /** The guard run before every Edit and Write of a stage, which denies a path outside `stageFolders` made after launch too; present with them. */
+  /** The guard run before every file change of a stage, which denies a path outside `stageFolders` made after launch too; present with them. */
   readonly stageEditGuard?:          StageEditGuard;
   /**
    * The main checkout's folders above a checkout nested in it, whose instruction files and rules would reach the session beside the
@@ -35,7 +35,7 @@ export interface WorkerProfile {
   /** The `core.hooksPath` the session's git runs with, whose `commit-msg` refuses an attribution trailer. */
   readonly gitHooksDirectory:        string;
   readonly commitSigning:            CommitSigning;
-  /** The guard run before every shell and WebFetch call of a role with network domains; `null` renders none. */
+  /** The guard run before every shell command and web fetch of a role with network domains; `null` renders none. */
   readonly networkDomainGuard:       NetworkDomainGuard | null;
   /** `none` gives the session no tool and no allow rule at all, for a session that only answers; absent, the vendor's tools under these rules. */
   readonly availableTools?:          'none';
@@ -53,8 +53,8 @@ export interface NetworkDomainGuard {
 }
 
 /**
- * A program that denies an Edit or Write whose path lies outside `stageFolders`, spawned as a `NetworkDomainGuard` is: its arguments
- * already carry the folders, and `programPath` is `null` when the guard cannot start, so the adapter then denies every Edit and Write.
+ * A program that denies a file change whose path lies outside `stageFolders`, spawned as a `NetworkDomainGuard` is: its arguments
+ * already carry the folders, and `programPath` is `null` when the guard cannot start, so the adapter then denies every file change.
  */
 export interface StageEditGuard {
   readonly stageFolders: readonly string[];

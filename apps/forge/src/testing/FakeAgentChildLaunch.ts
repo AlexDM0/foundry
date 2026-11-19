@@ -33,7 +33,7 @@ function planOf(boardFolder: string, childFolder: string, instance: number, step
       writableRoots:          [],
       deniedWritableRoots:    [],
       deniedReadableRoots:    [],
-      bashNetworkDomains:     [],
+      shellNetworkDomains:    [],
       webNetworkDomains:      'none',
       extraWritableDirectory: boardFolder,
       allowedCommandPrefixes: [],

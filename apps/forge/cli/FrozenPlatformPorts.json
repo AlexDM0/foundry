@@ -207,7 +207,7 @@
           "deniedReadableRoots": [
             "/Users/alex-example/.ssh"
           ],
-          "bashNetworkDomains": [
+          "shellNetworkDomains": [
             "registry.example.com"
           ],
           "webNetworkDomains": [
@@ -277,7 +277,7 @@
           "deniedReadableRoots": [
             "/Users/alex-example/.ssh"
           ],
-          "bashNetworkDomains": [
+          "shellNetworkDomains": [
             "registry.example.com"
           ],
           "webNetworkDomains": "any",
@@ -351,7 +351,7 @@
           "deniedReadableRoots": [
             "/Users/alex-example/.ssh"
           ],
-          "bashNetworkDomains": [
+          "shellNetworkDomains": [
             "registry.example.com"
           ],
           "webNetworkDomains": [

@@ -7,6 +7,7 @@ import type { ExecutableRefusalCause, ExecutableResolution, ExecutableResolver }
 import type { AgentLaunchPlan }                                                  from './AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }                                               from './AgentLaunchRequest.ts';
 import type { AgentQuestion, AgentSessionEvent }                                 from './AgentSessionEvent.ts';
+import type { AgentToolCall }                                                    from './AgentToolCall.ts';
 import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest }         from './AgentTranscripts.ts';
 import type { SandboxDenyShape }                                                 from './WorkerProfile.ts';
 
@@ -88,4 +89,8 @@ export interface AgentAdapter {
   sessionSubagentsOf(homeDirectory: string, sessionId: string, talliedParentToolUseIds: ReadonlySet<string>): readonly SubagentFacts[];
   /** One row per subagent transcript of the project, in no particular order; none when the agent kept no transcript. */
   subagentUsagesOf(request: SubagentUsageRequest): SubagentUsageAnswer;
+  /** The call a guard's hook input names; `null` for an input the adapter cannot read, which the guard then denies. */
+  toolCallOf(hookInput: string): AgentToolCall | null;
+  /** The line a guard prints to deny the call, carrying `reason` as forge worded it. */
+  toolCallDenialLineOf(reason: string): string;
 }

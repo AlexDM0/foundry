@@ -13,6 +13,7 @@ import type { AgentQuestion }                from '../lib/agent-launch/AgentSess
 import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
 import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CREDENTIALS }           from '../lib/claude-code/ClaudeCredentials.ts';
+import { ClaudeHookInput }                   from '../lib/claude-code/ClaudeHookInput.ts';
 import { claudeProgramRepairOf }             from '../lib/claude-code/ClaudeProgramRepair.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
@@ -200,5 +201,7 @@ export function fakeAgentAdapter(
       transcriptFolder: request.transcriptFolder ?? transcriptFolderFor(request.projectRoot, claudeConfigFolderOf(request.homeDirectory, undefined)),
       usages:           plantedTranscripts.subagentUsages ?? [],
     }),
+    toolCallOf:           ClaudeHookInput.toolCallOf,
+    toolCallDenialLineOf: ClaudeHookInput.toolCallDenialLineOf,
   };
 }

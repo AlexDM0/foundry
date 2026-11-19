@@ -87,7 +87,7 @@ describe('the pipeline\'s toolchain', () => {
     const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ['docs.example.org'], POSIX_SHELL_LINE);
     const profile   = WorkerProfiles.profileOf('builder', ABSENT_HOME_FACTS, toolchain);
 
-    expect(profile.bashNetworkDomains).toEqual(['docs.example.org', 'pypi.example.org']);
+    expect(profile.shellNetworkDomains).toEqual(['docs.example.org', 'pypi.example.org']);
     expect(profile.writableRoots).toEqual(['/example/home/alex-example/.cache/example-uv']);
     expect(profile.allowedCommandPrefixes.slice(0, 1)).toEqual([['uv']]);
     expect(profile.allowedCommandPrefixes.flat()).not.toContain('terraform');
@@ -253,12 +253,12 @@ describe('a builder\'s profile', () => {
 describe('the network line', () => {
   test('becomes the Bash allowed domains and the WebFetch domains of a builder', () => {
     const profile = profileOf('builder', ['registry.example.com', 'docs.example.org']);
-    expect(profile.bashNetworkDomains).toEqual(['registry.example.com', 'docs.example.org']);
+    expect(profile.shellNetworkDomains).toEqual(['registry.example.com', 'docs.example.org']);
     expect(profile.webNetworkDomains).toEqual(['registry.example.com', 'docs.example.org']);
   });
 
   test('absent, leaves a builder no domain and no web tool', () => {
-    expect(profileOf('builder')).toMatchObject({ bashNetworkDomains: [], webNetworkDomains: 'none' });
+    expect(profileOf('builder')).toMatchObject({ shellNetworkDomains: [], webNetworkDomains: 'none' });
   });
 
   test.each(['builder', 'reviewer', 'assistant'] as const)('never gives the %s every domain, which is what lets WebSearch through', (role) => {
@@ -266,7 +266,7 @@ describe('the network line', () => {
   });
 
   test('gives the product owner every web domain and Bash none', () => {
-    expect(profileOf('product-owner', ['docs.example.org'])).toMatchObject({ webNetworkDomains: 'any', bashNetworkDomains: [] });
+    expect(profileOf('product-owner', ['docs.example.org'])).toMatchObject({ webNetworkDomains: 'any', shellNetworkDomains: [] });
   });
 
   test.each(['builder', 'reviewer'] as const)('becomes the %s\'s bash-domains guard, run by the absolute runtime with the entry script first', (role) => {

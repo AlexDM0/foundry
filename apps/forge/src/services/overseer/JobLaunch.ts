@@ -2367,8 +2367,8 @@ function guardCommandOf(context: Pick<JobLaunchContext, 'programCommand' | 'work
 type ToolCallGuardKind = 'network' | 'stage-edits';
 
 const UNSTARTABLE_GUARD_WORDS: Readonly<Record<ToolCallGuardKind, { guard: string; calls: string }>> = {
-  'network':     { guard: 'network guard', calls: 'Bash, PowerShell and WebFetch' },
-  'stage-edits': { guard: 'stage edit guard', calls: 'Edit and Write' },
+  'network':     { guard: 'network guard', calls: 'shell commands and web fetches' },
+  'stage-edits': { guard: 'stage edit guard', calls: 'file edits' },
 };
 
 /** Called for a launch whose guard renders no hook, so the owner reads why the calls it would check are denied. */
@@ -2380,7 +2380,7 @@ function logUnstartableGuard(
     ? GuardCommand.refusalReasonOf(verdict, context.workspace.rootDirectory)
     : 'its command is not an absolute runtime path';
   const { guard, calls } = UNSTARTABLE_GUARD_WORDS[guardKind];
-  context.log(`The ${guard} of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its ${calls} calls are denied: ${reason}.`);
+  context.log(`The ${guard} of job ${job.id} (#${ticketIdOf(job)}) cannot start, so its ${calls} are denied: ${reason}.`);
 }
 
 /** What a worker's stored `writes` are judged by at launch: the Overseer's `PATH` and the host's path rules. */

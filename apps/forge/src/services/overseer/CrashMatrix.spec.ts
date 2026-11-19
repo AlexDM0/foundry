@@ -1075,7 +1075,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(profile?.deniedWritableRoots.some((path) => path.endsWith('packed-refs'))).toBe(true);
     expect(profile?.allowedCommandPrefixes).toEqual(expect.arrayContaining([['git', 'add'], ['git', 'commit']]));
     expect(profile).toMatchObject({
-      bashNetworkDomains: [], webNetworkDomains: 'none', askUser: false, networkDomainGuard: null
+      shellNetworkDomains: [], webNetworkDomains: 'none', askUser: false, networkDomainGuard: null
     });
   });
 

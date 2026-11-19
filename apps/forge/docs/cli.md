@@ -1284,50 +1284,51 @@ Each table prints these figures per group. "Review passes" is the printed label 
 | command | what it does |
 |---|---|
 | `hook session-start` | Print `session-instructions.md` for the session Claude Code is starting. `init` and `update` wire it as the `SessionStart` hook in `.claude/settings.local.json`, which a job's `--setting-sources project` never loads. It prints nothing under a job, skips the install version check, and exits 0 whatever happens, printing nothing on failure. |
-| `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the `PreToolUse` guard an Overseer renders into a job's settings for a role with a `network` line, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
-| `hook stage-edits --allow <folder>…` | Keep the `Edit` and `Write` calls of a job of an entity inside its stage's folders: the `PreToolUse` guard an Overseer renders into the settings of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
+| `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the network guard an Overseer renders into a job's launch for a role with a `network` line, run before each shell command and web fetch, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
+| `hook stage-edits --allow <folder>…` | Keep the file edits of a job of an entity inside its stage's folders: the edit guard an Overseer renders into the launch of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
 | `usage [--since <when>] [--transcripts <folder>] [--json]` | What this repository's subagents cost, read out of the subagent transcripts the agent keeps for this repository: one row per agent, oldest first, then the cohort summary. It writes nothing and takes no lock; a repository with no transcripts is one sentence at exit 0. [The columns and flags](#usage) are below. |
 
 #### `hook bash-domains`
 
-It denies, through the hook's JSON on standard output (`hookSpecificOutput.permissionDecision` `deny`, with a reason), a
-`Bash` or `PowerShell` call whose `allowed_domains`, or a `WebFetch` whose URL host, names a domain outside the
-comma-separated `--allow` list. An entry `*.example.com` admits that domain's subdomains, never the domain itself. A
-tool it does not know is denied, since it may be a new shell; a known tool that runs no command (`Read`, `Edit`,
-`Write`, `Glob`, `Grep`, `NotebookEdit`, `TodoWrite`, `AskUserQuestion`) passes, printing nothing and granting nothing.
+The agent's adapter reads the call from the hook input on standard input, and the guard judges it. It denies, through
+the adapter's denial line on standard output, a shell command that asks for a domain, or a web fetch whose URL host
+names a domain, outside the comma-separated `--allow` list. An entry `*.example.com` admits that domain's subdomains,
+never the domain itself. A tool the adapter does not know is denied, since it may be a new shell; a file edit and a
+known tool that runs no command pass, printing nothing and granting nothing.
 
 It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
-answers deny on any failure: no input, input that is not a JSON object, a url naming no host, an `allowed_domains` that
-is no list of domains, an unknown option.
+answers deny on any failure: no input, input the adapter cannot read, a URL naming no host, requested domains that are
+no list of domains, an unknown option.
 
-The Overseer renders it in exec form, before every `Bash`, `PowerShell` and `WebFetch` call: the program's absolute
-path, resolved from the Overseer's `PATH` at launch, with its arguments and no shell, so a program missing from the
-session's `PATH` cannot let a call through. When the program does not resolve at launch, the job's settings deny
-`Bash`, `PowerShell` and `WebFetch` outright instead. What it enforces per OS:
+The Overseer renders it in exec form, before every shell command and web fetch: the program's absolute path, resolved
+from the Overseer's `PATH` at launch, with its arguments and no shell, so a program missing from the session's `PATH`
+cannot let a call through. When the program does not resolve at launch, the job's launch denies shell commands and web
+fetches outright instead. What it enforces per OS:
 
-| OS | shell calls | `WebFetch` |
+| OS | shell commands | web fetches |
 |---|---|---|
-| macOS, Linux | Each call's `allowed_domains`, the domains auto mode may add to the sandbox's strict network allowlist. | The URL host. |
-| Windows | Nothing to check: no sandbox exists, so a call carries no `allowed_domains` and the network of a shell call is not limited. | The URL host. |
+| macOS, Linux | The domains each command asks for, which auto mode may add to the sandbox's strict network allowlist. | The URL host. |
+| Windows | Nothing to check: no sandbox exists, so a command asks for no domain and its network is not limited. | The URL host. |
 
 #### `hook stage-edits`
 
-It denies, through the hook's JSON on standard output (`hookSpecificOutput.permissionDecision` `deny`, with a reason),
-an `Edit` or `Write` whose `file_path` lies outside every `--allow` folder. A relative `file_path` is placed by the
-call's `cwd`, and `..` is resolved before the check. A stage file such as `/bun.lock` is a folder of its own. A path
-inside a folder passes, printing nothing and granting nothing; any other tool is denied.
+The agent's adapter reads the call from the hook input on standard input, and the guard judges it. It denies, through
+the adapter's denial line on standard output, a file edit whose path lies outside every `--allow` folder. A relative
+path is placed by the call's working directory, and `..` is resolved before the check. A stage file such as
+`/bun.lock` is a folder of its own. A path inside a folder passes, printing nothing and granting nothing; any other
+call is denied.
 
 The deny rules of a stage name the worktree's paths outside its folders as they stood at launch. A name made later
 directly in a folder on the way to a stage folder, such as the worktree root or `/apps`, is named by no rule, and this
-guard denies an `Edit` or `Write` of it at once. A job without an entity gets no such guard. A stage's folders are its
+guard denies a file edit of it at once. A job without an entity gets no such guard. A stage's folders are its
 entity's homes and `reach`; in stage 1 they also hold the homes of the packages the entity whitelists, where the build
 may write a proposal, a package whose build refused the ticket's change left out.
 
 It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
-answers deny on any failure: no input, input that is not a JSON object, no `file_path`, a relative `file_path` with no
-absolute `cwd`, no `--allow`, a folder that is not an absolute path, an unknown option. The Overseer renders it in exec
-form, before every `Edit` and `Write` call, as it renders `hook bash-domains`; when the program does not resolve at
-launch, the job's settings deny `Edit` and `Write` outright instead.
+answers deny on any failure: no input, input the adapter cannot read, no path, a relative path with no absolute working
+directory, no `--allow`, a folder that is not an absolute path, an unknown option. The Overseer renders it in exec
+form, before every file edit, as it renders `hook bash-domains`; when the program does not resolve at launch, the job's
+launch denies file edits outright instead.
 
 #### `usage`
 

@@ -58,7 +58,7 @@ function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'p
       writableRoots:          [],
       deniedWritableRoots:    [],
       deniedReadableRoots:    [],
-      bashNetworkDomains:     [],
+      shellNetworkDomains:    [],
       webNetworkDomains:      'none',
       extraWritableDirectory: scratch,
       allowedCommandPrefixes: [],

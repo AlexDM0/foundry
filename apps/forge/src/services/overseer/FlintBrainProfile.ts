@@ -42,7 +42,7 @@ function profileOf(place: FlintBrainSessionPlace, repositoryRoot: string, creden
     writableRoots:           [],
     deniedWritableRoots:     [repositoryRoot],
     deniedReadableRoots:     [...credentialPaths],
-    bashNetworkDomains:      [],
+    shellNetworkDomains:     [],
     webNetworkDomains:       'none',
     extraWritableDirectory:  place.workingDirectory,
     allowedCommandPrefixes:  [],

@@ -24,7 +24,7 @@ const ROOT_TRACKER_PROFILE: WorkerProfile = {
   writableRoots:          [],
   deniedWritableRoots:    [`${PROJECT}/.example-data`],
   deniedReadableRoots:    [`${HOME}/.ssh`],
-  bashNetworkDomains:     [],
+  shellNetworkDomains:    [],
   webNetworkDomains:      'none',
   extraWritableDirectory: `${PROJECT}/.example-worktrees/hatch/J1`,
   allowedCommandPrefixes: [['git', 'commit']],

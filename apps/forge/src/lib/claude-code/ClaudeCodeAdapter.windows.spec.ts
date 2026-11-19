@@ -29,7 +29,7 @@ function windowsProfile(): WorkerProfile {
     writableRoots:          [win32.join(HOME, '.cache', 'example-uv')],
     deniedWritableRoots:    [win32.join(REPOSITORY, '.example-data'), win32.join(WORKTREE, '.claude')],
     deniedReadableRoots:    [win32.join(HOME, '.ssh')],
-    bashNetworkDomains:     [],
+    shellNetworkDomains:    [],
     webNetworkDomains:      'none',
     extraWritableDirectory: HATCH,
     allowedCommandPrefixes: [['git', 'commit']],

@@ -31,7 +31,7 @@ function profileOf(guarded: boolean): WorkerProfile {
     writableRoots:          [`${REPOSITORY}/.example-cache`],
     deniedWritableRoots:    [`${REPOSITORY}/.example-data`, `${WORKTREE}/.claude`],
     deniedReadableRoots:    ['/home/alex-example/.ssh'],
-    bashNetworkDomains:     guarded ? ['registry.example.com'] : [],
+    shellNetworkDomains:    guarded ? ['registry.example.com'] : [],
     webNetworkDomains:      guarded ? ['registry.example.com'] : 'none',
     extraWritableDirectory: `${REPOSITORY}/.example-worktrees/hatch/J1`,
     allowedCommandPrefixes: [['bun', 'run', 'verify'], ['git', 'commit']],

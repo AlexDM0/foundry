@@ -65,7 +65,7 @@ function requestOf(reportSchema: JsonSchema | null, overrides: Partial<AgentLaun
       writableRoots:          [],
       deniedWritableRoots:    [],
       deniedReadableRoots:    [],
-      bashNetworkDomains:     [],
+      shellNetworkDomains:    [],
       webNetworkDomains:      'none',
       extraWritableDirectory: WORKTREE,
       allowedCommandPrefixes: [],

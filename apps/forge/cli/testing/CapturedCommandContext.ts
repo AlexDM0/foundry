@@ -5,6 +5,7 @@
 import { tmpdir } from 'node:os';
 import { join }   from 'node:path';
 
+import type { AgentAdapter }                            from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState }                            from '../../src/services/render/RenderState.ts';
 import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
@@ -40,6 +41,8 @@ export interface CapturedCommandContextOptions {
    * names a scratch folder its repository lies outside.
    */
   temporaryDirectories?:    readonly string[];
+  /** By default the fake agent's. */
+  agentAdapter?:            AgentAdapter;
 }
 
 const DEFAULT_SPEC_CLOCK_READING = '2026-09-18T20:11:03Z';
@@ -75,7 +78,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
   const questions:   string[] = [];
 
   return {
-    agentAdapter:            fakeAgentAdapter(),
+    agentAdapter:            options.agentAdapter ?? fakeAgentAdapter(),
     currentDirectory:        options.currentDirectory,
     now:                     options.now ?? (() => new Date(DEFAULT_SPEC_CLOCK_READING)),
     standardOutput:          (text: string) => { outputLines.push(text); },

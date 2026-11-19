@@ -46,7 +46,7 @@ function profileOf(role: Role): WorkerProfile {
     writableRoots:       [],
     deniedWritableRoots: [`${REPOSITORY}/.example-data`, `${WORKTREE}/.claude`, `${REPOSITORY}/.git/packed-refs`],
     deniedReadableRoots: [`${REPOSITORY}/.example-data/jobs/*/launch-*.json`, '/Users/example/.ssh', '/Users/example/.gnupg/private-keys-v1.d'],
-    bashNetworkDomains:  role === 'builder' ? ['registry.example.com'] : [],
+    shellNetworkDomains: role === 'builder' ? ['registry.example.com'] : [],
     webNetworkDomains:   {
       'builder': ['registry.example.com'], 'reviewer': 'none', 'airlock-agent': 'none', 'product-owner': 'any', 'assistant': 'none'
     }[role] as WorkerProfile['webNetworkDomains'],

@@ -35,7 +35,7 @@ function isIntakeJob(job: Readonly<Job>): boolean {
 /** Writes only its session folder and its Hatch folder; the slash command loads the product-owner skill, so skills stay on. */
 function productOwnerProfileOf(sessionProfile: WorkerProfile): WorkerProfile {
   return {
-    ...sessionProfile, bashNetworkDomains: [], webNetworkDomains: 'any', askUser: true, skills: true, networkDomainGuard: null
+    ...sessionProfile, shellNetworkDomains: [], webNetworkDomains: 'any', askUser: true, skills: true, networkDomainGuard: null
   };
 }
 

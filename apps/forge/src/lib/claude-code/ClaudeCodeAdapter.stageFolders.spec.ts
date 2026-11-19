@@ -23,7 +23,7 @@ const PROFILE: WorkerProfile = {
   writableRoots:          [],
   deniedWritableRoots:    [`${REPOSITORY}/.example-data`, `${WORKTREE}/.claude`, `${WORKTREE}/apps/example/.claude`],
   deniedReadableRoots:    [`${HOME}/.ssh`],
-  bashNetworkDomains:     [],
+  shellNetworkDomains:    [],
   webNetworkDomains:      'none',
   extraWritableDirectory: `${REPOSITORY}/.example-worktrees/hatch/J1`,
   allowedCommandPrefixes: [['git', 'commit']],

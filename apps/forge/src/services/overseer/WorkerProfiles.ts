@@ -419,7 +419,7 @@ function profileOf(
     writableRoots:          [...checkoutRoots, ...isWorker ? writableRootsOf(facts, toolchain.writes) : []],
     deniedWritableRoots:    deniedWritableRootsOf(facts, hostPaths),
     deniedReadableRoots:    deniedReadableRootsOf(facts, hostPaths),
-    bashNetworkDomains:     isWorker ? [...networkDomains] : [],
+    shellNetworkDomains:    isWorker ? [...networkDomains] : [],
     webNetworkDomains:      role === 'assistant' ? 'none' : webNetworkDomainsOf(role, networkDomains),
     extraWritableDirectory: facts.hatchDirectory,
     allowedCommandPrefixes: isWorker ? workerAllowedCommandPrefixesOf(toolchain.executables) : [],
