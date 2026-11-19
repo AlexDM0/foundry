@@ -190,12 +190,13 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 [product owner](../glossary.md#product-owner), [decision](../glossary.md#decision), [incident](../glossary.md#incident).
 
 <details open>
-<summary>23 sentences</summary>
+<summary>24 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `There is no job <job>. Nothing was written.` | `unknown-job` | The id names no live job, and no ended job the move can reach. | Run `jobs` to list them. | |
 | `is finished, and a finished job is never continued` | `job-finished` | A move named an ended job. `intake close` and `job message` also print this for a job still `stopping`. | Start a fresh ticket or intake. A closed product owner reopens through `job message`. | |
+| `is not interrupted, so there is nothing of it to resume` | `job-not-interrupted` | A resume named a job that is not `interrupted`: only interrupted work waits for User's resume. | Run `jobs` to see its state. A running job needs no resume. | |
 | `works no ticket, so no fresh agent can take its work over` | `job-has-no-ticket` | `job fresh` on a job with no ticket. | Use `job stop`. | |
 | `so it has no intake to close or title` | `job-not-intake` | `intake close` or `intake title` named a job of another kind. | Name the product-owner job. | |
 | `is blank: write a short title after --` | `intake-title-empty` | `intake title` with a title of only spaces, sent through the API or a Hatch. The terminal refuses earlier with a usage line. | Send a title. | [cli.md](../cli.md#intake-title) |

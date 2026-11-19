@@ -2,8 +2,9 @@
  * Seeded interleavings of the lifecycle over one Board, a fake agent and a fake user acting at random between passes. What matters is what no
  * order of events may break: never two live jobs for one ticket, never a launch past the concurrency limit, never a resume of a session or of
  * a job that was not interrupted, every question answered at most once, never two child instances live for one job, never a resume of a
- * finished session or a crash resume past the bound, at most one git operation per worktree at a time, at most one merge or refresh per
- * target (so never two refreshes), and never a refresh beside its group's release. A failing seed names itself, so it replays exactly.
+ * finished session or a crash resume past the bound since User's newest resume, at most one git operation per worktree at a time, at most
+ * one merge or refresh per target (so never two refreshes), and never a refresh beside its group's release. A failing seed names itself, so
+ * it replays exactly.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -31,7 +32,7 @@ describe('the lifecycle under seeded interleavings', () => {
   test.each([
     ['a launch past the concurrency limit', '    .slice(0, freeSlotsOf(facts));\n', ';\n'],
     ['two live jobs for one ticket', '!ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob(ticket.id, facts) && ', ''],
-    ['a resume of a session', '    if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: \'replace-job\', jobId: job.id }];\n', ''],
+    ['a resume of a session', '    if (REPLACED_SESSION_JOB_KINDS.includes(job.kind)) {\n', '    if (false) {\n'],
   ])('the world sees %s once the policy allows it', async (_broken, find, replace) => {
     const mutated = await mutatedModuleOf(WORLD_MODULE, { modulePath: 'src/lib/tracker-model/Playbook.ts', find, replace });
     const World   = mutated['LifecycleWorld'] as typeof LifecycleWorld;
@@ -72,7 +73,7 @@ describe('the lifecycle under seeded interleavings', () => {
     [
       'a crash resume past the bound',
       'src/lib/tracker-model/Playbook.ts',
-      '    if (crashResumesAreSpent(job, limits)) return [{ kind: \'replace-job\', jobId: job.id }];\n',
+      '  if (crashResumesAreSpent(job, limits)) return \'waits-for-instruction\';\n',
       '',
       'crash-resumed',
     ],

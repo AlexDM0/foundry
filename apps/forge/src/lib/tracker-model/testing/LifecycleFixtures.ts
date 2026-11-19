@@ -31,7 +31,7 @@ export const FIXTURE_LIMITS: LifecycleLimits = {
   ROUND_GRANTED_ON_REWORK_ALONE:            2,
   FINDINGS_SHRINK_FACTOR_PER_ROUND:         2,
   REWORK_ROUND_THRESHOLD_LINES:             750,
-  JOB_RESUMES_BEFORE_FRESH:                 2,
+  CRASH_RESUMES_BEFORE_WAITING:             2,
   RED_HANDOFF_RESUMES_BEFORE_PARKING:       2,
   REPLACED_JOBS_BEFORE_JOB_LOST:            2,
   FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING: 2,
@@ -111,6 +111,12 @@ export function endedRecord(jobId: string, outcome: JobOutcome): LogRecord {
 export function interruptedRecord(jobId: string, cause: InterruptionCause): LogRecord {
   return {
     kind: 'job-interrupted', jobId, fields: { cause, childInstance: 1 }, at: FIXTURE_AT,
+  };
+}
+
+export function resumeInstructedRecord(jobId: string): LogRecord {
+  return {
+    kind: 'job-resume-instructed', jobId, fields: { childInstance: 1 }, at: FIXTURE_AT,
   };
 }
 

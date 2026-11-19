@@ -478,6 +478,7 @@ test('through the API no reason names a command line or a flag, though the comma
 test.each<[BoardRefusalDetail, string]>([
   [{ reason: 'unknown-job', jobId: 'J9' }, 'There is no job J9. Nothing was written.'],
   [{ reason: 'job-finished', jobId: 'J3' }, 'Job J3 is finished, and a finished job is never continued. Nothing was written.'],
+  [{ reason: 'job-not-interrupted', jobId: 'J3' }, 'Job J3 is not interrupted, so there is nothing of it to resume. Nothing was written.'],
   [
     {
       reason: 'job-move-illegal', jobId: 'J3', state: 'running', targetState: 'landing'

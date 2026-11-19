@@ -138,6 +138,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'several-letters-on-single-select-question': { reason: 'several-letters-on-single-select-question', draftId: 'D2', letters: ['A', 'B'] },
   'unknown-job':                               { reason: 'unknown-job', jobId: 'J9' },
   'job-finished':                              { reason: 'job-finished', jobId: 'J3' },
+  'job-not-interrupted':                       { reason: 'job-not-interrupted', jobId: 'J3' },
   'job-has-no-ticket':                         { reason: 'job-has-no-ticket', jobId: 'J3' },
   'job-not-intake':                            { reason: 'job-not-intake', jobId: 'J3', kind: 'build' },
   'intake-title-empty':                        { reason: 'intake-title-empty', jobId: 'J3' },

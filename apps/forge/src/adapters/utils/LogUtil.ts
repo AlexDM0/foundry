@@ -309,8 +309,10 @@ function sentenceOf(record: LogRecordContent): string {
       return jobLaunchedTextOf(record.jobId, record.fields);
     case 'job-interrupted':
       return `Job ${record.jobId} interrupted (${record.fields.cause}) in child instance ${record.fields.childInstance}`;
-    case 'job-resumed':
-      return `Job ${record.jobId} resumed in child instance ${record.fields.childInstance} after ${record.fields.cause}`;
+    case 'job-resumed': {
+      const instruction = record.fields.instructed === true ? ', as User asked' : '';
+      return `Job ${record.jobId} resumed in child instance ${record.fields.childInstance} after ${record.fields.cause}${instruction}`;
+    }
     case 'job-resume-instructed':
       return `User asked to resume job ${record.jobId}, interrupted in child instance ${record.fields.childInstance}`;
     case 'usage-limit-hit':

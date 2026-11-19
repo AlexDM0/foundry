@@ -8,12 +8,12 @@
  * review rounds come between its failed builds; a forge without entities launches exactly as today, a stored stage ignored. The scheduling
  * cases: a stage's job holds one slot and a ticket between stages none (E70); a ticket between stages goes before a ready ticket of its
  * priority (E71); a stage's job names its entity, which an entity's cap counts (E72); two tickets cross into one package at once (E73); a
- * restart mid-stage resumes the stage's job and launches no second one (E74); a hold between stages holds and the successor of a stage job
- * that was stopped or replaced by a fresh job stays in its stage (E75), as does that of a package build or adapt that wound down (E17); a
- * usage limit holds a ticket between stages (E76); and an open decision of the package stages (`package-refused`, `second-return`,
- * `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers (E22, E45, E26, E19). A pending ticket
- * without an entity launches nothing on a pipeline with entities until it has one, since its build would read the forge-level pipeline,
- * while a forge without entities launches it as today (E94).
+ * restart mid-stage resumes the stage's job once User resumes it and launches no second one (E74); a hold between stages holds and the
+ * successor of a stage job that was stopped or replaced by a fresh job stays in its stage (E75), as does that of a package build or adapt
+ * that wound down (E17); a usage limit holds a ticket between stages (E76); and an open decision of the package stages (`package-refused`,
+ * `second-return`, `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers (E22, E45, E26, E19).
+ * A pending ticket without an entity launches nothing on a pipeline with entities until it has one, since its build would read the
+ * forge-level pipeline, while a forge without entities launches it as today (E94).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -23,14 +23,17 @@ import type { Decision }                      from './@types/Decision.ts';
 import type { LogRecord }                     from './@types/LogRecord.ts';
 import type { PlaybookStep }                  from './@types/PlaybookStep.ts';
 import type { TicketStage }                   from './@types/Task.ts';
+import type { PlaybookFacts }                 from './Playbook.ts';
 import { Playbook }                           from './Playbook.ts';
 import {
   FIXTURE_LIMITS,
   LIVE_ASSISTANT,
   endedRecord,
   factsWith,
+  interruptedRecord,
   jobFixture,
   launchedTicketIdsOf,
+  resumeInstructedRecord,
   stagedLaunchedRecord,
   ticketOf,
   ticketRecord
@@ -318,18 +321,19 @@ const CLAIMS: StageClaim[] = [
     }), [packageBuildOf('001'), packageBuildOf('002')]),
   },
   {
-    name:  'E74: after a restart mid-stage the stage\'s interrupted job resumes and no second job launches',
+    name:  'E74: after a restart mid-stage the stage\'s interrupted job waits for User\'s resume, then resumes, and no second job launches',
     holds: (policy) => {
-      const facts = factsWith({
+      const factsAfter = (logRecords: readonly LogRecord[]): PlaybookFacts => factsWith({
         pipelineHasEntities: true,
         tickets:             [crossingTicket(PACKAGE_BUILD)],
         jobs:                [LIVE_ASSISTANT, jobFixture({
           id: 'J2', ticketIds: ['001'], state: 'interrupted', interruption: 'reboot', entity: UI_KIT.key, stage: 2
         })],
-        logRecords: [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2)],
+        logRecords: [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), interruptedRecord('J2', 'reboot'), ...logRecords],
       });
-      const steps = policy.nextStepsOf(facts, FIXTURE_LIMITS);
-      return Bun.deepEquals(steps, [{ kind: 'resume-job', jobId: 'J2' }], true) && Bun.deepEquals(policy.nextStepsOf(facts, FIXTURE_LIMITS), steps, true);
+      const waiting = policy.nextStepsOf(factsAfter([]), FIXTURE_LIMITS);
+      const resumed = policy.nextStepsOf(factsAfter([resumeInstructedRecord('J2')]), FIXTURE_LIMITS);
+      return waiting.length === 0 && Bun.deepEquals(resumed, [{ kind: 'resume-job', jobId: 'J2', instructed: true }], true);
     },
   },
   {

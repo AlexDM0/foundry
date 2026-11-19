@@ -11,26 +11,22 @@ import type {
   JobKind,
   JobOutcome
 } from './@types/Job.ts';
-import type { LifecycleLimits }                    from './@types/LifecycleLimits.ts';
-import type { LogRecord }                          from './@types/LogRecord.ts';
-import type { EntityKey }                          from './@types/Pipeline.ts';
-import type { PlaybookObservations, PlaybookStep } from './@types/PlaybookStep.ts';
-import type { TicketStage, TicketStageName }       from './@types/Task.ts';
-import type { TicketPriority, TicketStatus }       from './@types/Ticket.ts';
-import type { OverseerState }                      from './@types/TrackerProgress.ts';
-import {
-  CRASH_INTERRUPTION_CAUSES,
-  FORCED_STOP_REFUSED_INTERRUPTION,
-  HANDOFF_RED_INTERRUPTION,
-  INTERRUPTION_CAUSES_HELD_FROM_RESUMING
-} from './constants/JobStates.ts';
-import { TICKET_STATUSES_THAT_CLOSE_A_TICKET } from './constants/Statuses.ts';
-import { ConcurrencyUtil }                     from './utils/ConcurrencyUtil.ts';
-import { FailedPassUtil }                      from './utils/FailedPassUtil.ts';
-import { LaunchSlotUtil }                      from './utils/LaunchSlotUtil.ts';
-import { TicketDefaultsUtil }                  from './utils/TicketDefaultsUtil.ts';
-import { TicketDependencyUtil }                from './utils/TicketDependencyUtil.ts';
-import { TicketStageUtil }                     from './utils/TicketStageUtil.ts';
+import type { LifecycleLimits, LifecycleThresholds }                                             from './@types/LifecycleLimits.ts';
+import type { LogRecord }                                                                        from './@types/LogRecord.ts';
+import type { EntityKey }                                                                        from './@types/Pipeline.ts';
+import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
+import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
+import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
+import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
+import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
+import { RESUME_POLICY_OF_CAUSE, type ResumePolicy }                                             from './constants/ResumePolicy.ts';
+import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
+import { ConcurrencyUtil }                                                                       from './utils/ConcurrencyUtil.ts';
+import { FailedPassUtil }                                                                        from './utils/FailedPassUtil.ts';
+import { LaunchSlotUtil }                                                                        from './utils/LaunchSlotUtil.ts';
+import { TicketDefaultsUtil }                                                                    from './utils/TicketDefaultsUtil.ts';
+import { TicketDependencyUtil }                                                                  from './utils/TicketDependencyUtil.ts';
+import { TicketStageUtil }                                                                       from './utils/TicketStageUtil.ts';
 
 export interface PlaybookTicket {
   id:           string;
@@ -85,8 +81,17 @@ export interface PlaybookFacts {
 /** The jobs whose spent red resumes park their ticket; an Airlock agent's Airlock parks its own, aborting the merge. */
 const TICKET_WORK_JOB_KINDS: readonly JobKind[] = ['review', 'build'];
 
-/** Sessions, which are never resumed once down: a fresh one boots instead. */
-const SESSION_JOB_KINDS: readonly JobKind[] = ['assistant', 'product-owner'];
+/** The Assistant answers incidents and holds no work, so one that went down is never resumed: a fresh one boots instead. */
+const REPLACED_SESSION_JOB_KINDS: readonly JobKind[] = ['assistant'];
+
+/**
+ * A child gone with the machine or the forge itself, found gone at the next start. That start boots a fresh Assistant at once, while an
+ * Assistant that ended on its own outage or lease end waits for User's resume as any job does.
+ */
+const FORGE_ENDING_INTERRUPTION_CAUSES: readonly InterruptionCause[] = ['reboot', 'forge-stopped', 'forge-crashed'];
+
+/** The cause a resume reads for an interrupted job that recorded none, as `Jobs.moveJob` counts it. */
+const UNRECORDED_INTERRUPTION_CAUSE: InterruptionCause = 'watcher-lost';
 
 /** A job ended with a report code verified, which breaks a run of crashes across tickets. */
 const VERIFIED_OUTCOMES: readonly JobOutcome[] = ['built', 'reviewed', 'round-granted', 'does-not-hold', 'resolved', 'landed', 'integrated', 'refreshed'];
@@ -152,12 +157,6 @@ interface IndexedPlaybookFacts extends PlaybookFacts {
 
 function isCrash(cause: InterruptionCause | undefined): boolean {
   return cause !== undefined && (CRASH_INTERRUPTION_CAUSES as readonly InterruptionCause[]).includes(cause);
-}
-
-/** A network outage or a lease end waits for User's resume: neither a resume nor a replacement comes by itself. */
-function interruptionIsHeldFromResuming(job: Readonly<Job>): boolean {
-  return job.state === 'interrupted' && job.interruption !== undefined
-    && (INTERRUPTION_CAUSES_HELD_FROM_RESUMING as readonly InterruptionCause[]).includes(job.interruption);
 }
 
 function jobLaunchesByJobIdOf(logRecords: readonly LogRecord[]): JobLaunchesByJobId {
@@ -415,23 +414,58 @@ function jobAwaitsAnAnswer(job: Readonly<Job>, facts: PlaybookFacts): boolean {
     || facts.incidents.some((incident) => incident.jobId === job.id && (incident.kind === 'system-question' || incident.kind === 'malformed-ticket'));
 }
 
-/** Only a crash counts toward the bound: a reboot, an answer delivery or a usage limit resumes whatever the count. */
-function crashResumesAreSpent(job: Readonly<Job>, limits: LifecycleLimits): boolean {
-  return isCrash(job.interruption) && job.crashResumes >= limits.JOB_RESUMES_BEFORE_FRESH;
+/** Only a crash counts toward the bound: every other cause resumes, or waits, whatever the count. */
+function crashResumesAreSpent(job: Readonly<Job>, limits: LifecycleThresholds): boolean {
+  return isCrash(job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE) && job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING;
+}
+
+/** The resume policy of the job's interruption; a crash whose resumes reached the bound waits for User's resume. */
+function resumePolicyOf(job: Readonly<Job>, limits: LifecycleThresholds): ResumePolicy {
+  if (crashResumesAreSpent(job, limits)) return 'waits-for-instruction';
+  return RESUME_POLICY_OF_CAUSE[job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE];
 }
 
 /**
- * An intake conversation survives a reboot: an interrupted product owner resumes by id once any question it asked is answered. Past the
- * crash bound it is never resumed: with a question open it waits `awaiting-answer`, otherwise a fresh session takes its intake over.
+ * User's resume of the job, or an answer to a question it asked, logged after its newest interruption: an instruction never outlives the
+ * interruption it answered, so a later interruption waits again. Read from the log alone, in log order.
+ */
+function resumeIsInstructed(job: Readonly<Job>, logRecords: readonly LogRecord[]): boolean {
+  const answeredRequestIds = new Set(job.answeredRequestIds);
+  let instructed = false;
+  for (const record of logRecords) {
+    if (record.kind === 'job-interrupted' && record.jobId === job.id) instructed = false;
+    if (record.kind === 'job-resume-instructed' && record.jobId === job.id) instructed = true;
+    if (record.kind === 'decision-answered' && record.fields.requestId !== undefined && answeredRequestIds.has(record.fields.requestId)) instructed = true;
+  }
+  return instructed;
+}
+
+/** A resume under the job's policy: one that waits needs an instruction first, and every resume obeys its holds, an instructed one too. */
+function resumeStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: LifecycleThresholds, resumeIsHeld: boolean): PlaybookStep[] {
+  const policy = resumePolicyOf(job, limits);
+  if (policy === 'never-resumes') return [];
+  const instructed = resumeIsInstructed(job, facts.logRecords);
+  if (policy === 'waits-for-instruction' && !instructed) return [];
+  return resumeIsHeld ? [] : [{ kind: 'resume-job', jobId: job.id, instructed }];
+}
+
+/** An Assistant interrupted by its own outage or lease end waits for User's resume, and is replaced once it came; any other is replaced at once. */
+function assistantWaitsForInstruction(job: Readonly<Job>, logRecords: readonly LogRecord[]): boolean {
+  const cause = job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE;
+  if (FORGE_ENDING_INTERRUPTION_CAUSES.includes(cause)) return false;
+  return RESUME_POLICY_OF_CAUSE[cause] === 'waits-for-instruction' && !resumeIsInstructed(job, logRecords);
+}
+
+/**
+ * An intake conversation survives a reboot: an interrupted product owner follows its cause's policy and resumes by id once any question it
+ * asked is answered. Past the crash bound it is never resumed by itself: with a question open it waits `awaiting-answer` with no process,
+ * otherwise it waits for User's resume.
  */
 function productOwnerStepsOf(job: Readonly<Job>, facts: PlaybookFacts, limits: LifecycleLimits, resumesAreHeld: boolean): PlaybookStep[] {
   const awaitsAnAnswer = jobAwaitsAnAnswer(job, facts);
   if (job.state === 'awaiting-answer') return awaitsAnAnswer ? [] : [{ kind: 'refresh-intake', jobId: job.id }];
-  if (crashResumesAreSpent(job, limits)) {
-    return [{ kind: awaitsAnAnswer ? 'await-answer' : 'refresh-intake', jobId: job.id }];
-  }
-  if (interruptionIsHeldFromResuming(job)) return [];
-  return resumesAreHeld || awaitsAnAnswer ? [] : [{ kind: 'resume-job', jobId: job.id }];
+  if (crashResumesAreSpent(job, limits) && awaitsAnAnswer) return [{ kind: 'await-answer', jobId: job.id }];
+  return resumeStepsOf(job, facts, limits, resumesAreHeld || awaitsAnAnswer);
 }
 
 /** User's answers, in question order, to the newest `waiver` decision opened on the job's ticket since it launched; `null` while unanswered. */
@@ -470,8 +504,7 @@ function redHandoffStepsOf(job: Readonly<Job>, facts: IndexedPlaybookFacts, limi
       kind: 'park', ticketId, cause: 'red-resumes-spent', jobId: job.id
     }];
   }
-  const resumeIsHeld = resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts);
-  return resumeIsHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];
+  return resumeStepsOf(job, facts, limits, resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts));
 }
 
 interface ResumeHolds {
@@ -488,12 +521,11 @@ function crashBoundStepsOf(facts: IndexedPlaybookFacts, limits: LifecycleLimits,
     .flatMap((job) => productOwnerStepsOf(job, facts, limits, resumesAreHeld));
   return [...productOwnerSteps, ...settledJobs.filter((job) => job.state === 'interrupted' && job.kind !== 'product-owner').flatMap((job): PlaybookStep[] => {
     if (job.interruption === HANDOFF_RED_INTERRUPTION) return redHandoffStepsOf(job, facts, limits, resumesAreHeld);
-    if (interruptionIsHeldFromResuming(job)) return [];
-    if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: 'replace-job', jobId: job.id }];
-    if (crashResumesAreSpent(job, limits)) return [{ kind: 'replace-job', jobId: job.id }];
-    if (job.kind === 'pipeline-agent') return holds.pipelineAgentResumesAreHeld ? [] : [{ kind: 'resume-job', jobId: job.id }];
-    if (resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts)) return [];
-    return [{ kind: 'resume-job', jobId: job.id }];
+    if (REPLACED_SESSION_JOB_KINDS.includes(job.kind)) {
+      return assistantWaitsForInstruction(job, facts.logRecords) ? [] : [{ kind: 'replace-job', jobId: job.id }];
+    }
+    if (job.kind === 'pipeline-agent') return resumeStepsOf(job, facts, limits, holds.pipelineAgentResumesAreHeld);
+    return resumeStepsOf(job, facts, limits, resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts));
   })];
 }
 
@@ -812,6 +844,9 @@ function nextLaunchNumbersOf(tickets: readonly Pick<PlaybookTicket, 'id' | 'stat
 
 export const Playbook = {
   nextStepsOf,
+  resumePolicyOf,
+  resumeIsInstructed,
+  assistantWaitsForInstruction,
   outageIsDue,
   handoffCycleResumesOf,
   nextLaunchNumbersOf,

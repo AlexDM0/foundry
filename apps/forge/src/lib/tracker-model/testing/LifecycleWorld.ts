@@ -45,6 +45,9 @@ const WORLD_TARGETS: readonly string[] = ['main', 'group-example'];
 /** How often an allocation that finds nothing queued on the group claims a refresh: rare enough that the release still reaches its slot. */
 const WORLD_REFRESH_CHANCE = 0.2;
 
+/** How often User resumes an interrupted job: a reboot and a crash past the bound wait for it. */
+const WORLD_RESUME_CHANCE = 0.5;
+
 function worldTargetOf(group: string | undefined): string {
   return group === undefined ? 'main' : `group-${group}`;
 }
@@ -226,16 +229,20 @@ export class LifecycleWorld {
     this.liveChildInstances.get(jobId)?.clear();
   }
 
-  /** Read from the log as written: a resume of a job already ended, or a crash resume past the bound, is a violation. */
+  /**
+   * Read from the log as written: a resume of a job already ended, or a crash resume past the bound since User's newest resume of the job,
+   * is a violation. Only a resume not instructed counts; an instructed one gives the job its crash resumes back.
+   */
   private checkResumes(turn: number): void {
     for (const record of this.logRecords.slice(this.checkedRecordCount)) {
       if (record.kind === 'job-ended') this.endedJobIds.add(record.jobId);
       if (record.kind !== 'job-resumed') continue;
       if (this.endedJobIds.has(record.jobId)) this.violations.push(`turn ${turn}: resumed ${record.jobId}, a finished session`);
-      if (!CRASH_CAUSES.includes(record.fields.cause)) continue;
+      if (record.fields.instructed === true) this.crashResumesByJobId.set(record.jobId, 0);
+      if (record.fields.instructed === true || !CRASH_CAUSES.includes(record.fields.cause)) continue;
       const crashResumes = (this.crashResumesByJobId.get(record.jobId) ?? 0) + 1;
       this.crashResumesByJobId.set(record.jobId, crashResumes);
-      if (crashResumes > FIXTURE_LIMITS.JOB_RESUMES_BEFORE_FRESH) this.violations.push(`turn ${turn}: crash-resumed ${record.jobId} ${crashResumes} times`);
+      if (crashResumes > FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING) this.violations.push(`turn ${turn}: crash-resumed ${record.jobId} ${crashResumes} times`);
     }
     this.checkedRecordCount = this.logRecords.length;
   }
@@ -285,6 +292,10 @@ export class LifecycleWorld {
       return;
     }
     const job = this.pick(this.board.jobs());
+    if (job?.state === 'interrupted' && this.random() < WORLD_RESUME_CHANCE) {
+      this.board.instructResume(job.id, FIXTURE_AT);
+      return;
+    }
     if (job !== undefined) this.actOn(job);
   }
 

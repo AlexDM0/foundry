@@ -401,10 +401,10 @@ Nearly everything here recovers without you, because a Pass rereads files.
 
 | What died | What happens by itself | What you do |
 | --- | --- | --- |
-| An agent | Next Pass interrupts it `agent-crashed` and resumes the session, `JOB_RESUMES_BEFORE_FRESH` times, then replaces it. | Nothing, unless [Outage](#outage) fires. |
+| An agent | Next Pass interrupts it `agent-crashed` and resumes the session, `CRASH_RESUMES_BEFORE_WAITING` times, then its job waits. | Nothing, unless [Outage](#outage) fires; resume a job that waits. |
 | Talos | The Overseer finds it lost, starts a new one, reads each lost child's cause, kills any surviving agent group, and resumes as for an agent. | Nothing. |
 | The Overseer | Talos, its agents and its lines run on. A minute after the last renewal the [supervision lease](../glossary.md#supervision-lease) ends: Talos stops the agents at the end of their turn and their jobs wait, `lease-ended`. | `forge oversee --detach`, then resume the jobs that wait. |
-| The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Sessions resume by id once an Overseer starts. | Start the Overseer, unless a login item does. |
+| The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Their jobs wait for your resume. | Start the Overseer, unless a login item does, then resume the jobs that wait. |
 
 ![Three columns under a band labelled nobody drives. Keeps running: agents, whose permission prompts are still denied, and Talos. Waits for the next start: Hatch requests, results and questions in the event logs, and your commands such as decide, job stop and ticket hold, recorded at once. Absent until then: the Pass, so no launch or landing, and the Bridge. oversee --detach starts the Overseer, which reads all that waited.](../figures/runbook/overseer-down.png)
 

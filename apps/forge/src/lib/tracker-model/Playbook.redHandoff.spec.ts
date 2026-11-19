@@ -47,7 +47,7 @@ function stepsFor(kind: 'build' | 'review', resumesSoFar: number): ReturnType<ty
 describe('a red handoff', () => {
   test('resumes the same job\'s session on the first and second red, launching no new job', () => {
     for (const resumesSoFar of [0, 1]) {
-      expect(stepsFor('build', resumesSoFar)).toEqual([{ kind: 'resume-job', jobId: 'J1' }]);
+      expect(stepsFor('build', resumesSoFar)).toEqual([{ kind: 'resume-job', jobId: 'J1', instructed: false }]);
     }
   });
 
@@ -58,16 +58,16 @@ describe('a red handoff', () => {
   });
 
   test('takes a reviewer whose fixes turned a gate red through the same ladder', () => {
-    expect(stepsFor('review', 1)).toEqual([{ kind: 'resume-job', jobId: 'J1' }]);
+    expect(stepsFor('review', 1)).toEqual([{ kind: 'resume-job', jobId: 'J1', instructed: false }]);
     expect(stepKindsOf(stepsFor('review', 2))).toEqual(['park']);
   });
 
   test('never counts toward the crash bound, so it resumes whatever its crash resumes', () => {
     const { job, logRecords } = redInterruptedJob('build', 0);
-    const crashed = { ...job, crashResumes: FIXTURE_LIMITS.JOB_RESUMES_BEFORE_FRESH };
+    const crashed = { ...job, crashResumes: FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING };
     const steps = Playbook.nextStepsOf(factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, crashed], logRecords }), FIXTURE_LIMITS);
 
-    expect(steps).toEqual([{ kind: 'resume-job', jobId: 'J1' }]);
+    expect(steps).toEqual([{ kind: 'resume-job', jobId: 'J1', instructed: false }]);
   });
 });
 

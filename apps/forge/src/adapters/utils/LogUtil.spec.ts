@@ -199,6 +199,11 @@ describe('the Overseer and its jobs', () => {
     ],
     [{ kind: 'job-interrupted', jobId: 'J3', fields: { cause: 'reboot', childInstance: 1 } }, 'Job J3 interrupted (reboot) in child instance 1', []],
     [{ kind: 'job-resumed', jobId: 'J3', fields: { childInstance: 2, cause: 'reboot' } }, 'Job J3 resumed in child instance 2 after reboot', []],
+    [
+      { kind: 'job-resumed', jobId: 'J3', fields: { childInstance: 2, cause: 'reboot', instructed: true } },
+      'Job J3 resumed in child instance 2 after reboot, as User asked',
+      [],
+    ],
     [{ kind: 'job-resume-instructed', jobId: 'J3', fields: { childInstance: 1 } }, 'User asked to resume job J3, interrupted in child instance 1', []],
     [{ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } }, 'Forge started by User for the first time', []],
     [

@@ -7,7 +7,8 @@
  * a title names only a product-owner intake, is never blank, and a later one replaces an earlier one, on the job and across a reopening.
  * A request's pictures are logged as `intakePictures` and kept on the job only when there are some; a blank request with none is refused
  * `intake-empty`; only a product owner takes pictures. A pipeline agent is a session too: a stop closes it, even before its session started,
- * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`.
+ * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`. User's resume is logged for
+ * an interrupted job only, refused `job-not-interrupted` for any other, and gives the job its crash resumes back.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -17,11 +18,19 @@ import {
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
-import type { JobLaunch, JobMoveTarget, JobState } from './@types/Job.ts';
-import type { Board }                              from './Board.ts';
-import type { SteppedJobState }                    from './Jobs.ts';
-import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }        from './constants/JobMoveLegality.ts';
-import { JOB_STATES }                              from './constants/JobStates.ts';
+import type {
+  InterruptionCause,
+  JobLaunch,
+  JobMoveTarget,
+  JobState
+} from './@types/Job.ts';
+import type { Pipeline }                        from './@types/Pipeline.ts';
+import type { PlaybookStep }                    from './@types/PlaybookStep.ts';
+import type { Board }                           from './Board.ts';
+import type { SteppedJobState }                 from './Jobs.ts';
+import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }     from './constants/JobMoveLegality.ts';
+import { JOB_STATES }                           from './constants/JobStates.ts';
+import { FIXTURE_LIMITS, FIXTURE_OBSERVATIONS } from './testing/LifecycleFixtures.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
@@ -439,5 +448,102 @@ describe('the Overseer state', () => {
     progress.overseerState      = 'running';
     expect(board.overseerState()).toBe('running');
     expect(board.dispatchCapacity().overseerState).toBe('running');
+  });
+});
+
+const VERIFIED_PIPELINE: Pipeline = {
+  version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+};
+
+/** A board with a pipeline, so nothing but a job's own policy holds its resume, and one in-progress ticket per id. */
+function boardWithPipelineAndTickets(ticketIds: readonly string[]): ReturnType<typeof boardFixture> {
+  return boardFixture({ tickets: ticketIds.map((id) => ticketFixture({ id, status: 'in-progress' })), pipeline: VERIFIED_PIPELINE });
+}
+
+function resumeStepsOfAPass(board: Board): PlaybookStep[] {
+  const { steps } = board.followPlaybook({ ...FIXTURE_LIMITS, now: AT }, FIXTURE_OBSERVATIONS, () => ({ questions: [], context: '' }));
+  return steps.filter((step) => step.kind === 'resume-job');
+}
+
+/** A running build of the ticket, interrupted with each cause in turn and resumed by hand between them. */
+function buildInterruptedWith(board: Board, ticketId: string, causes: readonly InterruptionCause[]): string {
+  const { job } = board.launchJob({ ...BUILD_LAUNCH, ticketIds: [ticketId] }, AT);
+  board.moveJob(job.id, 'running', AT);
+  causes.forEach((cause, index) => {
+    if (index > 0) board.moveJob(job.id, 'running', AT);
+    board.interruptJob(job.id, cause, AT);
+  });
+  return job.id;
+}
+
+describe('User\'s resume of interrupted work', () => {
+  test('an instructed resume sets crashResumes to 0 and logs instructed, and the job is then resumed twice by itself after two more crashes', () => {
+    const { board, records } = boardWithPipelineAndTickets(['001']);
+    const jobId              = buildInterruptedWith(board, '001', ['agent-crashed']);
+    for (let crash = 0; crash < FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING; crash += 1) {
+      expect(resumeStepsOfAPass(board)).toEqual([{ kind: 'resume-job', jobId, instructed: false }]);
+      board.interruptJob(jobId, 'agent-crashed', AT);
+    }
+    expect(resumeStepsOfAPass(board)).toEqual([]);
+
+    expect(board.instructResume(jobId, AT).logged).toMatchObject([{ kind: 'job-resume-instructed', jobId, fields: { childInstance: 3 } }]);
+    expect(resumeStepsOfAPass(board)).toEqual([{ kind: 'resume-job', jobId, instructed: true }]);
+    expect(board.jobById(jobId)).toMatchObject({ state: 'running', crashResumes: 0, childInstance: 4 });
+    expect(records.findLast((record) => record.kind === 'job-resumed')?.fields).toEqual({ childInstance: 4, cause: 'agent-crashed', instructed: true });
+
+    for (let crash = 0; crash < FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING; crash += 1) {
+      board.interruptJob(jobId, 'agent-crashed', AT);
+      expect(resumeStepsOfAPass(board)).toEqual([{ kind: 'resume-job', jobId, instructed: false }]);
+    }
+    board.interruptJob(jobId, 'agent-crashed', AT);
+    expect(resumeStepsOfAPass(board)).toEqual([]);
+    expect(board.jobById(jobId)).toMatchObject({ state: 'interrupted', crashResumes: FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING });
+  });
+
+  test('a resume not instructed logs no instructed field', () => {
+    const { board, records } = boardWithPipelineAndTickets(['001']);
+    const jobId              = buildInterruptedWith(board, '001', ['agent-crashed']);
+    board.moveJob(jobId, 'running', AT);
+    expect(records.findLast((record) => record.kind === 'job-resumed')?.fields).toEqual({ childInstance: 2, cause: 'agent-crashed' });
+  });
+
+  test('instructResume of a job that is not interrupted is refused job-not-interrupted, with nothing logged', () => {
+    const { board, records } = boardWithTicket();
+    const jobId              = jobInState(board, 'running');
+    const recordCount        = records.length;
+    expect(refusalDetailOf(() => board.instructResume(jobId, AT))).toEqual({ reason: 'job-not-interrupted', jobId });
+    expect(records).toHaveLength(recordCount);
+  });
+
+  test('instructResumeOfEveryWaitingJob logs one record per waiting job and none for a job that resumes by itself', () => {
+    const { board }    = boardWithPipelineAndTickets(['001', '002', '003', '004']);
+    const rebooted     = buildInterruptedWith(board, '001', ['reboot']);
+    buildInterruptedWith(board, '002', ['agent-crashed']);
+    const pastTheBound = buildInterruptedWith(board, '003', ['agent-crashed', 'agent-crashed', 'agent-crashed']);
+    const outage       = buildInterruptedWith(board, '004', ['network-outage']);
+
+    const { logged } = board.instructResumeOfEveryWaitingJob(FIXTURE_LIMITS, AT);
+
+    expect(logged.map((record) => [record.kind, 'jobId' in record ? record.jobId : null])).toEqual([
+      ['job-resume-instructed', rebooted], ['job-resume-instructed', pastTheBound], ['job-resume-instructed', outage],
+    ]);
+  });
+
+  test('instructResumeOfEveryNetworkOutageJob logs one record per job that ended on a network outage only', () => {
+    const { board } = boardWithPipelineAndTickets(['001', '002', '003']);
+    const outage    = buildInterruptedWith(board, '001', ['network-outage']);
+    buildInterruptedWith(board, '002', ['reboot']);
+    buildInterruptedWith(board, '003', ['lease-ended']);
+
+    const { logged } = board.instructResumeOfEveryNetworkOutageJob(AT);
+
+    expect(logged.map((record) => [record.kind, 'jobId' in record ? record.jobId : null])).toEqual([['job-resume-instructed', outage]]);
+  });
+
+  test('with nothing waiting, both answer an empty list', () => {
+    const { board } = boardWithPipelineAndTickets(['001']);
+    buildInterruptedWith(board, '001', ['talos-paused']);
+    expect(board.instructResumeOfEveryWaitingJob(FIXTURE_LIMITS, AT).logged).toEqual([]);
+    expect(board.instructResumeOfEveryNetworkOutageJob(AT).logged).toEqual([]);
   });
 });

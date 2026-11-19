@@ -99,9 +99,6 @@ export const HANDOFF_RED_INTERRUPTION = 'handoff-red' satisfies InterruptionCaus
 /** The interruptions a resume counts in `crashResumes`; a reboot, an answer delivery or a usage limit is nobody's crash. */
 export const CRASH_INTERRUPTION_CAUSES = ['watcher-lost', 'agent-crashed'] as const satisfies readonly InterruptionCause[];
 
-/** The interruptions nothing resumes or replaces by itself: the job waits for User's resume, and none is counted as a crash. */
-export const INTERRUPTION_CAUSES_HELD_FROM_RESUMING = ['network-outage', 'lease-ended'] as const satisfies readonly InterruptionCause[];
-
 export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'committing', 'landing'] as const satisfies readonly AirlockPhase[];
 
 export const OVERSEER_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly OverseerStopReason[];

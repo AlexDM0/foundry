@@ -383,13 +383,13 @@ is a control that sends one.
 
 ### crash bound
 
-`JOB_RESUMES_BEFORE_FRESH`, the number of [crash resumes](#crash-resume) a job gets, counted in `crashResumes`, before
-the [Playbook](#playbook) replaces it instead of resuming it.
+`CRASH_RESUMES_BEFORE_WAITING`, the number of [crash resumes](#crash-resume) a job gets, counted in `crashResumes`,
+before the [Playbook](#playbook) leaves it waiting for User's resume. User's resume sets the count back to 0.
 
 ### crash resume
 
-A [resume](#resume) after an interruption with a crash cause. It adds one to the job's `crashResumes`; other causes add
-nothing.
+A [resume](#resume) after an interruption with a crash cause that User did not instruct. It adds one to the job's
+`crashResumes`; other causes add nothing, and a resume User instructed sets the count to 0 and adds nothing.
 
 ### cursor
 

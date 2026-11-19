@@ -43,10 +43,11 @@ export interface PlaybookLaunchStage {
 export type PlaybookStep =
   | { kind: 'launch-build'; ticketId: string; attempt: number; base: string } & PlaybookLaunchStage
   | { kind: 'launch-review'; ticketId: string; round: number; target: string } & PlaybookLaunchStage
-  | { kind: 'resume-job'; jobId: string }
-  // Past `JOB_RESUMES_BEFORE_FRESH` crash resumes, or a session that went down: ended `replaced`.
+  // `instructed`: User's resume, or an answer to the job's question, came after its newest interruption; it sets `crashResumes` back to 0.
+  | { kind: 'resume-job'; jobId: string; instructed: boolean }
+  // Only an Assistant that went down: ended `replaced`, and a fresh one boots.
   | { kind: 'replace-job'; jobId: string }
-  // A product owner replaced past the bound while its question is open waits for the answer with no process.
+  // A product owner past the crash bound while its question is open waits for the answer with no process.
   | { kind: 'await-answer'; jobId: string }
   // A product owner past the bound whose questions are answered: a fresh session takes its drafts and the answers, never a resume.
   | { kind: 'refresh-intake'; jobId: string }

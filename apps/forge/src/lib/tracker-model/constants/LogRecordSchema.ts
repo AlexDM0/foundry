@@ -344,7 +344,8 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
   'job-interrupted':       { subject: 'job', fields: { cause: 'interruption-cause', childInstance: 'child-instance' } },
-  'job-resumed':           { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause' } },
+  // `instructed` only on a resume User instructed, which set the crash resumes back to 0.
+  'job-resumed':           { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause', instructed: 'optional-flag' } },
   // User asked to resume the interrupted job; `childInstance` is its instance then.
   'job-resume-instructed': { subject: 'job', fields: { childInstance: 'child-instance' } },
   // The vendor refused the job's requests: `window` as the vendor names it, `resetsAt` the ISO stamp no launch or resume precedes.

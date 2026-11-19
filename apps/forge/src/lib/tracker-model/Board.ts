@@ -92,8 +92,8 @@ import type {
   PictureReference,
   PipelineStepRun
 }                                              from './@types/Job.ts';
-import type { LaunchSlots }     from './@types/LaunchSlots.ts';
-import type { LifecycleLimits } from './@types/LifecycleLimits.ts';
+import type { LaunchSlots }                          from './@types/LaunchSlots.ts';
+import type { LifecycleLimits, LifecycleThresholds } from './@types/LifecycleLimits.ts';
 import type {
   AgentUsage,
   HatchAppliedRecord,
@@ -184,7 +184,7 @@ import { IncidentMoves }                               from './IncidentMoves.ts'
 import type { IncidentEscalation }                     from './Incidents.ts';
 import { Incidents }                                   from './Incidents.ts';
 import { JobControls }                                 from './JobControls.ts';
-import type { SteppedJobState }                        from './Jobs.ts';
+import type { JobMoveOptions, SteppedJobState }        from './Jobs.ts';
 import { Jobs }                                        from './Jobs.ts';
 import type { Logger }                                 from './Logger.ts';
 import { MergeQueueMarks }                             from './MergeQueueMarks.ts';
@@ -465,8 +465,8 @@ export class Board {
     return this.jobRules.launchJob(launch, at);
   }
 
-  moveJob(jobId: string, targetState: SteppedJobState, at: string): JobChanged {
-    return this.jobRules.moveJob(jobId, targetState, at);
+  moveJob(jobId: string, targetState: SteppedJobState, at: string, options: JobMoveOptions = {}): JobChanged {
+    return this.jobRules.moveJob(jobId, targetState, at, options);
   }
 
   interruptJob(jobId: string, cause: InterruptionCause, at: string): JobChanged {
@@ -503,9 +503,22 @@ export class Board {
     return this.jobRules.recordStartClassified(start, at);
   }
 
-  /** Records User's resume of a job at its current child instance; the move itself is the Playbook's. */
-  recordJobResumeInstructed(jobId: string, at: string): Logged {
+  /**
+   * User's resume of an interrupted job, logged at its current child instance; refused `job-not-interrupted` for any other. The move is the
+   * Playbook's next pass, under every hold a resume obeys.
+   */
+  instructResume(jobId: string, at: string): Logged {
     return this.jobRules.recordJobResumeInstructed(jobId, at);
+  }
+
+  /** User's resume of every interrupted job whose policy waits for one, a crash past its bound included; none logged when none waits. */
+  instructResumeOfEveryWaitingJob(limits: LifecycleThresholds, at: string): Logged {
+    return this.instructResumeOfEach(this.interruptedJobs().filter((job) => Playbook.resumePolicyOf(job, limits) === 'waits-for-instruction'), at);
+  }
+
+  /** User's resume of every job that ended on a network outage (decision 35); none logged when none did. */
+  instructResumeOfEveryNetworkOutageJob(at: string): Logged {
+    return this.instructResumeOfEach(this.interruptedJobs().filter((job) => job.interruption === 'network-outage'), at);
   }
 
   /** Flint's brain is no job, but its Overseer logs each run that ended beside its own start and stop. */
@@ -831,6 +844,14 @@ export class Board {
     return { ...ticket.frontmatter, mergeQueued: this.ticketIsMergeQueued(ticket.frontmatter.id), ...(stage === undefined ? {} : { stage: { ...stage } }) };
   }
 
+  private interruptedJobs(): readonly Readonly<Job>[] {
+    return this.jobs().filter((job) => job.state === 'interrupted');
+  }
+
+  private instructResumeOfEach(jobs: readonly Readonly<Job>[], at: string): Logged {
+    return { logged: jobs.flatMap((job) => this.instructResume(job.id, at).logged) };
+  }
+
   private applyPlaybookStep(step: PlaybookStep, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): readonly LogRecord[] {
     const openDecision = (draft: DecisionDraft): readonly LogRecord[] => this.openDecision({
       ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
@@ -857,7 +878,7 @@ export class Board {
       case 'withdraw-retired-decision':
         return this.withdrawDecision(step.decisionId, RETIRED_DECISION_REASON, at).logged;
       case 'resume-job':
-        return this.moveJob(step.jobId, 'running', at).logged;
+        return this.moveJob(step.jobId, 'running', at, { instructed: step.instructed }).logged;
       case 'replace-job':
         return this.endJob(step.jobId, { outcome: 'replaced' }, at).logged;
       case 'await-answer':

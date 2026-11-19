@@ -162,6 +162,7 @@ export type BoardRefusalDetail =
   | { reason: 'several-letters-on-single-select-question'; draftId: string; letters: readonly string[] }
   | { reason: 'unknown-job'; jobId: string }
   | { reason: 'job-finished'; jobId: string }
+  | { reason: 'job-not-interrupted'; jobId: string }
   | { reason: 'job-has-no-ticket'; jobId: string }
   | { reason: 'job-not-intake'; jobId: string; kind: JobKind }
   | { reason: 'intake-title-empty'; jobId: string }

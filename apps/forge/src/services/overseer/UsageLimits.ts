@@ -39,7 +39,7 @@ function refusalOf(event: AgentSessionEvent, at: string, apiBilling = false): { 
   return { window: event.window, resetsAt: resetIsAhead ? reset : apiRateLimitResetsAtOf(at) };
 }
 
-/** The Overseer's own stop: never a crash, so never counted toward `JOB_RESUMES_BEFORE_FRESH` and never a failed pass. */
+/** The Overseer's own stop: never a crash, so never counted toward `CRASH_RESUMES_BEFORE_WAITING` and never a failed pass. */
 function interruptLimitedJob(board: Board, hit: UsageLimitHit, at: string): void {
   board.interruptJob(hit.jobId, 'usage-limit', at);
   board.recordUsageLimitHit(hit.jobId, { window: hit.window, resetsAt: hit.resetsAt }, at);

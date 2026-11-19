@@ -37,6 +37,11 @@ import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 /** The states a plain move names: an interruption carries its cause. The table refuses `launching`, which only a launch enters. */
 export type SteppedJobState = Exclude<JobState, 'interrupted'>;
 
+/** A resume User instructed, directly or by answering the job's question: it gives the job its crash resumes back. */
+export interface JobMoveOptions {
+  instructed?: boolean;
+}
+
 const FIRST_EVENT_SEQUENCE = 0;
 
 /** A job keeps the newest notes for this many question texts; an older one no question took is dropped. */
@@ -134,8 +139,11 @@ export class Jobs {
     return { job, logged: [logged] };
   }
 
-  /** A move into `running` from a state with no process is a resume: it spawns the next child instance and is logged. */
-  moveJob(jobId: string, targetState: SteppedJobState, at: string): JobChanged {
+  /**
+   * A move into `running` from a state with no process is a resume: it spawns the next child instance and is logged. A crash resume adds one
+   * to `crashResumes`; an instructed resume sets it back to 0 and logs `instructed`.
+   */
+  moveJob(jobId: string, targetState: SteppedJobState, at: string, options: JobMoveOptions = {}): JobChanged {
     const job = this.requireLiveJob(jobId);
     this.refuseIllegalMove(job, targetState);
     const resumes = targetState === 'running' && isProcessless(job.state);
@@ -143,9 +151,12 @@ export class Jobs {
     if (!resumes) return { job, logged: [] };
 
     const cause      = job.interruption ?? 'watcher-lost';
+    const instructed = options.instructed === true;
     job.childInstance += 1;
-    if (isCrash(cause)) job.crashResumes += 1;
-    return { job, logged: [this.records.logger.log({ kind: 'job-resumed', jobId, fields: { childInstance: job.childInstance, cause } }, at)] };
+    if (instructed) job.crashResumes = 0;
+    else if (isCrash(cause)) job.crashResumes += 1;
+    const fields = { childInstance: job.childInstance, cause, ...(instructed ? { instructed: true } : {}) };
+    return { job, logged: [this.records.logger.log({ kind: 'job-resumed', jobId, fields }, at)] };
   }
 
   /** A job interrupted `forced-stop-refused` takes the cause a later forced stop settles, staying interrupted. */
@@ -342,8 +353,10 @@ export class Jobs {
     return { logged: [this.records.logger.log({ kind: 'start-classified', fields }, at)] };
   }
 
+  /** Refused `job-not-interrupted` unless the job is interrupted: only interrupted work waits for a resume. */
   recordJobResumeInstructed(jobId: string, at: string): Logged {
     const job = this.requireLiveJob(jobId);
+    if (job.state !== 'interrupted') throw new BoardRefusal({ reason: 'job-not-interrupted', jobId });
     return { logged: [this.records.logger.log({ kind: 'job-resume-instructed', jobId, fields: { childInstance: job.childInstance } }, at)] };
   }
 

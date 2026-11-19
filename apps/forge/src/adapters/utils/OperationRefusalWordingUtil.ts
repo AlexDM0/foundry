@@ -520,6 +520,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `There is no job ${detail.jobId}. ${NOTHING_WAS_WRITTEN}`;
     case 'job-finished':
       return `Job ${detail.jobId} is finished, and a finished job is never continued. ${NOTHING_WAS_WRITTEN}`;
+    case 'job-not-interrupted':
+      return `Job ${detail.jobId} is not interrupted, so there is nothing of it to resume. ${NOTHING_WAS_WRITTEN}`;
     case 'job-has-no-ticket':
       return `Job ${detail.jobId} works no ticket, so no fresh agent can take its work over. ${NOTHING_WAS_WRITTEN}`;
     case 'job-not-intake':

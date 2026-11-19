@@ -1107,6 +1107,13 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(childReadings().livenessOf(sessionJobFolder(airlockAgentJobId), 1).verdict).not.toBe('unlaunched');
   });
 
+  /** User's resume of the job, which a reboot leaves waiting for it. */
+  async function instructResumeOf(jobId: string): Promise<void> {
+    await writeTracker({
+      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => change.board.instructResume(jobId, change.at),
+    });
+  }
+
   /**
    * An ended builder whose session started and whose ticket's gates turned its green red, and the next build job of its ticket. A next job
    * of a later attempt carries on no session of its own build line, so only the stale-green handoff resumes the ended one.
@@ -1175,7 +1182,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(nextLaunch).toMatchObject({ resume: true, sessionId: endedSessionId, firstMessage: 'Red handoff: checks, resume 1' });
   });
 
-  test('a stale-green resume interrupted after its session started resumes the ended builder\'s session again at its next instance', async () => {
+  test('a stale-green resume interrupted after its session started resumes the ended builder\'s session again at its next instance, once User resumes it', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen(2);
@@ -1187,6 +1194,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
+    await instructResumeOf(nextBuildJobId);
     await passUntil(restarted, () => nextBuildJob()?.childInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
 
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
@@ -1197,7 +1205,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect((requireProgressFile(sessionWorkspace).incidents ?? []).filter((incident) => incident.kind === 'resume-failed')).toEqual([]);
   });
 
-  test('a stale-green resume resumes the ended builder\'s session at its next instance, though another build job of its ticket ended in between', async () => {
+  test('a stale-green resume resumes the ended builder\'s session at its next instance once User resumes it, though another build job of its ticket ended in between', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     const { endedBuildJobId, nextBuildJobId } = await plantStartedStaleGreen(2);
@@ -1220,6 +1228,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
+    await instructResumeOf(nextBuildJobId);
     await passUntil(restarted, () => nextBuildJob()?.childInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
 
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
@@ -1320,7 +1329,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     board.openDecision({
       kind: 'agent-question', ticketIds: [], jobId: job.id, askedBy: 'product-owner', requestId: 'request-1', questions: wordingOf().questions, context: '',
     }, at);
-    for (let crash = 0; crash < LIFECYCLE_LIMITS.JOB_RESUMES_BEFORE_FRESH; crash += 1) {
+    for (let crash = 0; crash < LIFECYCLE_LIMITS.CRASH_RESUMES_BEFORE_WAITING; crash += 1) {
       board.interruptJob(job.id, 'agent-crashed', at);
       board.moveJob(job.id, 'running', at);
     }

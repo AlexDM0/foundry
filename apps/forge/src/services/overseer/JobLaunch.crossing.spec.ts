@@ -233,7 +233,7 @@ describeWhenGitIsRecorded('stage 1 with the proposal, whose home gate is red', (
     expect(whereTheJobWent).toBe('interrupted: verify');
     expect(JobLaunch.manifestOf(CROSSING_PIPELINE, job, 'build', {})?.gates.map((gate) => gate.name)).toEqual(['verify']);
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toBeNull();
-    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id }]);
+    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id, instructed: false }]);
     expect(ticket.board.jobs().filter((launched) => launched.entity === UI_KIT.key)).toEqual([]);
   });
 });
@@ -624,7 +624,7 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
 
     expect(whereTheJobWent).toBe('interrupted: verify');
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
-    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id }]);
+    expect(jobStepsOf(ticket.board)).toEqual([{ kind: 'resume-job', jobId: job.id, instructed: false }]);
   });
 
   test('the home review of a branch that no longer holds the sealed change is sent back once, then fails (E33)', () => {

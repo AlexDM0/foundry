@@ -8,13 +8,14 @@ import { describe, expect, test } from 'bun:test';
 import { mutatedModuleOf, type SourceMutant } from '../../testing/SourceMutant.ts';
 import type { Decision }                      from './@types/Decision.ts';
 import type { Incident }                      from './@types/Incident.ts';
-import type { Job }                           from './@types/Job.ts';
+import type { InterruptionCause, Job }        from './@types/Job.ts';
 import type { LifecycleLimits }               from './@types/LifecycleLimits.ts';
 import type { LogRecord }                     from './@types/LogRecord.ts';
 import type { PlaybookStep }                  from './@types/PlaybookStep.ts';
 import type { TicketStatus }                  from './@types/Ticket.ts';
 import type { PlaybookFacts }                 from './Playbook.ts';
 import { Playbook }                           from './Playbook.ts';
+import type { ResumePolicy }                  from './constants/ResumePolicy.ts';
 import {
   FIXTURE_AT,
   FIXTURE_LIMITS,
@@ -27,6 +28,7 @@ import {
   jobFixture,
   launchedRecord,
   launchedTicketIdsOf,
+  resumeInstructedRecord,
   stagedLaunchedRecord,
   stepKindsOf,
   ticketOf,
@@ -175,6 +177,8 @@ const RED_INTERRUPTED_STAGE_TWO_BUILD = jobFixture({
 
 const JOB_STATES_MODULE = 'src/lib/tracker-model/constants/JobStates.ts';
 
+const RESUME_POLICY_MODULE = 'src/lib/tracker-model/constants/ResumePolicy.ts';
+
 /** One interrupted job of each path `crashBoundStepsOf` and `productOwnerStepsOf` take, with the ticket status its kind runs in. */
 const INTERRUPTED_JOBS_OF_EACH_PATH: readonly { job: Job; ticketStatus: TicketStatus }[] = [
   { job: INTERRUPTED_BUILD, ticketStatus: 'in-progress' },
@@ -194,17 +198,16 @@ const INTERRUPTED_JOBS_OF_EACH_PATH: readonly { job: Job; ticketStatus: TicketSt
   },
 ];
 
-/** The line of `crashBoundStepsOf` or of `productOwnerStepsOf` that holds the job, so its removal resumes or replaces it. */
-function heldInterruptionLineOf(job: Job): SourceMutant {
-  return job.kind === 'product-owner'
-    ? policyLine('  if (interruptionIsHeldFromResuming(job)) return [];\n  return resumesAreHeld', '  return resumesAreHeld')
-    : policyLine('    if (interruptionIsHeldFromResuming(job)) return [];\n    if (SESSION_JOB_KINDS', '    if (SESSION_JOB_KINDS');
+/** `'authentication-failed':`, the table's widest key, sets its alignment. */
+const RESUME_POLICY_TABLE_KEY_WIDTH = '\'authentication-failed\':'.length;
+
+/** The row of the resume policy table that gives the cause its policy, rewritten to another policy. */
+function policyRowOf(cause: InterruptionCause, policy: ResumePolicy, mutatedPolicy: ResumePolicy): SourceMutant {
+  const row = (rowPolicy: ResumePolicy): string => `${`'${cause}':`.padEnd(RESUME_POLICY_TABLE_KEY_WIDTH)} '${rowPolicy}',`;
+  return { modulePath: RESUME_POLICY_MODULE, find: row(policy), replace: row(mutatedPolicy) };
 }
 
-/**
- * A job that ended on a network outage or a lease end waits for User's resume, whatever its kind. The outage claims watch the Playbook's
- * line fail; the lease-end claims watch the cause's place on the held list fail.
- */
+/** A job that ended on a network outage or a lease end waits for User's resume, whatever its kind; each claim watches the table's row fail. */
 function heldInterruptionClaims(): PolicyClaim[] {
   return (['network-outage', 'lease-ended'] as const).flatMap((cause) => INTERRUPTED_JOBS_OF_EACH_PATH.map(({ job, ticketStatus }): PolicyClaim => {
     const heldJob: Job = { ...job, interruption: cause };
@@ -212,14 +215,159 @@ function heldInterruptionClaims(): PolicyClaim[] {
       name:   `a ${heldJob.kind} job interrupted ${cause} is neither resumed nor replaced`,
       facts:  factsWith({ tickets: [ticketOf('001', ticketStatus)], jobs: heldJob.kind === 'assistant' ? [heldJob] : [LIVE_ASSISTANT, heldJob] }),
       holds:  (steps) => !steps.some((step) => 'jobId' in step && step.jobId === heldJob.id),
-      mutant: cause === 'network-outage'
-        ? heldInterruptionLineOf(heldJob)
-        : { modulePath: JOB_STATES_MODULE, find: '= [\'network-outage\', \'lease-ended\'] as const', replace: '= [\'network-outage\'] as const' },
+      mutant: policyRowOf(cause, 'waits-for-instruction', 'resumes-by-itself'),
     };
   }));
 }
 
+const REBOOTED_BUILD: Job = { ...INTERRUPTED_BUILD, interruption: 'reboot' };
+
+/** The build's launch and its interruption, then what `after` adds. */
+function interruptedBuildLog(cause: InterruptionCause, after: readonly LogRecord[] = []): LogRecord[] {
+  return [launchedRecord('J1', 'build', ['001']), interruptedRecord('J1', cause), ...after];
+}
+
+function rebootedBuildFacts(after: readonly LogRecord[] = []): PlaybookFacts {
+  return factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, REBOOTED_BUILD], logRecords: interruptedBuildLog('reboot', after) });
+}
+
+const ANSWER_TO_THE_BUILD_QUESTION: LogRecord = {
+  kind: 'decision-answered', decisionId: 'E1', fields: { answer: { 'Carry on?': 'Yes' }, requestId: 'request-1' }, at: FIXTURE_AT,
+};
+
+function resumesInstructed(jobId: string): (steps: readonly PlaybookStep[]) => boolean {
+  return (steps) => Bun.deepEquals(steps, [{ kind: 'resume-job', jobId, instructed: true }], true);
+}
+
 const USAGE_LIMIT_AHEAD: LifecycleLimits = { ...FIXTURE_LIMITS, usageResetsAt: '2026-10-28T11:00:00+01:00' };
+
+/** A hold that keeps every resume, for which an instructed resume of a rebooted build waits as any other. */
+const HOLDS_OF_AN_INSTRUCTED_RESUME: readonly { hold: string; facts: Partial<PlaybookFacts>; limits?: LifecycleLimits }[] = [
+  { hold: 'a usage limit', facts: {}, limits: USAGE_LIMIT_AHEAD },
+  { hold: 'an install change', facts: { observations: { ...FIXTURE_OBSERVATIONS, installVersionChanged: true } } },
+  { hold: 'an open outage', facts: { decisions: [decisionOf('outage')] } },
+  { hold: 'a missing pipeline', facts: { pipelineIsSet: false, decisions: [decisionOf('checks-not-set')] } },
+];
+
+/** Each hold keeps the instructed resume: the instruction stays in the log and is carried out once the hold clears. */
+function instructedResumeHoldClaims(): PolicyClaim[] {
+  return HOLDS_OF_AN_INSTRUCTED_RESUME.map(({ hold, facts, limits }): PolicyClaim => ({
+    name:   `${hold} holds an instructed resume`,
+    facts:  { ...rebootedBuildFacts([resumeInstructedRecord('J1')]), ...facts },
+    ...(limits === undefined ? {} : { limits }),
+    holds:  (steps) => !steps.some((step) => step.kind === 'resume-job'),
+    mutant: policyLine(
+      '  return resumeIsHeld ? [] : [{ kind: \'resume-job\', jobId: job.id, instructed }];',
+      '  return resumeIsHeld && !instructed ? [] : [{ kind: \'resume-job\', jobId: job.id, instructed }];'
+    ),
+  }));
+}
+
+const INTERRUPTED_PRODUCT_OWNER = jobFixture({
+  id: 'J8', kind: 'product-owner', role: 'product-owner', target: null, state: 'interrupted', interruption: 'agent-crashed'
+});
+
+/** A crashed build after `crashResumes` crash resumes, its crash bound being `CRASH_RESUMES_BEFORE_WAITING`. */
+function crashedBuildFacts(crashResumes: number, after: readonly LogRecord[] = []): PlaybookFacts {
+  return factsWith({
+    tickets:    [ticketOf('001', 'in-progress')],
+    jobs:       [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'agent-crashed', crashResumes }],
+    logRecords: interruptedBuildLog('agent-crashed', after),
+  });
+}
+
+/** The resume policy table's rules, one claim per row the Playbook reads, each watched failing without its line. */
+const RESUME_POLICY_CLAIMS: PolicyClaim[] = [
+  {
+    name:   'a job interrupted by a reboot waits for User\'s resume',
+    facts:  rebootedBuildFacts(),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('  if (policy === \'waits-for-instruction\' && !instructed) return [];\n', ''),
+  },
+  {
+    name:   'a job interrupted by a reboot resumes once User asked, as an instructed resume',
+    facts:  rebootedBuildFacts([resumeInstructedRecord('J1')]),
+    holds:  resumesInstructed('J1'),
+    mutant: policyLine('    if (record.kind === \'job-resume-instructed\' && record.jobId === job.id) instructed = true;\n', ''),
+  },
+  {
+    name:   'an instruction logged before the newest interruption does not count: a second interruption waits again',
+    facts:  rebootedBuildFacts([resumeInstructedRecord('J1'), interruptedRecord('J1', 'reboot')]),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('    if (record.kind === \'job-interrupted\' && record.jobId === job.id) instructed = false;\n', ''),
+  },
+  {
+    name:  'an answer to the question of a job interrupted by a reboot resumes it',
+    facts: factsWith({
+      tickets:    [ticketOf('001', 'in-progress')],
+      jobs:       [LIVE_ASSISTANT, { ...REBOOTED_BUILD, answeredRequestIds: ['request-1'] }],
+      logRecords: interruptedBuildLog('reboot', [ANSWER_TO_THE_BUILD_QUESTION]),
+    }),
+    holds:  resumesInstructed('J1'),
+    mutant: policyLine(
+      '    if (record.kind === \'decision-answered\' && record.fields.requestId !== undefined && answeredRequestIds.has(record.fields.requestId)) instructed = true;\n',
+      ''
+    ),
+  },
+  {
+    name:   'a crashed job with no crash resume yet is resumed by itself',
+    facts:  crashedBuildFacts(0),
+    holds:  (steps) => Bun.deepEquals(steps, [{ kind: 'resume-job', jobId: 'J1', instructed: false }], true),
+    mutant: policyLine('job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING', 'job.crashResumes >= 0'),
+  },
+  {
+    name:   'a crashed job with one crash resume is resumed by itself',
+    facts:  crashedBuildFacts(1),
+    holds:  (steps) => Bun.deepEquals(steps, [{ kind: 'resume-job', jobId: 'J1', instructed: false }], true),
+    mutant: policyLine('job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING', 'job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING - 1'),
+  },
+  {
+    name:   'a crashed job at its crash bound waits for User\'s resume, never replaced',
+    facts:  crashedBuildFacts(FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING', 'job.crashResumes > limits.CRASH_RESUMES_BEFORE_WAITING'),
+  },
+  {
+    name:   'a crashed job at its crash bound resumes once User asked, as an instructed resume',
+    facts:  crashedBuildFacts(FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING, [resumeInstructedRecord('J1')]),
+    holds:  resumesInstructed('J1'),
+    mutant: policyLine('[{ kind: \'resume-job\', jobId: job.id, instructed }]', '[{ kind: \'resume-job\', jobId: job.id, instructed: false }]'),
+  },
+  {
+    name:  'a job interrupted by a network outage resumes once User asked',
+    facts: factsWith({
+      tickets:    [ticketOf('001', 'in-progress')],
+      jobs:       [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'network-outage' }],
+      logRecords: interruptedBuildLog('network-outage', [resumeInstructedRecord('J1')]),
+    }),
+    holds:  resumesInstructed('J1'),
+    mutant: policyRowOf('network-outage', 'waits-for-instruction', 'never-resumes'),
+  },
+  ...instructedResumeHoldClaims(),
+  {
+    name:   'a product owner past its crash bound with no question open waits for User\'s resume',
+    facts:  factsWith({ jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_PRODUCT_OWNER, crashResumes: FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING }] }),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('  if (policy === \'waits-for-instruction\' && !instructed) return [];\n', ''),
+  },
+  {
+    name:  'a product owner past its crash bound with a question open waits for the answer with no process',
+    facts: factsWith({
+      jobs:      [LIVE_ASSISTANT, { ...INTERRUPTED_PRODUCT_OWNER, crashResumes: FIXTURE_LIMITS.CRASH_RESUMES_BEFORE_WAITING }],
+      decisions: [{
+        id: 'E1', kind: 'agent-question', ticketIds: [], jobId: 'J8', askedBy: 'product-owner', requestId: 'request-1', questions: [], context: '', openedAt: FIXTURE_AT
+      }],
+    }),
+    holds:  (steps) => Bun.deepEquals(steps, [{ kind: 'await-answer', jobId: 'J8' }], true),
+    mutant: policyLine('  if (crashResumesAreSpent(job, limits) && awaitsAnAnswer) return [{ kind: \'await-answer\', jobId: job.id }];\n', ''),
+  },
+  {
+    name:   'an Assistant interrupted by a reboot is still replaced',
+    facts:  factsWith({ jobs: [{ ...LIVE_ASSISTANT, state: 'interrupted', interruption: 'reboot' }] }),
+    holds:  (steps) => stepKindsOf(steps).join(' ') === 'replace-job',
+    mutant: policyLine('[\'reboot\', \'forge-stopped\', \'forge-crashed\']', '[\'forge-stopped\', \'forge-crashed\']'),
+  },
+];
 
 const CLAIMS: PolicyClaim[] = [
   {
@@ -376,14 +524,17 @@ const CLAIMS: PolicyClaim[] = [
     facts: factsWith({
       tickets: [ticketOf('001', 'in-progress')],
       jobs:    [LIVE_ASSISTANT, jobFixture({
-        id: 'J1', ticketIds: ['001'], state: 'interrupted', interruption: 'reboot'
+        id: 'J1', ticketIds: ['001'], state: 'interrupted', interruption: 'talos-paused'
       })],
       decisions: [{
         id: 'E1', kind: 'agent-question', ticketIds: ['001'], jobId: 'J1', askedBy: 'builder', requestId: 'request-1', questions: [], context: '', openedAt: FIXTURE_AT
       }],
     }),
     holds:  (steps) => !steps.some((step) => step.kind === 'resume-job'),
-    mutant: policyLine(' || jobAwaitsAnAnswer(job, facts)) return [];', ') return [];'),
+    mutant: policyLine(
+      '    return resumeStepsOf(job, facts, limits, resumesAreHeld || jobResumeIsHeld(job, facts) || jobAwaitsAnAnswer(job, facts));',
+      '    return resumeStepsOf(job, facts, limits, resumesAreHeld || jobResumeIsHeld(job, facts));'
+    ),
   },
   {
     name:   'an Assistant job takes no slot',
@@ -408,24 +559,19 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine('index < machineSlotsFree', 'index <= machineSlotsFree'),
   },
   {
-    name:   'a job crash-resumed up to the bound is replaced, not resumed',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, crashResumes: FIXTURE_LIMITS.JOB_RESUMES_BEFORE_FRESH }] }),
-    holds:  (steps) => stepKindsOf(steps).join(' ') === 'replace-job',
-    mutant: policyLine('job.crashResumes >= limits.JOB_RESUMES_BEFORE_FRESH', 'job.crashResumes > limits.JOB_RESUMES_BEFORE_FRESH'),
-  },
-  {
-    name:   'a job interrupted by a reboot resumes whatever its crash count',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'reboot', crashResumes: 5 }] }),
+    name:   'a job interrupted by a usage limit resumes whatever its crash count',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'usage-limit', crashResumes: 5 }] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
-    mutant: policyLine('return isCrash(job.interruption) && job.crashResumes', 'return job.crashResumes'),
+    mutant: policyLine('return isCrash(job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE) && job.crashResumes', 'return job.crashResumes'),
   },
   {
     name:   'a session that went down is replaced, never resumed',
     facts:  factsWith({ jobs: [{ ...LIVE_ASSISTANT, state: 'interrupted', interruption: 'watcher-lost' }] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'replace-job',
-    mutant: policyLine('    if (SESSION_JOB_KINDS.includes(job.kind)) return [{ kind: \'replace-job\', jobId: job.id }];\n', ''),
+    mutant: policyLine('    if (REPLACED_SESSION_JOB_KINDS.includes(job.kind)) {\n', '    if (false) {\n'),
   },
   ...heldInterruptionClaims(),
+  ...RESUME_POLICY_CLAIMS,
   {
     name:   'a job interrupted by a clean quit of Talos resumes whatever its crash count',
     facts:  factsWith({ tickets: [ticketOf('001', 'in-progress')], jobs: [LIVE_ASSISTANT, { ...INTERRUPTED_BUILD, interruption: 'talos-paused', crashResumes: 5 }] }),
@@ -607,7 +753,7 @@ const CLAIMS: PolicyClaim[] = [
       pipelineIsSet: false, overseerState: 'paused', decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, interruptedPipelineAgentJob()]
     }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
-    mutant: policyLine('    if (job.kind === \'pipeline-agent\') return holds.pipelineAgentResumesAreHeld ? [] : [{ kind: \'resume-job\', jobId: job.id }];\n', ''),
+    mutant: policyLine('    if (job.kind === \'pipeline-agent\') return resumeStepsOf(job, facts, limits, holds.pipelineAgentResumesAreHeld);\n', ''),
   },
   {
     name:   'a usage limit holds the resume of an interrupted pipeline agent',

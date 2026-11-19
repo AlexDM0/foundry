@@ -6,10 +6,11 @@
  * The session, Talos, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
  * session the fake child: every crash is made by killing Talos, the child's group or both, a reboot by also giving Talos's and the child
  * records a foreign boot, and an Overseer restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned
- * agent group is killed before the resume, only the crash causes count toward the bound, a resume is by id in the same folder, and a finished
- * session never continues, save a closed product owner User messages, which resumes by id. A Baton pass row hands a running session's board
- * to a successor and holds that Talos is sent nothing. The Assistant rows hold that it continues across an Overseer restart, is replaced and
- * never resumed when down, and boots past two failed boots only on a sweep while every incident defaults. The rows
+ * agent group is killed before the resume, only the crash causes count toward the bound, a reboot and a spent bound wait for User's resume,
+ * which gives the bound back, a resume is by id in the same folder, and a finished session never continues, save a closed product owner
+ * User messages, which resumes by id. A Baton pass row hands a running session's board to a successor and holds that Talos is sent nothing.
+ * The Assistant rows hold that it continues across an Overseer restart, is replaced and never resumed when down, and boots past two failed
+ * boots only on a sweep while every incident defaults. The rows
  * "the old Overseer dies during a baton-pass" and "a Baton pass's successor fails" are held by `src/services/overseer/BatonPass.spec.ts`. The
  * usage-limit row is held by `src/services/overseer/UsageLimits.spec.ts` and `cli/overseer/OverseerDrivePass.spec.ts`, the body-edit row by V6
  * in `src/services/lifecycle/Customs.spec.ts`, and the kill of a silent successor by `src/services/overseer/BatonPass.integration.spec.ts`.
@@ -43,6 +44,7 @@ import type { Incident }                                                        
 import type { Job }                                                               from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                             from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand }                                                    from '../../shared/@types/ControlCommand.ts';
+import { LIFECYCLE_LIMITS }                                                       from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                from '../../testing/ChildProcessCaseTimeout.ts';
 import { createScratchDrivePass, type ScratchBoardTalos, startScratchBoardTalos } from '../../testing/DrivePassHarness.ts';
@@ -356,6 +358,13 @@ async function decideWithTheOverseerDown(decisionId: string, choices: readonly s
   });
 }
 
+/** User's resume of an interrupted job, in a hold of its own: a reboot or a spent crash bound leaves the job waiting for it. */
+async function instructResumeOf(jobId: string): Promise<void> {
+  await writeTracker({
+    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => change.board.instructResume(jobId, change.at),
+  });
+}
+
 /** A control applied as its verb applies it with the Overseer down: a hold of its own. */
 async function applyControl(command: ControlCommand): Promise<void> {
   await writeTracker({
@@ -562,20 +571,22 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(job).toMatchObject({ attempt: 1, childInstance: 2 });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a job crash-resumed twice and interrupted again ends replaced, a fresh attempt takes the same worktree, and two replaced in a row open job-lost', async () => {
+  test('a job crash-resumed twice and interrupted again waits for User\'s resume, which gives it two more crash resumes in the same session', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: CRASHING_STEPS, resumed: CRASHING_STEPS }));
-    const jobLostIsOpen = (): boolean => (requireProgressFile(sessionWorkspace).incidents ?? []).some((incident) => incident.kind === 'job-lost');
-    await passUntil(drivePass, jobLostIsOpen, 'job-lost never opened');
+    const waitsAfterLaunches = (launchCount: number): boolean => launches.length === launchCount
+      && requireBuildJob().state === 'interrupted' && requireBuildJob().crashResumes === LIFECYCLE_LIMITS.CRASH_RESUMES_BEFORE_WAITING;
+    await passUntil(drivePass, () => waitsAfterLaunches(3), 'the crashed job never came to wait');
+    await passOnce(drivePass);
+    expect(launches).toHaveLength(3);
 
-    const endings = storedRecords().filter((record) => record.kind === 'job-ended' && launches.some((launch) => launch.jobId === record.jobId));
-    expect(endings.map((record) => record.fields['outcome'])).toEqual(['replaced', 'replaced']);
-    const attempts = storedRecords().filter((record) => record.kind === 'job-launched' && record.fields['kind'] === 'build').map((record) => record.fields['attempt']);
-    expect(attempts).toEqual([1, 2]);
-    const [firstJobId, secondJobId] = endings.map((record) => record.jobId);
-    expect(launches.filter((launch) => launch.jobId === firstJobId).map((launch) => launch.resume)).toEqual([false, true, true]);
+    await instructResumeOf(requireBuildJob().id);
+    await passUntil(drivePass, () => waitsAfterLaunches(6), 'the instructed job never came to wait again');
+
+    const jobId = requireBuildJob().id;
+    expect(storedRecords().filter((record) => record.kind === 'job-ended' && record.jobId === jobId)).toEqual([]);
+    expect(launches.map((launch) => [launch.jobId, launch.resume])).toEqual([[jobId, false], ...Array.from({ length: 5 }, () => [jobId, true])]);
+    expect(resumedRecordsOf(jobId).map((record) => record.fields['instructed'] ?? false)).toEqual([false, false, true, false, false]);
     expect(new Set(launches.map((launch) => launch.workingDirectory)).size).toBe(1);
-    expect(launchFacts.find((launch) => launch.jobId === secondJobId)?.facts.earlierSessionReplaced).toBe(true);
-    expect(launchFacts.find((launch) => launch.jobId === firstJobId)?.facts.earlierSessionReplaced).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a resume the vendor cannot take opens resume-failed and ends the job replaced; its default fresh job takes the same worktree and the earlier-session note', async () => {
@@ -598,7 +609,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(launchFacts.find((launch) => launch.jobId === freshLaunch?.jobId)?.facts.earlierSessionReplaced).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('three reboots in a row during one build: three resumes of the same session, none counted, and no fresh agent', async () => {
+  test('three reboots in a row during one build, each resumed once User asks: three resumes of the same session, none counted, and no fresh agent', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     let job = await runningBuildSession(await startedOverseer(adapter));
     for (let rebootNumber = 1; rebootNumber <= 3; rebootNumber += 1) {
@@ -608,6 +619,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
       const restarted = await startedOverseer(adapter);
       const report    = await restarted.regroup();
       expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: rebootNumber, cause: 'reboot' }]);
+      await instructResumeOf(job.id);
       job = await runningBuildSession(restarted);
     }
 
@@ -879,7 +891,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
 
     await decideWithTheOverseerDown(openDecisions()[0]?.id ?? '', ['a']);
     await passUntil(restarted, () => eventLogTextOf(jobId, 2).includes('after-the-line'), 'the resumed product owner never took the answer');
-    expect(resumedRecordsOf(jobId).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'reboot' }]);
+    expect(resumedRecordsOf(jobId).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'reboot', instructed: true }]);
     expect(eventLogTextOf(jobId, 2)).toContain(ANSWER_MESSAGE_PREFIX);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

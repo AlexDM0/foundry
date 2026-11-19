@@ -253,9 +253,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   }, at);
   board.moveJob(job.id, 'running', at);
   board.interruptJob(job.id, 'agent-crashed', at);
-  board.recordJobResumeInstructed(job.id, at);
+  board.instructResume(job.id, at);
   board.recordUsageLimitHit(job.id, { window: 'five_hour', resetsAt: '2026-09-26T13:00:34.000Z' }, at);
-  board.moveJob(job.id, 'running', at);
+  board.moveJob(job.id, 'running', at, { instructed: true });
   board.messageJob(job.id, 'Keep the example export small.', [], at);
   board.requestJobStop(job.id, 'wind-down', at);
   board.endJob(job.id, { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch'] }, at);

@@ -1650,9 +1650,10 @@ for User's `ticket ready`, and an incomplete one stays a draft. With ticket revi
 complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`). `--set` is stored on
 the job and decides nothing. Once no child of it is live the Overseer ends it `closed`.
 
-A product owner interrupted by a reboot resumes by id once its question is answered. One past the crash bound with a
-question open waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the
-answers in its first message, never a resume.
+A product owner interrupted by a reboot waits for User's resume, and an answer to its question counts as one: it then
+resumes by id. One past the crash bound with no question open waits for User's resume in the same way; with a question
+open it waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the answers in
+its first message, never a resume.
 
 #### `intake title`
 
@@ -2319,7 +2320,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `childInstance` | no | The newest child instance launched or to launch, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last event of the job's child applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
-| `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
+| `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` since User last instructed a resume: an instructed resume sets it to 0 and adds nothing. |
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing`, `committing` (a constitution commit job only, whose `branchTip` is the `targetTip` it commits on) or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
@@ -2844,7 +2845,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 |---|---|---|
 | `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures; on a forge with entities only, `entity` and `stage`: the entity and the ticket's stage the job runs, which scope its red handoffs and failed passes; and only on the product owner the first Apply over entities starts, `entitiesToAssign`: the pending tickets it gives an entity. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
 | `job-interrupted` | `jobId` | `cause`, `childInstance`: the instance that was lost |
-| `job-resumed` | `jobId` | `childInstance`: the instance spawned, `cause`: the interruption it resumes from |
+| `job-resumed` | `jobId` | `childInstance`: the instance spawned, `cause`: the interruption it resumes from, and `instructed` (`true`) only when User instructed the resume, directly or by answering the job's question: it sets `crashResumes` back to 0 |
 | `job-resume-instructed` | `jobId` | `childInstance`: the job's instance when User asked to resume it |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |

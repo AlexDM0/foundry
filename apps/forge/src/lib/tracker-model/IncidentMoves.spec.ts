@@ -115,7 +115,7 @@ describe('each kind\'s default', () => {
         ROUND_GRANTED_ON_REWORK_ALONE:            2,
         FINDINGS_SHRINK_FACTOR_PER_ROUND:         2,
         REWORK_ROUND_THRESHOLD_LINES:             750,
-        JOB_RESUMES_BEFORE_FRESH:                 2,
+        CRASH_RESUMES_BEFORE_WAITING:             2,
         RED_HANDOFF_RESUMES_BEFORE_PARKING:       2,
         REPLACED_JOBS_BEFORE_JOB_LOST:            2,
         FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING: 0,
