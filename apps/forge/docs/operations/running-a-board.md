@@ -320,12 +320,12 @@ question, the job it blocks, how long it has been open, and Answer, which opens 
 its role as an icon in the role's colours, the role's word beside it: a hammer for a builder, a magnifier for a
 reviewer, an inbox for intake, a lifebuoy for the Assistant and a flow for the pipeline agent; a merge or refresh job
 draws its kind, a constitution commit job a document, and any other job a dot. The Sessions tallies lead with the same
-icons. Each row then shows the job's state (with a "quiet" tag while its event log stands still, and "watch only" on an
-older Watcher), its calls against its budget as a bar that turns to its warning colour from 80% of the budget, its
-subagents as squares (filled while one runs, outlined once it ended; hover one for what it does), its last tool call and
-its tokens. Show diagnostics adds Phase, Tool calls, Silent sweeps and Watcher to both cards. Silent sweeps counts the
-[sweeps](../glossary.md#sweep) a job's [event log](../glossary.md#event-log) stood still, and the last tool's elapsed
-time turns to its warning colour only while that count is above zero. A long tool call alone is no sign of trouble.
+icons. Each row then shows the job's state (with a "quiet" tag while its event log stands still), its calls against its
+budget as a bar that turns to its warning colour from 80% of the budget, its subagents as squares (filled while one
+runs, outlined once it ended; hover one for what it does), its last tool call and its tokens. Show diagnostics adds
+Phase, Tool calls and Silent sweeps to both cards. Silent sweeps counts the [sweeps](../glossary.md#sweep) a job's
+[event log](../glossary.md#event-log) stood still, and the last tool's elapsed time turns to its warning colour only
+while that count is above zero. A long tool call alone is no sign of trouble.
 
 `#agents/<job>` adds that job's transcript and these controls. Each is offered in the states the job allows.
 
@@ -337,8 +337,7 @@ time turns to its warning colour only while that count is above zero. A long too
 | Stop | a stop; the ticket is held `stopped by User (J<n>)` |
 | Fresh agent | a stop, so the next [attempt](../glossary.md#attempt) starts on the same [worktree](../glossary.md#worktree); `build` and `review` only |
 
-A job on an older [Watcher](../glossary.md#watcher) protocol is watch-only and takes Stop alone. A job that ended leaves
-its card, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
+A job that ended leaves its card, and its `#agents/<job>` link then shows no panel; use `forge job show <J>`.
 
 ### Questions
 
@@ -392,7 +391,7 @@ data.*
 Assistant shows the live [Assistant](../glossary.md#assistant) session as a chat, with a rail of its incidents beside it
 (under it on a narrow window). The head names the session's state, its turns and its calls; the Assistant has no call
 budget. In the thread, the Overseer's chats are system lines between two rules: the boot line, a delivery naming the
-incidents it carried, and any other chat, each with Show prompt for the text it sent. A Watcher's standing reply is a
+incidents it carried, and any other chat, each with Show prompt for the text it sent. A standing reply Talos sent is a
 system line too. Each Assistant turn folds its tool calls into one line, which names the tools and how many failed; the
 turn under way keeps its fold open, a running call ticking, and says `working` until the turn ends. Your messages are
 bubbles on the right.
@@ -637,12 +636,12 @@ Assistant session stays up.
 | --- | --- | --- | --- |
 | Pause, or `forge oversee pause` | no new ticket work | keep running | up |
 | `forge job stop --all --wind-down` | no new ticket work | wrap up and end; tickets held | up |
-| Stop Overseer, or `forge oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under their Watchers | gone |
-| `forge oversee stop --now` | none, no Pass runs | keep running; install and [gate](../glossary.md#gate) processes are stopped | gone |
+| Stop Overseer, or `forge oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under Talos, until its lease ends a minute later; then they stop at the end of their turn and wait for your resume | gone |
+| `forge oversee stop --now` | none, no Pass runs | as for `oversee stop`; Talos also stops every install, [gate](../glossary.md#gate) and merge line | gone |
 
 Use `--now` when a running install or gate process must end too, such as one that hangs. The Bridge has no `--now`.
 
-![A strip over one night. The Overseer drives the board until oversee stop. In a shaded span nobody drives, while an agent keeps running under its Watcher and ends. oversee --detach starts the next Overseer, which settles what ended. Then the stored state decides: paused starts no ticket, running launches at the first Pass.](../figures/running-a-board/overnight.png)
+![A strip over one night. The Overseer drives the board until oversee stop. In a shaded span nobody drives, while an agent keeps running under Talos and ends. oversee --detach starts the next Overseer, which settles what ended. Then the stored state decides: paused starts no ticket, running launches at the first Pass.](../figures/running-a-board/overnight.png)
 
 *The fork at the bottom is the choice you make the evening before.*
 
@@ -721,7 +720,7 @@ other code. Send a long answer before you wander off.
 Each repository has its own [tracker](../glossary.md#tracker), Overseer, port and Bridge tab, and preferences are kept
 per board. Three things are shared across the machine.
 
-![Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Watchers. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board and usage-windows.json keeps the plan's usage windows, projects.json lists every board for a monitor to read.](../figures/running-a-board/several-boards.png)
+![Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Talos. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board and usage-windows.json keeps the plan's usage windows, projects.json lists every board for a monitor to read.](../figures/running-a-board/several-boards.png)
 
 *So one busy board can make another's gates wait, and one usage limit stops launches on all of them.*
 

@@ -395,11 +395,11 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 ### Overseer and Baton
 
 Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), [Baton pass](../glossary.md#baton-pass),
-[Watcher](../glossary.md#watcher). Recipe:
+[Talos](../glossary.md#talos). Recipe:
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>19 sentences</summary>
+<summary>17 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -420,8 +420,6 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `oversee restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. The Overseer prints it too if it loses its port. The old Overseer keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `oversee status` and read the Overseer log. If nobody drives, run `oversee --detach`. What `update` installed stands. | |
 | `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier. | Nothing to do. | |
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Use Delivered by hand… on the ticket's form in the Bridge, or run `oversee stop` first. | [cli.md](../cli.md) |
-| `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the forge program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | |
-| `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. | Move the home folder to a shorter path. | |
 | `speaks protocol version <answered>, and this Overseer speaks <required>` | `talos-protocol-differs` | The Talos the Overseer started from the program on disk answered another protocol version, so no Talos starts again while this Overseer lives. **Exit 2.** | Update the program checkout, then start the Overseer again. | |
 | `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
 
@@ -530,14 +528,13 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 These sentences come from `cli/` as text and carry no code.
 
 <details open>
-<summary>11 entries</summary>
+<summary>10 entries</summary>
 
 | Printed words | Exit | Cause | What to do |
 | --- | --- | --- | --- |
 | `A tracker already governs this directory` | 1 | `init` below another tracker's root. | Run `update` at the root it names. |
 | `is inside a bare git repository` | 1 | `init` in a bare repository. | Run in a checkout, or pass `--root`. |
 | `would create the tracker in` | 1 | `FORGE_ROOT` names another directory. | Unset it, or pass that directory as `--root`. |
-| `which forge no longer installs for` | 1 | `version.json` names a retired agent host. | Remove the files it names, then rerun. |
 | `The skill folder <path> could not be read` | 2 | The program checkout lacks a skill folder. | Reinstall or restore the program checkout. |
 | `No text was generated for the installed file` | 2 | The install table and the program checkout disagree. Three more sentences share this cause: `An installed part lists no file.`, `No files were read for the installed skill`, `The install lists no briefs.` | Reinstall or restore the program checkout. |
 | `There is no job <job>.` | 1 | `job show` or `job attach`, with a usage line. | Run `jobs`. |

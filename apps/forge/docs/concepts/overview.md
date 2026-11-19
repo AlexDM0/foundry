@@ -18,7 +18,7 @@ Six ideas carry the rest of the documentation:
 1. **One driver.** Only the Overseer launches, stops and lands. Everyone else records a fact.
 2. **Agents report, code decides.** A [report](../glossary.md#report) is a claim, checked against git.
 3. **Three stores.** Board and [log](../glossary.md#log) commit together; [job](../glossary.md#job) folders track steps.
-4. **Two lifetimes.** A [Watcher](../glossary.md#watcher) outlives its Overseer, so a code update kills no agent.
+4. **Two lifetimes.** [Talos](../glossary.md#talos) outlives its Overseer, so a code update kills no agent.
 5. **An [Airlock](../glossary.md#airlock) tests the [target](../glossary.md#target) merged into the ticket's
    branch** and lands it only if the target has not moved. Done means merged.
 6. **Trouble goes three ways.** A [decision](../glossary.md#decision) waits for User, an
@@ -27,8 +27,8 @@ Six ideas carry the rest of the documentation:
 
 ![User works through terminal verbs, which record directly in the data folder, and through the Bridge, which sends
 commands to the one Overseer and receives live state. The Overseer reads and writes the data folder, lands on git and
-spawns detached Watchers. Each Watcher runs one agent or gate and reports only through its event log, and the pair
-outlives the Overseer. The Overseer also takes shared limits from the monitor folder, and the agent commits on its
+starts the board's one detached Talos. Talos runs each agent and gate and reports only through their event logs, and
+it outlives the Overseer. The Overseer also takes shared limits from the monitor folder, and the agent commits on its
 worktree.](../figures/overview/system-topology.png)
 *Only the Overseer launches and lands; a verb only records in the data folder, and the dashed box does not depend on
 the Overseer.*
@@ -103,22 +103,26 @@ sits outside that transaction, and its [markers](../glossary.md#marker) make eac
 
 ## Two lifetimes
 
-A dead Overseer costs time, never an agent. The Overseer spawns each Watcher detached, and the Watcher runs one agent
-or gate as its own child. A Watcher does not know an Overseer exists: it writes its job folder and keeps going.
+A dead Overseer costs time, never an agent. The Overseer starts the board's Talos detached, once, and Talos runs each
+agent and line as its own child. Talos does not depend on the Overseer: it writes each child's folder and keeps going.
+It does watch the Overseer's progress, though. The Overseer renews Talos's [supervision
+lease](../glossary.md#supervision-lease) every 15 seconds, and only while its Passes make progress; a minute without a
+renewal and Talos stops the agents at the end of their turn, and their jobs wait for User's resume. A hung Overseer
+counts as gone.
 
-![Overseer generation 1 dies and generation 2 starts after a gap. The Watcher and the agent run unbroken while the
+![Overseer generation 1 dies and generation 2 starts after a gap. Talos and the agent run unbroken while the
 event log fills. The stored cursor stands still in the gap and catches up in the first Pass of generation 2.
 ](../figures/overview/two-lifetimes.png)
 *Recovery is no special mode: the next Pass reads past a stored cursor, like any other Pass.*
 
-The Overseer is a single point of progress, never of state. A Watcher appends every event to the [event
-log](../glossary.md#event-log) in its job folder. While the Overseer is down, a report or a question waits there. Each
+The Overseer is a single point of progress, never of state. Talos appends every event of a child to its [event
+log](../glossary.md#event-log) in the job folder. While the Overseer is down, a report or a question waits there. Each
 job on the board stores a [cursor](../glossary.md#cursor), the last event the Overseer applied, and the lock hold that
 applies an event also moves the cursor, so each event applies once. The [Baton](../glossary.md#baton) keeps one
 Overseer per board, and each starting Overseer runs [Regrouping](../glossary.md#regrouping) once, before its first Pass.
 
 An update follows the same logic. A [Baton pass](../glossary.md#baton-pass) replaces the Overseer's code and touches
-no Watcher.
+no child: the successor connects to the same Talos.
 
 ## An Airlock gates the merged tree
 
@@ -136,10 +140,8 @@ main line. `ticket deliver --by-hand` and the `ticket status` override record th
 [the CLI reference](../cli.md). A ticket in a [group](../glossary.md#group) lands `reviewed` on its group branch, and
 its [release](../glossary.md#release-bundle) delivers the bundle.
 
-> **Careful.** The merged-tree gate runs inside the Overseer, not under a Watcher, so an Overseer death loses the result
-> and the next Overseer gates the tree again.
-
-> **As built.** No Pass runs while that gate runs.
+> **Careful.** The merged-tree gate runs beside the Pass, its lines under Talos, so a landing never holds a Pass. An
+> Overseer death loses the result, and the next Overseer gates the tree again.
 
 ## Trouble goes three ways
 
@@ -163,15 +165,15 @@ Twelve names, each with one purpose. Each row links its home. The figure shows w
 [the glossary](../glossary.md) maps the path one ticket takes through them.
 
 ![The Overseer is one process, and the Pass, Playbook, Customs, Airlock, Bouncer and Regrouping are code inside it. A
-Watcher is a process of its own, and the Assistant is an agent session under one. The Bridge is a page in the browser,
+Talos is a process of its own, and the Assistant is an agent session under it. The Bridge is a page in the browser,
 the Baton a numbered record and the Hatch a request folder.](../figures/overview/cast-by-kind.png)
-*The Overseer and the Watcher are the only long-running processes of this project; the Assistant is a session a
-Watcher runs as its child.*
+*The Overseer and Talos are the only long-running processes of this project; the Assistant is a session Talos runs as
+its child.*
 
 | Name | What it is |
 | --- | --- |
 | Overseer | The one process per board that drives everything |
-| Watcher | A detached process that runs one agent or gate and logs every line |
+| Talos | The board's one detached process that runs every agent and line, logs every line and holds the lease |
 | Pass | The Overseer's serial loop: observe, lock hold, act |
 | Playbook | Pure policy: facts in, next steps out |
 | Hatch | The request folder through which a session reaches the Overseer |

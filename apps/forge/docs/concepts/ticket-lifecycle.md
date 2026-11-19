@@ -47,7 +47,7 @@ because those two sections are what the builder is held to.
 **Build job.** The [Playbook](../glossary.md#playbook) picks #003 for a build job once its dependencies are settled, it
 is not held and a [launch slot](../glossary.md#launch-slot) is free, and the Overseer launches it. On the next
 [Pass](../glossary.md#pass) the ticket goes `in-progress`. The Overseer then adds a [worktree](../glossary.md#worktree)
-on branch `ticket-003` from the target's tip, and a [Watcher](../glossary.md#watcher) runs the builder's
+on branch `ticket-003` from the target's tip, and [Talos](../glossary.md#talos) runs the builder's
 [session](../glossary.md#session) there. The builder commits on its branch and ends with a
 [report](../glossary.md#report).
 
@@ -55,7 +55,7 @@ on branch `ticket-003` from the target's tip, and a [Watcher](../glossary.md#wat
 the worktree clean, the report must account for every Acceptance item with evidence or a
 [waiver](../glossary.md#waiver) proposal, and it must claim each agent-run gate on HEAD.
 
-**Gates.** Each gate of the [pipeline](../glossary.md#pipeline) runs in order under a Watcher, on the builder's commit.
+**Gates.** Each gate of the [pipeline](../glossary.md#pipeline) runs in order under Talos, on the builder's commit.
 The Overseer runs the gates of the job's phase itself, so the report's claim that a gate passed counts for nothing here.
 
 **[Handoff](../glossary.md#handoff).** When the gates pass, code writes the ticket's `## Handoff` from the verified

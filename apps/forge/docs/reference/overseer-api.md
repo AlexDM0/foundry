@@ -61,9 +61,9 @@ A bare verb such as `oversee status` is `forge oversee status`.
 | Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
 | Anything else | none | 404 `not-found` | | |
 
-`SERVED_JOB_FILE_NAMES` is exactly `report.json` and `gate.log`, so `launch-<n>.json`, which says what a
-[Watcher](../glossary.md#watcher) runs, is never served. The file route answers 404 for any other name before it
-looks at the job.
+`SERVED_JOB_FILE_NAMES` is exactly `report.json` and `gate.log`, so a [child record](../glossary.md#child-record) or an
+event log, which [Talos](../glossary.md#talos) writes, is never served as a file. The file route answers 404 for any
+other name before it looks at the job.
 
 A [job](../glossary.md#job) route needs a job id matching `/^J\d+$/` and an existing job folder. A path segment holding
 a percent escape matches no route and gets 404, because neither job ids nor served names need decoding.
@@ -250,7 +250,7 @@ Overseer holds, beside the token every command needs, and `api` for the token al
 | `brain-already-running` | start | A run is starting or running. |
 | `overseer-paused` | start | The board's Overseer is paused. |
 | `usage-limit-holds` | start | The [usage marker](../glossary.md#usage-marker) holds launches; the sentence names its reset. |
-| `brain-failed-to-start` | start | The session's program or its Watcher could not launch, or the session ended before it ran; the Overseer's log names why. |
+| `brain-failed-to-start` | start | The session's program could not launch, or Talos took no launch, or the session ended before it ran; the Overseer's log names why. |
 | `no-flint` | start | This forge cannot run the brain confined, and its monitor's `flintBrain` is `null`. The test setting `FORGE_WITHOUT_FLINT_BRAIN` answers so ([the CLI reference](../cli.md)). |
 | `brain-not-running` | stop | No run is starting or running. |
 
@@ -387,7 +387,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | `notices` | The Pass's own state | The current [notices](../glossary.md#notice), held in memory |
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
 | `overseer` | `OverseerForeground`, the Board | `state`, `url`, `generation`, `codeVersion`, `installVersion`, `batonPassWarning`, and `paused` from the Board. |
-| `usage` | The [usage marker](../glossary.md#usage-marker) and `<monitor>/usage-windows.json` | `{resetsAt, window, windows}`: `resetsAt` and `window` both `null` when no limit was hit; `windows` the newest observation of each window seen (`{window, utilization, resetsAt}`, `utilization` a whole percent), empty before the first observation and under API billing |
+| `usage` | The [usage marker](../glossary.md#usage-marker) and `<monitor>/usage-windows.json` | `{resetsAt, window, windows}`: `resetsAt` and `window` both `null` when no limit was hit; `windows` the newest observation of each window seen (`{window, lengthHours, utilization, resetsAt}`, `utilization` a whole percent), empty before the first observation and under API billing |
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant), [product owner](../glossary.md#product-owner) or pipeline agent job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
 | `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
@@ -533,12 +533,10 @@ adapter's `sessionSubagentsOf`. A malformed log adds nothing and does not fail t
 | `lastToolCall` | `{toolName, startedAt, running}` of the job's newest call; `running` holds until a result names its id | Event logs |
 | `subagents[]` | `{parentToolUseId, toolCalls, lastToolCall, tokens, state, description}`, one per parent call. `state` is `running` while the event log holds the parent call with no result, else `ended`, so a rebuilt subagent whose parent call the log lost reads `ended`. `description` is the parent call's `description` input, or for a rebuilt subagent the one its `.meta.json` names; `null` without one. | Event logs, transcripts |
 | `toolCallsWithSubagents` | `toolCalls` plus every subagent's | Both |
-| `watcherProtocol` | The protocol the newest instance's Watcher record names; `null` before it wrote one | Watcher record |
-| `watchOnly` | True for a Watcher below the supported window, watched through its files alone | Watcher record |
-| `turn` | `mid-turn` while the newest Watcher instance took more chat lines than its session printed results, else `between-turns`: whether a message sent now waits behind a turn. An answer line starts no turn. The Assistant's is its idle rule (`AssistantSession.assistantIsIdle`), the one its deliveries wait on, so a chat decided on the board makes it `mid-turn` before its line is written. `null` for a merge or refresh job and before the first Watcher logged a line. | Event logs, the Assistant's chats |
-| `messagesWaiting` | The job's `job-messaged` records its session has not taken yet: those without the `message-<n>` marker `JobControlDelivery` writes once the Watcher took the line; for the Assistant, those whose chat is not written or not taken (`AssistantSession.unsentMessageCountOf`) | The log, delivery markers |
+| `turn` | `mid-turn` while the newest child instance took more chat lines than its session printed results, else `between-turns`: whether a message sent now waits behind a turn. An answer line starts no turn. The Assistant's is its idle rule (`AssistantSession.assistantIsIdle`), the one its deliveries wait on, so a chat decided on the board makes it `mid-turn` before its line is written. `null` for a merge or refresh job and before the first child logged a line. | Event logs, the Assistant's chats |
+| `messagesWaiting` | The job's `job-messaged` records its session has not taken yet: those without the `message-<n>` marker `JobControlDelivery` writes once Talos took the line; for the Assistant, those whose chat is not written or not taken (`AssistantSession.unsentMessageCountOf`) | The log, delivery markers |
 | `lastLine` | For an Assistant, product-owner or pipeline agent job: `{role, text, at}` of the newest entry with text that the session itself wrote (`assistant`, no subagent's) or that User sent as a chat (`user`), read as [the transcript stream](#the-transcript-stream) reads it. The Overseer's lines never count. `null` for every other job, and before the session said anything. | Event logs, the log |
-| `usageWindow` | `{window, resetsAt, reportedAt}` of the newest `usage-window` event the session printed, of any Watcher instance, whether or not the vendor refused requests in it. `window` is the vendor's name, such as `five_hour`; `resetsAt` is `null` when the vendor named no usable reset; `reportedAt` is the log entry's stamp, `null` for an entry written before stamps. `null` before the session reported one. | Event logs |
+| `usageWindow` | `{window, lengthHours, resetsAt, reportedAt}` of the newest `usage-window` event the session printed, of any child instance, whether or not the vendor refused requests in it. `window` is the vendor's name, such as `five_hour`; `lengthHours` its length as the agent adapter knows it, `null` for a window it does not know; `resetsAt` is `null` when the vendor named no usable reset; `reportedAt` is the log entry's stamp, `null` for an entry written before stamps. `null` before the session reported one. | Event logs |
 | `silentSweeps` | Quiet sweeps counted by the running Pass, 0 while none runs | Pass memory |
 
 ![Three regions: the job's own turns, subagents in the event log grouped by parentToolUseId, and subagents rebuilt from transcripts. calls and toolCalls cover only the first. subagents covers the second and third. toolCallsWithSubagents and tokens cover all three.](../figures/overseer-api/live-counter-scopes.png)
@@ -567,14 +565,14 @@ report the monitor's `usage` shows.
 
 `GET /api/jobs/<J>/stream` follows one job as entries read from `events-<instance>.ndjson`. Entries are vendor-neutral:
 the adapter reads each line, the lines written to the session among them. It reads a finished job and a job whose
-Watcher is gone the same way. A client gets one `history` event holding a list of every entry after its
+child is gone the same way. A client gets one `history` event holding a list of every entry after its
 [cursor](../glossary.md#cursor), then a `message` event per later entry, each with the cursor as its id.
 
 ![Two event logs, events-1.ndjson and events-2.ndjson, each numbered from 1. A cursor at 1.5, from Last-Event-ID or else the after parameter, gets entries 1.6 to 2.2 in one history event, because they already existed, and 2.3, written later, as a message event.](../figures/overseer-api/transcript-cursor.png)
 
 *Notice that the history event crosses from one log into the next.*
 
-- A cursor is `<instance>.<sequence>`, because each Watcher instance numbers its log from 1.
+- A cursor is `<instance>.<sequence>`, because each child instance numbers its log from 1.
 - `Last-Event-ID` beats `?after=`. Neither, or empty text, starts at the beginning.
 - A cursor of any other form is 404, even when `?after=` is valid and the header is not.
 - Later entries are read on every broker event and every heartbeat, so the delay is at most `SSE_HEARTBEAT_SECONDS`.
@@ -592,7 +590,7 @@ Watcher is gone the same way. A client gets one `history` event holding a list o
 | `entryKey` | `<cursor>.<part>`, `part` the entry's index within its log line, from 0 |
 | `role` | See below |
 | `text` | The role's text |
-| `at` | The log entry's stamp, the Watcher's UTC time; `null` when the entry has none |
+| `at` | The log entry's stamp, Talos's UTC time; `null` when the entry has none |
 | `toolName` | On `tool-call` |
 | `toolUseId` | On `tool-call` and `tool-result`: pairs a call with its result |
 | `parentToolUseId` | Set inside a subagent |
@@ -610,7 +608,7 @@ Watcher is gone the same way. A client gets one `history` event holding a list o
 | `turn-end` | A `result` event: the session's turn is over | `error`, or empty |
 | `user` | A client line User sent: a `job message` chat, or an answer to an `agent-question` decision | The chat's text, or the answers joined by line breaks |
 | `overseer` | Every other client line: a first message, a wind-down, a resume line, an answer sent as a chat, an incident delivery, the Assistant's answer under an incident, an interrupt, a closed input, a stop | The chat's text, the answers joined, or empty |
-| `watcher` | A log line of origin `watcher` | The line |
+| `talos` | A log line of origin `talos` | The line |
 
 Every other agent event is dropped, and so is a client line the adapter does not read back.
 
@@ -634,42 +632,45 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.18` and `0.0`: 1.1 adds
-[Flint's brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and
-crosses, the entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity`
-command, a ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields
-and a setup edit's batch, and the board's entity flows, profile runs and cache marks by entity, 1.4 adds a
-`job-launched` record's entity and stage, 1.5 adds a progress row's `pipelineHashes`, the `entity` of a level on
-`pipeline-agent-advise`, `pipeline-update-start`, `pipeline-constitution-edit` and `gate-profile-start` and the one the
-Overseer stamps on the pipeline agent's commands, the `setup-entity-unknown` refusal, an entity's agent session and check
-on a setup record, and `isACopy` on `pipeline-draft-edit`, 1.6 adds the `need-declare` command, a progress file's `needs`, the need refusals,
-the `needs-declared` job outcome, the `need-for-root`, `need-closes-circle`, `need-abandoned`, `work-in-other-entity` and
-`whitelist-removed-mid-crossing` decision kinds and the `need-declared` record, 1.7 adds the `changed-only-outside-home-and-reach`
-refusal and job-ended cause and the `pipeline-set-per-entity` refusal, 1.8 adds the `whitelist-not-supported` refusal, a
-pipeline with entities in the Overseer's documents and the board, and the `changed-outside-home-and-reach` job-ended cause, 1.9 adds a
-progress row's `stage`, `seals` and `packageReturns`, the `entity-named-by-tickets` and `entities-while-tickets-in-flight`
-refusals and apply reasons, the entity on the `constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's
-`entityAssignment`, 1.10 adds a `stage` on a review bar's progress row, `wholeBatch` on `pipeline-draft-undo` and the
-`draft-batch-undone` setup message, 1.11 adds the `sealed-change-altered` refusal and job-ended cause, the package
-builder's `exposedSurfaceChanged` and package reviewer's `exposedSurfaceConfirmed` reports and a package stage job's
+moment the server answers, while the Overseer starts too. This forge answers `1.19` and `0.0`: 1.1 adds [Flint's
+brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and crosses, the
+entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity` command, a
+ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields and a setup
+edit's batch, and the board's entity flows, profile runs and cache marks by entity, 1.4 adds a `job-launched` record's
+entity and stage, 1.5 adds a progress row's `pipelineHashes`, the `entity` of a level on `pipeline-agent-advise`,
+`pipeline-update-start`, `pipeline-constitution-edit` and `gate-profile-start` and the one the Overseer stamps on the
+pipeline agent's commands, the `setup-entity-unknown` refusal, an entity's agent session and check on a setup record,
+and `isACopy` on `pipeline-draft-edit`, 1.6 adds the `need-declare` command, a progress file's `needs`, the need
+refusals, the `needs-declared` job outcome, the `need-for-root`, `need-closes-circle`, `need-abandoned`,
+`work-in-other-entity` and `whitelist-removed-mid-crossing` decision kinds and the `need-declared` record, 1.7 adds the
+`changed-only-outside-home-and-reach` refusal and job-ended cause and the `pipeline-set-per-entity` refusal, 1.8 adds
+the `whitelist-not-supported` refusal, a pipeline with entities in the Overseer's documents and the board, and the
+`changed-outside-home-and-reach` job-ended cause, 1.9 adds a progress row's `stage`, `seals` and `packageReturns`, the
+`entity-named-by-tickets` and `entities-while-tickets-in-flight` refusals and apply reasons, the entity on the
+`constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's `entityAssignment`, 1.10
+adds a `stage` on a review bar's progress row, `wholeBatch` on `pipeline-draft-undo` and the `draft-batch-undone` setup
+message, 1.11 adds the `sealed-change-altered` refusal and job-ended cause, the package builder's
+`exposedSurfaceChanged` and package reviewer's `exposedSurfaceConfirmed` reports and a package stage job's
 `stage-statement.json`, 1.12 adds the `package-gate-red` and `home-gate-red` job-ended causes, the
-`parked:second-return` hold, a merge agent's `entity` and `stage` on the `job-launched` record, the `refused` job outcome
-with `refusedReason`, the `package-refused`, `second-return` and `dependent-broken` decision kinds, the `stage-started`,
-`seal-set`, `seal-lifted` and `package-return` records and a crossing ticket's Handoff parts per stage, 1.13 accepts a
-non-empty whitelist in the pipeline and the setup draft, so the `whitelist-not-supported` refusal is no longer sent, 1.14 adds the
-monitor snapshot's `entities` and `openTickets` and a job's `entity` and `stage`, the `work-outside-entity` refusal and the
-`hook stage-edits` command, 1.15 adds a ticket's `entity` and `stage` to the board state document's `boardFacts`, 1.16 adds the
-`constitution-outside-ticket-entity` refusal and job-ended cause, the `draft-copy-outside-entities` refusal, the `package-return` job
-outcome with the adapt builder's `packageReturnReason` and `packageReturnEntity`, the `need-for-sealed-package` refusal, the `adapt`,
-`package-review-findings` and `package-refused` variants of `stage-statement.json`, the `fresh-branch-started` job marker, option labels
-on the entity decisions' questions, the `whitelist-removed-mid-crossing` decision the Overseer opens, the `second-return` decision for a
-second package return from a red gate or a review catch-up, and install version 34, 1.17 adds the `ticket-group` command, the
-`group-of-a-settled-ticket` and `ticket-already-in-a-group` refusals, the `ticket-grouped` and `dependent-fix-filed` records, the
-fix-ticket option of the `dependent-broken` decision, a package build's `dependentsFixedInGroup` start key, the
-`reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and install version 35, 1.18 adds the entities step to the
-installed pipeline agent's brief, measures a ticket's non-converging review against the pipeline of the stage its review ran in, and
-adds install version 36, whose installed surface is 35's, each minor only adds, and version 0.0 stands for every forge released before
-system versions.
+`parked:second-return` hold, a merge agent's `entity` and `stage` on the `job-launched` record, the `refused` job
+outcome with `refusedReason`, the `package-refused`, `second-return` and `dependent-broken` decision kinds, the
+`stage-started`, `seal-set`, `seal-lifted` and `package-return` records and a crossing ticket's Handoff parts per stage,
+1.13 accepts a non-empty whitelist in the pipeline and the setup draft, so the `whitelist-not-supported` refusal is no
+longer sent, 1.14 adds the monitor snapshot's `entities` and `openTickets` and a job's `entity` and `stage`, the
+`work-outside-entity` refusal and the `hook stage-edits` command, 1.15 adds a ticket's `entity` and `stage` to the board
+state document's `boardFacts`, 1.16 adds the `constitution-outside-ticket-entity` refusal and job-ended cause, the
+`draft-copy-outside-entities` refusal, the `package-return` job outcome with the adapt builder's `packageReturnReason`
+and `packageReturnEntity`, the `need-for-sealed-package` refusal, the `adapt`, `package-review-findings` and
+`package-refused` variants of `stage-statement.json`, the `fresh-branch-started` job marker, option labels on the entity
+decisions' questions, the `whitelist-removed-mid-crossing` decision the Overseer opens, the `second-return` decision for
+a second package return from a red gate or a review catch-up, and install version 34, 1.17 adds the `ticket-group`
+command, the `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusals, the `ticket-grouped` and
+`dependent-fix-filed` records, the fix-ticket option of the `dependent-broken` decision, a package build's
+`dependentsFixedInGroup` start key, the `reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and
+install version 35, 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's
+non-converging review against the pipeline of the stage its review ran in, and adds install version 36, whose installed
+surface is 35's, and 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, each minor only
+adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -754,7 +755,7 @@ running brain and an ended run, which forge 1.1 fills.
 | `readyTicketIds` | The ready tickets' ids, in dispatch order |
 | `openIncidents` | A count |
 | `attention[]` | What waits on User, the Bridge's Waiting on User list entry for entry: escalated questions first, then every other entry oldest first, a tie in key order. Each is `{key, kind, idText, ticketIds, subject, jobId, askedBy, decisionKind, escalatedFromIncidentId, metaText, stamp, stampWord, actionLabel, route}`; `kind` is `escalated-question`, `question`, `draft-ticket`, `filing-draft`, `review` or `merge-accept`; `stamp` is empty when the board does not hold it; `route` is the Bridge fragment that opens the entry, such as `#questions/E3` or `#kanban/ticket/009`. |
-| `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, route}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `route` is `#agents/<J>`. On a forge with entities, a job of an entity adds `entity`, the entity whose stage it runs, and, when it runs a stage, `stage`, the stage's name: `build`, `package-build`, `package-review`, `adapt` or `review`. |
+| `jobs[]` | Each job on the board: `{id, kind, role, state, ticketIds, ticketTitle, attempt, startedAt, calls, callBudget, tokens, toolCalls, lastToolCall, runningSubagents, silentSweeps, quiet, turn, messagesWaiting, lastLine, waitingOnDecisionId, route}`. `startedAt` is the newest launch's stamp, empty when the log lost it; `lastToolCall` is the tool's name; `quiet` is true while a `quiet-job` incident is open for the job; `turn` is `between-turns`, `mid-turn` or `null`, as in [Job live facts](#job-live-facts); `lastLine` is an Assistant's or a product owner's newest line; `interruption` is why an `interrupted` job stands interrupted, one of `MONITOR_INTERRUPTION_CAUSES` (`child-lost`, `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused`, `authentication-failed`, `talos-paused`, `lease-ended`, `network-outage`; the stored `watcher-lost` is served as `child-lost`), `null` otherwise, and absent from a forge before 1.19; `lease-ended` and `network-outage` wait for User's resume; `route` is `#agents/<J>`. On a forge with entities, a job of an entity adds `entity`, the entity whose stage it runs, and, when it runs a stage, `stage`, the stage's name: `build`, `package-build`, `package-review`, `adapt` or `review`. |
 | `notices[]` | Each open notice as `{kind, text}`, the sentence the Bridge shows for it, an incident default included |
 | `warnings[]` | Each of the header's warnings as `{kind, text}`, the sentence the Bridge shows for it: `kind` is `baton-pass-failed` for a failed Baton pass, or `assistant-down` for an Assistant that cannot come up. Versions 1 and 2 held the sentences alone, as strings. |
 | `today` | `{deliveredTickets, tokens}`: the tickets delivered on the Overseer's local date, and the tokens of the rows running or ended on it, Flint's brain's running run and its runs that ended on it among them |

@@ -45,9 +45,9 @@ takes its default move.
 | A `notice:` or a refusal names `update` | [Updating](#updating) |
 
 Three rules keep you out of trouble. Answering a decision often changes nothing by itself; the [Decisions](#decisions)
-table gives the follow-up. `running` says a [Watcher](../glossary.md#watcher) lives, never that its
-[agent](../glossary.md#agent) works. Every control below works with the Overseer down: it records at once and the
-Overseer acts when it starts.
+table gives the follow-up. `running` says a job's [child](../glossary.md#child-instance) lives under
+[Talos](../glossary.md#talos), never that its [agent](../glossary.md#agent) works. Every control below works with the
+Overseer down: it records at once and the Overseer acts when it starts.
 
 Replace the example ids `003`, `J7`, `E3`, `I2`, and fill in anything in `<...>`. A fenced block is a sequence: run all
 of it, unless the sentence above it calls it a list. Where you must choose, each choice is its own table cell or code
@@ -107,7 +107,6 @@ forge oversee status
 | Agent-configuration touch | a `branch-touches-agent-config` decision | See [Decisions](#decisions). |
 | An open [`waiver`](../glossary.md#waiver), or an `agent-question` whose job ended | `decisions` names the ticket | See [Decisions](#decisions). |
 | An [incident](../glossary.md#incident) naming it, of any kind | `incidents` names the ticket | Wait for the Assistant or a default, or make the move yourself. Each incident lists its allowed moves. |
-| Committed [managed block](../glossary.md#managed-block) on its [target](../glossary.md#target) | `notice: launches onto main wait` | Commit the `CLAUDE.md` change `update` made, on that target. |
 | Unsettled dependency | a `waits on:` entry that is neither [`reviewed`](../glossary.md#reviewed) nor [`delivered`](../glossary.md#delivered) | Finish it, or `forge ticket depends 003 --remove 004`. An `abandoned` dependency stays unsettled. |
 | No free [launch slot](../glossary.md#launch-slot) | `jobs` lists as many build and review lines as `concurrency` prints | Wait, or raise it with `forge concurrency 3`. A job waiting for an answer or interrupted keeps its launch slot. |
 | Candidates rank ahead | a free launch slot goes to another ticket | Wait, or `forge ticket priority 003 high`. |
@@ -134,10 +133,10 @@ A job waiting on an answer with no decision listed waits on an incident: wait fo
 ```bash
 forge jobs
 tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at   # when it last said anything
-tail -n 20 .forge/jobs/J7/watcher-1.log                # Watcher and agent stderr
+tail -n 20 .forge/jobs/J7/child-1.log                  # the agent's stderr
 ```
 
-The `1` in these paths is the `watcher` number on the job's line in `jobs`: each resume starts the next
+The `1` in these paths is the `child` number on the job's line in `jobs`: each resume starts the next
 [instance](../glossary.md#child-instance). To follow the session itself:
 
 ```bash
@@ -155,7 +154,7 @@ output, the Overseer opens a `quiet-job` incident. It only asks; it stops nothin
 | No reply, try again | `forge job fresh J7` | The job ends and a fresh agent takes the [worktree](../glossary.md#worktree). The next [attempt](../glossary.md#attempt) has a new job id, so `job stop J7` no longer applies. |
 | No reply, stop it | `forge job stop J7` | The job ends and the ticket is held until `ticket unhold`. |
 
-**Avoid:** never signal a Watcher or its agent yourself. See [What never to do](#what-never-to-do).
+**Avoid:** never signal Talos or an agent yourself. See [What never to do](#what-never-to-do).
 
 ### Which control to reach for
 
@@ -231,7 +230,7 @@ forge ticket unhold 003
 
 **Confirm:** `forge incidents`, then `forge gate list`.
 
-**Cause:** the gate's process exited 126 or 127, or a signal killed it: a missing tool, a wrong path, or a Watcher lost
+**Cause:** the gate's process exited 126 or 127, or a signal killed it: a missing tool, a wrong path, or a line lost
 mid-gate. It says nothing about the code.
 
 **Fix:** correct the command, then retry. Retrying alone repeats the failure. The first `gate-cannot-run` incident on a
@@ -403,11 +402,11 @@ Nearly everything here recovers without you, because a Pass rereads files.
 | What died | What happens by itself | What you do |
 | --- | --- | --- |
 | An agent | Next Pass interrupts it `agent-crashed` and resumes the session, `JOB_RESUMES_BEFORE_FRESH` times, then replaces it. | Nothing, unless [Outage](#outage) fires. |
-| A Watcher | Next Pass records why the Watcher was lost, kills any surviving agent group, and resumes as for an agent. | Nothing. |
-| The Overseer | Watchers and agents run on. Nothing is lost. | `forge oversee --detach` |
-| The machine | Every Watcher reads `lost`, cause `reboot`, which counts toward no bound. Sessions resume by id once an Overseer starts. | Start the Overseer, unless a login item does. |
+| Talos | The Overseer finds it lost, starts a new one, reads each lost child's cause, kills any surviving agent group, and resumes as for an agent. | Nothing. |
+| The Overseer | Talos, its agents and its lines run on. A minute after the last renewal the [supervision lease](../glossary.md#supervision-lease) ends: Talos stops the agents at the end of their turn and their jobs wait, `lease-ended`. | `forge oversee --detach`, then resume the jobs that wait. |
+| The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Sessions resume by id once an Overseer starts. | Start the Overseer, unless a login item does. |
 
-![Three columns under a band labelled nobody drives. Keeps running: agents, whose permission prompts are still denied, and Watchers. Waits for the next start: Hatch requests, results and questions in the event logs, and your commands such as decide, job stop and ticket hold, recorded at once. Absent until then: the Pass, so no launch or landing, and the Bridge. oversee --detach starts the Overseer, which reads all that waited.](../figures/runbook/overseer-down.png)
+![Three columns under a band labelled nobody drives. Keeps running: agents, whose permission prompts are still denied, and Talos. Waits for the next start: Hatch requests, results and questions in the event logs, and your commands such as decide, job stop and ticket hold, recorded at once. Absent until then: the Pass, so no launch or landing, and the Bridge. oversee --detach starts the Overseer, which reads all that waited.](../figures/runbook/overseer-down.png)
 
 *Notice that only the driving stops: your commands and [Hatch](../glossary.md#hatch) requests stand for the start.*
 
@@ -430,7 +429,6 @@ apps/forge/setup.sh --login-overseer /path/to/repository
 | `overseer-port-in-use` | The derived range or your `--port` is taken. | `forge oversee --detach --port 0` |
 | `overseer-did-not-start` | The detached process exited. | Run `forge oversee` in the foreground to see why; read `overseer.log`. |
 | `overseer-identity-unreadable` | The process's start and boot could not be read from the sources the refusal names: `ps` and `sysctl` on macOS, `/proc` on Linux. | Check those sources work on this machine. |
-| `watcher-bundle-failed` | `watcher.ts` did not bundle. | In the forge checkout, run `bun install`. |
 | `baton-taken` | A newer Overseer took the [Baton](../glossary.md#baton) from this one while it ran. | Nothing: that one drives. |
 | `install-version-mismatch` | Files of another install version. | [Update](#updating). |
 
@@ -455,14 +453,15 @@ tail -n 40 .forge/overseer.log                                # what the Oversee
 jq -c 'select(.ticketId == "003" or (.fields.ticketIds? // [] | index("003")))' .forge/log.jsonl | tail -n 20
 jq -r 'select(.kind == "job-ended") | [.at, .jobId, .fields.outcome, .fields.cause] | @tsv' .forge/log.jsonl | tail
 tail -n 1 .forge/jobs/J7/events-1.ndjson | jq -r .at          # the job's last sign of life
-tail -n 20 .forge/jobs/J7/watcher-1.log                       # Watcher and child stderr; `watcher failed:` says why it died
-ls -t .forge/jobs/J7/watcher-*.log | head -n 1 | xargs tail -n 20   # the same, for a job that left jobs
+tail -n 20 .forge/jobs/J7/child-1.log                         # the child's stderr
+ls -t .forge/jobs/J7/child-*.log | head -n 1 | xargs tail -n 20   # the same, for a job that left jobs
+tail -n 20 "$(ls -t .forge/talos/talos-*.log | head -n 1)"    # Talos's own log; `talos failed:` says why it died
 jq -r 'select(.kind == "job-launched" and .fields.kind == "assistant") | .jobId' .forge/log.jsonl | tail -n 1   # the newest Assistant job
 cat .forge/jobs/J7/gate.log                                   # red gate output
 ls -t .forge/overseer/baton-pass-*.json | head -n 1 | xargs jq .   # the newest Baton pass, as both sides wrote it
 ```
 
-`jobs` prints the Watcher instance of a live job. Each resume starts the next instance, so `-1` then goes stale; the
+`jobs` prints the child instance of a live job. Each resume starts the next instance, so `-1` then goes stale; the
 `ls -t` line finds the newest for any job.
 
 ## Usage limit, outage, no Assistant
@@ -493,13 +492,25 @@ vendor, the network or this machine rather than the tickets. A crash on the same
 reboot is no crash.
 
 **Fix:** list the crashed jobs with the `job-ended` line in [Logs worth a line](#logs-worth-a-line), and read each one's
-newest Watcher log with the `ls -t` line there. Then do both of these. Answering alone leaves the board paused, and
+newest child log with the `ls -t` line there. Then do both of these. Answering alone leaves the board paused, and
 resuming alone leaves the open decision holding launches and resumes.
 
 ```bash
 forge decide E3 -- "Network back"
 forge oversee resume
 ```
+
+### A job that waits on a network outage or a lease end
+
+**You see:** a job `interrupted` in `jobs`, its cause `network-outage` or `lease-ended`.
+
+**Cause:** `network-outage`: the agent's session ended on a network outage, or on a provider overload after its retries
+were spent, as the agent adapter recognises it from the session's closing result line. `lease-ended`: the board's
+Overseer stopped renewing its [supervision lease](../glossary.md#supervision-lease), because it was stopped or hung, and
+Talos stopped the agent at the end of its turn.
+
+**Fix:** make sure the network or the Overseer is back. Nothing resumes or replaces such a job by itself, and neither
+cause counts as a crash: the job waits, keeping its slot, for User's resume.
 
 ### No Assistant
 
@@ -508,7 +519,7 @@ the incident line above the header.
 
 **Cause:** the Assistant failed to boot `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` times, or a usage limit is on. Every
 incident has a default, so nothing hangs, but each takes the cautious path without judgement. To read why, find the
-newest Assistant job and its newest Watcher log with the `job-launched` and `ls -t` lines in
+newest Assistant job and its newest child log with the `job-launched` and `ls -t` lines in
 [Logs worth a line](#logs-worth-a-line).
 
 **Fix:** fix the boot failure, usually the vendor CLI or its login. The Overseer retries the boot by itself. Until then
@@ -555,10 +566,9 @@ git status --short CLAUDE.md .gitignore   # commit what update changed here
 
 `update` refreshes installed files and leaves the [tracker](../glossary.md#tracker) alone. Its last step hands a live
 Overseer to the code on disk: it prints `Handing the Overseer at ...`, then `Overseer handed over to code ...`. The URL
-stays and no Watcher is touched. Reload the Bridge. With no live Overseer the step is skipped. If `update` prints
-`did not take the Baton pass`, run `forge oversee restart`, which stops and restarts that Overseer. If
-`update` reports it removed the managed block, commit
-`CLAUDE.md`: launches onto that target wait for it. A `.gitignore` change from `update` needs a commit too.
+stays and Talos is not touched. Reload the Bridge. With no live Overseer the step is skipped. If `update` prints `did
+not take the Baton pass`, run `forge oversee restart`, which stops and restarts that Overseer. A `.gitignore` change
+from `update` needs a commit too.
 
 > **As built.** If the Bridge fails to load after that reload, the board still runs: keep working from commands.
 > A stop in the Bridge is refused while held: run `update`, then `job stop`.
@@ -571,7 +581,7 @@ the old Overseer stays held until a Baton pass succeeds.
 
 **The undriven exit:** if the incoming Overseer fails after the old one gave up its port, and the old one cannot bind
 that port again, the old one exits and no Overseer drives the board. `overseer.log` ends
-`This Overseer exits with no Overseer on the board.` Watchers run on. Start one:
+`This Overseer exits with no Overseer on the board.` Talos runs on, until its lease ends. Start one:
 
 ```bash
 forge oversee --detach
@@ -612,7 +622,6 @@ git branch -d ticket-003
 | --- | --- | --- |
 | `<data>/jobs/<J>/` | Its ticket is delivered or abandoned and the job has left `jobs`. Costs its transcript and `gate.log`. | `rm -rf` the folder |
 | `<worktrees>/sessions/<J>/`, `<worktrees>/hatch/<J>/` | The job has left `jobs` | `rm -rf` the folder |
-| `<data>/overseer/watcher-<codeVersion>.js` | Its name differs from the `in memory` code version `oversee status` prints, and `jobs` lists no build or review job | `rm` the file |
 | `<data>/overseer/baton-pass-<n>.json` | No Baton pass runs | `rm` the file |
 | `<data>/overseer.log` | Any time the Overseer is stopped | `: > .forge/overseer.log` |
 
@@ -650,16 +659,16 @@ command walks up from your current folder and can reach your real board.
 FORGE_ROOT="$TMPDIR/scratch-board" forge status
 ```
 
-Stop the scratch Overseer when you finish, from the scratch folder: `forge oversee stop`. Session Watchers
-keep running; [Changing the code](../development/contributing.md) has the full teardown.
+Stop the scratch Overseer when you finish, from the scratch folder: `forge oversee stop`. Its Talos keeps running until
+its lease ends; [Changing the code](../development/contributing.md) has the full teardown.
 
 ## What never to do
 
 | Never | Why | Instead |
 | --- | --- | --- |
 | Edit `progress.json` by hand on a healthy board | Commands own it, and a command mid-write overwrites your edit. | Use a verb; `forge ticket status` covers moves the named verbs refuse. Damage is [the exception](#stored-file-damage). |
-| Kill a Watcher or its agent | A lost Watcher counts as a crash toward the bounds. | `forge job stop J7` or `forge job fresh J7` |
-| Delete a live job's folder | The Overseer reads the job through it, and it alone holds the launch file. | Wait until the job has left `jobs`. |
+| Kill Talos or an agent | A lost child counts as a crash toward the bounds. | `forge job stop J7` or `forge job fresh J7` |
+| Delete a live job's folder | The Overseer reads the job through it: its child record and event log are there. | Wait until the job has left `jobs`. |
 | Delete a Baton or Baton pass file of a live Overseer | The Baton is how everything finds the Overseer and proves there is one. | `forge oversee stop` |
 | Run `clear` casually | It discards every row and the log, and each bound and count is read from that log. `clear --all` also deletes tickets and epics, and ticket ids restart. It does not check for a live Overseer. | `forge ticket abandon 003 --reason "No longer wanted"`, or a [scratch board](#a-scratch-board-for-trying-things). |
 | Run `ticket deliver --by-hand` to force a landing | It marks the ticket delivered and logs it, but merges and lands nothing, and it is refused while an Overseer is live. | Fix the merge. It is for work landed outside the Overseer. |

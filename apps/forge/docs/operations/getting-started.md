@@ -67,10 +67,9 @@ directly in `apps/forge/`.
 
 | Step | What it does | Touches |
 | --- | --- | --- |
-| 1/4 Bun | Checks Bun against the clone's `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
-| 2/4 Dependencies | Runs `bun install` for the whole workspace and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
-| 3/4 Skills | Removes two skill links under `~/.claude/skills/`, only if they are symlinks into your forge clone | `~/.claude/skills/` |
-| 4/4 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
+| 1/3 Bun | Checks Bun against the clone's `.bun-version`, and offers `bun upgrade` below it | `~/.bun` on your yes |
+| 2/3 Dependencies | Runs `bun install` for the whole workspace and `bun link`, and offers to add Bun's bin folder to your `PATH` | Your forge clone, the global link, one shell rc file (on Windows the User `PATH`) on your yes |
+| 3/3 Hook | Points your clone's `core.hooksPath` at `.githooks/` | Your clone's git config |
 
 `apps/forge/setup.sh --instruct-only` changes nothing and reports every write as "would". It runs nothing in your
 repositories: adoption is the job of `init`.
@@ -101,8 +100,8 @@ cd ~/code/example-storefront
 forge init --project "Example Storefront"
 ```
 
-Expect `Initialised forge for "Example Storefront"`, then one line per part. On a fresh repository
-`CLAUDE.md` reads `no managed block`, `retired` reads `nothing to remove`, and `hooks` reads `(installed)`.
+Expect `Initialised forge for "Example Storefront"`, then one line per part. On a fresh repository `hooks` reads
+`(installed)`.
 
 ![A repository after init, each path marked by who writes it and what git does with it. Your code and CLAUDE.md stay yours; init and update own the installed files; init creates the stores, which runtime then writes; pipeline.json, the overseer and jobs folders and the worktrees folder appear at runtime. Only .gitignore goes into git.](../figures/getting-started/repository-after-init.png)
 
@@ -114,10 +113,8 @@ only the program's own retired entries are removed.*
 `.claude/settings.local.json`, which is per-user, so `git status` keeps listing `.claude/` as untracked after that
 commit, unless your global ignore covers the file. Never run `git add .` here, and keep that file out of your commits.
 
-**`init` never writes `CLAUDE.md`.** Your conventions stay yours. It only removes the
-[managed block](../glossary.md#managed-block) an earlier install left there, and then its line says
-`removed; commit CLAUDE.md`. Commit that change: no ticket launches onto a branch whose committed `CLAUDE.md` still
-holds the block, and the header shows a notice saying so.
+**`init` never writes `CLAUDE.md`.** Your conventions stay yours. What an earlier install left there, `init` leaves;
+remove it by hand.
 
 `init` is refused in a repository the released program tracks. If `.agent-progress/` exists at the root, it exits 1 and
 says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
@@ -138,7 +135,8 @@ The URL looks like `http://127.0.0.1:<port>/`. The port is derived from the trac
 `OVERSEER_PORT_COUNT` (100) ports. `--port <n>` picks one yourself.
 
 The Overseer keeps running after `open` ends and after its terminal closes. Stop it with `forge oversee stop`; running
-agents carry on under their Watchers.
+agents carry on under Talos until its lease ends a minute later, then stop at the end of their turn and wait for your
+resume.
 
 If you open `<data>/progress.html` by habit or from a link, you get a stub, not the board. It links the live URL, or
 says the Overseer is down.
@@ -394,7 +392,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 | --- | --- | --- | --- |
 | Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginOverseer` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
-| What install writes | `cli/adoption/constants/ClaudeCodeInstall.ts` | `CLAUDE_CODE_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
+| What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | The port | `src/services/overseer/OverseerPort.ts` | `OverseerPort` | `src/services/overseer/OverseerServer.integration.spec.ts` |

@@ -77,7 +77,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it: the design system as `design-system/<entry>`, an entry of the `exports` of `packages/design-system/package.json`, never by a file path), the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it: the design system as `design-system/<entry>`, an entry of the `exports` of `packages/design-system/package.json`, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
 | `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
@@ -172,8 +172,8 @@ into config blocks that bind the same rule ids, so a later block replaces an ear
 
 | reach | allowed in |
 | --- | --- |
-| `process.env` | `src/shared/Environment.ts`, `src/shared/Environment.integration.spec.ts` |
-| `process.exit` | `agent-progress.ts`, `watcher.ts` |
+| `process.env` | `src/shared/Environment.ts`, `src/shared/Environment.integration.spec.ts`, `talos.ts` |
+| `process.exit` | `agent-progress.ts`, `talos.ts`, `setup.ts` |
 | `process.chdir` | nowhere |
 | `process.cwd` | `cli/CommandContext.ts`, `src/lib/claude-code/WorkflowScriptBundle.spec.ts` (no such file) |
 | `homedir` from `node:os` | `cli/CommandContext.ts` |
@@ -181,7 +181,7 @@ into config blocks that bind the same rule ids, so a later block replaces an ear
 
 | other rule | scope |
 | --- | --- |
-| Clock selectors: no `Date.now()`, no zero-argument `new Date()`, under `CLOCK_MESSAGE` | Shipping `src/` and `cli/`. Specs, testing folders, `cli/CommandContext.ts` and `watcher.ts` are out; the Bridge may read the clock. |
+| Clock selectors: no `Date.now()`, no zero-argument `new Date()`, under `CLOCK_MESSAGE` | Shipping `src/` and `cli/`. Specs, testing folders, `cli/CommandContext.ts` and `talos.ts` are out; the Bridge may read the clock. |
 | Bridge bans: no `dangerouslySetInnerHTML`, no assignment to `innerHTML` or `outerHTML`; react-hooks recommended, `exhaustive-deps` as an error | `bridge/**` |
 | `@typescript-eslint/no-magic-numbers`, ignoring -1, 0, 1, 2, 16 and 100 | Off in specs, testing folders and `constants/` folders |
 | `id-length`: only `i`, `a`, `b`, properties exempt | All TypeScript |
@@ -310,7 +310,7 @@ Add a test at the lowest tier that can prove the claim. At commit 70ce56de the r
 | Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
-| Spawned processes | 255 | `CliProcess`, the Watcher binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
+| Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | DOM specs | 123 | Components under happy-dom | `bridge/shell/BridgeApp.dom.tsx` |
 | Headless Chrome | 1 | A real Overseer and browser | `bridge/HeadlessBridge.integration.spec.ts` |
 | Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
@@ -355,7 +355,7 @@ seeds of `TURNS_PER_SEED` (60) turns.
 *The lower row tests the test: a world that never saw a violation under a broken policy would prove nothing.*
 
 Violations include two live jobs on a [ticket](../glossary.md#ticket), a launch past the
-[concurrency limit](../glossary.md#concurrency-limit), a second answer to a question, two Watcher instances on a job and
+[concurrency limit](../glossary.md#concurrency-limit), a second answer to a question, two live child instances on a job and
 two git operations on a [worktree](../glossary.md#worktree). The generator is Mulberry32, which is why a seed replays.
 A last test proves the turns do real work.
 
@@ -369,7 +369,7 @@ unreadable.
 lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` says how to retake it.
 
 **Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
-outside the import graph. `src/services/overseer/testing/fixtures/` holds one fixture per Watcher format.
+outside the import graph. `src/services/overseer/testing/fixtures/` holds the frozen monitor and summary documents.
 
 ## Timing audit
 
@@ -400,11 +400,11 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/overseer/OverseerBuildJob.integration.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts` | 161 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
 | `cli/overseer/OverseerBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
 | `cli/overseer/OverseerCommand.integration.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
-| `cli/overseer/OverseerCommand.integration.spec.ts` | 245 | try-count loop on a file that may never exist | Redesigned: waits on the Watcher's claim; under a long macOS temp path the Watcher refuses its socket path and writes no event log, so the old loop only ever ran out, and the append makes the log either way. |
+| `cli/overseer/OverseerCommand.integration.spec.ts` | 498 | try-count loop on a file that may never exist | Redesigned: `waitUntil` on the board's Talos record serving under a held lease; `src/testing/ScratchTalos.ts` gives the monitor folder a short scratch name, so Talos's endpoint stays inside the bytes macOS allows. |
 | `cli/overseer/OverseerDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 69 | teardown try-count wait for a claim | Kept: cleanup, no verdict; a Watcher that never claims has nothing to end. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 203 | teardown wait for every wake | Kept: cleanup, no verdict; it then stops the board's Talos and every child it ran by what reaches into the repository. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 167 | process signalled | Kept: teardown of Watchers that are the subject. |
+| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 166 | wait for a child of Talos ending | Kept: `waitUntil` on the child's liveness as `src/testing/TalosChildReadings.ts` reads it, awaited by state. |
 | `cli/overseer/OverseerDrivePass.integration.spec.ts` | 477 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
 | `cli/testing/CutoverSmoke.ts` | 68 | sleeps, deadlines, signals, the clock | Kept: the owner's live smoke run, which no `bun test` runs; its deadlines and stamps are its report. |
 | `cli/tickets/TicketCommand.review.spec.ts` | 88 | fixed hold while commands queue | Redesigned: the lock is held until both commands parked a retry. |
@@ -433,7 +433,7 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |
 | `src/testing/LockRetryWaits.ts` | 36 | clock read | Kept: turns a `Date` sleep into its length for the record; no verdict reads it. |
-| `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/WatcherJob.ts` puts each socket under such a folder. |
+| `src/testing/ScratchWorkspace.ts` | 34 | a file another spec can reach | Kept: `mkdtemp`, unique per call under parallel verifies; `src/testing/ScratchTalos.ts` puts each Talos board and monitor folder under such a folder. |
 | `src/testing/SharedCaseDeadlinePreload.integration.spec.ts` | 10 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
@@ -559,7 +559,7 @@ Four harnesses cover what a plain spec cannot: a scripted agent, a fake DOM, a r
 *Spawn only for what the bottom line names; everything else is cheaper in-process, with the same fake agent.*
 
 The child plays a scenario file of `FakeAgentStep` values: `print` a Claude-shaped stream-json line, run a `shell`
-command, `await-line` on stdin, `exit`, or `crash` by SIGKILL. Overseer, Watcher and crash specs drive real processes
+command, `await-line` on stdin, `exit`, or `crash` by SIGKILL. Overseer, Talos and crash specs drive real processes
 this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 
 > **Careful.** This test helper is part of the shipped program, so it must not pull in the Claude Code adapter.
@@ -570,7 +570,7 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 **DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
 `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
 
-![The stages of bun run verify in a row: typecheck and lint side by side, bun test, RunDomSpecs. Below bun test, the main run finds spec files in one process with the program traps and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
+![The two test runs: bun run verify runs typecheck and lint side by side, then bun test; RunDomSpecs runs by hand. Below bun test, the main run finds spec files in one process with the program traps and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
 
 *`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
 
@@ -600,11 +600,11 @@ of its own; every other testing folder keeps the layer of its parent.*
 
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
-| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Watcher clients, Board and tracker fixtures |
+| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
-| `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `PlantedWatcher`, Watcher format fixtures |
+| `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
 | `cli/testing/` | `cli/`, `bridge/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |
 | `bridge/testing/` | `bridge/` | `RunDomSpecs`, `HappyDom`, `HeadlessBridgeCheck`, `FakeControls`, board fixtures |
 

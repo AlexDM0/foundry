@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="686" viewBox="0 0 680 686" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>One Overseer drives; agents run outside it</title>
-  <desc>User works through the Bridge, which sends commands to the one Overseer and shows its live state, and through terminal verbs, typed or run by an orchestrator session, which record a fact in the data folder. The Overseer reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends one-shot frames to detached Watchers. Each Watcher runs one child, an agent session or a gate, and reports through an event log in the data folder. Watchers and their children outlive the Overseer.</desc>
+  <desc>User works through the Bridge, which sends commands to the one Overseer and shows its live state, and through terminal verbs, typed or run by an orchestrator session, which record a fact in the data folder. The Overseer reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends frames to the board's one detached Talos. Talos runs each child, an agent session or a gate, and reports each through an event log in the data folder. Talos and its children outlive the Overseer.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -64,8 +64,8 @@
   <text x="305" y="405" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">main</text>
 
   <rect x="56" y="492" width="568" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-  <text x="340" y="514" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Detached Watchers</text>
-  <text x="340" y="532" font-size="12" fill="#185FA5" text-anchor="middle">one child each: an agent or a gate</text>
+  <text x="340" y="514" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Detached Talos</text>
+  <text x="340" y="532" font-size="12" fill="#185FA5" text-anchor="middle">every agent and line, under a lease</text>
 
   <rect x="56" y="572" width="134" height="56" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="123" y="597" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Product owner</text>

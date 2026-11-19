@@ -145,7 +145,7 @@ stamped with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's
 `apps/forge/agent-progress.ts` or a scratch clone's for an older forge, through `src/testing/ScratchForge.ts`, under a scratch home in
 scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a tracker never reaches a board above the scratch root.
-The forge is handed that home through a short link under `/tmp/gaia-scratch-forges`, since each Watcher's socket path below it must fit
+The forge is handed that home through a short link under `/tmp/gaia-scratch-forges`, since its board's Talos socket path below it must fit
 (no folder below a worktree's scratch root keeps it short enough); the link goes with the scratch forge, the folder once it is empty, and
 the leak check names either left behind. Every agent it launches, Flint's brain's session included, is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
 ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and

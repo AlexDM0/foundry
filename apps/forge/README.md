@@ -27,10 +27,10 @@ The promise, in three lines:
 - **Done means merged.** A ticket is finished when the [Airlock](docs/glossary.md#airlock) has landed it, not when an
   agent says so.
 - **An [Overseer](docs/glossary.md#overseer) can die or be updated while agents keep running.** Each agent session
-  lives under a detached [Watcher](docs/glossary.md#watcher), not under the Overseer.
+  lives under the board's detached [Talos](docs/glossary.md#talos), not under the Overseer.
   [Two lifetimes](docs/concepts/overview.md#two-lifetimes) shows it over time.
 
-![One Overseer drives the board. User reaches it through the Bridge, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. The Overseer reads and writes that folder, lands tickets on main through the Airlock, and sends one-shot frames to detached Watchers. Each Watcher runs one agent session or gate and reports through an event log. Watchers and their children outlive the Overseer.](docs/images/architecture.png)
+![One Overseer drives the board. User reaches it through the Bridge, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. The Overseer reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive the Overseer.](docs/images/architecture.png)
 
 *Notice that nothing inside the dashed box is a child of the Overseer, and that agents touch neither the board nor
 main.*
@@ -157,12 +157,12 @@ powershell -ExecutionPolicy Bypass -File .\apps\forge\setup.ps1
 ```
 
 Both scripts only make sure Bun is installed, offering Bun's own installer, and then hand over to `setup.ts`, which runs
-the same four steps on every system. With Bun already installed, `bun run setup` in `apps/forge/` starts `setup.ts`
+the same three steps on every system. With Bun already installed, `bun run setup` in `apps/forge/` starts `setup.ts`
 directly. Setup refuses a Bun older than the version the clone's `.bun-version` pins, and offers `bun upgrade`. On Windows, step 2 offers to add
 Bun's `bin` folder to your User `PATH` instead of editing a shell startup file.
 
 <p align="center">
-  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its four steps: Bun found, bun install, bun link and the launcher build each reported as would run, no global skill left to retire, the pre-commit hook already set, then Tooling ready, naming forge init.">
+  <img src="docs/images/terminal-setup.png" width="790" alt="Terminal output of ./setup.sh --instruct-only through its three steps: Bun found, bun install, bun link and the launcher build each reported as would run, the pre-commit hook already set, then Tooling ready, naming forge init.">
 </p>
 
 Then, in the repository to adopt:
@@ -179,7 +179,7 @@ forge open
 Commit the `.gitignore` change `init` made.
 
 <p align="center">
-  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, CLAUDE.md, retired files, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
+  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
 </p>
 
 *Notice `oversee resume`: a new board starts paused, and no ticket builds and no pipeline agent starts until it runs.*

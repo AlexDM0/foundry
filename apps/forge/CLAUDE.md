@@ -46,7 +46,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
   shadowing a global (`CorpusMap.ts`, not `Map.ts`): a question as the question (`sourceIsReachable`), a producer
   for its product (`fullTextOf`), a boolean as a predicate phrase.
 - Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
-- The lifecycle components carry the names the owner decided: Overseer, Watcher, Pass, Playbook, Hatch, Customs,
+- The lifecycle components carry the names the owner decided: Overseer, Talos, Pass, Playbook, Hatch, Customs,
   Airlock, Assistant, Baton, Regrouping, Bouncer and Bridge, in code, stored values, wording and docs alike;
   `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - The role that designs a board's pipeline is the pipeline agent: `pipeline-agent` as a job kind and role,
@@ -134,8 +134,8 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 
 - The core names a port for each OS-dependent capability and never a platform. A port and its adapters live in the
   `src/lib/` package of their capability; `platformPortsFor` in `src/lib/platform-ports/PlatformPortsFor.ts` builds
-  the one frozen record, `CommandContext.platformPorts`, which services take as a parameter. The Watcher has no
-  context, so `watcher.ts` passes `process.platform` to `runWatcher`. A platform with no adapter gets a port that
+  the one frozen record, `CommandContext.platformPorts`, which services take as a parameter. Talos has no context,
+  so `talos.ts` passes `process.platform` to `runTalos`. A platform with no adapter gets a port that
   refuses through its own values, so a command that needs no process still runs.
 - Machine setup runs before a command context exists. `setup.sh` and `setup.ps1` only make sure that Bun exists, then
   start `setup.ts`. `setup.ts` gives `process.platform` to the `SetupPlatform` port in `cli/setup/`, and
@@ -165,7 +165,7 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 - The repository tooling is for the owner only, on macOS and Linux. `.claude/hooks/` is bash. `.readme-graphics/` is
   bash, with Python and JavaScript helpers. It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
-  `process.exit` to `agent-progress.ts`, `watcher.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
+  `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
   the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
   and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
   through documented getters; specs set it in a child process (one exception, Deviations). The product's own
@@ -194,18 +194,18 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   carries a stamp. It is written last, so a cut-short run leaves the old version; a fresh `init` writes
   `session-instructions.md` first, so a cut-short one reads as unversioned.
 - Bump `INSTALL_VERSION` by hand, in the same commit, when an installed file becomes wrong against the new CLI: a
-  command, flag, JSON field, stored state or exit code it names changes meaning or goes, the SessionStart hook's
-  command changes, or an installed file moves or is added; worker command lines are runtime and never installed.
-  Wording and `DISPATCH_PROTOCOL` numbers do not bump it.
+  command, flag, JSON field, stored state or exit code it names changes meaning or goes, the agent's session-start
+  entry's command changes, a placeholder the launch fills in an installed brief is renamed, or an installed file moves
+  or is added; worker command lines are runtime and never installed. Wording and `DISPATCH_PROTOCOL` numbers do not bump
+  it.
   In the same commit, run `bun run record src/services/overseer/InstallChangeWatch.ts`: its recording has the
   install version as its stamp, and `bun run verify` fails on a stale stamp.
   `cli/InstalledSurface.spec.ts` holds the surface side against `cli/FrozenInstalledSurface.json`.
 - The version check reads only the manifest; `update` and `init` refuse a newer one. `cli/InstallVersionVerdict.spec.ts`
-  holds the verdicts: equal is current; anything else, a missing manifest beside `session-instructions.md` or a version
-  16 board's `agent-brief.md`, or an unreadable one is a mismatch; missing with neither is current.
-- `init` and `update` never write CLAUDE.md: it holds a repository's conventions only. They remove install version 16's
-  managed block once, through `removeManagedBlock`, and the hook entries, files and briefs it installed, whose names
-  live in the unscanned `cli/adoption/constants/RetiredClaudeInstall.ts`.
+  holds the verdicts: equal is current; anything else, a missing manifest beside `session-instructions.md`, or an
+  unreadable one is a mismatch; missing with neither is current.
+- `init` and `update` never write a repository's own instruction file: it holds a repository's conventions only. What
+  an older install left there or beside it, they leave; its owner removes it by hand.
 
 ### Comments
 
@@ -289,7 +289,7 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   in a folder. When a ticket makes a rule there wrong, its handoff names the rule, and the owner changes the file
   outside a ticket. `CLAUDE.md` is not protected: a ticket changes it in the same change.
 - forge's instructions are not in these files: they are `.forge/session-instructions.md`, installed from
-  `resources/templates/SessionInstructions.md` and printed by the SessionStart hook.
+  `resources/templates/SessionInstructions.md` and printed by the agent's session-start entry.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
   flags, exit codes and file formats.
 - `docs/README.md` is the documentation map.
@@ -329,26 +329,28 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `watcher.ts` runs its Watcher, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM and a short print of its nodes, `packages/flint/demo/DemoEntry.ts` starts the demo page, `packages/flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `packages/flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM and a short print of its nodes, `packages/flint/demo/DemoEntry.ts` starts the demo page, `packages/flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `packages/flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
-| Only `src/shared/Environment.ts` reads the environment. | `watcher.ts` reads `SystemRoot` and gives it to `runWatcher`, with a reader of any other variable, for the variables that a launch copies. | The Watcher bundle cannot reach `src/shared/`. |
+| Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`src/lib/talos/TalosClosure.spec.ts`). |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/overseer/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
+| A frozen table comes from the previous implementation and is retaken on a change. | `src/lib/talos/FrozenTalosHandshake.json` is never retaken: `src/lib/talos/TalosHandshake.frozen.spec.ts` holds that each frozen `hello` reads as itself, each frozen answer is written byte for byte, and the three frames' keys equal the table's. | The first frame of every Talos protocol is read by `helloFrameOf` alone and must never change, so an Overseer of any version can tell a Talos of another (design decision 6). |
+| External values are mapped into their type at the boundary. | Talos's `clientFrameOf` maps a `launch` frame with its launch left `unknown` (`ReceivedClientFrame`); `childLaunchOf(value, boardFolder)` maps it at the launch, and a malformed launch is answered `done` with the frame's own `frameId`. A launch names no endpoint, so it is checked against none. | A launch's folders are read against the board folder, which the frame parser does not know, and a frame whose launch is malformed still gets its answer. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
 | Only the current stored format is read. | A stored `dispatcherState` `finished` reads as `stopped`. | Stored files are never rewritten; reading it as stopped fails closed. |
 | Only the current stored format is read. | A stored open `pipeline-proposal` decision is read, and the Playbook withdraws it at the next pass. | Stored files are never rewritten. The one-shot proposal that the decision accepts is retired. |
 | Only the current stored format is read. | A `log.jsonl` record with the job kind or role `onboarder` reads as `pipeline-agent`. | The log is append-only and is never rewritten. |
 | Only the current stored format is read; an older file is refused with `OLDER_FORMAT_ADVICE`. | `pipeline.json` is read in version 2, 3 and 4, each by its exact version. It is written as version 4 only when it holds `entities`; else as version 3 when it holds a prepare step's `in`, a gate `in` leading with `/` or a `reach`; else as version 2 (`PipelineUtil.formatVersionOf`). A file with no `version`, or one below 2, is refused with its own `older-pipeline` wording: set the pipeline up again. `cli/OlderPipelineRefusal.spec.ts` holds the refusal and that versions 2 and 3 keep their version. | A pipeline that needs no newer key stays readable by a release that reads only an earlier version, and one that does is refused by it rather than misread. No release converts a pipeline below version 2, and an `update` with an earlier release does not help. |
 | Only `agent-progress.ts` exits. | `talos.ts`, the Talos binary, exits with the code `runTalos` in `src/lib/talos/` returns, and imports nothing else, held by `src/ImportDirection.spec.ts` and `src/lib/talos/TalosClosure.spec.ts`. `setup.ts` exits with the code `runSetup` in `cli/setup/` returns, and imports only `cli/`. | It is a second entry point: the Overseer spawns it, detached, once per board. |
-| Every write of a file a reader may hold open goes through the atomic-file package. | A Watcher appends its `events-<instance>.ndjson` in place, fsynced before its `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
+| Every write of a file a reader may hold open goes through the atomic-file package. | Talos appends a child's `events-<instance>.ndjson` in place, fsynced before the child's `end` is written. | An append-only log is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | The Overseer appends a gate profile's output to `<data>/gate-profile-runs/<P>.ndjson` in place, outside the hold, one line for each piece. | The output stream is append-only and is never replaced; a reader ignores an unterminated last line. |
 | Every write of a file a reader may hold open goes through the atomic-file package. | The Overseer appends `overseer.log` in place, one line per write. | A log someone tails is never replaced; an atomic rewrite would break the tail. |
 | A `src/lib/` package leaves a refusal as a verdict. | The tracker model's `Board` throws `BoardRefusal`. | A domain class throws a typed domain error. |
 | A feature never reaches another. | `cli/overseer/routes/OverseerRoutes.ts` imports `bridge/index.html`, the one entry of `FEATURE_REACHES_BY_PATH` in `src/ImportDirection.spec.ts`. | Bundled, never imported: Bun bundles the HTML import. |
 | One reference per fact. | `resources/templates/Reference.md`, installed as `.forge/reference.md`, copies three `docs/cli.md` sections verbatim (ticket format, ticket moves, exit codes); a change to either changes both, held by `cli/ReferenceCopies.spec.ts`. | Agents elsewhere cannot read `docs/cli.md`. |
-| A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing SessionStart hook would reach every session in the repository. |
+| A failure exits non-zero. | `hook session-start` exits 0 whatever happens, printing nothing on failure and skipping the install check. | A failing session-start entry would reach every session in the repository. |
 | A failure exits non-zero. | `hook bash-domains` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the network inside the ticket's line. |
-| A failure exits non-zero. | `hook stage-edits` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the Edit and Write of a job of an entity inside its stage's folders. |
+| A failure exits non-zero. | `hook stage-edits` exits 0 whatever happens, skipping the install check and answering deny through its JSON on any failure. | A hook that errors lets the call through; the deny is what keeps the file edits of a job of an entity inside its stage's folders. |
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
 | A clock measures real time. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). An Assistant that is quiet in a turn for the same number of sweeps is ended (`src/services/overseer/AssistantSession.ts`). The two watches count sweeps and read no clock. | The two watches are older than this rule. A running session must report in an actual time, so each watch becomes a time bound; this change is not done. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
@@ -366,9 +368,9 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   in a scratch repository: nobody runs the checkout's source here, and only the owner runs `init`, `update` or
   `clear`.
 - The network guard (`hook bash-domains`) starts only from a program outside the tracked folder.
-  `src/services/overseer/GuardCommand.ts` refuses a runtime or an entry script inside it, and the job's `Bash`,
-  `PowerShell` and `WebFetch` calls are then denied. The stage edit guard (`hook stage-edits`) of a job of an entity
-  starts from the same program; when it cannot, the job's `Edit` and `Write` calls are denied. The owner keeps this
+  `src/services/overseer/GuardCommand.ts` refuses a runtime or an entry script inside it, and the job's shell commands
+  and web fetches are then denied. The stage edit guard (`hook stage-edits`) of a job of an entity starts from the same
+  program; when it cannot, the job's file edits are denied. The owner keeps this
   guard as it is. Thus the installed forge
   that runs this repository's trackers is a second clone outside this repository, updated by pulling.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.

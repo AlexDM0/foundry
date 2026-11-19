@@ -53,10 +53,9 @@ Setup touches nothing in any tracked repository: adopting one is `forge init`'s 
 
 | Step | What it does |
 | --- | --- |
-| 1/4 Bun | Refuses a Bun older than the root's `.bun-version`, offering `bun upgrade` first. |
-| 2/4 Dependencies and the command | Runs `bun install` for the whole workspace on every run, then `bun link`, then compiles the launcher as the installed command. When `forge` is not on the `PATH`, offers to add Bun's `bin` folder: to your shell rc file on macOS and Linux, unless the file already mentions it, and to your User `PATH` on Windows. |
-| 3/4 Retired skill links | Removes the two links under `~/.claude/skills/` only when each is a symlink resolving into this checkout. Anything else there is reported and left. |
-| 4/4 The commit hook | Sets `core.hooksPath` to `.githooks` unless it already is. The path is relative, so it resolves in every worktree of this repository. |
+| 1/3 Bun | Refuses a Bun older than the root's `.bun-version`, offering `bun upgrade` first. |
+| 2/3 Dependencies and the command | Runs `bun install` for the whole workspace on every run, then `bun link`, then compiles the launcher as the installed command. When `forge` is not on the `PATH`, offers to add Bun's `bin` folder: to your shell rc file on macOS and Linux, unless the file already mentions it, and to your User `PATH` on Windows. |
+| 3/3 The commit hook | Sets `core.hooksPath` to `.githooks` unless it already is. The path is relative, so it resolves in every worktree of this repository. |
 
 `apps/forge/setup.sh --instruct-only` changes nothing and reports what it would do. `cli/setup/Setup.spec.ts` and
 `cli/SetupScript.integration.spec.ts` hold that.
@@ -79,7 +78,7 @@ bun /path/to/agent-progress/agent-progress.ts version
 the walk up from the current directory, so no command reaches a tracker by accident. The rule is under Command surface
 in the [rule book](../../CLAUDE.md).
 
-![The program runs from this checkout. HOME sends the monitor folder, with its Watcher sockets, and the transcripts to a scratch home. FORGE_ROOT sends tracker writes to the scratch repository. FORGE_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
+![The program runs from this checkout. HOME sends the monitor folder, with the Talos socket and secret, and the transcripts to a scratch home. FORGE_ROOT sends tracker writes to the scratch repository. FORGE_FAKE_AGENT swaps every session for a scripted fake that spends no subscription. No arrow reaches a real tracker, the real monitor folder or the real transcripts.](../figures/contributing/scratch-isolation.png)
 
 *Notice that each setting moves one thing: drop `HOME` or the root and the commands reach your real files; drop the
 fake and a real session runs.*
@@ -123,7 +122,7 @@ Six lines are easy to get wrong:
 
 | Line | Why |
 | --- | --- |
-| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the [Watcher](../glossary.md#watcher) sockets, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and no Watcher comes up. |
+| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the board's [Talos](../glossary.md#talos) socket, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and the Overseer refuses to start, as its Talos cannot bind its socket. |
 | `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
 | `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
 | `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
@@ -174,9 +173,9 @@ export HOME="$USER_HOME"
 rm -rf "$SCRATCH"
 ```
 
-`--now` also stops process Watchers (gates, installs). Session Watchers and their agents keep running, so `pkill` ends
-them; its pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached
-processes. Baton has the full stop matrix.
+`--now` also has Talos stop its lines (gates, installs). Talos and its agents keep running, so `pkill` ends them; its
+pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached processes.
+Baton has the full stop matrix.
 
 ### Why only the `FORGE_` variables work
 
@@ -258,7 +257,7 @@ row.*
 | Add a Bridge view | `bridge/views/<view>/`: the component, a pure `<View>Model.ts`, its `.spec.ts` and `.dom.tsx` | A class in `bridge/styles/board.css`; the mount in `bridge/shell/BridgeApp.tsx`; an entry in `BRIDGE_TABS` in `bridge/shell/HashRouter.ts` | `bridge/StyleContract.spec.ts`, `src/ImportDirection.spec.ts`, `bridge/HeadlessBridge.integration.spec.ts` |
 | Add a reusable component | `packages/design-system/<layer>/<Name>.tsx` with `<Name>.css` and `<Name>.dom.tsx` beside it, in the lowest layer whose components it composes | Its export in `packages/design-system/package.json`, which the Bridge imports as `design-system/<Name>`; its `@import` in `packages/design-system/styles/design-system.css` | `packages/design-system/StyleContract.spec.ts`, `packages/design-system/CompositionLayers.spec.ts`, `src/ImportDirection.spec.ts` |
 | Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
-| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
+| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs, and only `bun run typecheck:bridge` proves that, by hand | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
 | Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |

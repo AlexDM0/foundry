@@ -202,7 +202,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `FORGE_WITHOUT_FLINT_BRAIN` | No, a test setting | On for any value but empty, whitespace or `0` | A client's recording of a scratch forge | The forge answers as one that cannot run Flint's brain confined: no brain in its monitor snapshot, and a start refused `no-flint`. |
 | `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
 | `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
-| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs, a Watcher's included | A path in the temporary folder where the gate may write its [report](#gate-reports). |
+| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs, Talos's included | A path in the temporary folder where the gate may write its [report](#gate-reports). |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
@@ -266,8 +266,8 @@ a label that already starts another repository's Overseer is refused unless `--l
 | Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `oversee` in the foreground, in the repository |
 | Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `oversee --detach --repository <repository>`, as a Run value has no working directory |
 
-`KillMode=process` lets every Watcher outlive a stop or restart of the unit. On another OS, on Linux with no `systemctl`
-or no user service manager, and on Windows with no absolute `SystemRoot`, setup exits 1 and writes nothing.
+`KillMode=process` lets a board's Talos outlive a stop or restart of the unit. On another OS, on Linux with no
+`systemctl` or no user service manager, and on Windows with no absolute `SystemRoot`, setup exits 1 and writes nothing.
 
 ### What a run reports
 
@@ -279,9 +279,9 @@ or no user service manager, and on Windows with no absolute `SystemRoot`, setup 
 
 The session instructions' `updated` adds "re-read it before your next brief", so a session that read them at its start
 learns its copy is stale. A first `init` prints the session instructions' path instead, and ends with three next steps:
-run `forge open`, which starts the Overseer and opens the board; ask a Claude session to file a ticket; and set the
-pipeline up, as the board opens on Pipeline setup: choose who pays, let the pipeline agent read the repository, and
-Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the board.
+run `forge open`, which starts the Overseer and opens the board; ask an agent session (Claude Code) in this repository
+to file a ticket; and set the pipeline up, as the board opens on Pipeline setup: choose who pays, let the pipeline agent
+read the repository, and Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the board.
 
 ### The six items
 
@@ -828,7 +828,7 @@ prepare, gates }`, the phase, that phase's hash, and the prepare steps and gates
 them then. A session resumed after a red handoff runs again under `gate-run-<instance>.json`, the merge before review
 under `target-gate-run.json`, and the merge before User's Merge under `main-gate-run.json`
 (`main-gate-run-<instance>.json` in a later round). The run reads only its manifest and never rewrites it: each step's
-Watcher folder is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no
+child folder is named by its position there, so a pipeline edited or reordered mid-run changes no step and passes no
 gate that did not run. A step's kept verdict (`<folder>-verdict.json`) counts only on the same tree under the same phase
 and hash. The settlement records the manifest's phase and hash on the row, so a green the pipeline changed under is not
 current and the ticket is gated again: such a passing review waits unqueued for its next review, and without a review
@@ -847,7 +847,7 @@ fails. With no status written, a non-zero exit fails and exit 0 is `gate-cannot-
 passes. `gate add` and `gate prepare` refuse a line over 8191 characters on Windows at exit 1, storing nothing.
 
 On Windows a gate gets no grace and must tolerate a hard stop: a child with no console cannot be asked to stop, so a
-stop waits out the grace and then ends the gate's whole process tree through `taskkill`. The Watcher records that end
+stop waits out the grace and then ends the gate's whole process tree through `taskkill`. Talos records that end
 as `signalled`, `SIGKILL`, so a stopped gate is `gate-cannot-run`; a kill from anything else, such as Task Manager,
 reads as exit 1. The tree is walked through parent ids from the leader while it lives, so a member whose parent died
 before the first listing is out of reach, as it is on POSIX.
@@ -1071,10 +1071,10 @@ read only that entity's times and gates, and its notes go to the entity's part o
 
 A gate may say what its own tooling replayed from its cache. Every gate line is handed a path in the temporary folder
 in `FORGE_GATE_REPORT`: a fresh one for a line the Overseer runs itself (a merge gate, a gate profile and a pipeline
-check), and one named for the step's folder for a line a Watcher runs (a job's build or review gate), so the next pass
+check), and one named for the step's folder for a line Talos runs (a job's build or review gate), so the next pass
 reads it. A prepare step is handed none. A gate that writes `{"version": 1, "cache": "hit" | "partial" | "miss"}`
 there says that every task, some of them or none replayed from its cache. The Overseer reads the file after the line
-exits and removes it; a file left at a Watcher's path before its line starts is removed first. Anything else, such as
+exits and removes it; a file left at a Talos line's path before its line starts is removed first. Anything else, such as
 no file, a file over 4096 bytes, a link, text that is no JSON object, another version or another word, is no report.
 A key that version 1 does not name is passed over. forge knows no caching tool: a gate writes a report only when its
 own scripts do.
@@ -1344,7 +1344,7 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 |---|---|
 | `oversee [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--port` binds the one given, `0` any free one, and none keeps the board's derived port; `--detach` starts the same command detached; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
 | `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. |
-| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. A live [Watcher](glossary.md#watcher) is left running; `--now` also stops process Watchers, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
+| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Overseer no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
 | `oversee restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
 | `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
@@ -1356,8 +1356,46 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 
 #### Where the secrets live
 
-The API token and every Watcher secret sit in `<monitor>/private/<trackerId>/`, under the user's home on every OS; a
-launch file names its secret's file and holds no copy. Every session's read deny covers `<monitor>/private`.
+#### Talos
+
+Each board's children run under one Talos (`talos.ts`): a detached process with a protocol version of its own, which the
+Overseer starts once per board and which outlives the Overseer. It runs every agent session and every install, prepare,
+gate and merge line, the gates the Overseer runs itself included. Its files are in `<data>/talos/`: the start file
+`start-<n>.json` the Overseer writes, with the lease and the bounds; its record `talos-<n>.json`, with its start number,
+protocol version and state; its log `talos-<n>.log`, which names a child by its label and id only; and
+`launches-<n>.ndjson`. The identity document names its protocol (`talosProtocolVersion`). A Talos of another protocol
+answers the Overseer's first frame with `version-mismatch` and quits cleanly; one the Overseer has just started that
+still does not fit refuses the Overseer's start.
+
+- **The child record.** Each child has a folder of its own: a job's sessions in the job folder, each line in its step's
+  folder. `child-<n>.json` records who runs it, its state, the endings it recognised and its end (`exited`, `signalled`,
+  `spawn-failed`, `paused`, `lease-ended` or `time-bound`) with its run time; `events-<n>.ndjson` is its event log,
+  appended in place; `child-<n>.log` is its standard error. No launch is written to a file, so no file holds a session's
+  environment.
+- **The lease.** Talos supervises its agents on a lease of one minute (`SUPERVISION_LEASE_MILLISECONDS`). The Overseer
+  renews it every 15 seconds from its main loop, and only while its passes make progress: the same pass in flight at two
+  renewal ticks in a row withholds the renewal, so a hung Overseer loses the lease within a minute. When the lease ends,
+  Talos asks every agent to quit at the end of its turn, and its job is interrupted `lease-ended`; lines run on. After a
+  gap in Talos's own ticks, such as a sleep, the lease ends no sooner than one renewal interval later (two below 5
+  seconds), so a machine that wakes keeps its agents while its Overseer renews again.
+- **The clean quit.** On a `quit` frame Talos refuses new launches, stops every line at once, asks every agent to quit
+  at the end of its turn, stops what still runs after 10 seconds (`CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS`), records
+  every end and exits. An agent ends `paused` and its job is interrupted `talos-paused`, which the next pass resumes; a
+  line that ends `paused` is never judged and runs again.
+- **The time bound.** Every install, prepare and gate line is stopped after 15 minutes of awake time
+  (`LINE_TIME_BOUND_MILLISECONDS`) and ends `time-bound`; its output says so. Each gap in Talos's ticks is added to the
+  line's allowance, so a sleep does not count. A merge line has no bound. Each line's run time, in the same measure, is
+  recorded (`pipeline-step-ran`) and served in the pipeline facts as `stepRunTimes`.
+- **The merged-tree gate** of an Airlock runs beside the pass, never inside it: a pass that reaches a gating Airlock
+  whose run is in flight moves on, so no landing holds a pass, nor the lease.
+- **A network outage.** An agent whose session ends on a network outage, a provider overload after its retries were
+  spent included, is recognised from fields of the session's closing result line, which the agent adapter names, never
+  from its text. Talos records the recognition before the line, and the job is interrupted `network-outage`. It waits
+  for User's resume, as a lease end does, and is never counted as a crash.
+
+The API token and each Talos's secret (`talos-<n>.secret`) sit in `<monitor>/private/<trackerId>/`, under the user's
+home on every OS; the start file names the secret's file and holds no copy, and no launch is written to a file. Every
+session's read deny covers `<monitor>/private`.
 
 | OS | The guarantee |
 |---|---|
@@ -1366,15 +1404,16 @@ launch file names its secret's file and holds no copy. Every session's read deny
 
 #### `oversee restart`
 
-The live Overseer starts a successor, which proves it can take over before the old Overseer lets go; no Watcher is sent
-anything. The Overseer never restarts itself.
+The live Overseer starts a successor, which proves it can take over before the old Overseer lets go; Talos is sent
+nothing, and the successor connects to the same Talos. The Overseer never restarts itself.
 
 - On a failure an Overseer of the old code keeps or takes back the board, `oversee status` shows the warning until a
   Baton pass succeeds, and `restart` refuses `baton-pass-failed` at exit 1.
 - An Overseer whose API does not take the command is stopped and started again detached on its port. With none live, one
   is started, on the port of an Overseer found dead, whose stop is recorded in its place.
 
-> **As built.** `--now` counts only on that fallback. The successor proves the Watcher bundle, not the Bridge.
+> **As built.** `--now` counts only on that fallback. The successor proves that it reads the board, the jobs and every
+> child record, not the Bridge.
 
 #### `oversee status`
 
@@ -1437,10 +1476,11 @@ Refused:
 The answer is stored as `{question: answer}` and logged `decision-answered` with the question request it answers. The
 request id joins the asking job's `answeredRequestIds`, and a job waiting on that answer alone moves back to `running`.
 
-The Overseer then delivers it. A live Watcher still holding the request gets the `control_response` allow with
-`updatedInput.answers`; a resumed session takes it as its first user line. A question whose ticket job ended `replaced`
-or `stopped` was held on its ticket `awaiting answer (E<n>)`: the answer goes under the ticket's `## Questions` and
-lifts the hold. `--json` prints `{decisionId, answer}`.
+The Overseer then delivers it. A live session still holding the request gets the answer line the agent adapter writes,
+through Talos, when the agent takes live answers (Claude Code's `control_response` allow with `updatedInput.answers`); a
+resumed session takes it as its first user line. A question whose ticket job ended `replaced` or `stopped` was held on
+its ticket `awaiting answer (E<n>)`: the answer goes under the ticket's `## Questions` and lifts the hold. `--json`
+prints `{decisionId, answer}`.
 
 #### `question options`
 
@@ -1532,12 +1572,12 @@ nothing, so the ticket runs again as it stood.
 
 | command | what it does |
 |---|---|
-| `jobs [--json]` | The live jobs, one line each (id, kind and role, state, tickets, attempt, Watcher instance, a stop asked), then the Overseer (`live` with its URL, or `down`), paused or not, agents against the limit, the open decisions and incidents, and a warning line per incident that took its default since the Overseer last started. Read-only, no lock. `--json` prints `{jobs, overseer, paused, agentsInFlight, limit, openDecisions, openIncidents, defaultedIncidents}`, each defaulted one `{incidentId, move, cause, at}`. |
+| `jobs [--json]` | The live jobs, one line each (id, kind and role, state, tickets, attempt, child instance, a stop asked), then the Overseer (`live` with its URL, or `down`), paused or not, agents against the limit, the open decisions and incidents, and a warning line per incident that took its default since the Overseer last started. Read-only, no lock. `--json` prints `{jobs, overseer, paused, agentsInFlight, limit, openDecisions, openIncidents, defaultedIncidents}`, each defaulted one `{incidentId, move, cause, at}`. |
 | `job show <J> [--json]` | The job's record from `progress.json`, or for a finished job what its `job-launched` and `job-ended` records hold, and its job folder; an unknown job is refused. Read-only, no lock. `--json` prints `{job, jobFolder}`. |
-| `job attach <J> [--json]` | Every Watcher instance's event log in instance order through the adapter's mapper, then the newest followed while the job is on the board; it never connects to a Watcher. Read-only, no lock. `--json` prints `{jobId, lines}` of the replay and follows nothing. |
+| `job attach <J> [--json]` | Every child instance's event log in instance order through the adapter's mapper, then the newest followed while the job is on the board; it never connects to Talos. Read-only, no lock. `--json` prints `{jobId, lines}` of the replay and follows nothing. |
 | `job message <J> [--incident <I>] -- <text> [--json]` | Record a chat turn in a hold, logged `job-messaged`, with the Overseer up or down; the Overseer writes it to the live session in log order, once; to the Assistant only at its next idle point (see [The Assistant](#the-assistant)). [Reopening and refusals](#job-message) are below. |
 | `job fresh <J> [--incident <I>] [--json]` | End the job `replaced`, holding nothing, so the next attempt starts on its worktree with the earlier-session note. `--incident` names the incident it handles; a job with no ticket is refused `job-has-no-ticket`. |
-| `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer stops its Watcher, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
+| `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer has Talos stop its child, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
 | `job stop --all [--wind-down] [--json]` | `oversee pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
 | `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
 | `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
@@ -1547,7 +1587,7 @@ nothing, so the ticket runs again as it stood.
 #### `job message`
 
 A product-owner job that ended `closed` (its own `intake-close` or `job stop`), or a pipeline agent that a `job stop`
-closed, is reopened instead, logged `job-reopened`: back on the board `running` in its next Watcher instance, which
+closed, is reopened instead, logged `job-reopened`: back on the board `running` in its next child instance, which
 resumes its session by id in the same folder with the text as its first line.
 
 - Any other finished job, or a session asked to quit at the end of its turn, is refused `job-finished`.
@@ -1568,7 +1608,7 @@ resumes its session by id in the same folder with the text as its first line.
   opens it again.
 
 > **As built.** A `job stop` does not stop a merge. It sends no frame to a merge agent. On POSIX, a stop reaches the
-> groups below a job only through a live parent, so a tree whose leader died with its Watcher stays unreachable.
+> groups below a job only through a live parent, so a tree whose leader died with its Talos stays unreachable.
 
 #### `advise`
 
@@ -1608,7 +1648,7 @@ In the same hold it submits every draft ticket it (and any session it took over 
 with ticket review off each complete one becomes `pending` with its row, with it on each becomes `ready-for-review`
 for User's `ticket ready`, and an incomplete one stays a draft. With ticket review off in a forge with entities, a
 complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`). `--set` is stored on
-the job and decides nothing. Once no Watcher of it is live the Overseer ends it `closed`.
+the job and decides nothing. Once no child of it is live the Overseer ends it `closed`.
 
 A product owner interrupted by a reboot resumes by id once its question is answered. One past the crash bound with a
 question open waits `awaiting-answer`, and once answered a fresh session takes over with its draft tickets and the
@@ -1911,14 +1951,14 @@ detached HEAD and the landing of a job ended `committed`.
 With `approvals.merge` on (`gate approval merge on`), a green review does not queue at once. The review job moves
 to `merging-main`: the Overseer brings the ticket's worktree up to the target's tip before User reviews the code. With
 no review phase, a green build does the same, before its Handoff is written and its ticket moves `in-review`. Each
-round of `merging-main` is one Watcher instance of the job, and keeps its files in the job folder suffixed like a gate
+round of `merging-main` is one child instance of the job, and keeps its files in the job folder suffixed like a gate
 folder (`-<instance>` past the first). The reviewer prompt still tells the reviewer to merge the target into the branch
 as the last step of its review, so `merging-main` finds the branch up to date unless the target moved since.
 
 | the round | what the Overseer does |
 | --- | --- |
 | the worktree holds the target's tip and its green is current in the job's phase | the job ends (`reviewed`, or `built` with its Handoff), the ticket is marked `mergeQueued` and waits for User's Merge |
-| the worktree lacks the tip | it records both tips (`main-merge.json`) and merges the tip in with every hook off, in a process Watcher of its own (`main-merge`), as the merge before review does |
+| the worktree lacks the tip | it records both tips (`main-merge.json`) and merges the tip in with every hook off, in a line Talos runs in a child folder of its own (`main-merge`), as the merge before review does |
 | the merge is clean, or the worktree holds the tip on a tree whose green is not current | it gates the tree with the job's phase's gates, `review`, or `build` with no review phase (`main-gate-run.json`); green ends the job and queues the ticket |
 | a gate is red | a red handoff: the job's own session resumes, the reviewer, or with no review phase the builder |
 | the merge conflicts | the merge is aborted and the worktree reset to the branch tip (`main-conflict.json`); a red handoff of kind `merge-conflict`: the job's own session resumes to merge the tip itself, resolve, commit and report again |
@@ -1963,12 +2003,12 @@ states as a build job. Once verified and gated, the Overseer counts the rework, 
 Before the reviewer starts, the review job brings the branch up to its target. Once the install line passed, the
 Overseer reads the target's tip and checks that the branch holds it. A branch that holds it starts its reviewer with no
 merge and no gate run. Otherwise the Overseer records both tips in the job folder and merges the target's tip into the
-ticket's worktree (`git merge --no-ff --no-edit`), in a process Watcher of its own, its folder `target-merge`, with
+ticket's worktree (`git merge --no-ff --no-edit`), in a line Talos runs in its own child folder, `target-merge`, with
 every hook off. That merge is the Overseer's own git, so it runs outside the gate sandbox.
 
 | the merge | what the Overseer does |
 | --- | --- |
-| is clean | it gates the merged tree with the build phase's gates, each step in a `target-` Watcher folder; the reviewer starts only when every gate is green, at once when the build phase has none |
+| is clean | it gates the merged tree with the build phase's gates, each step in a `target-` child folder; the reviewer starts only when every gate is green, at once when the build phase has none |
 | is clean, but a gate is red | the job ends `does-not-hold` (cause `target-gate-red`) and the ticket goes `in-progress`; the builder's session resumes with the red handoff, its Baton pass in the review's job folder |
 | conflicts | the merge is aborted and the worktree reset to the branch tip; the job ends `does-not-hold` (cause `target-conflict`) and the ticket goes `in-progress`; the builder's session resumes with the target tip and the conflicted files |
 | cannot run or settle | incident `setup-failed` (step `target-merge`); the job ends `stopped` |
@@ -2069,21 +2109,21 @@ describes what the code does, proved over fakes on that Mac, never on the OS its
 | Sessions | in Claude Code's sandbox, which must start | in Claude Code's sandbox, which must start | unconfined by design |
 | `oversee` where confinement is unavailable | refuses at exit 1 | refuses at exit 1 | never: nothing is confined |
 | Stop of a process | SIGTERM, then by force | SIGTERM, then by force | by force: `taskkill` of the whole tree |
-| Watcher endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
+| Talos endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
 | Owner-only files | mode 0700 and 0600 | mode 0700 and 0600 | the profile's inherited ACL, read back with `icacls.exe` |
 | Temp folders a tracker may not live in | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()` |
 | `open` | `open` | `xdg-open` | `rundll32.exe url.dll,FileProtocolHandler` |
 | Login item | a LaunchAgent | a systemd user unit | a `Run` registry value |
 
-A Watcher outlives its Overseer only where nothing kills the Overseer's whole process group, cgroup or job:
+Talos outlives its Overseer only where nothing kills the Overseer's whole process group, cgroup or job:
 
-- On Linux, a logout ends every Watcher started from that login session when logind sets `KillUserProcesses=yes`. The
-  login item's unit sets `KillMode=process`, so a stop or restart of the unit leaves its Watchers running.
-- In a container, run with `--init` (as `docker run --init`), so a process reaps the ended Watchers; without it an
-  ended Watcher stays a zombie, which still reads as a live process.
+- On Linux, a logout ends a Talos started from that login session when logind sets `KillUserProcesses=yes`. The login
+  item's unit sets `KillMode=process`, so a stop or restart of the unit leaves its Talos and its children running.
+- In a container, run with `--init` (as `docker run --init`), so a process reaps an ended Talos and its ended children;
+  without it an ended one stays a zombie, which still reads as a live process.
 - On Windows, a detached child stays in its parent's job object, as Bun has no option to break away from it. When the
   Overseer starts inside a job that ends its members on close, as some terminals and CI runners do, closing it ends
-  every Watcher. Start the Overseer from a plain console or the login item.
+  the board's Talos and its children. Start the Overseer from a plain console or the login item.
 
 In the Git Bash terminal (mintty), standard input is a pipe and not a console, so no command sees a terminal: `clear`
 refuses without `--yes`, and must be given it there.
@@ -2275,9 +2315,9 @@ The board's state. The example shows the shape; the tables below give each key's
 | `attempt` | no | From 1. |
 | `target` | no | The main line or `group-<name>`, or null for a session. |
 | `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging-main`, `merging`, `landing` or `stopping`. |
-| `interruption` | yes | Why it was last interrupted: `watcher-lost` (its Watcher died without recording an end; one that failed, such as on a full disk, first writes `watcher failed: <cause>` to its `watcher-<n>.log`), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
+| `interruption` | yes | Why it was last interrupted: `watcher-lost` (its child was lost: no end was recorded for it, as when its Talos died; a Talos that failed, such as on a full disk, first writes `talos failed: <cause>` to its `talos-<n>.log`; the value keeps its old name until the rename), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost child's tree refused the forced stop: never resumed, the stop tried again each sweep), `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered), `talos-paused` (a clean quit of Talos ended the session at its turn end: resumed by itself, as after a reboot), `lease-ended` (Talos stopped the agent at its turn end because the Overseer stopped renewing its lease) or `network-outage` (the agent ended on a network outage or a provider overload its retries did not outlast). `lease-ended` and `network-outage` wait for User's resume: nothing resumes or replaces the job by itself, and neither counts as a crash. |
 | `childInstance` | no | The newest child instance launched or to launch, from 1. |
-| `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
+| `eventCursor` | no | `{ instance, sequence }`, the last event of the job's child applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing`, `committing` (a constitution commit job only, whose `branchTip` is the `targetTip` it commits on) or `landing`. |
@@ -2433,7 +2473,7 @@ malformed, both as `entities-in-a-folder`. This build reads all three.
 | `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md`. An [Apply](#apply) sets it to `CONSTITUTION.md` when its draft holds a constitution |
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
-| `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the Claude login's subscription. `{ "mode": "api", "maxBudgetUsd": <number> }` bills the Claude Console account of the API key in `ANTHROPIC_API_KEY` ([API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that each launch of a session gets as `--max-budget-usd`. It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
+| `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 | `reach` | no | version 3: the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 | `entities` | no | version 4: each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
 
@@ -2450,13 +2490,15 @@ instance's or another job's that carries it on, runs on the recorded pair, whate
 
 #### API billing set-up
 
-With `billing` mode `api`, each session gets the key from `ANTHROPIC_API_KEY` in the Overseer's environment, and from
-nowhere else. The key must never go in a committed file, nor in `pipeline.json`, a ticket or any other file: set it at
-OS level, where the Overseer starts.
+The agent adapter names the variable that holds the key (`AgentCredentials.billingKeyVariableName`). For Claude Code,
+the one adapter, it is `ANTHROPIC_API_KEY`, and this section names Claude Code's variables. With `billing` mode `api`,
+each session gets the key from that variable in the Overseer's environment, and from nowhere else. The key must never
+go in a committed file, nor in `pipeline.json`, a ticket or any other file: set it at OS level, where the Overseer
+starts.
 
 - In every mode the Overseer never passes its own `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` on to a session; in
-  mode `api` it passes only `ANTHROPIC_API_KEY`, which the Watcher copies from its own environment as it starts the
-  session, so no launch file, job record, log or decision holds the key. `CLAUDE_CODE_OAUTH_TOKEN` and the
+  mode `api` it passes only `ANTHROPIC_API_KEY`, which Talos copies from its own environment as it starts the
+  session, so no file, job record, log or decision holds the key. `CLAUDE_CODE_OAUTH_TOKEN` and the
   cloud-provider variables pass in both modes. A session can read the key from its own environment.
 - In mode `api` with `ANTHROPIC_API_KEY` unset, empty or blank, the Overseer starts no agent and opens one
   `api-key-not-set` decision naming the variable and this section.
@@ -2623,7 +2665,7 @@ version 1.
 ```
 
 - `<data>/gate-profile-runs/<P>.ndjson` holds a run's output, appended in place outside the hold, one JSON line per
-  piece, as a Watcher's event log is; a reader ignores an unterminated last line.
+  piece, as a child's event log is; a reader ignores an unterminated last line.
 - `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Overseer start.
 - No state is written as `timed-out` yet; the read accepts it.
 - A run without `entity` is written without the key, so a file of a forge without entities stays byte for byte. A
@@ -2861,7 +2903,7 @@ cache figures), `cacheReadInputTokens` and `outputTokens`.
 An agent a workflow run spawned, whose transcript sits at `…/subagents/workflows/<runId>/agent-<id>.jsonl`, also carries
 `workflowRunId`, that `<runId>`, and `agentLabel`, the `description` of the `agent-<id>.meta.json` beside the transcript
 when it has one. Each is written only when known, so a plain subagent's record holds neither. A job the Overseer ran
-also carries `costUsd` when a `result` of its sessions named `total_cost_usd`: each Watcher instance's newest cost,
+also carries `costUsd` when a `result` of its sessions named `total_cost_usd`: each child instance's newest cost,
 summed. It is recorded only; no view shows it. The record is one line in the file, spread over several here:
 
 ```json
@@ -3007,8 +3049,8 @@ warning on standard error: the command keeps its exit code, 0 when it succeeded.
 ```json
 {
   "windows": {
-    "five_hour": { "utilization": 0.19, "resetsAt": "2026-10-27T23:00:34.000Z" },
-    "seven_day": { "utilization": 0.46, "resetsAt": "2026-10-30T22:00:34.000Z" }
+    "five_hour": { "lengthHours": 5, "utilization": 0.19, "resetsAt": "2026-10-27T23:00:34.000Z" },
+    "seven_day": { "lengthHours": 168, "utilization": 0.46, "resetsAt": "2026-10-30T22:00:34.000Z" }
   }
 }
 ```
@@ -3016,18 +3058,19 @@ warning on standard error: the command keeps its exit code, 0 when it succeeded.
 The newest observation of each usage window of the vendor's plan, machine-wide, beside the usage marker
 `<monitor>/usage-limit.json`. Every `rate_limit_event` of a job's session reports each window of its `unifiedWindows`
 (Claude Code names them `five_hour` and `seven_day`); the Overseer's pass writes them after its lock hold, the later
-observation of a window replacing its `utilization` (the share used, 0 to 1, as the vendor reports it) and `resetsAt`
-(ISO) in place. A window seen first is added last. Only the top-level refusal of the window `rateLimitType` names
-interrupts a job and writes the usage marker; a window's own status writes nothing more.
+observation of a window replacing its `lengthHours` (the window's length as the agent adapter knows it, `null` for a
+window it does not know), `utilization` (the share used, 0 to 1, as the vendor reports it) and `resetsAt` (ISO) in
+place. A window seen first is added last. Only the top-level refusal of the window `rateLimitType` names interrupts a
+job and writes the usage marker; a window's own status writes nothing more.
 
 Nothing is written under API billing, and a board under API billing shows no window. `/api/state` shows each window as
-`usage.windows` (`{window, utilization, resetsAt}`, `utilization` as a whole percent), none before the first
-observation.
+`usage.windows` (`{window, lengthHours, utilization, resetsAt}`, `utilization` as a whole percent), none before the
+first observation.
 
 The file is written atomically, indented two spaces and ending in a newline, and only when a value changes, so an
 unchanged file stays byte-identical. Unknown keys, at the top level and on a window, are kept in order. A file that is
-not JSON, has no `windows` object, or holds a window without a number `utilization` or a stamp `resetsAt` is malformed:
-it shows no window, never stops the Overseer, and the next observation replaces it.
+not JSON, has no `windows` object, or holds a window without a number or null `lengthHours`, a number `utilization` or a
+stamp `resetsAt` is malformed: it shows no window, never stops the Overseer, and the next observation replaces it.
 
 ### `{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`
 

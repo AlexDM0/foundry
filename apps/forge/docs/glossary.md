@@ -13,7 +13,7 @@ twelve capitalised names sit on one ticket's path, and the rest act beside it. L
 words follow.
 
 ![Most of the twelve names sit on one path from User to the main line. User works through the Bridge. Inside the
-Overseer the Pass runs the Playbook and launches a Watcher holding a session, whose requests pass the Hatch and the
+Overseer the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the
 Bouncer and whose result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Baton
 and Regrouping act across Overseer restarts.](figures/glossary/component-map.png)
 
@@ -96,10 +96,9 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | a `review-recorded` claim | `ReviewClaim` in the log; counted by `review-stats` |
 | | a retired ticket claim | the `ticket claim` verb is unknown; `Board.claimTickets` remains (as built) |
 | | a filing-draft claim | `DraftClaim`: who holds the draft |
-| | a Watcher's claim of its file | the record in `watcher-<n>.json` |
 | **alive** | a live Baton | `BatonReading` verdict `live`: the newest generation names a running process |
-| | a live Watcher | `WatcherLiveness`: `unclaimed` before it claims its file, `live` while the claimed process identity matches, `ended` once it recorded its end, `lost` when it vanished without one |
-| | an agent | no verdict of its own: read through its Watcher, and `agent-crashed` or `watcher-lost` says which died |
+| | a live child | `ChildLiveness`: `unlaunched` before Talos launched it, `live` while its child record says it runs, `ended` once Talos recorded its end, `lost` when its record cannot be read or says ended with no end |
+| | an agent | no verdict of its own: read through its child, and `agent-crashed` or `watcher-lost` says which died |
 | **hold** | a [ticket hold](#ticket-hold) | frontmatter `hold`, such as `parked:<cause>` |
 | | a [lock hold](#lock-hold) | one `writeTracker` run, as in "in the same hold" |
 | | an [install hold](#install-hold) | the runtime state `held-by-install-change` |
@@ -109,9 +108,8 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | **sweep** | the Overseer's timed [wake](#wake) | `OVERSEER_SWEEP_SECONDS`, `DataFolderWatch`; "silent sweeps" (`silentSweepsOf`) counts those a job's [cursor](#cursor) stood still for |
 | | the [Airlock sweep](#airlock-sweep), a step inside a Pass | `airlocks.sweep` |
 | **marker** | the [usage marker](#usage-marker) | `<monitor>/usage-limit.json` |
-| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out, written after the Watcher took it, so an Overseer that dies in between sends it again: at least once |
-| | an [install marker](#install-marker) | `session-instructions.md` or `agent-brief.md`: its presence tells the version check an install exists |
-| | a managed-block marker | the start and end comments of the [managed block](#managed-block) |
+| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out, written after Talos took it, so an Overseer that dies in between sends it again: at least once |
+| | an [install marker](#install-marker) | `session-instructions.md`: its presence tells the version check an install exists |
 | **request** | a Hatch request | `<worktrees>/hatch/J<n>/requests/<requestId>.json`, a session's file for the Overseer |
 | | a question request | one `AskUserQuestion` call; `requestId` on the decision or in the incident's facts |
 | **settled** | a job | ended, and out of `progress.json`; "unsettled jobs" are the stored ones |
@@ -133,7 +131,7 @@ These are different words for neighbouring things. Each row says what separates 
 | Words | Which is which | How to recognise it |
 | --- | --- | --- |
 | **gate**, **checks line** | a gate is one named check; the checks line is the gates joined into one shell line | `pipeline.json` entries, the word to use; `PipelineUtil`, surviving comments and prompts |
-| **job** | the board's unit of work; it can span Watcher instances | `J<n>`; settled by a `job-ended` log record |
+| **job** | the board's unit of work; it can span child instances | `J<n>`; settled by a `job-ended` log record |
 | **child instance** | one launch of a job's child under Talos; a resume launches the next | `child-<n>.json`, `Job.childInstance` |
 | **session** | the conversation with Claude Code; it can span jobs | `sessionIdOf`; a build sent back by review resumes it under a further job |
 | **attempt** | a fresh try at a build, numbered on the job | `Job.attempt` |
@@ -172,11 +170,6 @@ The stored value is what `<data>/progress.json`, tickets, `status --json` and ve
 ### Acceptance
 
 The `## Acceptance` section of a ticket body, numbered `A1.`, `A2.` and so on. Home: [CLI reference](cli.md).
-
-### acknowledgement frame
-
-The frame that lets an ended Watcher exit: `close-input` for an [agent Watcher](#watcher-kind), `stop` for a [process
-Watcher](#process-watcher). Until it arrives the Watcher lingers, so the Overseer can read how the child ended.
 
 ### admin folder
 
@@ -242,8 +235,8 @@ running (`src/services/overseer/Baton.ts`).
 
 ### Baton pass
 
-The hand-over from a running Overseer to its successor, `src/services/overseer/BatonPass.ts`, with no restart of the
-Watchers. The red-handoff text uses the same words for something else: see [Words that mean several
+The hand-over from a running Overseer to its successor, `src/services/overseer/BatonPass.ts`, with no restart of
+Talos or its children. The red-handoff text uses the same words for something else: see [Words that mean several
 things](#words-that-mean-several-things).
 
 ### board
@@ -309,6 +302,16 @@ differs from the ticket's `size` field, which is the filer's estimate.
 The gates joined into one shell line by `PipelineUtil`. Prefer [gate](#gate). See [Words that mean several
 things](#words-that-mean-several-things).
 
+### child instance
+
+One launch of a job's child under [Talos](#talos), numbered by `Job.childInstance`. Its files carry the number.
+
+### child record
+
+`child-<n>.json` in a child's folder, Talos's record of one child: who runs it, its working directory, its state, the
+endings it recognised and its end (`exited`, `signalled`, `spawn-failed`, `paused`, `lease-ended` or `time-bound`) with
+its run time. Talos replaces it atomically on each change; a reader gets a verdict, never a throw.
+
 ### claim
 
 Five different things share this word. See [Words that mean several things](#words-that-mean-several-things).
@@ -318,6 +321,12 @@ Five different things share this word. See [Words that mean several things](#wor
 A stub `claude` first on `PATH` during a test run, which records where it ran and exits non-zero, so no spec starts a
 real session. One of the program traps, beside the `gpgconf` one (`src/testing/ProgramTraps.ts`). Home: [Guards and
 testing](development/guards-and-testing.md).
+
+### clean quit
+
+How [Talos](#talos) ends without losing work: it refuses new launches, stops every line at once, asks every agent to
+quit at the end of its turn, stops what still runs after 10 seconds and records every end. Its agents' jobs are
+interrupted `talos-paused` and resume by themselves; a line ended `paused` runs again, never judged.
 
 ### code version
 
@@ -384,7 +393,7 @@ nothing.
 
 ### cursor
 
-`Job.eventCursor`, the last Watcher event the Overseer applied, as instance and sequence, written in the [lock
+`Job.eventCursor`, the last event of the job's child the Overseer applied, as instance and sequence, written in the [lock
 hold](#lock-hold) that applied it. The Bridge's transcript cursor is a separate value.
 
 ### Customs
@@ -506,8 +515,9 @@ The ticket frontmatter field naming the ticket whose review found this one.
 
 ### frame
 
-One JSON object on a Watcher's socket, in either direction (`ClientFrame`, `WatcherFrame`). An acting frame, `write`,
-`close-input` or `stop`, acts on the child.
+One JSON line on Talos's socket, in either direction (`ClientFrame`, `TalosFrame`). The first line of a connection is
+`hello`, read by `helloFrameOf` alone and frozen (`FrozenTalosHandshake.json`); an acting frame, `launch`, `input`,
+`stop`, `stop-lines` or `quit`, is answered `done`, and `state` tells a child's state and end.
 
 ### free-standing row
 
@@ -598,8 +608,8 @@ it.
 
 ### install marker
 
-`session-instructions.md` or `agent-brief.md`, whose presence tells the version check an install exists. See [Words that
-mean several things](#words-that-mean-several-things).
+`session-instructions.md`, whose presence tells the version check an install exists. See [Words that mean several
+things](#words-that-mean-several-things).
 
 ### install version
 
@@ -660,11 +670,6 @@ role: the builder, or the reviewer or re-reviewer. With none ended, the reviewer
 It fixes the conflicts and red gates of the [Airlock](#airlock), and a [merge agent](#merge-agent) carries on its
 session and its model and effort (`lastWorkerOf`).
 
-### launch file
-
-`<data>/jobs/J<n>/launch-<instance>.json`, which tells a Watcher what to spawn and where, and names the owner-only file
-of its secret (`WatcherLaunch`). Sessions are denied reading it.
-
 ### launch slot
 
 Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted from jobs by
@@ -674,8 +679,8 @@ strip shows one chip per slot job.
 
 ### liveness
 
-The verdict on one [child instance](#child-instance) from its record and the process table,
-`WatcherFleet.livenessOf`: `unclaimed`, `live`, `ended` or `lost`. It says nothing about the agent.
+The verdict on one [child instance](#child-instance) from its [child record](#child-record), `BoardChildren.livenessOf`:
+`unlaunched`, `live`, `ended` or `lost`. It says nothing about the agent.
 
 ### lock hold
 
@@ -694,12 +699,6 @@ is linked to it.
 ### main line
 
 The repository's main branch, the [target](#target) of every ungrouped ticket and of a release ticket.
-
-### managed block
-
-The text between `<!-- forge:managed:start -->` and its `:end` marker in a repository's `CLAUDE.md`. This
-build never writes it: `init` and `update` remove it, and a target that has it committed stops launches and resumes on
-that target. The released program's block carries its own name and this build leaves it alone.
 
 ### marker
 
@@ -738,7 +737,7 @@ branch.
 ### monitor folder
 
 `~/.forge-monitor/`, written `<monitor>` in these documents: the machine-wide folder shared by every board.
-It holds the registry, Watcher sockets, [gate slots](#gate-slot) and the [usage marker](#usage-marker).
+It holds the registry, each board's Talos socket and secret, [gate slots](#gate-slot) and the [usage marker](#usage-marker).
 
 ### move
 
@@ -821,11 +820,6 @@ recorded and shown only, as the pipeline facts' `stepRunTimes`.
 
 A `pipeline.json` step that sets a tree up before the gates run (`PipelineStep`).
 
-### process Watcher
-
-A [Watcher](#watcher) of [kind](#watcher-kind) `process`, which runs a build or review job's install or gate instead of
-a session. It has no session to resume, so losing it costs its job. `oversee stop --now` stops only these.
-
 ### processless state
 
 A job state with no process behind it, `PROCESSLESS_JOB_STATES`: `interrupted` or `awaiting-answer`. A move from one
@@ -884,8 +878,8 @@ Board rule. Home: [Refusals](reference/refusals.md).
 
 ### Regrouping
 
-What a starting Overseer does before its first Pass: it reattaches live Watchers from their [cursors](#cursor) and
-cleans up what died (`src/services/overseer/Regrouping.ts`).
+What a starting Overseer does before its first Pass: it connects to its board's [Talos](#talos), or starts one, reads
+each job's child from its [cursor](#cursor) on, and cleans up what died (`src/services/overseer/Regrouping.ts`).
 
 ### relayed command
 
@@ -925,7 +919,7 @@ a job that reports, it moves the job to `in-customs`.
 
 ### resume
 
-A job's move into `running` from a [processless state](#processless-state): the next [Watcher
+A job's move into `running` from a [processless state](#processless-state): the next [child
 instance](#child-instance) carries on the same [session](#session). It differs from a fresh job, which starts a new
 one.
 
@@ -1048,17 +1042,33 @@ over, even from a live holder; the [fence](#fence) then stops that holder's writ
 
 ### standing reply
 
-A rule that lets a Watcher answer a line on the session's stdout without the Overseer (`StandingReply`). A line no
+A rule that lets Talos answer a line on the session's stdout without the Overseer (`StandingReply`). A line no
 rule matches waits for the Overseer.
 
 ### successor
 
 The Overseer that follows another, on the code on disk: in a [Baton pass](#baton-pass), or after one died.
 
+### supervision lease
+
+How long [Talos](#talos) lets the board's agents run without an Overseer: one minute, renewed every 15 seconds from the
+Overseer's main loop and only while its [Passes](#pass) make progress (`LeaseRenewal.ts`). When it ends, Talos asks
+every agent to quit at the end of its turn and the jobs wait, interrupted `lease-ended`, for User's resume. After a gap
+in Talos's ticks, such as a sleep, it ends no sooner than one renewal interval later. Lines are never stopped by it.
+
 ### sweep
 
 The Overseer's timed backstop [wake](#wake) (`OVERSEER_SWEEP_SECONDS`). A job's silent sweeps count those its
 [cursor](#cursor) stood still for. It differs from the [Airlock sweep](#airlock-sweep).
+
+### Talos
+
+The board's one detached supervisor of children, `talos.ts` and `src/lib/talos/Talos.ts`, with a protocol version of its
+own (`TALOS_PROTOCOL_VERSION`). The Overseer starts it once per board and talks to it over a local socket in
+[frames](#frame); it runs every agent session and every install, prepare, gate and merge line, records each in a [child
+record](#child-record) and an event log, and outlives the Overseer. It holds the [supervision
+lease](#supervision-lease), bounds every install, prepare and gate line to 15 minutes of awake time, recognises an
+agent's ending on a network outage, and ends by a [clean quit](#clean-quit). Its files are in `<data>/talos/`.
 
 ### target
 
@@ -1089,7 +1099,7 @@ first run left.
 ### undriven gap
 
 The moment in a [Baton pass](#baton-pass) when neither Overseer drives the board: the old one closed its listener and
-the successor has not claimed. Watchers run through it.
+the successor has not claimed. Talos and its children run through it.
 
 ### usage marker
 
@@ -1125,17 +1135,8 @@ A request for a [Pass](#pass), `DrivePass.wake`. Wakes during a Pass add exactly
 
 ### Watcher
 
-The small detached process that holds one session and logs its events, `watcher.ts` and `src/lib/watcher/Watcher.ts`. It
-outlives the Overseer.
-
-### Child instance
-
-One launch of a job's child under Talos, numbered by `Job.childInstance`. Its files carry the number.
-
-### Watcher kind
-
-`WatcherKind`: `agent` holds a session, `process` runs a gate or install as a [process Watcher](#process-watcher). The
-kind sets which [frames](#frame) a Watcher accepts.
+The retired name of the per-session process [Talos](#talos) replaced. Dated records and the stored interruption cause
+`watcher-lost` still carry the word; the cause keeps its value until the rename.
 
 ### wave
 

@@ -60,10 +60,75 @@ const RETIRED_NAMES = [
   'lease-taken-over',
   'handing-over',
   '--login-runner',
+  'watcher.ts',
+  'src/lib/watcher',
+  'WatcherFleet',
+  'WatcherBundle',
+  'LegacyWatcherReader',
+  'WatcherBoardChildren',
+  'WatcherSocketServer',
+  'WATCHER_PROTOCOL_VERSION',
+  'WATCHER_PROTOCOL_OLDEST_SUPPORTED',
+  'WATCHER_LINGER_FRAMES',
+  'runWatcher',
+  'PlantedWatcher',
+  'IdleWatcherSocket',
+  'RecordedWatcherStages',
+  'WatcherProtocolClient',
+  'watcherProtocolVersion',
+  'watcherInstance',
+  'FIRST_WATCHER_INSTANCE',
+  'watcher-instance',
+  'ProcessWatcherSandbox',
+  'createProcessWatcherSandbox',
+  'ProcessWatcherLaunch',
+  'ProcessWatcherLaunchOutcome',
+  'ProcessWatcherSpawn',
+  'ProcessWatcherStep',
+  'LostWatcherFacts',
+  'environmentFromWatcher',
+  'WatcherObservation',
+  'WatcherEventFacts',
+  'AppliedWatcherEvents',
+  'WATCHER_RUNNING_STATES',
+  'GATE_WATCHER_FOLDER_PREFIX',
+  'GATE_PREPARE_WATCHER_FOLDER',
+  'INSTALL_WATCHER_FOLDER',
+  'MAIN_MERGE_WATCHER_FOLDER',
+  'TARGET_MERGE_WATCHER_FOLDER',
+  'gateWatcherFolderIn',
+  'highestWatcherInstanceOf',
+  'newestFinishedWatcherInstanceOf',
+  'lostWatcherCauseOf',
+  'jobsNeedingAWatcher',
+  'killWatcher',
+  'launchProcessWatcher',
+  'spawnProcessWatcher',
+  'stopLiveProcessWatchers',
+  'syncWatchers',
+  'hatchFolderWatchers',
+  'liveWatcherInstances',
+  'lastWatcherInstance',
+  'watcherJudgedSlotsIn',
+  'watcherProcessIdOf',
+  'watcherEventFacts',
+  'watcherFolder',
+  'watcherFilesOf',
+  'watcherRecordPath',
+  'endStepWatcher',
+  'plantLiveWatcher',
+  'pinWatcherBundle',
+  'legacy-watcher',
+  'watcher-events',
+  'watcher-bundle-failed',
+  'watcher-endpoint-does-not-fit',
 ];
 
 /** `<file>: <retired name>` pairs a file may keep. */
-const ALLOWED_RETIRED_NAMES: readonly string[] = [];
+const ALLOWED_RETIRED_NAMES: readonly string[] = [
+  // A dated research record of the tree before Talos, kept as it was written.
+  'docs/research/remote-state/findings.html: WatcherFleet',
+];
 
 function scannedFiles(): ProgramFile[] {
   return programFiles(REPOSITORY_ROOT).filter(({ path }) => path !== THIS_FILE
@@ -94,5 +159,8 @@ test('the scan fails on a planted path, identifier and wire literal, and passes 
   expect(retiredNamesIn('src/services/runner/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/services/runner/Example.ts: src/services/runner']);
   expect(retiredNamesIn('src/Example.ts', 'import { RunnerLease } from "./Baton.ts";\n')).toEqual(['src/Example.ts: RunnerLease']);
   expect(retiredNamesIn('src/Example.ts', 'const cause = \'host-lost\';\n')).toEqual(['src/Example.ts: host-lost']);
+  expect(retiredNamesIn('src/lib/watcher/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/lib/watcher/Example.ts: src/lib/watcher']);
+  expect(retiredNamesIn('src/Example.ts', 'import { WatcherFleet } from "./Example.ts";\n')).toEqual(['src/Example.ts: WatcherFleet']);
+  expect(retiredNamesIn('src/Example.ts', 'const phase = \'watcher-events\';\n')).toEqual(['src/Example.ts: watcher-events']);
   expect(retiredNamesIn('src/services/overseer/Example.ts', 'import { Baton } from \'./Baton.ts\';\nconst cause = \'watcher-lost\';\n')).toEqual([]);
 });

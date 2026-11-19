@@ -44,6 +44,18 @@ folder and `sandbox.network.allowLocalBinding`. Never run on Linux or Windows.
   refused at once. Setting it would give every builder and reviewer the Overseer's API and every local service on the
   machine, so no profile sets it, held by `src/lib/claude-code/ClaudeCodeAdapter.spec.ts`.
 
+## Talos
+
+[Talos](../glossary.md#talos), the worker thread that runs its synchronous calls, and the supervision lease have run on
+macOS arm64 only, under the suite and with the fake agent; Talos's recordings are macOS's. On macOS a real sleep across
+a held lease or a running line never ran: the specs move the clock, so the wake rule and a line's allowance for a gap
+are proved on a fake clock alone. On Linux and Windows none of Talos ever ran: not its endpoint (a Unix socket on Linux,
+a named pipe on Windows), not a Bun `Worker` running its synchronous calls while its timers fire, not `bun:ffi` in a
+worker on Windows, and not a line's tree stop at its time bound.
+
+The rows below that name a Watcher (#553, #554) quote their tickets, which predate Talos; each unknown now applies to
+Talos, the process that outlives the Overseer.
+
 ## Linux
 
 The POSIX adapters (`PosixShellLine`, `PosixOwnerOnlyFiles`, `PosixDataFolders`, `PosixLaunchEnvironment`,

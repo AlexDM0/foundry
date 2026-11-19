@@ -6,9 +6,11 @@
 
 ## In one screen
 
-Claude Code is reached through one port and a line protocol. A [Watcher](../glossary.md#watcher) spawns `claude -p` and
-pipes JSON lines, in the format Claude Code calls stream-json. `CLAUDE_CODE_ADAPTER` builds the launch and translates
-those lines, so code above the `AgentAdapter` port reads events and never the vendor's shapes.
+Claude Code is reached through one port and a line protocol. The board's [Talos](../glossary.md#talos) spawns
+`claude -p` from the launch the adapter builds and pipes JSON lines, in the format Claude Code calls stream-json.
+`CLAUDE_CODE_ADAPTER` builds the launch and translates those lines, so code above the `AgentAdapter` port reads events
+and never the vendor's shapes. The figures on this page were drawn when one Watcher per session stood where Talos
+stands now: read each Watcher in them as Talos.
 
 ![Six stdout line types on the left map to eight AgentSessionEvent kinds on the right: system init gives started, assistant gives assistant-turn and tool-call, user gives tool-result, control_request for AskUserQuestion gives question, rate_limit_event gives usage-window, result gives permission-denied and result, and any other line gives no event. Below, four stdin lines, all written by the Watcher: chatLineOf renders a user line, answerLineOf a control_response allow, interruptLineOf a control_request interrupt, and the standing reply in planOf a control_response deny.](../figures/claude-probe/stream-mapping.png)
 
@@ -18,8 +20,8 @@ those lines, so code above the `AgentAdapter` port reads events and never the ve
 - A [session](../glossary.md#session) starts with no task. Its first message arrives as a stdin line.
 - A [job](../glossary.md#job)'s session id is computed, and the board never stores it: a hash of the
   [tracker](../glossary.md#tracker) id and the owning job's id, which the board's [log](../glossary.md#log) identifies.
-- Every permission request except a question is denied at once by the Watcher's
-  [standing reply](../glossary.md#standing-reply).
+- Every permission request except a question is denied at once by Talos, with the
+  [standing reply](../glossary.md#standing-reply) the launch carries.
 - Only a rate limit event whose overall status is `rejected` stops work, not one rejected window under overage.
 - At run time this system reads one kind of Claude Code file: subagent transcripts under `$CLAUDE_CONFIG_DIR/projects/`
   (else `~/.claude/projects/`). Install also merges a hook into the repository's Claude settings.
@@ -99,7 +101,7 @@ to the tracked repository's Claude settings.
 
 ### Lines on stdin
 
-**A Watcher writes one JSON object per line, and four shapes exist.** A session is turns on one pipe pair, and the same
+**Talos writes one JSON object per line, and four shapes exist.** A session is turns on one pipe pair, and the same
 id continues it.
 
 ![Time runs down across Overseer, Watcher and claude -p: the Overseer sends write frames, the Watcher turns each into one user line, and a line written mid-turn folds into the open turn, so one result answers both. A close-input frame closes stdin and the session exits 0. A later Watcher instance starts claude with --resume and the same id, and its first user line carries the resume message.](../figures/claude-probe/session-on-the-wire.png)
@@ -122,13 +124,13 @@ is data in the launch plan that `planOf` returns.
 - Only the [Assistant](../glossary.md#assistant) session writes the interrupt, in
   `src/services/overseer/AssistantSession.ts`, when the open turn reaches `ASSISTANT_TURN_CALL_BUDGET` top-level API
   calls (`callsSinceLastResult`). No probe or fixture records one.
-- Closing stdin ends a session once its turn ends, with exit 0 (P7). A `close-input`
-  frame does this.
+- Closing stdin ends a session once its turn ends, with exit 0 (P7). An `input` frame with the act `close` does this,
+  and `quit-at-turn-end` applies the launch's own `quitAtTurnEnd`.
 
 ### Lines on stdout
 
-**`claudeStreamEventsOf` switches on `type`, and an unrecognised line is no event, never an error.** The Watcher logs
-every line regardless, so a line the mapper ignores stays in the event log.
+**`claudeStreamEventsOf` switches on `type`, and an unrecognised line is no event, never an error.** Talos logs
+every line regardless, so a line the mapper ignores stays in the child's event log.
 
 | Stream field | Event field | Rule |
 | --- | --- | --- |
@@ -143,7 +145,7 @@ every line regardless, so a line the mapper ignores stays in the event log.
 | `result`: `modelUsage` | `result.usageTotals` | Per model, subagents included |
 | `result`: `usage.iterations[-1]` | `result.contextTokens` | Input plus both cache figures of the last call |
 
-What each event does to a job is `applyWatcherEvents` in `src/services/overseer/DrivePass.ts`.
+What each event does to a job is `applyChildEvents` in `src/services/overseer/DrivePass.ts`.
 
 > **As built.** Nothing reads `result.isError`, `result.usageTotals`, `started.vendorVersion` or `started.tools`. See
 > gap-dead-code-and-unused-states.
@@ -154,15 +156,14 @@ What each event does to a job is `applyWatcherEvents` in `src/services/overseer/
 ### Permission requests
 
 **Only a question waits, and most calls never get that far.** Claude Code settles most tool calls itself.
-`DENY_EVERY_PERMISSION_BUT_A_QUESTION` is the launch plan's one standing reply for the rest, and the Watcher applies it
-without the [Overseer](../glossary.md#overseer), so no session waits on a Watcher nobody watches.
+`CLAUDE_CODE_STANDING_REPLIES` is the launch's one standing reply for the rest, and Talos applies it without the
+[Overseer](../glossary.md#overseer), so no session waits on an Overseer that is down.
 
 ![A tool call enters Claude Code, where the deny rules and the auto mode classifier settle it: allowed calls run, and refused ones appear in the result's permission_denials and map to permission-denied. Only what they leave open comes out as a can_use_tool control_request. The Watcher denies it at once unless the tool is AskUserQuestion, which waits as a question for the Overseer.](../figures/claude-probe/permission-fork.png)
 
-*Notice the Watcher's fork is a backstop: a call Claude Code settles never reaches it.*
+*Notice the fork in Talos is a backstop: a call Claude Code settles never reaches it.*
 
-The Watcher parses a line only to match the rule data the launch plan hands it, so the vendor knowledge stays in the
-adapter.
+Talos parses a line only to match the rule data the launch hands it, so the vendor knowledge stays in the adapter.
 
 ### Session id and resume
 
@@ -186,13 +187,13 @@ No probe tried a version 8 id: the only evidence Claude Code accepts one is live
 *Notice the signal stops at the first group. The [ledger](#what-was-selected-against-what-runs) lists this as P7's
 selection that holds only in part.*
 
-The Watcher spawns `claude` with `detached: true`, and P7 recorded the second group. A session whose Watcher died keeps
-working until its turn ends, then exits 0 on the closed stdin (P7).
+Talos spawns `claude` as the leader of its own group, and P7 recorded the second group. A session whose supervisor died
+keeps working until its turn ends, then exits 0 on the closed stdin (P7).
 
 > **As built.** Every stop of a session goes through the `ProcessSupervision` port in
 > `src/lib/process-identity/ProcessSupervision.ts`: `treeMembersOf` lists the groups of the leader's descendants through
 > their parent ids, and `stopTree` signals each of them with the recorded group. The walk needs a live parent, so a
-> tree whose leader died with its Watcher is not reached, and its Bash command outlives the kill. See
+> tree whose leader died with its supervisor is not reached, and its Bash command outlives the kill. See
 > gap-bash-group-survives-kill.
 
 ### Rate limit events
@@ -289,7 +290,7 @@ The event semantics matter more than the shapes:
 - `usage-window.requestsRefused` is true only when requests really stop.
 - `answerLineOf` must work on a live session while `CONTROL_RESPONSE_DELIVERS_ANSWERS` in
   `src/services/overseer/DrivePass.ts` is true. A vendor without live answers needs it false:
-  `AnswerDelivery.deliverOne` then stops the Watcher and resumes with the answer.
+  `AnswerDelivery.deliverOne` then stops the session and resumes it with the answer.
 
 The `capabilities` record declares `chatTurns`, `questions`, `resume`, `reportChannel` and `usage`, and no caller reads
 it, so a vendor lacking one gets no fallback from it. `FakeAgentAdapter` in `src/testing/FakeAgentAdapter.ts` is a
@@ -312,7 +313,7 @@ as behaviour.
 | P4 | Hook and `strictAllowlist` | `preToolUseHooksOf`; the guard exists for a builder or reviewer with domains | Yes |
 | P5 | One deny rule per path | `fileRulesOf`, `denyRulesOf` | Yes, see gap-launch-file-deny-one-level |
 | P6 | The resume argv | `argvOf` | Yes |
-| P7 | Kill every group among the descendants | `treeMembersOf` lists the descendants' groups and `stopTree` signals each; a tree whose leader died with its Watcher is not reached (gap-bash-group-survives-kill) | Partly |
+| P7 | Kill every group among the descendants | `treeMembersOf` lists the descendants' groups and `stopTree` signals each; a tree whose leader died with its supervisor is not reached (gap-bash-group-survives-kill) | Partly |
 | P8 | Never expect one `result` per line | `DrivePass` keys on the `result`, not on lines; the Assistant counts one `result` per chat and keeps that true by writing a chat only when idle | Yes |
 | P9 | Memory off | `autoMemoryEnabled: false` | Yes |
 | P9 | Definitions name models; `role.md` forbids the `model` parameter | `agentsOf` names them, every profile's `subagents` is empty (gap-subagents-always-empty), and no text under `resources/` says it | **No** |
@@ -328,10 +329,10 @@ as behaviour.
 
 ## Invariants
 
-1. Only `src/lib/claude-code/` knows the shape of stream-json; production code above it reads `AgentSessionEvent`. The
-   Watcher parses a line only to match the rule data the launch plan hands it.
+1. Only `src/lib/claude-code/` knows the shape of stream-json; production code above it reads `AgentSessionEvent`. Talos
+   parses a line only to match the rule data the launch hands it.
 2. An unrecognised stdout line maps to no event and never throws.
-3. The Watcher logs every line, mapped or not.
+3. Talos logs every line, mapped or not.
 4. Every `can_use_tool` request but `AskUserQuestion` is denied by the standing reply without the Overseer.
 5. A job's session id is a pure function of the tracker id and the session owner's job id.
 6. `usage-window.requestsRefused` is true only for a top-level `rejected`.

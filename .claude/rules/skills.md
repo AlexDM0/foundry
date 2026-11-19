@@ -37,6 +37,5 @@ paths:
   Neither skill nor the installed guidance names a by-hand lifecycle verb but `ticket deliver --by-hand`, held by
   `cli/HelpText.spec.ts`.
 - `init` and `update` copy both, never globally, into the git-ignored folder the agent adapter's installer names for
-  each bundle (`AgentInstaller.instructionBundleFolderOf`; Claude Code's `.claude/skills/<name>/`), and
-  remove the files a retired skill folder installed there with its `.gitignore` entry; `setup.ts` only removes the
-  `~/.claude/skills/` symlinks into this checkout that earlier versions made.
+  each bundle (`AgentInstaller.instructionBundleFolderOf`; Claude Code's `.claude/skills/<name>/`). What an earlier
+  version installed elsewhere, a retired skill folder or a global link, they and `setup.ts` leave for its owner.
