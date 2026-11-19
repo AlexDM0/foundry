@@ -399,7 +399,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>17 sentences</summary>
+<summary>20 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -422,6 +422,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Use Delivered by hand… on the ticket's form in the Bridge, or run `oversee stop` first. | [cli.md](../cli.md) |
 | `speaks protocol version <answered>, and this Overseer speaks <required>` | `talos-protocol-differs` | The Talos the Overseer started from the program on disk answered another protocol version, so no Talos starts again while this Overseer lives. **Exit 2.** | Update the program checkout, then start the Overseer again. | |
 | `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
+| `and stays off; its crash log is` | `forge-crashed` | The serving Overseer crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
 
 </details>
 

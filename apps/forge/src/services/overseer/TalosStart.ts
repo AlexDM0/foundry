@@ -210,6 +210,19 @@ function registeredChildrenOf(boardFolder: string, startNumber: number): Registe
   });
 }
 
+/** Each child record a Talos registered, copied as stored: parsed where it is JSON, its text where it is not; one never written is left out. */
+export function persistedChildRecordsOf(boardFolder: string, startNumber: number): unknown[] {
+  return registeredChildrenOf(boardFolder, startNumber).flatMap(({ childFolder, instance }) => {
+    const text = textOf(childFilesOf(boardFolder, childFolder, instance).recordPath);
+    if (text === null) return [];
+    try {
+      return [JSON.parse(text) as unknown];
+    } catch {
+      return [text];
+    }
+  });
+}
+
 function childFileOf(boardFolder: string, childFolder: string, instance: number, suffix: 'lost-cause' | 'refused-forced-stops'): string {
   return join(dirname(childFilesOf(boardFolder, childFolder, instance).recordPath), `child-${instance}.${suffix}`);
 }

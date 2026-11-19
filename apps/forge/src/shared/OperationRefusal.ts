@@ -69,6 +69,8 @@ export type OperationRefusalDetail =
   | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }
   /** The Talos this Overseer started never served: its endpoint does not fit, it refused its start, or it stayed silent. */
   | { kind: 'talos-unavailable'; reason: 'endpoint-does-not-fit' | 'start-refused' | 'not-serving'; startNumber: number }
+  /** The forge crashed while serving (the Overseer, or its Talos lost), wrote its crash log and stays off until a person starts it. */
+  | { kind: 'forge-crashed'; component: 'overseer' | 'talos'; crashLogPath: string }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
   | { kind: 'chart-range-backwards'; from: string; to: string }

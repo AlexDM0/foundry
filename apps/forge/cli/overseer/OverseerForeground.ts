@@ -17,12 +17,13 @@ import { writeOwnerOnlyFileAtomically }                   from '../../src/lib/at
 import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { ProcessIdentity }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
+import { type ProcessIdentity, sameBoot }                 from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
 import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
 import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
+import type { CrashedComponent }                          from '../../src/services/overseer/@types/CrashLogRecord.ts';
 import { AgentSlots }                                     from '../../src/services/overseer/AgentSlots.ts';
 import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/overseer/Baton.ts';
 import {
@@ -36,6 +37,8 @@ import {
 } from '../../src/services/overseer/BatonPass.ts';
 import type { BoardChildren }                                       from '../../src/services/overseer/BoardChildren.ts';
 import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
+import { CrashLog }                                                 from '../../src/services/overseer/CrashLog.ts';
+import { CrashPath, type CrashPathContext }                         from '../../src/services/overseer/CrashPath.ts';
 import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
 import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
 import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
@@ -57,7 +60,9 @@ import {
   type TalosStartContext,
   createTalosStartHold,
   ensureTalos,
+  persistedChildRecordsOf,
   spawnTalos,
+  talosRecordAt,
   TALOS_START_BOUNDS,
   TALOS_START_WAITS
 } from '../../src/services/overseer/TalosStart.ts';
@@ -107,7 +112,21 @@ export interface ForegroundRunRequest {
 
 export type StoppedOverseerRequest = Pick<ForegroundRunRequest, 'commandArguments' | 'context' | 'workspace'>;
 
-type OverseerEnd = { kind: 'stopped'; how: string; now: boolean } | { kind: 'restart' } | { kind: 'taken-over'; refusal: unknown };
+interface RecordedCrash {
+  component:    CrashedComponent;
+  crashLogPath: string;
+}
+
+type OverseerEnd =
+  | { kind: 'stopped'; how: string; now: boolean }
+  | { kind: 'restart' }
+  | { kind: 'taken-over'; refusal: unknown }
+  | ({ kind: 'crashed' } & RecordedCrash);
+
+/** Where the process's crash listeners find what to record; it answers `null` while no generation serves. */
+interface CrashPathReach {
+  contextNow: () => CrashPathContext | null;
+}
 
 /** One serving period under one Baton generation; a Baton pass that failed after the release starts another in the same process. */
 interface Serving {
@@ -262,6 +281,7 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
     stopFor:       (how: string, now: boolean) => finish({ kind: 'stopped', how, now }),
     restart:       () => finish({ kind: 'restart' }),
     takenOver:     (refusal: unknown) => finish({ kind: 'taken-over', refusal }),
+    crashed:       (crash: RecordedCrash) => finish({ kind: 'crashed', ...crash }),
     stopWatching:  () => overseerFolderWatch?.close(),
     // Kept until the stop has finished, so a second SIGTERM during it is taken as the same stop rather than killing it halfway.
     stopListening: unsubscribe,
@@ -358,6 +378,16 @@ export function spawnSuccessor(
 }
 
 export async function runOverseerInTheForeground(request: ForegroundRunRequest): Promise<void> {
+  const crashPathReach: CrashPathReach = { contextNow: () => null };
+  const removeCrashListeners = CrashPath.listenForProcessCrashes(() => crashPathReach.contextNow());
+  try {
+    await serveInTheForeground(request, crashPathReach);
+  } finally {
+    removeCrashListeners();
+  }
+}
+
+async function serveInTheForeground(request: ForegroundRunRequest, crashPathReach: CrashPathReach): Promise<void> {
   const { context, workspace } = request;
   const progress = requireProgressFile(workspace);
   const files    = overseerFilesIn(workspace.trackerDirectory);
@@ -404,7 +434,12 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   const talosStartHold = createTalosStartHold();
   let talosConnection: TalosConnection | null = null;
   let talosIsLost = false;
+  let followedTalosStartNumber: number | null = null;
   let leaseRenewal: LeaseRenewal | null = null;
+  // Set from the presence write of a generation until its ending, so a crash is recorded only for a generation still serving.
+  let crashableGeneration: number | null = null;
+  let recordedCrash: RecordedCrash | null = null;
+  const recordedCrashNow = (): RecordedCrash | null => recordedCrash;
   const boardChildren = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts, connection: () => talosConnection });
   const lineRunner = createLineRunner(boardChildren, () => talosConnection);
   const talosStartContext = (): TalosStartContext => ({
@@ -428,6 +463,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     const previousConnection = talosConnection;
     talosConnection = connection;
     talosIsLost = false;
+    followedTalosStartNumber = availability.startNumber;
     previousConnection?.close();
     connection.onClose(() => {
       if (talosConnection !== connection) return;
@@ -441,10 +477,54 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     } else log(`Attached to Talos ${availability.startNumber}.`);
   };
 
-  /** The one place a pass finds its Talos lost while serving: stage 3 turns it into a crash of Talos. */
+  const crashPathContextOf = (generation: number): CrashPathContext => ({
+    files,
+    generation,
+    activeJobs:         () => (requireProgressFile(workspace).jobs ?? []).map(CrashLog.activeJobOf),
+    talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber)),
+    stopLeaseRenewal:   () => leaseRenewal?.stop(),
+    // The registry's presence key arrives with the start gate; until then the crash path tells the registry nothing.
+    writeRegistryCrash: async () => undefined,
+    stampNow:           () => LocalTimeUtil.formatLocalIso(context.now()),
+    log,
+  });
+  crashPathReach.contextNow = () => (crashableGeneration === null ? null : crashPathContextOf(crashableGeneration));
+
+  /** Runs the crash path once for the serving generation and ends the foreground loop `crashed`. */
+  async function recordTheCrash(generation: number, component: CrashedComponent, error: Parameters<typeof CrashPath.record>[1]['error']): Promise<void> {
+    const outcome = await CrashPath.record(crashPathContextOf(generation), { component, error });
+    recordedCrash = { component, crashLogPath: outcome.crashLogPath };
+    log(`Crashed (${component}) under Baton ${generation}; the crash log is ${outcome.crashLogPath} (${outcome.crashLog}).`);
+    (lifetimeBeingStarted ?? current?.lifetime)?.crashed(recordedCrash);
+  }
+
+  /** The refusal a stop or a release ends with once a crash is recorded, so no `stopped` or `handed-over` ending overwrites `crashed`. */
+  const crashRefusalOrNull = (): OperationRefusal | null => {
+    const crash = recordedCrashNow();
+    return crash === null ? null : new OperationRefusal('unrepaired', { kind: 'forge-crashed', component: crash.component, crashLogPath: crash.crashLogPath });
+  };
+
+  /** A Talos lost while this Overseer lives is a crash of Talos, unless its record names another boot: that is the machine going down. */
+  const talosWasLostThisBoot = (lostStartNumber: number | null): boolean => {
+    const lostTalos = lostStartNumber === null ? null : talosRecordAt(workspace.trackerDirectory, lostStartNumber)?.talos ?? null;
+    return lostTalos === null || sameBoot(lostTalos.bootIdentity, ownIdentity.bootIdentity);
+  };
+
+  /** The one place a pass finds its Talos lost while serving; a crash of Talos ends the pass before it reads anything. */
   const ensureTalosIfLost = async (): Promise<void> => {
+    if (recordedCrashNow() !== null) throw new Error('The Overseer crashed and is stopping, so no pass runs.');
     if (!talosIsLost) return;
+    const lostStartNumber = followedTalosStartNumber;
     const availability = await ensureTalos(talosStartContext());
+    const servingGeneration = crashableGeneration;
+    if (availability.verdict === 'started' && availability.previousTalos === 'lost' && servingGeneration !== null && talosWasLostThisBoot(lostStartNumber)) {
+      availability.connection.close();
+      const message = `Talos ${lostStartNumber ?? 'unknown'} was lost while serving; ${availability.sweptOrphans} of its children were swept.`;
+      await recordTheCrash(servingGeneration, 'talos', {
+        origin: 'talos-lost', name: 'TalosLost', message, stack: null
+      });
+      throw new Error(`${message} This is a crash of Talos: the Overseer stops.`);
+    }
     if (availability.verdict === 'attached' || availability.verdict === 'started') {
       followTalos(availability);
       return;
@@ -454,6 +534,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
 
   let token: string | null = null;
   let current: Serving | null = null;
+  // The lifetime of a generation between its creation and `current`, so a crash recorded in that gap still ends the loop.
+  let lifetimeBeingStarted: ReturnType<typeof overseerLifetime> | null = null;
   let handingOver = false;
   let batonPassWarning: BatonPassFailure | null = null;
   let printedTheUrl = false;
@@ -633,8 +715,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         startedAt:           servingStartedAt,
         startClassification: null,
       });
+      crashableGeneration = generation;
       token    = writeToken(platformPorts, tokenFilePath);
       lifetime = overseerLifetime(request, files, generation, log);
+      lifetimeBeingStarted = lifetime;
       enterStep('regroup');
       await openTrackerForWriting(request.commandArguments, context, (change) => {
         // Before the record it looks for: only the first start on a board submits the v16 leftovers.
@@ -720,6 +804,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         generation, server, drivePass, dataFolderWatch, lifetime, flintBrain: overseerFlintBrain, boardChildren
       };
       current = serving;
+      lifetimeBeingStarted = null;
       publishState();
       // The identity, the registry, the page stub and the print give out the URL only once the synchronous start is done: a recursive
       // watch can block the event loop for many seconds on a loaded macOS, and a client that had the URL earlier waited that long.
@@ -734,6 +819,8 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       await drivePass.regroup();
       return serving;
     } catch (thrown) {
+      lifetimeBeingStarted = null;
+      crashableGeneration = null;
       dataFolderWatch?.stop();
       lifetime?.stopWatching();
       lifetime?.stopListening();
@@ -755,7 +842,14 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     serving.dataFolderWatch.stop();
     await serving.flintBrain.close();
     await serving.drivePass.stop();
+    const crashRefusal = crashRefusalOrNull();
+    if (crashRefusal !== null) {
+      await serving.server.stop();
+      serving.lifetime.stopListening();
+      throw crashRefusal;
+    }
     Presence.writeEnding(files, serving.generation, { kind: 'handed-over' }, LocalTimeUtil.formatLocalIso(context.now()));
+    crashableGeneration = null;
     await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
     await serving.server.stop();
     log('Released the board to the successor.');
@@ -840,7 +934,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   }
 
   for (;;) {
-    const end = await serving.lifetime.ended;
+    const settledEnd = await serving.lifetime.ended;
+    // A crash recorded while another end settled first still ends the loop crashed; the stop waits are checked again below.
+    const crashSeen = recordedCrashNow();
+    const end: OverseerEnd = crashSeen === null ? settledEnd : { kind: 'crashed', ...crashSeen };
     if (end.kind === 'restart') {
       const successor = spawnSuccessor(context, workspace, files, serving.generation, serving.server.port);
       const outcome = await handOver(serving, successor);
@@ -889,11 +986,18 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     ];
     try {
       await waitOutTheStopWaits(stopWaits, log, OVERSEER_STOP_WAIT_MILLISECONDS);
+      // A pass awaited by the stop waits can record a crash of Talos after the end settled.
+      const crashRefusal = crashRefusalOrNull();
+      if (crashRefusal !== null) {
+        log('Crashed; staying off, keeping the Baton and the registry entry, until a start by hand.');
+        throw crashRefusal;
+      }
       if (end.kind === 'taken-over') {
         log('A newer Overseer took the board over; stopping without acting.');
         throw end.refusal;
       }
       await closeTheStoppedOverseer(request, files, serving.generation);
+      crashableGeneration = null;
       log('Overseer stopped; its Baton is released.');
     } finally {
       serving.lifetime.stopListening();

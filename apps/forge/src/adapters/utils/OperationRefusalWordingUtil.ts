@@ -852,6 +852,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
         + `${detail.requiredProtocolVersion}, so the Overseer did not start. Update the program checkout, then start the Overseer again.`;
     case 'talos-unavailable':
       return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so the Overseer did not start and no agent runs.`;
+    case 'forge-crashed':
+      return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; its crash log is ${detail.crashLogPath}.`;
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'chart-range-bound-unreadable':

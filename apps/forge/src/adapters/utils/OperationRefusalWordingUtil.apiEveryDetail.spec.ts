@@ -319,6 +319,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'overseer-owns-the-lifecycle':      { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
   'talos-protocol-differs':           { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
   'talos-unavailable':                { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
+  'forge-crashed':                    { kind: 'forge-crashed', component: 'talos', crashLogPath: '/example/overseer/crash-logs/crash-4.json' },
   'ticket-has-live-job':              {
     kind: 'ticket-has-live-job', ticketId: '004', jobId: 'J3', state: 'running'
   },
