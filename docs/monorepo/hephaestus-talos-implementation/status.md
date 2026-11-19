@@ -43,6 +43,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 - WP2.16: `cli/testing/CutoverSmoke.ts`'s regrouping item now reads `child-<n>.json`; run it against a real session.
 
+- WP2.24: a real Windows session with an npm `claude.cmd` shim prints the repair sentence. `bun run record
+  src/shared/Environment.ts` to restamp its recording (the agent was refused the record command).
+
 ### Assumptions to confirm
 
 - WP2.20: an install's steps are recorded once, in the hold that moves the job out of `preparing` (`settleInstall`),
@@ -132,6 +135,15 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   stale; Gaia's side can refresh them. WP2.4 also hand-edited three frozen fixtures (`FrozenDarwinWorkerProfiles.json`,
   `cli/FrozenPlatformPorts.json`, `frozen-session-settings.json`) for the rename only.
 
+### How the run goes from here (the owner, 2026-11-19 morning)
+
+The owner found the pace too slow and said to do all four speed-ups: packages that conflict only in a shared list
+(the agent guard's allowlist, the three shared lines of stage 6) run side by side and the conflicts are resolved at
+landing; renames, deletions, documents and the stage 8 and 9 packages get a medium-effort check, and only packages that
+set a protocol, a record format, recovery behaviour or the store's semantics keep a high one; `verify:integration` runs
+only at the gates (WP3.14, WP5.10, WP5.15) and each stage's verification; small packages are built together in one
+worktree, one commit each (WP2.32 with WP2.17).
+
 ## Gates
 
 | Gate | State | Note |
@@ -181,7 +193,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-L | WP2.16 | landed | 1ba31404 | First round. Stored key `childInstance`, transcript role `talos`, hold phase `child-events`; `LineSandbox.ts`. Old names for WP2.17's `RETIRED_NAMES` (never `watcher-lost`): `watcherInstance`, `FIRST_WATCHER_INSTANCE`, `watcher-instance`, `ProcessWatcherSandbox`, `createProcessWatcherSandbox`, `ProcessWatcherLaunch`, `ProcessWatcherLaunchOutcome`, `ProcessWatcherSpawn`, `ProcessWatcherStep`, `LostWatcherFacts`, `environmentFromWatcher`, `WatcherObservation`, `WatcherEventFacts`, `AppliedWatcherEvents`, `WATCHER_RUNNING_STATES`, `GATE_WATCHER_FOLDER_PREFIX`, `GATE_PREPARE_WATCHER_FOLDER`, `INSTALL_WATCHER_FOLDER`, `MAIN_MERGE_WATCHER_FOLDER`, `TARGET_MERGE_WATCHER_FOLDER`, `gateWatcherFolderIn`, `highestWatcherInstanceOf`, `newestFinishedWatcherInstanceOf`, `lostWatcherCauseOf`, `jobsNeedingAWatcher`, `killWatcher`, `launchProcessWatcher`, `spawnProcessWatcher`, `stopLiveProcessWatchers`, `syncWatchers`, `hatchFolderWatchers`, `liveWatcherInstances`, `lastWatcherInstance`, `watcherJudgedSlotsIn`, `watcherProcessIdOf`, `watcherEventFacts`, `watcherFolder`, `watcherRecordPath`, `watcher-events`. Pruned the unread frozen rows and keys WP2.15 named (by hand, not retaken). Left for WP2.17: `docs/reference/refusals.md:424`, the `cli.md` interruption and `eventCursor` rows, `apps/forge/CLAUDE.md:326`. Gaia keeps `watcher-endpoint-does-not-fit` and `.forge-monitor/watchers/` in its specs and recordings |
 | 2-L2 | WP2.22 | landed | 11a4867d | First round. `src/AgentBoundary.spec.ts` and Gaia's `src/AgentVendorNames.spec.ts`, built on today's tree: `ALLOWED_AGENT_LINES` 255 entries (two `Permanent:` at `cli/CommandContext.ts:11` and `:79`; WP2.23 39, WP2.24 21, WP2.25 6, WP2.26 8, WP2.27 40, WP2.28 19, WP2.29 48, WP2.30 43, WP2.32 29), `ALLOWED_TESTING_LINES` 79, `AGENT_EVIDENCE_FILES` 35, `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED` 16. A repeated line in one file is keyed ` [copy n]`. Each later package removes its own entries. Deviation from its Done-when ("no product code changed"): one comment in `src/lib/talos/ChildSupervisor.ts:60` reworded ("Read once" to "Asked once") because the plain-word form found it and no key may name Talos's folder |
 | 2-L3 | WP2.23 | landed | bc5390b9 | First round. Port operations `sessionSubagentsOf` and `subagentUsagesOf`; the latter answers `SubagentUsageAnswer { transcriptFolder, usages }` (not a bare list) so `usage` keeps naming the folder it read. Its WP2.23 guard entries (39 agent, 9 testing, 10 importers) are gone. The Done-when grep for `claudeConfigFolder` cannot print nothing yet: `claudeConfigFolderVariable` is WP2.24's, and the fake agent's `FakeAgentAdapter.ts:14` imports `claudeConfigFolderOf` (an adapter of the port). On a platform with no host facts (freebsd), the state read's live facts and `usage` now throw |
-| 2-L4 | WP2.24 | waiting | | |
+| 2-L4 | WP2.24 | landed | efb1ecfe | Second round (first: the monitor's notice wording dropped the new `repair` fact). Port gains `AgentCredentials`, `credentials`, `programRepairOf`; Claude Code's values in `ClaudeCredentials.ts` and `ClaudeProgramRepair.ts`; seam `claudeCodeAdapterFor(platform, agentVariableOf)`; `Environment.ts` reads variables generically (`agentVariableOf`, `agentVariableIsSet`). The refused-program notice carries `repair`, worded on the CLI, the Bridge header, the questions view and the monitor snapshot. Billing step worded as assumption 1 of 'Needs the owner'. `docs/cli.md:2455` still names the Claude login and `ANTHROPIC_API_KEY` (WP2.17/WP2.32) |
 | 2-L5 | WP2.25 | waiting | | |
 | 2-L6 | WP2.26 | waiting | | |
 | 2-L7 | WP2.27 | waiting | | |
