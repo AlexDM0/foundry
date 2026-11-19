@@ -30,12 +30,14 @@ Request guards stop a browser page of another origin. They are not what holds an
 
 Every route passes the shared [request guards](#request-guards), so every route can also answer 403
 `{refusal: 'forbidden', text}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what
-the route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word except
-on 409, 413, 415 and 423, where it is a sentence. A 401, a 403 and the 500s `read-failed` and `page-build-failed` are
-`{refusal, text}`: the fixed word, and beside it the sentence a client shows unedited, worded in
-`cli/overseer/routes/OverseerRoutes.ts`. No sentence an answer carries names a command line or a flag: User runs no
-command, so a sentence names what is wrong and the Bridge control or a neutral action, such as "open the board again".
-A bare verb such as `oversee status` is `forge oversee status`.
+the route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word. A
+401, a 403 and the 500s `read-failed` and `page-build-failed` are `{refusal, text}`: the fixed word, and beside it the
+sentence a client shows unedited, worded in `cli/overseer/routes/OverseerRoutes.ts`; such a sentence names no command
+line or flag: it names what is wrong and the Bridge control or a neutral action, such as "open the board again". From
+forge 1.21 a refusal of a command or a picture is forge's refusal document, `ForgeRefusalDocument` in
+`packages/forge-contracts`: `{refusal: <code>, fields, text}`, the reason code, the facts the refusal names, and the
+sentence the command line prints, which may name a command. A bare verb such as `oversee status` is
+`forge oversee status`.
 
 | Route | Own guard | Answer | Other statuses | Called by |
 | --- | --- | --- | --- | --- |
@@ -53,7 +55,7 @@ A bare verb such as `oversee status` is `forge oversee status`.
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
 | `POST /api/flint-brain/ask` | session cookie or bearer token; a JSON body of at most `FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES` (32 KiB) | `{kind: 'answered', intent, emote}`, or `{kind: 'not-asked', reason}` when the rule director moves, see [Flint's brain](#flint-brain) | 400 `{refusal: 'malformed-body', text}` for no JSON or a digest of the wrong shape; 401 `unauthorized`; 413 `{refusal: 'too-large'}`, refused unread on a `Content-Length` over the limit | Bridge only; unversioned and in no registry entry |
-| `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: <sentence>}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: <sentence>}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
+| `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: 'picture-too-large', fields, text}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: 'picture-type-unsupported', fields, text}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
 | `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
 | `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
@@ -194,10 +196,10 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 | Status | Body | Meaning |
 | --- | --- | --- |
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
-| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
+| 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
-| 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is the API sentence of `OperationRefusalWordingUtil` (`apiMessageOf`), and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
+| 409 | `{controlVersion, refusal: <code>, fields, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; `fields` are the facts its detail names, without the field the code already says (a board refusal's `reason`, another detail's `kind`, a brain refusal's `code`); from forge 1.21 the sentence is the one the command line prints (`OperationRefusalWordingUtil.messageOf`), which may name a command, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
+| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
@@ -227,7 +229,8 @@ The control contract is what a monitor may send and what it gets back. It names 
 `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
 forge 1.1, `flint-brain-start` and `flint-brain-stop`, and, from forge 1.20, `interrupted-work-resume {target}`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
 `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
-and a 423 answer `refusal`, a code, and `text`, its sentence; a 401 answers `unauthorized`. A `concurrency-set` `limit`
+and a 423 answer `refusal`, a code, `fields`, its facts (`{}` on a 400 and a 423), and `text`, from forge 1.21 the sentence the
+command line prints; a 401 answers `unauthorized`. A `concurrency-set` `limit`
 outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
 
 `interrupted-work-resume` is User's resume of interrupted work, the command of `resume`. Its `target` is `{jobId}`,

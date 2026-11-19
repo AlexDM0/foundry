@@ -256,7 +256,8 @@ describe('the Overseer API on a scratch board', () => {
     const refusedType = await upload(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'));
     expect(refusedType.status).toBe(415);
     recordAnswer(OVERSEER_CALL_SHAPES.PICTURE_TYPE_UNSUPPORTED, await recordedHttpResponseOf(refusedType.clone(), replacements));
-    expect(((await refusedType.json()) as { refusal: string }).refusal).toContain('image/png');
+    const typeRefusal = { refusal: 'picture-type-unsupported', fields: { mediaTypes: expect.arrayContaining(['image/png']) }, text: expect.stringContaining('image/png') };
+    expect(await refusedType.json()).toMatchObject(typeRefusal);
 
     const command = (body: unknown) => fetch(new URL('api/commands', url), { method: 'POST', headers, body: JSON.stringify(body) });
     const unknown = await command({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] });

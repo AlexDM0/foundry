@@ -30,12 +30,15 @@ them:
    names a command or a flag, the API sentence names the Bridge control or a neutral action instead, or ends at the
    facts: User runs no command. "Run `ticket hold <ticket>` to keep it" reads "Hold it to keep it", and "Run `update`"
    reads "Update the board".
+   From forge 1.21 a refused command (`POST /api/commands`, 409) and a refused picture (413, 415) carry the
+   terminal's sentence instead, with the code and the facts as `fields`: forge's refusal document (decision 45 of the
+   design). A client shows that sentence as it is.
 5. **A [session](../glossary.md#session) under a [job](../glossary.md#job) sees the same sentence too,** worded by its
    own command from the [Hatch](../glossary.md#hatch) reply.
 
 ![Three doors, a terminal command, a Bridge control and a session under a job, reach the same rules. A rule refuses with a code and facts and one wording util turns that into one sentence, which lands on standard error at exit 1 or 2, in a 409 answer shown beside the Bridge control, or, through a Hatch reply carrying the code, on the standard error of the session's own command.](../figures/refusals/one-refusal-three-doors.png)
 
-*Words live in one place, so a sentence here is the sentence at every door; through the API it names no command.*
+*Words live in one place, so a sentence here is the sentence at every door; the API sentence names no command.*
 
 ## The rules in full
 

@@ -4,7 +4,6 @@
  */
 import type {
   BoardDecisionDocument,
-  ForgeJsonValue,
   BoardIncidentDocument,
   BoardPictureLimitsDocument,
   BoardQuestionHistoryEntryDocument
@@ -25,6 +24,7 @@ import type {
   BoardPipelineSetupDocument,
   BoardPipelineStepRunTimeDocument
 } from './BoardPipelineDocuments.ts';
+import type { ForgeJsonValue } from './ForgeRefusalDocument.ts';
 
 
 export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';

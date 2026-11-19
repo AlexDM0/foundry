@@ -356,10 +356,14 @@ describe('OverseerServer guards', () => {
     expect(await (await fetch(new URL('api/summary', server.url))).json()).toEqual({ summaryVersion: 1 });
   });
 
-  test('a body that is no JSON is refused 400 before any route sees it', async () => {
+  test('a body that is no JSON is refused 400 as control contract 1\'s refusal, before any route sees it', async () => {
     const { server, commands } = startExampleServer();
     const response = await fetch(new URL('api/commands', server.url), { method: 'POST', headers: { authorization: `Bearer ${TOKEN}` }, body: '{' });
     expect(response.status).toBe(400);
+    const malformedRefusal = {
+      controlVersion: 1, refusal: 'malformed-body', fields: {}, text: 'Example sentence for malformed-body'
+    };
+    expect(await response.json()).toEqual(malformedRefusal);
     expect(commands).toEqual([]);
   });
 });
@@ -509,7 +513,12 @@ describe('the answers the Overseer clients read', () => {
   const INSTALL_HELD_TEXT = 'The install version changed, so launches are held until the board is updated.';
 
   test('A1: each route a client calls answers, and each refusal refuses, as recorded under the record command', async () => {
-    const installHeldAnswer = { status: 423, body: { controlVersion: 1, refusal: 'launches-held-by-install-change', text: INSTALL_HELD_TEXT } };
+    const installHeldAnswer = {
+      status: 423,
+      body:   {
+        controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: INSTALL_HELD_TEXT
+      }
+    };
     const { server } = startExampleServer({ command: async () => installHeldAnswer }, undefined, RECORDED_PROCESS_ID);
     const replacements: [string, string][] = [[String(server.port), OVERSEER_PLACEHOLDERS.PORT], [TOKEN, OVERSEER_PLACEHOLDERS.TOKEN]];
     const recordedAs = async (callShape: string, response: Promise<Response>, expectedStatus: number): Promise<Response> => {

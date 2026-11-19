@@ -251,7 +251,9 @@ async function answerCommand(request: Request, access: RouteAccess): Promise<Res
   } catch {
     return jsonResponse({
       status: HTTP_STATUS.BAD_REQUEST,
-      body:   { controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal: 'malformed-body', text: routes.refusalTextOf('malformed-body') },
+      body:   {
+        controlVersion: SERVED_CONTRACT_VERSIONS.control, refusal: 'malformed-body', fields: {}, text: routes.refusalTextOf('malformed-body')
+      },
     });
   }
   return jsonResponse(await routes.command(body, { carriesBridgeSession: sessionIsHeld(request, access) }));

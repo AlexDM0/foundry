@@ -37,7 +37,7 @@ describe('the picture client', () => {
       ['type-unsupported', OVERSEER_CALL_SHAPES.PICTURE_TYPE_UNSUPPORTED],
     ] as const) {
       overseer.answerPicturesWith(verdict);
-      expect(await client.upload(EXAMPLE_PICTURE)).toEqual({ verdict: 'refused', refusal: (recordedBodyOf(callShape) as { refusal: string }).refusal });
+      expect(await client.upload(EXAMPLE_PICTURE)).toEqual({ verdict: 'refused', refusal: (recordedBodyOf(callShape) as { text: string }).text });
     }
   });
 

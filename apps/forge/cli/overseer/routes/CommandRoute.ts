@@ -1,12 +1,14 @@
 /**
  * `POST /api/commands` behind the token, control contract 1: a `ControlCommand` applied in a hold of its own, answered 200 `{controlVersion,
  * outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an install change, each
- * `{controlVersion, refusal, text}`: the refusal's code and its API sentence, which names no command line. `overseer-stop` and
+ * `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints. `overseer-stop` and
  * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no
  * hold; `flint-brain-start` and `flint-brain-stop` go to the Overseer's brain, held or not, a start naming the Bridge as its starter when the
  * request carries a Bridge session and the API otherwise, never from the body.
  */
-import { OperationRefusalWordingUtil }                                      from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
+
+import { RefusalDocumentUtil }                                              from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import { CONTROL_COMMAND_KINDS, ControlService, FLINT_BRAIN_COMMAND_KINDS } from '../../../src/services/control/ControlService.ts';
 import type { FlintBrain }                                                  from '../../../src/services/overseer/FlintBrain.ts';
 import { MachineAgentLimit }                                                from '../../../src/services/overseer/MachineAgentLimit.ts';
@@ -17,12 +19,12 @@ import type {
   FlintBrainCommand,
   TrackerClearScope
 } from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal, reasonCodeOf } from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }       from '../../../src/shared/constants/OverseerApiContracts.ts';
-import type { CommandContext }            from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }        from '../../CommandControlContext.ts';
-import { openTrackerForWriting }          from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }            from '../../arguments/ArgumentParser.ts';
+import { OperationRefusal }         from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS } from '../../../src/shared/constants/OverseerApiContracts.ts';
+import type { CommandContext }      from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }  from '../../CommandControlContext.ts';
+import { openTrackerForWriting }    from '../../OpenTrackerForWriting.ts';
+import type { ArgumentParser }      from '../../arguments/ArgumentParser.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -62,7 +64,14 @@ const INSTALL_HELD_REFUSAL = 'launches-held-by-install-change';
 
 const INSTALL_HELD_TEXT = 'The install version changed, so launches are held until the board is updated.';
 
-const MALFORMED: RouteAnswer = { status: HTTP_STATUS.BAD_REQUEST, body: { controlVersion: CONTROL_VERSION, refusal: 'malformed-body', text: MALFORMED_BODY_TEXT } };
+/** A refusal as control contract 1 answers it: the refusal document's code, fields and sentence. */
+function refusalBodyOf({ code, fields, sentence }: ForgeRefusalDocument): Record<string, unknown> {
+  return {
+    controlVersion: CONTROL_VERSION, refusal: code, fields, text: sentence
+  };
+}
+
+const MALFORMED: RouteAnswer = { status: HTTP_STATUS.BAD_REQUEST, body: refusalBodyOf({ code: 'malformed-body', fields: {}, sentence: MALFORMED_BODY_TEXT }) };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -112,8 +121,7 @@ function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteA
 }
 
 function refusedAnswerOf(refusal: OperationRefusal): RouteAnswer {
-  const refusalCode = refusal.detail === null ? 'refused' : reasonCodeOf(refusal.detail);
-  return { status: HTTP_STATUS.CONFLICT, body: { controlVersion: CONTROL_VERSION, refusal: refusalCode, text: OperationRefusalWordingUtil.apiMessageOf(refusal) } };
+  return { status: HTTP_STATUS.CONFLICT, body: refusalBodyOf(RefusalDocumentUtil.refusalDocumentOf(refusal)) };
 }
 
 function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: CommandRouteRequest): RouteAnswer {
@@ -135,7 +143,8 @@ async function flintBrainAnswerOf(kind: FlintBrainCommand['kind'], request: Comm
     ? await request.flintBrain.start(caller.carriesBridgeSession ? 'bridge' : 'api')
     : await request.flintBrain.stop();
   if (verdict.verdict === 'refused') {
-    return { status: HTTP_STATUS.CONFLICT, body: { controlVersion: CONTROL_VERSION, refusal: verdict.refusal.code, text: verdict.sentence } };
+    const { refusal, sentence } = verdict;
+    return { status: HTTP_STATUS.CONFLICT, body: refusalBodyOf({ code: refusal.code, fields: RefusalDocumentUtil.jsonFieldsOf(refusal, 'code'), sentence }) };
   }
   return appliedAnswerOf({ outcome: 'done', result: { kind } });
 }
@@ -160,7 +169,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   if (request.launchesHeld()) {
     return {
       status: HTTP_STATUS.LOCKED,
-      body:   { controlVersion: CONTROL_VERSION, refusal: INSTALL_HELD_REFUSAL, text: INSTALL_HELD_TEXT },
+      body:   refusalBodyOf({ code: INSTALL_HELD_REFUSAL, fields: {}, sentence: INSTALL_HELD_TEXT }),
     };
   }
   try {

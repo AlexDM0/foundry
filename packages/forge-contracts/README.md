@@ -15,7 +15,8 @@ names no client.
 | `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
 | `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
 | `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, Flint's brain's two kinds from forge 1.1 |
-| `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the five files below |
+| `forge-contracts/ForgeRefusalDocument` | a refusal as forge serves it from forge 1.21: its reason code, its fields and the sentence its command line prints, as `POST /api/v1/commands` answers it |
+| `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the six files below |
 | `forge-contracts/BoardPageDocuments` | the board document's `page`: the tickets, the task rows, the worded log, the epics, the open filing drafts and the Board's facts of each row and ticket |
 | `forge-contracts/BoardJobDocuments` | the board document's jobs with their live facts, the jobs that left the board, and each open ticket's forecast |
 | `forge-contracts/BoardConversationDocuments` | the board document's open decisions and incidents, the records a settled one leaves, and the picture limits |

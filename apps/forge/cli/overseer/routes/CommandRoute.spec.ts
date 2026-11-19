@@ -62,7 +62,9 @@ describe('answerControlCommand', () => {
     const held = await answerControlCommand({ kind: 'overseer-pause' }, request, API_CALLER);
     expect(held.status).toBe(423);
     const heldText = 'The install version changed, so launches are held until the board is updated.';
-    expect(held.body).toEqual({ controlVersion: 1, refusal: 'launches-held-by-install-change', text: heldText });
+    expect(held.body).toEqual({
+      controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: heldText
+    });
     const stopAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'overseer-stop' } };
     expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request, API_CALLER)).toEqual({ status: 200, body: stopAnswer });
     expect(runtimeCommands).toEqual([{ kind: 'overseer-stop', now: true }]);
@@ -101,7 +103,12 @@ describe('answerControlCommand', () => {
       { kind: 'ticket-deliver-by-hand', ticketReference: 7 },
       { kind: 'ticket-deliver-by-hand', ticketReference: '7', commit: 42 },
     ];
-    const malformedAnswer = { status: 400, body: { controlVersion: 1, refusal: 'malformed-body', text: MALFORMED_BODY_TEXT } };
+    const malformedAnswer = {
+      status: 400,
+      body:   {
+        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+      }
+    };
     for (const body of wellShaped) expect((await answerControlCommand(body, request, API_CALLER)).status, JSON.stringify(body)).toBe(423);
     for (const body of malformed) expect(await answerControlCommand(body, request, API_CALLER), JSON.stringify(body)).toEqual(malformedAnswer);
   });

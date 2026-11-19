@@ -13,7 +13,7 @@ import bridgePage from '../../../bridge/index.html';
 import { LogFileIngestion }                                   from '../../../src/adapters/log/LogFileIngestion.ts';
 import { LogRecordMappingUtil }                               from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
 import { GateProfilesFile }                                   from '../../../src/adapters/pipeline/GateProfilesFile.ts';
-import { OperationRefusalWordingUtil }                        from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { RefusalDocumentUtil }                                from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { LogRecord }                                     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { BoardStateAssembly }                                 from '../../../src/services/overseer/BoardState.ts';
 import type { EventBroker }                                   from '../../../src/services/overseer/EventBroker.ts';
@@ -92,10 +92,11 @@ const PICTURE_STATUS = {
 } as const;
 
 function pictureRefusalOf(status: number, detail: OperationRefusalDetail): RouteAnswer {
-  return { status, body: { refusal: OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', detail)) } };
+  const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal('refused', detail));
+  return { status, body: { refusal: code, fields, text: sentence } };
 }
 
-/** `POST /api/pictures`: the picture stored owner-only by its hash, or its refusal worded as every printed refusal is. */
+/** `POST /api/pictures`: the picture stored owner-only by its hash, or its refusal as its code, its fields and the command line's sentence. */
 function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
   if (storing.verdict === 'too-large') {
     return pictureRefusalOf(PICTURE_STATUS.TOO_LARGE, { kind: 'picture-too-large', bytes: storing.bytes, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });

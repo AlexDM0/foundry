@@ -141,7 +141,10 @@ describe('Flint\'s brain\'s commands at /api/v1/commands', () => {
     for (const { kind, refusal } of refusals) {
       refuseNextWith(refusal);
       const answered = await handler.answer(post('/api/v1/commands', TOKEN_HEADERS, JSON.stringify({ kind })), PORT);
-      const refusedBody = { controlVersion: 1, refusal: refusal.code, text: FlintBrainWordingUtil.refusalSentenceOf(refusal) };
+      const { code, ...fields } = refusal;
+      const refusedBody = {
+        controlVersion: 1, refusal: code, fields, text: FlintBrainWordingUtil.refusalSentenceOf(refusal),
+      };
       expect(await answerFactsOf(answered), refusal.code).toEqual([409, refusedBody]);
     }
   });

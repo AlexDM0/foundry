@@ -3,8 +3,7 @@
  * incident or ended session leaves behind, and what a picture sent with a message may be.
  */
 
-/** A value as JSON carries it: the facts of a notice and the fields of a stored record. */
-export type ForgeJsonValue = string | number | boolean | null | readonly ForgeJsonValue[] | { readonly [field: string]: ForgeJsonValue };
+import type { ForgeJsonValue } from './ForgeRefusalDocument.ts';
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface BoardDecisionOptionDocument {
