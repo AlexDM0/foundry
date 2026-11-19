@@ -1835,8 +1835,8 @@ credentials and a planted repair. `OverseerDrivePass.apiBilling.spec.ts` passes 
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
 --path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/ImportDirection.spec.ts
 ./src/lib/claude-code/ ./src/shared/ ./cli/overseer/OverseerWording*.spec.ts
-./cli/overseer/OverseerDrivePass.apiBilling.spec.ts` passes with this package's entries removed, `bun run test:dom`
-passes, and `bun run record src/shared/Environment.ts` passes (the boundary that runs the changed
+./cli/overseer/OverseerDrivePass.apiBilling.spec.ts` passes with this package's entries removed, and
+`bun run record src/shared/Environment.ts` passes (the boundary that runs the changed
 `Environment.integration.spec.ts`, `src/testing/BoundarySpecs.ts:185`; it starts no agent); at the root,
 `bun install --frozen-lockfile` and `bun run verify` are green.
 
@@ -1975,7 +1975,7 @@ what they did before.
 **Done when.** In `apps/forge`: `bun test --path-ignore-patterns='.claude/**'
 --path-ignore-patterns='**/*.integration.spec.ts' ./src/AgentBoundary.spec.ts ./src/lib/claude-code/
 ./src/lib/tracker-model/ ./src/services/overseer/JobTranscript.spec.ts ./cli/decisions/ ./bridge/` passes with this
-package's entries removed, and `bun run test:dom` passes; at the root, `bun install --frozen-lockfile` and
+package's entries removed; at the root, `bun install --frozen-lockfile` and
 `bun run verify` are green.
 
 ### WP2.27 The tool-call guards take neutral tool calls

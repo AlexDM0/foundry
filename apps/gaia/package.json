@@ -8,7 +8,10 @@
   "bin": { "gaia": "src/Main.ts" },
   "files": ["src", "page", "resources", "tsconfig.json"],
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json && tsc -p page/tsconfig.json && tsc -p page/tsconfig.spec.json",
+    "typecheck": "bun run --parallel typecheck:root typecheck:page typecheck:page-specs",
+    "typecheck:root": "tsc -p tsconfig.json",
+    "typecheck:page": "tsc -p page/tsconfig.json",
+    "typecheck:page-specs": "tsc -p page/tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "test": "bun test",

@@ -209,7 +209,7 @@ changes nothing under `apps/` or `packages/` since `0a648b2b`, when `entities/in
 | No shipped forge file names a client | `apps/forge/src/ClientNames.spec.ts:24` | Kept: every forge change here names no client |
 | Retired component names | `apps/forge/src/ComponentNames.spec.ts:28-63` | Kept: every new name checked against it |
 | The Overseer's server is a recorded boundary | `apps/forge/src/testing/BoundarySpecs.ts:139` | Recorded again after WP6.1 |
-| Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/src/TestFileConventions.spec.ts:108`, `:122`; `apps/forge/src/ProjectIncludeLists.spec.ts:38` | Kept: the Bridge stays until stage 8 |
+| Forge guards that name the Bridge: DOM specs only under `bridge/`, its include list | `apps/forge/src/TestFileConventions.spec.ts:108`, `:122`; the include list's guard is deleted, and the Bridge's tsc projects, lint and DOM specs are out of the gates | Kept: the Bridge stays until stage 8 |
 
 ## Work packages
 

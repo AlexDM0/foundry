@@ -19,6 +19,7 @@ import {
   fakeAgentKeepsWorking,
   fakeAgentReports,
   hatchDirectory,
+  hatchReplyIntervalOverride,
   launchingProgram,
   overseerJobId
 } from '../src/shared/Environment.ts';
@@ -115,7 +116,10 @@ function jobContextOfThisProcess(): JobContext | undefined {
   const hatchFolder    = hatchDirectory();
   if (jobId === undefined || hatchFolder === undefined) return undefined;
   return {
-    jobId, hatchDirectory: hatchFolder, replyTries: HATCH_REPLY_TRIES, replyIntervalMilliseconds: HATCH_REPLY_INTERVAL_MILLISECONDS
+    jobId,
+    hatchDirectory:            hatchFolder,
+    replyTries:                HATCH_REPLY_TRIES,
+    replyIntervalMilliseconds: hatchReplyIntervalOverride() ?? HATCH_REPLY_INTERVAL_MILLISECONDS,
   };
 }
 

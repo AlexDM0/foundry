@@ -51,8 +51,9 @@ TypeScript source directly.
 - One `bun.lock` at the root and the hoisted linker. A consumer declares each package it imports at `workspace:^`, never `workspace:*`,
   so Turborepo reruns it when the package changes and a release names a version range. There is no `catalog:` and no
   `tsconfig.base.json`.
-- Every workspace has the task names `typecheck`, `lint`, `test`, `test:dom` and `check`. `check` reads the machine (installed versions,
-  recording stamps), so it is never cached.
+- Every workspace has the task names `typecheck`, `lint`, `test` and `check`, and a workspace with DOM specs has `test:dom`; turbo skips a
+  workspace without the script. forge has none: its Bridge, which retires in stage 8 of the hephaestus-talos migration, runs its DOM specs
+  only by hand (`test:dom:bridge`). `check` reads the machine (installed versions, recording stamps), so it is never cached.
 - `bun test` from the root does not apply a workspace's `bunfig.toml` preload, and every app depends on its own (`HOME` moved to
   scratch, the leak check). The root never runs `bun test`; root `verify` is `turbo run typecheck lint test test:dom check`.
 - `Bun.build` on an HTML entrypoint inlines a stylesheet from a workspace package, so forge's Bridge bundle and Gaia's page build keep

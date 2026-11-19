@@ -260,8 +260,6 @@ on.
 Files to delete: `apps/forge/bridge/` (all of it); `apps/forge/src/testing/recordings/*/bridge__*.json`;
 `.claude/rules/bridge.md`; `apps/forge/.readme-graphics/` except `render-diagrams.py` and `README.md`; the Bridge
 screenshots under `apps/forge/docs/images/` (`bridge-*.png`) and their rows in `apps/forge/README.md`;
-`apps/forge/src/ProjectIncludeLists.spec.ts`, which holds one project, `bridge/tsconfig.json` (`:38`), and nothing
-else (read it again first: if stage 6 gave it another project, change it instead);
 `apps/forge/src/shared/monitor/utils/BridgeFragmentUtil.ts` and its spec.
 
 Files to change:
@@ -270,8 +268,8 @@ Files to change:
   writes it; Gaia's `src/adapters/forge-api/MonitorSnapshotIngestion.ts` and
   `src/adapters/forge-api/utils/ForgeReadingMapUtil.ts` read the target and compose the board route from it, in the
   same commit (N10). The system version for the change is WP8.10's major.
-- `apps/forge/package.json`: scripts `typecheck` becomes `tsc -p tsconfig.json` (drop `typecheck:root`,
-  `typecheck:bridge`, `typecheck:bridge-specs`), `verify` drops `&& bun run test:dom`, delete `test:dom`;
+- `apps/forge/package.json`: scripts `typecheck` is already `tsc -p tsconfig.json`; delete `typecheck:bridge`,
+  `typecheck:bridge-specs` and `test:dom:bridge`;
   dependencies drop `brand`, `design-system`, `flint`, `react`, `react-dom` (no file outside `bridge/` imports them:
   `git grep -l "from 'brand\|from 'design-system\|from 'flint\|from 'react" -- apps/forge ':!apps/forge/bridge'`
   prints nothing today). Keep `marked` until WP8.8. Update the `description` (`:4`) so it names no Bridge.
@@ -318,8 +316,8 @@ What to do:
 Specs: no new spec. Each changed guard still proves its scan found files and still fails on a planted case of each
 form it keeps.
 
-Done when: in `apps/forge`, `bun run typecheck`, `bun run lint` and `bun test` pass, and forge has no `test:dom`
-task; the root is green; `git ls-files apps/forge/bridge` prints nothing.
+Done when: in `apps/forge`, `bun run typecheck`, `bun run lint` and `bun test` pass, and forge has no `test:dom:bridge`
+script; the root is green; `git ls-files apps/forge/bridge` prints nothing.
 
 ### WP8.3 Confirm that Gaia holds no embed machinery
 
@@ -1557,7 +1555,7 @@ bun run verify
 ```
 
 Both exit 0. `bun run verify` runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and `check`; forge has no
-`test:dom` after WP8.2, and Gaia's runs the board's and the three libraries' DOM specs after WP8.13.
+`test:dom`, and Gaia's runs the board's and the three libraries' DOM specs after WP8.13.
 
 The specs that matter most, each in its workspace folder:
 

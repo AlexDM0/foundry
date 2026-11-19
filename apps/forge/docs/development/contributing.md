@@ -192,16 +192,17 @@ loud; a typo in the name is not.
 
 ## The checks
 
-**`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs four stages from
-`apps/forge/package.json`, in order, and stops at the first failure. The first stage runs the type-check and lint side by side,
-each `tsc` project in a process of its own; the test files themselves never run in parallel.
+**`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs three stages from
+`apps/forge/package.json`, in order, and stops at the first failure. The first stage runs the type-check and lint side by side;
+the test files themselves never run in parallel. The Bridge, which retires in stage 8, is out of it: lint skips `bridge/`,
+and its two `tsc` projects and DOM specs run only by hand (`bun run typecheck:bridge`, `bun run typecheck:bridge-specs`,
+`bun run test:dom:bridge`).
 
 | Stage | Command | What it proves | Time |
 | --- | --- | --- | --- |
-| 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`, `bridge/tsconfig.json` and `bridge/tsconfig.spec.json`; ESLint over the repository. | 14 s |
+| 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`; ESLint over the repository but `bridge/`. | 14 s |
 | 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
 | 3 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
-| 4 DOM specs | `bun bridge/testing/RunDomSpecs.ts` | Every `.dom.tsx` of the Bridge in one isolated run under happy-dom, each file in a fresh global. | 5 s |
 
 At the repository root, `bun run verify` runs these stages, and those of each package, for every workspace through
 Turborepo, which replays a task whose inputs have not changed from its cache.
@@ -255,7 +256,7 @@ row.*
 | Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | Add a Bridge view | `bridge/views/<view>/`: the component, a pure `<View>Model.ts`, its `.spec.ts` and `.dom.tsx` | A class in `bridge/styles/board.css`; the mount in `bridge/shell/BridgeApp.tsx`; an entry in `BRIDGE_TABS` in `bridge/shell/HashRouter.ts` | `bridge/StyleContract.spec.ts`, `src/ImportDirection.spec.ts`, `bridge/HeadlessBridge.integration.spec.ts` |
-| Add a reusable component | `packages/design-system/<layer>/<Name>.tsx` with `<Name>.css` and `<Name>.dom.tsx` beside it, in the lowest layer whose components it composes | Its export in `packages/design-system/package.json`, which the Bridge imports as `design-system/<Name>`; its `@import` in `packages/design-system/styles/design-system.css` | `packages/design-system/StyleContract.spec.ts`, `packages/design-system/CompositionLayers.spec.ts`, `src/ImportDirection.spec.ts`, `src/ProjectIncludeLists.spec.ts` |
+| Add a reusable component | `packages/design-system/<layer>/<Name>.tsx` with `<Name>.css` and `<Name>.dom.tsx` beside it, in the lowest layer whose components it composes | Its export in `packages/design-system/package.json`, which the Bridge imports as `design-system/<Name>`; its `@import` in `packages/design-system/styles/design-system.css` | `packages/design-system/StyleContract.spec.ts`, `packages/design-system/CompositionLayers.spec.ts`, `src/ImportDirection.spec.ts` |
 | Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
 | Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
 | Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |

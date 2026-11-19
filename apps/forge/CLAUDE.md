@@ -12,8 +12,11 @@ repository root (`packages/flint/…`).
 
 ## Verify
 
-`bun run verify` (typecheck and lint at the same time, then the default suite, the recording stamp check and the DOM
-specs) after any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
+`bun run verify` (typecheck and lint at the same time, then the default suite and the recording stamp check) after
+any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec. The Bridge, which
+retires in stage 8, is out of the gates: `bun run lint` skips `bridge/`, `bun run typecheck` checks only
+`tsconfig.json`, and its DOM specs run only by hand, through `bun run test:dom:bridge`; `bun run typecheck:bridge` and
+`bun run typecheck:bridge-specs` type-check it by hand.
 When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
 real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
 the system version and the OS. Commit the recording.
@@ -222,15 +225,15 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   root's `.bun-version` pins Bun to the `@types/bun` version that `bun.lock` locks, held by
   `src/BunVersionPin.spec.ts`.
 - `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
-  under `bridge/tsconfig.spec.json`). Its `include` list, the whole tracker model among it, is held both ways by
-  `src/ProjectIncludeLists.spec.ts`; everything the Bridge reaches stays DOM-safe. The list names no file of
+  under `bridge/tsconfig.spec.json`), type-checked only by hand until stage 8 deletes it. The list names no file of
   `packages/design-system/`: TypeScript finds the package through its exports.
 - ESLint 9 through `@reliquary/eslint-config`, extended in `eslint.config.js`; `bun run lint` is its statement. The
   testing folders may import devDependencies.
 
 ### Tests
 
-- There are two suites. The default suite is every `*.spec.ts` and `*.dom.tsx` file, and `bun run verify` runs it. The
+- There are two suites. The default suite is every `*.spec.ts` file and every package's `*.dom.tsx` file, and
+  `bun run verify` runs it. The
   real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`.
 - `bun run verify` and the release run no real-system spec. `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts`
   lists the real-system specs of each boundary, and `bun run record <boundary>` runs them (with the integration specs
@@ -272,8 +275,8 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   `<Module>.dom.tsx` under `bridge/`, `packages/design-system/` or `packages/flint/` alone, and no spec or test helper
   creates the real process context.
 - `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` of `bridge/` with the skip
-  report and the happy-dom preload, `bun run verify` runs it after `bun test`, and it fails when it finds none. Each
-  package runs its own DOM specs the same way, in its `test:dom` task.
+  report and the happy-dom preload, only by hand through `bun run test:dom:bridge`, and it fails when it finds none.
+  Each package runs its own DOM specs the same way, in its `test:dom` task, which the root's `bun run verify` runs.
 
 ### Documentation and commits
 

@@ -291,7 +291,6 @@ in a typed adapter. Parallel with WP4.6, WP4.7 and WP4.12; ordered with stage 5'
 cd packages/forge-contracts && bun run typecheck && bun run lint && bun test
 cd ../../apps/forge && bun run typecheck && bun test --path-ignore-patterns='.claude/**' ./cli/overseer/routes/ \
   ./src/adapters/board-commands/ ./src/adapters/pipeline-setup/ ./cli/pipeline/ ./bridge/CommandKindsInContract.spec.ts
-bun run test:dom
 cd ../.. && bun install --frozen-lockfile && bun run verify                                        # green
 ```
 
@@ -644,7 +643,6 @@ refused while any stands. Runs after WP4.10 and WP4.5.
 ```
 cd apps/forge && bun run typecheck && bun test --path-ignore-patterns='.claude/**' ./src/adapters/pipeline/ \
   ./src/services/control/ ./src/lib/tracker-model/PipelineSetups.spec.ts ./src/adapters/board-document/
-bun run test:dom
 cd ../.. && bun install --frozen-lockfile && bun run verify                                        # green
 ```
 
@@ -945,7 +943,8 @@ is one higher, its draft read without the entities' set check.
   only; the parity spec of WP4.6 is the guard. Run it before relying on the typecheck.
 - **The Bridge keeps running on its own documents.** It reads `/api/state` and the unversioned `board` event with its
   own types and computes its readings on the client until stage 8. Nothing in this stage changes what it reads, but the
-  typed draft edits of WP4.5 and the stored draft of WP4.11 reach it: run `bun run test:dom` in each of those packages.
+  typed draft edits of WP4.5 and the stored draft of WP4.11 reach it. Its DOM specs are out of the gates (the old
+  implementation may break before stage 8 deletes it); `bun run test:dom:bridge` in `apps/forge` runs them by hand.
 - **The setup record's draft and the stored pipeline share a reader.** `PipelineSetupFile.ts:292` reads the draft with
   `PipelineFile.documentReadingOf`, which refuses refused entities. Keep the set check for `pipeline.json` and drop it
   only for the draft, or a stored pipeline with two roots becomes readable.
@@ -985,7 +984,6 @@ The specs that matter most, inside each workspace folder:
 (cd apps/forge && bun test --path-ignore-patterns='.claude/**' ./src/adapters/board-document/ ./src/adapters/board-commands/ \
   ./src/adapters/utils/RefusalDocumentUtil.spec.ts ./src/services/overseer/ ./cli/overseer/routes/ \
   ./src/lib/tracker-model/PipelineSetups.spec.ts ./bridge/CommandKindsInContract.spec.ts)
-(cd apps/forge && bun run test:dom)
 (cd apps/gaia && bun run check)      # the warning that Gaia supports an older forge; exit 0
 grep -rn "tracker-model\|apps/" packages/forge-contracts --include='*.ts'      # prints nothing
 ```

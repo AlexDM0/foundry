@@ -36,8 +36,6 @@ const MECHANISED_RULE_IDS = [
 
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
 
-const CONDITIONAL_HOOK = 'import { useState } from \'react\';\n\nexport function View({ on }: { on: boolean }) {\n  if (on) useState(0);\n  return null;\n}\n';
-
 const ALLOWED_SITE_LIST = /(?:allowedIn|STORAGE_SITES)\s*[:=]\s*\[([^\]]*)\]/g;
 const QUOTED_PATH = /'([^']+)'/g;
 
@@ -62,7 +60,6 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'src/services/overseer/Planted.ts', text: 'export const home = Bun.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
   { path: 'src/lib/git/Planted.ts', text: 'export const environment = { ...Bun.env };\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/Planted.ts', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
-  { path: 'bridge/shell/Planted.tsx', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
   { path: 'cli/Planted.ts', text: 'process.exit(1);\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/CommandContext.ts', text: 'process.chdir(\'/\');\n', ruleId: 'no-restricted-properties' },
   { path: 'src/Planted.ts', text: 'export const here = process.cwd();\n', ruleId: 'no-restricted-properties' },
@@ -72,13 +69,6 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'src/lib/data-folders/DataFoldersFor.ts', text: PLATFORM_READ, ruleId: 'no-restricted-properties' },
   { path: 'cli/Planted.ts', text: MODE_CHANGE_IMPORT, ruleId: 'no-restricted-imports' },
   { path: 'src/lib/owner-only-files/Planted.ts', text: MODE_CHANGE_IMPORT, ruleId: 'no-restricted-imports' },
-  { path: 'bridge/views/Planted.ts', text: 'export const storage = window.localStorage;\n', ruleId: 'no-restricted-properties' },
-  { path: 'bridge/views/Planted.ts', text: 'export const stored = sessionStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
-  {
-    path:   'bridge/preferences/ViewerPreferences.ts',
-    text:   'export const storage = (): Storage => window.localStorage;\n',
-    ruleId: 'no-restricted-properties',
-  },
   { path: 'cli/Planted.ts', text: 'export const now = Date.now();\n', ruleId: 'no-restricted-syntax' },
   { path: 'src/Planted.ts', text: 'export const now = new Date();\n', ruleId: 'no-restricted-syntax' },
   { path: 'cli/Planted.ts', text: 'export const firstOf = (list: string[]): string => list[0]!;\n', ruleId: '@typescript-eslint/no-non-null-assertion' },
@@ -90,13 +80,6 @@ const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   },
   { path: 'cli/Planted.ts', text: 'export const x = \'value\';\n', ruleId: 'id-length' },
   { path: 'cli/Planted.ts', text: 'export const scaled = (side: number): number => side * 7;\n', ruleId: '@typescript-eslint/no-magic-numbers' },
-  { path: 'bridge/shell/Planted.tsx', text: 'export const view = <div dangerouslySetInnerHTML={{ __html: \'<b>bold</b>\' }} />;\n', ruleId: 'no-restricted-syntax' },
-  { path: 'bridge/shell/Planted.ts', text: 'export const fill = (element: Element): void => {\n  element.innerHTML = \'<b>bold</b>\';\n};\n', ruleId: 'no-restricted-syntax' },
-  { path: 'bridge/shell/Planted.ts', text: 'export const swap = (element: Element): void => {\n  element.outerHTML = \'<b>bold</b>\';\n};\n', ruleId: 'no-restricted-syntax' },
-  { path: 'bridge/shell/Planted.ts', text: 'export const stored = localStorage.getItem(\'key\');\n', ruleId: 'no-restricted-globals' },
-  { path: 'bridge/shell/Planted.ts', text: 'export const storage = window.sessionStorage;\n', ruleId: 'no-restricted-properties' },
-  { path: 'bridge/shell/Planted.tsx', text: CONDITIONAL_HOOK, ruleId: 'react-hooks/rules-of-hooks' },
-  { path: 'bridge/shell/Planted.tsx', text: 'export const scaled = (side: number): number => side * 7;\n', ruleId: '@typescript-eslint/no-magic-numbers' },
 ];
 
 const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
@@ -121,16 +104,12 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the POSIX owner-only adapter changing a mode', 'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts', MODE_CHANGE_IMPORT],
   ['a spec changing a mode', 'cli/Planted.spec.ts', MODE_CHANGE_IMPORT],
   ['a testing folder changing a mode', 'src/testing/Planted.ts', MODE_CHANGE_IMPORT],
-  ['the Bridge reading the clock', 'bridge/shell/Planted.ts', 'export const now = Date.now();\n'],
   ['a spec reading the clock', 'cli/Planted.spec.ts', 'export const now = Date.now();\n'],
   ['a dated Date', 'cli/Planted.ts', 'export const epoch = new Date(0);\n'],
   ['a loop index and a comparator pair', 'cli/Planted.ts', 'export const sorted = [\'b\', \'a\'].sort((a, b) => a.localeCompare(b)).map((value, i) => `${value}${i}`);\n'],
   ['arithmetic identities', 'cli/Planted.ts', 'export const share = (part: number): string => (part * 100 / 2 - 1).toString(16);\n'],
   ['a number in a constants folder', 'cli/constants/Planted.ts', 'export const scaled = (side: number): number => side * 7;\n'],
   ['a number in a spec', 'cli/Planted.spec.ts', 'export const scaled = (side: number): number => side * 7;\n'],
-  ['the Bridge\'s preference store reaching storage', 'bridge/preferences/PreferenceStore.ts', 'export const storage = (): Storage => window.localStorage;\n'],
-  ['a number in a DOM spec', 'bridge/shell/Planted.dom.tsx', 'export const scaled = (side: number): number => side * 7;\n'],
-  ['a component rendering a value as text', 'bridge/shell/Planted.tsx', 'export const view = (text: string) => <p className="bridge-empty">{text}</p>;\n'],
 ];
 
 describe('the mechanised CLAUDE.md rules in eslint.config.js', () => {

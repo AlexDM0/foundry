@@ -76,7 +76,7 @@ function startExampleServer(
   overrides: Partial<OverseerRoutes> = {},
   now: () => Date = () => new Date('2026-10-29T20:00:00Z'),
   processId = process.pid,
-  heartbeatMilliseconds?: number,
+  heartbeatMilliseconds = SHORT_HEARTBEAT_MILLISECONDS,
 ) {
   const commands: unknown[] = [];
   const nudges: string[] = [];
@@ -116,7 +116,7 @@ function startExampleServer(
     },
     routes,
     now,
-    ...(heartbeatMilliseconds === undefined ? {} : { heartbeatMilliseconds }),
+    heartbeatMilliseconds,
   });
   stoppers.push(() => server.stop());
   return {
@@ -432,7 +432,7 @@ describe('OverseerServer streams', () => {
   });
 
   test('a quiet event stream gets a ": ping" every heartbeat', async () => {
-    const { server, broker } = startExampleServer({}, undefined, undefined, SHORT_HEARTBEAT_MILLISECONDS);
+    const { server, broker } = startExampleServer();
     broker.publishState(exampleState(1));
     const text = await streamTextUntil(await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS }), (soFar) => soFar.includes(': ping\n\n'));
     expect(text).toContain(': ping\n\n');

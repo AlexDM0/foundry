@@ -24,8 +24,8 @@ folder, a real [board](../glossary.md#board) port or a real `claude` session. Ev
 controls has a lock, and a bare `claude` on the run's `PATH` is a stub that fails the test. A
 [session](../glossary.md#session) under test is a scripted fake agent.
 
-`bun run verify` runs the three `tsc` projects and ESLint side by side, then `bun test`, the recording stamp check and
-`bun bridge/testing/RunDomSpecs.ts`. [Changing the code](contributing.md) says when to run what.
+`bun run verify` runs `tsc` and ESLint side by side, then `bun test` and the recording stamp check; the Bridge's DOM specs
+run only by hand, through `bun run test:dom:bridge`. [Changing the code](contributing.md) says when to run what.
 
 ## How to read a guard
 
@@ -78,7 +78,6 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
 | `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it: the design system as `design-system/<entry>`, an entry of the `exports` of `packages/design-system/package.json`, never by a file path), the CLI and Watcher binaries, `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
-| `src/ProjectIncludeLists.spec.ts` | `bridge/tsconfig.json`'s `include` equals what Bridge shipping modules reach outside `bridge/`, plus every tracker model shipping module, and names no file of a workspace package; each package's own `ProjectIncludeList.spec.ts` holds that its `tsconfig.json`'s `include` names only its own folder. | Add or remove the named entry. |
 | `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
@@ -203,7 +202,6 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 | text | read by | what breaks it |
 | --- | --- | --- |
 | The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `src/ImportDirection.spec.ts`, also `src/lib/talos/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
-| `include` in `bridge/tsconfig.json` | `src/ProjectIncludeLists.spec.ts` | An entry nothing reaches, or a reached file missing. |
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
 | Command words in `cli/HelpText.ts`, by indentation | `cli/HelpText.spec.ts` | Changing the indent. |

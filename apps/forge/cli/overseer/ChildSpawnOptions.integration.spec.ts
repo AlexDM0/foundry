@@ -30,14 +30,16 @@ import { NO_ORPHANS_VARIABLE, environmentCopy }           from '../../src/shared
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { jsonPrintedByAChildProcess }                     from '../../src/testing/JsonPrintedByAChildProcess.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
+import { processIsRunning, stopProcesses }                from '../../src/testing/ProcessesInFolder.ts';
 import { createScratchTalos, type ScratchTalos }          from '../../src/testing/ScratchTalos.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
 import FROZEN_POSIX_CHILD_SPAWN                           from './FrozenPosixChildSpawn.json';
 import { spawnSuccessor }                                 from './OverseerForeground.ts';
 import { OverseerRemote }                                 from './OverseerRemote.ts';
 
 const NATIVE_PORTS = nativePlatformPorts();
-const DESCENDANT_END_MARGIN_MILLISECONDS = 500;
+const DESCENDANT_LINE = /^descendant (\d+)$/mu;
 const EVERY_CHILD_KIND: readonly SupervisedChildKind[] = ['supervised-child', 'talos', 'overseer', 'successor'];
 const START_NUMBER = 1;
 
@@ -145,14 +147,18 @@ describe('a line child of Talos', () => {
 
   test('a descendant that keeps stderr open past the child\'s end does not hold the end back', async () => {
     const descendantSeconds = 8;
-    const descendantSpawn = `Bun.spawn(['sleep', '${descendantSeconds}'], { stdin: 'ignore', stdout: 'ignore', stderr: 'inherit' }).unref();`;
-    const childScript = `console.error("first stderr line"); ${descendantSpawn} process.exit(0);`;
+    const descendantSpawn = `const descendant = Bun.spawn(['sleep', '${descendantSeconds}'], { stdin: 'ignore', stdout: 'ignore', stderr: 'inherit' }); descendant.unref();`;
+    const childScript = `console.error("first stderr line"); ${descendantSpawn} console.error("descendant " + descendant.pid); process.exit(0);`;
     const startedAt = Date.now();
-    expect(await lineStandardErrorOf(childScript)).toContain('first stderr line\n');
+    const standardError = await lineStandardErrorOf(childScript);
     const endedAfterMilliseconds = Date.now() - startedAt;
+    expect(standardError).toContain('first stderr line\n');
     expect(endedAfterMilliseconds).toBeLessThan(descendantSeconds * 1000);
-    // The run's leak check fails on a process left running, so the case outlasts the unreferenced descendant.
-    await Bun.sleep(descendantSeconds * 1000 - endedAfterMilliseconds + DESCENDANT_END_MARGIN_MILLISECONDS);
+    const descendantProcessId = Number(DESCENDANT_LINE.exec(standardError)?.[1]);
+    expect(processIsRunning(descendantProcessId)).toBe(true);
+    // The run's leak check fails on a process left running, so the case ends the unreferenced descendant once its claim holds.
+    await stopProcesses([{ processId: descendantProcessId, command: 'sleep' }]);
+    await waitUntil(() => !processIsRunning(descendantProcessId), 'the sleep descendant has ended');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 

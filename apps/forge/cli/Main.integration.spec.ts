@@ -17,13 +17,16 @@ import {
   expect,
   test
 }                                                         from 'bun:test';
-import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE }      from '../src/shared/Environment.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
-import { installedFilePathsIn }                           from './InstalledFiles.ts';
-import { runCommandLine }                                 from './Main.ts';
-import { createCapturedCommandContext }                   from './testing/CapturedCommandContext.ts';
-import { runAgentProgress }                               from './testing/CliProcess.ts';
+import { JOB_ID_VARIABLE, HATCH_DIRECTORY_VARIABLE, HATCH_REPLY_INTERVAL_VARIABLE } from '../src/shared/Environment.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                  from '../src/testing/ChildProcessCaseTimeout.ts';
+import { createScratchDirectory, removeScratchDirectory }                           from '../src/testing/ScratchWorkspace.ts';
+import { installedFilePathsIn }                                                     from './InstalledFiles.ts';
+import { runCommandLine }                                                           from './Main.ts';
+import { createCapturedCommandContext }                                             from './testing/CapturedCommandContext.ts';
+import { runAgentProgress }                                                         from './testing/CliProcess.ts';
+
+/** Nothing answers the Hatch here, so the relayed verb waits out every look for its reply; short looks keep that wait brief. */
+const SHORT_HATCH_REPLY_INTERVAL_MILLISECONDS = '1';
 
 describe('a tracker whose installed files are of another install version, under the binary', () => {
   /** A tracker made by `init` and then stripped of its manifest is exactly a tracker installed by an agent-progress from before versioning. */
@@ -45,7 +48,7 @@ describe('a tracker whose installed files are of another install version, under 
     try {
       const result = await runAgentProgress(['ticket', 'add', 'Found beside the work', '--type', 'bug', '--priority', 'low'], {
         currentDirectory: trackedDirectory,
-        environment:      { [JOB_ID_VARIABLE]: 'J7', [HATCH_DIRECTORY_VARIABLE]: hatchFolder },
+        environment:      { [JOB_ID_VARIABLE]: 'J7', [HATCH_DIRECTORY_VARIABLE]: hatchFolder, [HATCH_REPLY_INTERVAL_VARIABLE]: SHORT_HATCH_REPLY_INTERVAL_MILLISECONDS },
       });
       const [requestFileName, ...otherFileNames] = readdirSync(join(hatchFolder, 'requests'));
       const request = JSON.parse(readFileSync(join(hatchFolder, 'requests', requestFileName ?? ''), 'utf8')) as { hatchFormatVersion: number; requestId: string };

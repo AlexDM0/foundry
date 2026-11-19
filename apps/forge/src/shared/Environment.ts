@@ -113,6 +113,17 @@ export function flintBrainMaximumOverride(): number | undefined {
   return value !== undefined && WHOLE_MILLISECONDS.test(value) ? Number(value) : undefined;
 }
 
+export const HATCH_REPLY_INTERVAL_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}HATCH_REPLY_INTERVAL_MILLISECONDS`;
+
+/**
+ * A test setting: the milliseconds between a relayed verb's looks for its Hatch reply, in place of `HATCH_REPLY_INTERVAL_MILLISECONDS`, so a
+ * spec sees `queued` without waiting out the whole reply wait. Any value but a positive whole number reads as unset.
+ */
+export function hatchReplyIntervalOverride(): number | undefined {
+  const value = nonBlankValueOf(HATCH_REPLY_INTERVAL_VARIABLE)?.trim();
+  return value !== undefined && WHOLE_MILLISECONDS.test(value) ? Number(value) : undefined;
+}
+
 export function flintBrainWithheldVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
   return `${ENVIRONMENT_PREFIX}WITHOUT_FLINT_BRAIN`;
 }
