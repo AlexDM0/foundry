@@ -24,6 +24,7 @@ import {
   CLAUDE_CODE_STANDING_REPLIES,
   CLAUDE_STREAM_LINES
 } from './ClaudeStreamLines.ts';
+import { QUESTION_TOOL_NAME }   from './ClaudeStreamMapper.ts';
 import { ClaudeSubagentUsages } from './ClaudeSubagentUsages.ts';
 
 export const CLAUDE_CODE_VENDOR = 'claude-code';
@@ -68,7 +69,6 @@ export const CLAUDE_AUTHENTICATION_VARIABLES = [
   'ANTHROPIC_FOUNDRY_RESOURCE',
 ] as const;
 
-const QUESTION_TOOL_NAME = 'AskUserQuestion';
 const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
 const INSTRUCTION_FILE_PATHS = [[USER_INSTRUCTION_FILE_NAME], ['CLAUDE.local.md'], ['.claude', USER_INSTRUCTION_FILE_NAME]] as const;
 /** Claude Code excludes a rules folder by a glob of its files, never by the folder's own path. */

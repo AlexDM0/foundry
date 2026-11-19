@@ -21,8 +21,12 @@ import {
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { type UsageWindowObservation, UsageWindowsFile }  from './UsageWindowsFile.ts';
 
-const FIVE_HOUR: UsageWindowObservation = { window: 'five_hour', utilization: 0.19, resetsAt: '2026-11-01T22:00:34.000Z' };
-const SEVEN_DAY: UsageWindowObservation = { window: 'seven_day', utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z' };
+const FIVE_HOUR: UsageWindowObservation = {
+  window: 'five_hour', lengthHours: 5, utilization: 0.19, resetsAt: '2026-11-01T22:00:34.000Z'
+};
+const SEVEN_DAY: UsageWindowObservation = {
+  window: 'seven_day', lengthHours: 168, utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z'
+};
 
 let scratchDirectory = '';
 
@@ -35,6 +39,14 @@ beforeEach(() => {
 
 afterEach(() => {
   removeScratchDirectory(scratchDirectory);
+});
+
+test('a window of unknown length reads back with a null length', () => {
+  const unknownWindow: UsageWindowObservation = {
+    window: 'example_window', lengthHours: null, utilization: 0.3, resetsAt: '2026-11-02T09:00:00.000Z'
+  };
+  UsageWindowsFile.record(monitorFolder(), [unknownWindow]);
+  expect(UsageWindowsFile.read(monitorFolder())).toMatchObject({ verdict: 'read', windows: [unknownWindow] });
 });
 
 test('no file reads as absent, and recording no observation writes none', () => {
@@ -52,17 +64,23 @@ test('the later observation of a window replaces its values in place, and every 
   writeFileSync(UsageWindowsFile.pathIn(createdMonitorFolder()), `${JSON.stringify({
     note:    'kept',
     windows: {
-      five_hour: { utilization: 0.19, plan: 'example', resetsAt: '2026-11-01T22:00:34.000Z' },
-      seven_day: { utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z' },
+      five_hour: {
+        lengthHours: 5, utilization: 0.19, plan: 'example', resetsAt: '2026-11-01T22:00:34.000Z'
+      },
+      seven_day: { lengthHours: 168, utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z' },
     },
     later: 1,
   }, null, 2)}\n`);
-  UsageWindowsFile.record(monitorFolder(), [{ window: 'five_hour', utilization: 0.2, resetsAt: '2026-11-01T22:00:34.000Z' }, { ...FIVE_HOUR, utilization: 0.25 }]);
+  UsageWindowsFile.record(monitorFolder(), [{
+    window: 'five_hour', lengthHours: 5, utilization: 0.2, resetsAt: '2026-11-01T22:00:34.000Z'
+  }, { ...FIVE_HOUR, utilization: 0.25 }]);
   expect(storedText()).toBe(`${JSON.stringify({
     note:    'kept',
     windows: {
-      five_hour: { utilization: 0.25, plan: 'example', resetsAt: '2026-11-01T22:00:34.000Z' },
-      seven_day: { utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z' },
+      five_hour: {
+        lengthHours: 5, utilization: 0.25, plan: 'example', resetsAt: '2026-11-01T22:00:34.000Z'
+      },
+      seven_day: { lengthHours: 168, utilization: 0.46, resetsAt: '2026-11-04T09:00:00.000Z' },
     },
     later: 1,
   }, null, 2)}\n`);
@@ -82,9 +100,10 @@ test.each([
   ['a list', '[]'],
   ['no windows object', JSON.stringify({ windows: [] })],
   ['a window that is no object', JSON.stringify({ windows: { five_hour: 1 } })],
-  ['no number utilization', JSON.stringify({ windows: { five_hour: { utilization: '19%', resetsAt: FIVE_HOUR.resetsAt } } })],
-  ['no stamp', JSON.stringify({ windows: { five_hour: { utilization: 0.19, resetsAt: 'soon' } } })],
-  ['a window with no name', JSON.stringify({ windows: { '': { utilization: 0.19, resetsAt: FIVE_HOUR.resetsAt } } })],
+  ['no number or null lengthHours', JSON.stringify({ windows: { five_hour: { utilization: 0.19, resetsAt: FIVE_HOUR.resetsAt } } })],
+  ['no number utilization', JSON.stringify({ windows: { five_hour: { lengthHours: 5, utilization: '19%', resetsAt: FIVE_HOUR.resetsAt } } })],
+  ['no stamp', JSON.stringify({ windows: { five_hour: { lengthHours: 5, utilization: 0.19, resetsAt: 'soon' } } })],
+  ['a window with no name', JSON.stringify({ windows: { '': { lengthHours: 5, utilization: 0.19, resetsAt: FIVE_HOUR.resetsAt } } })],
 ])('a file with %s is malformed, never a throw, and the next observation replaces it', (_case, malformedText) => {
   writeFileSync(UsageWindowsFile.pathIn(createdMonitorFolder()), malformedText);
   expect(UsageWindowsFile.read(monitorFolder()).verdict).toBe('malformed');

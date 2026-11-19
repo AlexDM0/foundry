@@ -12,7 +12,7 @@ const WELL_FORMED_QUESTION = {
   question:    'Which export format?',
   header:      'Format',
   multiSelect: false,
-  options:     [{ label: 'CSV', description: 'Comma separated' }],
+  options:     [{ label: 'CSV', description: 'Comma separated', isRecommended: true }],
 };
 
 const WELL_FORMED_DECISION = {
@@ -45,7 +45,7 @@ test('a well-formed decision and incident have no problem, a code-opened decisio
     questions: [{
       ...WELL_FORMED_QUESTION,
       options: [{
-        label: 'CSV', description: 'Comma separated', touches: ['src/export/Csv.ts'], tradeOff: 'Plain.', acceptanceEffect: 'A2 fails.'
+        label: 'CSV', description: 'Comma separated', isRecommended: false, touches: ['src/export/Csv.ts'], tradeOff: 'Plain.', acceptanceEffect: 'A2 fails.'
       }],
     }],
   }, 0)).toBeNull();
@@ -78,8 +78,20 @@ test.each<[string, Record<string, unknown>, string]>([
     'decisions[0].questions[0].options[0].description is not a string',
   ],
   [
+    'an option with no recommendation flag',
+    { questions: [{ ...WELL_FORMED_QUESTION, options: [{ label: 'CSV', description: 'Comma separated' }] }] },
+    'decisions[0].questions[0].options[0].isRecommended is not true or false',
+  ],
+  [
     'an option whose touches is not a list',
-    { questions: [{ ...WELL_FORMED_QUESTION, options: [{ label: 'CSV', description: 'Comma separated', touches: 'src/a.ts' }] }] },
+    {
+      questions: [{
+        ...WELL_FORMED_QUESTION,
+        options: [{
+          label: 'CSV', description: 'Comma separated', isRecommended: false, touches: 'src/a.ts'
+        }]
+      }]
+    },
     'decisions[0].questions[0].options[0] holds a touches, tradeOff or acceptanceEffect that is not well formed',
   ],
 ])('a decision with %s is refused naming the field', (_case, change, reason) => {

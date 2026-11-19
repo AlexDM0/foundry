@@ -40,6 +40,7 @@ function questionShapeIsWellFormed(value: unknown): value is DecisionQuestion {
     && Array.isArray(question['options'])
     && question['options'].every((option: unknown) => typeof option === 'object' && option !== null
       && typeof (option as Record<string, unknown>)['label'] === 'string' && typeof (option as Record<string, unknown>)['description'] === 'string'
+      && typeof (option as Record<string, unknown>)['isRecommended'] === 'boolean'
       && OptionConsequencesUtil.factsAreWellFormed(option as Record<string, unknown>));
 }
 

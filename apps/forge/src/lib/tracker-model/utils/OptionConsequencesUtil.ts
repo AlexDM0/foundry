@@ -99,15 +99,27 @@ function notesAreForQuestion(notes: Readonly<QuestionOptionNotes>, questionText:
   return notes.question === questionText.trim();
 }
 
-/** Each option takes the facts of the note whose label is its own; an option no note names keeps its label and description alone. */
+type AskedOption = Readonly<Pick<DecisionQuestionOption, 'label' | 'description' | 'isRecommended'> & { askedLabel?: string }>;
+
+function noteOfOption(notes: Readonly<QuestionOptionNotes> | undefined, option: AskedOption): OptionNote | undefined {
+  const noteNamed = (label: string): OptionNote | undefined => notes?.options.find((candidate) => candidate.label === label.trim());
+  return noteNamed(option.label) ?? (option.askedLabel === undefined ? undefined : noteNamed(option.askedLabel));
+}
+
+/**
+ * Each option takes the facts of the note whose label is its own, or the label as the agent asked it where that differs; an option no
+ * note names keeps its label and description alone.
+ */
 function optionsWithNotes(
-  question: { readonly question: string; readonly options: readonly Readonly<Pick<DecisionQuestionOption, 'label' | 'description'>>[] },
+  question: { readonly question: string; readonly options: readonly AskedOption[] },
   pendingNotes: readonly Readonly<QuestionOptionNotes>[],
 ): DecisionQuestionOption[] {
   const notes = pendingNotes.find((candidate) => notesAreForQuestion(candidate, question.question));
   return question.options.map((option) => {
-    const noted = notes?.options.find((candidate) => candidate.label === option.label.trim());
-    return { label: option.label, description: option.description, ...consequencesCopyOf(noted ?? {}) };
+    const noted = noteOfOption(notes, option);
+    return {
+      label: option.label, description: option.description, isRecommended: option.isRecommended, ...consequencesCopyOf(noted ?? {})
+    };
   });
 }
 

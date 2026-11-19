@@ -27,14 +27,17 @@ export const DARK_MODE_QUESTION: DecisionDocument = {
     multiSelect: false,
     options:     [
       {
-        label:            'Extend the shared theme tokens (Recommended)',
+        label:            'Extend the shared theme tokens',
         description:      'Add account entries to the token file every page reads.',
+        isRecommended:    true,
         touches:          ['src/theme/tokens.css', 'src/account/Layout.tsx'],
         tradeOff:         'One place to change; the storefront reads the same file.',
         acceptanceEffect: 'meets A1 to A3 as written',
       },
-      { label: 'A scoped stylesheet for the account pages', description: 'A new stylesheet only the account pages load.' },
-      { label: 'Follow the system setting only', description: '', acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first' },
+      { label: 'A scoped stylesheet for the account pages', description: 'A new stylesheet only the account pages load.', isRecommended: false },
+      {
+        label: 'Follow the system setting only', description: '', isRecommended: false, acceptanceEffect: 'A2 fails: the ticket\'s Acceptance must change first'
+      },
     ],
   }],
 };
@@ -51,7 +54,7 @@ export const PARKED_DECISION: DecisionDocument = {
     question:    'Example Storefront parked #005. Resume it?',
     header:      'Parked',
     multiSelect: false,
-    options:     [{ label: 'Resume', description: '' }, { label: 'Abandon', description: '' }],
+    options:     [{ label: 'Resume', description: '', isRecommended: false }, { label: 'Abandon', description: '', isRecommended: false }],
   }],
 };
 
@@ -64,10 +67,22 @@ export const TWO_QUESTION_DECISION: DecisionDocument = {
   openedAt:  '2026-10-29T14:10:00+01:00',
   questions: [
     {
-      question: 'Which store?', header: 'Store', multiSelect: false, options: [{ label: 'Disk', description: '' }, { label: 'Memory', description: '' }]
+      question:    'Which store?',
+      header:      'Store',
+      multiSelect: false,
+      options:     [
+        { label: 'Disk', description: '', isRecommended: false },
+        { label: 'Memory', description: '', isRecommended: false },
+      ]
     },
     {
-      question: 'Which targets?', header: 'Targets', multiSelect: true, options: [{ label: 'main', description: '' }, { label: 'group', description: '' }]
+      question:    'Which targets?',
+      header:      'Targets',
+      multiSelect: true,
+      options:     [
+        { label: 'main', description: '', isRecommended: false },
+        { label: 'group', description: '', isRecommended: false },
+      ]
     },
   ],
 };
@@ -145,6 +160,7 @@ export function exampleToolCall(sequence: number, toolName: string, text: string
     at:        null,
     toolName,
     toolUseId: `tool-${sequence}`,
+    asksUser:  false,
     ...(parentToolUseId === undefined ? {} : { parentToolUseId }),
   };
 }
@@ -158,5 +174,5 @@ export const ASKING_TRANSCRIPT: readonly TranscriptEntryDocument[] = [
   exampleToolCall(5, 'Read', 'docs/design/dark-tokens.json'),
   exampleToolCall(6, 'Bash', 'git log -3 -- src/theme/tokens.css'),
   exampleToolCall(7, 'Glob', 'src/account/**/*.tsx'),
-  exampleToolCall(8, 'AskUserQuestion', '{"questions":[…]}'),
+  { ...exampleToolCall(8, 'AskUserQuestion', '{"questions":[…]}'), asksUser: true },
 ];

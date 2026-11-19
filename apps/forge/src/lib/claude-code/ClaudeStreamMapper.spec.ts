@@ -41,7 +41,10 @@ describe('a session that asks a question and reports (ask-user-question-live-ans
         question:    'Which colour should the button be?',
         header:      'Button colour',
         multiSelect: false,
-        options:     [{ label: 'Red', description: 'User picks Red for the button.' }, { label: 'Blue', description: 'User picks Blue for the button.' }],
+        options:     [
+          { label: 'Red', description: 'User picks Red for the button.', isRecommended: false },
+          { label: 'Blue', description: 'User picks Blue for the button.', isRecommended: false },
+        ],
       }],
     }]);
   });
@@ -50,7 +53,7 @@ describe('a session that asks a question and reports (ask-user-question-live-ans
     const turns = eventsOfKind(events, 'assistant-turn');
     expect(turns.length).toBeGreaterThan(0);
     expect(turns.every((turn) => turn.parentToolUseId === null && turn.messageId.startsWith('msg_') && turn.usage !== null)).toBe(true);
-    expect(eventsOfKind(events, 'tool-call').map((call) => call.toolName)).toEqual(['AskUserQuestion', 'StructuredOutput']);
+    expect(eventsOfKind(events, 'tool-call').map((call) => [call.toolName, call.asksUser])).toEqual([['AskUserQuestion', true], ['StructuredOutput', false]]);
   });
 
   test('ends in one successful result carrying the structured report, the per-model totals and the context size', () => {
@@ -60,6 +63,33 @@ describe('a session that asks a question and reports (ask-user-question-live-ans
     expect(results[0]?.structuredReport).toEqual({ colour: 'Blue' });
     expect(Object.keys(results[0]?.usageTotals?.byModel ?? {})).toEqual(['claude-haiku-5-5']);
     expect(results[0]?.contextTokens).toBeGreaterThan(0);
+  });
+});
+
+describe('a recommended option', () => {
+  /** The recorded question, its first option marked as an asking session marks the option it recommends. */
+  function questionLineWithLabels(labels: readonly string[]): string {
+    const recordedLine = readFileSync(join(FIXTURES_FOLDER, 'ask-user-question-live-answer.stdout.jsonl'), 'utf8').split('\n')
+      .find((line) => line.includes('"subtype":"can_use_tool"')) ?? '';
+    const record = JSON.parse(recordedLine) as { request: { input: { questions: { options: { label: string }[] }[] } } };
+    const [question] = record.request.input.questions;
+    question?.options.forEach((option, i) => { option.label = labels[i] ?? option.label; });
+    return JSON.stringify(record);
+  }
+
+  test('arrives with its label unmarked and isRecommended set; every other option is not recommended', () => {
+    const [question] = eventsOfKind([...claudeStreamEventsOf(questionLineWithLabels(['Red (Recommended)', 'Blue']))], 'question');
+    expect(question?.questions[0]?.options.map((option) => [option.label, option.isRecommended])).toEqual([['Red', true], ['Blue', false]]);
+  });
+
+  test('keeps the label as asked beside the unmarked one, so a note naming the option either way still matches', () => {
+    const [question] = eventsOfKind([...claudeStreamEventsOf(questionLineWithLabels(['Red (Recommended)', 'Blue']))], 'question');
+    expect(question?.questions[0]?.options.map((option) => option.askedLabel)).toEqual(['Red (Recommended)', undefined]);
+  });
+
+  test('a mark in the middle of a label is the agent\'s words and stays', () => {
+    const [question] = eventsOfKind([...claudeStreamEventsOf(questionLineWithLabels(['Red (Recommended) or crimson', 'Blue']))], 'question');
+    expect(question?.questions[0]?.options[0]).toMatchObject({ label: 'Red (Recommended) or crimson', isRecommended: false });
   });
 });
 
@@ -76,10 +106,10 @@ describe('rate limits', () => {
     const events = eventsOfFixture('rate-limit-rejected');
     expect(eventsOfKind(events, 'usage-window')).toEqual([
       {
-        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
+        kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
       },
       {
-        kind: 'usage-window', window: 'seven_day', utilization: 0.62, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed', requestsRefused: false,
+        kind: 'usage-window', window: 'seven_day', lengthHours: 168, utilization: 0.62, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed', requestsRefused: false,
       },
     ]);
     expect(eventsOfKind(events, 'result')[0]).toMatchObject({ isError: true, structuredReport: null });
@@ -89,10 +119,16 @@ describe('rate limits', () => {
     const events = eventsOfFixture('rate-limit-window-rejected-under-allowed');
     expect(eventsOfKind(events, 'usage-window')).toEqual([
       {
-        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: false,
+        kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: false,
       },
       {
-        kind: 'usage-window', window: 'seven_day', utilization: 0.91, resetsAt: new Date(1793397634000).toISOString(), status: 'allowed_warning', requestsRefused: false,
+        kind:            'usage-window',
+        window:          'seven_day',
+        lengthHours:     168,
+        utilization:     0.91,
+        resetsAt:        new Date(1793397634000).toISOString(),
+        status:          'allowed_warning',
+        requestsRefused: false,
       },
     ]);
     expect(eventsOfKind(events, 'result')[0]?.isError).toBe(false);
@@ -112,7 +148,7 @@ describe('rate limits', () => {
       }
     });
     expect([...claudeStreamEventsOf(line)]).toEqual([{
-      kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
+      kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: new Date(1793142034000).toISOString(), status: 'rejected', requestsRefused: true,
     }]);
   });
 
@@ -122,13 +158,29 @@ describe('rate limits', () => {
     const unusableResets = [{}, { resetsAt: 0 }, { resetsAt: -1 }, { resetsAt: 1e300 }, { resetsAt: '1793142034' }];
     for (const unusableReset of unusableResets) {
       expect([...claudeStreamEventsOf(lineOf({ ...refusedFiveHour, ...unusableReset }))]).toEqual([{
-        kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
+        kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
       }]);
       expect([...claudeStreamEventsOf(lineOf({ ...refusedFiveHour, unifiedWindows: { five_hour: { utilization: 1, status: 'rejected', ...unusableReset } } }))])
         .toEqual([{
-          kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
+          kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: null, status: 'rejected', requestsRefused: true,
         }]);
     }
+  });
+
+  test('a window the adapter does not know reports a null length, its name kept', () => {
+    const line = JSON.stringify({
+      type:            'rate_limit_event',
+      rate_limit_info: { status: 'allowed', unifiedWindows: { example_window: { utilization: 0.3, status: 'allowed', resetsAt: 1793142034 } } }
+    });
+    expect([...claudeStreamEventsOf(line)]).toEqual([{
+      kind:            'usage-window',
+      window:          'example_window',
+      lengthHours:     null,
+      utilization:     0.3,
+      resetsAt:        new Date(1793142034000).toISOString(),
+      status:          'allowed',
+      requestsRefused: false,
+    }]);
   });
 
   test('an event that names no window and lists none reports nothing', () => {
@@ -219,7 +271,7 @@ describe('lines that are no event', () => {
         kind: 'assistant-turn', messageId: 'msg_turn', parentToolUseId: null, model: 'claude-opus-5-5', usage: null, text: 'Reading it.'
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: '{}', description: null, parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: '{}', description: null, parentToolUseId: null, asksUser: false
       },
     ]);
     const resultContent = [{ type: 'tool_result', tool_use_id: 'toolu_read', is_error: true }];

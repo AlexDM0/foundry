@@ -17,14 +17,14 @@ const FORMAT_QUESTION: DecisionQuestion = {
   question:    'Which export format should the example ship?',
   header:      'Format',
   multiSelect: false,
-  options:     [{ label: 'CSV', description: 'Comma separated' }, { label: 'JSON', description: 'One document' }],
+  options:     [{ label: 'CSV', description: 'Comma separated', isRecommended: false }, { label: 'JSON', description: 'One document', isRecommended: false }],
 };
 
 const COLUMNS_QUESTION: DecisionQuestion = {
   question:    'Which columns go in?',
   header:      'Columns',
   multiSelect: true,
-  options:     [{ label: 'Name', description: 'Alex Example' }, { label: 'Total', description: 'The cart total' }],
+  options:     [{ label: 'Name', description: 'Alex Example', isRecommended: false }, { label: 'Total', description: 'The cart total', isRecommended: false }],
 };
 
 const AGENT_QUESTION = {
@@ -65,23 +65,24 @@ describe('opening a decision', () => {
 
   test('copies what it is handed, so a later change to the opening changes nothing on the board', () => {
     const { board } = boardWithAJob();
-    const options   = [{ label: 'Yes', description: 'Ship it' }];
+    const options   = [{ label: 'Yes', description: 'Ship it', isRecommended: false }];
     board.openDecision({ ...AGENT_QUESTION, questions: [{ ...FORMAT_QUESTION, options }] }, AT);
-    options.push({ label: 'No', description: 'Hold it' });
+    options.push({ label: 'No', description: 'Hold it', isRecommended: false });
     expect(board.decisionById('E1')?.questions[0]?.options).toHaveLength(1);
   });
 
   test('an option keeps the consequences its asker noted, and an option without them gets no consequence key', () => {
     const { board } = boardWithAJob();
     const notedOption = {
-      label: 'CSV', description: 'Comma separated', touches: ['src/export/Csv.ts'], tradeOff: 'Plain, no nesting.', acceptanceEffect: 'A2 fails.'
+      label: 'CSV', description: 'Comma separated', isRecommended: true, touches: ['src/export/Csv.ts'], tradeOff: 'Plain, no nesting.', acceptanceEffect: 'A2 fails.'
     };
-    board.openDecision({ ...AGENT_QUESTION, questions: [{ ...FORMAT_QUESTION, options: [notedOption, { label: 'JSON', description: 'One document' }] }] }, AT);
+    const plainOption = { label: 'JSON', description: 'One document', isRecommended: false };
+    board.openDecision({ ...AGENT_QUESTION, questions: [{ ...FORMAT_QUESTION, options: [notedOption, plainOption] }] }, AT);
 
     const [noted, plain] = board.decisionById('E1')?.questions[0]?.options ?? [];
     expect(noted).toEqual(notedOption);
     expect(noted?.touches).not.toBe(notedOption.touches);
-    expect(Object.keys(plain ?? {})).toEqual(['label', 'description']);
+    expect(Object.keys(plain ?? {})).toEqual(['label', 'description', 'isRecommended']);
   });
 
   test('a code-opened decision with no request opens every time it is asked', () => {

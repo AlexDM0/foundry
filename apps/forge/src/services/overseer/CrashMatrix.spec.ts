@@ -475,7 +475,13 @@ const LINE_THEN_WAITING_STEPS: readonly FakeAgentStep[] = [
 ];
 
 const EXAMPLE_QUESTION: AgentQuestion = {
-  question: 'Ship the example export?', header: 'Export', multiSelect: false, options: [{ label: 'Yes', description: 'Ship it' }, { label: 'No', description: 'Hold it' }],
+  question:    'Ship the example export?',
+  header:      'Export',
+  multiSelect: false,
+  options:     [
+    { label: 'Yes', description: 'Ship it', isRecommended: false },
+    { label: 'No', description: 'Hold it', isRecommended: false },
+  ],
 };
 
 function askingSteps(question: AgentQuestion): readonly FakeAgentStep[] {
@@ -1286,7 +1292,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     assistantHasAnswered:         false,
     assistantBootRetryDue:        false,
   } as const;
-  const wordingOf = (): { questions: { question: string; header: string; multiSelect: boolean; options: { label: string; description: string }[] }[]; context: string } => ({
+  type ExampleOption = { label: string; description: string; isRecommended: boolean };
+  const wordingOf = (): { questions: { question: string; header: string; multiSelect: boolean; options: ExampleOption[] }[]; context: string } => ({
     questions: [{
       question: 'Example?', header: 'example', multiSelect: false, options: []
     }],

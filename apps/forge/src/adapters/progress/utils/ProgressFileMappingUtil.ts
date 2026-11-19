@@ -126,7 +126,7 @@ const KNOWN_DECISION_QUESTION_KEYS = {
 } as const satisfies Record<keyof DecisionQuestion | keyof StoredDecisionQuestion, true>;
 
 const KNOWN_DECISION_OPTION_KEYS = {
-  label: true, description: true, touches: true, tradeOff: true, acceptanceEffect: true
+  label: true, description: true, isRecommended: true, touches: true, tradeOff: true, acceptanceEffect: true
 } as const satisfies Record<keyof DecisionQuestionOption | keyof StoredDecisionQuestionOption, true>;
 
 const KNOWN_INCIDENT_KEYS = {
@@ -267,7 +267,9 @@ function airlockOf(stored: StoredAirlock): Airlock {
 
 /** The consequences follow the description, each only where the option has it. */
 function decisionOptionCopyOf(option: DecisionQuestionOption): DecisionQuestionOption {
-  return { label: option.label, description: option.description, ...OptionConsequencesUtil.consequencesCopyOf(option) };
+  return {
+    label: option.label, description: option.description, isRecommended: option.isRecommended, ...OptionConsequencesUtil.consequencesCopyOf(option)
+  };
 }
 
 function questionOf(stored: StoredDecisionQuestion): DecisionQuestion {

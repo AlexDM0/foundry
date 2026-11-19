@@ -48,7 +48,7 @@ type LoggedLine =
 
 const EXAMPLE_STAMP = '2026-11-10T09:30:00.000Z';
 const QUESTION = {
-  question: 'Which colour should the button be?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour should the button be?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
 const NO_SENDER_FACTS: TranscriptSenderFacts = {
   userMessageTexts: [], assistantChats: null, requestIdsAnsweredByAssistant: [], pictureNamesById: new Map()
@@ -260,7 +260,7 @@ describe('agent lines', () => {
   test('keep each call\'s toolUseId on the call and its result, and close a turn with turn-end', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[
       agent({
-        kind: 'tool-call', toolUseId: 'toolu_example', toolName: 'Read', inputSummary: 'README.md', description: null, parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_example', toolName: 'Read', inputSummary: 'README.md', description: null, parentToolUseId: null, asksUser: false
       }),
       agent({
         kind: 'tool-result', toolUseId: 'toolu_example', parentToolUseId: null, isError: false
@@ -280,16 +280,31 @@ describe('agent lines', () => {
     ]);
   });
 
+  test('carry on each tool call whether it asks User, as the adapter mapped it', () => {
+    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[agent(
+      {
+        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: 'a.ts', description: null, parentToolUseId: null, asksUser: false
+      },
+      {
+        kind: 'tool-call', toolUseId: 'toolu_ask', toolName: 'Example asking tool', inputSummary: '{}', description: null, parentToolUseId: null, asksUser: true
+      },
+    )]]);
+    expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries.map(({ toolUseId, asksUser }) => ({ toolUseId, asksUser }))).toEqual([
+      { toolUseId: 'toolu_read', asksUser: false },
+      { toolUseId: 'toolu_ask', asksUser: true },
+    ]);
+  });
+
   test('give the entries of one log line its cursor and stamp, each with its own entry key', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[agent(
       {
         kind: 'assistant-turn', messageId: 'message-example', parentToolUseId: null, model: 'example-model', usage: null, text: 'Two calls.'
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: 'a.ts', description: null, parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_read', toolName: 'Read', inputSummary: 'a.ts', description: null, parentToolUseId: null, asksUser: false
       },
       {
-        kind: 'tool-call', toolUseId: 'toolu_grep', toolName: 'Grep', inputSummary: 'b', description: null, parentToolUseId: null
+        kind: 'tool-call', toolUseId: 'toolu_grep', toolName: 'Grep', inputSummary: 'b', description: null, parentToolUseId: null, asksUser: false
       },
     )]]);
     expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries.map(({ cursor, entryKey, at }) => ({ cursor, entryKey, at }))).toEqual([

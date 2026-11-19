@@ -8,8 +8,10 @@ import type { PageDraftDocument } from './BoardStateDocument.ts';
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface DecisionOptionDocument {
+  /** As asked, with no mark of the recommendation, which `isRecommended` carries. */
   readonly label:             string;
   readonly description:       string;
+  readonly isRecommended:     boolean;
   /** The repository paths the option changes. */
   readonly touches?:          readonly string[];
   readonly tradeOff?:         string;

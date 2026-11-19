@@ -52,6 +52,7 @@ function optionProblem(value: unknown, path: string): string | null {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
   if (typeof value['label'] !== 'string') return `${path}.label is not a string`;
   if (typeof value['description'] !== 'string') return `${path}.description is not a string`;
+  if (typeof value['isRecommended'] !== 'boolean') return `${path}.isRecommended is not true or false`;
   return OptionConsequencesUtil.factsAreWellFormed(value) ? null : `${path} holds a touches, tradeOff or acceptanceEffect that is not well formed`;
 }
 

@@ -23,7 +23,9 @@ function copyOf(opening: DecisionOpening, id: string, at: string): Decision {
       question:    question.question,
       header:      question.header,
       multiSelect: question.multiSelect,
-      options:     question.options.map((option) => ({ label: option.label, description: option.description, ...OptionConsequencesUtil.consequencesCopyOf(option) })),
+      options:     question.options.map((option) => ({
+        label: option.label, description: option.description, isRecommended: option.isRecommended, ...OptionConsequencesUtil.consequencesCopyOf(option)
+      })),
     })),
     context:  opening.context,
     openedAt: at,

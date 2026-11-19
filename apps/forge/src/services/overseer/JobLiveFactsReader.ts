@@ -53,12 +53,14 @@ export interface SessionLastLine {
 
 /** A usage window as the session reported it, whether or not the vendor refused requests in it. */
 export interface UsageWindowReport {
-  /** As the vendor names it, such as `five_hour`. */
-  window:     string;
+  /** The window's name as the agent reported it, an opaque value. */
+  window:      string;
+  /** `null` for a window the agent's adapter does not know. */
+  lengthHours: number | null;
   /** `null` when the vendor named no usable reset. */
-  resetsAt:   string | null;
+  resetsAt:    string | null;
   /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
-  reportedAt: string | null;
+  reportedAt:  string | null;
 }
 
 export interface JobLiveFacts {
@@ -202,7 +204,11 @@ function newestUsageWindowOf(stampedEvents: readonly StampedEvents[]): UsageWind
   let newest: UsageWindowReport | null = null;
   for (const { at, events } of stampedEvents) {
     for (const event of events) {
-      if (event.kind === 'usage-window') newest = { window: event.window, resetsAt: event.resetsAt, reportedAt: at };
+      if (event.kind === 'usage-window') {
+        newest = {
+          window: event.window, lengthHours: event.lengthHours, resetsAt: event.resetsAt, reportedAt: at
+        };
+      }
     }
   }
   return newest;

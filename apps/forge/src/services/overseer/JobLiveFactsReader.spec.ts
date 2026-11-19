@@ -47,7 +47,7 @@ const AGENT_LINES = fakeAgentAdapter();
 
 function toolCall(toolUseId: string, toolName: string, parentToolUseId: string | null, description: string | null = null): AgentSessionEvent {
   return {
-    kind: 'tool-call', toolUseId, toolName, inputSummary: toolName, description, parentToolUseId
+    kind: 'tool-call', toolUseId, toolName, inputSummary: toolName, description, parentToolUseId, asksUser: false
   };
 }
 
@@ -279,9 +279,9 @@ describe('JobLiveFactsReader', () => {
   });
 });
 
-function usageWindow(window: string, resetsAt: string, requestsRefused = false): AgentSessionEvent {
+function usageWindow(window: string, lengthHours: number | null, resetsAt: string, requestsRefused = false): AgentSessionEvent {
   return {
-    kind: 'usage-window', window, utilization: 0.5, resetsAt, status: requestsRefused ? 'rejected' : 'allowed', requestsRefused
+    kind: 'usage-window', window, lengthHours, utilization: 0.5, resetsAt, status: requestsRefused ? 'rejected' : 'allowed', requestsRefused
   };
 }
 
@@ -289,9 +289,11 @@ describe('the usage window', () => {
   test('is the newest window the session reported, of any instance, refused or not, stamped with its log entry', () => {
     const resumed = { ...EXAMPLE_JOB, childInstance: 2 };
     expect(liveFactsOfLoggedLines([
-      [usageWindow('five_hour', '2026-10-29T15:00:00.000Z'), RESULT],
-      [usageWindow('seven_day', '2026-11-02T09:00:00.000Z', true), assistantTurn('message-1', null)],
-    ], resumed).usageWindow).toEqual({ window: 'seven_day', resetsAt: '2026-11-02T09:00:00.000Z', reportedAt: '2026-10-29T12:00:03Z' });
+      [usageWindow('five_hour', 5, '2026-10-29T15:00:00.000Z'), RESULT],
+      [usageWindow('seven_day', 168, '2026-11-02T09:00:00.000Z', true), assistantTurn('message-1', null)],
+    ], resumed).usageWindow).toEqual({
+      window: 'seven_day', lengthHours: 168, resetsAt: '2026-11-02T09:00:00.000Z', reportedAt: '2026-10-29T12:00:03Z'
+    });
   });
 
   test('is null before the session reported one', () => {

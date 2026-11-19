@@ -1300,8 +1300,12 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardStateDoc
   'profile-stopped':           () => profileState('stopped', 12_000),
   'profile-passed':            () => profileState('passed', 94_000),
   'header-both-usage-windows': () => usageState([
-    { window: 'five_hour', utilization: 14, resetsAt: '2026-11-12T15:00:00' },
-    { window: 'seven_day', utilization: 18, resetsAt: '2026-11-16T09:00:00' },
+    {
+      window: 'five_hour', lengthHours: 5, utilization: 14, resetsAt: '2026-11-12T15:00:00'
+    },
+    {
+      window: 'seven_day', lengthHours: 168, utilization: 18, resetsAt: '2026-11-16T09:00:00'
+    },
   ]),
   'header-no-usage-windows': () => usageState([]),
   'mono-design':             () => monorepoDesignState(),

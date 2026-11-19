@@ -84,9 +84,17 @@ describe('the status details', () => {
     expect(headerModelOf(boardStateFixture(), FIXTURE_NOW, 'live').statusDetails).toEqual([]);
   });
 
-  test('a window with no word of its own reads as its stored value', () => {
-    const usage = { resetsAt: null, window: null, windows: [{ window: 'seven_day_opus', utilization: 7.6, resetsAt: null }] };
-    expect(headerModelOf(boardStateFixture({ usage }), FIXTURE_NOW, 'live').statusDetails).toEqual(['seven_day_opus 8%']);
+  test('a window of unknown length reads as its stored name, and any other length as hours', () => {
+    const usage = {
+      resetsAt: null,
+      window:   null,
+      windows:  [{
+        window: 'example_window', lengthHours: null, utilization: 7.6, resetsAt: null
+      }, {
+        window: 'example_day', lengthHours: 24, utilization: 3, resetsAt: null
+      }],
+    };
+    expect(headerModelOf(boardStateFixture({ usage }), FIXTURE_NOW, 'live').statusDetails).toEqual(['example_window 8%', '24-hour window 3%']);
   });
 });
 
@@ -256,15 +264,26 @@ describe('concurrency, usage and the statistics', () => {
     const resetsAt = '2026-10-29T14:30:00.000Z';
     const resetMoment = new Date(Date.parse(resetsAt));
     const viewerClock = `${String(resetMoment.getHours()).padStart(2, '0')}:${String(resetMoment.getMinutes()).padStart(2, '0')}`;
+    const windows = [{
+      window: 'example_five_hours', lengthHours: 5, utilization: 100, resetsAt
+    }];
     const detailOf = (stamp: string): string | undefined =>
-      headerModelOf(boardStateFixture({ usage: { resetsAt: stamp, window: 'five_hour' } }), FIXTURE_NOW, 'live').statusDetails[0];
+      headerModelOf(boardStateFixture({ usage: { resetsAt: stamp, window: 'example_five_hours', windows } }), FIXTURE_NOW, 'live').statusDetails.at(-1);
     expect(detailOf(resetsAt)).toBe(`5-hour window usage limit hit, resets ${viewerClock}`);
     expect(detailOf('2026-10-29T15:30:00+01:00')).toBe(detailOf(resetsAt));
   });
 
-  test('a usage limit hit whose reset does not parse reads without a reset time', () => {
-    expect(headerModelOf(boardStateFixture({ usage: { resetsAt: 'soon', window: 'seven_day' } }), FIXTURE_NOW, 'live').statusDetails[0])
+  test('a usage limit hit whose reset does not parse reads without a reset time, a week by its length', () => {
+    const windows = [{
+      window: 'example_week', lengthHours: 168, utilization: 100, resetsAt: null
+    }];
+    expect(headerModelOf(boardStateFixture({ usage: { resetsAt: 'soon', window: 'example_week', windows } }), FIXTURE_NOW, 'live').statusDetails.at(-1))
       .toBe('week usage limit hit');
+  });
+
+  test('a usage limit hit on a window no observation gives a length reads with the window\'s stored name', () => {
+    expect(headerModelOf(boardStateFixture({ usage: { resetsAt: 'soon', window: 'example_window' } }), FIXTURE_NOW, 'live').statusDetails[0])
+      .toBe('example_window usage limit hit');
   });
 });
 

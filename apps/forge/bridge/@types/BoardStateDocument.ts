@@ -55,9 +55,12 @@ export interface LaunchSlotsDocument {
   readonly inProgressTicketIdsWithoutJob: readonly string[];
 }
 
-/** The newest observation of one usage window the plan has, such as `five_hour` or `seven_day`. */
+/** The newest observation of one usage window the plan has. */
 export interface UsageWindowDocument {
+  /** The window's name as the agent reported it, an opaque value worded only when its length is unknown. */
   readonly window:      string;
+  /** `null` for a window the agent's adapter does not know. */
+  readonly lengthHours: number | null;
   /** Percent of the window used, 0 to 100. */
   readonly utilization: number;
   readonly resetsAt:    string | null;

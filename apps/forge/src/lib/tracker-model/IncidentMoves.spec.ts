@@ -17,7 +17,7 @@ const AGENT_WORDS: DecisionQuestion = {
   question:    'The install line needs a missing tool; which one should Example Agency use?',
   header:      'system',
   multiSelect: false,
-  options:     [{ label: 'bun', description: 'The repository says so' }, { label: 'npm', description: 'The lock file says so' }],
+  options:     [{ label: 'bun', description: 'The repository says so', isRecommended: false }, { label: 'npm', description: 'The lock file says so', isRecommended: false }],
 };
 
 const wordingOf = (draft: DecisionDraft) => ({

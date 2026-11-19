@@ -119,7 +119,7 @@ function oneQuestionWordingOf(draft: DecisionDraft, question: string, options: D
 }
 
 function optionOf(label: string, description: string): DecisionQuestionOption {
-  return { label, description };
+  return { label, description, isRecommended: false };
 }
 
 /** The need as the decision names it, `<entity>: <title>`, or a plain phrase when the draft names none. */

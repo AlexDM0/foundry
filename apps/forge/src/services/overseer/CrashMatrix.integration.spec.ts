@@ -119,7 +119,13 @@ const LINE_THEN_WAITING_STEPS: readonly FakeAgentStep[] = [
 ];
 
 const EXAMPLE_QUESTION: AgentQuestion = {
-  question: 'Ship the example export?', header: 'Export', multiSelect: false, options: [{ label: 'Yes', description: 'Ship it' }, { label: 'No', description: 'Hold it' }],
+  question:    'Ship the example export?',
+  header:      'Export',
+  multiSelect: false,
+  options:     [
+    { label: 'Yes', description: 'Ship it', isRecommended: false },
+    { label: 'No', description: 'Hold it', isRecommended: false },
+  ],
 };
 
 /** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */

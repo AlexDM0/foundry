@@ -75,7 +75,7 @@ function wordingOf(draft: DecisionDraft): DecisionWording {
     'whitelist-removed-mid-crossing': [answers.finishUnderTheOldWhitelist, answers.turnThePackageChangeIntoANeed],
     'dependent-broken':               [`${answers.fileAFixTicketForPrefix}${draft.subject?.dependentEntity ?? ''}`, answers.abandon],
   };
-  const options = (optionsByKind[draft.kind] ?? []).map((label) => ({ label, description: `Example ${label}` }));
+  const options = (optionsByKind[draft.kind] ?? []).map((label) => ({ label, description: `Example ${label}`, isRecommended: false }));
   return {
     questions: [{
       question: `Example ${draft.kind} about ${draft.subject?.packageEntity ?? 'the ticket'}?`, header: draft.kind, multiSelect: false, options

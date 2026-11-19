@@ -15,7 +15,13 @@ function decisionOf(id: string, questions: DecisionDocument['questions']): Decis
 }
 
 const ONE_QUESTION = [{
-  question: 'Which store?', header: 'Store', multiSelect: false, options: [{ label: 'Disk', description: '' }, { label: 'Memory', description: '' }]
+  question:    'Which store?',
+  header:      'Store',
+  multiSelect: false,
+  options:     [
+    { label: 'Disk', description: '', isRecommended: false },
+    { label: 'Memory', description: '', isRecommended: false },
+  ]
 }];
 const TWO_QUESTIONS = [
   ...ONE_QUESTION,
@@ -23,7 +29,11 @@ const TWO_QUESTIONS = [
     question:    'Which targets?',
     header:      'Targets',
     multiSelect: true,
-    options:     [{ label: 'main', description: '' }, { label: 'group', description: '' }, { label: 'none', description: '' }],
+    options:     [
+      { label: 'main', description: '', isRecommended: false },
+      { label: 'group', description: '', isRecommended: false },
+      { label: 'none', description: '', isRecommended: false },
+    ],
   },
 ];
 

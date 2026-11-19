@@ -2,8 +2,10 @@
  * `sentLineOf` reads back the lines Talos writes to a Claude Code session, so a transcript shows what was said rather than the vendor's
  * JSON. What matters: it is the exact inverse of the three writers (a chat with or without pictures, an answer with its request and
  * answers, an interrupt), it reads the recorded stdin lines of a real session the same way, and any other line, a stdout line among them,
- * reads as `null` rather than a guess. A chat with pictures is written as probe P21 found Claude Code takes it: base64 image blocks before
- * one text block (`.platform-probes/claude-p21-stream-json-image-input.js`); without pictures the content stays the plain text.
+ * reads as `null` rather than a guess. An answer to a question with a recommended option is written with the session's own mark on that
+ * option's label, in the echoed questions and in the answer, and reads back unmarked, as the stored decision holds the label. A chat
+ * with pictures is written as probe P21 found Claude Code takes it: base64 image blocks before one text block
+ * (`.platform-probes/claude-p21-stream-json-image-input.js`); without pictures the content stays the plain text.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -21,8 +23,20 @@ function fixtureLines(fileName: string): string[] {
 const EXAMPLE_PICTURE = { mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' };
 
 const QUESTION = {
-  question: 'Which colour should the button be?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour should the button be?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
+
+const RECOMMENDING_QUESTION = {
+  question:    'Which colour should the button be?',
+  header:      'Colour',
+  multiSelect: false,
+  options:     [{ label: 'Red', description: 'Red.', isRecommended: false }, { label: 'Blue', description: 'Blue.', isRecommended: true }],
+};
+
+interface EchoedInput {
+  questions: { options: { label: string }[] }[];
+  answers:   Record<string, string>;
+}
 
 describe('sentLineOf', () => {
   test('reads a chat line back as its text, quotes and line breaks intact', () => {
@@ -71,6 +85,37 @@ describe('sentLineOf', () => {
     const answers = { [QUESTION.question]: 'Blue' };
     const line = CLAUDE_STREAM_LINES.answerLineOf('request-example', [QUESTION], answers);
     expect(CLAUDE_STREAM_LINES.sentLineOf(line)).toEqual({ act: 'answer', requestId: 'request-example', answers });
+  });
+
+  test('echoes a recommended option marked, sends an answer that names it marked, and reads the answer back unmarked', () => {
+    const answers = { [RECOMMENDING_QUESTION.question]: 'Blue' };
+    const line = CLAUDE_STREAM_LINES.answerLineOf('request-example', [RECOMMENDING_QUESTION], answers);
+    const { updatedInput } = (JSON.parse(line) as { response: { response: { updatedInput: EchoedInput } } }).response.response;
+    expect(updatedInput.questions[0]?.options.map((option) => option.label)).toEqual(['Red', 'Blue (Recommended)']);
+    expect(updatedInput.answers).toEqual({ [RECOMMENDING_QUESTION.question]: 'Blue (Recommended)' });
+    expect(CLAUDE_STREAM_LINES.sentLineOf(line)).toEqual({ act: 'answer', requestId: 'request-example', answers });
+  });
+
+  test('marks each recommended label of an answer of several choices, and reads it back unmarked', () => {
+    const question = { ...RECOMMENDING_QUESTION, multiSelect: true };
+    const answers = { [question.question]: 'Red, Blue' };
+    const line = CLAUDE_STREAM_LINES.answerLineOf('request-example', [question], answers);
+    expect((JSON.parse(line) as { response: { response: { updatedInput: EchoedInput } } }).response.response.updatedInput.answers)
+      .toEqual({ [question.question]: 'Red, Blue (Recommended)' });
+    expect(CLAUDE_STREAM_LINES.sentLineOf(line)).toEqual({ act: 'answer', requestId: 'request-example', answers });
+  });
+
+  test('reads back as written an answer that names no marked label of the echoed questions', () => {
+    const answers = { [RECOMMENDING_QUESTION.question]: 'Red', 'A question nobody asked?': 'Blue (Recommended)' };
+    expect(CLAUDE_STREAM_LINES.sentLineOf(CLAUDE_STREAM_LINES.answerLineOf('request-example', [RECOMMENDING_QUESTION], answers)))
+      .toEqual({ act: 'answer', requestId: 'request-example', answers });
+  });
+
+  test('reads a recorded answer line whose echoed question carries the mark back unmarked', () => {
+    const [, recordedAnswerLine = ''] = fixtureLines('ask-user-question-live-answer.stdin.jsonl');
+    const markedLine = recordedAnswerLine.replace('"label":"Blue"', '"label":"Blue (Recommended)"').replace(':"Blue"}', ':"Blue (Recommended)"}');
+    expect(markedLine).not.toBe(recordedAnswerLine);
+    expect(CLAUDE_STREAM_LINES.sentLineOf(markedLine)).toMatchObject({ act: 'answer', answers: { [QUESTION.question]: 'Blue' } });
   });
 
   test('reads an interrupt line back as an interrupt', () => {

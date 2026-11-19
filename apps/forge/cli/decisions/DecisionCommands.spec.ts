@@ -35,10 +35,19 @@ const EXAMPLE_DECISION = {
   requestId: 'request-1',
   questions: [
     {
-      question: 'Which export format?', header: 'Format', multiSelect: false, options: [{ label: 'CSV', description: 'Comma separated' }, { label: 'JSON', description: '' }],
+      question:    'Which export format?',
+      header:      'Format',
+      multiSelect: false,
+      options:     [{ label: 'CSV', description: 'Comma separated', isRecommended: true }, { label: 'JSON', description: '', isRecommended: false }],
     },
     {
-      question: 'Which columns?', header: 'Columns', multiSelect: true, options: [{ label: 'Name', description: '' }, { label: 'Total', description: '' }],
+      question:    'Which columns?',
+      header:      'Columns',
+      multiSelect: true,
+      options:     [
+        { label: 'Name', description: '', isRecommended: false },
+        { label: 'Total', description: '', isRecommended: false },
+      ],
     },
   ],
   context: '',
@@ -79,16 +88,18 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('the decision commands', () => {
-  test('decisions letters each option as decide takes it, and reads without writing', async () => {
+  test('decisions letters each option as decide takes it, marks the recommended one from its stored flag, and reads without writing', async () => {
     await openTheExampleDecision();
     const progressPath = workspacePathsFor(repositoryDirectory).progressFilePath;
     const before = readFileSync(progressPath, 'utf8');
 
     const listed = await run(['decisions']);
     expect(listed.outputText()).toContain('E1 agent-question on #001 (asked by builder');
-    expect(listed.outputText()).toContain('  1. [Format] Which export format?\n     a. CSV: Comma separated\n     b. JSON');
+    expect(listed.outputText()).toContain('  1. [Format] Which export format?\n     a. CSV (recommended): Comma separated\n     b. JSON\n');
     expect(listed.outputText()).toContain('  2. [Columns] Which columns? (several letters)');
-    expect(JSON.parse((await run(['decisions', '--json'])).outputText())).toMatchObject({ decisions: [{ id: 'E1', requestId: 'request-1' }] });
+    const recommendedFlags = [{ label: 'CSV', isRecommended: true }, { label: 'JSON', isRecommended: false }];
+    const listedDecision   = { id: 'E1', requestId: 'request-1', questions: [{ options: recommendedFlags }, { header: 'Columns' }] };
+    expect(JSON.parse((await run(['decisions', '--json'])).outputText())).toMatchObject({ decisions: [listedDecision] });
     expect(readFileSync(progressPath, 'utf8')).toBe(before);
   });
 

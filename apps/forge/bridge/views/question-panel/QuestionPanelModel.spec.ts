@@ -1,8 +1,8 @@
 /**
  * The question panel's model against synthetic boards. What matters: which decision shows (the pointed one while open, else the first one
  * opened since the fold, else the first) and whether the panel shows against the fold (it shows again once a decision opens that was not
- * open at the fold, and whenever User opened it); options stay as asked, an agent's trailing `(Recommended)` read off the label into a
- * mark, with consequences only when the agent noted them; own words only on a decision of one question; a code-opened decision has no
+ * open at the fold, and whenever User opened it); options stay as stored, the stored recommendation a mark beside the label, with
+ * consequences only when the agent noted them; own words only on a decision of one question; a code-opened decision has no
  * conversation, no steps and is asked by the Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a
  * wrapped line joined to its paragraph as Markdown reads it, and omits them when the board serves none; the earlier answers join the
  * openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the asking call current; the
@@ -114,7 +114,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     expect(QuestionPanelModel.questionPanelModelOf(board, queue, shown, { todayCalendarDate: '2026-10-29', slices: null }).head.openSinceText).toBeNull();
   });
 
-  test('keeps every option as asked, the trailing (Recommended) a mark beside the label, with consequences only where the agent noted them', () => {
+  test('keeps every option as stored, the recommendation a mark beside the label, with consequences only where the agent noted them', () => {
     const [question] = modelOf(exampleQuestionPanelBoard(), 'E7').questions;
     expect(question?.options).toEqual([
       {
@@ -141,7 +141,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     ]);
   });
 
-  test('reads (Recommended) as a mark only at the end of a label', () => {
+  test('marks the recommendation from the stored flag alone, and shows each label as stored', () => {
     const board = exampleQuestionPanelBoard({
       decisions: [{
         ...DARK_MODE_QUESTION,
@@ -149,12 +149,12 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
           question:    'Where?',
           header:      'Tokens',
           multiSelect: false,
-          options:     [{ label: 'Keep (Recommended) tokens', description: '' }, { label: 'Split them  (Recommended) ', description: '' }],
+          options:     [{ label: 'Keep the tokens', description: '', isRecommended: false }, { label: 'Split them', description: '', isRecommended: true }],
         }],
       }],
     });
     expect(modelOf(board, 'E7').questions[0]?.options.map((option) => [option.label, option.isRecommended])).toEqual([
-      ['Keep (Recommended) tokens', false],
+      ['Keep the tokens', false],
       ['Split them', true],
     ]);
   });
@@ -288,5 +288,14 @@ describe('QuestionPanelModel.lastStepsOf', () => {
   test('a last call that is no question is not current', () => {
     const steps = QuestionPanelModel.lastStepsOf(ASKING_TRANSCRIPT.slice(0, -1), QUESTION_PANEL_STEPS_SHOWN);
     expect(steps.some((step) => step.isCurrent)).toBe(false);
+  });
+
+  test('the call that asks User is current by the entry\'s asksUser, whatever the tool is named', () => {
+    const askingCall = ASKING_TRANSCRIPT.at(-1);
+    if (askingCall === undefined) throw new Error('no asking call');
+    const renamed = [...ASKING_TRANSCRIPT.slice(0, -1), { ...askingCall, toolName: 'Example asking tool' }];
+    expect(QuestionPanelModel.lastStepsOf(renamed, QUESTION_PANEL_STEPS_SHOWN).at(-1)).toMatchObject({ toolName: 'Example asking tool', isCurrent: true });
+    const notAsking = [...ASKING_TRANSCRIPT.slice(0, -1), { ...askingCall, asksUser: false }];
+    expect(QuestionPanelModel.lastStepsOf(notAsking, QUESTION_PANEL_STEPS_SHOWN).some((step) => step.isCurrent)).toBe(false);
   });
 });

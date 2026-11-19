@@ -19,7 +19,7 @@ export const WAITING_FIXTURE_NOW = new Date('2026-11-09T14:20:20');
 
 function questionOf(question: string): DecisionDocument['questions'] {
   return [{
-    question, header: 'Example', multiSelect: false, options: [{ label: 'Yes', description: 'Example yes' }]
+    question, header: 'Example', multiSelect: false, options: [{ label: 'Yes', description: 'Example yes', isRecommended: false }]
   }];
 }
 

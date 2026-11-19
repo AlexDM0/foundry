@@ -33,8 +33,10 @@ export type DecisionKind =
 
 /** The consequences only once the asking agent noted them with `question options`. */
 export interface DecisionQuestionOption extends OptionConsequences {
-  label:       string;
-  description: string;
+  /** As asked, with no mark of the recommendation, which `isRecommended` carries. */
+  label:         string;
+  description:   string;
+  isRecommended: boolean;
 }
 
 /** AskUserQuestion's own question shape, field for field, so an agent's question is stored exactly as it asked it. */

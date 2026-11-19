@@ -1,8 +1,17 @@
+export interface AgentQuestionOption {
+  /** The label as the agent asked it, with no mark of the agent's recommendation. */
+  readonly label:         string;
+  readonly description:   string;
+  readonly isRecommended: boolean;
+  /** The label exactly as the agent wrote it, set only where it differs from `label`; a note the agent gives may name the option either way. */
+  readonly askedLabel?:   string;
+}
+
 export interface AgentQuestion {
   readonly question:    string;
   readonly header:      string;
   readonly multiSelect: boolean;
-  readonly options:     readonly { readonly label: string; readonly description: string }[];
+  readonly options:     readonly AgentQuestionOption[];
 }
 
 export interface AgentTurnUsage {
@@ -47,6 +56,8 @@ export type AgentSessionEvent =
     /** The call's own `description` input, whole: for a call that spawns a subagent, what the subagent was asked to do. `null` without one. */
     readonly description:     string | null;
     readonly parentToolUseId: string | null;
+    /** True for the agent's own call that asks User a question, the step a session waits at. */
+    readonly asksUser:        boolean;
   }
   /** The answer to the tool call `toolUseId` names, so a reader knows that call is no longer running. */
   | { readonly kind: 'tool-result'; readonly toolUseId: string; readonly parentToolUseId: string | null; readonly isError: boolean }
@@ -54,7 +65,10 @@ export type AgentSessionEvent =
   | { readonly kind: 'permission-denied'; readonly toolName: string }
   | {
     readonly kind:            'usage-window';
+    /** The window's name as the agent reports it, an opaque value. */
     readonly window:          string;
+    /** `null` for a window the adapter does not know. */
+    readonly lengthHours:     number | null;
     readonly utilization:     number;
     /** `null` when the vendor named no usable reset. */
     readonly resetsAt:        string | null;

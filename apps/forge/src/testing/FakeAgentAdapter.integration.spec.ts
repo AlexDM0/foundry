@@ -34,7 +34,7 @@ afterAll(() => {
 });
 
 const QUESTION = {
-  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
 
 function launched(adapter: AgentAdapter): ReturnType<typeof Bun.spawn<'pipe', 'pipe', 'pipe'>> {

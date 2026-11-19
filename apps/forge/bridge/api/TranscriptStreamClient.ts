@@ -27,6 +27,8 @@ export interface TranscriptEntryDocument {
   readonly toolName?:        string;
   readonly parentToolUseId?: string;
   readonly toolUseId?:       string;
+  /** On a tool call only: true for the call that asks User a question. */
+  readonly asksUser?:        boolean;
   readonly model?:           string;
   readonly tokens?:          number;
   readonly clientAct?:       'chat' | 'answer' | 'interrupt' | 'close-input' | 'stop';

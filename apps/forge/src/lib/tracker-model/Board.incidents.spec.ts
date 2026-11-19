@@ -25,7 +25,7 @@ const AGENT_WORDS: DecisionQuestion = {
   question:    'The install line fails on a missing bun; install it?',
   header:      'system',
   multiSelect: false,
-  options:     [{ label: 'Install', description: 'Run the setup script' }, { label: 'Stop', description: 'Leave it' }],
+  options:     [{ label: 'Install', description: 'Run the setup script', isRecommended: false }, { label: 'Stop', description: 'Leave it', isRecommended: false }],
 };
 
 function freshBoard(): ReturnType<typeof boardFixture> {

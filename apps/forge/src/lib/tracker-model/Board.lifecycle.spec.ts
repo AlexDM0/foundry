@@ -31,7 +31,7 @@ import {
 
 const WORDING = {
   questions: [{
-    question: 'Carry on?', header: 'Carry on', multiSelect: false, options: [{ label: 'Yes', description: 'Carry on' }],
+    question: 'Carry on?', header: 'Carry on', multiSelect: false, options: [{ label: 'Yes', description: 'Carry on', isRecommended: false }],
   }],
   context: 'Example context',
 };

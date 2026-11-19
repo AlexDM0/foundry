@@ -4,6 +4,7 @@
  */
 import type {
   AgentQuestion,
+  AgentQuestionOption,
   AgentResultFailure,
   AgentSessionEvent,
   AgentTurnUsage,
@@ -15,6 +16,11 @@ type StreamRecord = Readonly<Record<string, unknown>>;
 const INPUT_SUMMARY_CHARACTERS = 200;
 const MILLISECONDS_PER_SECOND = 1000;
 export const QUESTION_TOOL_NAME = 'AskUserQuestion';
+/** The mark an asking session writes after the label of the option it recommends, as `answerLineOf` writes it back. */
+export const RECOMMENDED_LABEL_MARK = ' (Recommended)';
+const RECOMMENDED_LABEL_MARK_PATTERN = /\s*\(Recommended\)\s*$/u;
+/** The windows of the plan whose length is known; any other window's length is `null`. */
+const USAGE_WINDOW_LENGTH_HOURS: Readonly<Record<string, number>> = { five_hour: 5, seven_day: 168 };
 /** The `subtype` of the result a session stopped at `--max-budget-usd` prints. */
 const BUDGET_STOP_SUBTYPE = 'error_max_budget_usd';
 const RATE_LIMITED_STATUS = 429;
@@ -119,6 +125,7 @@ function assistantEventsOf(record: StreamRecord): AgentSessionEvent[] {
       inputSummary: inputSummaryOf(fieldOf(content, 'input')),
       description:  nullableStringAt(recordAt(content, 'input'), 'description'),
       parentToolUseId,
+      asksUser:     stringAt(content, 'name') === QUESTION_TOOL_NAME,
     }));
   return [turn, ...toolCalls];
 }
@@ -132,13 +139,32 @@ function toolResultEventsOf(record: StreamRecord): AgentSessionEvent[] {
     }));
 }
 
+/** A mark only at the label's end counts: one inside the label is the agent's words. */
+export function unmarkedLabelOf(markedLabel: string): { label: string; isRecommended: boolean } {
+  const isRecommended = RECOMMENDED_LABEL_MARK_PATTERN.test(markedLabel);
+  return { label: isRecommended ? markedLabel.replace(RECOMMENDED_LABEL_MARK_PATTERN, '') : markedLabel, isRecommended };
+}
+
+function questionOptionOf(option: StreamRecord): AgentQuestionOption {
+  const askedLabel               = stringAt(option, 'label');
+  const { label, isRecommended } = unmarkedLabelOf(askedLabel);
+  const description              = stringAt(option, 'description');
+  return {
+    label, description, isRecommended, ...(isRecommended ? { askedLabel } : {})
+  };
+}
+
 function questionOf(question: StreamRecord): AgentQuestion {
   return {
     question:    stringAt(question, 'question'),
     header:      stringAt(question, 'header'),
     multiSelect: fieldOf(question, 'multiSelect') === true,
-    options:     recordsAt(question, 'options').map((option) => ({ label: stringAt(option, 'label'), description: stringAt(option, 'description') })),
+    options:     recordsAt(question, 'options').map(questionOptionOf),
   };
+}
+
+function usageWindowLengthHoursOf(window: string): number | null {
+  return Object.hasOwn(USAGE_WINDOW_LENGTH_HOURS, window) ? USAGE_WINDOW_LENGTH_HOURS[window] ?? null : null;
 }
 
 /** Only a question surfaces: every other permission request is answered by the plan's standing reply and counted at the result. */
@@ -161,6 +187,7 @@ function namedWindowEventOf(information: StreamRecord, window: string, requestsR
   return {
     kind:        'usage-window',
     window,
+    lengthHours: usageWindowLengthHoursOf(window),
     utilization: numberAt(information, 'utilization'),
     resetsAt:    resetStampOf(information),
     status:      stringAt(information, 'status'),
@@ -183,6 +210,7 @@ function usageWindowEventsOf(record: StreamRecord): AgentSessionEvent[] {
     .map(([window, windowInformation]): AgentSessionEvent => ({
       kind:            'usage-window',
       window,
+      lengthHours:     usageWindowLengthHoursOf(window),
       utilization:     numberAt(windowInformation, 'utilization'),
       resetsAt:        resetStampOf(windowInformation),
       status:          stringAt(windowInformation, 'status'),

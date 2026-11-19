@@ -11,8 +11,10 @@ import { storedFileTextOf }    from '../StoredFileText.ts';
 import { StoredValueUtil }     from '../utils/StoredValueUtil.ts';
 
 export interface UsageWindowObservation {
-  /** As the vendor names it, such as `five_hour` or `seven_day`. */
+  /** The window's name as the agent reported it, an opaque value. */
   window:      string;
+  /** `null` for a window the agent's adapter does not know. */
+  lengthHours: number | null;
   /** The share of the window used, as the vendor reports it: 0 to 1. */
   utilization: number;
   /** An ISO stamp. */
@@ -34,10 +36,15 @@ function pathIn(monitorFolder: string): string {
 function observationOf(window: string, entry: unknown): UsageWindowObservation | string {
   const fields = JsonRecordUtil.recordOf(entry);
   if (fields === undefined) return `its window "${window}" is not an object`;
-  const { utilization, resetsAt } = fields;
+  const { lengthHours, utilization, resetsAt } = fields;
+  if (lengthHours !== null && (typeof lengthHours !== 'number' || !Number.isFinite(lengthHours))) {
+    return `its window "${window}" has no number or null "lengthHours"`;
+  }
   if (typeof utilization !== 'number' || !Number.isFinite(utilization)) return `its window "${window}" has no number "utilization"`;
   if (typeof resetsAt !== 'string' || Number.isNaN(Date.parse(resetsAt))) return `its window "${window}" has no stamp "resetsAt"`;
-  return { window, utilization, resetsAt };
+  return {
+    window, lengthHours, utilization, resetsAt
+  };
 }
 
 function observationsOf(document: Record<string, unknown>): UsageWindowObservation[] | string {
@@ -73,9 +80,13 @@ function read(monitorFolder: string): UsageWindowsReading {
 /** Each observation replaces its window's values in place; a window seen first is added last. Every other key stays, in order. */
 function documentWith(document: Record<string, unknown>, observations: readonly UsageWindowObservation[]): Record<string, unknown> {
   const windows: Record<string, unknown> = { ...JsonRecordUtil.recordOf(document['windows']) };
-  for (const { window, utilization, resetsAt } of observations) {
+  for (const {
+    window, lengthHours, utilization, resetsAt
+  } of observations) {
     const stored = Object.hasOwn(windows, window) ? JsonRecordUtil.recordOf(windows[window]) : undefined;
-    windows[window] = { ...stored, utilization, resetsAt };
+    windows[window] = {
+      ...stored, lengthHours, utilization, resetsAt
+    };
   }
   return { ...document, windows };
 }

@@ -31,6 +31,8 @@ export interface TranscriptEntry {
   toolName?:        string;
   parentToolUseId?: string;
   toolUseId?:       string;
+  /** On a tool call only: true for the call that asks User a question. */
+  asksUser?:        boolean;
   model?:           string;
   tokens?:          number;
   clientAct?:       TranscriptClientAct;

@@ -60,7 +60,7 @@ const WORLD_WORDING: DecisionWording = {
     question:    'Carry on?',
     header:      'Carry on',
     multiSelect: false,
-    options:     [{ label: 'Yes', description: 'Carry on' }, { label: 'No', description: 'Wait' }],
+    options:     [{ label: 'Yes', description: 'Carry on', isRecommended: false }, { label: 'No', description: 'Wait', isRecommended: false }],
   }],
   context: '',
 };

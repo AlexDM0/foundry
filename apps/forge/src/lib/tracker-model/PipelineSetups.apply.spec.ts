@@ -247,7 +247,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
       askedBy:   'overseer',
       requestId: null,
       questions: [{
-        question: 'Set the gates?', header: 'Gates', multiSelect: false, options: [{ label: 'Later', description: 'Wait' }]
+        question: 'Set the gates?', header: 'Gates', multiSelect: false, options: [{ label: 'Later', description: 'Wait', isRecommended: false }]
       }],
       context: '',
     }, AT);

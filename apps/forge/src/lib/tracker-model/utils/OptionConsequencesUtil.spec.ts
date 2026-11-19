@@ -54,7 +54,7 @@ describe('reading the notes', () => {
 
 describe('the facts on a stored or escalated option', () => {
   test('an option with no facts, or with well-formed ones beside other keys, is well formed', () => {
-    expect(OptionConsequencesUtil.factsAreWellFormed({ label: 'Wicker', description: 'Woven' })).toBe(true);
+    expect(OptionConsequencesUtil.factsAreWellFormed({ label: 'Wicker', description: 'Woven', isRecommended: false })).toBe(true);
     expect(OptionConsequencesUtil.factsAreWellFormed({ label: 'Wicker', description: 'Woven', ...WELL_FORMED_NOTES.options[0] })).toBe(true);
   });
 
@@ -75,7 +75,11 @@ describe('the facts on a stored or escalated option', () => {
 describe('matching notes to a question', () => {
   const asked = {
     question: ' Which basket layout?',
-    options:  [{ label: 'Wicker', description: 'Woven' }, { label: 'Steel', description: 'Welded' }, { label: 'Paper', description: 'Folded' }],
+    options:  [
+      { label: 'Wicker', description: 'Woven', isRecommended: true },
+      { label: 'Steel', description: 'Welded', isRecommended: false },
+      { label: 'Paper', description: 'Folded', isRecommended: false },
+    ],
   };
 
   test('notes are for a question by its trimmed text alone', () => {
@@ -89,12 +93,32 @@ describe('matching notes to a question', () => {
 
     expect(options).toEqual([
       {
-        label: 'Wicker', description: 'Woven', touches: ['src/basket/Wicker.ts'], tradeOff: 'Lighter, less sturdy.', acceptanceEffect: 'A2 fails.'
+        label: 'Wicker', description: 'Woven', isRecommended: true, touches: ['src/basket/Wicker.ts'], tradeOff: 'Lighter, less sturdy.', acceptanceEffect: 'A2 fails.'
       },
-      { label: 'Steel', description: 'Welded', tradeOff: 'Sturdy, heavier.' },
-      { label: 'Paper', description: 'Folded' },
+      {
+        label: 'Steel', description: 'Welded', isRecommended: false, tradeOff: 'Sturdy, heavier.'
+      },
+      { label: 'Paper', description: 'Folded', isRecommended: false },
     ]);
-    expect(Object.keys(options[2] ?? {})).toEqual(['label', 'description']);
+    expect(Object.keys(options[2] ?? {})).toEqual(['label', 'description', 'isRecommended']);
+  });
+
+  test('a note naming an option by the label as the agent asked it still lands on that option, the label as shown taking precedence', () => {
+    const askedWithMarkedLabel = {
+      ...asked,
+      options: [{
+        label: 'Wicker', description: 'Woven', isRecommended: true, askedLabel: 'Wicker, preferred'
+      }, ...asked.options.slice(1)],
+    };
+    const notesByAskedLabel = {
+      ...WELL_FORMED_NOTES,
+      options: WELL_FORMED_NOTES.options.map((note) => (note.label === 'Wicker' ? { ...note, label: 'Wicker, preferred' } : note)),
+    };
+
+    expect(OptionConsequencesUtil.optionsWithNotes(askedWithMarkedLabel, [notesByAskedLabel])[0]).toEqual({
+      label: 'Wicker', description: 'Woven', isRecommended: true, touches: ['src/basket/Wicker.ts'], tradeOff: 'Lighter, less sturdy.', acceptanceEffect: 'A2 fails.'
+    });
+    expect(OptionConsequencesUtil.optionsWithNotes(askedWithMarkedLabel, [WELL_FORMED_NOTES])[0]).toMatchObject({ label: 'Wicker', tradeOff: 'Lighter, less sturdy.' });
   });
 
   test('with no notes for the question, every option is the agent\'s own', () => {

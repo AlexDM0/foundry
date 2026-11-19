@@ -64,7 +64,9 @@ const JOBS: JobWithLiveFacts[] = [
     lastToolCall: { toolName: 'Edit', startedAt: '2026-11-12T11:58:00+01:00', running: false } as JobLiveFactsWithSilence['lastToolCall'],
     subagents:    [{ state: 'running' }, { state: 'ended' }] as unknown as JobLiveFactsWithSilence['subagents'],
     turn:         'mid-turn',
-    usageWindow:  { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T10:58:00.000Z' },
+    usageWindow:  {
+      window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T10:58:00.000Z'
+    },
   }, '2026-11-12T11:00:00+01:00'),
   jobWith({
     id: 'J2', kind: 'review', role: 'reviewer', ticketIds: ['006'], attempt: 2
@@ -74,7 +76,9 @@ const JOBS: JobWithLiveFacts[] = [
   }, {
     lastLine:        { role: 'assistant', text: 'Example Assistant line', at: null },
     messagesWaiting: 1,
-    usageWindow:     { window: 'five_hour', resetsAt: '2026-11-12T10:00:00.000Z', reportedAt: '2026-11-12T09:30:00.000Z' },
+    usageWindow:     {
+      window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T10:00:00.000Z', reportedAt: '2026-11-12T09:30:00.000Z'
+    },
   }, null),
   jobWith({
     id: 'J4', kind: 'product-owner', role: 'product-owner', target: null
@@ -382,8 +386,12 @@ function usageOfJobsReporting(reports: readonly (JobLiveFactsWithSilence['usageW
 describe('the current usage window', () => {
   test('is the newest report across the board\'s jobs, beside the limit the usage marker holds', () => {
     expect(usageOfJobsReporting([
-      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' },
-      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:30:00.000Z' },
+      {
+        window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z'
+      },
+      {
+        window: 'seven_day', lengthHours: 168, resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:30:00.000Z'
+      },
       null,
     ])).toEqual({
       resetsAt: null, window: null, currentWindow: 'seven_day', currentWindowResetsAt: '2026-11-15T09:00:00.000Z'
@@ -392,27 +400,41 @@ describe('the current usage window', () => {
 
   test('an unstamped report, from a log written before stamps, loses to a stamped one', () => {
     expect(usageOfJobsReporting([
-      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: null },
-      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' },
+      {
+        window: 'seven_day', lengthHours: 168, resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: null
+      },
+      {
+        window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z'
+      },
     ])).toMatchObject({ currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T15:00:00.000Z' });
   });
 
   test('a report whose stamp does not read loses to a stamped one, in whichever order the jobs come', () => {
-    const unreadable = { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: 'not a stamp' };
-    const stamped    = { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z' };
+    const unreadable = {
+      window: 'seven_day', lengthHours: 168, resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: 'not a stamp'
+    };
+    const stamped    = {
+      window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T11:00:00.000Z'
+    };
     expect(usageOfJobsReporting([unreadable, stamped])).toMatchObject({ currentWindow: 'five_hour' });
     expect(usageOfJobsReporting([stamped, unreadable])).toMatchObject({ currentWindow: 'five_hour' });
   });
 
   test('stamps with different offsets are ordered by the instant they name, not their text', () => {
     expect(usageOfJobsReporting([
-      { window: 'five_hour', resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T12:30:00+01:00' },
-      { window: 'seven_day', resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:45:00Z' },
+      {
+        window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T15:00:00.000Z', reportedAt: '2026-11-12T12:30:00+01:00'
+      },
+      {
+        window: 'seven_day', lengthHours: 168, resetsAt: '2026-11-15T09:00:00.000Z', reportedAt: '2026-11-12T11:45:00Z'
+      },
     ])).toMatchObject({ currentWindow: 'seven_day' });
   });
 
   test('a reset before now is passed on as reported, since a clock decides nothing', () => {
-    expect(usageOfJobsReporting([{ window: 'five_hour', resetsAt: '2026-11-12T06:00:00.000Z', reportedAt: '2026-11-12T05:00:00.000Z' }]))
+    expect(usageOfJobsReporting([{
+      window: 'five_hour', lengthHours: 5, resetsAt: '2026-11-12T06:00:00.000Z', reportedAt: '2026-11-12T05:00:00.000Z'
+    }]))
       .toMatchObject({ currentWindow: 'five_hour', currentWindowResetsAt: '2026-11-12T06:00:00.000Z' });
   });
 

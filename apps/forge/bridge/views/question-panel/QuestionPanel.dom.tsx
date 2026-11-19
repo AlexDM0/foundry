@@ -373,7 +373,7 @@ describe('the background', () => {
         header:      'Planted',
         multiSelect: false,
         options:     [{
-          label: PLANTED, description: PLANTED, touches: [PLANTED], tradeOff: PLANTED
+          label: PLANTED, description: PLANTED, isRecommended: false, touches: [PLANTED], tradeOff: PLANTED
         }]
       }],
     };

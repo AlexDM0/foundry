@@ -17,7 +17,13 @@ function decisionOf(id: string, kind: string, questions: DecisionDocument['quest
 }
 
 const ONE_QUESTION = [{
-  question: 'Which store?', header: 'Store', multiSelect: false, options: [{ label: 'Disk', description: '' }, { label: 'Memory', description: '' }]
+  question:    'Which store?',
+  header:      'Store',
+  multiSelect: false,
+  options:     [
+    { label: 'Disk', description: '', isRecommended: false },
+    { label: 'Memory', description: '', isRecommended: false },
+  ]
 }];
 
 const BOARD: ConversationBoardDocument = {

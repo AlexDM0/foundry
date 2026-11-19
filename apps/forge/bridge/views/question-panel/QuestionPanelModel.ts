@@ -31,9 +31,6 @@ export type QueuedDecision = OpenDecision<DecisionDocument>;
 /** How many of the asking job's last tool calls the background lists. */
 export const QUESTION_PANEL_STEPS_SHOWN = 6;
 
-/** The transcript's tool name for an agent's question to User: the step the agent stopped at. */
-const ASKING_TOOL_NAME = 'AskUserQuestion';
-
 /** Who asks a decision code opened, which has no job. */
 const OVERSEER_ASKER_TEXT = 'Overseer';
 
@@ -101,7 +98,7 @@ export interface QuestionPanelHead {
 
 export interface QuestionOptionModel {
   readonly letter:        string;
-  /** The label as asked, without the agent's trailing `(Recommended)`, which `isRecommended` carries as a mark beside it. */
+  /** The label as asked; `isRecommended` carries the agent's recommendation as a mark beside it. */
   readonly label:         string;
   readonly isRecommended: boolean;
   /** `null` for an option asked with an empty description. */
@@ -225,9 +222,6 @@ function stampTextOf(stamp: string, format: QuestionPanelFormat): string | null 
   return format.slices === null ? null : TimeUtil.shortStampText(stamp, format.todayCalendarDate, format.slices);
 }
 
-/** The label's trailing mark an asking agent writes on the option it recommends. */
-const RECOMMENDED_LABEL_SUFFIX_PATTERN = /\s*\(Recommended\)\s*$/u;
-
 function questionModelOf(question: DecisionDocument['questions'][number]): QuestionModel {
   return {
     text:        question.question,
@@ -235,8 +229,8 @@ function questionModelOf(question: DecisionDocument['questions'][number]): Quest
     multiSelect: question.multiSelect,
     options:     question.options.map((option, optionIndex) => ({
       letter:        DecisionAnswerUtil.optionLetterOf(optionIndex),
-      label:         option.label.replace(RECOMMENDED_LABEL_SUFFIX_PATTERN, ''),
-      isRecommended: RECOMMENDED_LABEL_SUFFIX_PATTERN.test(option.label),
+      label:         option.label,
+      isRecommended: option.isRecommended,
       description:   option.description === '' ? null : option.description,
       consequences:  OptionConsequencesUtil.consequencesOf(option),
     })),
@@ -359,16 +353,13 @@ function questionPanelModelOf(board: QuestionPanelBoard, queue: readonly QueuedD
   };
 }
 
-/** The last top-level tool calls, oldest first; a subagent's calls stay out, and the asking call, when it is the last, is the current. */
+/** The last top-level tool calls, oldest first; a subagent's calls stay out, and the call that asks User, when it is the last, is the current. */
 function lastStepsOf(entries: readonly TranscriptEntryDocument[], limit: number): StepLine[] {
   const calls = entries.filter((entry) => entry.role === TOOL_CALL_ROLE && entry.toolName !== undefined && entry.parentToolUseId === undefined);
   const shown = calls.slice(-limit);
-  return shown.map((entry, position) => {
-    const toolName = entry.toolName ?? '';
-    return {
-      key: entry.entryKey, toolName, text: entry.text, isCurrent: position === shown.length - 1 && toolName === ASKING_TOOL_NAME
-    };
-  });
+  return shown.map((entry, position) => ({
+    key: entry.entryKey, toolName: entry.toolName ?? '', text: entry.text, isCurrent: position === shown.length - 1 && entry.asksUser === true
+  }));
 }
 
 /** The asking job's thread as the chat parts show it, every agent turn under its job id. */

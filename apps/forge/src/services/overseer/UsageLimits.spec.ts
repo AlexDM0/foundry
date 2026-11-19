@@ -18,7 +18,7 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { UsageLimits }                                    from './UsageLimits.ts';
 
 const WINDOW_EVENT = {
-  kind: 'usage-window', window: 'five_hour', utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z', status: 'rejected'
+  kind: 'usage-window', window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z', status: 'rejected'
 } as const;
 
 describe('refusalOf', () => {
@@ -109,14 +109,23 @@ describe('millisecondsUntilReset', () => {
 });
 
 describe('the usage windows', () => {
-  const observation = { window: 'five_hour', utilization: 0.19, resetsAt: '2026-11-01T22:00:00.000Z' };
+  const observation = {
+    window: 'five_hour', lengthHours: 5, utilization: 0.19, resetsAt: '2026-11-01T22:00:00.000Z'
+  };
   const windowsRead: UsageWindowsReading = {
-    verdict: 'read', windows: [observation, { window: 'seven_day', utilization: 0.461, resetsAt: '2026-11-04T09:00:00.000Z' }], storedText: '', document: {}
+    verdict: 'read',
+    windows: [observation, {
+      window: 'seven_day', lengthHours: 168, utilization: 0.461, resetsAt: '2026-11-04T09:00:00.000Z'
+    }],
+    storedText: '',
+    document:   {}
   };
 
   test('every reported window is an observation, refused or not, and nothing else is one', () => {
     const refusedWindow = UsageLimits.windowObservationOf({ ...WINDOW_EVENT, requestsRefused: true }, false);
-    expect(refusedWindow).toEqual({ window: 'five_hour', utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z' });
+    expect(refusedWindow).toEqual({
+      window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: '2026-11-01T22:00:00.000Z'
+    });
     expect(UsageLimits.windowObservationOf({ ...WINDOW_EVENT, status: 'allowed', requestsRefused: false }, false)).not.toBeNull();
     expect(UsageLimits.windowObservationOf({ kind: 'permission-denied', toolName: 'Bash' }, false)).toBeNull();
   });
@@ -134,8 +143,12 @@ describe('the usage windows', () => {
       resetsAt: null,
       window:   null,
       windows:  [
-        { window: 'five_hour', utilization: 19, resetsAt: '2026-11-01T22:00:00.000Z' },
-        { window: 'seven_day', utilization: 46, resetsAt: '2026-11-04T09:00:00.000Z' },
+        {
+          window: 'five_hour', lengthHours: 5, utilization: 19, resetsAt: '2026-11-01T22:00:00.000Z'
+        },
+        {
+          window: 'seven_day', lengthHours: 168, utilization: 46, resetsAt: '2026-11-04T09:00:00.000Z'
+        },
       ],
     });
   });

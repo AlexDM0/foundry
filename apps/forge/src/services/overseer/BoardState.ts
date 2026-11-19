@@ -46,10 +46,12 @@ export interface OverseerFacts {
   batonPassWarning: unknown;
 }
 
-/** The newest observation of one usage window of the vendor's plan. */
+/** The newest observation of one usage window of the agent's plan. */
 export interface UsageWindowFacts {
-  /** As the vendor names it, such as `five_hour` or `seven_day`. */
+  /** The window's name as the agent reported it, an opaque value. */
   window:      string;
+  /** `null` for a window the agent's adapter does not know. */
+  lengthHours: number | null;
   /** The whole percent of the window used, 0 to 100. */
   utilization: number;
   resetsAt:    string;

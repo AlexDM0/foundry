@@ -692,7 +692,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     expect(UsageMarkerFile.read(monitorFolder)).toEqual({ verdict: 'absent' });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('usage-limit-hit');
     // The fake agent fills each planted line from a recorded one, so the window a line does not plant keeps its recorded values.
-    const plantedFiveHour = { window: 'five_hour', utilization: 1, resetsAt: USAGE_RESET_STAMP };
+    const plantedFiveHour = {
+      window: 'five_hour', lengthHours: 5, utilization: 1, resetsAt: USAGE_RESET_STAMP
+    };
     await waitUntil(async () => {
       await passOnce(drivePass);
       const reading = UsageWindowsFile.read(monitorFolder);

@@ -37,7 +37,7 @@ const RECORDED_NETWORK_OUTAGE_STANDARD_OUTPUT_PATH = join(
 const AGENT_FOLDER = 'jobs/J-1';
 const AGENT_ID = 'jobs/J-1#1';
 const QUESTION = {
-  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
 /** The recorded outage session's closing line is its twentieth and last, after ten retries. */
 const OUTAGE_CLOSING_LINE_SEQUENCE = 20;

@@ -17,14 +17,18 @@ const FORMAT_QUESTION: DecisionQuestion = {
   question:    'Which export format should the example ship?',
   header:      'Format',
   multiSelect: false,
-  options:     [{ label: 'CSV', description: 'Comma separated' }, { label: 'JSON', description: 'One document' }],
+  options:     [{ label: 'CSV', description: 'Comma separated', isRecommended: false }, { label: 'JSON', description: 'One document', isRecommended: false }],
 };
 
 const COLUMNS_QUESTION: DecisionQuestion = {
   question:    'Which columns go in?',
   header:      'Columns',
   multiSelect: true,
-  options:     [{ label: 'Name', description: 'Alex Example' }, { label: 'Total', description: 'The cart total' }, { label: 'Date', description: 'Ordered on' }],
+  options:     [
+    { label: 'Name', description: 'Alex Example', isRecommended: false },
+    { label: 'Total', description: 'The cart total', isRecommended: false },
+    { label: 'Date', description: 'Ordered on', isRecommended: false },
+  ],
 };
 
 const AGENT_QUESTION = {

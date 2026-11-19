@@ -27,7 +27,7 @@ import type { BoardChildren }                             from './BoardChildren.
 
 const REQUEST_ID = 'request-1';
 const QUESTION: AgentQuestion = {
-  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
 const ANSWER = { 'Which colour?': 'Blue' };
 const ANSWERED: LogRecord = {

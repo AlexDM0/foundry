@@ -137,6 +137,7 @@ export interface StoredDeclaredNeed {
 export interface StoredDecisionQuestionOption {
   label:             string;
   description:       string;
+  isRecommended:     boolean;
   touches?:          string[];
   tradeOff?:         string;
   acceptanceEffect?: string;

@@ -113,19 +113,6 @@ const AGENT_FORMS = Object.keys(AGENT_FORM_PATTERNS) as AgentForm[];
 
 /** `<path>: <form>: <trimmed line>` of a shipping line or a prose line, each with the package that removes it or why it stays. */
 const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
-  'bridge/@types/BoardStateDocument.ts: vendor-wire-key: /** The newest observation of one usage window the plan has, such as `five_hour` or `seven_day`. */':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  'bridge/shell/HeaderModel.ts: vendor-wire-key: const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: \'5-hour window\', seven_day: \'week\' };':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  'bridge/views/question-panel/QuestionPanelModel.ts: vendor-tool-name: const ASKING_TOOL_NAME = \'AskUserQuestion\';':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  [
-  'bridge/views/question-panel/QuestionPanelModel.ts: vendor-mark: /** The label as asked, without the agent\'s trailing `(Recommended)`, which `isRecommended` carries as '
-    + 'a mark beside it. */'
-  ]:
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  'bridge/views/question-panel/QuestionPanelModel.ts: vendor-mark: const RECOMMENDED_LABEL_SUFFIX_PATTERN = /\\s*\\(Recommended\\)\\s*$/u;':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'cli/CommandContext.ts: vendor-name: import { claudeCodeAdapterFor }                 from \'../src/lib/claude-code/ClaudeCodeAdapter.ts\';':
     'Permanent: The seam imports the vendor\'s adapter; the one composition root that chooses it.',
   'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);':
@@ -488,8 +475,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'skills/agent-progress-orchestrate/SKILL.md: vendor-mark: to the user. Use this skill only when the user says "/{{skillName}}", asks':
     'Removed by WP2.30: The adapter installs into a repository.',
-  'src/adapters/usage-marker/UsageWindowsFile.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour` or `seven_day`. */':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   [
   'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: return `A question needs ${adviceFor(channel, \'--recommended <letter>, \', \'\')}the option Claude '
     + 'recommends. ${NOTHING_WAS_WRITTEN}`;'
@@ -605,8 +590,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'in-tree hooks folder. */'
   ]:
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/BoardState.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour` or `seven_day`. */':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'src/services/overseer/DrivePass.ts: vendor-name: /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/services/overseer/DrivePass.ts: vendor-name: | { kind: \'claude-md-block-committed\'; target: string }':
@@ -646,8 +629,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/services/overseer/JobLaunch.ts: vendor-name: /** `pipeline` names the entity homes whose `.claude` the step\'s sandbox denies, as a session\'s does. */':
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/services/overseer/JobLiveFactsReader.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour`. */':
-    'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   [
   'src/services/overseer/QuestionRouting.ts: vendor-tool-name: * An agent\'s AskUserQuestion request routed by who can answer it, design section 8.2: every question '
     + 'headed `system` opens a'

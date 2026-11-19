@@ -87,11 +87,12 @@ const NEW_CODE = 'new-code';
 
 const PAUSED_DISPLAY_STATE = 'paused';
 
-/** A window's word where it differs from the stored value. */
-const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: '5-hour window', seven_day: 'week' };
+const HOURS_IN_A_WEEK = 168;
 
-function usageWindowWordOf(window: string): string {
-  return Object.hasOwn(USAGE_WINDOW_WORDS, window) ? USAGE_WINDOW_WORDS[window] ?? window : window;
+/** "5-hour window", "week" for a week, and the window's stored name when its length is unknown. */
+function usageWindowWordOf(window: string, lengthHours: number | null): string {
+  if (typeof lengthHours !== 'number') return window;
+  return lengthHours === HOURS_IN_A_WEEK ? 'week' : `${lengthHours}-hour window`;
 }
 
 /**
@@ -100,9 +101,12 @@ function usageWindowWordOf(window: string): string {
  */
 function usageTextsOf(usage: unknown): string[] {
   const facts = usage as Partial<UsageDocument> | null;
-  const windowTexts = (facts?.windows ?? []).map((usageWindow) => `${usageWindowWordOf(usageWindow.window)} ${Math.round(usageWindow.utilization)}%`);
+  const windows = facts?.windows ?? [];
+  const windowTexts = windows.map((usageWindow) => `${usageWindowWordOf(usageWindow.window, usageWindow.lengthHours)} ${Math.round(usageWindow.utilization)}%`);
   if (typeof facts?.resetsAt !== 'string') return windowTexts;
-  const window = typeof facts.window === 'string' ? `${usageWindowWordOf(facts.window)} ` : '';
+  const limitWindow = facts.window;
+  const limitWindowLength = windows.find((usageWindow) => usageWindow.window === limitWindow)?.lengthHours ?? null;
+  const window = typeof limitWindow === 'string' ? `${usageWindowWordOf(limitWindow, limitWindowLength)} ` : '';
   const resetsAtMilliseconds = Date.parse(facts.resetsAt);
   const resetText = Number.isNaN(resetsAtMilliseconds) ? '' : `, resets ${TimeUtil.clockOf(new Date(resetsAtMilliseconds))}`;
   return [...windowTexts, `${window}usage limit hit${resetText}`];

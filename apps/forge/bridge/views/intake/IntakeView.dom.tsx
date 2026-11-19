@@ -85,7 +85,13 @@ const BOARD: ConversationBoardDocument = {
     context:   '',
     openedAt:  AT,
     questions: [{
-      question: 'CSV or JSON?', header: 'Format', multiSelect: false, options: [{ label: 'CSV', description: '' }, { label: 'JSON', description: '' }]
+      question:    'CSV or JSON?',
+      header:      'Format',
+      multiSelect: false,
+      options:     [
+        { label: 'CSV', description: '', isRecommended: false },
+        { label: 'JSON', description: '', isRecommended: false },
+      ]
     }],
   }],
   incidents: [],

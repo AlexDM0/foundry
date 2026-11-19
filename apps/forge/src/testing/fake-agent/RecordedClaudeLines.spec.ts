@@ -20,7 +20,7 @@ import {
 import { CLAUDE_WIRE_BOUNDARY, recordedLineOf, recordedSessionOf } from './RecordedClaudeLines.ts';
 
 const QUESTION = {
-  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.' }]
+  question: 'Which colour?', header: 'Colour', multiSelect: false, options: [{ label: 'Blue', description: 'Blue.', isRecommended: false }]
 };
 
 function recordedStdoutLineOf(scenario: Parameters<typeof recordedSessionOf>[0], type: string, subtype?: string): Record<string, unknown> {

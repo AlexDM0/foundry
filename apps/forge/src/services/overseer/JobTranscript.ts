@@ -74,7 +74,12 @@ function entryOfEvent(event: AgentSessionEvent): EntryOfLine | null {
       };
     case 'tool-call':
       return {
-        role: 'tool-call', text: event.inputSummary, toolName: event.toolName, toolUseId: event.toolUseId, ...subagentOf(event.parentToolUseId)
+        role:      'tool-call',
+        text:      event.inputSummary,
+        toolName:  event.toolName,
+        toolUseId: event.toolUseId,
+        asksUser:  event.asksUser,
+        ...subagentOf(event.parentToolUseId),
       };
     case 'tool-result':
       return {

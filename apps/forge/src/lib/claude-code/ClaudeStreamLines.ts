@@ -15,10 +15,23 @@ import type {
   PlanLineConditions,
   StandingReply
 } from '../agent-launch/AgentLaunchPlan.ts';
-import type { AgentQuestion }                       from '../agent-launch/AgentSessionEvent.ts';
-import { claudeStreamEventsOf, QUESTION_TOOL_NAME } from './ClaudeStreamMapper.ts';
+import type { AgentQuestion } from '../agent-launch/AgentSessionEvent.ts';
+import {
+  claudeStreamEventsOf,
+  QUESTION_TOOL_NAME,
+  RECOMMENDED_LABEL_MARK,
+  unmarkedLabelOf
+} from './ClaudeStreamMapper.ts';
 
 const INTERRUPT_REQUEST_ID = 'interrupt';
+/** How an answer to a question of several choices joins the chosen labels, as forge's decisions join them. */
+const CHOSEN_LABELS_SEPARATOR = ', ';
+
+type JsonObject = Readonly<Record<string, unknown>>;
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /** With pictures the content is a list of base64 image blocks, then one text block; without pictures the content is the plain text. */
 function chatLineOf(text: string, pictures: readonly AgentPicture[] = []): string {
@@ -30,22 +43,44 @@ function chatLineOf(text: string, pictures: readonly AgentPicture[] = []): strin
   return JSON.stringify({ type: 'user', message: { role: 'user', content } });
 }
 
-/** The tool's input is echoed whole beside the answers, as the session's own question carried it. */
+/** Each label of an answer, the whole answer first, so a label that holds the separator is still one label. */
+function answerWithLabelsMapped(answer: string, multiSelect: boolean, labelOf: (label: string) => string | null): string {
+  const wholeLabel = labelOf(answer);
+  if (wholeLabel !== null) return wholeLabel;
+  if (!multiSelect) return answer;
+  return answer.split(CHOSEN_LABELS_SEPARATOR).map((chosenLabel) => labelOf(chosenLabel) ?? chosenLabel).join(CHOSEN_LABELS_SEPARATOR);
+}
+
+function markedQuestionOf(question: AgentQuestion): JsonObject {
+  return {
+    question:    question.question,
+    header:      question.header,
+    multiSelect: question.multiSelect,
+    options:     question.options.map((option) => ({ label: option.isRecommended ? `${option.label}${RECOMMENDED_LABEL_MARK}` : option.label, description: option.description })),
+  };
+}
+
+/**
+ * The questions are echoed as the session asked them, its mark on the recommended option's label included, and an answer that names a
+ * recommended option names it marked, so the session reads the labels it asked with.
+ */
 function answerLineOf(requestId: string, questions: readonly AgentQuestion[], answers: Readonly<Record<string, string>>): string {
+  const markedAnswers = Object.fromEntries(Object.entries(answers).map(([questionText, answer]) => {
+    const question = questions.find((candidate) => candidate.question === questionText);
+    if (question === undefined) return [questionText, answer];
+    const markedLabelOf = (label: string): string | null => (
+      question.options.some((option) => option.isRecommended && option.label === label) ? `${label}${RECOMMENDED_LABEL_MARK}` : null
+    );
+    return [questionText, answerWithLabelsMapped(answer, question.multiSelect, markedLabelOf)];
+  }));
   return JSON.stringify({
     type:     'control_response',
-    response: { subtype: 'success', request_id: requestId, response: { behavior: 'allow', updatedInput: { questions, answers } } },
+    response: { subtype: 'success', request_id: requestId, response: { behavior: 'allow', updatedInput: { questions: questions.map(markedQuestionOf), answers: markedAnswers } } },
   });
 }
 
 function interruptLineOf(): string {
   return JSON.stringify({ type: 'control_request', request_id: INTERRUPT_REQUEST_ID, request: { subtype: 'interrupt' } });
-}
-
-type JsonObject = Readonly<Record<string, unknown>>;
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function objectAt(value: unknown, key: string): JsonObject | null {
@@ -86,15 +121,40 @@ function chatOfContent(content: unknown): Extract<SentLine, { act: 'chat' }> | n
   return { act: 'chat', text: textBlock['text'], pictures };
 }
 
+function echoedQuestionsOf(updatedInput: JsonObject | null): JsonObject[] {
+  const questions = updatedInput?.['questions'];
+  return Array.isArray(questions) ? questions.filter(isJsonObject) : [];
+}
+
+/** The marked labels of the echoed question's recommended options, each with its label as asked unmarked. */
+function unmarkedLabelsOf(question: JsonObject | undefined): ReadonlyMap<string, string> {
+  const options = question?.['options'];
+  const labels = Array.isArray(options) ? options.filter(isJsonObject).map((option) => option['label']).filter((label) => typeof label === 'string') : [];
+  return new Map(labels.flatMap((markedLabel) => {
+    const unmarked = unmarkedLabelOf(markedLabel);
+    return unmarked.isRecommended ? [[markedLabel, unmarked.label] as const] : [];
+  }));
+}
+
+/** The inverse of `answerLineOf`: each answer label that is a marked label of the echoed questions reads back unmarked. */
+function unmarkedAnswersOf(answers: Readonly<Record<string, string>>, echoedQuestions: readonly JsonObject[]): Readonly<Record<string, string>> {
+  return Object.fromEntries(Object.entries(answers).map(([questionText, answer]) => {
+    const question = echoedQuestions.find((candidate) => candidate['question'] === questionText);
+    const unmarkedLabels = unmarkedLabelsOf(question);
+    return [questionText, answerWithLabelsMapped(answer, question?.['multiSelect'] === true, (label) => unmarkedLabels.get(label) ?? null)];
+  }));
+}
+
 function sentLineOf(line: string): SentLine | null {
   const parsed = parsedLineOf(line);
   if (parsed === null) return null;
   const message = objectAt(parsed, 'message');
   if (parsed['type'] === 'user' && message?.['role'] === 'user') return chatOfContent(message['content']);
-  const response = objectAt(parsed, 'response');
-  const answers  = textAnswersOf(objectAt(objectAt(objectAt(response, 'response'), 'updatedInput'), 'answers'));
+  const response     = objectAt(parsed, 'response');
+  const updatedInput = objectAt(objectAt(response, 'response'), 'updatedInput');
+  const answers      = textAnswersOf(objectAt(updatedInput, 'answers'));
   if (parsed['type'] === 'control_response' && response?.['subtype'] === 'success' && typeof response['request_id'] === 'string' && answers !== null) {
-    return { act: 'answer', requestId: response['request_id'], answers };
+    return { act: 'answer', requestId: response['request_id'], answers: unmarkedAnswersOf(answers, echoedQuestionsOf(updatedInput)) };
   }
   if (parsed['type'] === 'control_request' && objectAt(parsed, 'request')?.['subtype'] === 'interrupt') return { act: 'interrupt' };
   return null;

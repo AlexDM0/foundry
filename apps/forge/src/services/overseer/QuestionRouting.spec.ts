@@ -17,7 +17,13 @@ const AT = '2026-09-26T10:15:00+02:00';
 
 function questionHeaded(header: string): AgentQuestion {
   return {
-    question: `Example question headed ${header}?`, header, multiSelect: false, options: [{ label: 'Yes', description: 'Go on' }, { label: 'No', description: 'Stop' }],
+    question:    `Example question headed ${header}?`,
+    header,
+    multiSelect: false,
+    options:     [
+      { label: 'Yes', description: 'Go on', isRecommended: false },
+      { label: 'No', description: 'Stop', isRecommended: false },
+    ],
   };
 }
 
@@ -96,9 +102,9 @@ describe('the option notes a job gave before it asked', () => {
 
     expect(board.decisions()[0]?.questions[0]?.options).toEqual([
       {
-        label: 'Yes', description: 'Go on', touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
+        label: 'Yes', description: 'Go on', isRecommended: false, touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
       },
-      { label: 'No', description: 'Stop' },
+      { label: 'No', description: 'Stop', isRecommended: false },
     ]);
     expect(Object.hasOwn(board.jobById('J1') ?? {}, 'pendingOptionNotes')).toBe(false);
   });
@@ -112,7 +118,7 @@ describe('the option notes a job gave before it asked', () => {
     expect(JSON.parse(incident?.facts[QUESTIONS_FACT] ?? '')).toMatchObject([{ options: [{ label: 'Yes', tradeOff: 'Faster, less checked.' }, { label: 'No' }] }]);
     board.escalateQuestionIncident(incident?.id ?? '', AT);
     expect(board.decisions()[0]?.questions[0]?.options[0]).toEqual({
-      label: 'Yes', description: 'Go on', touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
+      label: 'Yes', description: 'Go on', isRecommended: false, touches: ['src/basket/Basket.ts'], tradeOff: 'Faster, less checked.'
     });
   });
 

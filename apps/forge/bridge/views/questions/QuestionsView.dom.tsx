@@ -43,7 +43,7 @@ const AGENT_QUESTION: DecisionDocument = {
     question:    `Which store should the cache use? ${PLANTED}`,
     header:      'Store',
     multiSelect: false,
-    options:     [{ label: 'Disk', description: 'Survives a restart' }, { label: 'Memory', description: 'Faster' }],
+    options:     [{ label: 'Disk', description: 'Survives a restart', isRecommended: false }, { label: 'Memory', description: 'Faster', isRecommended: false }],
   }],
 };
 
@@ -52,10 +52,21 @@ const ESCALATED: DecisionDocument = {
   id:        'E3',
   questions: [
     {
-      question: 'The Brief names bridge/old/, which does not exist. Where?', header: 'ticket', multiSelect: false, options: [{ label: 'bridge/views/', description: '' }]
+      question:    'The Brief names bridge/old/, which does not exist. Where?',
+      header:      'ticket',
+      multiSelect: false,
+      options:     [
+        { label: 'bridge/views/', description: '', isRecommended: false },
+      ]
     },
     {
-      question: 'Which targets?', header: 'Targets', multiSelect: true, options: [{ label: 'main', description: '' }, { label: 'group', description: '' }]
+      question:    'Which targets?',
+      header:      'Targets',
+      multiSelect: true,
+      options:     [
+        { label: 'main', description: '', isRecommended: false },
+        { label: 'group', description: '', isRecommended: false },
+      ]
     },
   ],
 };
@@ -181,9 +192,9 @@ describe('beside the board', () => {
         ...AGENT_QUESTION.questions[0] ?? { question: '', header: '', multiSelect: false },
         options: [
           {
-            label: 'Disk', description: 'Survives a restart', touches: ['src/cache/DiskStore.ts'], tradeOff: 'Slower reads', acceptanceEffect: 'meets A1'
+            label: 'Disk', description: 'Survives a restart', isRecommended: false, touches: ['src/cache/DiskStore.ts'], tradeOff: 'Slower reads', acceptanceEffect: 'meets A1'
           },
-          { label: 'Memory', description: 'Faster' },
+          { label: 'Memory', description: 'Faster', isRecommended: false },
         ],
       }],
     };

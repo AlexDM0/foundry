@@ -9,6 +9,7 @@ import { OutputUtil }          from '../utils/OutputUtil.ts';
 const USAGE = `${PRODUCT_NAMES.PROGRAM} decisions [--json]`;
 
 const FIRST_OPTION_LETTER_CODE = 'a'.charCodeAt(0);
+const RECOMMENDED_MARK = ' (recommended)';
 
 function decisionTextOf(decision: Readonly<Decision>): string {
   const tickets = decision.ticketIds.length === 0 ? '' : ` on #${decision.ticketIds.join(', #')}`;
@@ -17,7 +18,7 @@ function decisionTextOf(decision: Readonly<Decision>): string {
   const questionLines = decision.questions.flatMap((question, i) => [
     `  ${i + 1}. [${question.header}] ${question.question}${question.multiSelect ? ' (several letters)' : ''}`,
     ...question.options.map((option, optionIndex) => `     ${String.fromCharCode(FIRST_OPTION_LETTER_CODE + optionIndex)}. ${option.label}`
-      + `${option.description === '' ? '' : `: ${option.description}`}`),
+      + `${option.isRecommended ? RECOMMENDED_MARK : ''}${option.description === '' ? '' : `: ${option.description}`}`),
   ]);
   return [heading, ...(decision.context === '' ? [] : [`  ${decision.context}`]), ...questionLines].join('\n');
 }

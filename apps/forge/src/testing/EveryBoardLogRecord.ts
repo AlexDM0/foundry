@@ -263,7 +263,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     question:    'Ship the example export as CSV?',
     header:      'Export',
     multiSelect: false,
-    options:     [{ label: 'CSV', description: 'Comma separated' }, { label: 'JSON', description: 'One document' }],
+    options:     [{ label: 'CSV', description: 'Comma separated', isRecommended: false }, { label: 'JSON', description: 'One document', isRecommended: false }],
   };
   board.openDecision({
     kind: 'agent-question', ticketIds: ['002'], jobId: null, askedBy: 'builder', requestId: 'request-1', questions: [question], context: 'Example cart',

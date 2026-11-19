@@ -41,9 +41,11 @@ function storedTextWithDecisionsAndIncidents(): string {
         header:             'Format',
         multiSelect:        false,
         options:            [
-          { label: 'CSV', description: 'Comma separated', unknownOptionKey: true },
           {
-            label: 'JSON', description: 'One document', touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
+            label: 'CSV', description: 'Comma separated', isRecommended: true, unknownOptionKey: true
+          },
+          {
+            label: 'JSON', description: 'One document', isRecommended: false, touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
           },
         ],
       }],
@@ -121,8 +123,9 @@ test('a file without decisions, incidents or their counters stores none of them'
 test('an option\'s consequences are read after its description, and an option without them gets no consequence key', () => {
   const progress  = ProgressFileMappingUtil.progressOf(storedDocumentOf(storedTextWithDecisionsAndIncidents()));
   const [plain, noted] = progress.decisions?.[0]?.questions[0]?.options ?? [];
-  expect(Object.keys(plain ?? {})).toEqual(['label', 'description', 'unknownOptionKey']);
+  expect(Object.keys(plain ?? {})).toEqual(['label', 'description', 'isRecommended', 'unknownOptionKey']);
+  expect(plain?.isRecommended).toBe(true);
   expect(noted).toEqual({
-    label: 'JSON', description: 'One document', touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
+    label: 'JSON', description: 'One document', isRecommended: false, touches: ['src/export/Json.ts'], tradeOff: 'Nested, larger.', acceptanceEffect: 'A2 holds.'
   });
 });

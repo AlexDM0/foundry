@@ -80,7 +80,9 @@ function millisecondsUntilReset(usageResetsAt: string | null, now: Date): number
 /** Every reported window with a reset is an observation, refused or not; under API billing (`apiBilling`) the stream reports none that counts. */
 function windowObservationOf(event: AgentSessionEvent, apiBilling: boolean): UsageWindowObservation | null {
   if (apiBilling || event.kind !== 'usage-window' || event.resetsAt === null) return null;
-  return { window: event.window, utilization: event.utilization, resetsAt: event.resetsAt };
+  return {
+    window: event.window, lengthHours: event.lengthHours, utilization: event.utilization, resetsAt: event.resetsAt
+  };
 }
 
 function recordWindowObservations(monitorFolder: string, observations: readonly UsageWindowObservation[]): void {
@@ -95,7 +97,11 @@ function usageFactsOf(marker: UsageMarkerReading, windows: UsageWindowsReading, 
   const observed = windows.verdict === 'read' && !apiBilling ? windows.windows : [];
   return {
     ...limit,
-    windows: observed.map(({ window, utilization, resetsAt }) => ({ window, utilization: Math.round(utilization * PERCENT_OF_THE_WHOLE), resetsAt })),
+    windows: observed.map(({
+      window, lengthHours, utilization, resetsAt
+    }) => ({
+      window, lengthHours, utilization: Math.round(utilization * PERCENT_OF_THE_WHOLE), resetsAt
+    })),
   };
 }
 
