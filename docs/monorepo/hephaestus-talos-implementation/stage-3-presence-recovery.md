@@ -189,7 +189,7 @@ leaves.
 | The compatibility registry's endpoints, each dated `introducedIn: FIRST_VERSIONED_FORGE` | `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts:16-49` | Changed: `presence` and `crash-log` at version 1, dated truly (WP3.12) |
 | The process supervision port; no boot time | `src/lib/process-identity/ProcessSupervision.ts:39-70` | Changed: `bootStartedAtEpochSeconds` (WP3.4) |
 | macOS reads the boot through `sysctl kern.bootsessionuuid` | `src/lib/process-identity/DarwinProcessIdentity.ts:14-15`, `:49` | Changed: also reads `kern.boottime` (WP3.4) |
-| `sameBoot`: an unreadable boot identity reads as another boot | `src/lib/process-identity/ProcessIdentity.ts:44-46` | Kept |
+| `sameBoot`: an unreadable boot identity reads as the same boot as any other | `src/lib/process-identity/ProcessIdentity.ts:44-47` | Kept |
 | Exclusive whole-file creation that answers `already-exists` | `src/lib/atomic-file/AtomicFile.ts:165` | Kept; the crash log uses it (WP3.7) |
 | An orphaned merge-in or refresh is aborted, its slot freed and requeued | `src/services/overseer/Airlocks.ts:792-797` | Changed: after a start that waits, the ticket is held `interrupted:merge` instead (WP3.9) |
 | An Airlock agent that ended otherwise leaves the slot orphaned and requeued | `src/services/overseer/Airlocks.ts:990-1007` | Changed the same way (WP3.9) |
@@ -559,8 +559,9 @@ it ended by a stop, a handover or a crash it recorded itself.
    progress, and an idle healthy forge, with no pass in flight, beats every renewal interval (N5). The heartbeat has a
    file of its own: it is rewritten every 15 seconds, and `presence.json`, read and rewritten whole for an ending or an
    abandoned pass, then never races it. During a Baton pass the predecessor keeps renewing until it exits (stage 2's
-   WP2.13 item 10), so two processes beat at once: a process writes the heartbeat only while the stored heartbeat's
-   generation is not above its own, and never overwrites a successor's beat.
+   WP2.13 item 10), so two processes beat at once: a process writes the heartbeat unless the stored heartbeat's
+   generation is above its own and is the generation `presence.json` names, so it never overwrites a successor's beat,
+   and the last beat of an ended run never silences a run whose generations started again at 1.
 6. No clock comment at the heartbeat write: a heartbeat is one of the real-time measures the clock rules of
    `apps/forge/CLAUDE.md` name, and only code that does not obey them carries a comment.
 
@@ -594,10 +595,13 @@ the presence document alike.
 2. Apply these rules in this order; the first that matches decides the kind:
    1. No presence record and no Baton generation: `first-start`.
    2. The presence record is `unreadable`: `crashed` (fail closed: a damaged record keeps the forge off).
-   3. The newest Baton generation is above the presence record's generation (a generation took the Baton and died
-      before it wrote presence): compare that Baton record's boot with the current one through `sameBoot`
-      (`src/lib/process-identity/ProcessIdentity.ts:45`): the same boot is `crashed`; another is `machine-went-down`; an
-      unreadable Baton record is `crashed`.
+   3. The newest Baton is dead and its holder is not the process the presence record names, or there is no record (a
+      start took the Baton and died before it wrote presence). Judge by the holder, never by the generation: once a stop
+      released the last Baton, `Baton.acquire` claims generation 1 again, so a start killed before its presence write
+      leaves a Baton below the record's generation. Compare that Baton record's boot with the current one through
+      `sameBoot` (`src/lib/process-identity/ProcessIdentity.ts:45`): the same boot is `crashed`; another is
+      `machine-went-down`, with no beat of it to judge, since it never beat; an unreadable Baton record names no holder
+      and is `crashed`.
    4. The presence ending is `crashed`: `crashed`.
    5. The presence ending is `stopped`: `stopped-on-purpose`.
    6. The presence ending is `handed-over`: `handover` when the origin is `successor` and it takes over exactly that
@@ -625,6 +629,7 @@ the presence document alike.
 - "a record of another boot with no ending reads as the machine going down";
 - "the same boot with no ending reads as a crash";
 - "a newer Baton than the record, in the same boot, reads as a crash during start";
+- "a stop on record followed by a start that took Baton 1 again and died before its presence write reads as a crash";
 - "an unreadable presence record reads as a crash";
 - "a Talos lost in this boot after a stop on record reads as a crash of Talos";
 - "a Talos lost in another boot reads as the machine going down";
@@ -632,7 +637,8 @@ the presence document alike.
   well before the boot" (misreading one, narrowed);
 - "a heartbeat that stopped less than the bound before the boot is no suspected crash";
 - "a stop on record followed by a killed, wedged process reads as stopped on purpose" (misreading two, kept);
-- "an unreadable boot identity reads as another boot" (`sameBoot`'s rule, kept).
+- "an unreadable boot identity reads as the same boot, so a reboot on such a machine reads as a crash" (`sameBoot`'s
+  rule, kept).
 
 **Done when.** `bun run verify` passes at the root; `bun test src/services/overseer/StartClassification.spec.ts` passes.
 
@@ -1447,8 +1453,9 @@ export interface ForgeCrashLogDocument {
   write the new generation's presence. A crash log written after the overwrite has lost the crashed generation's
   heartbeat and ending.
 - **Two processes beat during a Baton pass.** The predecessor renews until it exits and the successor from the moment
-  it holds the Baton (N5). Each writes the heartbeat only while the stored generation is not above its own; a plain
-  overwrite would let the old generation's last beat hide the new one's.
+  it holds the Baton (N5). Each writes the heartbeat unless the stored generation is above its own and is the one
+  `presence.json` names; a plain overwrite would let the old generation's last beat hide the new one's, and order alone
+  would let an ended run's beat silence a run whose generations started again at 1.
 - **An idle forge must still beat.** The renewer renews only on progress (decision 38). If an idle, healthy forge made
   no progress in the renewer's sense, its heartbeat would go stale, and a reboot hours later would read as a suspected
   crash and keep every idle forge off (decision 39). Stage 2's renewer renews while no pass is in flight; confirm that
@@ -1469,8 +1476,9 @@ export interface ForgeCrashLogDocument {
 - **The login item is the usual start after a reboot.** It serves after `machine-went-down` with a fresh heartbeat and
   stays off after `crashed` or a suspected crash. A laptop whose battery ran flat long after its forge last beat reads
   as a suspected crash and stays off until the user starts it; that is decision 39, accepted.
-- **An unreadable boot identity reads as another boot** (`ProcessIdentity.ts:44-46`): a crash on a machine whose boot
-  cannot be read reads as the machine going down. Keep `sameBoot`'s rule; the spec states it as a known misreading.
+- **An unreadable boot identity reads as the same boot as any other** (`ProcessIdentity.ts:44-47`): a reboot on a
+  machine whose boot cannot be read reads as a crash, never as the machine going down. Keep `sameBoot`'s rule; the spec
+  states it as a known misreading.
 - **The clock rules** (`apps/forge/CLAUDE.md`). A heartbeat is real time, which the rules name, and the boot time is an
   instant an outside system names. Judging "crash suspected" from their difference takes a fact from a clock, against "a
   clock gives no fact"; that site alone carries the comment the rules ask of code that does not obey them. Every limit

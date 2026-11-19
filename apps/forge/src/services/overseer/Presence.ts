@@ -237,14 +237,21 @@ function readHeartbeat(files: OverseerFiles): PresenceFileReading<HeartbeatRecor
   };
 }
 
+/** Generations start again at 1 once a stop released the last Baton, so only a stored beat whose generation's record is current is newer. */
+function beatOfTheCurrentRecordAbove(storedGeneration: number | null, generation: number, files: OverseerFiles): storedGeneration is number {
+  if (storedGeneration === null || storedGeneration <= generation) return false;
+  const presence = readPresence(files);
+  return presence.verdict === 'read' && presence.record.generation === storedGeneration;
+}
+
 /**
- * During a Baton pass the predecessor and the successor both beat: a process beats only while the stored beat's generation is not above its
- * own, so the old generation's last beat never hides the new one's.
+ * During a Baton pass the predecessor and the successor both beat: a process beats only while the stored beat is not of a newer generation
+ * whose record is current, so the old generation's last beat never hides the new one's, and an ended run's beat never silences a new run.
  */
 function writeHeartbeat(files: OverseerFiles, generation: number, at: string): HeartbeatWrite {
   const stored = readHeartbeat(files);
   const storedGeneration = stored.verdict === 'read' ? stored.record.generation : null;
-  if (storedGeneration !== null && storedGeneration > generation) return { verdict: 'newer-generation-beats', storedGeneration };
+  if (beatOfTheCurrentRecordAbove(storedGeneration, generation, files)) return { verdict: 'newer-generation-beats', storedGeneration };
   const sequence = stored.verdict === 'read' && storedGeneration === generation ? stored.record.sequence + 1 : 1;
   const record: HeartbeatRecord = {
     heartbeatVersion: HEARTBEAT_FORMAT_VERSION, generation, sequence, at

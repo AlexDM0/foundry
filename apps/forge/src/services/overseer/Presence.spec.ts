@@ -2,7 +2,8 @@
  * The presence record and the heartbeat in a scratch board folder. What matters: a read is a verdict, never a throw, and another version reads
  * as unreadable since nothing older is read; an ending, an abandoned pass and a completed pass change only their own generation's record, so a
  * predecessor's late write never touches its successor's; a crash keeps its crash log's generation; the heartbeat's sequence rises within a
- * generation, and an older generation's beat never replaces a newer one, as during a Baton pass, when both processes beat.
+ * generation, and an older generation's beat never replaces a newer one whose record is current, as during a Baton pass, when both processes
+ * beat, while an ended run's beat never silences a run whose generations started again at 1.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {
@@ -188,12 +189,25 @@ describe('the heartbeat', () => {
     expect(written.verdict === 'written' && written.record.sequence).toBe(1);
   });
 
-  test('a beat of an older generation never replaces a newer one', () => {
+  test('a beat of an older generation never replaces a newer one whose record is current', () => {
+    Presence.writeStartedPresence(files, startOf(3));
     Presence.writeHeartbeat(files, 3, STARTED_AT);
     const before = readFileSync(files.heartbeatFilePath, 'utf8');
 
     expect(Presence.writeHeartbeat(files, 2, ENDED_AT)).toEqual({ verdict: 'newer-generation-beats', storedGeneration: 3 });
     expect(readFileSync(files.heartbeatFilePath, 'utf8')).toBe(before);
+  });
+
+  test('a run whose generations started again at 1 beats over the last beat of an ended run of a higher generation', () => {
+    Presence.writeStartedPresence(files, startOf(5));
+    Presence.writeHeartbeat(files, 5, STARTED_AT);
+    Presence.writeEnding(files, 5, { kind: 'stopped' }, STARTED_AT);
+    Presence.writeStartedPresence(files, startOf(1));
+
+    const written = Presence.writeHeartbeat(files, 1, ENDED_AT);
+    expect(written.verdict === 'written' && written.record).toEqual({
+      heartbeatVersion: 1, generation: 1, sequence: 1, at: ENDED_AT
+    });
   });
 
   test('a malformed beat, or one of another version, reads as unreadable and the next beat starts again at 1', () => {
