@@ -68,6 +68,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   reboot (serves); on Linux the systemd unit after a crash; the Windows Run line's length on a real profile; a real
   Baton pass whose predecessor dies.
 
+- WP3.13: with a real crashed forge run `oversee status`, `crash-log`, `start`, `resume --all`; on a real serving forge
+  read the live presence lines (heartbeat, supervision), which no spec covers.
+
 ### Assumptions to confirm
 
 - WP3.8: with no known generation, the crash log goes one above the newest (`crashLogGenerationOf`); a suspected crash
@@ -291,7 +294,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-F | WP3.10 | waiting | | |
 | 3-F | WP3.15 | waiting | | |
 | 3-G | WP3.11 | waiting | | |
-| 3-G | WP3.13 | waiting | | |
+| 3-G | WP3.13 | landed | ccb723b7 | First round, beside WP3.9. `oversee status` gains `presence` (`StatusPresence`) and the off-after-crash line; verb `crash-log [<number>] [--json]` (read-only, refused under a job), refusal `no-crash-log`; `status` prints a crash notice on standard error only. New `PresenceStatus.ts`, `PresenceWording.ts`; `StartGate` exports `crashToLogOf`, `loggedCrashLogOf`; `CrashLog.newestLogOfTheSameCrash`. For WP3.12: reuse `SUPERVISION_OF_LEASE_STANDING` (held: supervising, ended: stopped, waiting-after-gap: checking-after-a-gap, unheld: not-yet-renewed, no live Talos: no-talos). No spec covers the live presence lines |
 | 3-H | WP3.12 | waiting | | |
 | 3-I | WP3.14 | waiting | | |
 | 4-A | WP4.4 | waiting | | |
