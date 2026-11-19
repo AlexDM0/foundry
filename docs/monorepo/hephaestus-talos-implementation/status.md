@@ -34,6 +34,13 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Assumptions to confirm
 
+- WP2.12: an `already-done` answer counts as taken (`frameWasTaken`, `TalosChildren.ts:73-75`), resting on Talos
+  answering it only to a repeated launch or a stop of a child already stopping or ended; a record that cannot be read,
+  or reads `ended` with no `end`, is `lost`; before the first `beginPass` liveness is read fresh on every call.
+  Confirm from a recorded fake-agent run.
+- WP2.19: a stale green keeps its merge-queued mark while its re-gate runs (else a reviewer would launch and the next
+  sweep would not list it). Confirm on a live board that no reviewer launches during a re-gate. A run that throws or is
+  stopped keeps no outcome and the next pass reruns it (stage 0's table B: gating is safe to redo).
 - WP2.10: a Watcher end where no child ran (`launch-unreadable`, `socket-unbindable`) maps to `spawn-failed`
   (`CHILD_END_REASON_OF_WATCHER_END`); the adapter remembers the Watcher a gate slot just spawned and `recordOf`
   answers `starting` until it claims. Confirm with gates and slots in a real run.
@@ -71,6 +78,14 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- WP2.19 runs the merged-tree gate beside the pass. Changes a user may notice: in a stale-green re-gate the ticket
+  stays merge-queued until the outcome settles (before, the mark was cleared first); the log lines name the worktree
+  folder (`ticket-<id>`), not the ticket. It added one call by hand to the frozen fixture
+  `cli/overseer/FrozenFolderTrackerGitCalls.json` (an extra pass starts one more Assistant whose session HEAD is read),
+  although that fixture's rule is to retake it from the commit before a change. Gaps the package leaves: a run that
+  throws for another reason than a stop keeps no outcome and wakes nothing, so its job waits in `gating` until another
+  wake, with no incident; an outcome nobody settles keeps its folder; a job stop or abort during a gate does not stop
+  the gate's lines in that worktree (impossible before, when the pass awaited the gate).
 - Three integration specs were already red on `main` at `e9b5d057`; the stale-spec package (`ffc996ee`) fixed the
   specs, none was a product regression and no assertion changed. Dev-only probe tooling gained `--gpgconf-program`
   (`.platform-probes/`). The commit names no commit for when the Assistant began to be replaced each generation.
@@ -125,8 +140,8 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-E | WP2.8 | landed | a32e38f6 | Third round (night rule): round 1 an agent launched during a lease end's wait was killed; round 2 the tree stop at an agent's end waited out the launch's grace twice inside a clean quit (10 s+ with the production 5000 ms grace); both fixed and specced (`ChildSupervisor.treeStopAtEnd.spec.ts`). `quitLiveAgentsAtTurnEnd` returns the agents it asked. Claude Code's standing reply moved into `ClaudeStreamLines.ts` as `CLAUDE_CODE_STANDING_REPLIES` and the fake agent now plans it (WP2.21's leftover closed). Quit acts and the final grace-0 stop are logged as `client` entries (`close`, `write-line`, `stop`) |
 | 2-F | WP2.9 | landed | e0506ca9 | First round. For WP2.13: `TalosAvailability` has a fourth variant `{ verdict: 'unavailable'; reason: 'endpoint-does-not-fit' \| 'start-refused' \| 'not-serving'; startNumber }` (`TalosStart.ts:57-58`) to handle beside `held`. A hello refused `quitting` is waited out as a quitting Talos, not lost; `claimed` is waited on; the next start number counts `start-<n>.json` too. The Overseer draws the endpoint with its own pipe prefix and writes it into the start file (WP2.7's empty-prefix assumption holds by code). Test helper `connectToTalos` is now `connectProtocolClientToTalos`; protocol override is the preload `src/testing/TalosOfTheNextProtocolPreload.ts`. `REGROUP_HELLO_TIMEOUT_MILLISECONDS` stays until WP2.15. Stage-file drift: `WatcherFleet.ts:114-119` is :115-120, :221 is :223; `Environment.ts:149` is :156 |
 | 2-F | WP2.10 | landed | 4f6f334d | First round, then a touch-up: the launch records (`recordInstructionsRead`, `recordLaunchSettings`) were moved back before `children.launchAgent`, and the unused `JobLaunchContext.processStarts` removed. Port `BoardChildren.ts`, Watcher adapter `WatcherBoardChildren.ts`; `jobFolderIn` in `OverseerFiles.ts`. For WP2.13: the adapter is composed in six places, not one (`OverseerForeground.ts:290` and `:408`, `OverseerFlintBrain.ts:73`, `cli/jobs/JobCommand.ts:124` which WP2.13 does not name, `DrivePassHarness.ts:55`, `testing/WatcherChildReadings.ts`); drop `DrivePassRequest.reapEndedWatchers` and the adapter's `reapEndedWatchers`; endpoint-fit checks inline in `DrivePass.ts`, `JobLaunch.ts`, `FlintBrainSessionHost.ts` (item 5 removes them). Watcher records are read through `LegacyWatcherReader.watcherRecordIn` (goes in WP2.15). `WatcherFleet.ts` citations past ~:80 are 7 lower than after WP2.5 (`livenessOf` :83, `sendFramesOnce` :235, `claimedInstancesIn` :270): WP2.12's `:95`, `:137-140`, `:235-247` moved |
-| 2-G | WP2.12 | waiting | | |
-| 2-G | WP2.19 | waiting | | |
+| 2-G | WP2.12 | landed | 871396b3 | First round. `TalosChildren.ts`, test helper `src/testing/PlantedChild.ts` (`PlantedWatcher.ts` stays until WP2.15); `TalosStart.ts` exports `talosRecordAt` and `runningIdentityOf`. `talosLiveness` is optional (defaults to `recordedTalosLiveness`). Callers pass absolute child folders; the adapter makes them board-relative. With no connection a launch answers `talos-unavailable` and writes nothing. The plan's `environmentFromWatcher` maps to `environmentFromTalos` until WP2.16's rename |
+| 2-G | WP2.19 | landed | 3a3953b7 | First round. `MergedTreeGateRuns.ts`; `AirlocksContext.mergedTreeGateOf` (sync, answers a gate or `running`) plus `mergedTreeGateSettled`; `MergedTreeGateRunRequest.stamp` is `GateRunStamp \| null`; new `MERGED_TREE_GATE_RUNS_FOLDER`, `MERGED_TREE_GATE_OUTCOME_FILE`, `..._FORMAT_VERSION`, `mergedTreeGateStampOf`. For WP2.14: `stopAll` only marks stopping and awaits; the line processes are still stopped by `DrivePass.stop`'s `mergedTreeGateProcesses` loop, and WP2.14 item 6 builds on `stopAll` stopping them; nothing stops a gate's lines on a job stop or abort. One run per worktree at a time. Stage-file drift: `DrivePass.ts` gate context :1251-1274, pipeline read :1254-1257, regroup :1579-1588, stop :1590-1598 |
 | 2-G | Stale integration specs | landed | ffc996ee | Added by the orchestrator so G4's `verify:integration` can be green: three specs red since before the run, all stale specs, no product regression. `GitVersionFloor` stage order (`findWorkspace` asks the common dir first, since `1ea2d4a1`); the probes gain `--gpgconf-program` and `PlatformProbes` passes a stub (the trap since `01b3a424`); `OverseerCommand.integration` plants the bad event line in the job the board lists now (the Assistant is replaced each generation). `verify:integration`: 931 pass, 0 fail |
 | 2-H | WP2.13 | waiting | | |
 | 2-I | WP2.14 | waiting | | |
