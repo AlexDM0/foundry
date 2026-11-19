@@ -61,8 +61,14 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP3.4: on a real Linux host, the process-supervision contract spec's boot-start check.
 
+- WP3.7: kill a real Talos while a scratch forge serves (crash log and the `forge-crashed` exit); throw an uncaught error
+  in a live Overseer (non-zero exit; WP3.14's integration row); a crash during a Baton pass.
+
 ### Assumptions to confirm
 
+- WP3.7: a lost Talos whose record cannot be read counts as lost in this boot, so a crash (`talosWasLostThisBoot`); an
+  uncaught error before the presence write, or after `stopped`/`handed-over`, only rethrows (`crashableGeneration`);
+  the log tail reads at most 256 KiB. Leftover Talos after a Talos crash while serving: confirm it is harmless.
 - WP3.5: two processes write the heartbeat by read, check, write with no lock; in a Baton pass the predecessor can
   overwrite the successor's first beat for one beat (15 s). Confirm with a real Baton pass.
 - WP2.32: the wording choices are assumptions 4, 5 and 9 of `stage-2-talos.md`'s 'Needs the owner' ("the option the
@@ -250,7 +256,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-B | WP3.2 | waiting | | |
 | 3-B | WP3.6 | waiting | | |
 | 3-C | WP3.3 | waiting | | |
-| 3-C | WP3.7 | waiting | | |
+| 3-C | WP3.7 | landed | 49ecbfd3 | Second round, beside WP3.6. `CrashLog.ts` (`assemble`, `writeOnce`, `list`, `read`, `logTailOf`), `CrashPath.record` (crash log, presence `crashed`, lease stop, then a bounded registry write: a no-op until WP3.8), `listenForProcessCrashes` (rethrows, never exits). `CrashLogRecord.activeJobs` and `logTail` may be null (WP3.12's document must map null); `persistedChildRecordsOf` in `TalosStart.ts`; `CRASH_LOG_TAIL_READ_BOUND_BYTES` 256 KiB. For WP3.11: `ensureTalosIfLost` still throws a plain Error after a Talos crash; pass it over or keep the first ending, else `writeEnding` rewrites a Talos crash as `component: 'overseer'`. At a crash of Talos while serving, the fresh Talos `ensureTalos` started is left running with its connection closed. `docs/cli.md` lacks `crash-logs/crash-<generation>.json` and the `forge-crashed` exit (WP3.13). Stage-file drift: the two `ensureTalos` call sites are in `OverseerForeground.ts` (:447, :702), not `TalosStart.ts` |
 | 3-D | WP3.8 | waiting | | |
 | 3-E | WP3.9 | waiting | | |
 | 3-F | WP3.10 | waiting | | |
