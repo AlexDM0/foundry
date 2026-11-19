@@ -101,15 +101,32 @@ function sentLineOf(line: string): SentLine | null {
 }
 
 export const CLAUDE_CODE_CAPABILITIES: AgentCapabilities = Object.freeze({
-  chatTurns: true, questions: true, resume: true, reportChannel: 'schema', usage: 'tokens', pictures: true
+  chatTurns:                  true,
+  questions:                  true,
+  resume:                     true,
+  reportChannel:              'schema',
+  usage:                      'tokens',
+  pictures:                   true,
+  // A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
+  takesLiveAnswers:           true,
+  // `--resume` finds a session by the project folder it started in.
+  resumeFindsSessionByFolder: true,
 });
 
-export const CLAUDE_STREAM_LINES: Pick<AgentAdapter, 'eventsOf' | 'chatLineOf' | 'answerLineOf' | 'interruptLineOf' | 'sentLineOf'> = Object.freeze({
-  eventsOf: claudeStreamEventsOf,
+/** A skill runs from a slash command that names it, its arguments after a space. */
+function claudeInstructionBundleLineOf(bundleName: string, argumentsText: string): string {
+  return `/${bundleName} ${argumentsText}`.trim();
+}
+
+type ClaudeStreamLineMembers = 'eventsOf' | 'chatLineOf' | 'answerLineOf' | 'interruptLineOf' | 'sentLineOf' | 'instructionBundleLineOf';
+
+export const CLAUDE_STREAM_LINES: Pick<AgentAdapter, ClaudeStreamLineMembers> = Object.freeze({
+  eventsOf:                claudeStreamEventsOf,
   chatLineOf,
   answerLineOf,
   interruptLineOf,
   sentLineOf,
+  instructionBundleLineOf: claudeInstructionBundleLineOf,
 });
 
 /** Every turn of a stream-json session ends on one `result` line. */

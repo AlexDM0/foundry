@@ -29,6 +29,7 @@ import type { LineConditions }                             from '../../lib/talos
 import type { StandingReply }                              from '../../lib/talos/StandingReplies.ts';
 import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
 import type { StoredRecordReading }                        from '../../lib/talos/utils/ParsedValueUtil.ts';
+import { SESSION_STOP_GRACE_MILLISECONDS }                 from '../../shared/constants/OverseerLimits.ts';
 import type {
   AgentChildRequest,
   BoardChildren,
@@ -166,6 +167,16 @@ export function createTalosChildren(facts: TalosChildrenFacts): BoardChildren {
     return frameWasTaken(await connection.send(frame));
   }
 
+  /** An agent launched with no quit act refuses to be asked to quit at its turn end, so it is stopped instead. */
+  async function inputSentAndTaken(childId: string, input: ChildInput): Promise<boolean> {
+    const connection = facts.connection();
+    if (connection === null) return false;
+    const answer = await connection.send({ kind: 'input', childId, input });
+    const hasNoQuitAct = answer !== 'no-answer' && answer.verdict === 'refused' && answer.reason === 'no-quit-act';
+    if (!hasNoQuitAct) return frameWasTaken(answer);
+    return await sentAndTaken({ kind: 'stop', childId, graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
+  }
+
   async function launched(launch: ChildLaunch, beforeTheFrame: () => void): Promise<ChildLaunchOutcome> {
     const connection = facts.connection();
     if (connection === null) return { verdict: 'talos-unavailable' };
@@ -224,7 +235,7 @@ export function createTalosChildren(facts: TalosChildrenFacts): BoardChildren {
     if (existsSync(markerPath) || livenessOf(childFolder, instance).verdict !== 'live') return false;
     const childId = childIdIn(childFolder, instance);
     for (const input of inputs) {
-      if (!await sentAndTaken({ kind: 'input', childId, input })) return false;
+      if (!await inputSentAndTaken(childId, input)) return false;
     }
     mkdirSync(dirname(markerPath), { recursive: true });
     writeFileSync(markerPath, '');
@@ -243,7 +254,7 @@ export function createTalosChildren(facts: TalosChildrenFacts): BoardChildren {
     recognisedEndingsOf: (childFolder, instance) => recordOf(childFolder, instance)?.recognisedEndings ?? [],
     launchAgent,
     launchLine,
-    sendInput:           async (childFolder, instance, input) => await sentAndTaken({ kind: 'input', childId: childIdIn(childFolder, instance), input }),
+    sendInput:           async (childFolder, instance, input) => await inputSentAndTaken(childIdIn(childFolder, instance), input),
     sendInputOnce,
     stop:                async (childFolder, instance, graceMilliseconds) => await sentAndTaken({ kind: 'stop', childId: childIdIn(childFolder, instance), graceMilliseconds }),
     stopLiveLines:       async () => await sentAndTaken({ kind: 'stop-lines' }),

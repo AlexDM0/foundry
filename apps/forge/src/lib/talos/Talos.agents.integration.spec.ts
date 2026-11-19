@@ -1,7 +1,8 @@
 /**
  * Agent children end to end with the Talos binary, launched as the fake agent's adapter plans them. What matters: a permission request is
  * answered by the plan's standing reply while a question waits; a `write-line` reaches the child and a `close` ends it, each in the event
- * log as a `client` entry before anything the child did after it; a stop of an agent is logged as one too; input to a line, an ended agent
+ * log as a `client` entry before anything the child did after it; a quit at the turn end applies the launch's own act, logged as that act,
+ * and an agent launched with none refuses it; a stop of an agent is logged as one too; input to a line, an ended agent
  * or an unknown child is refused; and an ending of the plan's patterns is recognised from the closing line's sequence and the counted
  * lines, the record holding it before the event log holds the line.
  */
@@ -122,6 +123,36 @@ test('a stop of an agent is logged as a client entry and ends it', async () => {
   expect(scratch.eventsOf(AGENT_FOLDER, 1).map(({ origin, line }) => ({ origin, line })).slice(1)).toEqual([
     { origin: 'client', line: clientEntryLineOf({ act: 'stop', graceMilliseconds: STOP_GRACE_MILLISECONDS }) },
   ]);
+  expect(await serving.quit()).toBe(0);
+}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+test('a quit at the turn end applies the launch\'s own act, logged as the act applied, and an agent launched with none refuses it', async () => {
+  const scratch = scratchTalos();
+  const serving = await scratch.serve(START_NUMBER);
+  const startedLine = fakeStartedLineSelectorOf('fake-session');
+  const startedThenWaiting = [{ kind: 'print', line: startedLine }, { kind: 'await-line' }, { kind: 'await-line' }] as const;
+  const quitLine = JSON.stringify({ type: 'example-quit' });
+  const launches = {
+    closesInput: fakeAgentChildLaunch(scratch.boardFolder, 'jobs/J-1', 1, startedThenWaiting),
+    writesLine:  fakeAgentChildLaunch(scratch.boardFolder, 'jobs/J-2', 1, startedThenWaiting, { quitAtTurnEnd: { act: 'write-line', line: quitLine } }),
+    hasNoQuit:   fakeAgentChildLaunch(scratch.boardFolder, 'jobs/J-3', 1, startedThenWaiting, { quitAtTurnEnd: null }),
+  };
+  for (const launch of Object.values(launches)) await serving.send(launchFrameOf(launch));
+  const loggedLinesOf = (childFolder: string): readonly { origin: string; line: string }[] => scratch.eventsOf(childFolder, 1).map(({ origin, line }) => ({ origin, line }));
+  for (const childFolder of ['jobs/J-1', 'jobs/J-2', 'jobs/J-3']) await waitUntil(() => loggedLinesOf(childFolder).length === 1, `the started line of ${childFolder}`);
+
+  const quitAtTurnEnd = { act: 'quit-at-turn-end' };
+  expect(await serving.send({ kind: 'input', childId: 'jobs/J-1#1', input: quitAtTurnEnd })).toMatchObject({ verdict: 'done' });
+  expect(await serving.send({ kind: 'input', childId: 'jobs/J-2#1', input: quitAtTurnEnd })).toMatchObject({ verdict: 'done' });
+  expect(await serving.send({ kind: 'input', childId: 'jobs/J-3#1', input: quitAtTurnEnd })).toMatchObject({ verdict: 'refused', reason: 'no-quit-act' });
+
+  expect((await scratch.endedRecordOf('jobs/J-1', 1)).end).toMatchObject({ reason: 'exited', exitCode: 0 });
+  expect(loggedLinesOf('jobs/J-1').slice(1)).toEqual([{ origin: 'client', line: clientEntryLineOf({ act: 'close' }) }]);
+  expect(loggedLinesOf('jobs/J-2').slice(1)).toEqual([{ origin: 'client', line: clientEntryLineOf({ act: 'write-line', line: quitLine }) }]);
+  expect(loggedLinesOf('jobs/J-3')).toHaveLength(1);
+  for (const childId of ['jobs/J-2#1', 'jobs/J-3#1']) await serving.send({ kind: 'stop', childId, graceMilliseconds: STOP_GRACE_MILLISECONDS });
+  await scratch.endedRecordOf('jobs/J-2', 1);
+  await scratch.endedRecordOf('jobs/J-3', 1);
   expect(await serving.quit()).toBe(0);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

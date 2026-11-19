@@ -4,6 +4,7 @@
  */
 import { JsonRecordUtil } from '../json-record/JsonRecordUtil.ts';
 import type {
+  AppliedInput,
   ChildInput,
   ClientEntry,
   HelloFrame,
@@ -12,8 +13,9 @@ import type {
   TalosFrame,
   VersionMismatchFrame,
 } from './@types/TalosFrame.ts';
-import { leaseRenewerOf }  from './TalosRecord.ts';
-import { ParsedValueUtil } from './utils/ParsedValueUtil.ts';
+import type { QuitAtTurnEnd } from './ChildLaunch.ts';
+import { leaseRenewerOf }     from './TalosRecord.ts';
+import { ParsedValueUtil }    from './utils/ParsedValueUtil.ts';
 
 const { ownFieldOf, isWholeNumberAtLeast } = ParsedValueUtil;
 
@@ -45,12 +47,16 @@ export function helloFrameOf(line: string): HelloFrame | null {
   return { kind: 'hello', requiredProtocolVersion, secret };
 }
 
-function childInputOf(value: unknown): ChildInput | null {
-  if (!JsonRecordUtil.valueIsAPlainObject(value)) return null;
+function appliedInputOf(value: Readonly<Record<string, unknown>>): AppliedInput | null {
   const act = ownFieldOf(value, 'act');
   const line = ownFieldOf(value, 'line');
   if (act === 'close') return { act };
   return act === 'write-line' && isSingleLine(line) ? { act, line } : null;
+}
+
+function childInputOf(value: unknown): ChildInput | null {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) return null;
+  return ownFieldOf(value, 'act') === 'quit-at-turn-end' ? { act: 'quit-at-turn-end' } : appliedInputOf(value);
 }
 
 /** Every frame after the first line; a `hello` there is no frame. */
@@ -105,6 +111,12 @@ export function talosFrameLineOf(frame: TalosFrame): string {
   return `${JSON.stringify(frame)}\n`;
 }
 
+/** The input act that applies a launch's own quit at its turn end, or `null` for a child launched with none. */
+export function quitActInputOf(quitAct: QuitAtTurnEnd | null): AppliedInput | null {
+  if (quitAct === null) return null;
+  return quitAct.act === 'write-line' ? { act: 'write-line', line: quitAct.line } : { act: 'close' };
+}
+
 export function clientEntryLineOf(entry: ClientEntry): string {
   return JSON.stringify(entry);
 }
@@ -112,7 +124,7 @@ export function clientEntryLineOf(entry: ClientEntry): string {
 export function clientEntryOf(line: string): ClientEntry | null {
   const parsed = parsedObjectOf(line);
   if (parsed === null) return null;
-  if (ownFieldOf(parsed, 'act') !== 'stop') return childInputOf(parsed);
+  if (ownFieldOf(parsed, 'act') !== 'stop') return appliedInputOf(parsed);
   const graceMilliseconds = ownFieldOf(parsed, 'graceMilliseconds');
   return isWholeNumberAtLeast(graceMilliseconds, 0) ? { act: 'stop', graceMilliseconds } : null;
 }

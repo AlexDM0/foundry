@@ -5,6 +5,7 @@
  */
 import { readFileSync } from 'node:fs';
 
+import type { AgentAdapter }              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }             from '../../lib/agent-launch/WorkerProfile.ts';
 import type { Job, PictureReference }     from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -21,6 +22,8 @@ const ENTITY_MAP_PLACEHOLDER = '{{entityMap}}';
 /** What a product owner's first message is filled from; a fresh session after a replaced one also gets its drafts and answers. */
 export interface IntakeFacts {
   text:           string;
+  /** The line that runs the product-owner instruction bundle on User's request, as the session's agent words it. */
+  firstLine:      string;
   drafts:         readonly { id: string; title: string }[];
   carriedAnswers: readonly Readonly<Record<string, string>>[];
 }
@@ -36,11 +39,13 @@ function productOwnerProfileOf(sessionProfile: WorkerProfile): WorkerProfile {
   };
 }
 
-function intakeFactsOf(board: Board, job: Readonly<Job>): IntakeFacts | null {
+function intakeFactsOf(board: Board, job: Readonly<Job>, agentAdapter: Pick<AgentAdapter, 'instructionBundleLineOf'>): IntakeFacts | null {
   if (!isIntakeJob(job)) return null;
   const freshAfterReplacement = job.parentJobId !== null;
+  const text = job.intake?.text ?? '';
   return {
-    text:           job.intake?.text ?? '',
+    text,
+    firstLine:      agentAdapter.instructionBundleLineOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL, text),
     drafts:         freshAfterReplacement ? board.draftsFiledByIntakeOf(job.id).map((ticket) => ({ id: ticket.frontmatter.id, title: ticket.frontmatter.title })) : [],
     carriedAnswers: job.intake?.carriedAnswers ?? [],
   };

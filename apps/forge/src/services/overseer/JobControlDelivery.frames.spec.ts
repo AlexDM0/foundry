@@ -1,8 +1,9 @@
 /**
  * User's job controls as frames to the board's Talos, a recording one answering for it. What matters: a Talos that answers no frame on one
- * pass is sent it on a later pass, its marker written only once Talos took it; a session's stop has a marker of its own, so a `job stop`
- * recorded after its input was closed still reaches the session; a stop asked before any close sends close then stop, each once, a
- * restarted Overseer included; and a message's pictures are read from the board's store and written into its chat line.
+ * pass is sent it on a later pass, its marker written only once Talos took it; a session is asked to quit at its turn end, never sent a
+ * close; a session's stop has a marker of its own, so a `job stop` recorded after its quit still reaches the session; a stop asked before
+ * any quit sends the quit then the stop, each once, a restarted Overseer included; and a message's pictures are read from the board's
+ * store and written into its chat line.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -17,10 +18,10 @@ import {
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
-import { clientEntryLinesOf }                             from '../../testing/ClientEntryLines.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { sentActLinesOf }                                 from '../../testing/SentActLines.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
@@ -43,7 +44,7 @@ function productOwnerJob(overrides: Partial<Job> = {}): Job {
   };
 }
 
-const CLOSE_INPUT = JSON.stringify({ act: 'close' });
+const QUIT_AT_TURN_END = JSON.stringify({ act: 'quit-at-turn-end' });
 const STOP = JSON.stringify({ act: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
 
 describe('a session job\'s control frames', () => {
@@ -81,10 +82,10 @@ describe('a session job\'s control frames', () => {
   async function actingFramesWhile(during: () => Promise<void>): Promise<readonly string[]> {
     const framesBefore = talos.frames().length;
     await during();
-    return clientEntryLinesOf(talos.frames().slice(framesBefore));
+    return sentActLinesOf(talos.frames().slice(framesBefore));
   }
 
-  test('a closed intake\'s close reaches a Talos that answered nothing on the first pass on the next pass, marked only then', async () => {
+  test('a closed intake\'s quit at its turn end reaches a Talos that answered nothing on the first pass on the next pass, marked only then', async () => {
     const job = productOwnerJob();
     plantLiveSession(job);
     talos.answers(false);
@@ -95,17 +96,17 @@ describe('a session job\'s control frames', () => {
       await deliverPass(job);
       await deliverPass(job);
     });
-    expect({ markedWhileRefusing, frames, marked: markerExists(job, 'input-closed-1') }).toEqual({ markedWhileRefusing: false, frames: [CLOSE_INPUT], marked: true });
+    expect({ markedWhileRefusing, frames, marked: markerExists(job, 'input-closed-1') }).toEqual({ markedWhileRefusing: false, frames: [QUIT_AT_TURN_END], marked: true });
   });
 
-  test('a job stop recorded after a delivered close sends the stop frame on the next pass', async () => {
+  test('a job stop recorded after a delivered quit sends the stop frame on the next pass', async () => {
     const closedIntake = productOwnerJob();
     plantLiveSession(closedIntake);
     const frames = await actingFramesWhile(async () => {
       await deliverPass(closedIntake);
       await deliverPass(productOwnerJob({ stopRequest: 'stop' }));
     });
-    expect(frames).toEqual([CLOSE_INPUT, STOP]);
+    expect(frames).toEqual([QUIT_AT_TURN_END, STOP]);
   });
 
   test('a message\'s pictures are read from the board\'s store and written into its chat line', async () => {
@@ -124,7 +125,7 @@ describe('a session job\'s control frames', () => {
     expect(frames).toEqual([JSON.stringify({ act: 'write-line', line })]);
   });
 
-  test('a stop asked before any close sends close then stop, each once across an Overseer restart', async () => {
+  test('a stop asked before any quit sends the quit then the stop, each once across an Overseer restart', async () => {
     const job = productOwnerJob({ stopRequest: 'stop' });
     plantLiveSession(job);
     const beforeRestart = await actingFramesWhile(async () => {
@@ -133,6 +134,6 @@ describe('a session job\'s control frames', () => {
     const afterRestart = await actingFramesWhile(async () => {
       await deliverPass(productOwnerJob({ stopRequest: 'stop' }));
     });
-    expect({ beforeRestart, afterRestart }).toEqual({ beforeRestart: [CLOSE_INPUT, STOP], afterRestart: [] });
+    expect({ beforeRestart, afterRestart }).toEqual({ beforeRestart: [QUIT_AT_TURN_END, STOP], afterRestart: [] });
   });
 });

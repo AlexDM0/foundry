@@ -1,8 +1,8 @@
 /**
- * Delivers each answered question to its session after the answering hold, design section 8.2: a live child still holding the request gets
- * the `control_response` allow with the answers; a resumed session gets them as its first user line. A marker per request in the job's
- * folder, written only after Talos took the line, keeps a later pass or restart from delivering the answer again, unless the Overseer
- * died before the marker: delivery is at least once, and how the vendor takes a repeated `control_response` was never probed.
+ * Delivers each answered question to its session after the answering hold, design section 8.2: a live session still holding the request
+ * takes the answer line; a resumed session gets the answers as its first user line. A marker per request in the job's folder, written only
+ * after Talos took the line, keeps a later pass or restart from delivering the answer again, unless the Overseer died before the marker:
+ * delivery is at least once, and how an agent takes a repeated answer line was never probed.
  */
 import { createHash }                from 'node:crypto';
 import { existsSync, writeFileSync } from 'node:fs';
@@ -21,13 +21,13 @@ import { JobResumption }                   from './JobResumption.ts';
 const MARKER_DIGEST_LENGTH_CHARACTERS = 16;
 
 export interface AnswerDeliveryRequest {
-  boardChildren:             BoardChildren;
-  board:                     Board;
-  adapter:                   AgentAdapter;
-  /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the child and resumes the session with it. */
-  deliversByControlResponse: boolean;
+  boardChildren:   BoardChildren;
+  board:           Board;
+  adapter:         AgentAdapter;
+  /** True: a live session takes the answer line; false: the Overseer stops the child and resumes the session with the answer. */
+  deliversLive:    boolean;
   /** The answer worded as a plain user message, for a session that no longer holds the request. */
-  answerMessageOf:           (answer: DecisionAnswer) => string;
+  answerMessageOf: (answer: DecisionAnswer) => string;
 }
 
 function digestOf(requestId: string): string {
@@ -71,7 +71,7 @@ async function deliverOne(request: AnswerDeliveryRequest, job: Readonly<Job>, re
   const children  = request.boardChildren;
   const jobFolder = children.jobFolderOf(job.id);
   const asked     = questionsAskedInInstance(children, jobFolder, job.childInstance, request.adapter, requestId);
-  if (asked !== null && !request.deliversByControlResponse) {
+  if (asked !== null && !request.deliversLive) {
     const stopMarker = answerStopMarkerOf(jobFolder, job.childInstance);
     if (existsSync(stopMarker)) return;
     writeFileSync(stopMarker, '');

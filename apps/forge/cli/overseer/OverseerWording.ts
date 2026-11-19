@@ -279,7 +279,6 @@ const CONFINEMENT_WORDING = {
  * far and the answers its predecessor's questions got, in the same message.
  */
 function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFacts['intake']>, instructions: string, confinement: JobLaunchFacts['confinement']): JobLaunchText {
-  const firstLine = `/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} ${intake.text}`.trim();
   const draftLines = intake.drafts.map((draft) => `- #${draft.id} ${draft.title}`);
   const answerLines = intake.carriedAnswers.flatMap((answer) => Object.entries(answer).map(([question, answerText]) => `- ${question}\n  Answer: ${answerText}`));
   const takeover = draftLines.length === 0 && answerLines.length === 0 ? [] : [
@@ -291,7 +290,7 @@ function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFac
     jobId: job.id, program: PRODUCT_NAMES.PROGRAM, skill: PRODUCT_NAMES.PRODUCT_OWNER_SKILL, productOwnerBashNetwork: CONFINEMENT_WORDING[confinement].productOwnerBashNetwork,
   };
   const roleBrief = filledTemplateOf(instructions, fills);
-  return { firstMessage: [firstLine, ...(takeover.length === 0 ? [] : ['', ...takeover])].join('\n'), roleBrief };
+  return { firstMessage: [intake.firstLine, ...(takeover.length === 0 ? [] : ['', ...takeover])].join('\n'), roleBrief };
 }
 
 /** A fresh agent has its role's full budget; a resumed session the red handoff's short one. */

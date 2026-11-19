@@ -439,8 +439,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Do not use the network from Bash.\',':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'cli/overseer/OverseerWording.ts: vendor-mark: const firstLine = `/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} ${intake.text}`.trim();':
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
   'cli/overseer/OverseerWording.ts: vendor-name: case \'claude-md-block-committed\':':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerWording.ts: vendor-name: return `launches onto ${notice.target} wait: commit the CLAUDE.md change \\`update\\` made`;':
@@ -607,32 +605,12 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'in-tree hooks folder. */'
   ]:
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  [
-  'src/services/overseer/AnswerDelivery.ts: vendor-wire-key: * the `control_response` allow with the answers; a resumed session gets them as its first user line. A marker '
-    + 'per request in the job\'s'
-  ]:
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
-  [
-  'src/services/overseer/AnswerDelivery.ts: vendor-wire-key: * died before the marker: delivery is at least once, and how the vendor takes a repeated `control_response` '
-    + 'was never probed.'
-  ]:
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
-  [
-  'src/services/overseer/AnswerDelivery.ts: vendor-wire-key: /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the child and '
-    + 'resumes the session with it. */'
-  ]:
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
   'src/services/overseer/BoardState.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour` or `seven_day`. */':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'src/services/overseer/DrivePass.ts: vendor-name: /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/services/overseer/DrivePass.ts: vendor-name: | { kind: \'claude-md-block-committed\'; target: string }':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  [
-  'src/services/overseer/DrivePass.ts: vendor-wire-key: // A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no '
-    + 'stop and resume.'
-  ]:
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
   'src/services/overseer/DrivePass.ts: vendor-name: /** The project\'s own `CLAUDE.md`, the one the managed block is installed in, as git names it from the repository root. */':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   [
@@ -675,11 +653,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'headed `system` opens a'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  [
-  'src/services/overseer/SessionPlace.ts: vendor-name: * worktree\'s root, where Claude Code\'s sandbox grants the worktree\'s own git admin folder, so it commits; a '
-    + 'pipeline agent\'s snapshot, which'
-  ]:
-    'Removed by WP2.25: Live answers, the quit act, the instruction bundle line and the start folder go through the port.',
   [
   'src/services/overseer/WorkerProfiles.ts: vendor-name: * The `.claude` folders of the worktree no job may write: its root\'s, for a tracker below the repository root '
     + 'its project\'s, and on a forge'

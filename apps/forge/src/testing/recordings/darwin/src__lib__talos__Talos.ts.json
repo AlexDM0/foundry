@@ -17,7 +17,7 @@
       "callShape": "identity-of <caller>",
       "answer": {
         "processId": "<caller>",
-        "startStamp": "1795053922",
+        "startStamp": "1795073318",
         "bootIdentity": "C0CC056D-D849-4FE2-BE41-AAA79B712A3D"
       }
     },
@@ -57,7 +57,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "quit",
@@ -95,7 +95,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -133,7 +133,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -177,7 +177,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -221,7 +221,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -271,7 +271,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -320,7 +320,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -358,7 +358,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -407,7 +407,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "quit",
@@ -456,7 +456,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -494,7 +494,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -532,7 +532,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -581,7 +581,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -628,7 +628,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -677,7 +677,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -730,7 +730,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -779,7 +779,7 @@
         "talosRecord": {
           "formatVersion": 1,
           "startNumber": "<start number>",
-          "protocolVersion": 1,
+          "protocolVersion": 2,
           "codeVersion": "<code version>",
           "talos": "<talos>",
           "state": "serving",
@@ -800,7 +800,7 @@
           "processId": "<process>",
           "parentProcessId": "<caller>",
           "processGroupId": "<process>",
-          "startStamp": "1795053932"
+          "startStamp": "1795073336"
         }
       ]
     },

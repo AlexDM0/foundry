@@ -22,6 +22,7 @@ import type { DoneFrame, ReceivedClientFrame }            from '../../lib/talos/
 import type { ChildEnd }                                  from '../../lib/talos/ChildRecord.ts';
 import { listenOnTalosSocket }                            from '../../lib/talos/TalosSocketServer.ts';
 import { TALOS_PROTOCOL_VERSION }                         from '../../lib/talos/constants/TalosProtocol.ts';
+import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { useRecordedLocalEndpoint }                       from '../../testing/RecordedLocalEndpoint.ts';
@@ -239,7 +240,7 @@ function answered(verdict: 'done' | 'already-done'): (frame: ReceivedClientFrame
   return (frame) => Promise.resolve({ kind: 'done', frameId: frame.frameId, verdict });
 }
 
-function refusedWith(reason: 'unknown-child' | 'child-ended' | 'folder-outside-board'): (frame: ReceivedClientFrame) => Promise<DoneFrame> {
+function refusedWith(reason: 'unknown-child' | 'child-ended' | 'folder-outside-board' | 'no-quit-act'): (frame: ReceivedClientFrame) => Promise<DoneFrame> {
   return (frame) => Promise.resolve({
     kind: 'done', frameId: frame.frameId, verdict: 'refused', reason
   });
@@ -355,6 +356,22 @@ describe('acts', () => {
       { kind: 'input', childId: 'jobs/J-1#3', input: { act: 'write-line', line: 'example line' } },
       { kind: 'stop', childId: 'jobs/J-1#3', graceMilliseconds: 250 },
       { kind: 'stop-lines' },
+    ]);
+  });
+
+  testWhenRecorded(['local-endpoint-recording'], 'a quit at its turn end that Talos refuses for an agent with no quit act is sent as a stop instead', async () => {
+    const markerPath = join(boardFolder, 'jobs', 'J-1', 'input-closed-1');
+    const stopTakenAfterRefusal = await childrenOverServedTalos(async (frame) => {
+      const answer = frame.kind === 'input' ? refusedWith('no-quit-act') : answered('done');
+      return await answer(frame);
+    });
+    PlantedChild.plantChildRecord(child('jobs/J-1'));
+
+    expect(await stopTakenAfterRefusal.children.sendInputOnce(markerPath, absoluteFolderOf('jobs/J-1'), 1, [{ act: 'quit-at-turn-end' }])).toBe(true);
+    expect(existsSync(markerPath)).toBe(true);
+    expect(stopTakenAfterRefusal.framesSeen.map(({ frameId: _frameId, ...frame }) => frame)).toEqual([
+      { kind: 'input', childId: 'jobs/J-1#1', input: { act: 'quit-at-turn-end' } },
+      { kind: 'stop', childId: 'jobs/J-1#1', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS },
     ]);
   });
 

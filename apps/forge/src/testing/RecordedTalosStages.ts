@@ -21,7 +21,7 @@ import { type ChildRecord, childRecordTextOf }                             from 
 import type { RecognisedEnding }                                           from '../lib/talos/EndingPatterns.ts';
 import { createEventLogWriter, type EventLogWriter, type EventOrigin }     from '../lib/talos/EventLog.ts';
 import { type ChildFiles, childFilesOf, talosRecordPathOf }                from '../lib/talos/TalosFiles.ts';
-import { clientEntryLineOf }                                               from '../lib/talos/TalosFrames.ts';
+import { clientEntryLineOf, quitActInputOf }                               from '../lib/talos/TalosFrames.ts';
 import { type TalosRecord, talosRecordTextOf }                             from '../lib/talos/TalosRecord.ts';
 import type { ProcessStarts }                                              from '../services/overseer/ProcessStarts.ts';
 import type { TalosConnection, TalosFrameRequest }                         from '../services/overseer/TalosConnection.ts';
@@ -489,11 +489,15 @@ export function createRecordedTalosStages(nativePorts: PlatformPorts, answers?: 
     enterStage(host, TALOS_STAGES.AGENT_STOPPED);
   }
 
-  function takeInput(host: MockedChild, input: ChildInput): void {
+  /** A quit at its turn end is taken as the launch's own quit act, as Talos takes it. */
+  function takeInput(host: MockedChild, childInput: ChildInput): 'done' | 'no-quit-act' {
+    const input = childInput.act === 'quit-at-turn-end' ? quitActInputOf(host.launch.quitAtTurnEnd) : childInput;
+    if (input === null) return 'no-quit-act';
     appendClientEntry(host, TALOS_STAGES.AGENT_LINE, input);
     if (input.act === 'write-line') host.linesWaiting += 1;
     else host.inputClosed = true;
     playScenario(host);
+    return 'done';
   }
 
   /** Each live agent takes its quit act, logged as a client entry, and ends with the stage's reason whatever its exit. */
@@ -530,8 +534,7 @@ export function createRecordedTalosStages(nativePorts: PlatformPorts, answers?: 
         }
         if (host.launch.kind !== 'agent') return refusedOf(frameId, 'kind-takes-no-input');
         if (host.ended) return refusedOf(frameId, 'child-ended');
-        takeInput(host, frame.input);
-        return doneOf(frameId, 'done');
+        return takeInput(host, frame.input) === 'done' ? doneOf(frameId, 'done') : refusedOf(frameId, 'no-quit-act');
       }
     }
   }

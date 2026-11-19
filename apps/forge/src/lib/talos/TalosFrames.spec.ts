@@ -27,6 +27,9 @@ const WELL_FORMED_FRAMES: readonly (readonly [string, ReceivedClientFrame])[] = 
   ['input that closes', {
     kind: 'input', frameId: 4, childId: 'jobs/J1#1', input: { act: 'close' }
   }],
+  ['input that asks for the quit at the turn end', {
+    kind: 'input', frameId: 8, childId: 'jobs/J1#1', input: { act: 'quit-at-turn-end' }
+  }],
   ['stop', {
     kind: 'stop', frameId: 5, childId: 'jobs/J1#1', graceMilliseconds: 3000
   }],
@@ -101,6 +104,10 @@ test('writes a Talos frame as one JSON line', () => {
     kind: 'done', frameId: 3, verdict: 'refused', reason: 'unknown-child'
   }))
     .toBe('{"kind":"done","frameId":3,"verdict":"refused","reason":"unknown-child"}\n');
+  expect(talosFrameLineOf({
+    kind: 'done', frameId: 4, verdict: 'refused', reason: 'no-quit-act'
+  }))
+    .toBe('{"kind":"done","frameId":4,"verdict":"refused","reason":"no-quit-act"}\n');
 });
 
 describe('client entries', () => {
@@ -117,6 +124,7 @@ describe('client entries', () => {
     ['an unknown act', '{"act":"interrupt"}'],
     ['a stop with no grace', '{"act":"stop"}'],
     ['a line of two lines', '{"act":"write-line","line":"one\\ntwo"}'],
+    ['a quit at the turn end, which is logged as the act applied for it', '{"act":"quit-at-turn-end"}'],
   ])('reads %s as no entry', (_title, line) => {
     expect(clientEntryOf(line)).toBeNull();
   });

@@ -1,18 +1,18 @@
 /**
- * What the Overseer tells a product owner. What matters: the session's first line runs the product-owner skill on User's request, a
- * fresh session taking over a replaced one reads its drafts and the answers in that same first message, and the session runs with skills
- * on, the web open and Bash on no domain.
+ * What the Overseer tells a product owner. What matters: the session's first line is the agent's own line that runs the product-owner
+ * bundle on User's request, a fresh session taking over a replaced one reads its drafts and the answers in that same first message, and the
+ * session runs with skills on, the web open and Bash on no domain.
  */
 import { readFileSync }           from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 
-import type { WorkerProfile }  from '../../src/lib/agent-launch/WorkerProfile.ts';
-import type { Job }            from '../../src/lib/tracker-model/@types/Job.ts';
-import type { JobLaunchFacts } from '../../src/services/overseer/DrivePass.ts';
-import { IntakeSessions }      from '../../src/services/overseer/IntakeSessions.ts';
-import { resourceFilePathOf }  from '../../src/shared/ResourceFilePath.ts';
-import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
-import { OverseerWording }     from './OverseerWording.ts';
+import type { WorkerProfile }               from '../../src/lib/agent-launch/WorkerProfile.ts';
+import type { Job }                         from '../../src/lib/tracker-model/@types/Job.ts';
+import type { JobLaunchFacts }              from '../../src/services/overseer/DrivePass.ts';
+import { type IntakeFacts, IntakeSessions } from '../../src/services/overseer/IntakeSessions.ts';
+import { resourceFilePathOf }               from '../../src/shared/ResourceFilePath.ts';
+import { PRODUCT_NAMES }                    from '../../src/shared/constants/ProductNames.ts';
+import { OverseerWording }                  from './OverseerWording.ts';
 
 const PRODUCT_OWNER_INSTRUCTIONS = readFileSync(resourceFilePathOf('prompts', 'ProductOwnerPrompt.md'), 'utf8');
 
@@ -21,6 +21,17 @@ const SESSION_FOLDER = '/Users/example/development/example-repository/.example-w
 const PRODUCT_OWNER_JOB = {
   id: 'J3', kind: 'product-owner', role: 'product-owner', ticketIds: [], parentJobId: null, attempt: 1, target: null,
 } as unknown as Readonly<Job>;
+
+/** An agent's own line for an instruction bundle, planted so the wording is seen to take it as it is. */
+function plantedInstructionBundleLineOf(bundleName: string, argumentsText: string): string {
+  return `run-bundle ${bundleName} with ${argumentsText}`;
+}
+
+function intakeOf(text: string, drafts: IntakeFacts['drafts'] = [], carriedAnswers: IntakeFacts['carriedAnswers'] = []): IntakeFacts {
+  return {
+    text, firstLine: plantedInstructionBundleLineOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL, text), drafts, carriedAnswers
+  };
+}
 
 function launchFactsWith(intake: JobLaunchFacts['intake']): JobLaunchFacts {
   return {
@@ -56,21 +67,20 @@ const SESSION_PROFILE: WorkerProfile = {
 };
 
 describe('the product owner launch', () => {
-  test('the first line runs the product-owner skill on the request, and nothing else is in a first intake\'s message', () => {
-    const intake = { text: 'Alex Example asks for a basket', drafts: [], carriedAnswers: [] };
-    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intake));
+  test('the first line is the agent\'s line that runs the product-owner bundle on the request, and nothing else is in a first intake\'s message', () => {
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('Alex Example asks for a basket')));
 
-    expect(text.firstMessage).toBe(`/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} Alex Example asks for a basket`);
+    expect(text.firstMessage).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with Alex Example asks for a basket`);
     expect(text.roleBrief).toContain('job J3');
   });
 
   test('a fresh session taking over reads the drafts filed so far and the answers given, below the same first line', () => {
     const drafts = [{ id: '004', title: 'Example basket' }];
     const carriedAnswers = [{ 'Which currency?': 'Euro' }];
-    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith({ text: 'A basket', drafts, carriedAnswers }));
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('A basket', drafts, carriedAnswers)));
     const lines = text.firstMessage.split('\n');
 
-    expect(lines[0]).toBe(`/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} A basket`);
+    expect(lines[0]).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with A basket`);
     expect(lines).toContain('- #004 Example basket');
     expect(text.firstMessage).toContain('- Which currency?\n  Answer: Euro');
   });

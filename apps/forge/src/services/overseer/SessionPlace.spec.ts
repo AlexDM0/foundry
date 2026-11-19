@@ -1,11 +1,11 @@
 /**
  * Where a job's session starts and what its sandbox writes. What matters: in a ticket worktree of a tracker below its repository's root the
- * session starts at the worktree's root, where Claude Code's sandbox lets it commit, and knows the project's folder from there; a tracker
+ * session starts at the worktree's root, where its confinement lets it commit, and knows the project's folder from there; a tracker
  * at its repository's root starts at the worktree's root as it always has, a job of an entity of a top-level forge too; before the
  * worktree exists a session works in a folder of its own either way; a pipeline agent's snapshot, which it only reads, still starts in
- * the project's folder of it; and a resumed session starts where its first instance started, a project folder from before the change
- * included, but never outside its checkout. The gates a session reads name each folder from where it starts. The `.git` entry is
- * planted, since finding the project's place runs no git.
+ * the project's folder of it; and a resumed session whose agent finds it by its folder starts where its first instance started, a project
+ * folder from before the change included, but never outside its checkout, while one whose agent does not starts in today's place. The
+ * gates a session reads name each folder from where it starts. The `.git` entry is planted, since finding the project's place runs no git.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { join }                  from 'node:path';
@@ -26,6 +26,7 @@ import { workspacePathsFor }                              from '../tracker/Works
 import { type SessionPlace, SessionPlaces }               from './SessionPlace.ts';
 
 const PROJECT_PREFIX = 'apps/forge';
+const FINDS_SESSION_BY_FOLDER = { resumeFindsSessionByFolder: true } as const;
 const TICKET_ID = '007';
 const JOB = { id: 'J4', ticketIds: [TICKET_ID] };
 
@@ -117,21 +118,28 @@ describe('a resumed session', () => {
     const projectDirectory = trackerIn(PROJECT_PREFIX, true);
     const place = placeOf(projectDirectory);
     const projectFolderInWorktree = join(place.checkout, PROJECT_PREFIX);
-    const resumedPlace = SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectFolderInWorktree));
+    const resumedPlace = SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectFolderInWorktree), FINDS_SESSION_BY_FOLDER);
     expect(resumedPlace).toEqual({ ...place, workingDirectory: projectFolderInWorktree, projectFolderFromStart: '' });
   });
 
   test('first started at the worktree\'s root resumes at the root', () => {
     const projectDirectory = trackerIn(PROJECT_PREFIX, true);
     const place = placeOf(projectDirectory);
-    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(place.checkout))).toEqual(place);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(place.checkout), FINDS_SESSION_BY_FOLDER)).toEqual(place);
   });
 
   test('first started outside its checkout, or with no launch file, takes the place as it is', () => {
     const projectDirectory = trackerIn(PROJECT_PREFIX, true);
     const place = placeOf(projectDirectory);
-    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectDirectory))).toEqual(place);
-    expect(SessionPlaces.resumedSessionPlaceOf(place, join(projectDirectory, 'no-such-job-folder'))).toEqual(place);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, sessionOwnerJobFolderStartedIn(projectDirectory), FINDS_SESSION_BY_FOLDER)).toEqual(place);
+    expect(SessionPlaces.resumedSessionPlaceOf(place, join(projectDirectory, 'no-such-job-folder'), FINDS_SESSION_BY_FOLDER)).toEqual(place);
+  });
+
+  test('whose agent finds it otherwise than by its folder starts in today\'s place, wherever its first instance started', () => {
+    const projectDirectory = trackerIn(PROJECT_PREFIX, true);
+    const place = placeOf(projectDirectory);
+    const ownerJobFolder = sessionOwnerJobFolderStartedIn(join(place.checkout, PROJECT_PREFIX));
+    expect(SessionPlaces.resumedSessionPlaceOf(place, ownerJobFolder, { resumeFindsSessionByFolder: false })).toEqual(place);
   });
 });
 
@@ -158,7 +166,7 @@ describe('the gates a session reads', () => {
     const folderTrackerDirectory = trackerIn(PROJECT_PREFIX, true);
     const folderTrackerPlace = placeOf(folderTrackerDirectory);
     const resumedPlace = SessionPlaces.resumedSessionPlaceOf(
-      folderTrackerPlace, sessionOwnerJobFolderStartedIn(join(folderTrackerPlace.checkout, PROJECT_PREFIX))
+      folderTrackerPlace, sessionOwnerJobFolderStartedIn(join(folderTrackerPlace.checkout, PROJECT_PREFIX)), FINDS_SESSION_BY_FOLDER
     );
     const snapshotPlace = SessionPlaces.snapshotSessionPlaceOf(projectLocationOf(folderTrackerDirectory), join(folderTrackerDirectory, 'snapshot'));
     for (const place of [rootTrackerPlace, resumedPlace, snapshotPlace]) expect(SessionPlaces.gatesFromStartOf(place, GATES)).toBe(GATES);

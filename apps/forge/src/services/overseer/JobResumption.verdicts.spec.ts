@@ -18,10 +18,10 @@ import {
 
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { clientEntryLinesOf }                             from '../../testing/ClientEntryLines.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { sentActLinesOf }                                 from '../../testing/SentActLines.ts';
 import { JobResumption }                                  from './JobResumption.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
@@ -112,7 +112,7 @@ describe('the first message of a fresh instance', () => {
 
     await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, jobs, adapter);
     await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, jobs, adapter);
-    expect(clientEntryLinesOf(talos.frames())).toEqual([JSON.stringify({ act: 'write-line', line: 'chat:Example task' })]);
+    expect(sentActLinesOf(talos.frames())).toEqual([JSON.stringify({ act: 'write-line', line: 'chat:Example task' })]);
     expect(existsSync(join(jobFolder, 'first-message-1.sent'))).toBe(true);
   });
 

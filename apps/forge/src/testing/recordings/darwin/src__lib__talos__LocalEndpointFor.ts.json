@@ -176,7 +176,7 @@
         "frames": [
           {
             "kind": "welcome",
-            "protocolVersion": 1,
+            "protocolVersion": 2,
             "codeVersion": "code-example",
             "startNumber": 1,
             "talos": null,

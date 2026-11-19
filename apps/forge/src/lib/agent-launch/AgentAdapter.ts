@@ -16,13 +16,17 @@ export const AGENT_ENDING_NAMES = ['network-outage'] as const;
 export type AgentEndingName = typeof AGENT_ENDING_NAMES[number];
 
 export interface AgentCapabilities {
-  readonly chatTurns:     boolean;
-  readonly questions:     boolean;
-  readonly resume:        boolean;
-  readonly reportChannel: 'schema';
-  readonly usage:         'tokens' | 'none';
+  readonly chatTurns:                  boolean;
+  readonly questions:                  boolean;
+  readonly resume:                     boolean;
+  readonly reportChannel:              'schema';
+  readonly usage:                      'tokens' | 'none';
   /** Whether a chat line carries pictures beside its text. */
-  readonly pictures:      boolean;
+  readonly pictures:                   boolean;
+  /** A live session takes an answer line; `false`: the Overseer stops it and resumes it with the answer. */
+  readonly takesLiveAnswers:           boolean;
+  /** A resumed session is found by the folder it began in. */
+  readonly resumeFindsSessionByFolder: boolean;
 }
 
 /** A picture a chat line carries: its media type and its bytes in base64. */
@@ -73,6 +77,8 @@ export interface AgentAdapter {
   /** `questions` are the ones the `question` event carried, which a vendor may need echoed beside the answers. */
   answerLineOf(requestId: string, questions: readonly AgentQuestion[], answers: Readonly<Record<string, string>>): string;
   interruptLineOf(): string;
+  /** The first line that makes a session run the instruction bundle `bundleName` on `argumentsText`. */
+  instructionBundleLineOf(bundleName: string, argumentsText: string): string;
   /** `null` for a line none of the three writers gives. */
   sentLineOf(line: string): SentLine | null;
   /**

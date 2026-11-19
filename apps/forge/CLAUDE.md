@@ -314,8 +314,8 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   docs. `src/shared/utils/ProjectPathsUtil.ts` maps a project path to a repository path, which starts with `/`.
 - Git runs at a toplevel only: `repositoryRoot` for the main line, `worktreeRoot` for a job. A session in a job's
   worktree starts at `worktreeRoot` and is told the project folder; any other session, a gate and a prepare step start
-  in the project folder of their checkout. A resumed session starts where it first started.
-  `src/GitRunsAtAToplevel.spec.ts`, `src/services/overseer/SessionPlace.spec.ts` and
+  in the project folder of their checkout. A resumed session starts where it first started when its agent finds it by
+  that folder. `src/GitRunsAtAToplevel.spec.ts`, `src/services/overseer/SessionPlace.spec.ts` and
   `src/services/lifecycle/GateRun.projectFolder.spec.ts` hold this.
 - A tracker in a folder has a branch namespace. It changes only its own folder and the paths of its `reach`, and it
   watches only its own refs; Customs holds both. The trackers of a repository meet in `<git common dir>/forge/`, and

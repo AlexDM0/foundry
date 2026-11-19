@@ -1,9 +1,9 @@
 /**
  * Where an agent session works: the folder its sandbox writes and the folder it starts in. A session in a job's worktree starts at the
- * worktree's root, where Claude Code's sandbox grants the worktree's own git admin folder, so it commits; a pipeline agent's snapshot, which
- * it only reads, starts in the tracker's project folder of it. In a folder of its own, or for a tracker at its repository's root, the
- * folders are one. A job of an entity of a top-level forge starts at the worktree's root too; its Edit and Write rules, not its start,
- * keep it to its stage's folders. A resumed session starts where its first instance started, since its vendor finds it by that folder.
+ * worktree's root, where its confinement grants the worktree's own git admin folder, so it commits; a pipeline agent's snapshot, which it
+ * only reads, starts in the tracker's project folder of it. In a folder of its own, or for a tracker at its repository's root, the folders
+ * are one. A job of an entity of a top-level forge starts at the worktree's root too; its file-change rules, not its start, keep it to its
+ * stage's folders. A resumed session starts where it began when its agent finds it by that folder.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
@@ -15,6 +15,7 @@ import {
   sep
 } from 'node:path';
 
+import type { AgentCapabilities }                          from '../../lib/agent-launch/AgentAdapter.ts';
 import { childRecordOf }                                   from '../../lib/talos/ChildRecord.ts';
 import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
 import type { Job }                                        from '../../lib/tracker-model/@types/Job.ts';
@@ -80,10 +81,14 @@ function folderLiesInCheckout(checkout: string, folder: string): boolean {
 }
 
 /**
- * A resumed session starts in the folder its first instance started in, so a session started in the project's folder before sessions started
- * at the worktree's root still resumes. A first start outside the checkout, or none recorded, leaves the place as it is.
+ * A resumed session whose agent finds it by its folder starts in the folder its first instance started in, so a session started in the
+ * project's folder before sessions started at the worktree's root still resumes. An agent that finds it otherwise, a first start outside the
+ * checkout, or none recorded, leaves the place as it is.
  */
-function resumedSessionPlaceOf(place: SessionPlace, sessionOwnerJobFolder: string): SessionPlace {
+function resumedSessionPlaceOf(
+  place: SessionPlace, sessionOwnerJobFolder: string, capabilities: Pick<AgentCapabilities, 'resumeFindsSessionByFolder'>
+): SessionPlace {
+  if (!capabilities.resumeFindsSessionByFolder) return place;
   const firstStartFolder = firstStartFolderOf(sessionOwnerJobFolder);
   if (firstStartFolder === null || !folderLiesInCheckout(place.checkout, firstStartFolder)) return place;
   const projectFolder = join(place.workingDirectory, place.projectFolderFromStart);

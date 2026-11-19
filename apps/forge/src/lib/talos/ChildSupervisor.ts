@@ -8,6 +8,7 @@
 import type { ProcessIdentity }                     from '../process-identity/ProcessIdentity.ts';
 import type { ProcessStopStage, ProcessTreeMember } from '../process-identity/ProcessSupervision.ts';
 import type {
+  AppliedInput,
   ChildInput,
   ClientEntry,
   FrameRefusalReason,
@@ -29,7 +30,7 @@ import { forEachLine }                                                          
 import { gapLengthOf }                                                                                    from './SupervisionLease.ts';
 import type { SynchronousCalls }                                                                          from './SynchronousCallsClient.ts';
 import { type ChildFiles, childFilesOf }                                                                  from './TalosFiles.ts';
-import { clientEntryLineOf }                                                                              from './TalosFrames.ts';
+import { clientEntryLineOf, quitActInputOf }                                                              from './TalosFrames.ts';
 import { CHILD_STANDARD_ERROR_DRAIN_MILLISECONDS, CHILD_RECORD_FORMAT_VERSION, EVENT_LOG_FORMAT_VERSION } from './constants/TalosProtocol.ts';
 
 const TREE_SWEEP_INTERVAL_MILLISECONDS = 100;
@@ -208,7 +209,7 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     }
   }
 
-  function applyInput(child: SupervisedChild, input: ChildInput): void {
+  function applyInput(child: SupervisedChild, input: AppliedInput): void {
     if (input.act === 'write-line') actOnStandardInput(child, (standardInput) => standardInput.writeLine(input.line));
     else actOnStandardInput(child, (standardInput) => standardInput.close());
   }
@@ -458,8 +459,10 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     if (child === undefined) return { verdict: 'refused', reason: 'unknown-child' };
     if (!isAgent(child)) return { verdict: 'refused', reason: 'kind-takes-no-input' };
     if (!isLive(child)) return { verdict: 'refused', reason: 'child-ended' };
-    await appendClientEntry(child, childInput);
-    applyInput(child, childInput);
+    const appliedInput = childInput.act === 'quit-at-turn-end' ? quitActInputOf(child.launch.quitAtTurnEnd) : childInput;
+    if (appliedInput === null) return { verdict: 'refused', reason: 'no-quit-act' };
+    await appendClientEntry(child, appliedInput);
+    applyInput(child, appliedInput);
     return { verdict: 'done' };
   }
 
@@ -486,10 +489,9 @@ export function createChildSupervisor(context: ChildSupervisorContext): ChildSup
     if (child.quitActApplied) return;
     child.quitActApplied = true;
     child.endReasonOverride ??= reason;
-    const { quitAtTurnEnd: quitAct } = child.launch;
+    const input = quitActInputOf(child.launch.quitAtTurnEnd);
     // An agent with no quit act runs on until the wait ends and it is stopped.
-    if (quitAct === null) return;
-    const input: ChildInput = quitAct.act === 'write-line' ? { act: 'write-line', line: quitAct.line } : { act: 'close' };
+    if (input === null) return;
     void appendClientEntry(child, input).then(() => applyInput(child, input));
   }
 

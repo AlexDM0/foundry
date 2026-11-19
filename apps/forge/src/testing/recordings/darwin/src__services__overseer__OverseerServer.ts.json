@@ -55,7 +55,7 @@
           "codeVersion": "code-example",
           "installVersion": 17,
           "processId": 4242,
-          "talosProtocolVersion": 1,
+          "talosProtocolVersion": 2,
           "contracts": {
             "summary": 1,
             "monitor": 3,

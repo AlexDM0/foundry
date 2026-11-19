@@ -47,6 +47,7 @@ import { WorktreesFolder }                                  from '../../shared/W
 import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
 import { LIMITS }                                           from '../../shared/constants/Limits.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                                    from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
 import { createScratchDrivePass }                           from '../../testing/DrivePassHarness.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith } from '../../testing/EchoedControlContext.ts';
@@ -521,11 +522,15 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
   };
 }
 
+/** The same adapter as one whose live session takes no answer line, so the Overseer delivers an answer by a stop and a resume. */
+function withoutLiveAnswers(adapter: AgentAdapter): AgentAdapter {
+  return { ...adapter, capabilities: { ...adapter.capabilities, takesLiveAnswers: false } };
+}
+
 /** An Overseer start: a newer Baton generation and a fresh DrivePass, which the spec regroups. */
 function startedOverseer(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
-  deliversByControlResponse?: boolean,
 ): Promise<DrivePass> {
   return Promise.resolve(createScratchDrivePass({
     platformPorts:     { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
@@ -551,7 +556,6 @@ function startedOverseer(
     resumeMessage:       RESUME_MESSAGE,
     redHandoffMessageOf: (facts) => `Red handoff: ${facts.name}, resume ${facts.resume}`,
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
-    ...(deliversByControlResponse === undefined ? {} : { deliversAnswersByControlResponse: deliversByControlResponse }),
     log:                 (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   }));
@@ -775,9 +779,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(requireBuildJob()).toMatchObject({ childInstance: 1, state: 'running' });
   });
 
-  test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
-    const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
-    const drivePass = await startedOverseer(adapter, undefined, false);
+  test('an agent that takes no live answer is stopped and resumed with the answer, cause answer-delivery, never counted', async () => {
+    const adapter = withoutLiveAnswers(recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS }));
+    const drivePass = await startedOverseer(adapter);
     const job       = await runningBuildSession(drivePass);
     await passUntil(drivePass, () => requireBuildJob().state === 'waiting-for-answer', 'the question never opened its decision');
 
@@ -1337,7 +1341,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     });
     if (fresh === undefined) throw new Error('no fresh product owner');
     expect(IntakeSessions.firstMessagePicturesOf(fresh)).toEqual(requestPictures);
-    expect(IntakeSessions.intakeFactsOf(board, fresh)?.drafts).toEqual([{ id: '004', title: 'Example basket' }]);
+    const plantedAdapter = { instructionBundleLineOf: (bundleName: string, argumentsText: string) => `run-bundle ${bundleName} with ${argumentsText}` };
+    const intakeFacts = IntakeSessions.intakeFactsOf(board, fresh, plantedAdapter);
+    expect(intakeFacts?.drafts).toEqual([{ id: '004', title: 'Example basket' }]);
+    expect(intakeFacts?.firstLine).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with Example basket`);
     expect(JobResumption.launchPartsOf(fresh, 'Example first', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example first' });
     expect(records.findLast((record) => record.kind === 'job-launched')).toMatchObject({ jobId: fresh.id, fields: { intakeText: 'Example basket' } });
   });

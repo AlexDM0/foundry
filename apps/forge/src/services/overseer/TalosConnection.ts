@@ -52,7 +52,7 @@ const LINE_SEPARATOR = '\n';
 
 const REFUSED_REASONS: readonly RefusedFrame['reason'][] = ['malformed', 'secret', 'quitting'];
 const FRAME_REFUSAL_REASONS: readonly FrameRefusalReason[] = [
-  'malformed-launch', 'folder-outside-board', 'unknown-child', 'child-ended', 'kind-takes-no-input', 'quitting',
+  'malformed-launch', 'folder-outside-board', 'unknown-child', 'child-ended', 'kind-takes-no-input', 'no-quit-act', 'quitting',
 ];
 const CHILD_STATES: readonly ChildState[] = ['starting', 'running', 'stopping', 'ended'];
 

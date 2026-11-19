@@ -1,7 +1,7 @@
 /**
  * After the hold, the frames User's job controls ask of a live child (design section 7.4): every `job-messaged` record as a chat line in log
- * order, with the pictures it names read from the board's picture store, the wind-down turn of a `wind-down` request, and a session's closed
- * input, with a stop frame after it for a `stop`, and the closed input of a job that ended while its session ran. A frame waits until its
+ * order, with the pictures it names read from the board's picture store, the wind-down turn of a `wind-down` request, and a session's quit
+ * at its turn end, with a stop frame after it for a `stop`, and the quit of a job that ended while its session ran. A frame waits until its
  * child is live, and a marker written once it was taken keeps a restart from sending it again, unless the Overseer died before the marker:
  * delivery is at least once.
  */
@@ -99,7 +99,7 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
       sends.push(async () => await sendOnce(children, jobFolder, job, 'wind-down', () => inputOf(adapter.chatLineOf(request.windDownMessage))));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
-      sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.childInstance}`, () => ({ kind: 'input', inputs: [{ act: 'close' }] })));
+      sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.childInstance}`, () => ({ kind: 'input', inputs: [{ act: 'quit-at-turn-end' }] })));
       if (job.stopRequest === 'stop') {
         sends.push(async () => await sendOnce(
           children, jobFolder, job, `stop-${job.childInstance}`, () => ({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })
@@ -117,20 +117,20 @@ export interface EndedJobSession {
 }
 
 /**
- * Closes the input of each ended job's session, once, so the session exits and its child ends: a job that left the board in the hold that
- * moved it on, such as a build that Customs ended, has no state that asks for the close. Answers the sessions whose close is still due: the
- * child is live and did not take the frame yet.
+ * Asks each ended job's session, once, to quit at the end of its turn, so the session exits and its child ends: a job that left the board in
+ * the hold that moved it on, such as a build that Customs ended, has no state that asks for the quit. Answers the sessions whose quit is
+ * still due: the child is live and did not take the frame yet.
  */
-async function closeInputOfEndedJobs(children: BoardChildren, endedSessions: readonly EndedJobSession[]): Promise<EndedJobSession[]> {
+async function quitSessionsOfEndedJobs(children: BoardChildren, endedSessions: readonly EndedJobSession[]): Promise<EndedJobSession[]> {
   const stillDue: EndedJobSession[] = [];
   for (const ended of endedSessions) {
     const jobFolder  = children.jobFolderOf(ended.jobId);
     const markerPath = join(jobFolder, MARKERS_FOLDER, `input-closed-${ended.childInstance}`);
-    await children.sendInputOnce(markerPath, jobFolder, ended.childInstance, [{ act: 'close' }]);
+    await children.sendInputOnce(markerPath, jobFolder, ended.childInstance, [{ act: 'quit-at-turn-end' }]);
     const taken = existsSync(markerPath) || children.livenessOf(jobFolder, ended.childInstance).verdict !== 'live';
     if (!taken) stillDue.push(ended);
   }
   return stillDue;
 }
 
-export const JobControlDelivery = Object.freeze({ deliverJobControls, unsentMessageCountOf, closeInputOfEndedJobs });
+export const JobControlDelivery = Object.freeze({ deliverJobControls, unsentMessageCountOf, quitSessionsOfEndedJobs });

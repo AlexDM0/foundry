@@ -1,5 +1,5 @@
 /**
- * A build job's wind-down, close and stop frames to the board's Talos, a recording one answering for it. What matters: a Talos that
+ * A build job's wind-down, quit and stop frames to the board's Talos, a recording one answering for it. What matters: a Talos that
  * answers no frame on one pass is sent it on a later pass, its marker written only once Talos took it; a frame whose marker was written is
  * never sent again, a restarted Overseer included, since the marker is all that carries over (delivery is at least once: an Overseer that
  * dies before the marker sends it again); a child no longer live is sent nothing and leaves no marker; and a session resumed after a red
@@ -18,11 +18,11 @@ import {
 import type { Job }                                                        from '../../lib/tracker-model/@types/Job.ts';
 import { DISPATCH_PROTOCOL }                                               from '../../shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET, SESSION_STOP_GRACE_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { clientEntryLinesOf }                                              from '../../testing/ClientEntryLines.ts';
 import { type FrameRecordingTalos, frameRecordingTalos }                   from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                                             from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                                    from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory }                  from '../../testing/ScratchWorkspace.ts';
+import { sentActLinesOf }                                                  from '../../testing/SentActLines.ts';
 import { type BuildJobFrameRequest, JobLaunch }                            from './JobLaunch.ts';
 import { jobFolderIn }                                                     from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }                                from './RedHandoff.ts';
@@ -92,7 +92,7 @@ describe('a build job\'s frames to its session', () => {
   async function framesSentWhile(during: () => Promise<void>): Promise<readonly string[]> {
     const framesBefore = talos.frames().length;
     await during();
-    return clientEntryLinesOf(talos.frames().slice(framesBefore));
+    return sentActLinesOf(talos.frames().slice(framesBefore));
   }
 
   /** A pass Talos answers nothing of, then two it answers: the frames it took and the marker after each phase. */
@@ -115,9 +115,9 @@ describe('a build job\'s frames to its session', () => {
     expect(outcome).toEqual({ markedWhileRefusing: false, frames: [JSON.stringify({ act: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })], marked: true });
   });
 
-  test('an in-customs job\'s close reaches Talos on the pass after one it answered nothing of, marked only then and sent once', async () => {
+  test('an in-customs job\'s quit at its turn end, never a close, reaches Talos on the pass after one it answered nothing of, marked only then and sent once', async () => {
     const outcome = await passesAcrossARefusal(buildJob({ state: 'in-customs' }), 'input-closed');
-    expect(outcome).toEqual({ markedWhileRefusing: false, frames: [JSON.stringify({ act: 'close' })], marked: true });
+    expect(outcome).toEqual({ markedWhileRefusing: false, frames: [JSON.stringify({ act: 'quit-at-turn-end' })], marked: true });
   });
 
   test('a job over its call budget is sent its wind-down turn on the pass after a refused one', async () => {

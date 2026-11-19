@@ -2740,13 +2740,13 @@ async function stopOnce(request: BuildJobFrameRequest, job: Readonly<Job>, marke
   writeFileSync(markerPath, '');
 }
 
-/** What a build job's state asks of its live child, each frame once: the wind-down turn over its call budget, closed input, a stop. */
+/** What a build job's state asks of its live child, each frame once: the wind-down turn over its call budget, its quit at its turn end, a stop. */
 async function deliverBuildJobFrames(request: BuildJobFrameRequest, job: Readonly<Job>, calls: number): Promise<void> {
   const markerOf = (marker: string): string => instanceMarkerOf(marker, job.childInstance);
   if (job.state === 'running' && calls >= attemptCallBudgetOf(request.trackerDirectory, job)) {
     await sendOnce(request, job, markerOf(JOB_FILES.windDownSent), [{ act: 'write-line', line: request.agentAdapter.chatLineOf(request.windDownMessage) }]);
   }
-  if (job.state === 'in-customs' || job.state === 'gating') await sendOnce(request, job, markerOf(JOB_FILES.inputClosed), [{ act: 'close' }]);
+  if (job.state === 'in-customs' || job.state === 'gating') await sendOnce(request, job, markerOf(JOB_FILES.inputClosed), [{ act: 'quit-at-turn-end' }]);
   if (job.state === 'stopping') await stopOnce(request, job, markerOf(JOB_FILES.stopSent));
 }
 

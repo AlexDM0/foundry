@@ -52,6 +52,7 @@ test('a wrong secret is refused and Talos keeps serving', async () => {
 
 test.each([
   ['0', 0],
+  ['1, whose launch took no quit act from its client', 1],
   ['one above its own', TALOS_PROTOCOL_VERSION + 1],
 ])('a hello of protocol %s is answered version-mismatch and Talos quits cleanly', async (_title, requiredProtocolVersion) => {
   const scratch = scratchTalos();

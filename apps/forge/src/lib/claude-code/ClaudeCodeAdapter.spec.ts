@@ -3,7 +3,8 @@
  * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
  * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
  * one standing reply, and the lines Talos sends, against the ones the probes recorded. The adapter names its own variables and credentials
- * and reads its config folder variable through the reader it is handed, and words the repair of a refused program.
+ * and reads its config folder variable through the reader it is handed, and words the repair of a refused program. It answers what the
+ * core counts on: live answers, a resume found by its folder, and the line that runs an instruction bundle.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -628,6 +629,17 @@ describe('the credentials and the repair', () => {
       expect(CLAUDE_CODE_ADAPTER.programRepairOf(cause as RefusalCause)).toBe(repair);
     });
   }
+});
+
+describe('what the core may count on', () => {
+  test('a live session takes an answer line, and a resumed session is found by the folder it began in', () => {
+    expect(CLAUDE_CODE_ADAPTER.capabilities).toMatchObject({ takesLiveAnswers: true, resumeFindsSessionByFolder: true });
+  });
+
+  test('an instruction bundle runs from a slash command naming it, its arguments after a space, with no space left over', () => {
+    expect(CLAUDE_CODE_ADAPTER.instructionBundleLineOf('example-skill', 'Alex Example asks for a basket')).toBe('/example-skill Alex Example asks for a basket');
+    expect(CLAUDE_CODE_ADAPTER.instructionBundleLineOf('example-skill', '')).toBe('/example-skill');
+  });
 });
 
 describe('the lines Talos sends', () => {

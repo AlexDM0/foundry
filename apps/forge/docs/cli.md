@@ -1570,7 +1570,7 @@ A product-owner job that ended `closed` (its own `intake-close` or `job stop`), 
 closed, is reopened instead, logged `job-reopened`: back on the board `running` in its next Watcher instance, which
 resumes its session by id in the same folder with the text as its first line.
 
-- Any other finished job, or a session whose input is closing, is refused `job-finished`.
+- Any other finished job, or a session asked to quit at the end of its turn, is refused `job-finished`.
 - The verb takes no picture. A `job-message` control command from the Bridge may name pictures uploaded to
   `POST /api/pictures`, only to a product owner (`pictures-not-taken` for any other job); see
   [Commands](reference/overseer-api.md#commands).
@@ -1674,9 +1674,10 @@ session of the intake, a fresh one after a replacement included.
 These five sections are contracts, not command groups. Each says what a job does, what shows, and which moves User or
 the [Assistant](glossary.md#assistant) has.
 
-A job that ends in a hold while its session runs, such as a build that Customs ends, has its session's input closed
-after that hold, and again each Pass until its Watcher takes the frame or ends, so the session exits. That retry lives
-only in the Overseer's memory: a session whose close was not taken when the Overseer stopped runs on after the restart.
+A job that ends in a hold while its session runs, such as a build that Customs ends, has its session asked to quit at
+the end of its turn after that hold, and again each Pass until Talos takes the frame or the session ends, so the session
+exits; Talos applies the agent's own quit act, and stops an agent that has none. That retry lives only in the Overseer's
+memory: a session whose quit was not taken when the Overseer stopped runs on after the restart.
 
 ### A build job
 

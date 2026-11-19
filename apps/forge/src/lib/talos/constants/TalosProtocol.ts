@@ -1,5 +1,5 @@
 /** Raised by hand whenever a frame, the launch, or a reply changes; never with the code version. */
-export const TALOS_PROTOCOL_VERSION = 1;
+export const TALOS_PROTOCOL_VERSION = 2;
 export const CHILD_RECORD_FORMAT_VERSION = 1;
 export const TALOS_RECORD_FORMAT_VERSION = 1;
 export const TALOS_START_FILE_FORMAT_VERSION = 1;

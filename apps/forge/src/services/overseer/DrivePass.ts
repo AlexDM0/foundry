@@ -214,78 +214,76 @@ export interface AirlockFacts {
 }
 
 export interface DrivePassRequest {
-  platformPorts:                     PlatformPorts;
-  workspace:                         Workspace;
-  now:                               () => Date;
-  formatStamp:                       (moment: Date) => string;
-  overseerDirectory:                 string;
-  generation:                        number;
-  boardChildren:                     BoardChildren;
+  platformPorts:                 PlatformPorts;
+  workspace:                     Workspace;
+  now:                           () => Date;
+  formatStamp:                   (moment: Date) => string;
+  overseerDirectory:             string;
+  generation:                    number;
+  boardChildren:                 BoardChildren;
   /** Runs the Overseer's own gate lines (merged-tree gates, gate profiles, pipeline checks) as line children of the board's Talos. */
-  lineRunner:                        LineRunner;
+  lineRunner:                    LineRunner;
   /** Called as each pass begins: the Overseer starts or attaches to a Talos there once its connection to the last one closed. */
-  ensureTalosIfLost?:                () => Promise<void>;
+  ensureTalosIfLost?:            () => Promise<void>;
   /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
-  programCommand:                    readonly string[];
-  codeVersion:                       string;
-  agentAdapter:                      AgentAdapter;
+  programCommand:                readonly string[];
+  codeVersion:                   string;
+  agentAdapter:                  AgentAdapter;
   /** The machine's monitor folder: `<home>/<monitor folder>`. */
-  monitorFolder:                     string;
+  monitorFolder:                 string;
   /** Narrowed to the launch allowlist before any session sees it. */
-  inheritedEnvironment:              Readonly<Record<string, string | undefined>>;
-  mainLine:                          string;
+  inheritedEnvironment:          Readonly<Record<string, string | undefined>>;
+  mainLine:                      string;
   /** Read from the board when the Overseer starts; the namespace changes only while no Overseer runs. */
-  branchNames:                       BranchNames;
+  branchNames:                   BranchNames;
   /** The start marker of the managed block a committed CLAUDE.md must no longer hold before launches onto its target. */
-  managedBlockMarker:                string;
-  installVersionChanged:             () => boolean;
+  managedBlockMarker:            string;
+  installVersionChanged:         () => boolean;
   /** Resolves once the install versions a pass reads are known, such as after a landing; the event loop runs while it waits. */
-  installVersionsKnown?:             () => Promise<void>;
+  installVersionsKnown?:         () => Promise<void>;
   /** Whether the Overseer's environment holds the API key that the pipeline's `api` billing needs before any session starts. */
-  apiBillingKeyIsSet:                () => boolean;
+  apiBillingKeyIsSet:            () => boolean;
   /** Code on disk differs from the code in memory while the install version does not: a notice only. */
-  newCodeOnDisk?:                    () => boolean;
-  decisionWordingOf:                 (draft: DecisionDraft) => DecisionWording;
+  newCodeOnDisk?:                () => boolean;
+  decisionWordingOf:             (draft: DecisionDraft) => DecisionWording;
   /** The ticket a crossing ticket's package change becomes once User turns it into a need (E19, E22). */
-  packageNeedWordingOf:              (facts: PackageNeedFacts) => PackageNeedWording;
+  packageNeedWordingOf:          (facts: PackageNeedFacts) => PackageNeedWording;
   /** The ticket of a dependent that a crossing ticket's package change breaks, once User has it fixed in the group (E26). */
-  dependentFixWordingOf:             (facts: DependentFixFacts) => DependentFixWording;
-  launchTextOf:                      (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
+  dependentFixWordingOf:         (facts: DependentFixFacts) => DependentFixWording;
+  launchTextOf:                  (job: Readonly<Job>, facts: JobLaunchFacts) => JobLaunchText;
   /** One numbered chat to the Assistant listing the incidents it delivers, their facts and allowed moves. */
-  assistantChatTextOf:               (facts: AssistantChatFacts) => string;
+  assistantChatTextOf:           (facts: AssistantChatFacts) => string;
   /** Sent to a session that reached its role's call budget. */
-  windDownMessage:                   string;
+  windDownMessage:               string;
   /** The first line of every resumed session. */
-  resumeMessage:                     string;
+  resumeMessage:                 string;
   /** The first line of a session resumed to fix its red handoff, and the opening of a fresh one taking the handoff over. */
-  redHandoffMessageOf:               (facts: Readonly<RedHandoffFacts>) => string;
+  redHandoffMessageOf:           (facts: Readonly<RedHandoffFacts>) => string;
   /** An answer worded as a plain user message, for a resumed session that no longer holds the question's request. */
-  answerMessageOf:                   (answer: DecisionAnswer) => string;
+  answerMessageOf:               (answer: DecisionAnswer) => string;
   /** What the pipeline agent reads when User's check of its setup record ends. */
-  setupMessageWordingOf:             (message: SetupMessage) => string;
-  /** Overridden by specs of the fallback delivery: the Overseer stops the session through Talos and resumes it with the answer. */
-  deliversAnswersByControlResponse?: boolean;
-  homeDirectory:                     string;
-  log:                               (line: string) => void;
+  setupMessageWordingOf:         (message: SetupMessage) => string;
+  homeDirectory:                 string;
+  log:                           (line: string) => void;
   /** The pass stops acting at once; the caller ends the Overseer `baton-taken`. */
-  onBatonTakenOver:                  (refusal: unknown) => void;
+  onBatonTakenOver:              (refusal: unknown) => void;
   /** Called for each job's Hatch folder as the launch makes it, so a relayed request wakes a pass where no recursive watch sees the folder. */
-  watchHatchFolder?:                 (hatchDirectory: string) => void;
+  watchHatchFolder?:             (hatchDirectory: string) => void;
   /** Called for the Hatch folder of each job the pass saw launched, once the job is gone from the board. */
-  unwatchHatchFolder?:               (hatchDirectory: string) => void;
+  unwatchHatchFolder?:           (hatchDirectory: string) => void;
   /** Overridden by specs, which refuse to make an Airlock agent worktree's denied root. */
-  folderMaker?:                      FolderMaker;
+  folderMaker?:                  FolderMaker;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
-  afterHoldPhase?:                   (phase: 'relayed-commands' | 'child-events' | 'lifecycle', board: Board) => void;
+  afterHoldPhase?:               (phase: 'relayed-commands' | 'child-events' | 'lifecycle', board: Board) => void;
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
-  afterPass?:                        () => void;
-  processStarts?:                    ProcessStarts;
+  afterPass?:                    () => void;
+  processStarts?:                ProcessStarts;
   /** Overridden by specs, which cannot wait out the production retry of a merge gate looking for a free gate slot. */
-  gateSlotRetryMilliseconds?:        number;
+  gateSlotRetryMilliseconds?:    number;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
-  machineAgentCeiling?:              number;
+  machineAgentCeiling?:          number;
   /** Overridden by specs, which cannot wait out the production grace a stopped session gets to end by itself. */
-  sessionStopGraceMilliseconds?:     number;
+  sessionStopGraceMilliseconds?: number;
 }
 
 /** Derived each pass from the board, git and the Overseer's state, never stored. */
@@ -384,8 +382,6 @@ const PIPELINE_CHECK_SANDBOXES_FOLDER = 'pipeline-check-sandboxes';
 /** The `step` a refused worker launch names in its `sandbox-unavailable` incident. */
 const WORKER_LAUNCH_STEP = 'worker';
 
-// A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
-const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
 /** The cause a job is interrupted with when Talos recognised its agent's ending, by the ending's name. */
 const INTERRUPTION_CAUSE_OF_AGENT_ENDING: Readonly<Record<AgentEndingName, InterruptionCause>> = { 'network-outage': 'network-outage', };
 
@@ -836,7 +832,7 @@ function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine
   return gates === null ? null : shellLine.displayLineOf(gates.map((gate) => ({ line: gate.run, workingDirectory: gate.in ?? null })));
 }
 
-type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine'>;
+type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine' | 'agentAdapter'>;
 
 /** An `unavailable` answer still asks for the sandbox, so the session refuses to start rather than run unconfined. */
 function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts']): AgentConfinement {
@@ -875,7 +871,7 @@ export function launchFactsOf(
     needsSettled,
     ...(crossingStage === null ? {} : { crossingStage }),
     ...(rootEntityKey === ROOT_ENTITY_KEY ? {} : { rootEntityKey }),
-    intake:                 IntakeSessions.intakeFactsOf(board, job),
+    intake:                 IntakeSessions.intakeFactsOf(board, job, request.agentAdapter),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
     pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar, request.workspace.rootDirectory),
   };
@@ -952,7 +948,7 @@ async function launchAgentChild(
   const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
   const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
   const { workingDirectory } = resumesASession
-    ? SessionPlaces.resumedSessionPlaceOf(place, children.jobFolderOf(sessionOwnerJobId))
+    ? SessionPlaces.resumedSessionPlaceOf(place, children.jobFolderOf(sessionOwnerJobId), request.agentAdapter.capabilities)
     : place;
   const { launchEnvironment } = request.platformPorts;
   const launchRequest: AgentLaunchRequest = {
@@ -1132,7 +1128,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   };
   const endedJobTokensContext = { boardChildren: request.boardChildren, agentAdapter: request.agentAdapter };
   const endedJobIdsExamined = new Set<string>();
-  let endedSessionsAwaitingClose: EndedJobSession[] = [];
+  let endedSessionsAwaitingQuit: EndedJobSession[] = [];
   const triedPipelineAgentSnapshots = new Set<string>();
 
   /**
@@ -1517,8 +1513,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const sessionsEndedThisPass = observation.childObservations
       .filter((childObservation) => childObservation.liveness.verdict === 'live' && written.board.jobById(childObservation.jobId) === undefined)
       .map((childObservation) => ({ jobId: childObservation.jobId, childInstance: childObservation.instance }));
-    endedSessionsAwaitingClose = await JobControlDelivery.closeInputOfEndedJobs(
-      request.boardChildren, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
+    endedSessionsAwaitingQuit = await JobControlDelivery.quitSessionsOfEndedJobs(
+      request.boardChildren, [...endedSessionsAwaitingQuit, ...sessionsEndedThisPass],
     );
     unwatchHatchFoldersOfEndedJobs(written.board);
     // A merge job a `job stop` ended in the Board never freed its slot through the Airlock, so its gate's lines are stopped here.
@@ -1554,11 +1550,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     const answerAwaitsDelivery = (job: Readonly<Job>): boolean => AnswerDelivery.answerAwaitsDelivery(request.boardChildren, job);
     await JobResumption.deliverResumeMessages(request.boardChildren, trackerDirectory, written.board, request.agentAdapter, request, answerAwaitsDelivery);
     await AnswerDelivery.deliverAnswers({
-      boardChildren:             request.boardChildren,
-      board:                     written.board,
-      adapter:                   request.agentAdapter,
-      deliversByControlResponse: request.deliversAnswersByControlResponse ?? CONTROL_RESPONSE_DELIVERS_ANSWERS,
-      answerMessageOf:           request.answerMessageOf,
+      boardChildren:   request.boardChildren,
+      board:           written.board,
+      adapter:         request.agentAdapter,
+      deliversLive:    request.agentAdapter.capabilities.takesLiveAnswers,
+      answerMessageOf: request.answerMessageOf,
     });
     const heldTargets = written.board.pipeline() === null && !constitutionCommitIsDue(written.board) ? [] : await airlocks.sweep();
     targetsHeldAtTheLastPass = heldTargets.length;

@@ -32,6 +32,7 @@ import {
   ENTITY_FORGE_TICKETS,
   entityForgePipelineOf
 } from '../../src/testing/EntityForgeFixture.ts';
+import { fakeAgentAdapter }                               from '../../src/testing/FakeAgentAdapter.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { OverseerWording }                                from './OverseerWording.ts';
 
@@ -133,9 +134,10 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
       gateConfinement: { workerConfinement: () => 'confined' },
       dataFolders:     { pathModule: path, foldsCase: false },
     },
-    branchNames: branchNamesOf(null),
-    mainLine:    ENTITY_FORGE_MAIN_LINE,
-  } as unknown as Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine'>;
+    branchNames:  branchNamesOf(null),
+    mainLine:     ENTITY_FORGE_MAIN_LINE,
+    agentAdapter: fakeAgentAdapter(),
+  } as unknown as Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine' | 'agentAdapter'>;
   const place = {
     checkout: '', workingDirectory: '', holdsRepository: true, projectFolderFromStart: ''
   };

@@ -181,11 +181,15 @@ function recordingAdapter(scenario: SessionScenario): AgentAdapter {
   };
 }
 
+/** The same adapter as one whose live session takes no answer line, so the Overseer delivers an answer by a stop and a resume. */
+function withoutLiveAnswers(adapter: AgentAdapter): AgentAdapter {
+  return { ...adapter, capabilities: { ...adapter.capabilities, takesLiveAnswers: false } };
+}
+
 /** An Overseer start: a newer Baton generation and a fresh DrivePass, which the spec regroups. */
 async function startedOverseer(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
-  deliversByControlResponse?: boolean,
   onUsageMarkerRead?: () => void,
 ): Promise<DrivePass> {
   // An Overseer's start ensures its Talos, so a Talos lost while it was down is followed by the next before the regroup.
@@ -219,7 +223,6 @@ async function startedOverseer(
     resumeMessage:       RESUME_MESSAGE,
     redHandoffMessageOf: (facts) => `Red handoff: ${facts.name}, resume ${facts.resume}`,
     answerMessageOf:     (answer) => `${ANSWER_MESSAGE_PREFIX} ${JSON.stringify(answer)}`,
-    ...(deliversByControlResponse === undefined ? {} : { deliversAnswersByControlResponse: deliversByControlResponse }),
     log:                 (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
@@ -654,9 +657,9 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0, childInstance: 2 });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
-    const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
-    const drivePass = await startedOverseer(adapter, undefined, false);
+  test('an agent that takes no live answer is stopped and resumed with the answer, cause answer-delivery, never counted', async () => {
+    const adapter = withoutLiveAnswers(recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS }));
+    const drivePass = await startedOverseer(adapter);
     const job       = await runningBuildSession(drivePass);
     await passUntil(drivePass, () => requireBuildJob().state === 'waiting-for-answer', 'the question never opened its decision');
 
@@ -789,7 +792,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
       blockUntil(() => assistantAnswered(2), 'the Assistant answering the delivered incident');
     };
     const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, Assistant: assistantSteps });
-    const drivePass = await startedOverseer(adapter, undefined, undefined, queueTheMoveThenAnswer);
+    const drivePass = await startedOverseer(adapter, undefined, queueTheMoveThenAnswer);
     await passUntil(drivePass, () => assistantAnswered(1), 'the Assistant never answered its first message');
     await openBlockedIncident();
     await passUntil(drivePass, () => openIncidents()[0]?.deliveredInTurn?.chatSequence === 2, 'the incident was never delivered as chat 2');

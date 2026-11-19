@@ -11,10 +11,16 @@ export interface HelloFrame { kind: 'hello'; requiredProtocolVersion: number; se
 
 export interface LeaseRenewalFrame { kind: 'lease-renewal'; frameId: number; renewer: LeaseRenewer }
 export interface LaunchFrame       { kind: 'launch'; frameId: number; launch: ChildLaunch }
-export type ChildInput = { act: 'write-line'; line: string } | { act: 'close' };
+/** What Talos does to an agent's input as it stands. */
+export type AppliedInput = { act: 'write-line'; line: string } | { act: 'close' };
+/** `quit-at-turn-end` asks Talos to apply the launch's own `quitAtTurnEnd`, so the client never names how an agent is asked to stop. */
+export type ChildInput = AppliedInput | { act: 'quit-at-turn-end' };
 export interface InputFrame        { kind: 'input'; frameId: number; childId: string; input: ChildInput }
-/** The line of an event-log entry of origin `client`: what Talos did to an agent's input or process, appended before it acts. */
-export type ClientEntry = ChildInput | { act: 'stop'; graceMilliseconds: number };
+/**
+ * The line of an event-log entry of origin `client`: what Talos did to an agent's input or process, appended before it acts. A
+ * `quit-at-turn-end` is logged as the act Talos applied for it, never as itself.
+ */
+export type ClientEntry = AppliedInput | { act: 'stop'; graceMilliseconds: number };
 export interface StopFrame         { kind: 'stop'; frameId: number; childId: string; graceMilliseconds: number }
 export interface StopLinesFrame    { kind: 'stop-lines'; frameId: number }
 export interface QuitFrame         { kind: 'quit'; frameId: number; reason: 'restart' }
@@ -42,7 +48,7 @@ export interface WelcomeFrame {
 }
 
 export type FrameRefusalReason =
-  | 'malformed-launch' | 'folder-outside-board' | 'unknown-child' | 'child-ended' | 'kind-takes-no-input' | 'quitting';
+  | 'malformed-launch' | 'folder-outside-board' | 'unknown-child' | 'child-ended' | 'kind-takes-no-input' | 'no-quit-act' | 'quitting';
 export type DoneFrame =
   | { kind: 'done'; frameId: number; verdict: 'done' | 'already-done' }
   | { kind: 'done'; frameId: number; verdict: 'refused'; reason: FrameRefusalReason };
