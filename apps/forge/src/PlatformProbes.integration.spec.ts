@@ -1,7 +1,8 @@
 /**
  * Holds `.platform-probes/` through the one way it is run: the whole folder under `process.execPath`, with a scratch stub as the Claude program,
- * so no real session starts. What matters: every script yields one line of the agreed shape, an applicable line and an inapplicable line both;
- * and a line records and never judges. `src/PlatformProbes.spec.ts` holds what the folder holds as files.
+ * so no real session starts, and one as the gpgconf program, so no probe reaches the host GnuPG. What matters: every script yields one line of
+ * the agreed shape, an applicable line and an inapplicable line both; and a line records and never judges. `src/PlatformProbes.spec.ts` holds
+ * what the folder holds as files.
  */
 import {
   chmodSync,
@@ -70,6 +71,14 @@ let scratchFolder = '';
 let stubCallsFile = '';
 let resultsFolder = '';
 
+/** Names a socket in the scratch folder for each directory asked, as gpgconf names the host's; the trap on `PATH` stays untouched. */
+function writeGpgconfStub(folder: string): string {
+  const stubPath = join(folder, 'gpgconf-stub');
+  writeFileSync(stubPath, `#!/bin/sh\necho '${join(folder, 'gnupg')}/'"$2"\n`);
+  chmodSync(stubPath, EXECUTABLE_FILE_MODE);
+  return stubPath;
+}
+
 function writeClaudeStub(folder: string, callsFile: string): string {
   const sourcePath = join(folder, 'claude-stub-source.mjs');
   const stubPath = join(folder, 'claude-stub');
@@ -113,7 +122,7 @@ describe('the platform probes', () => {
     scratchFolder = createCanonicalScratchDirectory('platform-probes');
     stubCallsFile = join(scratchFolder, 'stub-calls.jsonl');
     resultsFolder = join(scratchFolder, 'results');
-    stubRun = await runAll(['--claude-program', writeClaudeStub(scratchFolder, stubCallsFile)]);
+    stubRun = await runAll(['--claude-program', writeClaudeStub(scratchFolder, stubCallsFile), '--gpgconf-program', writeGpgconfStub(scratchFolder)]);
   }, WHOLE_RUN_TIMEOUT_MILLISECONDS);
 
   afterAll(() => {
@@ -151,7 +160,7 @@ describe('the platform probes', () => {
     for (const verdict of stubRun.verdicts) expect(JSON.stringify(verdict.observed)).not.toMatch(judgementKey);
   });
 
-  test('every session went to the stub through the flag, the trap on PATH saw none, and the numbered probes used stream-json', () => {
+  test('every session went to the stub through the flag, no trap on PATH saw a call, and the numbered probes used stream-json', () => {
     expect(takeTrappedProgramAttempts()).toEqual([]);
     const calls = readFileSync(stubCallsFile, 'utf8').trim().split('\n').map((line) => JSON.parse(line) as string[]);
     expect(calls.length).toBeGreaterThanOrEqual(probeScriptNames().filter((name) => name.startsWith('claude-p')).length);

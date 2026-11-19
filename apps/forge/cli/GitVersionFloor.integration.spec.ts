@@ -46,7 +46,7 @@ const BELOW_THE_FLOOR = 'git version 2.37.1';
 describeWhenGitIsRecorded('the git floor', () => {
   const refusedStages: Array<[commandLine: string[], stage: RecordedGitStage]> = [
     [['init'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
-    [['oversee', '--port', '0'], withTheVersion([GIT_VERSION], BELOW_THE_FLOOR)],
+    [['oversee', '--port', '0'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
   ];
 
   test.each(refusedStages)('`%p` below git 2.38 refuses with the floor and the version found, and writes no tracker', async (commandLine, recordedGitStage) => {

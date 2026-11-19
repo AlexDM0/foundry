@@ -24,6 +24,7 @@ quota. `claude-p22` spends one Haiku turn of Flint's brain. A whole run takes up
 | Option | Meaning |
 | --- | --- |
 | `--claude-program <path>` | The Claude program the host probes run. |
+| `--gpgconf-program <path>` | The gpgconf `claude-p14` asks for the GnuPG sockets; default the one on `PATH`. The spec passes a scratch stub, since no spec may reach the host GnuPG. |
 | `--only <text>` | Run only the scripts whose file name holds the text. |
 | `--results-folder <folder>` | Where the verdicts and the stream fixture go; default `.platform-probes/results/<os>-<architecture>/`, git-ignored. |
 | `--record-wire <folder>` | Save the stream-json lines of the sessions the fake agent plays, one `<scenario>.json` each; `bun run record src/testing/fake-agent/` passes it. |

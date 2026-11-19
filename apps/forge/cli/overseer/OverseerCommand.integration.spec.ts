@@ -41,7 +41,7 @@ import { stopProcessesReachingInto }                      from '../../src/testin
 import { type RecordedGitStage, useRecordedGit }          from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
+import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
 import {
   type AgentProgressResult,
   runAgentProgressBesideRecordedGit,
@@ -109,17 +109,29 @@ function plantDeadBaton(generation: number): void {
   }));
 }
 
+interface JobOnTheBoard {
+  id:              string;
+  watcherInstance: number;
+}
+
+function jobsOnTheBoard(): readonly JobOnTheBoard[] {
+  const progress = JSON.parse(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8')) as { jobs?: JobOnTheBoard[] };
+  return progress.jobs ?? [];
+}
+
 /**
- * The orchestrator's Watcher, claimed by this process. Under a macOS temp path the scratch home is too long for a socket, so the Overseer launches
- * none; the monitor folder here is short enough.
+ * The Watcher of the job the board lists now, claimed by this process. Each Overseer generation replaces a job whose Watcher never came up,
+ * so a fixed job id would name a job a later generation no longer lists. Under a macOS temp path the scratch home is too long for a socket,
+ * so the Overseer launches none; the monitor folder here is short enough.
  */
-function plantedOrchestratorEventLogPath(): string {
+async function plantedEventLogPathOfTheListedJob(): Promise<string> {
+  const listedJob = await firstValueOf(() => jobsOnTheBoard()[0], () => `the board listing a job:\n${overseerLogText()}`);
   const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
   shortMonitorFolder = createScratchDirectory('m');
   PlantedWatcher.plantLiveWatcher({
-    trackerDirectory, monitorFolder: shortMonitorFolder, jobId: 'J1', instance: 1
+    trackerDirectory, monitorFolder: shortMonitorFolder, jobId: listedJob.id, instance: listedJob.watcherInstance
   });
-  return watcherFilesOf(join(trackerDirectory, 'jobs', 'J1'), 1).eventLogPath;
+  return watcherFilesOf(join(trackerDirectory, 'jobs', listedJob.id), listedJob.watcherInstance).eventLogPath;
 }
 
 /** The isolation check here asks git for the root of each scratch folder it is handed that holds no tracker and lies in no repository. */
@@ -378,8 +390,8 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
     const batonBefore = batonOf('baton-1.json');
-    // The successor reads every claimed Watcher's event log before it reports ready: a malformed line in the orchestrator's fails that step.
-    appendFileSync(plantedOrchestratorEventLogPath(), 'not an event\n');
+    // The successor reads every claimed Watcher's event log before it reports ready: a malformed line in the listed job's fails that step.
+    appendFileSync(await plantedEventLogPathOfTheListedJob(), 'not an event\n');
 
     const restarted = await runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(restarted.exitCode, `${restarted.standardError}\n${overseerLogText()}`).toBe(1);
@@ -413,7 +425,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(batonFileNames()).toEqual(['baton-2.json']);
 
     writeFileSync(join(overseerDirectory(), 'baton-2.json'), `${JSON.stringify({ ...batonOf('baton-2.json'), codeVersion: 'code-older' })}\n`);
-    appendFileSync(plantedOrchestratorEventLogPath(), 'not an event\n');
+    appendFileSync(await plantedEventLogPathOfTheListedJob(), 'not an event\n');
     const manifestPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'version.json');
     rmSync(manifestPath);
     const failed = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });

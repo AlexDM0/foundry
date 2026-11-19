@@ -1,6 +1,6 @@
 // Runs every probe in this folder, one after the other, and prints one JSON line per script. A script that dies or
 // prints no verdict gets a line recording what it did, so the run always shows every script and always exits 0.
-// Usage: bun .platform-probes/run-all.js [--claude-program <path>] [--only <text>] [--results-folder <folder>]
+// Usage: bun .platform-probes/run-all.js [--claude-program <path>] [--gpgconf-program <path>] [--only <text>] [--results-folder <folder>]
 import { appendFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

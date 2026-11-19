@@ -20,6 +20,11 @@ export function claudeProgramOption() {
   return optionValue('--claude-program');
 }
 
+/** The gpgconf a probe asks for the GnuPG sockets: `--gpgconf-program` when given, so a spec can stand in for the host's GnuPG. */
+export function gpgconfProgramOption() {
+  return optionValue('--gpgconf-program');
+}
+
 /** The seconds a probe waits after a session's last `result` for a turn that should not come; a spec's stub passes 0. */
 export function settleMilliseconds(defaultSeconds) {
   return Number(optionValue('--settle-seconds') ?? defaultSeconds) * 1000;

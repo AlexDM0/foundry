@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { observedSession, rootAnchored, sandboxSettingsOf, writeJsonFile } from './support/claude-session.js';
-import { probe } from './support/probe.js';
+import { gpgconfProgramOption, probe } from './support/probe.js';
 import { programPathOf, runProgram } from './support/programs.js';
 import { createLinkedRepository, git, scratchFolder } from './support/scratch.js';
 
@@ -30,9 +30,10 @@ function attemptsScriptOf({ common, otherAdminFolder, ownAdminFolder }) {
 }
 
 async function gpgSocketPaths() {
-  if (programPathOf('gpgconf') === null) return null;
-  const agentSocket = await runProgram(['gpgconf', '--list-dirs', 'agent-socket']);
-  const keyboxdSocket = await runProgram(['gpgconf', '--list-dirs', 'keyboxd-socket']);
+  const gpgconfProgram = gpgconfProgramOption() ?? programPathOf('gpgconf');
+  if (gpgconfProgram === null) return null;
+  const agentSocket = await runProgram([gpgconfProgram, '--list-dirs', 'agent-socket']);
+  const keyboxdSocket = await runProgram([gpgconfProgram, '--list-dirs', 'keyboxd-socket']);
   return [agentSocket.stdout?.trim(), keyboxdSocket.stdout?.trim()].filter(Boolean);
 }
 
